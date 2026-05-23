@@ -1,0 +1,23 @@
+/* Field form wrapper */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.required {
+  color: var(--red);
+  margin-right: 2px;
+}
+
+.labelHint {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 12px;
+}

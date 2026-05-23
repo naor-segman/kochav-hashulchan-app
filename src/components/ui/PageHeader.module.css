@@ -1,0 +1,35 @@
+/* PageHeader */
+.pageHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 22px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.titleWrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.pageTitle {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+.icon {
+  color: var(--accent);
+}
+
+.pageSub {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+.aside {
+  flex-shrink: 0;
+}

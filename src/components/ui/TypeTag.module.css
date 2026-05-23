@@ -1,0 +1,10 @@
+/* TypeTag — table type label */
+.typeTag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 2px 7px;
+  display: inline-block;
+}

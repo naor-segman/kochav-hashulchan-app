@@ -1,0 +1,24 @@
+/* EmptyState placeholder */
+.empty {
+  text-align: center;
+  padding: 44px 20px;
+  color: var(--muted);
+}
+
+.emptyIcon {
+  font-size: 34px;
+  margin-bottom: 10px;
+  opacity: 0.3;
+}
+
+.emptyTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 5px;
+}
+
+.emptyText {
+  font-size: 14px;
+  line-height: 1.6;
+}

@@ -1,0 +1,37 @@
+/* NextStep footer banner */
+.nextBanner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--accent-bg);
+  border: 1px solid #E2C49A;
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-top: 18px;
+  gap: 14px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow);
+}
+
+.nextLabel {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.nextHint {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(190, 122, 56, 0.28);
+}

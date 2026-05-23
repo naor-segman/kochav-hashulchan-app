@@ -1,0 +1,15 @@
+/* CapBar — capacity fill bar */
+.wrap {
+  width: 52px;
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
