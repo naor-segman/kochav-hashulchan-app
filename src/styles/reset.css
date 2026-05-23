@@ -16,8 +16,8 @@ body {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-regular);
   line-height: var(--line-height-normal);
-  color: var(--color-text-primary);
-  background-color: var(--color-surface);
+  color: var(--text);
+  background-color: var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   direction: rtl;
@@ -62,4 +62,21 @@ p {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+/* V1 global interaction rules */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+button:not(:disabled):active {
+  transform: scale(.97);
+}
+
+select option:disabled {
+  color: #bbb;
 }

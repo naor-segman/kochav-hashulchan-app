@@ -1,0 +1,19 @@
+/* V1 keyframe animations — migrated from V1 styleTag injection */
+
+/* Screen entrance — used on .page wrapper in every screen */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Toast entrance — translateX(50%) because toast is centered via left:50% transform */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px) translateX(50%); }
+  to   { opacity: 1; transform: translateX(50%); }
+}
+
+/* Nav badge pulse — defined in V1, reserved for future use */
+@keyframes badgePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .55; }
+}
