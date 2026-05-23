@@ -65,6 +65,8 @@
   color: var(--text2);
   margin-bottom: 28px;
   line-height: 1.6;
+  max-width: 52ch;
+  margin-inline: auto;
 }
 
 .heroCta {
@@ -221,4 +223,6 @@
   color: var(--text2);
   margin-bottom: 24px;
   line-height: 1.6;
+  max-width: 48ch;
+  margin-inline: auto;
 }

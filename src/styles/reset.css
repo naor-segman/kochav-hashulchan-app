@@ -54,10 +54,6 @@ h1, h2, h3, h4, h5, h6 {
   line-height: var(--line-height-tight);
 }
 
-p {
-  max-width: 65ch;
-}
-
 #root {
   min-height: 100dvh;
   display: flex;

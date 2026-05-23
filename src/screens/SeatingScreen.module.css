@@ -3,7 +3,7 @@
 .unassignedCard {
   background: #fffdf0;
   border: 1px solid var(--warn-border);
-  border-inline-end: 4px solid var(--warn);
+  border-inline-start: 4px solid var(--warn);
   border-radius: var(--radius-lg);
   padding: 16px;
   margin-bottom: 14px;

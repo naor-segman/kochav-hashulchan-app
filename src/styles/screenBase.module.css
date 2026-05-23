@@ -20,7 +20,7 @@
 
 .cardDirty {
   border-color: var(--warn);
-  border-inline-end-width: 3px;
+  border-inline-start-width: 3px;
 }
 
 .cardEdit {

@@ -473,7 +473,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => {
-                      setForm({ name: g.name, side: g.side, group: g.group, phone: g.phone || "", notes: g.notes || "" });
+                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "" });
                       setEditId(g.id);
                       window.scrollTo(0, 0);
                     }}>
