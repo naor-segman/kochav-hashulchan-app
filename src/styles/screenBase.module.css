@@ -1,0 +1,507 @@
+/* Shared screen-level styles for all app screens */
+
+/* Page wrapper */
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 20px;
+  animation: fadeUp 0.2s ease;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+.cardDirty {
+  border-color: var(--warn);
+  border-inline-end-width: 3px;
+}
+
+.cardEdit {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* Grids */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.batchGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 600px) {
+  .batchGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Form elements */
+.input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text);
+  direction: rtl;
+  transition: border-color 0.15s;
+}
+
+.select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text);
+  direction: rtl;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text);
+  direction: rtl;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.7;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.fieldHint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Buttons */
+.btnPrimary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(190, 122, 56, 0.28);
+}
+
+.btnSecondary {
+  background: var(--surface);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btnSm {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.btnGhost {
+  background: var(--bg);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+}
+
+.btnDanger {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+}
+
+/* Pills group */
+.pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* Section label sub-text */
+.labelSub {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
+/* Segmented control */
+.seg {
+  display: flex;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.segBtn {
+  flex: 1;
+  background: var(--bg);
+  border: none;
+  cursor: pointer;
+  padding: 9px 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  transition: background 0.15s, color 0.15s;
+}
+
+.segBride {
+  background: #f2e8f0;
+  color: var(--bride);
+  font-weight: 700;
+}
+
+.segGroom {
+  background: #e8eff8;
+  color: var(--groom);
+  font-weight: 700;
+}
+
+.segTog {
+  background: var(--green-bg);
+  color: var(--green);
+  font-weight: 700;
+}
+
+.segApart {
+  background: var(--red-bg);
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* Filter bar */
+.filterBar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.filterCount {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Guest list */
+.gList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.gRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.gRowActive {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.gInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gName {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gMeta {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gCountBadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid #e5c99a;
+  border-radius: 20px;
+  padding: 0 6px;
+  margin-inline-end: 6px;
+  vertical-align: middle;
+}
+
+.tagSeated {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+  border-radius: 20px;
+  padding: 2px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tagUnseated {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Action bar */
+.actionBar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+/* Table grid (table builder) */
+.tableGrid {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tRow {
+  display: grid;
+  grid-template-columns: 1fr 68px 80px 80px 140px;
+  gap: 6px;
+  align-items: center;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.tHead {
+  background: var(--bg);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tRowEdit {
+  background: var(--accent-light);
+}
+
+/* Batch preview */
+.batchPreview {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 4px;
+  border: 1px dashed var(--border2);
+  line-height: 1.5;
+}
+
+/* Excel import flow */
+.importWrap {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.importStep {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.templateCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--accent-bg);
+  border: 1px solid #e5c99a;
+  border-radius: var(--radius-lg);
+  flex-wrap: wrap;
+}
+
+.templateCardIcon {
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.templateCardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.templateCardSub {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+.downloadLink {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(190, 122, 56, 0.28);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.importDropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.importDropzoneIcon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.importDropzoneText {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 4px;
+}
+
+.importDropzoneHint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.importPreviewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.importTh {
+  background: var(--bg);
+  padding: 7px 10px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.importTd {
+  padding: 7px 10px;
+  border-bottom: 0.5px solid var(--border);
+  vertical-align: middle;
+}
+
+/* Step pills (import flow) */
+.stepPills {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.stepPill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.stepPillActive {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.stepPillSep {
+  color: var(--muted);
+  font-size: 12px;
+}

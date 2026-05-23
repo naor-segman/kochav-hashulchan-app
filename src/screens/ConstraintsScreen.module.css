@@ -1,0 +1,76 @@
+/* ConstraintsScreen-specific styles */
+
+.constraintFormRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.constraintVerb {
+  padding-bottom: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 14px;
+  gap: 10px;
+}
+
+.cRowMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.cstName {
+  font-weight: 700;
+}
+
+.cstVerb {
+  color: var(--text2);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.constraintPreview {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.constraintPreviewTog {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+
+.constraintPreviewApart {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+}

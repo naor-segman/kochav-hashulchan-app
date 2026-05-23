@@ -1,0 +1,224 @@
+/* DashboardScreen-specific styles */
+
+.hero {
+  text-align: center;
+  padding: 52px 24px 44px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(155deg, var(--surface) 0%, var(--accent-bg) 100%);
+  border: 1px solid var(--border);
+  margin-bottom: 28px;
+  box-shadow: var(--shadow);
+}
+
+.heroBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.heroBarSub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-inline-end: 6px;
+}
+
+.logoMark {
+  font-size: 19px;
+  color: var(--accent);
+}
+
+.logoName {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin-inline-end: 8px;
+}
+
+.heroEye {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.heroTitle {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.heroSub {
+  font-size: 15px;
+  color: var(--text2);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.heroCta {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 11px 24px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(190, 122, 56, 0.35);
+  display: inline-block;
+}
+
+.sectionHead {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.eventGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.eventCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eventCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eventType {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eventName {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.eventNameEmpty {
+  opacity: 0.4;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.eventDate {
+  font-size: 12px;
+  color: var(--text2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.eventProgress {
+  height: 4px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.eventProgressFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s;
+}
+
+.eventFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eventStatusLabel {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.eventChips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.eventOpenBtn {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid #e5c99a;
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+
+.emptyHero {
+  text-align: center;
+  padding: 56px 20px;
+}
+
+.emptyHeroIcon {
+  font-size: 52px;
+  opacity: 0.18;
+  margin-bottom: 14px;
+}
+
+.emptyHeroTitle {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.emptyHeroSub {
+  font-size: 14px;
+  color: var(--text2);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
