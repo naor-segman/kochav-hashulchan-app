@@ -24,3 +24,13 @@
   margin-top: 3px;
   white-space: nowrap;
 }
+
+@media (max-width: 480px) {
+  .pill {
+    padding: 5px 9px;
+    min-width: 48px;
+  }
+  .pillN {
+    font-size: 15px;
+  }
+}

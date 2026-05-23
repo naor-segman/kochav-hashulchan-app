@@ -93,6 +93,14 @@
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
+  /* Smooth momentum scroll on iOS; hide scrollbar for clean look */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.subnav::-webkit-scrollbar {
+  display: none;
 }
 
 .subnavInner {
@@ -161,4 +169,23 @@
 /* ── Main ── */
 .main {
   padding: 0 0 80px;
+}
+
+/* ── Mobile overrides ── */
+@media (max-width: 480px) {
+  /* Collapse logo to mark-only to give breadcrumb room */
+  .logoName {
+    display: none;
+  }
+
+  /* autoSave indicator not visible at this width anyway; omit */
+  .autoSave {
+    display: none;
+  }
+
+  /* Tighter tab padding so more tabs fit in the scrollable subnav */
+  .subnavBtn {
+    padding: 11px 8px;
+    font-size: 11px;
+  }
 }

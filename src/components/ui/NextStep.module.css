@@ -13,6 +13,17 @@
   box-shadow: var(--shadow);
 }
 
+@media (max-width: 480px) {
+  .nextBanner {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 .nextLabel {
   font-size: 14px;
   font-weight: 700;

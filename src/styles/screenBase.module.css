@@ -8,6 +8,12 @@
   animation: fadeUp 0.2s ease;
 }
 
+@media (max-width: 400px) {
+  .page {
+    padding: 20px 14px;
+  }
+}
+
 /* Cards */
 .card {
   background: var(--surface);
@@ -34,6 +40,12 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+@media (max-width: 480px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
 }
 
 .batchGrid {
@@ -64,6 +76,7 @@
 
 .select {
   width: 100%;
+  max-width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -340,6 +353,18 @@
   padding: 9px 14px;
   border-bottom: 1px solid var(--border);
   font-size: 14px;
+}
+
+/* The 5-column tRow grid exceeds ~375px viewport. Switch tableGrid to an
+   internal horizontal scroll so all columns and buttons stay reachable. */
+@media (max-width: 600px) {
+  .tableGrid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tRow {
+    min-width: 520px;
+  }
 }
 
 .tHead {

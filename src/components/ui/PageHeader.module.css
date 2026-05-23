@@ -8,6 +8,16 @@
   flex-wrap: wrap;
 }
 
+@media (max-width: 480px) {
+  .pageHead {
+    margin-bottom: 16px;
+    gap: 8px;
+  }
+  .pageTitle {
+    font-size: 19px;
+  }
+}
+
 .titleWrap {
   flex: 1;
   min-width: 0;

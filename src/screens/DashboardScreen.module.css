@@ -82,6 +82,23 @@
   display: inline-block;
 }
 
+@media (max-width: 480px) {
+  .hero {
+    padding: 36px 18px 30px;
+  }
+  .heroTitle {
+    font-size: 26px;
+  }
+  .heroSub {
+    font-size: 14px;
+  }
+  .heroCta {
+    width: 100%;
+    text-align: center;
+    padding: 12px 20px;
+  }
+}
+
 .sectionHead {
   font-size: 13px;
   font-weight: 700;
