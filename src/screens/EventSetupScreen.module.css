@@ -1,1 +1,13 @@
-/* EventSetupScreen — no screen-specific styles beyond shared */
+/* EventSetupScreen-specific styles */
+
+.requiredNote {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.savedNote {
+  font-size: 12px;
+  color: var(--green);
+}

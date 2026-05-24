@@ -7,6 +7,7 @@ import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
+import styles from "./EventSetupScreen.module.css";
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [form, setForm] = useState({
@@ -39,6 +40,14 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     go("tables");
   };
 
+  const saveAndNext = () => {
+    if (!form.name.trim()) { showToast("יש להזין שם לאירוע", "err"); return; }
+    if (dirty) patchEvent(form);
+    setDirty(false);
+    setSaved(true);
+    go("tables");
+  };
+
   const isWedding = form.type === "חתונה" || form.type === "אירוס";
   const isNew     = !ev.name;
 
@@ -47,7 +56,10 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
       <PageHeader
         title={isNew ? "אירוע חדש" : "פרטי האירוע"}
         icon="✦"
-        sub="מלא את הפרטים הבסיסיים. תוכל לשנות בכל עת."
+        sub={isNew
+          ? "התחל בהזנת שם האירוע — זהו השדה היחיד הנדרש. שאר הפרטים אפשר להשלים בכל עת."
+          : "עדכן את פרטי האירוע. תוכל לשנות הכל בכל שלב."
+        }
       />
 
       {dirty && (
@@ -64,6 +76,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
 
       <div className={[base.card, dirty ? base.cardDirty : ""].filter(Boolean).join(" ")}>
         <SectionLabel>פרטי האירוע</SectionLabel>
+        <p className={styles.requiredNote}>* שדה חובה</p>
 
         <div className={base.grid2}>
           <Field label="שם האירוע" required hint="ישמש לזיהוי לאורך כל המערכת">
@@ -112,11 +125,14 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         )}
 
         <div className={base.formActions}>
-          <button className={base.btnPrimary} onClick={save}>
-            {dirty ? "שמור שינויים" : (saved ? "נשמר ✓" : "שמור פרטים")}
+          <button className={base.btnPrimary} onClick={saveAndNext}>
+            שמור והמשך לשולחנות ←
+          </button>
+          <button className={base.btnSecondary} onClick={save}>
+            {dirty ? "שמור בלבד" : (saved ? "נשמר ✓" : "שמור פרטים")}
           </button>
           {saved && !dirty && (
-            <span className={base.fieldHint} style={{ color: "var(--green)" }}>עודכן בהצלחה</span>
+            <span className={styles.savedNote}>עודכן בהצלחה</span>
           )}
         </div>
       </div>
