@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase } from "../lib/supabase.js";
-import { getPlanLabel, getStatusLabel, PLAN_META, STATUS_META } from "../admin/lib/planConfig.js";
+import { getPlanLabel, getStatusLabel, getPlanLimits, PLAN_META, STATUS_META } from "../admin/lib/planConfig.js";
+import { canUseAdvancedExports, canUseAI, canUseCollaboration } from "../utils/featureGates.js";
 import styles from "./AccountScreen.module.css";
 
 function formatDate(iso) {
@@ -139,6 +140,55 @@ export default function AccountScreen() {
             </>
           )}
         </section>
+
+        {/* Plan features */}
+        {sub !== undefined && (
+          <section className={styles.section}>
+            <h2 className={styles.sectionLabel}>תכולת התוכנית</h2>
+            <div className={styles.featureGrid}>
+              {(() => {
+                const limits = getPlanLimits(planKey);
+                const rows = [
+                  {
+                    label: "אירועים",
+                    value: limits.maxEvents === Infinity ? "ללא הגבלה" : `עד ${limits.maxEvents}`,
+                  },
+                  {
+                    label: "אורחים לאירוע",
+                    value: limits.maxGuests === Infinity ? "ללא הגבלה" : `עד ${limits.maxGuests}`,
+                  },
+                  {
+                    label: "ייצוא מתקדם",
+                    included: canUseAdvancedExports(planKey).allowed,
+                    note: canUseAdvancedExports(planKey).upgradeNote,
+                  },
+                  {
+                    label: "הושבה AI",
+                    included: canUseAI(planKey).allowed,
+                    note: canUseAI(planKey).upgradeNote,
+                  },
+                  {
+                    label: "שיתוף פעולה",
+                    included: canUseCollaboration(planKey).allowed,
+                    note: canUseCollaboration(planKey).upgradeNote,
+                  },
+                ];
+                return rows.map((r, i) => (
+                  <div key={i} className={styles.featureRow}>
+                    <span className={styles.featureName}>{r.label}</span>
+                    {"value" in r ? (
+                      <span className={styles.featureVal}>{r.value}</span>
+                    ) : (
+                      <span className={r.included ? styles.featureYes : styles.featureNo}>
+                        {r.included ? "✓ כלול" : "✗ לא כלול"}
+                      </span>
+                    )}
+                  </div>
+                ));
+              })()}
+            </div>
+          </section>
+        )}
 
         {/* Actions */}
         <div className={styles.actions}>

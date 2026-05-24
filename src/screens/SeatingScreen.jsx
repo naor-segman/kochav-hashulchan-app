@@ -8,6 +8,8 @@ import {
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
+import { usePlan } from "../hooks/usePlan.js";
+import { canUseAdvancedExports, canUseAI } from "../utils/featureGates.js";
 import Banner from "../components/feedback/Banner.jsx";
 import CapBar from "../components/ui/CapBar.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -40,6 +42,8 @@ function DraggableGuestRow({ guestId, className, children }) {
 const MAX_UNDO = 20;
 
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  const { plan } = usePlan();
+
   const [expandedTable, setExpandedTable]   = useState(null);
   const [activeId, setActiveId]             = useState(null);
   const [seatingHistory, setSeatingHistory] = useState([]);
@@ -269,6 +273,18 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               </button>
             </div>
           </div>
+
+          {/* Soft upgrade tips — shown only when relevant (has data) and plan lacks the feature */}
+          {!canUseAdvancedExports(plan).allowed && (ev.guests.length > 0 || ev.tables.length > 0) && (
+            <p className={styles.upgradeTip}>
+              💡 {canUseAdvancedExports(plan).upgradeNote}
+            </p>
+          )}
+          {!canUseAI(plan).allowed && nAssigned > 0 && (
+            <p className={styles.upgradeTip}>
+              🤖 {canUseAI(plan).upgradeNote}
+            </p>
+          )}
 
           {allSeated && noProblems && (
             <div className={styles.successCard}>

@@ -149,6 +149,44 @@
 
 .backLink:hover { color: var(--text2); }
 
+/* ── Plan features grid ── */
+.featureGrid {
+  display: flex;
+  flex-direction: column;
+}
+
+.featureRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.featureRow:last-child { border-bottom: none; }
+
+.featureName {
+  color: var(--text2);
+  font-weight: 600;
+}
+
+.featureVal {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.featureYes {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.featureNo {
+  color: var(--muted);
+  font-weight: 600;
+}
+
 @media (max-width: 480px) {
   .card { padding: 28px 20px 24px; }
 }

@@ -663,6 +663,17 @@
   opacity: 0.35;
 }
 
+.upgradeTip {
+  margin: 6px 20px 0;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--accent-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius);
+  line-height: 1.5;
+}
+
 .printBtn {
   margin-inline-start: 4px;
 }
