@@ -1,0 +1,154 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 36px 32px 28px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.brandMark { font-size: 22px; color: var(--accent); }
+.brandName { font-size: 18px; font-weight: 900; color: var(--text); letter-spacing: -0.02em; }
+
+.title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+/* ── Section ── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 4px;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.infoRow:last-child { border-bottom: none; }
+
+.infoKey {
+  font-size: 13px;
+  color: var(--text2);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.infoVal {
+  font-size: 13px;
+  color: var(--text);
+  text-align: end;
+  word-break: break-all;
+}
+
+.loadingText {
+  font-size: 13px;
+  color: var(--muted);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── Badge ── */
+.badge {
+  display: inline-block;
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.noSubNote {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  font-style: italic;
+}
+
+/* ── Actions ── */
+.actions {
+  display: flex;
+  justify-content: center;
+}
+
+.signOutBtn {
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 9px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.signOutBtn:hover:not(:disabled) {
+  background: var(--red-bg);
+  border-color: var(--red-border);
+  color: var(--red);
+}
+
+.signOutBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.backLink {
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  text-align: center;
+  transition: color 0.12s;
+}
+
+.backLink:hover { color: var(--text2); }
+
+@media (max-width: 480px) {
+  .card { padding: 28px 20px 24px; }
+}

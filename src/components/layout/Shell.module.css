@@ -100,6 +100,47 @@
   letter-spacing: 0.01em;
 }
 
+/* ── Account button (topbar right) ── */
+.accountBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  max-width: 140px;
+  overflow: hidden;
+  margin-inline-start: auto;
+}
+
+.accountBtn:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.accountIcon { font-size: 13px; flex-shrink: 0; }
+
+.accountLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .accountLabel { display: none; }
+  .accountBtn { padding: 5px 8px; }
+}
+
 /* ── Subnav ── */
 .subnav {
   background: var(--surface);

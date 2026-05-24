@@ -1,0 +1,119 @@
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth.js";
+import { isSupabaseConfigured } from "../lib/supabase.js";
+import styles from "./LoginScreen.module.css";
+
+function friendlyError(message) {
+  const m = message.toLowerCase();
+  if (m.includes("invalid login credentials")) return "אימייל או סיסמה שגויים.";
+  if (m.includes("email not confirmed"))        return "יש לאשר את כתובת האימייל תחילה.";
+  if (m.includes("too many requests"))          return "יותר מדי ניסיונות. נסה שוב מאוחר יותר.";
+  if (m.includes("network") || m.includes("fetch failed")) return "שגיאת חיבור. נסה שוב.";
+  return message;
+}
+
+export default function LoginScreen() {
+  const { user, loading, signIn } = useAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const from      = location.state?.from || "/account";
+
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [error,    setError]    = useState(location.state?.error || "");
+  const [busy,     setBusy]     = useState(false);
+
+  // Already logged in → redirect
+  useEffect(() => {
+    if (!loading && user) navigate(from, { replace: true });
+  }, [loading, user, navigate, from]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      await signIn(email.trim(), password);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(friendlyError(err.message));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.card}>
+
+        <div className={styles.brand}>
+          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandName}>כוכב השולחן</span>
+        </div>
+
+        <h1 className={styles.title}>כניסה לחשבון</h1>
+
+        {!isSupabaseConfigured && (
+          <div className={styles.noticeWarn}>
+            המערכת לא מוגדרת לחיבור לשרת. הכניסה אינה זמינה כרגע.
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className={styles.form} noValidate>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="login-email">אימייל</label>
+            <input
+              id="login-email"
+              className={styles.input}
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              dir="ltr"
+              autoComplete="email"
+              disabled={!isSupabaseConfigured || busy}
+              required
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="login-pw">סיסמה</label>
+            <input
+              id="login-pw"
+              className={styles.input}
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              dir="ltr"
+              autoComplete="current-password"
+              disabled={!isSupabaseConfigured || busy}
+              required
+            />
+          </div>
+
+          {error && <p className={styles.errorMsg}>{error}</p>}
+
+          <button
+            type="submit"
+            className={styles.submitBtn}
+            disabled={!isSupabaseConfigured || busy || !email || !password}
+          >
+            {busy ? "מתחבר…" : "כניסה"}
+          </button>
+        </form>
+
+        <p className={styles.switchLine}>
+          אין לך חשבון?{" "}
+          <Link to="/signup" className={styles.switchLink}>הרשמה</Link>
+        </p>
+
+        <Link to="/" className={styles.backLink}>← חזרה לאפליקציה</Link>
+
+      </div>
+    </div>
+  );
+}

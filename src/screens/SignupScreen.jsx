@@ -1,0 +1,171 @@
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth.js";
+import { isSupabaseConfigured } from "../lib/supabase.js";
+import styles from "./LoginScreen.module.css"; // shares layout styles
+
+function friendlyError(message) {
+  const m = message.toLowerCase();
+  if (m.includes("user already registered") || m.includes("already been registered"))
+    return "כתובת אימייל זו כבר רשומה. נסה להתחבר.";
+  if (m.includes("password") && m.includes("6"))
+    return "הסיסמה חייבת להכיל לפחות 6 תווים.";
+  if (m.includes("too many requests"))
+    return "יותר מדי ניסיונות. נסה שוב מאוחר יותר.";
+  if (m.includes("network") || m.includes("fetch failed"))
+    return "שגיאת חיבור. נסה שוב.";
+  return message;
+}
+
+export default function SignupScreen() {
+  const { user, loading, signUp } = useAuth();
+  const navigate = useNavigate();
+
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm,  setConfirm]  = useState("");
+  const [error,    setError]    = useState("");
+  const [busy,     setBusy]     = useState(false);
+  const [done,     setDone]     = useState(false); // email confirmation sent
+
+  useEffect(() => {
+    if (!loading && user) navigate("/account", { replace: true });
+  }, [loading, user, navigate]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (password !== confirm) {
+      setError("הסיסמאות אינן תואמות.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("הסיסמה חייבת להכיל לפחות 6 תווים.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const { needsConfirmation } = await signUp(email.trim(), password);
+      if (needsConfirmation) {
+        setDone(true);
+      } else {
+        navigate("/account", { replace: true });
+      }
+    } catch (err) {
+      setError(friendlyError(err.message));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) return null;
+
+  if (done) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.card}>
+          <div className={styles.brand}>
+            <span className={styles.brandMark}>✦</span>
+            <span className={styles.brandName}>כוכב השולחן</span>
+          </div>
+          <h1 className={styles.title}>בדוק את האימייל שלך</h1>
+          <p style={{ textAlign: "center", color: "var(--text2)", fontSize: 14, margin: 0 }}>
+            שלחנו קישור אישור לכתובת <strong>{email}</strong>.
+            לחץ על הקישור כדי להפעיל את החשבון.
+          </p>
+          <Link to="/login" className={styles.backLink}>← חזרה לכניסה</Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.card}>
+
+        <div className={styles.brand}>
+          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandName}>כוכב השולחן</span>
+        </div>
+
+        <h1 className={styles.title}>הרשמה</h1>
+
+        {!isSupabaseConfigured && (
+          <div className={styles.noticeWarn}>
+            המערכת לא מוגדרת לחיבור לשרת. ההרשמה אינה זמינה כרגע.
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className={styles.form} noValidate>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="signup-email">אימייל</label>
+            <input
+              id="signup-email"
+              className={styles.input}
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              dir="ltr"
+              autoComplete="email"
+              disabled={!isSupabaseConfigured || busy}
+              required
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="signup-pw">סיסמה</label>
+            <input
+              id="signup-pw"
+              className={styles.input}
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="לפחות 6 תווים"
+              dir="ltr"
+              autoComplete="new-password"
+              disabled={!isSupabaseConfigured || busy}
+              required
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="signup-confirm">אימות סיסמה</label>
+            <input
+              id="signup-confirm"
+              className={styles.input}
+              type="password"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              placeholder="הזן שוב את הסיסמה"
+              dir="ltr"
+              autoComplete="new-password"
+              disabled={!isSupabaseConfigured || busy}
+              required
+            />
+          </div>
+
+          {error && <p className={styles.errorMsg}>{error}</p>}
+
+          <button
+            type="submit"
+            className={styles.submitBtn}
+            disabled={!isSupabaseConfigured || busy || !email || !password || !confirm}
+          >
+            {busy ? "יוצר חשבון…" : "הרשמה"}
+          </button>
+        </form>
+
+        <p className={styles.switchLine}>
+          כבר יש לך חשבון?{" "}
+          <Link to="/login" className={styles.switchLink}>כניסה</Link>
+        </p>
+
+        <Link to="/" className={styles.backLink}>← חזרה לאפליקציה</Link>
+
+      </div>
+    </div>
+  );
+}

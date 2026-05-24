@@ -1,5 +1,7 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { computeViolations } from "../../logic/seating.js";
+import { useAuth } from "../../hooks/useAuth.js";
 import NavBadge from "../navigation/NavBadge.jsx";
 import styles from "./Shell.module.css";
 
@@ -12,6 +14,7 @@ const NAV = [
 ];
 
 export default function Shell({ screen, activeEvent, go, children }) {
+  const { user, loading: authLoading } = useAuth();
   const inEvent = !!activeEvent && screen !== "dashboard";
 
   const violationCount = useMemo(() => {
@@ -52,6 +55,20 @@ export default function Shell({ screen, activeEvent, go, children }) {
         )}
 
         {showAutoSave && <span className={styles.autoSave}>✓ נשמר</span>}
+
+        {!authLoading && (
+          user
+            ? (
+              <Link to="/account" className={styles.accountBtn} title={user.email}>
+                <span className={styles.accountIcon}>👤</span>
+                <span className={styles.accountLabel}>{user.email.split("@")[0]}</span>
+              </Link>
+            ) : (
+              <Link to="/login" className={styles.accountBtn}>
+                כניסה
+              </Link>
+            )
+        )}
       </header>
 
       {inEvent && (
