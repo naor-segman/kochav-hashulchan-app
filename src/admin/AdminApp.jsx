@@ -3,6 +3,7 @@ import AdminGuard           from "./AdminGuard.jsx";
 import AdminLoginScreen     from "./screens/AdminLoginScreen.jsx";
 import AdminDashboardScreen from "./screens/AdminDashboardScreen.jsx";
 import AdminUsersScreen     from "./screens/AdminUsersScreen.jsx";
+import AdminEventsScreen    from "./screens/AdminEventsScreen.jsx";
 
 // ── AdminApp ──────────────────────────────────────────────────────────────────
 //
@@ -38,6 +39,14 @@ export default function AdminApp() {
         element={
           <AdminGuard>
             <AdminUsersScreen />
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="events"
+        element={
+          <AdminGuard>
+            <AdminEventsScreen />
           </AdminGuard>
         }
       />
