@@ -2,13 +2,18 @@ import { useState, useEffect } from "react";
 import styles from "./SuggestionsPanel.module.css";
 
 const SEVERITY_ICON = { critical: "🔴", warning: "⚡", info: "💡" };
-const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2 };
 
 function hasCriticalOrWarning(suggestions) {
   return suggestions.some(s => s.severity === "critical" || s.severity === "warning");
 }
 
-export default function SuggestionsPanel({ suggestions }) {
+/**
+ * @param {object[]} suggestions  Output of generateSuggestions()
+ * @param {function} [onApply]    Called with the suggestion when "החל" is clicked.
+ *                                Confirmation + toast are handled by the caller.
+ *                                Only called for suggestions with canApply = true.
+ */
+export default function SuggestionsPanel({ suggestions, onApply }) {
   const [open, setOpen] = useState(() => hasCriticalOrWarning(suggestions));
 
   // Auto-open when new critical/warning suggestions appear
@@ -62,26 +67,35 @@ export default function SuggestionsPanel({ suggestions }) {
             </div>
           ) : (
             <ul className={styles.list}>
-              {suggestions.map((s, i) => (
+              {suggestions.map(s => (
                 <li
-                  key={i}
+                  key={s.id}
                   className={[styles.row, styles["row_" + s.severity]].join(" ")}
                 >
                   <span className={styles.rowIcon} aria-hidden="true">
                     {SEVERITY_ICON[s.severity]}
                   </span>
                   <div className={styles.rowContent}>
-                    <span className={styles.rowText}>{s.text}</span>
-                    {s.action && (
-                      <span className={styles.rowAction}>{s.action}</span>
+                    <span className={styles.rowText}>{s.explanation}</span>
+                    {s.recommendedAction && (
+                      <span className={styles.rowAction}>{s.recommendedAction}</span>
                     )}
                   </div>
+                  {s.canApply && onApply && (
+                    <button
+                      className={styles.applyBtn}
+                      onClick={() => onApply(s)}
+                      title="החל פעולה זו (תוצג אישור לפני הביצוע)"
+                    >
+                      החל
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           )}
           <p className={styles.disclaimer}>
-            ההצעות הן מידע בלבד — אין שינוי אוטומטי בהושבה.
+            ההצעות הן מידע בלבד — כל החלה מצריכה אישורך.
           </p>
         </div>
       )}

@@ -137,6 +137,37 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     showToast("השינוי בוטל ✓");
   };
 
+  const handleApplySuggestion = (suggestion) => {
+    const { applyAction } = suggestion;
+    if (!applyAction) return;
+
+    let confirmMsg = "";
+    if (applyAction.type === "unassignGuest") {
+      confirmMsg = `להחזיר את ${applyAction.guestName} מ${applyAction.tableName} לרשימת הממתינים?`;
+    } else if (applyAction.type === "moveGuest") {
+      confirmMsg = `להעביר את ${applyAction.guestName} מ${applyAction.fromTableName} ל${applyAction.toTableName}?`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    pushHistory();
+
+    if (applyAction.type === "unassignGuest") {
+      patchEvent(e => {
+        const s = Object.assign({}, e.seating);
+        delete s[applyAction.guestId];
+        return Object.assign({}, e, { seating: s });
+      });
+      showToast(applyAction.guestName + " הוחזר לרשימת הממתינים ✓");
+    } else if (applyAction.type === "moveGuest") {
+      patchEvent(e => {
+        const s = Object.assign({}, e.seating, { [applyAction.guestId]: applyAction.toTableId });
+        return Object.assign({}, e, { seating: s });
+      });
+      showToast(applyAction.guestName + " הועבר ל" + applyAction.toTableName + " ✓");
+    }
+  };
+
   const handlePrint = (mode) => {
     setPrintMode(mode);
     setTimeout(() => { window.print(); setPrintMode("full"); }, 60);
@@ -336,7 +367,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           )}
 
           {(ev.guests.length > 0 && ev.tables.length > 0) && (
-            <SuggestionsPanel suggestions={suggestions} />
+            <SuggestionsPanel suggestions={suggestions} onApply={handleApplySuggestion} />
           )}
 
           {(unassigned.length > 0 || !!activeId) && (
