@@ -6,7 +6,7 @@ import {
   useSensor, useSensors,
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
-import { generateSuggestions } from "../logic/seatingAnalysis.js";
+import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import { usePlan } from "../hooks/usePlan.js";
@@ -61,9 +61,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     [ev.guests, ev.tables, ev.constraints, ev.seating]
   );
 
+  const qualityScore = useMemo(() =>
+    computeQualityScore(ev.guests, ev.tables, ev.constraints, ev.seating, violations),
+    [ev.guests, ev.tables, ev.constraints, ev.seating, violations]
+  );
+
   const suggestions = useMemo(() =>
-    generateSuggestions(ev.guests, ev.tables, ev.constraints, ev.seating),
-    [ev.guests, ev.tables, ev.constraints, ev.seating]
+    generateSuggestions(ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore),
+    [ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore]
   );
 
   const unassigned     = ev.guests.filter(g => !ev.seating[g.id]);
@@ -367,7 +372,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           )}
 
           {(ev.guests.length > 0 && ev.tables.length > 0) && (
-            <SuggestionsPanel suggestions={suggestions} onApply={handleApplySuggestion} />
+            <SuggestionsPanel
+              suggestions={suggestions}
+              qualityScore={qualityScore}
+              onApply={handleApplySuggestion}
+            />
           )}
 
           {(unassigned.length > 0 || !!activeId) && (
