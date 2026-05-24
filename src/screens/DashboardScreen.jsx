@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { computeViolations } from "../logic/seating.js";
+import { useState, useMemo } from "react";
 import { fmtDate } from "../utils/dateFormat.js";
 import { EVENT_TEMPLATES } from "../data/eventTemplates.js";
+import { eventHealth, dashStats, summaryMessages } from "../utils/eventAnalytics.js";
 import Chip from "../components/ui/Chip.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./DashboardScreen.module.css";
@@ -9,24 +9,13 @@ import styles from "./DashboardScreen.module.css";
 const WORKFLOW_STEPS = ["פרטי האירוע", "שולחנות", "אורחים", "אילוצים", "הושבה"];
 
 export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
-  const eventStatus = (ev) => {
-    const seated = Object.keys(ev.seating || {}).length;
-    const total  = ev.guests.length;
-    const viols  = computeViolations(ev.guests, ev.tables, ev.constraints, ev.seating).length;
-    if (!ev.name)          return { label: "ממתין להגדרה",                       color: "var(--muted)",  pct: 0,              next: "מלא את פרטי האירוע" };
-    if (!ev.tables.length) return { label: "אין שולחנות",                         color: "var(--muted)",  pct: 0,              next: "הגדר שולחנות לאולם" };
-    if (total === 0)       return { label: "טרם נוספו אורחים",                    color: "var(--muted)",  pct: 0,              next: "הוסף את רשימת האורחים" };
-    if (seated === 0)      return { label: "ממתין לסידור הושבה",                  color: "var(--warn)",   pct: 0,              next: "הרץ סידור הושבה" };
-    if (seated < total)    return { label: seated + " מתוך " + total + " שובצו", color: "var(--accent)", pct: seated / total, next: (total - seated) + " אורחים ממתינים" };
-    if (viols > 0)         return { label: "הושבה מלאה — יש הפרות",              color: "var(--warn)",   pct: 1,              next: "בדוק הפרות" };
-    return                        { label: "הושבה מלאה ✓",                       color: "var(--green)",  pct: 1,              next: null };
-  };
-
   const [showTemplates, setShowTemplates] = useState(false);
 
-  const hasEvents      = events.length > 0;
-  const mainTemplates  = EVENT_TEMPLATES.filter(t => t.id !== "empty");
-  const emptyTemplate  = EVENT_TEMPLATES.find(t => t.id === "empty");
+  const hasEvents     = events.length > 0;
+  const stats         = useMemo(() => dashStats(events), [events]);
+  const summaries     = useMemo(() => summaryMessages(stats), [stats]);
+  const mainTemplates = EVENT_TEMPLATES.filter(t => t.id !== "empty");
+  const emptyTemplate = EVENT_TEMPLATES.find(t => t.id === "empty");
 
   const openTemplate = (tpl) => {
     setShowTemplates(false);
@@ -79,36 +68,90 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
         </div>
       )}
 
+      {/* ── Global stats bar ── */}
+      {hasEvents && (
+        <div className={styles.statsBar}>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{stats.totalEvents}</span>
+            <span className={styles.statLabel}>אירועים</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statValue}>{stats.totalGuests}</span>
+            <span className={styles.statLabel}>אורחים</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={[styles.statValue, stats.seatedPct === 100 ? styles.statValueGreen : ""].filter(Boolean).join(" ")}>
+              {stats.seatedPct}%
+            </span>
+            <span className={styles.statLabel}>שובצו</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={[styles.statValue, stats.totalViols > 0 ? styles.statValueWarn : ""].filter(Boolean).join(" ")}>
+              {stats.totalViols}
+            </span>
+            <span className={styles.statLabel}>הפרות</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Smart summary banners ── */}
+      {summaries.length > 0 && (
+        <div className={styles.summaryBar}>
+          {summaries.map((m, i) => (
+            <span
+              key={i}
+              className={[
+                styles.summaryPill,
+                m.severity === "ok" ? styles.summaryPillOk : styles.summaryPillWarn,
+              ].join(" ")}
+            >
+              {m.severity === "ok" ? "✓" : "●"} {m.text}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* ── Event list ── */}
       {hasEvents && (
         <section>
           <h2 className={styles.sectionHead}>האירועים שלי ({events.length})</h2>
           <div className={styles.eventGrid}>
             {events.map(ev => {
-              const st  = eventStatus(ev);
+              const h   = eventHealth(ev);
               const cap = ev.tables.reduce((s, t) => s + t.capacity, 0);
               return (
-                <div key={ev.id} className={styles.eventCard}>
+                <div
+                  key={ev.id}
+                  className={[
+                    styles.eventCard,
+                    h.needsAttention ? styles.eventCardAttention : "",
+                  ].filter(Boolean).join(" ")}
+                >
 
                   <div className={styles.eventCardTop}>
                     <span className={styles.eventType}>{ev.type}</span>
-                    <button
-                      className={styles.deleteBtn}
-                      title="מחק אירוע"
-                      onClick={() => {
-                        const details = [];
-                        if (ev.tables.length > 0) details.push(ev.tables.length + " שולחנות");
-                        if (ev.guests.length > 0) details.push(ev.guests.length + " אורחים");
-                        const dataNote = details.length > 0
-                          ? "\n\nיימחקו: " + details.join(" ו-") + " וכל ההושבה."
-                          : "";
-                        if (!confirm(
-                          "למחוק לצמיתות את \"" + (ev.name || "אירוע ללא שם") + "\"?" +
-                          dataNote + "\n\nפעולה זו אינה ניתנת לביטול."
-                        )) return;
-                        onDeleteEvent(ev.id);
-                      }}
-                    >✕</button>
+                    <div className={styles.eventCardTopRight}>
+                      {h.needsAttention && (
+                        <span className={styles.attentionDot} title="דורש טיפול" />
+                      )}
+                      <button
+                        className={styles.deleteBtn}
+                        title="מחק אירוע"
+                        onClick={() => {
+                          const details = [];
+                          if (ev.tables.length > 0) details.push(ev.tables.length + " שולחנות");
+                          if (ev.guests.length > 0) details.push(ev.guests.length + " אורחים");
+                          const dataNote = details.length > 0
+                            ? "\n\nיימחקו: " + details.join(" ו-") + " וכל ההושבה."
+                            : "";
+                          if (!confirm(
+                            "למחוק לצמיתות את \"" + (ev.name || "אירוע ללא שם") + "\"?" +
+                            dataNote + "\n\nפעולה זו אינה ניתנת לביטול."
+                          )) return;
+                          onDeleteEvent(ev.id);
+                        }}
+                      >✕</button>
+                    </div>
                   </div>
 
                   <div className={styles.eventName}>
@@ -123,24 +166,6 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
                     </div>
                   )}
 
-                  <div className={styles.eventStatus}>
-                    <span className={styles.eventStatusDot} style={{ background: st.color }} />
-                    <span className={styles.eventStatusLabel} style={{ color: st.color }}>{st.label}</span>
-                  </div>
-
-                  {ev.guests.length > 0 && (
-                    <div className={styles.eventProgress}>
-                      <div
-                        className={styles.eventProgressFill}
-                        style={{ width: (st.pct * 100) + "%", background: st.color }}
-                      />
-                    </div>
-                  )}
-
-                  {st.next && (
-                    <div className={styles.eventNextStep}>← {st.next}</div>
-                  )}
-
                   {(ev.tables.length > 0 || cap > 0 || ev.guests.length > 0) && (
                     <div className={styles.eventChips}>
                       {ev.tables.length > 0 && <Chip icon="⬡" label={ev.tables.length + " שולחנות"} />}
@@ -148,6 +173,46 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
                       {ev.guests.length > 0 && <Chip icon="👥" label={ev.guests.length + " אורחים"} />}
                     </div>
                   )}
+
+                  {/* Progress bar with fraction label */}
+                  {h.totalSeats > 0 && (
+                    <div className={styles.progressSection}>
+                      <div className={styles.progressLabel}>
+                        <span>{h.seatedSeats} מתוך {h.totalSeats} שובצו</span>
+                        <span className={styles.progressPct}>{Math.round(h.pct * 100)}%</span>
+                      </div>
+                      <div className={styles.eventProgress}>
+                        <div
+                          className={styles.eventProgressFill}
+                          style={{
+                            width: (h.pct * 100) + "%",
+                            background: h.pct === 1 && h.viols === 0
+                              ? "var(--green)"
+                              : h.pct === 1
+                              ? "var(--warn)"
+                              : "var(--accent)",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Health indicator pills */}
+                  <div className={styles.healthPills}>
+                    {h.indicators.map(ind => (
+                      <span
+                        key={ind.key}
+                        className={[
+                          styles.healthPill,
+                          ind.severity === "ok"   ? styles.healthPillOk   :
+                          ind.severity === "warn" ? styles.healthPillWarn :
+                          styles.healthPillMuted,
+                        ].join(" ")}
+                      >
+                        {ind.label}
+                      </span>
+                    ))}
+                  </div>
 
                   <div className={styles.eventActions}>
                     <button className={styles.eventOpenBtn} onClick={() => onOpenEvent(ev.id)}>
