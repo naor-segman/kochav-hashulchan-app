@@ -43,9 +43,12 @@ const fmtDate = dateStr => {
   } catch { return dateStr; }
 };
 
+const MAX_UNDO = 20;
+
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  const [expandedTable, setExpandedTable] = useState(null);
-  const [activeId, setActiveId]           = useState(null);
+  const [expandedTable, setExpandedTable]   = useState(null);
+  const [activeId, setActiveId]             = useState(null);
+  const [seatingHistory, setSeatingHistory] = useState([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -76,9 +79,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const activeGuest = activeId ? ev.guests.find(g => g.id === activeId) : null;
 
+  const pushHistory = () => {
+    setSeatingHistory(h => [...h.slice(-(MAX_UNDO - 1)), ev.seating]);
+  };
+
   const runAuto = () => {
     if (noTables) { showToast("יש להגדיר שולחנות תחילה", "err"); return; }
     if (noGuests) { showToast("יש להוסיף אורחים תחילה", "err"); return; }
+    pushHistory();
     const newSeating = autoAssign(ev.guests, ev.tables, ev.constraints);
     patchEvent(e => Object.assign({}, e, { seating: newSeating }));
     const placed = Object.keys(newSeating).length;
@@ -92,18 +100,28 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const clearAll = () => {
     if (!confirm("לנקות את כל שיבוצי ההושבה?\n" + nAssigned + " אורחים יחזרו לרשימת הממתינים.")) return;
+    pushHistory();
     patchEvent(e => Object.assign({}, e, { seating: {} }));
     showToast("כל השיבוצים נוקו");
     setExpandedTable(null);
   };
 
   const assignGuest = (guestId, tableId) => {
+    pushHistory();
     patchEvent(e => {
       const s = Object.assign({}, e.seating);
       if (!tableId) delete s[guestId];
       else s[guestId] = tableId;
       return Object.assign({}, e, { seating: s });
     });
+  };
+
+  const undo = () => {
+    if (seatingHistory.length === 0) return;
+    const prev = seatingHistory[seatingHistory.length - 1];
+    setSeatingHistory(h => h.slice(0, -1));
+    patchEvent(e => Object.assign({}, e, { seating: prev }));
+    showToast("השינוי בוטל ✓");
   };
 
   const handleDragStart  = ({ active }) => setActiveId(active.id);
@@ -196,6 +214,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   נקה הכל
                 </button>
               )}
+              <button
+                className={[base.btnSm, base.btnGhost, styles.undoBtn].join(" ")}
+                onClick={undo}
+                disabled={seatingHistory.length === 0}
+                title={seatingHistory.length > 0 ? "בטל שינוי הושבה אחרון (" + seatingHistory.length + " זמינים)" : "אין שינויים לביטול"}
+              >
+                ↩ בטל
+              </button>
               <button
                 className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
                 onClick={() => window.print()}

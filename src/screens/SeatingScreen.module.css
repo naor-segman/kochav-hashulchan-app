@@ -528,7 +528,16 @@
   font-weight: 600;
 }
 
-/* ─── Export buttons ────────────────────────────────────────────────────── */
+/* ─── Action buttons (undo / print / excel) ─────────────────────────────── */
+.undoBtn {
+  /* Visually separated from the primary danger actions */
+  border-style: dashed;
+}
+
+.undoBtn:disabled {
+  opacity: 0.35;
+}
+
 .printBtn {
   margin-inline-start: 4px;
 }
