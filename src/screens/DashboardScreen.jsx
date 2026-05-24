@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { fmtDate } from "../utils/dateFormat.js";
-import { EVENT_TEMPLATES } from "../data/eventTemplates.js";
+import { useTemplates } from "../hooks/useTemplates.js";
 import { eventHealth, dashStats, summaryMessages } from "../utils/eventAnalytics.js";
 import Chip from "../components/ui/Chip.jsx";
 import base from "../styles/screenBase.module.css";
@@ -31,8 +31,7 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
   const hasEvents     = events.length > 0;
   const stats         = useMemo(() => dashStats(events), [events]);
   const summaries     = useMemo(() => summaryMessages(stats), [stats]);
-  const mainTemplates = EVENT_TEMPLATES.filter(t => t.id !== "empty");
-  const emptyTemplate = EVENT_TEMPLATES.find(t => t.id === "empty");
+  const { mainTemplates, emptyTemplate, source: templateSource } = useTemplates();
 
   const openTemplate = (tpl) => {
     setShowTemplates(false);
@@ -321,7 +320,12 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
         <div className={styles.tmplOverlay} onClick={() => setShowTemplates(false)}>
           <div className={styles.tmplPanel} onClick={e => e.stopPropagation()}>
             <div className={styles.tmplPanelHead}>
-              <span className={styles.tmplPanelTitle}>באיזה אירוע מדובר?</span>
+              <div className={styles.tmplTitleGroup}>
+                <span className={styles.tmplPanelTitle}>באיזה אירוע מדובר?</span>
+                {templateSource === "cloud" && (
+                  <span className={styles.tmplCloudBadge}>☁ מהמערכת</span>
+                )}
+              </div>
               <button className={styles.tmplCloseBtn} onClick={() => setShowTemplates(false)}>✕</button>
             </div>
 
