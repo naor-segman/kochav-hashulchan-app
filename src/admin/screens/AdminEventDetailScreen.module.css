@@ -459,3 +459,36 @@
   .metaGrid { grid-template-columns: 1fr 1fr; }
   .tableGrid { grid-template-columns: 1fr 1fr; }
 }
+
+/* ── Live badge ── */
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2a7a50;
+  background: #eaf6f0;
+  border: 1px solid #b2dac5;
+  border-radius: 20px;
+  padding: 2px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.liveDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2a7a50;
+  flex-shrink: 0;
+}
+
+/* ── Cloud/local ID display ── */
+.metaId {
+  font-size: 11px;
+  color: #888;
+  font-family: monospace;
+  word-break: break-all;
+}

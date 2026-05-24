@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventsScreen.module.css";
 
@@ -48,8 +48,8 @@ async function loadEventsData() {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, name, type, date, venue, guest_count, table_count, seated_pct, updated_at," +
-      " profiles!user_id(email)"
+      "id, user_id, name, type, date, venue, guest_count, table_count, seated_pct," +
+      " created_at, updated_at, profiles!user_id(email)"
     )
     .order("updated_at", { ascending: false })
     .limit(500);
@@ -58,6 +58,7 @@ async function loadEventsData() {
 
   return (data || []).map((ev) => ({
     id:          ev.id,
+    user_id:     ev.user_id,
     name:        ev.name || "—",
     type:        ev.type || "—",
     date:        ev.date || null,
@@ -66,6 +67,7 @@ async function loadEventsData() {
     guest_count: ev.guest_count  ?? 0,
     table_count: ev.table_count  ?? 0,
     seated_pct:  Number(ev.seated_pct ?? 0),
+    created_at:  ev.created_at,
     updated_at:  ev.updated_at,
   }));
 }
@@ -74,11 +76,13 @@ async function loadEventsData() {
 
 export default function AdminEventsScreen() {
   const navigate = useNavigate();
+  const [searchParams]  = useSearchParams();
 
   const [adminEmail, setAdminEmail] = useState(null);
   const [events,     setEvents]     = useState(null);   // null = loading
   const [error,      setError]      = useState(null);
-  const [search,     setSearch]     = useState("");
+  // Pre-fill search from ?owner= URL param (linked from AdminUsersScreen).
+  const [search,     setSearch]     = useState(() => searchParams.get("owner") || "");
   const [typeFilter, setTypeFilter] = useState("");     // "" = all types
 
   useEffect(() => {
@@ -144,6 +148,10 @@ export default function AdminEventsScreen() {
           <span className={styles.brandName}>כל האירועים</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.liveBadge}>
+            <span className={styles.liveDot} />
+            נתונים חיים
+          </span>
         </div>
         <div className={styles.topbarRight}>
           {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}
@@ -210,7 +218,7 @@ export default function AdminEventsScreen() {
           <div className={styles.stateBox}>
             {hasFilters
               ? <><p className={styles.emptyTitle}>לא נמצאו תוצאות</p><p className={styles.emptyHint}>נסה לשנות את פילטרי החיפוש</p></>
-              : <><p className={styles.emptyTitle}>אין אירועים עדיין</p><p className={styles.emptyHint}>אירועים יופיעו כאן לאחר שמשתמשים יסנכרנו נתונים לענן</p></>
+              : <><p className={styles.emptyTitle}>אין אירועים ענן עדיין</p><p className={styles.emptyHint}>כאשר משתמש מחובר יצור אירוע, הוא יסונכרן לענן ויופיע כאן אוטומטית</p></>
             }
           </div>
         )}
@@ -246,7 +254,18 @@ export default function AdminEventsScreen() {
                         {ev.venue || <span className={styles.muted}>—</span>}
                       </td>
                       <td className={styles.ownerCell}>
-                        {ev.owner_email || <span className={styles.muted}>—</span>}
+                        {ev.owner_email
+                          ? (
+                            <Link
+                              to={`/admin/users`}
+                              className={styles.ownerLink}
+                              title={`צפה במשתמש: ${ev.owner_email}`}
+                            >
+                              {ev.owner_email}
+                            </Link>
+                          )
+                          : <span className={styles.muted}>—</span>
+                        }
                       </td>
                       <td className={styles.numCell}>{ev.guest_count}</td>
                       <td className={styles.numCell}>{ev.table_count}</td>

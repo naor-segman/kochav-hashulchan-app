@@ -164,6 +164,10 @@ export default function AdminEventDetailScreen() {
         <span className={styles.brandName}>פרטי אירוע</span>
         <span className={styles.brandSep}>·</span>
         <span className={styles.brandSub}>כוכב השולחן</span>
+        <span className={styles.liveBadge}>
+          <span className={styles.liveDot} />
+          נתונים חיים
+        </span>
       </div>
       <div className={styles.topbarRight}>
         {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}
@@ -263,6 +267,10 @@ export default function AdminEventDetailScreen() {
               <span className={styles.metaValue}>{ownerEmail || "—"}</span>
             </div>
             <div className={styles.metaField}>
+              <span className={styles.metaLabel}>נוצר</span>
+              <span className={styles.metaValue}>{formatRelative(event.created_at)}</span>
+            </div>
+            <div className={styles.metaField}>
               <span className={styles.metaLabel}>עדכון אחרון</span>
               <span className={styles.metaValue}>{formatRelative(event.updated_at)}</span>
             </div>
@@ -270,6 +278,16 @@ export default function AdminEventDetailScreen() {
               <span className={styles.metaLabel}>גרסה</span>
               <span className={styles.metaValue}>v{event.version ?? 1}</span>
             </div>
+            <div className={styles.metaField}>
+              <span className={styles.metaLabel}>מזהה ענן</span>
+              <span className={[styles.metaValue, styles.metaId].join(" ")}>{event.id}</span>
+            </div>
+            {payload.localId && payload.localId !== event.id && (
+              <div className={styles.metaField}>
+                <span className={styles.metaLabel}>מזהה מקומי</span>
+                <span className={[styles.metaValue, styles.metaId].join(" ")}>{payload.localId}</span>
+              </div>
+            )}
           </div>
         </div>
 

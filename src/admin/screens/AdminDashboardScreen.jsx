@@ -48,9 +48,10 @@ async function fetchStats() {
 export default function AdminDashboardScreen() {
   const navigate = useNavigate();
 
-  const [adminEmail,  setAdminEmail]  = useState(null);
-  const [stats,       setStats]       = useState(null);   // null = loading
-  const [statsError,  setStatsError]  = useState(null);
+  const [adminEmail,    setAdminEmail]    = useState(null);
+  const [stats,         setStats]         = useState(null);   // null = loading
+  const [statsError,    setStatsError]    = useState(null);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
 
   // Fetch logged-in user email for the top bar.
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function AdminDashboardScreen() {
     try {
       const result = await fetchStats();
       setStats(result);
+      setLastRefreshed(new Date());
       // If every value is null all queries failed — show a global error.
       const allFailed = Object.values(result).every(v => v === null);
       if (allFailed) setStatsError("Could not load stats. Check your Supabase connection.");
@@ -97,6 +99,10 @@ export default function AdminDashboardScreen() {
           <span className={styles.brandName}>Admin Panel</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.liveBadge}>
+            <span className={styles.liveDot} />
+            נתונים חיים
+          </span>
         </div>
         <div className={styles.topbarRight}>
           {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}
@@ -112,13 +118,22 @@ export default function AdminDashboardScreen() {
         {statsError && (
           <div className={styles.statsError}>
             {statsError}
-            <button className={styles.retryBtn} onClick={loadStats}>נסה שוב</button>
           </div>
         )}
 
         {/* ── Stats grid ── */}
         <section>
-          <h2 className={styles.sectionTitle}>סטטיסטיקות</h2>
+          <div className={styles.statsSectionRow}>
+            <h2 className={styles.sectionTitle} style={{ margin: 0 }}>סטטיסטיקות</h2>
+            <button className={styles.refreshBtn} onClick={loadStats} disabled={loading}>
+              {loading ? "טוען…" : "↻ רענן"}
+            </button>
+            {lastRefreshed && (
+              <span className={styles.lastRefreshed}>
+                עודכן: {lastRefreshed.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
           <div className={styles.statsGrid}>
             {STAT_DEFS.map(({ icon, label, key }) => {
               const value = stats?.[key];

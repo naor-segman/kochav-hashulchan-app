@@ -120,6 +120,10 @@ export default function AdminUsersScreen() {
           <span className={styles.brandName}>ניהול משתמשים</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.liveBadge}>
+            <span className={styles.liveDot} />
+            נתונים חיים
+          </span>
         </div>
         <div className={styles.topbarRight}>
           {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}
@@ -209,7 +213,20 @@ export default function AdminUsersScreen() {
                         {user.plan}
                       </span>
                     </td>
-                    <td className={styles.numCell}>{user.event_count}</td>
+                    <td className={styles.numCell}>
+                      {user.event_count > 0
+                        ? (
+                          <Link
+                            to={`/admin/events?owner=${encodeURIComponent(user.email)}`}
+                            className={styles.eventsLink}
+                            title="צפה באירועים של משתמש זה"
+                          >
+                            {user.event_count}
+                          </Link>
+                        )
+                        : user.event_count
+                      }
+                    </td>
                     <td className={styles.dateCell}>{formatDate(user.created_at)}</td>
                   </tr>
                 ))}
