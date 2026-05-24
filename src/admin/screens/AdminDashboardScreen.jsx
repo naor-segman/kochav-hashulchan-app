@@ -16,7 +16,7 @@ const STAT_DEFS = [
 const NAV_ITEMS = [
   { icon: "👥", label: "ניהול משתמשים",   path: "/admin/users",         live: true },
   { icon: "📅", label: "כל האירועים",     path: "/admin/events",        live: true  },
-  { icon: "📋", label: "ניהול תבניות",    path: "/admin/templates",     phase: "3" },
+  { icon: "📋", label: "ניהול תבניות",    path: "/admin/templates",     live: true  },
   { icon: "💳", label: "מנויים ותשלומים", path: "/admin/subscriptions", phase: "4" },
 ];
 
