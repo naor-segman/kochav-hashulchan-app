@@ -1,15 +1,6 @@
 /* DashboardScreen-specific styles */
 
-.hero {
-  text-align: center;
-  padding: 52px 24px 44px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(155deg, var(--surface) 0%, var(--accent-bg) 100%);
-  border: 1px solid var(--border);
-  margin-bottom: 28px;
-  box-shadow: var(--shadow);
-}
-
+/* ── Compact header bar (shown when events exist) ── */
 .heroBar {
   display: flex;
   align-items: center;
@@ -24,10 +15,10 @@
   gap: 10px;
 }
 
-.heroBarSub {
-  font-size: 12px;
-  color: var(--muted);
-  margin-inline-end: 6px;
+.heroBarBrand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .logoMark {
@@ -40,33 +31,11 @@
   font-weight: 900;
   color: var(--text);
   letter-spacing: -0.02em;
-  margin-inline-end: 8px;
 }
 
-.heroEye {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 10px;
-}
-
-.heroTitle {
-  font-size: 38px;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  margin-bottom: 10px;
-}
-
-.heroSub {
-  font-size: 15px;
-  color: var(--text2);
-  margin-bottom: 28px;
-  line-height: 1.6;
-  max-width: 52ch;
-  margin-inline: auto;
+.heroBarSub {
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .heroCta {
@@ -82,23 +51,95 @@
   display: inline-block;
 }
 
-@media (max-width: 480px) {
-  .hero {
-    padding: 36px 18px 30px;
-  }
-  .heroTitle {
-    font-size: 26px;
-  }
-  .heroSub {
-    font-size: 14px;
-  }
-  .heroCta {
-    width: 100%;
-    text-align: center;
-    padding: 12px 20px;
-  }
+/* ── Full onboarding empty state ── */
+.onboarding {
+  text-align: center;
+  padding: 56px 28px 48px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(155deg, var(--surface) 0%, var(--accent-bg) 100%);
+  border: 1px solid var(--border);
+  margin-bottom: 28px;
+  box-shadow: var(--shadow);
 }
 
+.onboardingBrand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.onboardingMark {
+  font-size: 32px;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.onboardingTitle {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin: 0;
+}
+
+.onboardingTagline {
+  font-size: 15px;
+  color: var(--text2);
+  line-height: 1.6;
+  max-width: 48ch;
+  margin-inline: auto;
+  margin-bottom: 28px;
+}
+
+.workflowStrip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.workflowItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  box-shadow: var(--shadow);
+}
+
+.workflowNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.workflowLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.onboardingNote {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 14px;
+}
+
+/* ── Section heading ── */
 .sectionHead {
   font-size: 13px;
   font-weight: 700;
@@ -108,6 +149,7 @@
   margin-bottom: 12px;
 }
 
+/* ── Event grid ── */
 .eventGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -166,12 +208,36 @@
   font-weight: 400;
 }
 
-.eventDate {
+.eventMeta {
   font-size: 12px;
   color: var(--text2);
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  align-items: center;
+}
+
+.metaSep {
+  color: var(--muted);
+}
+
+.eventStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.eventStatusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.eventStatusLabel {
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .eventProgress {
@@ -187,59 +253,62 @@
   transition: width 0.5s;
 }
 
-.eventFooter {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.eventStatusLabel {
+.eventNextStep {
   font-size: 12px;
-  font-weight: 700;
+  color: var(--text2);
+  border-inline-start: 2px solid var(--border);
+  padding-inline-start: 8px;
+  margin-top: 2px;
 }
 
 .eventChips {
   display: flex;
   gap: 5px;
   flex-wrap: wrap;
+  margin-top: 2px;
 }
 
 .eventOpenBtn {
-  background: var(--accent-bg);
-  color: var(--accent);
-  border: 1px solid #e5c99a;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 8px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
   border-radius: var(--radius);
-  padding: 8px 14px;
+  padding: 10px 16px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   text-align: center;
+  box-shadow: 0 1px 4px rgba(190, 122, 56, 0.28);
 }
 
-.emptyHero {
-  text-align: center;
-  padding: 56px 20px;
-}
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .onboarding {
+    padding: 40px 18px 36px;
+  }
 
-.emptyHeroIcon {
-  font-size: 52px;
-  opacity: 0.18;
-  margin-bottom: 14px;
-}
+  .onboardingTitle {
+    font-size: 28px;
+  }
 
-.emptyHeroTitle {
-  font-size: 22px;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
+  .onboardingTagline {
+    font-size: 14px;
+  }
 
-.emptyHeroSub {
-  font-size: 14px;
-  color: var(--text2);
-  margin-bottom: 24px;
-  line-height: 1.6;
-  max-width: 48ch;
-  margin-inline: auto;
+  .heroCta {
+    width: 100%;
+    text-align: center;
+    padding: 12px 20px;
+  }
+
+  .workflowStrip {
+    gap: 6px;
+  }
+
+  .workflowItem {
+    padding: 5px 10px;
+  }
 }
