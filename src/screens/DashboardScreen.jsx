@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { computeViolations } from "../logic/seating.js";
 import { fmtDate } from "../utils/dateFormat.js";
+import { EVENT_TEMPLATES } from "../data/eventTemplates.js";
 import Chip from "../components/ui/Chip.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./DashboardScreen.module.css";
@@ -20,7 +22,16 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
     return                        { label: "הושבה מלאה ✓",                       color: "var(--green)",  pct: 1,              next: null };
   };
 
-  const hasEvents = events.length > 0;
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  const hasEvents      = events.length > 0;
+  const mainTemplates  = EVENT_TEMPLATES.filter(t => t.id !== "empty");
+  const emptyTemplate  = EVENT_TEMPLATES.find(t => t.id === "empty");
+
+  const openTemplate = (tpl) => {
+    setShowTemplates(false);
+    onCreateEvent(tpl);
+  };
 
   return (
     <div className={base.page}>
@@ -33,7 +44,7 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
             <span className={styles.logoName}>כוכב השולחן</span>
             <span className={styles.heroBarSub}>סידור הושבה לאירועים</span>
           </div>
-          <button className={styles.heroCta} onClick={onCreateEvent}>+ אירוע חדש</button>
+          <button className={styles.heroCta} onClick={() => setShowTemplates(true)}>+ אירוע חדש</button>
         </div>
       )}
 
@@ -58,7 +69,7 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
             ))}
           </div>
 
-          <button className={styles.heroCta} onClick={onCreateEvent}>
+          <button className={styles.heroCta} onClick={() => setShowTemplates(true)}>
             + צור אירוע ראשון — בחינם
           </button>
 
@@ -140,6 +151,34 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
             })}
           </div>
         </section>
+      )}
+
+      {showTemplates && (
+        <div className={styles.tmplOverlay} onClick={() => setShowTemplates(false)}>
+          <div className={styles.tmplPanel} onClick={e => e.stopPropagation()}>
+            <div className={styles.tmplPanelHead}>
+              <span className={styles.tmplPanelTitle}>באיזה אירוע מדובר?</span>
+              <button className={styles.tmplCloseBtn} onClick={() => setShowTemplates(false)}>✕</button>
+            </div>
+
+            <div className={styles.tmplGrid}>
+              {mainTemplates.map(tpl => (
+                <button key={tpl.id} className={styles.tmplCard} onClick={() => openTemplate(tpl)}>
+                  <span className={styles.tmplIcon}>{tpl.icon}</span>
+                  <span className={styles.tmplLabel}>{tpl.label}</span>
+                  <span className={styles.tmplDesc}>{tpl.desc}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.tmplSep} />
+
+            <button className={styles.tmplEmptyBtn} onClick={() => openTemplate(emptyTemplate)}>
+              <span>{emptyTemplate.icon} {emptyTemplate.label}</span>
+              <span className={styles.tmplEmptyDesc}>{emptyTemplate.desc}</span>
+            </button>
+          </div>
+        </div>
       )}
 
     </div>

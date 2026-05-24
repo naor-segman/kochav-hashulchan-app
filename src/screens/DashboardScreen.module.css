@@ -310,6 +310,140 @@
   color: var(--accent);
 }
 
+/* ── Template chooser overlay ── */
+.tmplOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 16px;
+}
+
+.tmplPanel {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22);
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.tmplPanelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tmplPanelTitle {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.tmplCloseBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tmplCloseBtn:hover {
+  background: var(--accent-bg);
+  color: var(--text);
+}
+
+.tmplGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.tmplCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 14px 12px;
+  cursor: pointer;
+  text-align: start;
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+}
+
+.tmplCard:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  box-shadow: 0 2px 8px rgba(190, 122, 56, 0.18);
+}
+
+.tmplIcon {
+  font-size: 22px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.tmplLabel {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.tmplDesc {
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+.tmplSep {
+  height: 1px;
+  background: var(--border);
+}
+
+.tmplEmptyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  text-align: start;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.tmplEmptyBtn:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.tmplEmptyDesc {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
 /* ── Mobile ── */
 @media (max-width: 480px) {
   .onboarding {

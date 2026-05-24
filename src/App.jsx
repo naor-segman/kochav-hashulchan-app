@@ -71,9 +71,9 @@ export default function App() {
   const { toast, showToast }                               = useToast();
   const navigate                                           = useNavigate();
 
-  const createEvent = useCallback(() => {
+  const createEvent = useCallback((template) => {
     const ev = {
-      id: uid(), name: "", type: "חתונה", date: "", venue: "",
+      id: uid(), name: "", type: template?.type || "חתונה", date: "", venue: "",
       brideName: "", groomName: "",
       tables: [], guests: [], seating: {}, constraints: [],
       createdAt: Date.now(),
