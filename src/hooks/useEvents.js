@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { loadState, persist } from "../utils/storage.js";
+import { normalizeEvent, updateEventTimestamp } from "../utils/eventHelpers.js";
 
 // ── useEvents ─────────────────────────────────────────────────────────────────
 //
@@ -25,8 +26,12 @@ export function useEvents() {
 
   // ── HYDRATION ───────────────────────────────────────────────────────────────
   // Synchronous read avoids a flash where events appear empty before hydration.
+  // normalizeEvent fills in any fields missing from older saved events so the
+  // rest of the app can always assume a complete schema.
   // TODO(cloud-sync): Replace with useState([]) + useEffect async fetch for remote.
-  const [events, setEvents] = useState(() => loadState().events || []);
+  const [events, setEvents] = useState(() =>
+    (loadState().events || []).map(normalizeEvent).filter(Boolean)
+  );
 
   // ── PERSISTENCE ─────────────────────────────────────────────────────────────
   // Flush the full snapshot to storage after every mutation.
@@ -43,12 +48,17 @@ export function useEvents() {
     setEvents(prev => prev.filter(e => e.id !== id));
   }, []);
 
+  // Every patch automatically bumps updatedAt + version so callers never
+  // need to manage those fields. This is the single write path for all
+  // event mutations — screens, auto-assign, constraint changes all go here.
   const patchEventById = useCallback((id, patch) => {
-    setEvents(prev => prev.map(e =>
-      e.id === id
-        ? (typeof patch === "function" ? patch(e) : Object.assign({}, e, patch))
-        : e
-    ));
+    setEvents(prev => prev.map(e => {
+      if (e.id !== id) return e;
+      const patched = typeof patch === "function"
+        ? patch(e)
+        : Object.assign({}, e, patch);
+      return updateEventTimestamp(patched);
+    }));
   }, []);
 
   return { events, addEvent, removeEvent, patchEventById };

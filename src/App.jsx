@@ -72,11 +72,14 @@ export default function App() {
   const navigate                                           = useNavigate();
 
   const createEvent = useCallback((template) => {
+    const now = Date.now();
     const ev = {
       id: uid(), name: "", type: template?.type || "חתונה", date: "", venue: "",
       brideName: "", groomName: "",
       tables: [], guests: [], seating: {}, constraints: [],
-      createdAt: Date.now(),
+      createdAt: now,
+      updatedAt:  now,
+      version:    1,
     };
     addEvent(ev);
     navigate(`/events/${ev.id}/setup`);
