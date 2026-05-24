@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import {
   DndContext, DragOverlay,
   useDraggable, useDroppable,
@@ -137,6 +137,19 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     setTimeout(() => { window.print(); setPrintMode("full"); }, 60);
   };
 
+  const clearTable = (tableId) => {
+    const guests = tableGuests(tableId);
+    if (guests.length === 0) return;
+    pushHistory();
+    patchEvent(e => {
+      const s = Object.assign({}, e.seating);
+      guests.forEach(g => delete s[g.id]);
+      return Object.assign({}, e, { seating: s });
+    });
+    const t = ev.tables.find(t => t.id === tableId);
+    showToast((t?.name || "השולחן") + " פונה — " + guests.length + " אורחים חזרו לממתינים");
+  };
+
   const handleDragStart  = ({ active }) => setActiveId(active.id);
   const handleDragCancel = () => setActiveId(null);
 
@@ -158,7 +171,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         .reduce((s, g) => s + (g.count || 1), 0);
       const draggedSeats = ev.guests.find(g => g.id === guestId)?.count || 1;
       if (occupiedSeats + draggedSeats > targetTable.capacity) {
-        showToast("השולחן מלא — לא ניתן להוסיף אורחים", "err");
+        showToast(targetTable.name + " מלא — אין מקום עבור " + (activeGuest?.name || "האורח"), "err");
         return;
       }
     }
@@ -305,7 +318,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             </div>
           )}
 
-          {unassigned.length > 0 && (
+          {(unassigned.length > 0 || !!activeId) && (
             <DroppableWrapper id="unassigned">
               {({ ref, isOver: isDragOver }) => (
                 <div
@@ -318,40 +331,73 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 >
                   <div className={styles.unassignedHeader}>
                     <span className={styles.unassignedTitle}>⏳ ממתינים לשיבוץ</span>
-                    <span className={styles.unassignedCount}>{unassigned.length} אורחים</span>
+                    {unassigned.length > 0 && (
+                      <span className={styles.unassignedCount}>{unassigned.length} אורחים</span>
+                    )}
                   </div>
-                  <p className={styles.unassignedHint}>
-                    גררו אורח לשולחן, או בחרו שולחן מהרשימה. לסידור חדש של כולם — לחצו "חשב מחדש" למעלה.
-                  </p>
-                  <div className={base.gList}>
-                    {unassigned.map(g => (
-                      <DraggableGuestRow key={g.id} guestId={g.id} className={base.gRow}>
-                        <SideDot side={g.side} />
-                        <div className={base.gInfo}>
-                          <span className={base.gName}>{g.name}</span>
-                          <span className={base.gMeta}>{sideLabel(g.side)} · {g.group}</span>
-                        </div>
-                        <select
-                          className={base.select}
-                          style={{ minWidth: 180, fontSize: 13 }}
-                          value=""
-                          onPointerDown={e => e.stopPropagation()}
-                          onChange={e => { if (e.target.value) assignGuest(g.id, e.target.value); }}
-                        >
-                          <option value="">שבץ לשולחן...</option>
-                          {ev.tables.map(t => {
-                            const seats = tableSeats(t.id);
-                            const full  = seats + (g.count || 1) > t.capacity;
+
+                  {unassigned.length === 0 ? (
+                    <div className={styles.unassignedEmptyDrop}>
+                      גרור לכאן להחזרת האורח לרשימת הממתינים
+                    </div>
+                  ) : (
+                    <>
+                      <p className={styles.unassignedHint}>
+                        גררו אורח לשולחן, או בחרו שולחן מהרשימה. לסידור חדש — &quot;חשב מחדש&quot; למעלה.
+                      </p>
+                      <div className={base.gList}>
+                        {[...unassigned]
+                          .sort((a, b) =>
+                            a.side !== b.side
+                              ? a.side.localeCompare(b.side)
+                              : a.name.localeCompare(b.name)
+                          )
+                          .map((g, i, arr) => {
+                            const showSep   = i === 0 || arr[i - 1].side !== g.side;
+                            const sideCount = arr.filter(u => u.side === g.side).length;
                             return (
-                              <option key={t.id} value={t.id} disabled={full}>
-                                {t.name} ({seats}/{t.capacity}){full ? " — מלא" : ""}
-                              </option>
+                              <Fragment key={g.id}>
+                                {showSep && (
+                                  <div className={styles.unassignedSideLabel}>
+                                    <SideDot side={g.side} />
+                                    <span>{sideLabel(g.side)}</span>
+                                    <span className={styles.unassignedSideCount}>{sideCount}</span>
+                                  </div>
+                                )}
+                                <DraggableGuestRow guestId={g.id} className={base.gRow}>
+                                  <SideDot side={g.side} />
+                                  <div className={base.gInfo}>
+                                    <span className={base.gName}>{g.name}</span>
+                                    <span className={base.gMeta}>
+                                      {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
+                                    </span>
+                                  </div>
+                                  <select
+                                    className={base.select}
+                                    style={{ minWidth: 160, fontSize: 13 }}
+                                    value=""
+                                    onPointerDown={e => e.stopPropagation()}
+                                    onChange={e => { if (e.target.value) assignGuest(g.id, e.target.value); }}
+                                  >
+                                    <option value="">שבץ לשולחן...</option>
+                                    {ev.tables.map(t => {
+                                      const seats = tableSeats(t.id);
+                                      const full  = seats + (g.count || 1) > t.capacity;
+                                      return (
+                                        <option key={t.id} value={t.id} disabled={full}>
+                                          {t.name} ({seats}/{t.capacity}){full ? " — מלא" : ""}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </DraggableGuestRow>
+                              </Fragment>
                             );
-                          })}
-                        </select>
-                      </DraggableGuestRow>
-                    ))}
-                  </div>
+                          })
+                        }
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </DroppableWrapper>
@@ -360,23 +406,32 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           {ev.tables.length > 0 && (
             <div className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}>
               {ev.tables.map(t => {
-                const tGuests    = tableGuests(t.id);
-                const usedSeats  = tGuests.reduce((s, g) => s + (g.count || 1), 0);
-                const isCapOver  = usedSeats > t.capacity;
-                const hasViol    = violatedTables.has(t.name);
-                const isExpanded = expandedTable === t.id;
-                const pct        = t.capacity > 0 ? usedSeats / t.capacity : 0;
-                const borderCol  = isCapOver ? "var(--red)" : hasViol ? "#E8A020" : "var(--border)";
+                const tGuests      = tableGuests(t.id);
+                const usedSeats    = tGuests.reduce((s, g) => s + (g.count || 1), 0);
+                const isCapOver    = usedSeats > t.capacity;
+                const hasViol      = violatedTables.has(t.name);
+                const isExpanded   = expandedTable === t.id;
+                const pct          = t.capacity > 0 ? usedSeats / t.capacity : 0;
+                const staticBorder = isCapOver ? "var(--red)" : hasViol ? "#E8A020" : "var(--border)";
+                const draggedSeats  = activeGuest?.count || 1;
+                const isDragSame    = !!activeId && ev.seating[activeId] === t.id;
+                const wouldOverflow = !!activeId && !isDragSame && (usedSeats + draggedSeats > t.capacity);
 
                 return (
                   <DroppableWrapper key={t.id} id={"table-" + t.id}>
                     {({ ref, isOver: isDragOver }) => (
                       <div
                         ref={ref}
-                        className={styles.tCard}
+                        className={[
+                          styles.tCard,
+                          activeId && !isDragSame && !wouldOverflow && !isDragOver ? styles.tCardDragReady : "",
+                          activeId && !isDragSame && wouldOverflow  && !isDragOver ? styles.tCardDragBlocked : "",
+                          isDragOver && !wouldOverflow ? styles.tCardDropOver : "",
+                          isDragOver && wouldOverflow  ? styles.tCardDropBlocked : "",
+                        ].filter(Boolean).join(" ")}
                         style={{
-                          borderColor: isDragOver ? "var(--accent)" : borderCol,
-                          background:  isDragOver ? "var(--accent-bg)" : (isCapOver ? "#FFFBFB" : undefined),
+                          borderColor: activeId ? undefined : staticBorder,
+                          background:  activeId ? undefined : (isCapOver ? "#FFF5F5" : undefined),
                         }}
                       >
                         <button className={styles.tCardHead} onClick={() => setExpandedTable(isExpanded ? null : t.id)}>
@@ -415,18 +470,34 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                             <span
                               className={styles.tCardCount}
                               style={{
-                                color: isCapOver ? "var(--red)" : pct > 0.85 ? "var(--warn)" : usedSeats > 0 ? "var(--text)" : "var(--muted)"
+                                color: isCapOver ? "var(--red)" : pct >= 0.85 ? "var(--warn)" : usedSeats > 0 ? "var(--text)" : "var(--muted)"
                               }}
                             >
                               {usedSeats}/{t.capacity}
                               <span className={styles.tCardCapLabel}> מקומות</span>
                             </span>
+                            {pct >= 0.8 && pct < 1 && !isCapOver && (
+                              <span className={styles.tCardNearCap}>
+                                {t.capacity - usedSeats} נותרו
+                              </span>
+                            )}
                             <span className={styles.tCardChevron}>{isExpanded ? "▲" : "▼"}</span>
                           </div>
                         </button>
 
                         {isExpanded && (
                           <div className={styles.tGuestList}>
+                            {tGuests.length > 0 && (
+                              <div className={styles.tGuestListActions}>
+                                <button
+                                  className={styles.tClearTableBtn}
+                                  onPointerDown={e => e.stopPropagation()}
+                                  onClick={e => { e.stopPropagation(); clearTable(t.id); }}
+                                >
+                                  ✕ פנה שולחן
+                                </button>
+                              </div>
+                            )}
                             {tGuests.length === 0 && (
                               <span className={styles.emptyInline}>שולחן ריק — גרור אורח לכאן, או בחר מהממתינים</span>
                             )}
@@ -435,11 +506,19 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                 <SideDot side={g.side} />
                                 <div className={base.gInfo} style={{ flex: 1 }}>
                                   <span className={base.gName}>{g.name}</span>
-                                  <span className={base.gMeta}>{g.group}</span>
+                                  <span className={base.gMeta}>
+                                    {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
+                                  </span>
                                 </div>
+                                <button
+                                  className={styles.tGuestRemoveBtn}
+                                  onPointerDown={e => e.stopPropagation()}
+                                  onClick={e => { e.stopPropagation(); assignGuest(g.id, null); }}
+                                  title="החזר לרשימת הממתינים"
+                                >↩</button>
                                 <select
                                   className={base.select}
-                                  style={{ minWidth: 160, fontSize: 13 }}
+                                  style={{ minWidth: 140, fontSize: 13 }}
                                   value={t.id}
                                   onPointerDown={e => e.stopPropagation()}
                                   onChange={e => {
