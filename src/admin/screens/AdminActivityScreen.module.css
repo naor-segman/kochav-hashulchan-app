@@ -1,0 +1,215 @@
+/* Admin activity screen — isolated from customer app styles */
+
+.page {
+  min-height: 100vh;
+  background: #f4f4f5;
+  font-family: inherit;
+}
+
+/* ── Top bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 24px;
+  height: 56px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brand { display: flex; align-items: center; gap: 8px; }
+
+.backLink {
+  font-size: 18px; color: #888; text-decoration: none;
+  padding: 4px 6px; border-radius: 6px; line-height: 1;
+  transition: background 0.12s, color 0.12s;
+}
+.backLink:hover { background: #f4f4f5; color: #333; }
+
+.brandMark { font-size: 18px; color: #be7a38; }
+.brandName { font-size: 16px; font-weight: 800; color: #111; letter-spacing: -0.01em; }
+.brandSep  { color: #ccc; }
+.brandSub  { font-size: 13px; color: #888; }
+
+.topbarRight { display: flex; align-items: center; gap: 12px; }
+.adminEmail  { font-size: 13px; color: #666; direction: ltr; }
+
+.logoutBtn {
+  background: none; border: 1px solid #ddd; border-radius: 7px;
+  padding: 6px 14px; font-size: 13px; font-weight: 600; color: #555;
+  cursor: pointer; transition: background 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+.logoutBtn:hover { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+
+/* ── Main ── */
+.main {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Error banner ── */
+.errorBanner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: #fef2f2; border: 1px solid #fecaca;
+  border-inline-start: 4px solid #f87171;
+  border-radius: 10px; padding: 12px 16px;
+  font-size: 13px; color: #b91c1c; direction: ltr; text-align: left;
+}
+
+.retryInlineBtn {
+  background: none; border: 1px solid #fca5a5; border-radius: 6px;
+  padding: 4px 12px; font-size: 12px; font-weight: 600; color: #b91c1c;
+  cursor: pointer; white-space: nowrap; font-family: inherit; flex-shrink: 0;
+  transition: background 0.12s;
+}
+.retryInlineBtn:hover { background: #fee2e2; }
+
+/* ── Setup / not configured box ── */
+.setupBox {
+  background: #fff; border: 1px solid #e5e7eb;
+  border-radius: 14px; padding: 40px 32px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 14px; text-align: center;
+}
+
+.setupIcon  { font-size: 40px; line-height: 1; }
+.setupTitle { font-size: 18px; font-weight: 800; color: #111; margin: 0; }
+.setupText  { font-size: 14px; color: #555; margin: 0; max-width: 440px; }
+.setupHint  { font-size: 13px; color: #999; margin: 0; max-width: 420px; }
+
+.inlineCode {
+  background: #f4f4f5; border: 1px solid #e5e7eb;
+  border-radius: 4px; padding: 1px 6px;
+  font-family: monospace; font-size: 12px; color: #333;
+}
+
+/* Action type pill grid */
+.actionTypeGrid {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; max-width: 480px;
+}
+
+.actionTypePill {
+  display: flex; align-items: center; gap: 5px;
+  background: #f9fafb; border: 1px solid #e5e7eb;
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 12px; color: #555;
+}
+
+.actionTypeIcon  { font-size: 14px; }
+.actionTypeLabel { font-weight: 600; }
+
+.retryBtn {
+  background: #be7a38; color: #fff; border: none;
+  border-radius: 8px; padding: 10px 22px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: background 0.12s;
+}
+.retryBtn:hover { background: #a86a2e; }
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+
+.filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.searchInput {
+  border: 1px solid #ddd; border-radius: 8px;
+  padding: 8px 12px; font-size: 13px; color: #111;
+  background: #fff; outline: none; font-family: inherit;
+  width: 220px; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.searchInput:focus {
+  border-color: #be7a38;
+  box-shadow: 0 0 0 3px rgba(190,122,56,0.12);
+}
+
+.filterSelect {
+  border: 1px solid #ddd; border-radius: 8px;
+  padding: 8px 10px; font-size: 13px; color: #333;
+  background: #fff; outline: none; font-family: inherit;
+  transition: border-color 0.15s; cursor: pointer;
+}
+.filterSelect:focus { border-color: #be7a38; }
+
+.resultCount { font-size: 13px; color: #888; white-space: nowrap; }
+
+/* ── State boxes ── */
+.stateBox {
+  background: #fff; border: 1px solid #e5e7eb;
+  border-radius: 12px; padding: 48px 24px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+
+.emptyIcon  { font-size: 32px; line-height: 1; }
+.emptyTitle { font-size: 16px; font-weight: 700; color: #333; margin: 0; }
+.emptyHint  { font-size: 13px; color: #999; margin: 0; max-width: 360px; }
+
+.loadingText {
+  font-size: 14px; color: #aaa;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── Table ── */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 12px; border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; direction: ltr; text-align: left;
+}
+
+.table th {
+  background: #f9fafb; border-bottom: 1px solid #e5e7eb;
+  padding: 10px 14px; font-size: 11px; font-weight: 700; color: #666;
+  text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;
+}
+
+.table td {
+  padding: 10px 14px; border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td { border-bottom: none; }
+.dataRow:hover td              { background: #fafafa; }
+
+/* Cell variants */
+.dateCell   { color: #888; font-size: 12px; white-space: nowrap; }
+.emailCell  { color: #444; font-size: 12px; direction: ltr; }
+.entityCell { color: #666; }
+.nameCell   { color: #222; font-size: 12px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.metaCell   { color: #888; font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
+
+.muted { color: #ccc; }
+
+/* ── Action badge ── */
+.actionBadge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 700;
+}
+
+/* ── Mobile ── */
+@media (max-width: 700px) {
+  .topbar      { padding: 0 14px; height: auto; padding-block: 10px; }
+  .main        { padding: 16px 12px 40px; }
+  .filters     { flex-direction: column; align-items: stretch; }
+  .searchInput { width: 100%; }
+  .setupBox    { padding: 28px 16px; }
+}

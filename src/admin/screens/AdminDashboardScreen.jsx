@@ -17,7 +17,8 @@ const NAV_ITEMS = [
   { icon: "👥", label: "ניהול משתמשים",   path: "/admin/users",         live: true },
   { icon: "📅", label: "כל האירועים",     path: "/admin/events",        live: true  },
   { icon: "📋", label: "ניהול תבניות",    path: "/admin/templates",     live: true  },
-  { icon: "💳", label: "מנויים ותשלומים", path: "/admin/subscriptions", phase: "4" },
+  { icon: "💳", label: "מנויים ותשלומים", path: "/admin/subscriptions", live: true },
+  { icon: "📋", label: "יומן פעילות",     path: "/admin/activity",      live: true },
   { icon: "⚙️", label: "הגדרות מערכת",   path: "/admin/settings",      live: true },
 ];
 

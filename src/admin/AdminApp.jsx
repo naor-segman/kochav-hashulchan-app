@@ -7,6 +7,8 @@ import AdminEventsScreen         from "./screens/AdminEventsScreen.jsx";
 import AdminEventDetailScreen    from "./screens/AdminEventDetailScreen.jsx";
 import AdminTemplatesScreen      from "./screens/AdminTemplatesScreen.jsx";
 import AdminSettingsScreen       from "./screens/AdminSettingsScreen.jsx";
+import AdminSubscriptionsScreen  from "./screens/AdminSubscriptionsScreen.jsx";
+import AdminActivityScreen       from "./screens/AdminActivityScreen.jsx";
 
 // ── AdminApp ──────────────────────────────────────────────────────────────────
 //
@@ -66,6 +68,22 @@ export default function AdminApp() {
         element={
           <AdminGuard>
             <AdminTemplatesScreen />
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="subscriptions"
+        element={
+          <AdminGuard>
+            <AdminSubscriptionsScreen />
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="activity"
+        element={
+          <AdminGuard>
+            <AdminActivityScreen />
           </AdminGuard>
         }
       />
