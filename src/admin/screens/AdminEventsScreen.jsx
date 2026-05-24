@@ -231,6 +231,7 @@ export default function AdminEventsScreen() {
                   <th className={styles.numCol}>ישיבה</th>
                   <th>עדכון</th>
                   <th>סטטוס</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -257,6 +258,14 @@ export default function AdminEventsScreen() {
                       </td>
                       <td className={styles.relativeCell}>{formatRelative(ev.updated_at)}</td>
                       <td><span className={status.cls}>{status.label}</span></td>
+                      <td>
+                        <Link
+                          to={`/admin/events/${ev.id}`}
+                          className={styles.viewLink}
+                        >
+                          צפה
+                        </Link>
+                      </td>
                     </tr>
                   );
                 })}
