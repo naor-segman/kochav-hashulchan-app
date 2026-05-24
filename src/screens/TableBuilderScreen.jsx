@@ -10,6 +10,7 @@ import SectionLabel from "../components/ui/SectionLabel.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import TypeTag from "../components/ui/TypeTag.jsx";
 import base from "../styles/screenBase.module.css";
+import styles from "./TableBuilderScreen.module.css";
 
 export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [batch, setBatch]       = useState({ prefix: "", capacity: "10", count: "1", type: "regular" });
@@ -89,6 +90,11 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
         }
       />
 
+      <div className={styles.stepGuide}>
+        <span className={styles.stepBadge}>שלב 2 מתוך 5 — שולחנות</span>
+        <span className={styles.stepText}>הגדירו כמה שולחנות יש באולם ומה הקיבולת שלהם. לאחר מכן המשיכו לרשימת האורחים.</span>
+      </div>
+
       {gap < 0 && ev.guests.length > 0 && (
         <Banner variant="warn">
           חסרים {Math.abs(gap)} מקומות — יש יותר אורחים ממקומות פנויים.
@@ -100,6 +106,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
 
       <div className={base.card}>
         <SectionLabel>הוספת שולחנות</SectionLabel>
+        <p className={styles.batchHint}>ניתן להוסיף כמה שולחנות בבת אחת — כולם יקבלו את אותה קיבולת וסוג. לשמות ייווצרו אוטומטית מספרים רצופים.</p>
         <div className={base.batchGrid}>
           <Field label="שם / קידומת" hint="לדוגמה: שולחן, אביר">
             <input
@@ -146,12 +153,20 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
 
       {ev.tables.length > 0 && (
         <div className={base.card}>
-          <SectionLabel>
-            השולחנות שלי ({ev.tables.length})
-            {totalCap > 0 && (
-              <span className={base.labelSub}> · {totalCap} מקומות · {totalSeated} מושבצים</span>
-            )}
-          </SectionLabel>
+          <SectionLabel>השולחנות שלי ({ev.tables.length})</SectionLabel>
+          {totalCap > 0 && ev.guests.length === 0 && (
+            <p className={styles.capStat}>קיבולת כוללת: {totalCap} מקומות</p>
+          )}
+          {totalCap > 0 && ev.guests.length > 0 && gap < 0 && (
+            <p className={styles.capStatWarn}>
+              חסרים {Math.abs(gap)} מקומות — {ev.guests.length} אורחים, {totalCap} מקומות בלבד
+            </p>
+          )}
+          {totalCap > 0 && ev.guests.length > 0 && gap >= 0 && (
+            <p className={styles.capStatOk}>
+              קיבולת מספיקה — {ev.guests.length} אורחים, {gap} מקומות פנויים מתוך {totalCap}
+            </p>
+          )}
           <div className={base.tableGrid}>
             <div className={[base.tRow, base.tHead].join(" ")}>
               <span>שם השולחן</span>
@@ -223,8 +238,8 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {ev.tables.length === 0 && (
-        <EmptyState icon="⬡" title="אין שולחנות עדיין"
-          text="הגדר שולחנות לפי מבנה האולם. תוכל להוסיף כמה שולחנות מאותו סוג בבת אחת." />
+        <EmptyState icon="⬡" title="טרם הוגדרו שולחנות"
+          text='השתמשו בטופס למעלה כדי להוסיף שולחנות. לדוגמה: 15 שולחנות עגולים עם 10 מקומות כל אחד — הכניסו 15 בשדה "כמות" ו-10 בשדה "מקומות".' />
       )}
 
       <NextStep
