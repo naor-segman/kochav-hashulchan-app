@@ -193,6 +193,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.deleteBtn:hover {
+  background: var(--red-bg);
+  color: var(--red);
 }
 
 .eventName {

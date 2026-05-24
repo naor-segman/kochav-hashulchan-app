@@ -17,9 +17,8 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   const [editId, setEditId]     = useState(null);
   const [editVals, setEditVals] = useState({});
 
-  const totalCap    = ev.tables.reduce((s, t) => s + t.capacity, 0);
-  const totalSeated = Object.keys(ev.seating).length;
-  const gap         = totalCap - ev.guests.length;
+  const totalCap = ev.tables.reduce((s, t) => s + t.capacity, 0);
+  const gap      = totalCap - ev.guests.length;
   const batchCnt    = Math.max(1, parseInt(batch.count)    || 0);
   const batchCap    = Math.max(1, parseInt(batch.capacity) || 0);
   const batchTotal  = batchCnt * batchCap;

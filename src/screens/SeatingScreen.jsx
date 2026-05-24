@@ -7,6 +7,7 @@ import {
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
+import { fmtDate } from "../utils/dateFormat.js";
 import Banner from "../components/feedback/Banner.jsx";
 import CapBar from "../components/ui/CapBar.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -35,13 +36,6 @@ function DraggableGuestRow({ guestId, className, children }) {
     </div>
   );
 }
-
-const fmtDate = dateStr => {
-  if (!dateStr) return "";
-  try {
-    return new Date(dateStr).toLocaleDateString("he-IL", { year: "numeric", month: "long", day: "numeric" });
-  } catch { return dateStr; }
-};
 
 const MAX_UNDO = 20;
 
@@ -412,7 +406,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 const hasViol      = violatedTables.has(t.name);
                 const isExpanded   = expandedTable === t.id;
                 const pct          = t.capacity > 0 ? usedSeats / t.capacity : 0;
-                const staticBorder = isCapOver ? "var(--red)" : hasViol ? "#E8A020" : "var(--border)";
+                const staticBorder = isCapOver ? "var(--red)" : hasViol ? "var(--warn)" : "var(--border)";
                 const draggedSeats  = activeGuest?.count || 1;
                 const isDragSame    = !!activeId && ev.seating[activeId] === t.id;
                 const wouldOverflow = !!activeId && !isDragSame && (usedSeats + draggedSeats > t.capacity);
@@ -431,7 +425,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                         ].filter(Boolean).join(" ")}
                         style={{
                           borderColor: activeId ? undefined : staticBorder,
-                          background:  activeId ? undefined : (isCapOver ? "#FFF5F5" : undefined),
+                          background:  activeId ? undefined : (isCapOver ? "var(--red-bg)" : undefined),
                         }}
                       >
                         <button className={styles.tCardHead} onClick={() => setExpandedTable(isExpanded ? null : t.id)}>
