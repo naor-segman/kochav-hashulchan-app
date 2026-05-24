@@ -1,0 +1,187 @@
+/* SuggestionsPanel — rule-based smart seating suggestions */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+/* ── Toggle header ─────────────────────────────────────────────────────────── */
+
+.toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: start;
+  gap: 8px;
+}
+
+.toggle:hover {
+  background: var(--bg);
+}
+
+.toggleLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.toggleIcon {
+  font-size: 14px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.toggleTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+}
+
+.toggleBadge {
+  display: inline-block;
+  border-radius: var(--radius-full, 9999px);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.toggleBadgeCrit {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+}
+
+.toggleBadgeWarn {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-border);
+}
+
+.toggleBadgeInfo {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid #e5c99a;
+}
+
+.toggleBadgeOk {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+
+.toggleChevron {
+  font-size: 10px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* ── Body ──────────────────────────────────────────────────────────────────── */
+
+.body {
+  border-top: 1px solid var(--border);
+  padding: 4px 0 0;
+}
+
+/* ── Suggestion list ───────────────────────────────────────────────────────── */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+/* Severity-specific left accent */
+.row_critical { border-inline-start: 3px solid var(--red);  background: var(--red-bg);  }
+.row_warning  { border-inline-start: 3px solid var(--warn); background: var(--warn-bg); }
+.row_info     { border-inline-start: 3px solid var(--border2); background: transparent; }
+
+.rowIcon {
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  line-height: 1;
+}
+
+.rowContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rowText {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.rowAction {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ── Empty state ───────────────────────────────────────────────────────────── */
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--green);
+}
+
+.emptyIcon {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* ── Disclaimer footer ─────────────────────────────────────────────────────── */
+
+.disclaimer {
+  margin: 0;
+  padding: 8px 16px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Mobile ────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .rowText   { font-size: 12px; }
+  .rowAction { font-size: 10px; }
+  .toggle    { padding: 11px 12px; }
+  .row       { padding: 9px 12px; }
+}

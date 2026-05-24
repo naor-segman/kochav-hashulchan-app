@@ -6,6 +6,7 @@ import {
   useSensor, useSensors,
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
+import { generateSuggestions } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import { usePlan } from "../hooks/usePlan.js";
@@ -16,6 +17,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import TypeTag from "../components/ui/TypeTag.jsx";
+import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
 
@@ -56,6 +58,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const violations = useMemo(() =>
     computeViolations(ev.guests, ev.tables, ev.constraints, ev.seating),
+    [ev.guests, ev.tables, ev.constraints, ev.seating]
+  );
+
+  const suggestions = useMemo(() =>
+    generateSuggestions(ev.guests, ev.tables, ev.constraints, ev.seating),
     [ev.guests, ev.tables, ev.constraints, ev.seating]
   );
 
@@ -326,6 +333,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 ))}
               </div>
             </div>
+          )}
+
+          {(ev.guests.length > 0 && ev.tables.length > 0) && (
+            <SuggestionsPanel suggestions={suggestions} />
           )}
 
           {(unassigned.length > 0 || !!activeId) && (
