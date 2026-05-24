@@ -62,6 +62,11 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         }
       />
 
+      <div className={styles.stepGuide}>
+        <span className={styles.stepBadge}>שלב 1 מתוך 5 — פרטי האירוע</span>
+        <span className={styles.stepText}>לאחר השמירה תוכלו להמשיך: שולחנות ← אורחים ← אילוצים ← הושבה</span>
+      </div>
+
       {dirty && (
         <Banner variant="warn">
           יש שינויים שלא נשמרו —
