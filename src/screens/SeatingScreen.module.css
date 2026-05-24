@@ -1,6 +1,6 @@
 /* SeatingScreen-specific styles */
 
-/* Step guidance banner */
+/* ─── Step guidance banner ──────────────────────────────────────────────── */
 .stepGuide {
   display: flex;
   align-items: baseline;
@@ -27,7 +27,7 @@
   line-height: 1.4;
 }
 
-/* Main run card */
+/* ─── Run card ──────────────────────────────────────────────────────────── */
 .runCard {
   display: flex;
   align-items: center;
@@ -85,6 +85,12 @@
   font-weight: 800;
   box-shadow: 0 2px 10px rgba(190, 122, 56, 0.35);
   white-space: nowrap;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.runBtn:hover:not(:disabled) {
+  background: #a86a2e;
+  box-shadow: 0 4px 16px rgba(190, 122, 56, 0.5);
 }
 
 .runBtn:disabled {
@@ -93,6 +99,7 @@
   box-shadow: none;
 }
 
+/* ─── Unassigned queue ──────────────────────────────────────────────────── */
 .unassignedCard {
   background: #fffdf0;
   border: 1px solid var(--warn-border);
@@ -100,6 +107,20 @@
   border-radius: var(--radius-lg);
   padding: 16px;
   margin-bottom: 14px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+/* When any drag is active but not hovering this card */
+.unassignedDropReady {
+  border-color: rgba(190, 122, 56, 0.4);
+  background: #fffdf0;
+}
+
+/* When drag is directly over this card */
+.unassignedDropActive {
+  border-color: var(--accent) !important;
+  border-inline-start-color: var(--accent) !important;
+  background: var(--accent-bg) !important;
 }
 
 .unassignedHeader {
@@ -125,7 +146,6 @@
   padding: 2px 9px;
 }
 
-/* Unassigned hint */
 .unassignedHint {
   font-size: 12px;
   color: var(--text2);
@@ -133,10 +153,11 @@
   line-height: 1.4;
 }
 
-/* Violations */
+/* ─── Violations card ───────────────────────────────────────────────────── */
 .violCard {
   background: #fffaeb;
   border: 1px solid var(--warn-border);
+  border-inline-start: 4px solid #D4680A;
   border-radius: var(--radius-lg);
   padding: 18px;
   margin-bottom: 14px;
@@ -154,7 +175,7 @@
 .violTitle {
   font-weight: 700;
   font-size: 14px;
-  color: var(--warn);
+  color: #9a5000;
 }
 
 .violExplain {
@@ -177,6 +198,7 @@
   font-size: 13px;
   padding: 8px 12px;
   border-radius: 8px;
+  border-inline-start: 3px solid transparent;
   line-height: 1.5;
 }
 
@@ -189,19 +211,22 @@
 .violTog {
   background: var(--green-bg);
   color: #1a5c36;
+  border-inline-start-color: var(--green);
 }
 
 .violApart {
   background: var(--red-bg);
   color: var(--red);
+  border-inline-start-color: var(--red);
 }
 
 .violCap {
   background: #fff0ee;
   color: #922020;
+  border-inline-start-color: #BB3527;
 }
 
-/* Table cards grid */
+/* ─── Table cards grid ──────────────────────────────────────────────────── */
 .tableCards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -222,7 +247,22 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow);
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.tCard:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+}
+
+/* When any drag is active: all table cards glow subtly as drop targets */
+.tableCardsDragging .tCard {
+  box-shadow: 0 0 0 2px rgba(190, 122, 56, 0.18), var(--shadow);
+}
+
+/* Empty label becomes inviting during drag */
+.tableCardsDragging .tCard .tCardEmpty {
+  color: var(--accent);
+  font-style: normal;
 }
 
 .tCardHead {
@@ -236,6 +276,11 @@
   width: 100%;
   gap: 10px;
   text-align: right;
+  transition: background 0.12s;
+}
+
+.tCardHead:hover {
+  background: var(--accent-light);
 }
 
 .tCardLeft {
@@ -262,24 +307,27 @@
   flex-wrap: wrap;
 }
 
+/* Badges — slightly larger for scanability */
 .tCardBadgeRed {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
   background: var(--red-bg);
   color: var(--red);
   border: 1px solid var(--red-border);
-  border-radius: 20px;
-  padding: 1px 6px;
+  border-inline-start: 2px solid var(--red);
+  border-radius: 6px;
+  padding: 2px 7px;
 }
 
 .tCardBadgeWarn {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
   background: var(--warn-bg);
   color: var(--warn);
   border: 1px solid var(--warn-border);
-  border-radius: 20px;
-  padding: 1px 6px;
+  border-inline-start: 2px solid var(--warn);
+  border-radius: 6px;
+  padding: 2px 7px;
 }
 
 .tCardRight {
@@ -299,6 +347,7 @@
   color: var(--muted);
 }
 
+/* Side breakdown chips */
 .tChip {
   display: inline-flex;
   align-items: center;
@@ -310,7 +359,6 @@
   flex-shrink: 0;
 }
 
-/* Table chip row (replaces inline flex wrapper) */
 .tChipRow {
   display: flex;
   gap: 5px;
@@ -330,7 +378,6 @@
   border: 1px solid #C5D9F0;
 }
 
-/* Capacity label next to count */
 .tCardCapLabel {
   font-size: 10px;
   font-weight: 600;
@@ -339,14 +386,15 @@
   margin-inline-start: 2px;
 }
 
-/* Empty table label */
 .tCardEmpty {
   font-size: 12px;
   color: var(--muted);
   margin-top: 2px;
   font-style: italic;
+  transition: color 0.15s;
 }
 
+/* ─── Expanded guest list ───────────────────────────────────────────────── */
 .tGuestList {
   border-top: 1px solid var(--border);
   padding: 8px 0;
@@ -358,6 +406,7 @@
   gap: 8px;
   padding: 6px 14px;
   font-size: 14px;
+  transition: background 0.1s;
 }
 
 .emptyInline {
@@ -366,9 +415,16 @@
   padding: 8px 14px;
   display: block;
   font-style: italic;
+  transition: color 0.15s;
 }
 
-/* Success card */
+/* During drag, empty table slots look more inviting */
+.tableCardsDragging .tCard .emptyInline {
+  color: var(--accent);
+  font-style: normal;
+}
+
+/* ─── Success card ──────────────────────────────────────────────────────── */
 .successCard {
   display: flex;
   align-items: center;
@@ -407,31 +463,58 @@
   color: var(--text2);
 }
 
-/* Drag and drop */
+/* ─── Drag and drop ─────────────────────────────────────────────────────── */
+
+/* Drag handle icon — appears on hover */
+.dragHandle {
+  font-size: 14px;
+  color: var(--border2);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+  user-select: none;
+  line-height: 1;
+}
+
+/* Draggable row base */
 .draggableRow {
   cursor: grab;
   user-select: none;
+  transition: background 0.12s;
 }
 
 .draggableRow:active {
   cursor: grabbing;
 }
 
-.guestDragging {
-  opacity: 0;
+/* Hover: reveal drag handle + amber tint */
+.draggableRow:hover .dragHandle {
+  opacity: 1;
 }
 
+.draggableRow:hover {
+  background: var(--accent-light);
+}
+
+/* Source row disappears while dragging — replaced by DragOverlay */
+.guestDragging {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Floating drag ghost */
 .dragOverlayRow {
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--accent);
   border-radius: 10px;
-  padding: 10px 14px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 10px 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.10);
   cursor: grabbing;
   font-size: 14px;
+  transform: scale(1.03) rotate(-0.5deg);
 }
 
 .dragOverlayName {
@@ -441,5 +524,6 @@
 
 .dragOverlayMeta {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--accent);
+  font-weight: 600;
 }

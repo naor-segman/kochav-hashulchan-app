@@ -29,6 +29,7 @@ function DraggableGuestRow({ guestId, className, children }) {
       {...attributes}
       {...listeners}
     >
+      <span className={styles.dragHandle} aria-hidden="true">⠿</span>
       {children}
     </div>
   );
@@ -235,8 +236,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             {({ ref, isOver: isDragOver }) => (
               <div
                 ref={ref}
-                className={styles.unassignedCard}
-                style={isDragOver ? { borderColor: "var(--accent)", background: "var(--accent-bg)" } : undefined}
+                className={[
+                  styles.unassignedCard,
+                  activeId && !isDragOver ? styles.unassignedDropReady : "",
+                  isDragOver ? styles.unassignedDropActive : "",
+                ].filter(Boolean).join(" ")}
               >
                 <div className={styles.unassignedHeader}>
                   <span className={styles.unassignedTitle}>⏳ ממתינים לשיבוץ</span>
@@ -280,7 +284,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         )}
 
         {ev.tables.length > 0 && (
-          <div className={styles.tableCards}>
+          <div className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}>
             {ev.tables.map(t => {
               const tGuests    = tableGuests(t.id);
               const isCapOver  = tGuests.length > t.capacity;
