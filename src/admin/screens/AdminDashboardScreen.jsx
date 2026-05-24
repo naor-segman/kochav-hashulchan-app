@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminDashboardScreen.module.css";
 
@@ -11,9 +11,10 @@ const STAT_DEFS = [
   { icon: "💳", label: "מנויים פעילים", key: "subscriptions" },
 ];
 
-// Nav links for future admin screens (not yet built).
+// live: true  → rendered as a real Link (route exists)
+// phase: "N"  → rendered as a static item with a phase badge (not built yet)
 const NAV_ITEMS = [
-  { icon: "👥", label: "ניהול משתמשים",   path: "/admin/users",         phase: "3" },
+  { icon: "👥", label: "ניהול משתמשים",   path: "/admin/users",         live: true },
   { icon: "📅", label: "כל האירועים",     path: "/admin/events",        phase: "3" },
   { icon: "📋", label: "ניהול תבניות",    path: "/admin/templates",     phase: "3" },
   { icon: "💳", label: "מנויים ותשלומים", path: "/admin/subscriptions", phase: "4" },
@@ -136,13 +137,23 @@ export default function AdminDashboardScreen() {
         <section>
           <h2 className={styles.sectionTitle}>ניהול</h2>
           <ul className={styles.navList}>
-            {NAV_ITEMS.map((item) => (
-              <li key={item.path} className={styles.navItem}>
-                <span className={styles.navIcon}>{item.icon}</span>
-                <span className={styles.navLabel}>{item.label}</span>
-                <span className={styles.navPhase}>Phase {item.phase}</span>
-              </li>
-            ))}
+            {NAV_ITEMS.map((item) =>
+              item.live ? (
+                <li key={item.path}>
+                  <Link to={item.path} className={styles.navItemLink}>
+                    <span className={styles.navIcon}>{item.icon}</span>
+                    <span className={styles.navLabel}>{item.label}</span>
+                    <span className={styles.navArrow}>→</span>
+                  </Link>
+                </li>
+              ) : (
+                <li key={item.path} className={styles.navItem}>
+                  <span className={styles.navIcon}>{item.icon}</span>
+                  <span className={styles.navLabel}>{item.label}</span>
+                  <span className={styles.navPhase}>Phase {item.phase}</span>
+                </li>
+              )
+            )}
           </ul>
         </section>
 

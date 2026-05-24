@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AdminGuard           from "./AdminGuard.jsx";
 import AdminLoginScreen     from "./screens/AdminLoginScreen.jsx";
 import AdminDashboardScreen from "./screens/AdminDashboardScreen.jsx";
+import AdminUsersScreen     from "./screens/AdminUsersScreen.jsx";
 
 // ── AdminApp ──────────────────────────────────────────────────────────────────
 //
@@ -29,6 +30,14 @@ export default function AdminApp() {
         element={
           <AdminGuard>
             <AdminDashboardScreen />
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="users"
+        element={
+          <AdminGuard>
+            <AdminUsersScreen />
           </AdminGuard>
         }
       />
