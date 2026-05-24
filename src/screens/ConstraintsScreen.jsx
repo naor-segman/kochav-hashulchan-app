@@ -79,6 +79,11 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         }
       />
 
+      <div className={styles.stepGuide}>
+        <span className={styles.stepBadge}>שלב 4 מתוך 5 — אילוצים</span>
+        <span className={styles.stepText}>שלב אופציונלי. הגדירו מי חייב לשבת יחד ומי לא — ואז המשיכו לסידור ההושבה.</span>
+      </div>
+
       {ev.guests.length < 2 && (
         <Banner variant="warn">
           יש להוסיף לפחות שני אורחים לפני הגדרת אילוצים.
@@ -125,6 +130,12 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
           </div>
         </Field>
 
+        <p className={styles.typeHint}>
+          {formType === "together"
+            ? "האורחים שתבחרו יושבצו תמיד לאותו שולחן."
+            : "האורחים שתבחרו לא יושבצו לאותו שולחן — יהיו בשולחנות שונים."}
+        </p>
+
         <div className={styles.constraintFormRow}>
           <div style={{ flex: 1, minWidth: 150 }}>
             <Field label="אורח א׳"><GuestSelect value={formA} onChange={setFormA} exclude={formB} /></Field>
@@ -149,21 +160,26 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
             styles.constraintPreview,
             formType === "together" ? styles.constraintPreviewTog : styles.constraintPreviewApart
           ].join(" ")}>
-            <span style={{ fontSize: 22, flexShrink: 0 }}>
+            <span className={styles.previewIcon}>
               {formType === "together" ? "🤝" : "⛔"}
             </span>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>
+            <div className={styles.previewContent}>
+              <div className={styles.previewNames}>
                 {gMap[formA].name}
-                <span style={{ fontWeight: 400, margin: "0 8px", opacity: 0.7 }}>
+                <span className={styles.previewVerb}>
                   {formType === "together" ? "יישב/ת יחד עם" : "לא יישב/ת עם"}
                 </span>
                 {gMap[formB].name}
               </div>
-              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 3 }}>
+              <div className={styles.previewMeta}>
                 {sideLabel(gMap[formA].side)} · {gMap[formA].group}
                 {"  ·  "}
                 {sideLabel(gMap[formB].side)} · {gMap[formB].group}
+              </div>
+              <div className={styles.previewOutcome}>
+                {formType === "together"
+                  ? "תוצאה: יושבצו לאותו שולחן — לחץ \"הוסף\" לאישור"
+                  : "תוצאה: יושבצו לשולחנות שונים — לחץ \"הוסף\" לאישור"}
               </div>
             </div>
           </div>
@@ -227,8 +243,8 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       )}
 
       {ev.constraints.length === 0 && (
-        <EmptyState icon="⚖" title="אין אילוצים"
-          text="ניתן להמשיך ללא אילוצים — המערכת תנסה לקבץ אורחים לפי קבוצות וצדדים." />
+        <EmptyState icon="⚖" title="טרם הוגדרו אילוצים"
+          text="שלב זה אופציונלי לחלוטין. אם יש אורחים שחייבים לשבת יחד (כמו הורים עם ילדים קטנים) או שאסור שיישבו יחד — הגדירו זאת כאן לפני הרצת הסידור." />
       )}
 
       <NextStep label="המשך לסידור הושבה" hint="שבץ את כל האורחים לשולחנות" onClick={() => go("seating")} />
