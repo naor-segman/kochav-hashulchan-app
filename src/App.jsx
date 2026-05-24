@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, lazy, Suspense } from "react";
 import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
@@ -16,6 +16,9 @@ import TableBuilderScreen from "./screens/TableBuilderScreen.jsx";
 import GuestManagerScreen from "./screens/GuestManagerScreen.jsx";
 import ConstraintsScreen  from "./screens/ConstraintsScreen.jsx";
 import SeatingScreen      from "./screens/SeatingScreen.jsx";
+// Lazy-load the entire admin subtree — Supabase and admin screens never
+// appear in the customer-facing initial bundle.
+const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
 
 // ── Event layout + nested routes ─────────────────────────────────────────────
 // Rendered for every /events/:eventId/* path.
@@ -135,6 +138,15 @@ export default function App() {
             showToast={showToast}
             toast={toast}
           />
+        }
+      />
+      {/* ── Admin area — lazy-loaded, completely isolated from customer app ── */}
+      <Route
+        path="/admin/*"
+        element={
+          <Suspense fallback={null}>
+            <AdminApp />
+          </Suspense>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

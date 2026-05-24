@@ -1,0 +1,129 @@
+/* Admin login — deliberately separate from customer app styles */
+
+.page {
+  min-height: 100vh;
+  background: #f4f4f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: inherit;
+}
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 40px 36px 32px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Header ── */
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo {
+  display: block;
+  font-size: 30px;
+  color: #be7a38;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.sub {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+/* ── Form ── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.input {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 11px 13px;
+  font-size: 14px;
+  color: #111;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+
+.input:focus {
+  border-color: #be7a38;
+  box-shadow: 0 0 0 3px rgba(190, 122, 56, 0.12);
+  background: #fff;
+}
+
+.error {
+  font-size: 13px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  padding: 9px 12px;
+  margin: 0;
+  line-height: 1.4;
+  direction: ltr;
+  text-align: left;
+}
+
+.btn {
+  background: #be7a38;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+
+.btn:hover:not(:disabled) {
+  background: #a86a2e;
+  box-shadow: 0 3px 12px rgba(190, 122, 56, 0.35);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Footer ── */
+.footer {
+  font-size: 11px;
+  color: #bbb;
+  text-align: center;
+  margin: 20px 0 0;
+}
