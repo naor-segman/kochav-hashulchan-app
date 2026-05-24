@@ -527,3 +527,223 @@
   color: var(--accent);
   font-weight: 600;
 }
+
+/* ─── Print button ──────────────────────────────────────────────────────── */
+.printBtn {
+  /* Sits alongside the primary action; keep it understated */
+  margin-inline-start: 4px;
+}
+
+/* ─── Screen / print visibility swap ───────────────────────────────────── */
+
+/* .screenContent is added to the base.page div.
+   In screen mode it has no visual effect.
+   @media print hides it and reveals .printView instead. */
+.screenContent {
+  /* transparent in screen mode — no layout change */
+}
+
+.printView {
+  display: none; /* invisible on screen */
+}
+
+@media print {
+  .screenContent {
+    display: none !important;
+  }
+
+  .printView {
+    display: block !important;
+    font-family: 'Heebo', Arial, sans-serif;
+    font-size: 13px;
+    color: #17140F;
+    direction: rtl;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm;
+  }
+}
+
+/* ─── Print view layout (all pv* classes) ───────────────────────────────── */
+/* These styles apply whenever .printView is visible (i.e. during print).   */
+
+.pvHeader {
+  margin-bottom: 12px;
+}
+
+.pvBrand {
+  font-size: 10px;
+  font-weight: 700;
+  color: #BE7A38;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.pvTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #17140F;
+  margin: 0 0 3px;
+}
+
+.pvMeta {
+  font-size: 13px;
+  color: #55524C;
+  margin: 0 0 3px;
+}
+
+.pvStats {
+  font-size: 11px;
+  color: #97938D;
+  margin: 0;
+}
+
+.pvDivider {
+  border: none;
+  border-top: 2px solid #17140F;
+  margin: 12px 0;
+}
+
+.pvViolWarn {
+  background: #FEF8E7;
+  border: 1px solid #F5DC95;
+  border-inline-start: 3px solid #956700;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #956700;
+  margin-bottom: 12px;
+}
+
+/* 2-column table grid */
+.pvGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pvTable {
+  border: 1px solid #E2DFD8;
+  border-radius: 6px;
+  overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pvTableOver {
+  border-color: #BB3527;
+}
+
+.pvTableHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: #F5F4F1;
+  border-bottom: 1px solid #E2DFD8;
+}
+
+.pvTableOver .pvTableHead {
+  background: #FEEEEC;
+  border-bottom-color: #F8C9C4;
+}
+
+.pvTableName {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pvTableCount {
+  font-size: 11px;
+  color: #55524C;
+}
+
+.pvTableOver .pvTableCount {
+  color: #BB3527;
+  font-weight: 700;
+}
+
+.pvTableBody {
+  padding: 3px 0;
+}
+
+.pvGuest {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 10px;
+  border-bottom: 1px solid #F5F4F1;
+  gap: 8px;
+}
+
+.pvGuest:last-child {
+  border-bottom: none;
+}
+
+.pvGuestName {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pvGuestMeta {
+  font-size: 10px;
+  color: #97938D;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pvEmpty {
+  display: block;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #97938D;
+  font-style: italic;
+}
+
+/* Unassigned section */
+.pvUnassigned {
+  border: 1px solid #F5DC95;
+  border-inline-start: 3px solid #956700;
+  background: #FEF8E7;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pvUnassignedTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #956700;
+  margin-bottom: 8px;
+}
+
+.pvUnassignedList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 20px;
+}
+
+.pvUnassignedGuest {
+  font-size: 11px;
+  color: #17140F;
+}
+
+/* Footer */
+.pvFooter {
+  font-size: 10px;
+  color: #97938D;
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid #E2DFD8;
+}
