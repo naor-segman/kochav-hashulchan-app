@@ -528,10 +528,25 @@
   font-weight: 600;
 }
 
-/* ─── Print button ──────────────────────────────────────────────────────── */
+/* ─── Export buttons ────────────────────────────────────────────────────── */
 .printBtn {
-  /* Sits alongside the primary action; keep it understated */
   margin-inline-start: 4px;
+}
+
+.xlsBtn {
+  background: #1D6F42;
+  color: #fff;
+  border: none;
+  transition: background 0.15s;
+}
+
+.xlsBtn:hover:not(:disabled) {
+  background: #175c37;
+}
+
+.xlsBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ─── Screen / print visibility swap ───────────────────────────────────── */

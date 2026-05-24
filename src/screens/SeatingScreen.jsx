@@ -6,6 +6,7 @@ import {
   useSensor, useSensors,
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
+import { exportToExcel } from "../utils/exportHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import CapBar from "../components/ui/CapBar.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -201,6 +202,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 title="הדפס / ייצוא סידור הושבה"
               >
                 🖨 הדפס / ייצוא
+              </button>
+              <button
+                className={[base.btnSm, styles.xlsBtn].join(" ")}
+                onClick={() => exportToExcel(ev, sideLabel, violations)}
+                title="ייצוא לקובץ אקסל"
+                disabled={ev.guests.length === 0 && ev.tables.length === 0}
+              >
+                📊 ייצוא לאקסל
               </button>
             </div>
           </div>
