@@ -4,6 +4,7 @@ import {
   useNavigate, useParams, useLocation,
 } from "react-router-dom";
 import { uid } from "./utils/uid.js";
+import { duplicateEvent } from "./utils/eventHelpers.js";
 import { useEvents }      from "./hooks/useEvents.js";
 import { useToast }       from "./hooks/useToast.js";
 import { useActiveEvent } from "./hooks/useActiveEvent.js";
@@ -88,6 +89,16 @@ export default function App() {
     showToast("האירוע נמחק");
   }, [removeEvent, showToast]);
 
+  const handleDuplicateEvent = useCallback((id) => {
+    const original = events.find(e => e.id === id);
+    if (!original) return;
+    const copy = duplicateEvent(original);
+    addEvent(copy);
+    navigate(`/events/${copy.id}/setup`);
+    window.scrollTo(0, 0);
+    showToast("האירוע שוכפל ✓");
+  }, [events, addEvent, navigate, showToast]);
+
   // go() for the dashboard Shell — subnav is hidden on dashboard so only
   // the logo click (→ "/") needs to be handled here.
   const dashGo = useCallback((screen, id) => {
@@ -107,6 +118,7 @@ export default function App() {
               onCreateEvent={createEvent}
               onOpenEvent={id => { navigate(`/events/${id}/setup`); window.scrollTo(0, 0); }}
               onDeleteEvent={deleteEvent}
+              onDuplicateEvent={handleDuplicateEvent}
             />
             {toast && <Toast msg={toast.msg} variant={toast.variant} />}
           </Shell>

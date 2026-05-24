@@ -268,10 +268,16 @@
   margin-top: 2px;
 }
 
-.eventOpenBtn {
-  width: 100%;
+.eventActions {
   margin-top: auto;
   padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eventOpenBtn {
+  width: 100%;
   background: var(--accent);
   color: #fff;
   border: none;
@@ -282,6 +288,26 @@
   cursor: pointer;
   text-align: center;
   box-shadow: 0 1px 4px rgba(190, 122, 56, 0.28);
+}
+
+.duplicateBtn {
+  width: 100%;
+  background: transparent;
+  color: var(--text2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.duplicateBtn:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-light);
+  color: var(--accent);
 }
 
 /* ── Mobile ── */

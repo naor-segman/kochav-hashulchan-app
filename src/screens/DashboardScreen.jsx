@@ -6,7 +6,7 @@ import styles from "./DashboardScreen.module.css";
 
 const WORKFLOW_STEPS = ["פרטי האירוע", "שולחנות", "אורחים", "אילוצים", "הושבה"];
 
-export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, onDeleteEvent }) {
+export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
   const eventStatus = (ev) => {
     const seated = Object.keys(ev.seating || {}).length;
     const total  = ev.guests.length;
@@ -126,9 +126,14 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
                     </div>
                   )}
 
-                  <button className={styles.eventOpenBtn} onClick={() => onOpenEvent(ev.id)}>
-                    פתח לניהול ←
-                  </button>
+                  <div className={styles.eventActions}>
+                    <button className={styles.eventOpenBtn} onClick={() => onOpenEvent(ev.id)}>
+                      פתח לניהול ←
+                    </button>
+                    <button className={styles.duplicateBtn} onClick={() => onDuplicateEvent(ev.id)}>
+                      שכפל אירוע
+                    </button>
+                  </div>
 
                 </div>
               );
