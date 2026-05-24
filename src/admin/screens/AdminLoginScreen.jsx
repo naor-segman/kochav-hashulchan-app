@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabase.js";
+import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import styles from "./AdminLoginScreen.module.css";
 
 export default function AdminLoginScreen() {
@@ -50,6 +50,15 @@ export default function AdminLoginScreen() {
           <h1 className={styles.title}>Admin</h1>
           <p className={styles.sub}>כוכב השולחן — ניהול מערכת</p>
         </div>
+
+        {!isSupabaseConfigured && (
+          <div className={styles.setupBanner}>
+            <strong>Supabase not configured</strong>
+            <br />
+            Copy <code>.env.example</code> to <code>.env.local</code> and fill in
+            your <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
           <div className={styles.field}>

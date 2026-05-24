@@ -46,6 +46,29 @@
   margin: 0;
 }
 
+/* ── Setup banner (shown when env vars are missing) ── */
+.setupBanner {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-inline-start: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  direction: ltr;
+  text-align: left;
+}
+
+.setupBanner code {
+  background: #fef3c7;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
 /* ── Form ── */
 .form {
   display: flex;
