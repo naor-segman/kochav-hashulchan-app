@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { icon: "📅", label: "כל האירועים",     path: "/admin/events",        live: true  },
   { icon: "📋", label: "ניהול תבניות",    path: "/admin/templates",     live: true  },
   { icon: "💳", label: "מנויים ותשלומים", path: "/admin/subscriptions", phase: "4" },
+  { icon: "⚙️", label: "הגדרות מערכת",   path: "/admin/settings",      live: true },
 ];
 
 // Run all four count queries in parallel.
