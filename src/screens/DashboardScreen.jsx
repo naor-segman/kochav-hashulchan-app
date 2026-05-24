@@ -8,8 +8,25 @@ import styles from "./DashboardScreen.module.css";
 
 const WORKFLOW_STEPS = ["פרטי האירוע", "שולחנות", "אורחים", "אילוצים", "הושבה"];
 
+const DEMO_STEPS = [
+  { label: "צור אירוע חדש",        hint: 'לחץ "צור אירוע" ובחר את סוג האירוע מהתפריט' },
+  { label: "הוסף שולחנות",          hint: "הגדר כמה שולחנות יש באולם ואת הקיבולת שלהם" },
+  { label: "הוסף אורחים",           hint: "הזן ידנית, או ייבא רשימה מקובץ Excel" },
+  { label: "הגדר אילוצים",          hint: "הפרדות בין אורחים וישיבות משותפות" },
+  { label: "חשב הושבה אוטומטית",   hint: 'לחץ "חשב הושבה" בלשונית ההושבה ובדוק את התוצאה' },
+  { label: "ייצא לאולם",            hint: "ייצא את הסידור לקובץ Excel לצוות האולם" },
+];
+
 export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showDemo,      setShowDemo]      = useState(false);
+  const [doneSteps,     setDoneSteps]     = useState(() => new Set());
+
+  const toggleStep = (i) => setDoneSteps(prev => {
+    const next = new Set(prev);
+    next.has(i) ? next.delete(i) : next.add(i);
+    return next;
+  });
 
   const hasEvents     = events.length > 0;
   const stats         = useMemo(() => dashStats(events), [events]);
@@ -248,6 +265,57 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
           </div>
         </section>
       )}
+
+      {/* ── Demo checklist ── */}
+      <div className={styles.demoCard}>
+        <button className={styles.demoToggle} onClick={() => setShowDemo(v => !v)}>
+          <span className={styles.demoToggleStart}>
+            <span className={styles.demoIcon}>🧪</span>
+            <span className={styles.demoTitle}>נסה את המערכת</span>
+            {doneSteps.size > 0 && (
+              <span className={doneSteps.size === DEMO_STEPS.length ? styles.demoBadgeDone : styles.demoBadge}>
+                {doneSteps.size}/{DEMO_STEPS.length}
+              </span>
+            )}
+          </span>
+          <span className={styles.demoChevron}>{showDemo ? "▲" : "▼"}</span>
+        </button>
+
+        {showDemo && (
+          <div className={styles.demoBody}>
+            <p className={styles.demoSubtitle}>
+              עבור את כל השלבים כדי לבדוק את כל הפונקציות של המערכת.
+              לחץ על שלב כדי לסמן אותו כהושלם.
+            </p>
+            <ol className={styles.demoList}>
+              {DEMO_STEPS.map((step, i) => {
+                const done = doneSteps.has(i);
+                return (
+                  <li key={i}>
+                    <button
+                      className={[styles.demoStep, done ? styles.demoStepDone : ""].filter(Boolean).join(" ")}
+                      onClick={() => toggleStep(i)}
+                    >
+                      <span className={[styles.demoCheck, done ? styles.demoCheckDone : ""].filter(Boolean).join(" ")}>
+                        {done ? "✓" : (i + 1)}
+                      </span>
+                      <span className={styles.demoStepText}>
+                        <span className={styles.demoStepLabel}>{step.label}</span>
+                        <span className={styles.demoStepHint}>{step.hint}</span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+            {doneSteps.size === DEMO_STEPS.length && (
+              <p className={styles.demoComplete}>
+                ✓ כל השלבים הושלמו — המערכת עובדת מצוין!
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {showTemplates && (
         <div className={styles.tmplOverlay} onClick={() => setShowTemplates(false)}>
