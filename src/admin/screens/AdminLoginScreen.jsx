@@ -1,16 +1,38 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import styles from "./AdminLoginScreen.module.css";
 
+// Map raw Supabase auth error strings to user-friendly messages.
+function friendlyAuthError(message) {
+  if (!message) return "An unknown error occurred.";
+  const m = message.toLowerCase();
+  if (m.includes("invalid login credentials") || m.includes("invalid email or password")) {
+    return "Invalid email or password.";
+  }
+  if (m.includes("email not confirmed")) {
+    return "Please confirm your email address before logging in.";
+  }
+  if (m.includes("too many requests")) {
+    return "Too many login attempts. Please wait a few minutes and try again.";
+  }
+  if (m.includes("network") || m.includes("fetch failed")) {
+    return "Connection error. Check your internet connection and try again.";
+  }
+  return message;
+}
+
 export default function AdminLoginScreen() {
+  const location  = useLocation();
+  const navigate  = useNavigate();
+
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [error,    setError]    = useState("");
+  // Pre-populate error from AdminGuard access-denied redirect (location.state.error).
+  const [error,    setError]    = useState(location.state?.error || "");
   const [loading,  setLoading]  = useState(false);
-  const navigate = useNavigate();
 
-  // Redirect to dashboard if already authenticated.
+  // Redirect to dashboard if a valid session already exists.
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -35,8 +57,9 @@ export default function AdminLoginScreen() {
     setLoading(false);
 
     if (authError) {
-      setError(authError.message);
+      setError(friendlyAuthError(authError.message));
     } else {
+      // AdminGuard will do the role check; navigate unconditionally here.
       navigate("/admin/dashboard", { replace: true });
     }
   };
@@ -93,7 +116,7 @@ export default function AdminLoginScreen() {
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <button className={styles.btn} type="submit" disabled={loading}>
+          <button className={styles.btn} type="submit" disabled={loading || !isSupabaseConfigured}>
             {loading ? "מתחבר…" : "כניסה"}
           </button>
         </form>

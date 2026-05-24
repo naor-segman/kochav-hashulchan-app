@@ -65,8 +65,8 @@ export default function AdminDashboardScreen() {
         {/* ── Phase notice ── */}
         <div className={styles.phaseNotice}>
           <strong>Phase 1 — Admin Foundation</strong>
-          {" "}Authentication is active. Stat tiles and navigation links will become
-          functional in Phase 2 once the database schema is deployed to Supabase.
+          {" "}Authentication and database schema are active. Stat tiles and navigation
+          links become functional in Phase 2 once dashboard queries are wired up.
         </div>
 
         {/* ── Stats grid ── */}
