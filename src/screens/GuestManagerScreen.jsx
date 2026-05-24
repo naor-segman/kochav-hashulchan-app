@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 import { GROUP_OPTIONS } from "../data/constants.js";
-import { getTemplateDataUrl } from "../data/guestTemplate.js";
+import { downloadGuestTemplate } from "../data/guestTemplate.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -227,13 +227,15 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose }) {
                 מלא אותו ואז העלה בחזרה.
               </div>
             </div>
-            <a
-              href={getTemplateDataUrl()}
-              download={"רשימת_אורחים_" + (ev.name || "אורחים").replace(/[^א-תa-zA-Z0-9]/g, "_") + ".xlsx"}
+            <button
               className={base.downloadLink}
+              style={{ border: "none", cursor: "pointer" }}
+              onClick={() => downloadGuestTemplate(
+                "רשימת_אורחים_" + (ev.name || "אורחים").replace(/[^א-תa-zA-Z0-9]/g, "_") + ".xlsx"
+              )}
             >
               ⬇ הורד תבנית Excel
-            </a>
+            </button>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0" }}>

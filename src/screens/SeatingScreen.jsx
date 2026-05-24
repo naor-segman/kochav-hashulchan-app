@@ -72,6 +72,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const sideLabel   = s => s === "bride" ? (ev.brideName ? "צד " + ev.brideName : "צד כלה") : (ev.groomName ? "צד " + ev.groomName : "צד חתן");
   const tableGuests = tid => ev.guests.filter(g => ev.seating[g.id] === tid);
+  const tableSeats  = tid => ev.guests
+    .filter(g => ev.seating[g.id] === tid)
+    .reduce((s, g) => s + (g.count || 1), 0);
 
   const violatedTables = new Set(
     violations.flatMap(v => [v.tableA, v.tableB]).filter(Boolean)
@@ -140,8 +143,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     if (ev.seating[guestId] === toTableId) return;
     const targetTable = ev.tables.find(t => t.id === toTableId);
     if (targetTable) {
-      const occupied = ev.guests.filter(g => ev.seating[g.id] === toTableId).length;
-      if (occupied >= targetTable.capacity) {
+      const occupiedSeats = ev.guests
+        .filter(g => ev.seating[g.id] === toTableId)
+        .reduce((s, g) => s + (g.count || 1), 0);
+      const draggedSeats = ev.guests.find(g => g.id === guestId)?.count || 1;
+      if (occupiedSeats + draggedSeats > targetTable.capacity) {
         showToast("השולחן מלא — לא ניתן להוסיף אורחים", "err");
         return;
       }
@@ -317,11 +323,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                         >
                           <option value="">שבץ לשולחן...</option>
                           {ev.tables.map(t => {
-                            const cnt  = tableGuests(t.id).length;
-                            const full = cnt >= t.capacity;
+                            const seats = tableSeats(t.id);
+                            const full  = seats + (g.count || 1) > t.capacity;
                             return (
                               <option key={t.id} value={t.id} disabled={full}>
-                                {t.name} ({cnt}/{t.capacity}){full ? " — מלא" : ""}
+                                {t.name} ({seats}/{t.capacity}){full ? " — מלא" : ""}
                               </option>
                             );
                           })}
@@ -338,10 +344,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             <div className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}>
               {ev.tables.map(t => {
                 const tGuests    = tableGuests(t.id);
-                const isCapOver  = tGuests.length > t.capacity;
+                const usedSeats  = tGuests.reduce((s, g) => s + (g.count || 1), 0);
+                const isCapOver  = usedSeats > t.capacity;
                 const hasViol    = violatedTables.has(t.name);
                 const isExpanded = expandedTable === t.id;
-                const pct        = t.capacity > 0 ? tGuests.length / t.capacity : 0;
+                const pct        = t.capacity > 0 ? usedSeats / t.capacity : 0;
                 const borderCol  = isCapOver ? "var(--red)" : hasViol ? "#E8A020" : "var(--border)";
 
                 return (
@@ -387,14 +394,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                             </div>
                           </div>
                           <div className={styles.tCardRight}>
-                            <CapBar filled={tGuests.length} capacity={t.capacity} isOver={isCapOver} />
+                            <CapBar filled={usedSeats} capacity={t.capacity} isOver={isCapOver} />
                             <span
                               className={styles.tCardCount}
                               style={{
-                                color: isCapOver ? "var(--red)" : pct > 0.85 ? "var(--warn)" : tGuests.length > 0 ? "var(--text)" : "var(--muted)"
+                                color: isCapOver ? "var(--red)" : pct > 0.85 ? "var(--warn)" : usedSeats > 0 ? "var(--text)" : "var(--muted)"
                               }}
                             >
-                              {tGuests.length}/{t.capacity}
+                              {usedSeats}/{t.capacity}
                               <span className={styles.tCardCapLabel}> מקומות</span>
                             </span>
                             <span className={styles.tCardChevron}>{isExpanded ? "▲" : "▼"}</span>
@@ -428,11 +435,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   <option value="__remove__">↩ הסר מהשולחן</option>
                                   <optgroup label="העבר לשולחן אחר">
                                     {ev.tables.filter(ot => ot.id !== t.id).map(ot => {
-                                      const cnt  = tableGuests(ot.id).length;
-                                      const full = cnt >= ot.capacity;
+                                      const seats = tableSeats(ot.id);
+                                      const full  = seats + (g.count || 1) > ot.capacity;
                                       return (
                                         <option key={ot.id} value={ot.id} disabled={full}>
-                                          {ot.name} ({cnt}/{ot.capacity}){full ? " — מלא" : ""}
+                                          {ot.name} ({seats}/{ot.capacity}){full ? " — מלא" : ""}
                                         </option>
                                       );
                                     })}
@@ -441,7 +448,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                               </DraggableGuestRow>
                             ))}
 
-                            {unassigned.length > 0 && !isCapOver && (
+                            {unassigned.length > 0 && usedSeats < t.capacity && (
                               <div
                                 className={styles.tGuestRow}
                                 style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 10 }}
@@ -513,13 +520,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         {ev.tables.length > 0 ? (
           <div className={styles.pvGrid}>
             {ev.tables.map(t => {
-              const tg = tableGuests(t.id);
-              const capOver = tg.length > t.capacity;
+              const tg      = tableGuests(t.id);
+              const tgSeats = tg.reduce((s, g) => s + (g.count || 1), 0);
+              const capOver = tgSeats > t.capacity;
               return (
                 <div key={t.id} className={[styles.pvTable, capOver ? styles.pvTableOver : ""].filter(Boolean).join(" ")}>
                   <div className={styles.pvTableHead}>
                     <span className={styles.pvTableName}>{t.name}</span>
-                    <span className={styles.pvTableCount}>{tg.length}/{t.capacity}{capOver ? " ⚠" : ""}</span>
+                    <span className={styles.pvTableCount}>{tgSeats}/{t.capacity}{capOver ? " ⚠" : ""}</span>
                   </div>
                   <div className={styles.pvTableBody}>
                     {tg.length === 0
