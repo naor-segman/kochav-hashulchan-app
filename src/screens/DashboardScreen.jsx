@@ -46,8 +46,27 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
           </div>
 
           <p className={styles.onboardingTagline}>
-            סדרו הושבה לחתונה או לכל אירוע — מהר, חכם, בעברית.
+            כלי הושבה לחתונות ואירועים — הוסיפו אורחים, הגדירו אילוצים,
+            וקבלו סידור שולחנות אוטומטי בלחיצה אחת.
           </p>
+
+          <div className={styles.valueRow}>
+            <div className={styles.valueTile}>
+              <span className={styles.valueTileIcon}>⚡</span>
+              <span className={styles.valueTileTitle}>סידור אוטומטי</span>
+              <span className={styles.valueTileSub}>האלגוריתם ממלא שולחנות תוך שניות, ללא עבודה ידנית</span>
+            </div>
+            <div className={styles.valueTile}>
+              <span className={styles.valueTileIcon}>🔗</span>
+              <span className={styles.valueTileTitle}>אילוצים בין אורחים</span>
+              <span className={styles.valueTileSub}>הפרדות, ישיבות משותפות ועדיפויות — הכל נלקח בחשבון</span>
+            </div>
+            <div className={styles.valueTile}>
+              <span className={styles.valueTileIcon}>📊</span>
+              <span className={styles.valueTileTitle}>ייצוא לאולם</span>
+              <span className={styles.valueTileSub}>ייצוא מלא לקובץ Excel עם פירוט שולחנות ואורחים</span>
+            </div>
+          </div>
 
           <div className={styles.workflowStrip}>
             {WORKFLOW_STEPS.map((label, i) => (
@@ -59,11 +78,11 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
           </div>
 
           <button className={styles.heroCta} onClick={() => setShowTemplates(true)}>
-            + צור אירוע ראשון — בחינם
+            + צור אירוע ראשון
           </button>
 
           <p className={styles.onboardingNote}>
-            ללא הרשמה · נשמר אוטומטית · עובד בדפדפן בלבד
+            ללא הרשמה · חינם לגמרי · נשמר אוטומטית · עובד בדפדפן בלבד
           </p>
         </div>
       )}
