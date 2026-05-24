@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import * as XLSX from "xlsx";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
 import { uid } from "../utils/uid.js";
@@ -80,7 +79,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose }) {
     setParseErr("");
     const ext    = file.name.split(".").pop().toLowerCase();
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         let rows;
         if (ext === "csv") {
@@ -96,6 +95,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose }) {
             return obj;
           });
         } else {
+          const XLSX = await import("xlsx");
           const wb = XLSX.read(e.target.result, { type: "array" });
           const ws = wb.Sheets[wb.SheetNames[0]];
           rows     = XLSX.utils.sheet_to_json(ws, { defval: "" });

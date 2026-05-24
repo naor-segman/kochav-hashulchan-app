@@ -1,5 +1,3 @@
-import * as XLSX from "xlsx";
-
 const TABLE_TYPE_HE = { regular: "רגיל", vip: "VIP", head: "שולחן ראשי" };
 
 function fmtDate(dateStr) {
@@ -15,7 +13,8 @@ function safeName(str) {
   return (str || "סידור הושבה").replace(/[/\\?%*:|"<>[\]]/g, "-");
 }
 
-export function exportToExcel(ev, sideLabel, violations) {
+export async function exportToExcel(ev, sideLabel, violations) {
+  const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
 
   // ── Sheet 1: Seating plan ────────────────────────────────────────────

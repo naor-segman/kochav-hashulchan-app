@@ -1,5 +1,3 @@
-import * as XLSX from "xlsx";
-
 const HEADERS = ["שם מלא", "טלפון", "כמות", "צד", "קבוצה", "הערות"];
 
 const EXAMPLE_ROWS = [
@@ -7,7 +5,8 @@ const EXAMPLE_ROWS = [
   ["דוגמה: שרה כהן",      "052-0000000", 2, "צד כלה", "חברים",       "מגיעה עם מלווה"],
 ];
 
-export function downloadGuestTemplate(filename) {
+export async function downloadGuestTemplate(filename) {
+  const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...EXAMPLE_ROWS]);
 
