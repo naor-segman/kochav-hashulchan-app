@@ -36,10 +36,10 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose }) {
     const invalid    = [];
 
     rawRows.forEach(r => {
-      const name = String(r["שם"] || "").trim();
+      const name = String(r["שם מלא"] || r["שם"] || "").trim();
       if (!name || name.startsWith("דוגמה") || name.startsWith("(")) return;
 
-      const rawCount    = r["מספר מוזמנים"];
+      const rawCount    = r["כמות"] ?? r["מספר מוזמנים"];
       const rawCountStr = String(rawCount ?? "").trim();
       let count = 1;
       if (rawCountStr !== "") {
@@ -101,7 +101,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose }) {
           rows     = XLSX.utils.sheet_to_json(ws, { defval: "" });
         }
         if (!rows.length) { setParseErr("לא נמצאו שורות בקובץ"); return; }
-        if (!rows[0] || !("שם" in rows[0])) {
+        if (!rows[0] || (!("שם מלא" in rows[0]) && !("שם" in rows[0]))) {
           setParseErr("הקובץ לא נראה כתבנית שלנו. ודא שהורדת את התבנית ומילאת אותה.");
           return;
         }
