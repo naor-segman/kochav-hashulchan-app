@@ -79,6 +79,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         }
       />
 
+      <div className={styles.stepGuide}>
+        <span className={styles.stepBadge}>שלב 5 מתוך 5 — סידור הושבה</span>
+        <span className={styles.stepText}>הריצו את הסידור האוטומטי ואז ערכו ידנית לפי הצורך. כל שינוי נשמר מיידית.</span>
+      </div>
+
       {noTables && (
         <Banner variant="warn">
           יש להגדיר שולחנות לפני סידור ההושבה.
@@ -92,27 +97,31 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         </Banner>
       )}
 
-      <div className={base.actionBar}>
-        <button
-          className={base.btnPrimary}
-          style={noTables || noGuests ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
-          onClick={runAuto}
-          disabled={noTables || noGuests}
-        >
-          ✦ חשב הושבה אוטומטית
-        </button>
-        {nAssigned > 0 && (
-          <button
-            className={base.btnSecondary}
-            style={{ color: "var(--red)", borderColor: "var(--red-border)" }}
-            onClick={clearAll}
-          >
-            נקה הכל
+      <div className={styles.runCard}>
+        <div className={styles.runCardInfo}>
+          <div className={styles.runCardTitle}>✦ חשב הושבה אוטומטית</div>
+          <div className={styles.runCardSub}>
+            {noTables ? "לפני ההרצה — הגדירו שולחנות בשלב 2."
+              : noGuests ? "לפני ההרצה — הוסיפו אורחים בשלב 3."
+              : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
+          </div>
+          <div className={styles.runCardStats}>
+            {nAssignedSeats} / {totalSeats} מקומות שובצו · {nAssigned}/{ev.guests.length} רשומות · {totalCap} כסאות באולם
+          </div>
+        </div>
+        <div className={styles.runCardActions}>
+          <button className={styles.runBtn} onClick={runAuto} disabled={noTables || noGuests}>
+            {nAssigned > 0 ? "חשב מחדש" : "חשב הושבה"}
           </button>
-        )}
-        <span className={base.fieldHint}>
-          {nAssignedSeats} / {totalSeats} מקומות שובצו ({nAssigned}/{ev.guests.length} רשומות) · {totalCap} כסאות באולם
-        </span>
+          {nAssigned > 0 && (
+            <button
+              className={[base.btnSm, base.btnDanger].join(" ")}
+              onClick={clearAll}
+            >
+              נקה הכל
+            </button>
+          )}
+        </div>
       </div>
 
       {allSeated && noProblems && (
@@ -135,6 +144,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             </span>
             <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={runAuto}>חשב מחדש</button>
           </div>
+          <p className={styles.violExplain}>
+            האילוצים הבאים לא מתקיימים — ניתן לתקן אוטומטית באמצעות "חשב מחדש", או להעביר אורחים ידנית.
+          </p>
           <div className={styles.violList}>
             {violations.map((v, i) => (
               <div
@@ -160,6 +172,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             <span className={styles.unassignedTitle}>⏳ ממתינים לשיבוץ</span>
             <span className={styles.unassignedCount}>{unassigned.length} אורחים</span>
           </div>
+          <p className={styles.unassignedHint}>
+            לשיבוץ ידני — בחרו שולחן מהרשימה. לסידור חדש של כולם — לחצו "חשב מחדש" למעלה.
+          </p>
           <div className={base.gList}>
             {unassigned.map(g => (
               <div key={g.id} className={base.gRow}>
@@ -217,20 +232,18 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                         {isOver  && <span className={styles.tCardBadgeRed}>חריגה!</span>}
                         {hasViol && !isOver && <span className={styles.tCardBadgeWarn}>הפרה</span>}
                       </div>
+                      {tGuests.length === 0 && (
+                        <div className={styles.tCardEmpty}>{t.capacity} מקומות פנויים</div>
+                      )}
                       {tGuests.length > 0 && (
-                        <div style={{ display: "flex", gap: 5, marginTop: 3, flexWrap: "wrap" }}>
+                        <div className={styles.tChipRow}>
                           {["bride", "groom"].map(side => {
                             const n = tGuests.filter(g => g.side === side).length;
                             if (!n) return null;
                             return (
                               <span
                                 key={side}
-                                className={styles.tChip}
-                                style={{
-                                  color:      side === "bride" ? "var(--bride)" : "var(--groom)",
-                                  background: side === "bride" ? "#F5ECF3" : "#EBF2FB",
-                                  border:     "1px solid " + (side === "bride" ? "#E0C6DB" : "#C5D9F0"),
-                                }}
+                                className={[styles.tChip, side === "bride" ? styles.tChipBride : styles.tChipGroom].join(" ")}
                               >
                                 <SideDot side={side} /> {n}
                               </span>
@@ -249,6 +262,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       }}
                     >
                       {tGuests.length}/{t.capacity}
+                      <span className={styles.tCardCapLabel}> מקומות</span>
                     </span>
                     <span className={styles.tCardChevron}>{isExpanded ? "▲" : "▼"}</span>
                   </div>

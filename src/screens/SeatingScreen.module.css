@@ -1,5 +1,98 @@
 /* SeatingScreen-specific styles */
 
+/* Step guidance banner */
+.stepGuide {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--accent-bg);
+  border: 1px solid #e5c99a;
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.stepBadge {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stepText {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+/* Main run card */
+.runCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.runCardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.runCardTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.runCardSub {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.runCardStats {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.runCardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.runBtn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(190, 122, 56, 0.35);
+  white-space: nowrap;
+}
+
+.runBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .unassignedCard {
   background: #fffdf0;
   border: 1px solid var(--warn-border);
@@ -32,6 +125,14 @@
   padding: 2px 9px;
 }
 
+/* Unassigned hint */
+.unassignedHint {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
 /* Violations */
 .violCard {
   background: #fffaeb;
@@ -54,6 +155,13 @@
   font-weight: 700;
   font-size: 14px;
   color: var(--warn);
+}
+
+.violExplain {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 10px;
+  line-height: 1.4;
 }
 
 .violList {
@@ -200,6 +308,43 @@
   border-radius: 20px;
   padding: 2px 7px;
   flex-shrink: 0;
+}
+
+/* Table chip row (replaces inline flex wrapper) */
+.tChipRow {
+  display: flex;
+  gap: 5px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+
+.tChipBride {
+  color: var(--bride);
+  background: #F5ECF3;
+  border: 1px solid #E0C6DB;
+}
+
+.tChipGroom {
+  color: var(--groom);
+  background: #EBF2FB;
+  border: 1px solid #C5D9F0;
+}
+
+/* Capacity label next to count */
+.tCardCapLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.7;
+  margin-inline-start: 2px;
+}
+
+/* Empty table label */
+.tCardEmpty {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-style: italic;
 }
 
 .tGuestList {
