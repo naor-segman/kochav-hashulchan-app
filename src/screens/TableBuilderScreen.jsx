@@ -63,17 +63,19 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   };
 
   const delTable = id => {
-    const t   = ev.tables.find(t => t.id === id);
-    const cnt = ev.guests.filter(g => ev.seating[g.id] === id).length;
-    const msg = cnt > 0
-      ? "לשולחן \"" + (t ? t.name : "") + "\" משובצים " + cnt + " אורחים — יחזרו לרשימה. למחוק?"
-      : "למחוק את \"" + (t ? t.name : "") + "\"?";
+    const t     = ev.tables.find(t => t.id === id);
+    const tName = t ? t.name : "";
+    const cnt   = ev.guests.filter(g => ev.seating[g.id] === id).length;
+    const msg   = cnt > 0
+      ? "למחוק את השולחן \"" + tName + "\"?\n\n" +
+        cnt + " אורחים שובצו לשולחן זה — הם יחזרו לרשימת הממתינים.\n\nפעולה זו אינה ניתנת לביטול."
+      : "למחוק את השולחן \"" + tName + "\"?\n\nהשולחן ריק. פעולה זו אינה ניתנת לביטול.";
     if (!confirm(msg)) return;
     patchEvent(e => Object.assign({}, e, {
       tables:  e.tables.filter(t => t.id !== id),
       seating: Object.fromEntries(Object.entries(e.seating).filter(([, tid]) => tid !== id)),
     }));
-    showToast("השולחן נמחק");
+    showToast("השולחן \"" + tName + "\" נמחק");
   };
 
   return (
@@ -92,7 +94,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
 
       <div className={styles.stepGuide}>
         <span className={styles.stepBadge}>שלב 2 מתוך 5 — שולחנות</span>
-        <span className={styles.stepText}>הגדירו כמה שולחנות יש באולם ומה הקיבולת שלהם. לאחר מכן המשיכו לרשימת האורחים.</span>
+        <span className={styles.stepText}>הגדירו כמה שולחנות יש באולם ומה הקיבולת שלהם. לאחר מכן המשיכו לרשימת האורחים. כל שינוי נשמר אוטומטית.</span>
       </div>
 
       {gap < 0 && ev.guests.length > 0 && (

@@ -102,10 +102,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   };
 
   const clearAll = () => {
-    if (!confirm("לנקות את כל שיבוצי ההושבה?\n" + nAssigned + " אורחים יחזרו לרשימת הממתינים.")) return;
+    if (!confirm(
+      "לנקות את כל ההושבה?\n\n" +
+      "כל " + nAssigned + " האורחים השובצים יחזרו לרשימת הממתינים.\n" +
+      "ניתן לשחזר בלחיצה על \"↩ בטל\" — אך לא לאחר יציאה מהמסך."
+    )) return;
     pushHistory();
     patchEvent(e => Object.assign({}, e, { seating: {} }));
-    showToast("כל השיבוצים נוקו");
+    showToast("ההושבה נוקתה — " + nAssigned + " אורחים ממתינים לשיבוץ");
     setExpandedTable(null);
   };
 

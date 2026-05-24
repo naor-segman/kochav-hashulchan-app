@@ -95,7 +95,19 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
                     <button
                       className={styles.deleteBtn}
                       title="מחק אירוע"
-                      onClick={() => onDeleteEvent(ev.id)}
+                      onClick={() => {
+                        const details = [];
+                        if (ev.tables.length > 0) details.push(ev.tables.length + " שולחנות");
+                        if (ev.guests.length > 0) details.push(ev.guests.length + " אורחים");
+                        const dataNote = details.length > 0
+                          ? "\n\nיימחקו: " + details.join(" ו-") + " וכל ההושבה."
+                          : "";
+                        if (!confirm(
+                          "למחוק לצמיתות את \"" + (ev.name || "אירוע ללא שם") + "\"?" +
+                          dataNote + "\n\nפעולה זו אינה ניתנת לביטול."
+                        )) return;
+                        onDeleteEvent(ev.id);
+                      }}
                     >✕</button>
                   </div>
 

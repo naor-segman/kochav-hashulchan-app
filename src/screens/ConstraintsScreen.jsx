@@ -48,7 +48,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       : "להסיר את האילוץ \"בנפרד\" בין " + nameA + " ל" + nameB + "?";
     if (!confirm(label)) return;
     patchEvent(e => Object.assign({}, e, { constraints: e.constraints.filter(c => c.id !== id) }));
-    showToast("האילוץ הוסר");
+    showToast("האילוץ הוסר ✓");
   };
 
   const stale    = ev.constraints.filter(c => !gMap[c.guestA] || !gMap[c.guestB]);
@@ -81,7 +81,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
 
       <div className={styles.stepGuide}>
         <span className={styles.stepBadge}>שלב 4 מתוך 5 — אילוצים</span>
-        <span className={styles.stepText}>שלב אופציונלי. הגדירו מי חייב לשבת יחד ומי לא — ואז המשיכו לסידור ההושבה.</span>
+        <span className={styles.stepText}>שלב אופציונלי. הגדירו מי חייב לשבת יחד ומי לא — ואז המשיכו לסידור ההושבה. כל שינוי נשמר אוטומטית.</span>
       </div>
 
       {ev.guests.length < 2 && (

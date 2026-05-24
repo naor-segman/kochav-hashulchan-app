@@ -442,12 +442,17 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   };
 
   const delGuest = (id, name) => {
-    if (!confirm("למחוק את \"" + name + "\" מרשימת האורחים?")) return;
+    const tableId   = ev.seating[id];
+    const tableName = tableId ? (ev.tables.find(t => t.id === tableId)?.name || null) : null;
+    const msg = tableName
+      ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית.\n\nפעולה זו אינה ניתנת לביטול."
+      : "למחוק את \"" + name + "\" מרשימת האורחים?\n\nפעולה זו אינה ניתנת לביטול.";
+    if (!confirm(msg)) return;
     patchEvent(e => Object.assign({}, e, {
       guests:  e.guests.filter(g => g.id !== id),
       seating: Object.fromEntries(Object.entries(e.seating).filter(([gid]) => gid !== id)),
     }));
-    showToast(name + " הוסר/ה");
+    showToast(name + " הוסר/ה מהרשימה ✓");
   };
 
   const visible = ev.guests.filter(g => {
@@ -484,7 +489,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
       <div className={styles.stepGuide}>
         <span className={styles.stepBadge}>שלב 3 מתוך 5 — אורחים</span>
-        <span className={styles.stepText}>הוסיפו אורחים ידנית אחד-אחד, או ייבאו רשימה שלמה מ-Excel. לאחר מכן המשיכו לאילוצים.</span>
+        <span className={styles.stepText}>הוסיפו אורחים ידנית אחד-אחד, או ייבאו רשימה שלמה מ-Excel. לאחר מכן המשיכו לאילוצים. כל שינוי נשמר אוטומטית.</span>
       </div>
 
       <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")}>

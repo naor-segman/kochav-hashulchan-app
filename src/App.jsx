@@ -84,9 +84,8 @@ export default function App() {
   }, [addEvent, navigate]);
 
   const deleteEvent = useCallback((id) => {
-    if (!confirm("למחוק את האירוע לצמיתות? לא ניתן לשחזר.")) return;
     removeEvent(id);
-    showToast("האירוע נמחק");
+    showToast("האירוע נמחק לצמיתות");
   }, [removeEvent, showToast]);
 
   const handleDuplicateEvent = useCallback((id) => {
