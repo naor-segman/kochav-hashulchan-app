@@ -5,11 +5,14 @@ import {
 } from "react-router-dom";
 import { uid } from "./utils/uid.js";
 import { duplicateEvent } from "./utils/eventHelpers.js";
-import { useEvents }      from "./hooks/useEvents.js";
-import { useToast }       from "./hooks/useToast.js";
-import { useActiveEvent } from "./hooks/useActiveEvent.js";
+import { useEvents }        from "./hooks/useEvents.js";
+import { useToast }         from "./hooks/useToast.js";
+import { useActiveEvent }   from "./hooks/useActiveEvent.js";
+import { useAuth }          from "./hooks/useAuth.js";
+import { useMigration, MIGRATION_STATUS } from "./hooks/useMigration.js";
 import Shell              from "./components/layout/Shell.jsx";
 import Toast              from "./components/feedback/Toast.jsx";
+import MigrationBanner    from "./components/migration/MigrationBanner.jsx";
 import DashboardScreen    from "./screens/DashboardScreen.jsx";
 import EventSetupScreen   from "./screens/EventSetupScreen.jsx";
 import TableBuilderScreen from "./screens/TableBuilderScreen.jsx";
@@ -76,6 +79,8 @@ export default function App() {
   const { events, addEvent, removeEvent, patchEventById } = useEvents();
   const { toast, showToast }                               = useToast();
   const navigate                                           = useNavigate();
+  const { user }                                           = useAuth();
+  const migration = useMigration(events, patchEventById, user);
 
   const createEvent = useCallback((template) => {
     const now = Date.now();
@@ -121,6 +126,9 @@ export default function App() {
         path="/"
         element={
           <Shell screen="dashboard" activeEvent={null} go={dashGo}>
+            {(migration.shouldPrompt || migration.status !== MIGRATION_STATUS.IDLE) && (
+              <MigrationBanner migration={migration} />
+            )}
             <DashboardScreen
               events={events}
               onCreateEvent={createEvent}
