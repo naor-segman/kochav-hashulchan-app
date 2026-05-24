@@ -1,15 +1,16 @@
-import { useCallback, lazy, Suspense } from "react";
+import { useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
 } from "react-router-dom";
 import { uid } from "./utils/uid.js";
 import { duplicateEvent } from "./utils/eventHelpers.js";
+import { useAuth }          from "./hooks/useAuth.js";
 import { useEvents }        from "./hooks/useEvents.js";
 import { useToast }         from "./hooks/useToast.js";
 import { useActiveEvent }   from "./hooks/useActiveEvent.js";
-import { useAuth }          from "./hooks/useAuth.js";
 import { useMigration, MIGRATION_STATUS } from "./hooks/useMigration.js";
+import { SYNC_STATUS } from "./utils/cloudSync.js";
 import Shell              from "./components/layout/Shell.jsx";
 import Toast              from "./components/feedback/Toast.jsx";
 import MigrationBanner    from "./components/migration/MigrationBanner.jsx";
@@ -31,7 +32,7 @@ const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
 // Reads eventId from the URL, validates it, provides patchEvent/go/showToast
 // to child screens using the same prop API they already use.
 
-function EventRoutes({ events, patchEventById, showToast, toast }) {
+function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
   const { eventId } = useParams();
   const navigate    = useNavigate();
   const location    = useLocation();
@@ -59,7 +60,7 @@ function EventRoutes({ events, patchEventById, showToast, toast }) {
   const sp = { activeEvent, patchEvent, go, showToast };
 
   return (
-    <Shell screen={screen} activeEvent={activeEvent} go={go}>
+    <Shell screen={screen} activeEvent={activeEvent} go={go} syncStatus={syncStatus}>
       <Routes>
         <Route path="setup"       element={<EventSetupScreen   {...sp} />} />
         <Route path="tables"      element={<TableBuilderScreen  {...sp} />} />
@@ -76,11 +77,20 @@ function EventRoutes({ events, patchEventById, showToast, toast }) {
 // ── Root app ──────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const { events, addEvent, removeEvent, patchEventById } = useEvents();
-  const { toast, showToast }                               = useToast();
-  const navigate                                           = useNavigate();
-  const { user }                                           = useAuth();
+  const { user }                                                        = useAuth();
+  const { events, addEvent, removeEvent, patchEventById, syncStatus }  = useEvents(user);
+  const { toast, showToast }                                            = useToast();
+  const navigate                                                        = useNavigate();
   const migration = useMigration(events, patchEventById, user);
+
+  // Show a one-time toast whenever a cloud sync error occurs.
+  const prevSyncRef = useRef(null);
+  useEffect(() => {
+    if (syncStatus === SYNC_STATUS.ERROR && prevSyncRef.current !== SYNC_STATUS.ERROR) {
+      showToast("סנכרון ענן נכשל — הנתונים שמורים מקומית", "err");
+    }
+    prevSyncRef.current = syncStatus;
+  }, [syncStatus, showToast]);
 
   const createEvent = useCallback((template) => {
     const now = Date.now();
@@ -148,6 +158,7 @@ export default function App() {
             patchEventById={patchEventById}
             showToast={showToast}
             toast={toast}
+            syncStatus={syncStatus}
           />
         }
       />

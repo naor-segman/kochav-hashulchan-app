@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { computeViolations } from "../../logic/seating.js";
 import { useAuth } from "../../hooks/useAuth.js";
+import { SYNC_STATUS } from "../../utils/cloudSync.js";
 import NavBadge from "../navigation/NavBadge.jsx";
 import styles from "./Shell.module.css";
 
@@ -13,7 +14,7 @@ const NAV = [
   { id: "seating",     label: "הושבה",   num: 5 },
 ];
 
-export default function Shell({ screen, activeEvent, go, children }) {
+export default function Shell({ screen, activeEvent, go, children, syncStatus }) {
   const { user, loading: authLoading } = useAuth();
   const inEvent = !!activeEvent && screen !== "dashboard";
 
@@ -54,7 +55,18 @@ export default function Shell({ screen, activeEvent, go, children }) {
           </div>
         )}
 
-        {showAutoSave && <span className={styles.autoSave}>✓ נשמר</span>}
+        {showAutoSave && (
+          <span className={[
+            styles.autoSave,
+            syncStatus === SYNC_STATUS.SYNCING ? styles.autoSaving  : null,
+            syncStatus === SYNC_STATUS.ERROR   ? styles.autoSaveErr : null,
+          ].filter(Boolean).join(" ")}>
+            {syncStatus === SYNC_STATUS.SYNCING ? "שומר..." :
+             syncStatus === SYNC_STATUS.ERROR   ? "⚠ שגיאה" :
+             syncStatus === SYNC_STATUS.SYNCED  ? "✓ נשמר בענן" :
+             "✓ נשמר"}
+          </span>
+        )}
 
         {!authLoading && (
           user
