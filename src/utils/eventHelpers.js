@@ -41,6 +41,10 @@ export function normalizeEvent(ev) {
     updatedAt:   ev.updatedAt                  ?? ev.createdAt ?? 0,
     // version 1 = "exists but was never edited under the new schema"
     version:     ev.version                    ?? 1,
+    // cloudId — UUID of the Supabase events row; null = never pushed to cloud.
+    // Set by cloudSync.createCloudEvent() after first successful upload.
+    // Preserved here so it survives localStorage ↔ normalizeEvent round-trips.
+    cloudId:     ev.cloudId                    ?? null,
   };
 }
 
