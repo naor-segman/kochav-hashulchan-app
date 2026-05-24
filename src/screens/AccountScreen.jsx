@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase } from "../lib/supabase.js";
-import { getPlanLabel, getStatusLabel, getPlanLimits, PLAN_META, STATUS_META } from "../admin/lib/planConfig.js";
-import { canUseAdvancedExports, canUseAI, canUseCollaboration } from "../utils/featureGates.js";
+import {
+  getPlanLabel, getStatusLabel, getPlanLimits,
+  PLAN_META, STATUS_META, PLAN_KEYS,
+} from "../admin/lib/planConfig.js";
+import { isPaidPlan } from "../admin/lib/stripeConfig.js";
 import styles from "./AccountScreen.module.css";
 
 function formatDate(iso) {
@@ -27,21 +30,50 @@ async function fetchSubscription(userId) {
   return data;
 }
 
+// ── Plan card feature rows ────────────────────────────────────────────────────
+
+function planFeatures(key) {
+  const l = getPlanLimits(key);
+  return [
+    {
+      label:    l.maxEvents === Infinity ? "∞ אירועים" : `עד ${l.maxEvents} אירועים`,
+      included: true,
+    },
+    {
+      label:    l.maxGuests === Infinity ? "∞ אורחים"  : `עד ${l.maxGuests} אורחים`,
+      included: true,
+    },
+    { label: "ייצוא מתקדם",  included: l.advancedExports },
+    { label: "AI הושבה",     included: l.aiFeatures },
+    { label: "שיתוף צוות",   included: l.collaboration },
+  ];
+}
+
+// ── Upgrade button label per card (from current plan perspective) ────────────
+
+function cardBtnLabel(cardKey, currentPlanKey) {
+  if (cardKey === currentPlanKey) return "תוכנית נוכחית ✓";
+  if (cardKey === "free")         return "—";
+  if (cardKey === "pro")          return "שדרג ל-Pro";
+  if (cardKey === "enterprise")   return "צור קשר";
+  return "—";
+}
+
+// ── AccountScreen ─────────────────────────────────────────────────────────────
+
 export default function AccountScreen() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const [sub,      setSub]      = useState(undefined); // undefined=loading, null=none
+  const [sub,        setSub]        = useState(undefined); // undefined=loading, null=none
   const [signingOut, setSigningOut] = useState(false);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       navigate("/login", { replace: true, state: { from: "/account" } });
     }
   }, [loading, user, navigate]);
 
-  // Fetch subscription once we have a user
   useEffect(() => {
     if (!user) return;
     fetchSubscription(user.id).then(setSub);
@@ -72,7 +104,7 @@ export default function AccountScreen() {
 
         <h1 className={styles.title}>החשבון שלי</h1>
 
-        {/* User info */}
+        {/* ── User info ── */}
         <section className={styles.section}>
           <h2 className={styles.sectionLabel}>פרטי חשבון</h2>
           <div className={styles.infoRow}>
@@ -87,7 +119,7 @@ export default function AccountScreen() {
           </div>
         </section>
 
-        {/* Subscription */}
+        {/* ── Subscription info ── */}
         <section className={styles.section}>
           <h2 className={styles.sectionLabel}>תוכנית ומנוי</h2>
           {sub === undefined ? (
@@ -141,56 +173,108 @@ export default function AccountScreen() {
           )}
         </section>
 
-        {/* Plan features */}
+        {/* ── Plan comparison cards ── */}
         {sub !== undefined && (
           <section className={styles.section}>
-            <h2 className={styles.sectionLabel}>תכולת התוכנית</h2>
-            <div className={styles.featureGrid}>
-              {(() => {
-                const limits = getPlanLimits(planKey);
-                const rows = [
-                  {
-                    label: "אירועים",
-                    value: limits.maxEvents === Infinity ? "ללא הגבלה" : `עד ${limits.maxEvents}`,
-                  },
-                  {
-                    label: "אורחים לאירוע",
-                    value: limits.maxGuests === Infinity ? "ללא הגבלה" : `עד ${limits.maxGuests}`,
-                  },
-                  {
-                    label: "ייצוא מתקדם",
-                    included: canUseAdvancedExports(planKey).allowed,
-                    note: canUseAdvancedExports(planKey).upgradeNote,
-                  },
-                  {
-                    label: "הושבה AI",
-                    included: canUseAI(planKey).allowed,
-                    note: canUseAI(planKey).upgradeNote,
-                  },
-                  {
-                    label: "שיתוף פעולה",
-                    included: canUseCollaboration(planKey).allowed,
-                    note: canUseCollaboration(planKey).upgradeNote,
-                  },
-                ];
-                return rows.map((r, i) => (
-                  <div key={i} className={styles.featureRow}>
-                    <span className={styles.featureName}>{r.label}</span>
-                    {"value" in r ? (
-                      <span className={styles.featureVal}>{r.value}</span>
-                    ) : (
-                      <span className={r.included ? styles.featureYes : styles.featureNo}>
-                        {r.included ? "✓ כלול" : "✗ לא כלול"}
+            <h2 className={styles.sectionLabel}>תוכניות ושדרוג</h2>
+
+            <div className={styles.planGrid}>
+              {PLAN_KEYS.map((key) => {
+                const meta     = PLAN_META[key];
+                const isCurrent = key === planKey;
+                const btnLabel  = cardBtnLabel(key, planKey);
+                const noAction  = btnLabel === "—";
+                const features  = planFeatures(key);
+
+                return (
+                  <div
+                    key={key}
+                    className={[
+                      styles.planCard,
+                      isCurrent ? styles.planCardCurrent : "",
+                    ].filter(Boolean).join(" ")}
+                  >
+                    {/* Card header */}
+                    <div className={styles.planCardHead}>
+                      <span
+                        className={styles.planCardIcon}
+                        style={{ color: meta?.color || "#888" }}
+                      >
+                        {key === "free" ? "✦" : key === "pro" ? "★" : "◆"}
                       </span>
+                      <span className={styles.planCardName}>
+                        {getPlanLabel(key)}
+                      </span>
+                      {isCurrent && (
+                        <span
+                          className={styles.planCardBadge}
+                          style={{
+                            color:       meta?.color       || "#888",
+                            background:  meta?.bgColor     || "#f4f4f5",
+                            borderColor: meta?.borderColor || "#e5e7eb",
+                          }}
+                        >
+                          פעיל
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Feature list */}
+                    <ul className={styles.planCardFeatures}>
+                      {features.map((f, i) => (
+                        <li
+                          key={i}
+                          className={[
+                            styles.planCardFeature,
+                            !f.included ? styles.planCardFeatureMissing : "",
+                          ].filter(Boolean).join(" ")}
+                        >
+                          <span className={styles.planCardMark}>
+                            {f.included ? "✓" : "✗"}
+                          </span>
+                          <span>{f.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* Action button */}
+                    {!noAction && (
+                      <button
+                        className={[
+                          styles.planCardBtn,
+                          isCurrent ? styles.planCardBtnCurrent : styles.planCardBtnUpgrade,
+                        ].join(" ")}
+                        disabled
+                        title="תשלומים עדיין לא פעילים במערכת"
+                      >
+                        {btnLabel}
+                      </button>
                     )}
                   </div>
-                ));
-              })()}
+                );
+              })}
+            </div>
+
+            {/* Billing management — shown for paid plan holders */}
+            {isPaidPlan(planKey) && (
+              <button
+                className={styles.billingBtn}
+                disabled
+                title="תשלומים עדיין לא פעילים במערכת"
+              >
+                ניהול חיוב ↗
+              </button>
+            )}
+
+            {/* Inactive payments note */}
+            <div className={styles.inactiveNote}>
+              <span className={styles.inactiveNoteIcon}>⚠</span>
+              <span>תשלומים עדיין לא פעילים במערכת — שדרוג יהיה זמין בקרוב.</span>
             </div>
           </section>
         )}
 
-        {/* Actions */}
+        {/* ── Actions ── */}
         <div className={styles.actions}>
           <button
             className={styles.signOutBtn}
