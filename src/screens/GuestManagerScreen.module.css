@@ -1,1 +1,45 @@
-/* GuestManagerScreen — no screen-specific styles beyond shared */
+/* GuestManagerScreen-specific styles */
+
+/* Step guidance banner */
+.stepGuide {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--accent-bg);
+  border: 1px solid #e5c99a;
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.stepBadge {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stepText {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+/* Add-form hint (manual vs Excel) */
+.addHint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+/* Filter bar label */
+.filterLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}

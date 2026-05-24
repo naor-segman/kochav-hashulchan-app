@@ -12,6 +12,7 @@ import SectionLabel from "../components/ui/SectionLabel.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
+import styles from "./GuestManagerScreen.module.css";
 
 function ExcelImportFlow({ ev, patchEvent, showToast, onClose }) {
   const [step, setStep]         = useState("upload");
@@ -328,12 +329,22 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         }
       />
 
+      <div className={styles.stepGuide}>
+        <span className={styles.stepBadge}>שלב 3 מתוך 5 — אורחים</span>
+        <span className={styles.stepText}>הוסיפו אורחים ידנית אחד-אחד, או ייבאו רשימה שלמה מ-Excel. לאחר מכן המשיכו לאילוצים.</span>
+      </div>
+
       <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")}>
         <SectionLabel>
           {editId
             ? ("✏ עריכת אורח — " + (ev.guests.find(g => g.id === editId) || {}).name)
-            : "הוספת אורח"}
+            : "הוספת אורח ידנית"}
         </SectionLabel>
+        {!editId && (
+          <p className={styles.addHint}>
+            הוספה אחת בכל פעם. להוספה מהירה של עשרות אורחים בבת אחת — לחצו על "ייבוא מ-Excel" למטה.
+          </p>
+        )}
 
         <div className={base.grid2}>
           <Field label="שם מלא" required>
@@ -414,6 +425,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
       {ev.guests.length > 0 && (
         <div className={base.filterBar}>
+          <span className={styles.filterLabel}>סינון:</span>
           <input
             className={base.input}
             style={{ flex: 1, minWidth: 120 }}
@@ -434,7 +446,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           </select>
           {isFiltered ? (
             <>
-              <span className={base.filterCount}>{visible.length}/{ev.guests.length}</span>
+              <span className={base.filterCount}>מציג {visible.length} מתוך {ev.guests.length}</span>
               <button className={[base.btnSm, base.btnGhost].join(" ")}
                 onClick={() => setFilter({ side: "all", group: "all", search: "" })}>
                 נקה ✕
@@ -490,12 +502,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {ev.guests.length === 0 && (
-        <EmptyState icon="👥" title="אין אורחים עדיין"
-          text="מלא את הטופס למעלה, או השתמש בייבוא מרשימה להוספה מהירה." />
+        <EmptyState icon="👥" title="טרם נוספו אורחים"
+          text='הוסיפו אורחים ידנית דרך הטופס למעלה, או לחצו על "ייבוא מ-Excel" לייבוא רשימה שלמה בבת אחת.' />
       )}
       {visible.length === 0 && ev.guests.length > 0 && (
-        <EmptyState icon="🔍" title="לא נמצאו תוצאות"
-          text="שנה את הסינון או נקה אותו כדי לראות את כל האורחים." />
+        <EmptyState icon="🔍" title="אין תוצאות לסינון הנוכחי"
+          text='לחצו על "נקה" כדי לאפס את הסינון ולראות את כל האורחים.' />
       )}
 
       <NextStep
