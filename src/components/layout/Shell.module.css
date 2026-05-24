@@ -189,3 +189,15 @@
     font-size: 11px;
   }
 }
+
+/* ── Print: hide shell chrome so only the screen content prints ── */
+@media print {
+  .topbar,
+  .subnav {
+    display: none !important;
+  }
+
+  .main {
+    padding: 0 !important;
+  }
+}

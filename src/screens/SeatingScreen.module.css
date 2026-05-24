@@ -571,6 +571,11 @@
   display: none; /* invisible on screen */
 }
 
+/* Compact-only section: never visible on screen */
+.pvCompactOnly {
+  display: none;
+}
+
 @media print {
   .screenContent {
     display: none !important;
@@ -582,11 +587,27 @@
     font-size: 13px;
     color: #17140F;
     direction: rtl;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Full mode: hide compact grid */
+  .printView[data-print-mode="full"] .pvCompactOnly {
+    display: none !important;
+  }
+
+  /* Compact mode: hide full-only sections, reveal compact grid */
+  .printView[data-print-mode="compact"] .pvFullOnly {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="compact"] .pvCompactOnly {
+    display: block !important;
   }
 
   @page {
     size: A4 portrait;
-    margin: 12mm 10mm;
+    margin: 15mm 12mm 12mm;
   }
 }
 
@@ -594,7 +615,7 @@
 /* These styles apply whenever .printView is visible (i.e. during print).   */
 
 .pvHeader {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .pvBrand {
@@ -603,7 +624,7 @@
   color: #BE7A38;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .pvTitle {
@@ -611,24 +632,38 @@
   font-weight: 800;
   color: #17140F;
   margin: 0 0 3px;
+  break-after: avoid;
 }
 
 .pvMeta {
   font-size: 13px;
   color: #55524C;
-  margin: 0 0 3px;
+  margin: 0 0 2px;
 }
 
 .pvStats {
   font-size: 11px;
   color: #97938D;
-  margin: 0;
+  margin: 0 0 3px;
+}
+
+.pvModeLabel {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #BE7A38;
+  background: #FBF2E7;
+  border: 1px solid #E5C99A;
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-top: 2px;
+  letter-spacing: 0.03em;
 }
 
 .pvDivider {
   border: none;
   border-top: 2px solid #17140F;
-  margin: 12px 0;
+  margin: 10px 0;
 }
 
 .pvViolWarn {
@@ -636,27 +671,31 @@
   border: 1px solid #F5DC95;
   border-inline-start: 3px solid #956700;
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   font-size: 12px;
   font-weight: 700;
   color: #956700;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
-/* 2-column table grid */
+/* ── Full-mode 2-column table grid ─────────────────────────────────────── */
 .pvGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 9px;
+  margin-bottom: 14px;
 }
 
 .pvTable {
-  border: 1px solid #E2DFD8;
+  border: 1px solid #D8D5CE;
   border-radius: 6px;
   overflow: hidden;
   break-inside: avoid;
   page-break-inside: avoid;
+  orphans: 3;
+  widows: 3;
 }
 
 .pvTableOver {
@@ -667,9 +706,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px;
-  background: #F5F4F1;
-  border-bottom: 1px solid #E2DFD8;
+  padding: 5px 10px;
+  background: #EDECEA;
+  border-bottom: 1px solid #D8D5CE;
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 .pvTableOver .pvTableHead {
@@ -679,11 +720,13 @@
 
 .pvTableName {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
+  color: #17140F;
 }
 
 .pvTableCount {
   font-size: 11px;
+  font-weight: 600;
   color: #55524C;
 }
 
@@ -693,15 +736,15 @@
 }
 
 .pvTableBody {
-  padding: 3px 0;
+  padding: 2px 0;
 }
 
 .pvGuest {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  padding: 4px 10px;
-  border-bottom: 1px solid #F5F4F1;
+  padding: 3px 10px;
+  border-bottom: 1px solid #F0EEE8;
   gap: 8px;
 }
 
@@ -710,11 +753,18 @@
 }
 
 .pvGuestName {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #17140F;
+}
+
+.pvGuestCount {
+  font-size: 10px;
+  font-weight: 700;
+  color: #BE7A38;
 }
 
 .pvGuestMeta {
@@ -726,7 +776,7 @@
 
 .pvEmpty {
   display: block;
-  padding: 6px 10px;
+  padding: 5px 10px;
   font-size: 11px;
   color: #97938D;
   font-style: italic;
@@ -738,23 +788,25 @@
   border-inline-start: 3px solid #956700;
   background: #FEF8E7;
   border-radius: 6px;
-  padding: 10px 14px;
-  margin-bottom: 14px;
+  padding: 9px 14px;
+  margin-bottom: 12px;
   break-inside: avoid;
   page-break-inside: avoid;
 }
 
 .pvUnassignedTitle {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #956700;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 .pvUnassignedList {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px 20px;
+  gap: 2px 18px;
 }
 
 .pvUnassignedGuest {
@@ -762,12 +814,91 @@
   color: #17140F;
 }
 
+/* ── Compact-mode 3-column grid (venue staff) ───────────────────────────── */
+.pvCompactGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pvCompactTable {
+  border: 1px solid #C8C5BE;
+  border-radius: 5px;
+  overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pvCompactHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  background: #1E2D47;
+  color: #fff;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.pvCompactName {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pvCompactCount {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.pvCompactBody {
+  padding: 2px 0;
+}
+
+.pvCompactGuest {
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #17140F;
+  border-bottom: 1px solid #EDEBE6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pvCompactGuest:last-child {
+  border-bottom: none;
+}
+
+.pvCompactEmpty {
+  display: block;
+  padding: 4px 8px;
+  font-size: 10px;
+  color: #97938D;
+  font-style: italic;
+}
+
+.pvCompactUnassigned {
+  border: 1px solid #F5DC95;
+  border-inline-start: 3px solid #956700;
+  background: #FEF8E7;
+  border-radius: 5px;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #956700;
+  margin-bottom: 10px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  line-height: 1.5;
+}
+
 /* Footer */
 .pvFooter {
   font-size: 10px;
   color: #97938D;
   text-align: center;
-  margin-top: 16px;
-  padding-top: 8px;
+  margin-top: 14px;
+  padding-top: 7px;
   border-top: 1px solid #E2DFD8;
 }

@@ -49,6 +49,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const [expandedTable, setExpandedTable]   = useState(null);
   const [activeId, setActiveId]             = useState(null);
   const [seatingHistory, setSeatingHistory] = useState([]);
+  const [printMode, setPrintMode]           = useState("full");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -129,6 +130,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     setSeatingHistory(h => h.slice(0, -1));
     patchEvent(e => Object.assign({}, e, { seating: prev }));
     showToast("השינוי בוטל ✓");
+  };
+
+  const handlePrint = (mode) => {
+    setPrintMode(mode);
+    setTimeout(() => { window.print(); setPrintMode("full"); }, 60);
   };
 
   const handleDragStart  = ({ active }) => setActiveId(active.id);
@@ -234,10 +240,17 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               </button>
               <button
                 className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
-                onClick={() => window.print()}
-                title="הדפס / ייצוא סידור הושבה"
+                onClick={() => handlePrint("full")}
+                title="הדפס סידור הושבה המלא עם פרטי צד וקבוצה"
               >
-                🖨 הדפס / ייצוא
+                🖨 הדפס
+              </button>
+              <button
+                className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
+                onClick={() => handlePrint("compact")}
+                title="הדפס גרסה קומפקטית לצוות האולם — שמות בלבד"
+              >
+                📋 לצוות האולם
               </button>
               <button
                 className={[base.btnSm, styles.xlsBtn].join(" ")}
@@ -496,8 +509,12 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       {/* ── Print-only view ─────────────────────────────────────────────────
           Hidden on screen via display:none. @media print swaps visibility:
           hides .screenContent, shows .printView.
+          data-print-mode="full"    → shows detailed 2-col grid
+          data-print-mode="compact" → shows 3-col name-only grid for venue staff
       ─────────────────────────────────────────────────────────────────── */}
-      <div className={styles.printView}>
+      <div className={styles.printView} data-print-mode={printMode}>
+
+        {/* ── Header (both modes) ── */}
         <div className={styles.pvHeader}>
           <div className={styles.pvBrand}>כוכב השולחן</div>
           <h1 className={styles.pvTitle}>{ev.name}</h1>
@@ -509,39 +526,91 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             </p>
           )}
           <p className={styles.pvStats}>
-            {nAssigned}/{ev.guests.length} אורחים שובצו · {ev.tables.length} שולחנות · {totalCap} מקומות באולם
+            {nAssigned}/{ev.guests.length} אורחים שובצו ({nAssignedSeats}/{totalSeats} מקומות) · {ev.tables.length} שולחנות · {totalCap} כסאות באולם
           </p>
+          <div className={styles.pvModeLabel}>
+            {printMode === "compact" ? "גרסת צוות האולם — שמות בלבד" : "סידור הושבה מלא"}
+          </div>
         </div>
 
         <hr className={styles.pvDivider} />
 
-        {violations.length > 0 && (
-          <div className={styles.pvViolWarn}>
-            ⚠ שים לב: {violations.length} {violations.length === 1 ? "הפרה" : "הפרות"} אילוצים בסידור הנוכחי
-          </div>
-        )}
+        {/* ── Full mode (detailed 2-col grid) ── */}
+        <div className={styles.pvFullOnly}>
+          {violations.length > 0 && (
+            <div className={styles.pvViolWarn}>
+              ⚠ שים לב: {violations.length} {violations.length === 1 ? "הפרה" : "הפרות"} אילוצים בסידור הנוכחי
+            </div>
+          )}
 
-        {ev.tables.length > 0 ? (
-          <div className={styles.pvGrid}>
-            {ev.tables.map(t => {
-              const tg      = tableGuests(t.id);
-              const tgSeats = tg.reduce((s, g) => s + (g.count || 1), 0);
-              const capOver = tgSeats > t.capacity;
-              return (
-                <div key={t.id} className={[styles.pvTable, capOver ? styles.pvTableOver : ""].filter(Boolean).join(" ")}>
-                  <div className={styles.pvTableHead}>
-                    <span className={styles.pvTableName}>{t.name}</span>
-                    <span className={styles.pvTableCount}>{tgSeats}/{t.capacity}{capOver ? " ⚠" : ""}</span>
+          {ev.tables.length > 0 ? (
+            <div className={styles.pvGrid}>
+              {ev.tables.map(t => {
+                const tg      = tableGuests(t.id);
+                const tgSeats = tg.reduce((s, g) => s + (g.count || 1), 0);
+                const capOver = tgSeats > t.capacity;
+                return (
+                  <div key={t.id} className={[styles.pvTable, capOver ? styles.pvTableOver : ""].filter(Boolean).join(" ")}>
+                    <div className={styles.pvTableHead}>
+                      <span className={styles.pvTableName}>{t.name}</span>
+                      <span className={styles.pvTableCount}>{tgSeats}/{t.capacity}{capOver ? " ⚠" : ""}</span>
+                    </div>
+                    <div className={styles.pvTableBody}>
+                      {tg.length === 0
+                        ? <span className={styles.pvEmpty}>שולחן ריק</span>
+                        : tg.map(g => (
+                            <div key={g.id} className={styles.pvGuest}>
+                              <span className={styles.pvGuestName}>
+                                {g.name}
+                                {(g.count || 1) > 1 && <span className={styles.pvGuestCount}> ×{g.count}</span>}
+                              </span>
+                              <span className={styles.pvGuestMeta}>
+                                {sideLabel(g.side)}{g.group ? " · " + g.group : ""}
+                              </span>
+                            </div>
+                          ))
+                      }
+                    </div>
                   </div>
-                  <div className={styles.pvTableBody}>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={styles.pvEmpty} style={{ marginBottom: 12 }}>לא הוגדרו שולחנות</p>
+          )}
+
+          {unassigned.length > 0 && (
+            <div className={styles.pvUnassigned}>
+              <div className={styles.pvUnassignedTitle}>⏳ ממתינים לשיבוץ ({unassigned.length})</div>
+              <div className={styles.pvUnassignedList}>
+                {unassigned.map(g => (
+                  <span key={g.id} className={styles.pvUnassignedGuest}>
+                    {g.name} — {sideLabel(g.side)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Compact mode (3-col name-only grid for venue staff) ── */}
+        <div className={styles.pvCompactOnly}>
+          <div className={styles.pvCompactGrid}>
+            {ev.tables.map(t => {
+              const tg    = tableGuests(t.id);
+              const seats = tableSeats(t.id);
+              return (
+                <div key={t.id} className={styles.pvCompactTable}>
+                  <div className={styles.pvCompactHead}>
+                    <span className={styles.pvCompactName}>{t.name}</span>
+                    <span className={styles.pvCompactCount}>{seats}/{t.capacity}</span>
+                  </div>
+                  <div className={styles.pvCompactBody}>
                     {tg.length === 0
-                      ? <span className={styles.pvEmpty}>שולחן ריק</span>
+                      ? <span className={styles.pvCompactEmpty}>ריק</span>
                       : tg.map(g => (
-                          <div key={g.id} className={styles.pvGuest}>
-                            <span className={styles.pvGuestName}>{g.name}</span>
-                            <span className={styles.pvGuestMeta}>
-                              {sideLabel(g.side)}{g.group ? " · " + g.group : ""}
-                            </span>
+                          <div key={g.id} className={styles.pvCompactGuest}>
+                            {g.name}{(g.count || 1) > 1 ? " ×" + g.count : ""}
                           </div>
                         ))
                     }
@@ -550,22 +619,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               );
             })}
           </div>
-        ) : (
-          <p className={styles.pvEmpty} style={{ marginBottom: 12 }}>לא הוגדרו שולחנות</p>
-        )}
 
-        {unassigned.length > 0 && (
-          <div className={styles.pvUnassigned}>
-            <div className={styles.pvUnassignedTitle}>⏳ ממתינים לשיבוץ ({unassigned.length})</div>
-            <div className={styles.pvUnassignedList}>
-              {unassigned.map(g => (
-                <span key={g.id} className={styles.pvUnassignedGuest}>
-                  {g.name} — {sideLabel(g.side)}
-                </span>
-              ))}
+          {unassigned.length > 0 && (
+            <div className={styles.pvCompactUnassigned}>
+              ⏳ ממתינים לשיבוץ ({unassigned.length}): {unassigned.map(g => g.name).join(" · ")}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className={styles.pvFooter}>
           הופק באמצעות כוכב השולחן · {new Date().toLocaleDateString("he-IL")}
