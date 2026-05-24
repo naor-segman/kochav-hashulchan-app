@@ -65,7 +65,7 @@ localStorage-only and has no Supabase dependency.
 3. Log in at `/admin/login` once to create your profile row.
 4. Promote your account: `UPDATE public.profiles SET role = 'admin' WHERE email = 'you@example.com';`
 
-See `docs/admin-schema.md` for the full schema reference.
+See `docs/admin-setup.md` for the full setup walkthrough and `docs/admin-schema.md` for the schema reference.
 
 ---
 
