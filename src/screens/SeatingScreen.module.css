@@ -430,11 +430,12 @@
   align-items: center;
   gap: 14px;
   background: var(--green-bg);
-  border: 2px solid var(--green-border);
+  border: 1px solid var(--green-border);
+  border-inline-start: 4px solid var(--green);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
   margin-bottom: 14px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 12px rgba(52, 168, 83, 0.12), var(--shadow);
 }
 
 .successIconWrap {

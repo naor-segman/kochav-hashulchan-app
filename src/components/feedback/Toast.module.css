@@ -13,7 +13,10 @@
   box-shadow: var(--shadow-md);
   z-index: 9999;
   animation: toastIn 0.2s ease;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: min(360px, calc(100vw - 32px));
+  text-align: center;
+  line-height: 1.4;
 }
 
 .err {

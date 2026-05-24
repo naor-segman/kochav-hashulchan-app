@@ -25,9 +25,12 @@
 }
 
 .nextLabel {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 700;
-  margin-bottom: 2px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
 }
 
 .nextHint {
@@ -40,9 +43,16 @@
   color: #fff;
   border: none;
   cursor: pointer;
-  padding: 10px 18px;
+  padding: 10px 20px;
   border-radius: var(--radius);
   font-size: 14px;
   font-weight: 700;
   box-shadow: 0 1px 4px rgba(190, 122, 56, 0.28);
+  white-space: nowrap;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.btn:hover {
+  background: #a86a2e;
+  box-shadow: 0 3px 10px rgba(190, 122, 56, 0.42);
 }

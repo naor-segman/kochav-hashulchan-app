@@ -20,7 +20,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 20px;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
   box-shadow: var(--shadow);
 }
 
@@ -74,6 +74,10 @@
   transition: border-color 0.15s;
 }
 
+.input:hover:not(:focus) {
+  border-color: var(--border2);
+}
+
 .select {
   width: 100%;
   max-width: 100%;
@@ -86,6 +90,10 @@
   direction: rtl;
   cursor: pointer;
   transition: border-color 0.15s;
+}
+
+.select:hover:not(:focus) {
+  border-color: var(--border2);
 }
 
 .textarea {
@@ -127,6 +135,17 @@
   font-size: 14px;
   font-weight: 700;
   box-shadow: 0 1px 4px rgba(190, 122, 56, 0.28);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #a86a2e;
+  box-shadow: 0 3px 10px rgba(190, 122, 56, 0.42);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .btnSecondary {
@@ -138,6 +157,13 @@
   border-radius: var(--radius);
   font-size: 14px;
   font-weight: 600;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: var(--accent-bg);
+  border-color: var(--accent-light);
+  color: var(--accent);
 }
 
 .btnSm {
@@ -150,18 +176,36 @@
   background: var(--accent);
   color: #fff;
   flex-shrink: 0;
+  transition: background 0.12s;
+}
+
+.btnSm:hover:not(:disabled) {
+  background: #a86a2e;
 }
 
 .btnGhost {
   background: var(--bg);
   color: var(--text2);
   border: 1px solid var(--border2);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.btnGhost:hover:not(:disabled) {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .btnDanger {
   background: var(--red-bg);
   color: var(--red);
   border: 1px solid var(--red-border);
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.btnDanger:hover:not(:disabled) {
+  border-color: var(--red);
+  box-shadow: 0 0 0 1px var(--red-border);
 }
 
 /* Pills group */
@@ -249,7 +293,7 @@
 .gList {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
 }
 
 .gRow {
@@ -261,6 +305,12 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow);
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.gRow:hover {
+  border-color: var(--border2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
 }
 
 .gRowActive {

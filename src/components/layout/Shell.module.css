@@ -62,9 +62,16 @@
   color: var(--accent);
   font-weight: 700;
   font-size: 13px;
-  padding: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius);
   white-space: nowrap;
   flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+
+.bcBack:hover {
+  background: var(--accent-bg);
+  color: #a86a2e;
 }
 
 .bcSep {
@@ -81,11 +88,16 @@
 }
 
 .autoSave {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--green);
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  letter-spacing: 0.01em;
 }
 
 /* ── Subnav ── */
@@ -127,8 +139,13 @@
   color: var(--text2);
   border-bottom: 2px solid transparent;
   white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.12s;
   flex-shrink: 0;
+}
+
+.subnavBtn:not(.subnavActive):hover {
+  color: var(--text);
+  background: var(--accent-bg);
 }
 
 .subnavActive {
