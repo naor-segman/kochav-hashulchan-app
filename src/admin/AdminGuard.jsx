@@ -59,7 +59,7 @@ export default function AdminGuard({ children }) {
         if (!cancelled) {
           navigate("/admin/login", {
             replace: true,
-            state: { error: "Access denied: could not verify admin privileges." },
+            state: { error: "גישה נדחתה: לא ניתן לאמת הרשאות מנהל." },
           });
         }
         return;

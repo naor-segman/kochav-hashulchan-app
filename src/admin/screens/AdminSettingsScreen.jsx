@@ -110,7 +110,7 @@ export default function AdminSettingsScreen() {
       if (err.code === "42P01") {
         setNotConfigured(true);
       } else {
-        setError(err.message || "Failed to load settings.");
+        setError(err.message || "טעינת ההגדרות נכשלה.");
       }
       return;
     }

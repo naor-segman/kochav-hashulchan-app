@@ -103,7 +103,7 @@ export default function AdminEventDetailScreen() {
       if (err.code === "PGRST116") {
         setNotFound(true);
       } else {
-        setError(err.message || "Failed to load event.");
+        setError(err.message || "טעינת האירוע נכשלה.");
       }
     }
   }, [eventId]);

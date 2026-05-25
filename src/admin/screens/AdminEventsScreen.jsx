@@ -99,7 +99,7 @@ export default function AdminEventsScreen() {
     try {
       setEvents(await loadEventsData());
     } catch (err) {
-      setError(err.message || "Failed to load events.");
+      setError(err.message || "טעינת האירועים נכשלה.");
       setEvents([]);
     }
   }, []);

@@ -76,7 +76,7 @@ export default function AdminActivityScreen() {
         setNotConfigured(true);
         setLogs([]);
       } else {
-        setError(err.message || "Failed to load activity logs.");
+        setError(err.message || "טעינת יומן הפעילות נכשלה.");
         setLogs([]);
       }
     }

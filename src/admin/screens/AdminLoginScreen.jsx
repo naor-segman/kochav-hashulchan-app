@@ -3,21 +3,21 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import styles from "./AdminLoginScreen.module.css";
 
-// Map raw Supabase auth error strings to user-friendly messages.
+// Map raw Supabase auth error strings to user-friendly Hebrew messages.
 function friendlyAuthError(message) {
-  if (!message) return "An unknown error occurred.";
+  if (!message) return "אירעה שגיאה לא ידועה.";
   const m = message.toLowerCase();
   if (m.includes("invalid login credentials") || m.includes("invalid email or password")) {
-    return "Invalid email or password.";
+    return "אימייל או סיסמה שגויים.";
   }
   if (m.includes("email not confirmed")) {
-    return "Please confirm your email address before logging in.";
+    return "יש לאשר את כתובת האימייל לפני הכניסה.";
   }
   if (m.includes("too many requests")) {
-    return "Too many login attempts. Please wait a few minutes and try again.";
+    return "יותר מדי ניסיונות כניסה. המתן כמה דקות ונסה שוב.";
   }
   if (m.includes("network") || m.includes("fetch failed")) {
-    return "Connection error. Check your internet connection and try again.";
+    return "שגיאת חיבור. בדוק את חיבור האינטרנט ונסה שוב.";
   }
   return message;
 }
@@ -45,10 +45,7 @@ export default function AdminLoginScreen() {
     setError("");
 
     if (!supabase) {
-      setError(
-        "Supabase not configured. " +
-        "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local"
-      );
+      setError("Supabase לא מוגדר. הגדר VITE_SUPABASE_URL ו-VITE_SUPABASE_ANON_KEY בקובץ .env.local");
       return;
     }
 
@@ -70,16 +67,16 @@ export default function AdminLoginScreen() {
 
         <div className={styles.header}>
           <span className={styles.logo}>✦</span>
-          <h1 className={styles.title}>Admin</h1>
+          <h1 className={styles.title}>כניסת מנהל</h1>
           <p className={styles.sub}>כוכב השולחן — ניהול מערכת</p>
         </div>
 
         {!isSupabaseConfigured && (
           <div className={styles.setupBanner}>
-            <strong>Supabase not configured</strong>
+            <strong>Supabase לא מוגדר</strong>
             <br />
-            Copy <code>.env.example</code> to <code>.env.local</code> and fill in
-            your <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.
+            העתק את <code>.env.example</code> ל-<code>.env.local</code> ומלא את
+            <code>VITE_SUPABASE_URL</code> ו-<code>VITE_SUPABASE_ANON_KEY</code>.
           </div>
         )}
 

@@ -126,7 +126,7 @@ export default function AdminSubscriptionsScreen() {
         setNotConfigured(true);
         setSubs([]);
       } else {
-        setError(err.message || "Failed to load subscriptions.");
+        setError(err.message || "טעינת המנויים נכשלה.");
         setSubs([]);
       }
     }

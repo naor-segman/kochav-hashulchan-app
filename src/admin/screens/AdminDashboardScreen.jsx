@@ -73,9 +73,9 @@ export default function AdminDashboardScreen() {
       setLastRefreshed(new Date());
       // If every value is null all queries failed — show a global error.
       const allFailed = Object.values(result).every(v => v === null);
-      if (allFailed) setStatsError("Could not load stats. Check your Supabase connection.");
+      if (allFailed) setStatsError("לא ניתן לטעון נתונים. בדוק את חיבור Supabase שלך.");
     } catch {
-      setStatsError("Unexpected error loading stats.");
+      setStatsError("שגיאה בלתי צפויה בטעינת הנתונים.");
       setStats({ users: null, events: null, templates: null, subscriptions: null });
     }
   }, []);
@@ -96,7 +96,7 @@ export default function AdminDashboardScreen() {
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <span className={styles.brandMark}>✦</span>
-          <span className={styles.brandName}>Admin Panel</span>
+          <span className={styles.brandName}>לוח בקרה</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>
           <span className={styles.liveBadge}>

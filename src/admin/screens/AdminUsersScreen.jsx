@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
+import { getPlanLabel } from "../lib/planConfig.js";
 import styles from "./AdminUsersScreen.module.css";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -84,7 +85,7 @@ export default function AdminUsersScreen() {
     try {
       setUsers(await loadUsersData());
     } catch (err) {
-      setError(err.message || "Failed to load users.");
+      setError(err.message || "טעינת המשתמשים נכשלה.");
       setUsers([]);
     }
   }, []);
@@ -205,12 +206,12 @@ export default function AdminUsersScreen() {
                     </td>
                     <td>
                       <span className={user.role === "admin" ? styles.badgeAdmin : styles.badgeUser}>
-                        {user.role}
+                        {user.role === "admin" ? "מנהל" : "משתמש"}
                       </span>
                     </td>
                     <td>
                       <span className={planBadgeClass(user.plan, styles)}>
-                        {user.plan}
+                        {getPlanLabel(user.plan)}
                       </span>
                     </td>
                     <td className={styles.numCell}>
