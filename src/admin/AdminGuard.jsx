@@ -9,15 +9,17 @@ import styles from "./AdminGuard.module.css";
 //   1. Is there an active Supabase session?
 //   2. Does profiles.role === 'admin' for that user?
 //
-// Any failure (no session, non-admin role, DB error) signs the user out and
-// redirects to /admin/login. Non-admin redirects carry an error message via
-// React Router location state so AdminLoginScreen can display it.
+// Redirect strategy (no sign-out — preserves customer sessions):
+//   no session          → /admin/login
+//   non-admin role      → / (customer home; they keep their customer session)
+//   DB error on check   → /admin/login with error message
+//   admin role          → render children
 //
 // Status state machine:
 //   "loading"  — waiting for session + role check
 //   "allowed"  — session valid, role = admin → render children
-//   "denied"   — no session → <Navigate> (no error msg needed, just redirect)
-//   navigate() — non-admin role → navigate with error state, component unmounts
+//   "denied"   — no session → <Navigate to="/admin/login">
+//   navigate() — non-admin / DB error → navigate, component unmounts
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AdminGuard({ children }) {
@@ -51,14 +53,22 @@ export default function AdminGuard({ children }) {
 
       if (cancelled) return;
 
-      if (error || profile?.role !== "admin") {
-        await supabase.auth.signOut();
+      if (error) {
+        // DB error — can't verify role; send to admin login for retry.
+        // Do NOT sign out: the session may be valid and the error transient.
         if (!cancelled) {
           navigate("/admin/login", {
             replace: true,
-            state: { error: "Access denied: your account does not have admin privileges." },
+            state: { error: "Access denied: could not verify admin privileges." },
           });
         }
+        return;
+      }
+
+      if (profile?.role !== "admin") {
+        // Authenticated user without admin role (e.g. a regular customer).
+        // Redirect to customer home — do NOT sign them out.
+        if (!cancelled) navigate("/", { replace: true });
         return;
       }
 

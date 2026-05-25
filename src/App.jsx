@@ -121,6 +121,11 @@ export default function App() {
   }, [removeEvent, showToast]);
 
   const handleDuplicateEvent = useCallback((id) => {
+    const gate = canCreateEvent(plan, events.length);
+    if (!gate.allowed) {
+      showToast(gate.reason + " — שדרג את התוכנית להוספת אירועים נוספים", "err");
+      return;
+    }
     const original = events.find(e => e.id === id);
     if (!original) return;
     const copy = duplicateEvent(original);
@@ -128,7 +133,7 @@ export default function App() {
     navigate(`/events/${copy.id}/setup`);
     window.scrollTo(0, 0);
     showToast("האירוע שוכפל ✓");
-  }, [events, addEvent, navigate, showToast]);
+  }, [events, addEvent, navigate, plan, showToast]);
 
   // go() for the dashboard Shell — subnav is hidden on dashboard so only
   // the logo click (→ "/") needs to be handled here.

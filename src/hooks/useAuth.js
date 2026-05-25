@@ -20,12 +20,18 @@ export function useAuth() {
 
     let cancelled = false;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!cancelled) {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!cancelled) {
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        // Network error during session restore — treat as logged-out so the
+        // app doesn't stay blank with loading=true forever.
+        if (!cancelled) setLoading(false);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!cancelled) setUser(session?.user ?? null);
