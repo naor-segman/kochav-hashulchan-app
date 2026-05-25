@@ -293,7 +293,7 @@
 }
 
 .billingBtnActive:hover:not(:disabled) {
-  background: var(--surface2);
+  background: var(--bg);
   border-color: var(--text2);
   color: var(--text);
 }
@@ -311,7 +311,7 @@
 
 .checkoutCancelledBanner {
   padding: 10px 14px;
-  background: var(--surface2);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-size: 13px;
@@ -405,6 +405,62 @@
 }
 
 .backLink:hover { color: var(--text2); }
+
+/* ── Subscription status notices ── */
+.paymentFailedBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+.paymentFailedBannerBtn {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.12s;
+}
+
+.paymentFailedBannerBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancellingBanner {
+  padding: 10px 14px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--warn);
+  line-height: 1.5;
+}
+
+.trialBanner {
+  padding: 10px 14px;
+  background: var(--accent-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
 
 @media (max-width: 480px) {
   .card { padding: 28px 20px 24px; }

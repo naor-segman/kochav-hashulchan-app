@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
-import { supabase } from "../lib/supabase.js";
 import {
   getPlanLabel, getStatusLabel, getPlanLimits,
   PLAN_META, STATUS_META, PLAN_KEYS,
 } from "../admin/lib/planConfig.js";
 import { isPaidPlan, isStripeConfigured } from "../admin/lib/stripeConfig.js";
 import { useBilling } from "../hooks/useBilling.js";
+import { useSubscription } from "../hooks/useSubscription.js";
 import styles from "./AccountScreen.module.css";
 
 function formatDate(iso) {
@@ -15,20 +15,6 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString("he-IL", {
     day: "2-digit", month: "2-digit", year: "numeric",
   });
-}
-
-async function fetchSubscription(userId) {
-  if (!supabase) return null;
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .select("plan, status, started_at, expires_at, current_period_end, payment_past_due")
-    .eq("user_id", userId)
-    .in("status", ["active", "trialing"])
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) return null;
-  return data;
 }
 
 // ── Plan card feature rows ────────────────────────────────────────────────────
@@ -68,7 +54,14 @@ export default function AccountScreen({ eventCount = 0 }) {
   const location  = useLocation();
   const billing   = useBilling();
 
-  const [sub,             setSub]             = useState(undefined); // undefined=loading, null=none
+  const {
+    subscription:    sub,
+    planKey,
+    statusKey,
+    isPaymentFailed,
+    isCancelling,
+    refresh:         refreshSub,
+  } = useSubscription();
   const [signingOut,      setSigningOut]      = useState(false);
   const [checkoutResult,  setCheckoutResult]  = useState(null); // "success" | "cancelled" | null
 
@@ -77,11 +70,6 @@ export default function AccountScreen({ eventCount = 0 }) {
       navigate("/login", { replace: true, state: { from: "/account" } });
     }
   }, [loading, user, navigate]);
-
-  useEffect(() => {
-    if (!user) return;
-    fetchSubscription(user.id).then(setSub);
-  }, [user]);
 
   // Read and clear the ?checkout= URL param that Stripe appends after redirect.
   useEffect(() => {
@@ -95,8 +83,8 @@ export default function AccountScreen({ eventCount = 0 }) {
       window.history.replaceState(null, "", newSearch ? `?${newSearch}` : location.pathname);
       // Re-fetch subscription when returning from a successful checkout —
       // the webhook may have fired by now.
-      if (result === "success" && user) {
-        fetchSubscription(user.id).then(setSub);
+      if (result === "success") {
+        refreshSub();
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,8 +98,6 @@ export default function AccountScreen({ eventCount = 0 }) {
 
   if (loading || !user) return null;
 
-  const planKey   = sub?.plan   || "free";
-  const statusKey = sub?.status || "active";
   const planMeta  = PLAN_META[planKey];
   const statusMeta = STATUS_META[statusKey];
 
@@ -181,9 +167,15 @@ export default function AccountScreen({ eventCount = 0 }) {
                   <span className={styles.infoVal}>{formatDate(sub.started_at)}</span>
                 </div>
               )}
-              {sub?.expires_at && (
+              {sub?.current_period_end && !isCancelling && (
                 <div className={styles.infoRow}>
-                  <span className={styles.infoKey}>פג תוקף</span>
+                  <span className={styles.infoKey}>חידוש הבא</span>
+                  <span className={styles.infoVal}>{formatDate(sub.current_period_end)}</span>
+                </div>
+              )}
+              {isCancelling && sub?.expires_at && (
+                <div className={styles.infoRow}>
+                  <span className={styles.infoKey}>גישה עד</span>
                   <span className={styles.infoVal}>{formatDate(sub.expires_at)}</span>
                 </div>
               )}
@@ -218,6 +210,33 @@ export default function AccountScreen({ eventCount = 0 }) {
             </>
           )}
         </section>
+
+        {/* ── Subscription status notices ── */}
+        {sub && isPaymentFailed && (
+          <div className={styles.paymentFailedBanner}>
+            <span>⚠ תשלום נכשל — אנא עדכן את אמצעי התשלום שלך.</span>
+            {isPaidPlan(planKey) && isStripeConfigured && (
+              <button
+                className={styles.paymentFailedBannerBtn}
+                onClick={billing.openPortal}
+                disabled={billing.checkoutTarget === "portal"}
+              >
+                {billing.checkoutTarget === "portal" ? "פותח…" : "עדכן תשלום ↗"}
+              </button>
+            )}
+          </div>
+        )}
+        {sub && isCancelling && !isPaymentFailed && (
+          <div className={styles.cancellingBanner}>
+            ביטול מתוכנן — הגישה לתוכנית {getPlanLabel(planKey)} פעילה עד{" "}
+            {formatDate(sub.expires_at)}.
+          </div>
+        )}
+        {sub && statusKey === "trialing" && (
+          <div className={styles.trialBanner}>
+            ✦ אתה בתקופת ניסיון. ניתן לשדרג בכל עת.
+          </div>
+        )}
 
         {/* ── Checkout result banners ── */}
         {checkoutResult === "success" && (
