@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { EVENT_TYPES } from "../data/constants.js";
+import { getEventPersonalConfig, getEventNamePlaceholder } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Divider from "../components/ui/Divider.jsx";
 import Field from "../components/ui/Field.jsx";
@@ -11,12 +12,16 @@ import styles from "./EventSetupScreen.module.css";
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [form, setForm] = useState({
-    name:      ev.name      || "",
-    type:      ev.type      || "חתונה",
-    date:      ev.date      || "",
-    venue:     ev.venue     || "",
-    brideName: ev.brideName || "",
-    groomName: ev.groomName || "",
+    name:             ev.name             || "",
+    type:             ev.type             || "חתונה",
+    date:             ev.date             || "",
+    venue:            ev.venue            || "",
+    brideName:        ev.brideName        || "",
+    groomName:        ev.groomName        || "",
+    celebrantName:    ev.celebrantName    || "",
+    organizationName: ev.organizationName || "",
+    contactName:      ev.contactName      || "",
+    ownerName:        ev.ownerName        || "",
   });
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -63,8 +68,9 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     go("tables");
   };
 
-  const isWedding = form.type === "חתונה" || form.type === "אירוס";
-  const isNew     = !ev.name;
+  const personal        = getEventPersonalConfig(form.type);
+  const namePlaceholder = getEventNamePlaceholder(form.type);
+  const isNew           = !ev.name;
 
   return (
     <div className={base.page}>
@@ -104,7 +110,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
               ref={nameRef}
               className={[base.input, errors.name ? base.inputError : ""].filter(Boolean).join(" ")}
               value={form.name}
-              placeholder="לדוגמה: חתונת טל ונועה"
+              placeholder={namePlaceholder}
               autoFocus={isNew}
               onChange={e => set("name", e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") save(); }}
@@ -129,18 +135,95 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           </Field>
         </div>
 
-        {isWedding && (
+        {/* ── Personal fields — adaptive by event type ── */}
+
+        {personal.kind === "wedding" && (
           <>
-            <Divider label="שמות בני הזוג" />
+            <Divider label={personal.divider} />
             <p className={base.fieldHint} style={{ marginBottom: 12 }}>
               ישמשו לתיוג אורחים ("צד כלה" / "צד חתן") לאורך כל המערכת.
             </p>
             <div className={base.grid2}>
               <Field label="שם הכלה">
-                <input className={base.input} value={form.brideName} placeholder="שם הכלה" onChange={e => set("brideName", e.target.value)} />
+                <input
+                  className={base.input}
+                  value={form.brideName}
+                  placeholder="לדוגמה: נועה"
+                  onChange={e => set("brideName", e.target.value)}
+                />
               </Field>
               <Field label="שם החתן">
-                <input className={base.input} value={form.groomName} placeholder="שם החתן" onChange={e => set("groomName", e.target.value)} />
+                <input
+                  className={base.input}
+                  value={form.groomName}
+                  placeholder="לדוגמה: טל"
+                  onChange={e => set("groomName", e.target.value)}
+                />
+              </Field>
+            </div>
+          </>
+        )}
+
+        {(personal.kind === "bar" || personal.kind === "bat") && (
+          <>
+            <Divider label={personal.divider} />
+            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+              ישמש לזיהוי האירוע ולתיוג האורחים לאורך כל המערכת.
+            </p>
+            <div className={base.grid2}>
+              <Field label={personal.label}>
+                <input
+                  className={base.input}
+                  value={form.celebrantName}
+                  placeholder={personal.placeholder}
+                  onChange={e => set("celebrantName", e.target.value)}
+                />
+              </Field>
+            </div>
+          </>
+        )}
+
+        {personal.kind === "business" && (
+          <>
+            <Divider label={personal.divider} />
+            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+              ישמשו לזיהוי האירוע ולתיוג בכל המערכת.
+            </p>
+            <div className={base.grid2}>
+              <Field label="שם הארגון / חברה">
+                <input
+                  className={base.input}
+                  value={form.organizationName}
+                  placeholder='לדוגמה: חברת כוכב בע"מ'
+                  onChange={e => set("organizationName", e.target.value)}
+                />
+              </Field>
+              <Field label="שם איש הקשר">
+                <input
+                  className={base.input}
+                  value={form.contactName}
+                  placeholder="לדוגמה: יוסי כהן"
+                  onChange={e => set("contactName", e.target.value)}
+                />
+              </Field>
+            </div>
+          </>
+        )}
+
+        {personal.kind === "owner" && (
+          <>
+            <Divider label={personal.divider} />
+            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+              ישמש לזיהוי האירוע ולתיוג בכל המערכת.
+            </p>
+            <div className={base.grid2}>
+              <Field label={personal.label}>
+                <input
+                  className={base.input}
+                  value={form.ownerName}
+                  placeholder={personal.placeholder}
+                  onChange={e => set("ownerName", e.target.value)}
+                />
               </Field>
             </div>
           </>

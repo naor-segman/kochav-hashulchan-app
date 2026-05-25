@@ -28,8 +28,13 @@ export function normalizeEvent(ev) {
     type:        ev.type        ?? "חתונה",
     date:        ev.date        ?? "",
     venue:       ev.venue       ?? "",
-    brideName:   ev.brideName   ?? "",
-    groomName:   ev.groomName   ?? "",
+    brideName:        ev.brideName        ?? "",
+    groomName:        ev.groomName        ?? "",
+    // Personal fields — populated depending on event type (bar/bat mitzvah, business, etc.)
+    celebrantName:    ev.celebrantName    ?? "",
+    organizationName: ev.organizationName ?? "",
+    contactName:      ev.contactName      ?? "",
+    ownerName:        ev.ownerName        ?? "",
     // Collections — default to empty arrays/objects
     tables:      Array.isArray(ev.tables)      ? ev.tables      : [],
     guests:      Array.isArray(ev.guests)      ? ev.guests      : [],
@@ -120,4 +125,54 @@ export function duplicateEvent(ev) {
     updatedAt:   now,
     version:     1,
   });
+}
+
+// ── Event-type personal-field helpers ────────────────────────────────────────
+//
+// EventSetupScreen uses these to show the right personal fields for each
+// event type without embedding business logic in the component.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns the personal-fields config for a given event type.
+ * kind: "wedding" | "bar" | "bat" | "business" | "owner"
+ */
+export function getEventPersonalConfig(type) {
+  if (type === "חתונה" || type === "אירוס" || type === "חינה") {
+    return { kind: "wedding", divider: "שמות בני הזוג" };
+  }
+  if (type === "בר מצווה") {
+    return { kind: "bar", divider: "פרטים אישיים", label: "שם הבר מצווה", placeholder: "לדוגמה: עידו" };
+  }
+  if (type === "בת מצווה") {
+    return { kind: "bat", divider: "פרטים אישיים", label: "שם הבת מצווה", placeholder: "לדוגמה: תמר" };
+  }
+  if (type === "אירוע עסקי") {
+    return { kind: "business", divider: "פרטי הארגון" };
+  }
+  if (type === "יום הולדת") {
+    return { kind: "owner", divider: "פרטים אישיים", label: "שם המחוגג/ת", placeholder: "לדוגמה: דניאל" };
+  }
+  if (type === "אירוע משפחתי") {
+    return { kind: "owner", divider: "פרטים אישיים", label: "שם הגיבור/ה של האירוע", placeholder: "לדוגמה: משפחת כהן" };
+  }
+  return { kind: "owner", divider: "פרטים אישיים", label: "שם הגיבור/ה", placeholder: "שם הגיבור/ה של האירוע" };
+}
+
+/**
+ * Returns a helpful placeholder for the event name input, based on event type.
+ * Guides users toward descriptive names like "בר המצווה של עידו".
+ */
+export function getEventNamePlaceholder(type) {
+  const map = {
+    "חתונה":          "לדוגמה: חתונת טל ונועה",
+    "אירוס":          "לדוגמה: אירוסי ליה ואלון",
+    "חינה":           "לדוגמה: חינה של נועה",
+    "בר מצווה":       "לדוגמה: בר המצווה של עידו",
+    "בת מצווה":       "לדוגמה: בת המצווה של תמר",
+    "אירוע עסקי":    "לדוגמה: כנס שנתי 2025",
+    "אירוע משפחתי":  "לדוגמה: חגיגת יובל למשפחת כהן",
+    "יום הולדת":     "לדוגמה: יום הולדת 40 לדניאל",
+  };
+  return map[type] || "לדוגמה: אירוע סיום 2025";
 }
