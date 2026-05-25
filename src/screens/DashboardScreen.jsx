@@ -32,7 +32,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
   const hasEvents     = events.length > 0;
   const stats         = useMemo(() => dashStats(events), [events]);
   const summaries     = useMemo(() => summaryMessages(stats), [stats]);
-  const { mainTemplates, emptyTemplate, source: templateSource, loading: templateLoading } = useTemplates();
+  const { mainTemplates, emptyTemplate, loading: templateLoading } = useTemplates();
   const eventGate     = canCreateEvent(plan, events.length);
 
   const openTemplate = (tpl) => {
@@ -116,7 +116,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
           </button>
 
           <p className={styles.onboardingNote}>
-            ניתן להשתמש ללא הרשמה · חינם לגמרי · נשמר אוטומטית
+            ניתן להשתמש ללא הרשמה · חינם לגמרי · נשמר אוטומטית · שלב בטא מוקדמת
           </p>
         </div>
       )}
@@ -301,8 +301,8 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
         {showDemo && (
           <div className={styles.demoBody}>
             <p className={styles.demoSubtitle}>
-              עבור את כל השלבים כדי לבדוק את כל הפונקציות של המערכת.
-              לחץ על שלב כדי לסמן אותו כהושלם.
+              עקוב אחר השלבים כדי להכיר את המערכת מקצה לקצה.
+              לחץ על שלב לאחר שסיימת אותו.
             </p>
             <ol className={styles.demoList}>
               {DEMO_STEPS.map((step, i) => {
@@ -338,12 +338,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
         <div className={styles.tmplOverlay} onClick={() => setShowTemplates(false)}>
           <div className={styles.tmplPanel} onClick={e => e.stopPropagation()}>
             <div className={styles.tmplPanelHead}>
-              <div className={styles.tmplTitleGroup}>
-                <span className={styles.tmplPanelTitle}>באיזה אירוע מדובר?</span>
-                {templateSource === "cloud" && (
-                  <span className={styles.tmplCloudBadge}>☁ מהמערכת</span>
-                )}
-              </div>
+              <span className={styles.tmplPanelTitle}>באיזה אירוע מדובר?</span>
               <button className={styles.tmplCloseBtn} onClick={() => setShowTemplates(false)}>✕</button>
             </div>
 

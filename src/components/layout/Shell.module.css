@@ -44,6 +44,22 @@
   letter-spacing: -0.02em;
 }
 
+.betaBadge {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 20px;
+  padding: 1px 6px;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .betaBadge { display: none; }
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;
