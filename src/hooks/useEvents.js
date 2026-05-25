@@ -92,18 +92,19 @@ export function useEvents(user) {
   // ── MUTATIONS ────────────────────────────────────────────────────────────────
 
   const addEvent = useCallback((ev) => {
+    const normalized = normalizeEvent(ev);
     // Apply locally first so the UI is instant.
-    setEvents(prev => [ev, ...prev]);
+    setEvents(prev => [normalized, ...prev]);
 
     const currentUser = userRef.current;
     if (!currentUser || !isSupabaseConfigured) return;
 
     setSyncStatus(SYNC_STATUS.SYNCING);
-    createCloudEvent(ev, currentUser.id)
+    createCloudEvent(normalized, currentUser.id)
       .then(cloudId => {
         if (cloudId) {
           // Store cloudId on the local copy so future patches know where to write.
-          setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, cloudId } : e));
+          setEvents(prev => prev.map(e => e.id === normalized.id ? { ...e, cloudId } : e));
         }
         setSyncStatus(SYNC_STATUS.SYNCED);
       })

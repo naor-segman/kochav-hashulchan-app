@@ -114,7 +114,7 @@ function moveViolatesApart(guestId, toTableId, tableGuestsFn, apartPairs) {
  */
 export function generateSuggestions(
   guests, tables, constraints, seating, qualityScore = null,
-  { lockedGuestIds = [], lockedTableIds = [] } = {}
+  { lockedGuestIds = [], lockedTableIds = [], sideLabels = null } = {}
 ) {
   if (!guests.length || !tables.length) return [];
 
@@ -123,6 +123,9 @@ export function generateSuggestions(
 
   const isGuestLocked = id => lockedGuests.has(id);
   const isTableLocked = id => lockedTables.has(id);
+
+  const brideLabel = sideLabels?.bride ?? "צד כלה";
+  const groomLabel = sideLabels?.groom ?? "צד חתן";
 
   const suggestions = [];
   const guestMap    = Object.fromEntries(guests.map(g => [g.id, g]));
@@ -639,9 +642,9 @@ export function generateSuggestions(
             severity:          "info",
             section:           "fixes",
             explanation:       `החלף ${gA.name} מ${tBride.name} עם ${gB.name} מ${tGroom.name} לאיזון צדדים`,
-            whyMatters:        `${tBride.name} מטה לצד כלה ו${tGroom.name} מטה לצד חתן — החלפה תאזן את האווירה`,
+            whyMatters:        `${tBride.name} מטה ל${brideLabel} ו${tGroom.name} מטה ל${groomLabel} — החלפה תאזן את האווירה`,
             impact:            `${tBride.name} ו${tGroom.name} יהיו מאוזנים יותר בין הצדדים`,
-            recommendedAction: `החלף בין ${gA.name} (כלה) ל${gB.name} (חתן)`,
+            recommendedAction: `החלף בין ${gA.name} (${brideLabel}) ל${gB.name} (${groomLabel})`,
             canApply:          true,
             applyAction:       {
               type:       "swapGuests",

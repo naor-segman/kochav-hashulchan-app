@@ -8,7 +8,7 @@ import {
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
-import { getSideLabel } from "../utils/eventHelpers.js";
+import { getSideLabel, getSideLabels } from "../utils/eventHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canUseAdvancedExports, canUseAI } from "../utils/featureGates.js";
@@ -71,8 +71,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     generateSuggestions(ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore, {
       lockedGuestIds: ev.lockedGuests || [],
       lockedTableIds: ev.lockedTables || [],
+      sideLabels:     getSideLabels(ev),
     }),
-    [ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore, ev.lockedGuests, ev.lockedTables]
+    [ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore, ev.lockedGuests, ev.lockedTables, ev.type, ev.brideName, ev.groomName]
   );
 
   const lockedGuestsSet = useMemo(() => new Set(ev.lockedGuests || []), [ev.lockedGuests]);
