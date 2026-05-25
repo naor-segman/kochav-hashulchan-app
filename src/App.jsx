@@ -62,7 +62,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
   const sp = { activeEvent, patchEvent, go, showToast };
 
   return (
-    <Shell screen={screen} activeEvent={activeEvent} go={go} syncStatus={syncStatus}>
+    <Shell screen={screen} activeEvent={activeEvent} go={go} syncStatus={syncStatus} showToast={showToast}>
       <Routes>
         <Route path="setup"       element={<EventSetupScreen   {...sp} />} />
         <Route path="tables"      element={<TableBuilderScreen  {...sp} />} />

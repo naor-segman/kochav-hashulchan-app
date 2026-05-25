@@ -14,7 +14,7 @@ const NAV = [
   { id: "seating",     label: "הושבה",   num: 5 },
 ];
 
-export default function Shell({ screen, activeEvent, go, children, syncStatus }) {
+export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {
   const { user, loading: authLoading } = useAuth();
   const inEvent = !!activeEvent && screen !== "dashboard";
 
@@ -95,7 +95,14 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus })
                 <button
                   key={n.id}
                   className={[styles.subnavBtn, isActive && styles.subnavActive].filter(Boolean).join(" ")}
-                  onClick={() => go(n.id)}
+                  onClick={() => {
+                    if (n.id !== "setup" && !activeEvent.name?.trim()) {
+                      showToast?.("יש להזין שם לאירוע לפני המשך", "err");
+                      go("setup");
+                      return;
+                    }
+                    go(n.id);
+                  }}
                 >
                   <span className={[
                     styles.stepDot,
