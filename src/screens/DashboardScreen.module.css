@@ -451,6 +451,13 @@
   color: var(--text);
 }
 
+.tmplLoadingArea {
+  padding: 28px 0;
+  text-align: center;
+  color: var(--text2);
+  font-size: 14px;
+}
+
 .tmplGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

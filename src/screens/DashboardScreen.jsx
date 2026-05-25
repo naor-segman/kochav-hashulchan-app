@@ -31,7 +31,7 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
   const hasEvents     = events.length > 0;
   const stats         = useMemo(() => dashStats(events), [events]);
   const summaries     = useMemo(() => summaryMessages(stats), [stats]);
-  const { mainTemplates, emptyTemplate, source: templateSource } = useTemplates();
+  const { mainTemplates, emptyTemplate, source: templateSource, loading: templateLoading } = useTemplates();
 
   const openTemplate = (tpl) => {
     setShowTemplates(false);
@@ -329,15 +329,20 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
               <button className={styles.tmplCloseBtn} onClick={() => setShowTemplates(false)}>✕</button>
             </div>
 
-            <div className={styles.tmplGrid}>
-              {mainTemplates.map(tpl => (
-                <button key={tpl.id} className={styles.tmplCard} onClick={() => openTemplate(tpl)}>
-                  <span className={styles.tmplIcon}>{tpl.icon}</span>
-                  <span className={styles.tmplLabel}>{tpl.label}</span>
-                  <span className={styles.tmplDesc}>{tpl.desc}</span>
-                </button>
-              ))}
-            </div>
+            {templateLoading
+              ? <div className={styles.tmplLoadingArea}>טוען תבניות…</div>
+              : (
+                <div className={styles.tmplGrid}>
+                  {mainTemplates.map(tpl => (
+                    <button key={tpl.id} className={styles.tmplCard} onClick={() => openTemplate(tpl)}>
+                      <span className={styles.tmplIcon}>{tpl.icon}</span>
+                      <span className={styles.tmplLabel}>{tpl.label}</span>
+                      <span className={styles.tmplDesc}>{tpl.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              )
+            }
 
             <div className={styles.tmplSep} />
 

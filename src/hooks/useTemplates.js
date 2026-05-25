@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import {
   fetchActiveCloudTemplates,
+  getTemplateCache,
   LOCAL_MAIN_TEMPLATES,
   EMPTY_TEMPLATE,
 } from "../utils/templateHelpers.js";
@@ -11,22 +12,33 @@ import {
 // Returns the template list for the create-event picker.
 //
 // Behaviour:
-//  1. Starts immediately with LOCAL_MAIN_TEMPLATES so the picker is usable
-//     even before any network request completes.
-//  2. If Supabase is configured, attempts a background fetch of active cloud
-//     templates and swaps to them when the fetch succeeds.
+//  1. Reads the module-level cache synchronously on mount — avoids any flash
+//     where local templates appear briefly before the cloud swap.
+//  2. If Supabase is configured and the cache is cold, fetches once and stores
+//     the result in the module cache for the rest of the page session.
 //  3. Falls back to LOCAL_MAIN_TEMPLATES silently on any error, empty result,
 //     or when Supabase is not configured.
 //  4. emptyTemplate is always the hardcoded "start from scratch" option —
 //     it is never replaced by a cloud template.
+//  5. loading is true only while a first-time cloud fetch is in-flight.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useTemplates() {
-  const [mainTemplates, setMainTemplates] = useState(LOCAL_MAIN_TEMPLATES);
-  const [source,        setSource]        = useState("local"); // "local" | "cloud"
+  // Read cache synchronously to avoid flash from local→cloud swap.
+  const [mainTemplates, setMainTemplates] = useState(
+    () => getTemplateCache() || LOCAL_MAIN_TEMPLATES
+  );
+  const [source, setSource] = useState(
+    () => getTemplateCache() ? "cloud" : "local"
+  );
+  // Loading only when Supabase is configured AND cache is cold.
+  const [loading, setLoading] = useState(
+    () => isSupabaseConfigured && !getTemplateCache()
+  );
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+    if (getTemplateCache()) return; // cache warm — skip fetch
 
     let cancelled = false;
 
@@ -36,7 +48,7 @@ export function useTemplates() {
         setMainTemplates(cloudTemplates);
         setSource("cloud");
       }
-      // else: leave local fallback in place
+      setLoading(false);
     });
 
     return () => { cancelled = true; };
@@ -45,6 +57,7 @@ export function useTemplates() {
   return {
     mainTemplates,
     emptyTemplate: EMPTY_TEMPLATE,
-    source, // "local" | "cloud" — available for subtle UI hints if needed
+    source,   // "local" | "cloud"
+    loading,  // true while first-time cloud fetch is in-flight
   };
 }
