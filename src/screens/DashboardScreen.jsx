@@ -116,7 +116,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
           </button>
 
           <p className={styles.onboardingNote}>
-            ניתן להשתמש ללא הרשמה · חינם לגמרי · נשמר אוטומטית · שלב בטא מוקדמת
+            ניתן להשתמש ללא הרשמה · חינם לגמרי · נשמר אוטומטית · גרסת בטא מוקדמת
           </p>
         </div>
       )}

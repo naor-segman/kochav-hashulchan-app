@@ -205,7 +205,7 @@ export default function AdminTemplatesScreen() {
     try {
       setTemplates(await loadTemplatesData());
     } catch (err) {
-      setError(err.message || "Failed to load templates.");
+      setError(err.message || "טעינת התבניות נכשלה.");
       setTemplates([]);
     }
   }, []);
