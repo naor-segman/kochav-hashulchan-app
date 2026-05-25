@@ -63,7 +63,6 @@ export async function exportToExcel(ev, sideLabel, violations) {
     { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 6  },
     { wch: 14 }, { wch: 22 },
   ];
-  ws1["!views"] = [{ rightToLeft: true }];
   XLSX.utils.book_append_sheet(wb, ws1, "סידור הושבה");
 
   // ── Sheet 2: Unassigned guests ───────────────────────────────────────
@@ -87,7 +86,6 @@ export async function exportToExcel(ev, sideLabel, violations) {
       { wch: 20 }, { wch: 14 }, { wch: 14 },
       { wch: 6  }, { wch: 14 }, { wch: 22 },
     ];
-    ws2["!views"] = [{ rightToLeft: true }];
     XLSX.utils.book_append_sheet(wb, ws2, "ממתינים לשיבוץ");
   }
 
@@ -106,9 +104,11 @@ export async function exportToExcel(ev, sideLabel, violations) {
     ];
     const ws3 = XLSX.utils.aoa_to_sheet(vRows);
     ws3["!cols"] = [{ wch: 22 }, { wch: 50 }];
-    ws3["!views"] = [{ rightToLeft: true }];
     XLSX.utils.book_append_sheet(wb, ws3, "הפרות אילוצים");
   }
 
+  // xlsx 0.18.5: workbook-level RTL is the only reliable way to set sheet direction.
+  // ws["!views"] is silently ignored; wb.Workbook.Views survives the write/read cycle.
+  wb.Workbook = { Views: [{ RTL: true }] };
   XLSX.writeFile(wb, safeName(ev.name) + ".xlsx");
 }
