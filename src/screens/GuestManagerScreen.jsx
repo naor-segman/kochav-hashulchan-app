@@ -32,9 +32,10 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
     const existingPhones = new Set(
       ev.guests.map(g => (g.phone || "").trim()).filter(Boolean)
     );
-    const newGuests  = [];
-    const duplicates = [];
-    const invalid    = [];
+    const newGuests       = [];
+    const duplicates      = [];
+    const invalid         = [];
+    const newCustomGroups = [];
 
     rawRows.forEach(r => {
       const name = String(r["שם מלא"] || r["שם"] || "").trim();
@@ -52,11 +53,24 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
         count = parsed;
       }
 
-      const phone    = String(r["טלפון"] || "").trim();
+      // Restore leading zero if Excel converted a phone number to a 9-digit integer
+      const rawPhone = r["טלפון"];
+      let phone = String(rawPhone ?? "").trim();
+      if (phone && /^\d{9}$/.test(phone)) phone = "0" + phone;
+
       const notes    = String(r["הערות"] || "").trim();
       const rawGroup = String(r["קבוצה"] || "").trim();
       const knownGroups = new Set([...GROUP_OPTIONS, ...(ev.customGroups || [])]);
-      const group    = knownGroups.has(rawGroup) ? rawGroup : "אחר";
+      let group;
+      if (!rawGroup) {
+        group = "משפחה קרובה";
+      } else if (knownGroups.has(rawGroup)) {
+        group = rawGroup;
+      } else {
+        group = rawGroup;
+        if (!newCustomGroups.includes(rawGroup)) newCustomGroups.push(rawGroup);
+      }
+
       let side = "bride";
       const rawSide = String(r["צד"] || "").trim();
       if (rawSide.includes("חתן") || rawSide === groomSide) side = "groom";
@@ -74,7 +88,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
       }
     });
 
-    return { newGuests, duplicates, invalid };
+    return { newGuests, duplicates, invalid, newCustomGroups };
   };
 
   const parseFile = (file) => {
@@ -128,7 +142,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
   };
 
   const doImport = () => {
-    const { newGuests, duplicates } = classified;
+    const { newGuests, duplicates, newCustomGroups } = classified;
     const toImport = skipDups
       ? newGuests
       : [...newGuests, ...duplicates.map(d => d.guest)];
@@ -143,7 +157,11 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
       );
       return;
     }
-    patchEvent(e => Object.assign({}, e, { guests: e.guests.concat(toImport) }));
+    patchEvent(e => {
+      const existingCustom = e.customGroups || [];
+      const mergedCustom   = [...existingCustom, ...(newCustomGroups || []).filter(g => !existingCustom.includes(g))];
+      return Object.assign({}, e, { guests: e.guests.concat(toImport), customGroups: mergedCustom });
+    });
     const seats  = toImport.reduce((s, g) => s + (g.count || 1), 0);
     const dupMsg = skipDups && duplicates.length > 0
       ? " · " + duplicates.length + " כפולים דולגו" : "";
@@ -244,7 +262,8 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
               className={base.downloadLink}
               style={{ border: "none", cursor: "pointer" }}
               onClick={() => downloadGuestTemplate(
-                "רשימת_אורחים_" + (ev.name || "אורחים").replace(/[^א-תa-zA-Z0-9]/g, "_") + ".xlsx"
+                "רשימת_אורחים_" + (ev.name || "אורחים").replace(/[^א-תa-zA-Z0-9]/g, "_") + ".xlsx",
+                ev
               )}
             >
               ⬇ הורד תבנית Excel
