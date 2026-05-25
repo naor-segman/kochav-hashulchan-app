@@ -9,9 +9,16 @@ export const EVENT_TEMPLATES = [
   {
     id:   "barmitzvah",
     icon: "✡",
-    label: "בר / בת מצווה",
+    label: "בר מצווה",
     type:  "בר מצווה",
-    desc:  "אירוע משפחתי לציון גיל המצוות",
+    desc:  "אירוע גיל המצוות לבן",
+  },
+  {
+    id:   "batmitzvah",
+    icon: "✡",
+    label: "בת מצווה",
+    type:  "בת מצווה",
+    desc:  "אירוע גיל המצוות לבת",
   },
   {
     id:   "henna",
