@@ -55,7 +55,8 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
       const phone    = String(r["טלפון"] || "").trim();
       const notes    = String(r["הערות"] || "").trim();
       const rawGroup = String(r["קבוצה"] || "").trim();
-      const group    = GROUP_OPTIONS.includes(rawGroup) ? rawGroup : "אחר";
+      const knownGroups = new Set([...GROUP_OPTIONS, ...(ev.customGroups || [])]);
+      const group    = knownGroups.has(rawGroup) ? rawGroup : "אחר";
       let side = "bride";
       const rawSide = String(r["צד"] || "").trim();
       if (rawSide.includes("חתן") || rawSide === groomSide) side = "groom";
@@ -414,12 +415,22 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "" };
-  const [form, setForm]         = useState(EF);
-  const [editId, setEditId]     = useState(null);
-  const [showBulk, setShowBulk] = useState(false);
-  const [filter, setFilter]     = useState({ side: "all", group: "all", search: "" });
-  const nameRef                 = useRef(null);
+  const [form, setForm]           = useState(EF);
+  const [editId, setEditId]       = useState(null);
+  const [showBulk, setShowBulk]   = useState(false);
+  const [filter, setFilter]       = useState({ side: "all", group: "all", search: "" });
+  const [customGroupInput, setCustomGroupInput] = useState("");
+  const nameRef                   = useRef(null);
   const setF = (k, v) => setForm(p => Object.assign({}, p, { [k]: v }));
+
+  // All group options: standard + event-level custom + any already on guests (legacy compat).
+  // "אחר" is always last and acts as the trigger to create a new custom group.
+  const allGroupOptions = Array.from(new Set([
+    ...GROUP_OPTIONS.filter(g => g !== "אחר"),
+    ...(ev.customGroups || []),
+    ...ev.guests.map(g => g.group).filter(g => g && g !== "אחר" && !GROUP_OPTIONS.includes(g)),
+    "אחר",
+  ]));
   const { plan, limits } = usePlan();
   const { maxGuests } = limits;
 
@@ -427,14 +438,29 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
   const sideLabel = s => getSideLabel(ev, s);
 
+  const resolveGroup = () => {
+    if (form.group !== "אחר") return { group: form.group, newCustom: null };
+    const name = customGroupInput.trim();
+    if (!name) return { group: "אחר", newCustom: null };
+    return { group: name, newCustom: name };
+  };
+
   const saveGuest = () => {
     if (!form.name.trim()) { showToast("יש להזין שם אורח", "err"); return; }
+    const { group, newCustom } = resolveGroup();
+    if (form.group === "אחר" && !customGroupInput.trim()) {
+      showToast("יש להזין שם לקבוצה החדשה", "err"); return;
+    }
     if (editId) {
-      patchEvent(e => Object.assign({}, e, {
-        guests: e.guests.map(g =>
-          g.id === editId ? Object.assign({}, g, form, { name: form.name.trim() }) : g
-        )
-      }));
+      patchEvent(e => {
+        const updated = e.guests.map(g =>
+          g.id === editId ? Object.assign({}, g, form, { name: form.name.trim(), group }) : g
+        );
+        const customGroups = newCustom && !e.customGroups?.includes(newCustom)
+          ? [...(e.customGroups || []), newCustom]
+          : e.customGroups || [];
+        return Object.assign({}, e, { guests: updated, customGroups });
+      });
       setEditId(null);
       showToast("פרטי האורח עודכנו ✓");
     } else {
@@ -443,17 +469,25 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         showToast(guestGate.reason + " — שדרג להוספת אורחים נוספים", "err");
         return;
       }
-      const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1 });
-      patchEvent(e => Object.assign({}, e, { guests: e.guests.concat([newG]) }));
+      const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1, group });
+      patchEvent(e => {
+        const customGroups = newCustom && !e.customGroups?.includes(newCustom)
+          ? [...(e.customGroups || []), newCustom]
+          : e.customGroups || [];
+        return Object.assign({}, e, { guests: e.guests.concat([newG]), customGroups });
+      });
       showToast(form.name.trim() + " נוסף/ה לרשימה ✓");
     }
-    setForm(p => Object.assign({}, EF, { side: p.side, group: p.group }));
+    const nextGroup = group !== "אחר" ? group : "משפחה קרובה";
+    setForm(p => Object.assign({}, EF, { side: p.side, group: nextGroup }));
+    setCustomGroupInput("");
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
 
   const cancelEdit = () => {
     setEditId(null);
     setForm(EF);
+    setCustomGroupInput("");
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
 
@@ -568,9 +602,28 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             </div>
           </Field>
           <Field label="קבוצה" hint="ישפיע על הסידור האוטומטי">
-            <select className={base.select} value={form.group} onChange={e => setF("group", e.target.value)}>
-              {GROUP_OPTIONS.map(g => <option key={g}>{g}</option>)}
+            <select
+              className={base.select}
+              value={form.group}
+              onChange={e => { setF("group", e.target.value); setCustomGroupInput(""); }}
+            >
+              {allGroupOptions.map(g => <option key={g}>{g}</option>)}
             </select>
+            {form.group === "אחר" && (
+              <div className={styles.customGroupRow}>
+                <input
+                  className={base.input}
+                  value={customGroupInput}
+                  placeholder="שם הקבוצה החדשה..."
+                  autoFocus
+                  onChange={e => setCustomGroupInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") saveGuest(); }}
+                />
+                <span className={styles.customGroupHint}>
+                  הקבוצה תישמר לאירוע זה ותופיע בתפריט לאורחים הבאים.
+                </span>
+              </div>
+            )}
           </Field>
         </div>
 

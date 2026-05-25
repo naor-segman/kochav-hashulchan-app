@@ -129,6 +129,20 @@
   background: var(--red-bg);
 }
 
+/* Custom group inline input (shown when "אחר" is selected) */
+.customGroupRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.customGroupHint {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 /* Filter bar label */
 .filterLabel {
   font-size: 12px;

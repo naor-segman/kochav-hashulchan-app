@@ -35,6 +35,9 @@ export function normalizeEvent(ev) {
     organizationName: ev.organizationName ?? "",
     contactName:      ev.contactName      ?? "",
     ownerName:        ev.ownerName        ?? "",
+    // Custom groups created by the user for this event.
+    // Standard groups come from constants.js GROUP_OPTIONS; this holds only user-created ones.
+    customGroups: Array.isArray(ev.customGroups) ? ev.customGroups : [],
     // Collections — default to empty arrays/objects
     tables:      Array.isArray(ev.tables)      ? ev.tables      : [],
     guests:      Array.isArray(ev.guests)      ? ev.guests      : [],
