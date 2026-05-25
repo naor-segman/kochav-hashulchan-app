@@ -6,7 +6,8 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 /**
  * True when both env vars are present and non-empty.
  * Use this for conditional UI (setup banners, disabled states).
- * Customer app never imports this file.
+ * Used by: admin screens AND customer auth screens (login, signup, account,
+ * cloud sync). Guest-mode event editing never touches Supabase directly.
  */
 export const isSupabaseConfigured = !!(url && key);
 

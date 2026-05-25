@@ -133,7 +133,7 @@ export default function SignupScreen() {
 
         {!isSupabaseConfigured && (
           <div className={styles.noticeWarn}>
-            המערכת לא מוגדרת לחיבור לשרת. ההרשמה אינה זמינה כרגע.
+            הרשמה לחשבון לא זמינה כרגע. ניתן להמשיך במצב אורח — הנתונים נשמרים בדפדפן זה.
           </div>
         )}
 
@@ -202,7 +202,10 @@ export default function SignupScreen() {
           <Link to="/login" className={styles.switchLink}>כניסה</Link>
         </p>
 
-        <Link to="/" className={styles.backLink}>← המשך ללא חשבון</Link>
+        <div className={styles.guestBlock}>
+          <Link to="/" className={styles.backLink}>← המשך ללא חשבון</Link>
+          <p className={styles.guestNote}>מצב אורח — נתונים נשמרים בדפדפן זה בלבד, ללא גיבוי ענן</p>
+        </div>
 
       </div>
     </div>

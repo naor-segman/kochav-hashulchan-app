@@ -79,7 +79,7 @@ export default function LoginScreen() {
 
         {!isSupabaseConfigured && (
           <div className={styles.noticeWarn}>
-            המערכת לא מוגדרת לחיבור לשרת. הכניסה אינה זמינה כרגע.
+            כניסה לחשבון לא זמינה כרגע. ניתן להמשיך במצב אורח — הנתונים נשמרים בדפדפן זה.
           </div>
         )}
 
@@ -173,7 +173,10 @@ export default function LoginScreen() {
           <Link to="/signup" className={styles.switchLink}>הרשמה חינמית</Link>
         </p>
 
-        <Link to="/" className={styles.backLink}>← המשך ללא חשבון</Link>
+        <div className={styles.guestBlock}>
+          <Link to="/" className={styles.backLink}>← המשך ללא חשבון</Link>
+          <p className={styles.guestNote}>מצב אורח — נתונים נשמרים בדפדפן זה בלבד, ללא גיבוי ענן</p>
+        </div>
 
       </div>
     </div>

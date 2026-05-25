@@ -194,6 +194,22 @@
   line-height: 1.5;
 }
 
+/* ── Guest mode section ── */
+.guestBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.guestNote {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
+
 @media (max-width: 480px) {
   .card { padding: 28px 20px 24px; }
 }
