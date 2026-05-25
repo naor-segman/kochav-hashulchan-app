@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import {
@@ -311,9 +311,8 @@ export default function AdminSubscriptionsScreen() {
                   </thead>
                   <tbody>
                     {filtered.map(s => (
-                      <>
+                      <Fragment key={s.id}>
                         <tr
-                          key={s.id}
                           className={[
                             styles.dataRow,
                             s.status === "cancelled" || s.status === "expired" ? styles.rowDim : "",
@@ -335,7 +334,7 @@ export default function AdminSubscriptionsScreen() {
                           </td>
                         </tr>
                         {expandedId === s.id && (
-                          <tr key={`${s.id}-limits`} className={styles.expandRow}>
+                          <tr className={styles.expandRow}>
                             <td colSpan={6} className={styles.expandCell}>
                               <div className={styles.expandContent}>
                                 <span className={styles.expandTitle}>גבולות תוכנית {getPlanLabel(s.plan)}:</span>
@@ -344,7 +343,7 @@ export default function AdminSubscriptionsScreen() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
