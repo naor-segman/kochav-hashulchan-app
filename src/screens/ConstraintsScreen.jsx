@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -12,6 +12,153 @@ import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./ConstraintsScreen.module.css";
 
+// ── Highlight the matched substring in a name ─────────────────────────────────
+function HighlightMatch({ name, query }) {
+  if (!query) return name;
+  const lname  = name.toLowerCase();
+  const lquery = query.toLowerCase();
+  const idx    = lname.indexOf(lquery);
+  if (idx === -1) return name;
+  return (
+    <>
+      {name.slice(0, idx)}
+      <mark className={styles.acMark}>{name.slice(idx, idx + query.length)}</mark>
+      {name.slice(idx + query.length)}
+    </>
+  );
+}
+
+// ── Searchable guest picker ───────────────────────────────────────────────────
+// value: guest ID (string) | ""
+// onChange: called with guest ID string when a guest is selected, or "" to clear
+function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label }) {
+  const selectedGuest = guests.find(g => g.id === value) ?? null;
+  const [query, setQuery]   = useState(selectedGuest?.name ?? "");
+  const [open, setOpen]     = useState(false);
+  const [hi, setHi]         = useState(-1);
+  const containerRef        = useRef(null);
+  const valueRef            = useRef(value);
+
+  useEffect(() => { valueRef.current = value; }, [value]);
+
+  // Sync display text when selection is cleared from outside (e.g. after save)
+  useEffect(() => {
+    const g = guests.find(g => g.id === value);
+    setQuery(g ? g.name : "");
+  }, [value, guests]);
+
+  // Close and restore on outside click
+  useEffect(() => {
+    const handler = e => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+        setHi(-1);
+        const g = guests.find(g => g.id === valueRef.current);
+        setQuery(g ? g.name : "");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [guests]);
+
+  const lquery  = query.toLowerCase();
+  const results = guests
+    .filter(g => g.id !== exclude)
+    .filter(g => !query || g.name.toLowerCase().includes(lquery))
+    .slice(0, 10);
+
+  const select = (g) => {
+    onChange(g.id);
+    setQuery(g.name);
+    setOpen(false);
+    setHi(-1);
+  };
+
+  const handleChange = e => {
+    const v = e.target.value;
+    setQuery(v);
+    setOpen(true);
+    setHi(-1);
+    if (!v) onChange("");
+  };
+
+  const handleKeyDown = e => {
+    if (e.key === "Escape") { setOpen(false); setHi(-1); return; }
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "Enter") { setOpen(true); setHi(0); }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHi(h => Math.min(h + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHi(h => Math.max(h - 1, 0));
+    } else if (e.key === "Enter" && hi >= 0 && results[hi]) {
+      e.preventDefault();
+      select(results[hi]);
+    }
+  };
+
+  const isSelected = !!value && !!selectedGuest;
+
+  return (
+    <div ref={containerRef} className={styles.acWrap}>
+      <div className={[styles.acInputWrap, isSelected ? styles.acInputSelected : ""].filter(Boolean).join(" ")}>
+        {isSelected && <SideDot side={selectedGuest.side} />}
+        <input
+          className={[base.input, styles.acInput].join(" ")}
+          value={query}
+          placeholder="הקלד שם לחיפוש..."
+          autoComplete="off"
+          onFocus={() => setOpen(true)}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          aria-label={label}
+          aria-autocomplete="list"
+          aria-expanded={open}
+        />
+        {query && (
+          <button
+            className={styles.acClear}
+            onMouseDown={e => { e.preventDefault(); onChange(""); setQuery(""); setOpen(false); }}
+            tabIndex={-1}
+            aria-label="נקה בחירה"
+          >✕</button>
+        )}
+      </div>
+
+      {open && (results.length > 0 || query) && (
+        <div className={styles.acDropdown} role="listbox">
+          {results.length > 0 ? results.map((g, i) => (
+            <button
+              key={g.id}
+              role="option"
+              aria-selected={i === hi}
+              className={[styles.acItem, i === hi ? styles.acItemHi : ""].filter(Boolean).join(" ")}
+              onMouseDown={e => { e.preventDefault(); select(g); }}
+              onMouseEnter={() => setHi(i)}
+            >
+              <SideDot side={g.side} />
+              <span className={styles.acName}>
+                <HighlightMatch name={g.name} query={query} />
+              </span>
+              <span className={styles.acMeta}>
+                {sideLabel(g.side)}
+                {g.group ? " · " + g.group : ""}
+                {g.phone ? " · " + g.phone : ""}
+              </span>
+            </button>
+          )) : (
+            <div className={styles.acEmpty}>אין תוצאות עבור &ldquo;{query}&rdquo;</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [formA, setFormA]       = useState("");
   const [formB, setFormB]       = useState("");
@@ -54,15 +201,6 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
   const together = ev.constraints.filter(c => c.type === "together" && gMap[c.guestA] && gMap[c.guestB]);
   const apart    = ev.constraints.filter(c => c.type === "apart"    && gMap[c.guestA] && gMap[c.guestB]);
   const previewReady = formA && formB && formA !== formB && gMap[formA] && gMap[formB];
-
-  const GuestSelect = ({ value, onChange, exclude }) => (
-    <select className={base.select} style={{ flex: 1 }} value={value} onChange={e => onChange(e.target.value)}>
-      <option value="">— בחר אורח —</option>
-      {sorted.filter(g => g.id !== exclude).map(g => (
-        <option key={g.id} value={g.id}>{g.name} ({sideLabel(g.side)})</option>
-      ))}
-    </select>
-  );
 
   return (
     <div className={base.page}>
@@ -136,14 +274,32 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         </p>
 
         <div className={styles.constraintFormRow}>
-          <div style={{ flex: 1, minWidth: 150 }}>
-            <Field label="אורח א׳"><GuestSelect value={formA} onChange={setFormA} exclude={formB} /></Field>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <Field label="אורח א׳">
+              <GuestAutocomplete
+                guests={sorted}
+                value={formA}
+                onChange={setFormA}
+                exclude={formB}
+                sideLabel={sideLabel}
+                label="אורח א׳"
+              />
+            </Field>
           </div>
           <div className={styles.constraintVerb}>
             {formType === "together" ? "יחד עם" : "בנפרד מ-"}
           </div>
-          <div style={{ flex: 1, minWidth: 150 }}>
-            <Field label="אורח ב׳"><GuestSelect value={formB} onChange={setFormB} exclude={formA} /></Field>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <Field label="אורח ב׳">
+              <GuestAutocomplete
+                guests={sorted}
+                value={formB}
+                onChange={setFormB}
+                exclude={formA}
+                sideLabel={sideLabel}
+                label="אורח ב׳"
+              />
+            </Field>
           </div>
           <button
             className={base.btnPrimary}

@@ -149,3 +149,120 @@
   color: var(--red);
   border: 1px solid var(--red-border);
 }
+
+/* ── Guest autocomplete ── */
+.acWrap {
+  position: relative;
+}
+
+.acInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 10px 0 6px;
+  transition: border-color 0.15s;
+}
+
+.acInputWrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.acInputSelected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.acInput {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding-inline-start: 4px;
+  flex: 1;
+}
+
+.acClear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  line-height: 1;
+  transition: color 0.12s;
+}
+
+.acClear:hover { color: var(--red); }
+
+.acDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 200;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.acItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: right;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  transition: background 0.1s;
+}
+
+.acItem:last-child { border-bottom: none; }
+
+.acItem:hover,
+.acItemHi {
+  background: var(--accent-bg);
+}
+
+.acName {
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.acMeta {
+  font-size: 12px;
+  color: var(--muted);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acMark {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: 2px;
+  font-weight: 800;
+  font-style: normal;
+}
+
+.acEmpty {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
