@@ -256,6 +256,19 @@
   opacity: 0.65;
 }
 
+.planCardBtnUpgradeActive {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.planCardBtnUpgradeActive:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ── Billing management button ── */
 .billingBtn {
   align-self: flex-start;
@@ -270,6 +283,47 @@
   font-family: inherit;
   opacity: 0.6;
   margin-top: 4px;
+}
+
+.billingBtnActive {
+  border-color: var(--border2);
+  color: var(--text2);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.billingBtnActive:hover:not(:disabled) {
+  background: var(--surface2);
+  border-color: var(--text2);
+  color: var(--text);
+}
+
+/* ── Checkout result banners ── */
+.checkoutSuccessBanner {
+  padding: 10px 14px;
+  background: var(--green-bg, #f0fdf4);
+  border: 1px solid var(--green-border, #bbf7d0);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green, #16a34a);
+}
+
+.checkoutCancelledBanner {
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text2);
+}
+
+/* ── Billing error ── */
+.billingError {
+  font-size: 13px;
+  color: var(--red, #dc2626);
+  text-align: center;
+  margin: 0;
 }
 
 /* ── Inactive payments note ── */

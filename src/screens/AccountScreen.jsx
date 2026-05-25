@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase } from "../lib/supabase.js";
 import {
   getPlanLabel, getStatusLabel, getPlanLimits,
   PLAN_META, STATUS_META, PLAN_KEYS,
 } from "../admin/lib/planConfig.js";
-import { isPaidPlan } from "../admin/lib/stripeConfig.js";
+import { isPaidPlan, isStripeConfigured } from "../admin/lib/stripeConfig.js";
+import { useBilling } from "../hooks/useBilling.js";
 import styles from "./AccountScreen.module.css";
 
 function formatDate(iso) {
@@ -20,9 +21,9 @@ async function fetchSubscription(userId) {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("plan, status, started_at, expires_at")
+    .select("plan, status, started_at, expires_at, current_period_end, payment_past_due")
     .eq("user_id", userId)
-    .eq("status", "active")
+    .in("status", ["active", "trialing"])
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -63,10 +64,13 @@ function cardBtnLabel(cardKey, currentPlanKey) {
 
 export default function AccountScreen({ eventCount = 0 }) {
   const { user, loading, signOut } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const billing   = useBilling();
 
-  const [sub,        setSub]        = useState(undefined); // undefined=loading, null=none
-  const [signingOut, setSigningOut] = useState(false);
+  const [sub,             setSub]             = useState(undefined); // undefined=loading, null=none
+  const [signingOut,      setSigningOut]      = useState(false);
+  const [checkoutResult,  setCheckoutResult]  = useState(null); // "success" | "cancelled" | null
 
   useEffect(() => {
     if (!loading && !user) {
@@ -78,6 +82,25 @@ export default function AccountScreen({ eventCount = 0 }) {
     if (!user) return;
     fetchSubscription(user.id).then(setSub);
   }, [user]);
+
+  // Read and clear the ?checkout= URL param that Stripe appends after redirect.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const result = params.get("checkout");
+    if (result === "success" || result === "cancelled") {
+      setCheckoutResult(result);
+      // Remove the param from the URL so refreshing doesn't re-show the banner.
+      params.delete("checkout");
+      const newSearch = params.toString();
+      window.history.replaceState(null, "", newSearch ? `?${newSearch}` : location.pathname);
+      // Re-fetch subscription when returning from a successful checkout —
+      // the webhook may have fired by now.
+      if (result === "success" && user) {
+        fetchSubscription(user.id).then(setSub);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -196,6 +219,23 @@ export default function AccountScreen({ eventCount = 0 }) {
           )}
         </section>
 
+        {/* ── Checkout result banners ── */}
+        {checkoutResult === "success" && (
+          <div className={styles.checkoutSuccessBanner}>
+            ✓ ההרשמה לתוכנית הצליחה! ייתכן שיידרשו כמה שניות לעדכון התוכנית.
+          </div>
+        )}
+        {checkoutResult === "cancelled" && (
+          <div className={styles.checkoutCancelledBanner}>
+            הרשמה לתוכנית בוטלה — לא חויבת. תוכל לשדרג בכל עת.
+          </div>
+        )}
+
+        {/* ── Billing error ── */}
+        {billing.error && (
+          <p className={styles.billingError}>{billing.error}</p>
+        )}
+
         {/* ── Plan comparison cards ── */}
         {sub !== undefined && (
           <section className={styles.section}>
@@ -203,11 +243,31 @@ export default function AccountScreen({ eventCount = 0 }) {
 
             <div className={styles.planGrid}>
               {PLAN_KEYS.map((key) => {
-                const meta     = PLAN_META[key];
+                const meta      = PLAN_META[key];
                 const isCurrent = key === planKey;
                 const btnLabel  = cardBtnLabel(key, planKey);
                 const noAction  = btnLabel === "—";
                 const features  = planFeatures(key);
+
+                // Whether this card's button is in a loading state
+                const isThisLoading = billing.checkoutTarget === key;
+
+                // Enterprise uses a contact link rather than Stripe Checkout
+                const isEnterprise = key === "enterprise";
+
+                // Upgrade button is clickable when Stripe is configured and
+                // this is not the current plan
+                const isClickable = !isCurrent && isStripeConfigured;
+
+                const handleCardAction = () => {
+                  if (isCurrent || billing.checkoutTarget) return;
+                  if (isEnterprise) {
+                    window.location.href =
+                      "mailto:naor.segman@gmail.com?subject=Enterprise%20Plan%20Inquiry";
+                    return;
+                  }
+                  billing.startCheckout(key);
+                };
 
                 return (
                   <div
@@ -265,12 +325,26 @@ export default function AccountScreen({ eventCount = 0 }) {
                       <button
                         className={[
                           styles.planCardBtn,
-                          isCurrent ? styles.planCardBtnCurrent : styles.planCardBtnUpgrade,
-                        ].join(" ")}
-                        disabled
-                        title={isCurrent ? "זוהי התוכנית הנוכחית שלך" : "שדרוג יהיה זמין בקרוב"}
+                          isCurrent      ? styles.planCardBtnCurrent :
+                          isClickable    ? styles.planCardBtnUpgradeActive :
+                          styles.planCardBtnUpgrade,
+                        ].filter(Boolean).join(" ")}
+                        disabled={isCurrent || isThisLoading}
+                        onClick={handleCardAction}
+                        title={
+                          isCurrent       ? "זוהי התוכנית הנוכחית שלך" :
+                          !isStripeConfigured && !isEnterprise ? "שדרוג יהיה זמין בקרוב" :
+                          isEnterprise    ? "שלח אימייל לגבי תוכנית ארגוני" :
+                          `שדרג לתוכנית ${getPlanLabel(key)}`
+                        }
                       >
-                        {isCurrent ? "תוכנית נוכחית ✓" : "בקרוב"}
+                        {isCurrent
+                          ? "תוכנית נוכחית ✓"
+                          : isThisLoading
+                          ? "מעבד…"
+                          : !isStripeConfigured && !isEnterprise
+                          ? "בקרוב"
+                          : btnLabel}
                       </button>
                     )}
                   </div>
@@ -278,25 +352,31 @@ export default function AccountScreen({ eventCount = 0 }) {
               })}
             </div>
 
-            {/* Billing management — shown for paid plan holders */}
+            {/* Billing management — shown for paid plan holders when Stripe is active */}
             {isPaidPlan(planKey) && (
               <button
-                className={styles.billingBtn}
-                disabled
-                title="ניהול חיוב יהיה זמין בקרוב"
+                className={[
+                  styles.billingBtn,
+                  isStripeConfigured ? styles.billingBtnActive : "",
+                ].filter(Boolean).join(" ")}
+                disabled={!isStripeConfigured || billing.checkoutTarget === "portal"}
+                onClick={isStripeConfigured ? billing.openPortal : undefined}
+                title={isStripeConfigured ? "נהל מנוי, שנה תשלום, או בטל" : "ניהול חיוב יהיה זמין בקרוב"}
               >
-                ניהול חיוב ↗
+                {billing.checkoutTarget === "portal" ? "פותח…" : "ניהול חיוב ↗"}
               </button>
             )}
 
-            {/* Beta note */}
-            <div className={styles.inactiveNote}>
-              <span className={styles.inactiveNoteIcon}>✦</span>
-              <span>
-                אנחנו בשלב בטא — כל הפונקציות זמינות כרגע ללא תשלום.
-                שדרוג לתוכניות בתשלום יהיה זמין בקרוב. תודה שאתם איתנו!
-              </span>
-            </div>
+            {/* Beta / inactive note — shown only when Stripe is not yet configured */}
+            {!isStripeConfigured && (
+              <div className={styles.inactiveNote}>
+                <span className={styles.inactiveNoteIcon}>✦</span>
+                <span>
+                  אנחנו בשלב בטא — כל הפונקציות זמינות כרגע ללא תשלום.
+                  שדרוג לתוכניות בתשלום יהיה זמין בקרוב. תודה שאתם איתנו!
+                </span>
+              </div>
+            )}
           </section>
         )}
 
