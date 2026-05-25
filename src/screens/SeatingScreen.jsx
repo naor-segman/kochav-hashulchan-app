@@ -8,6 +8,7 @@ import {
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
+import { getSideLabel } from "../utils/eventHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canUseAdvancedExports, canUseAI } from "../utils/featureGates.js";
@@ -87,7 +88,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const noTables       = ev.tables.length === 0;
   const noGuests       = ev.guests.length === 0;
 
-  const sideLabel   = s => s === "bride" ? (ev.brideName ? "צד " + ev.brideName : "צד כלה") : (ev.groomName ? "צד " + ev.groomName : "צד חתן");
+  const sideLabel   = s => getSideLabel(ev, s);
   const tableGuests = tid => ev.guests.filter(g => ev.seating[g.id] === tid);
   const tableSeats  = tid => ev.guests
     .filter(g => ev.seating[g.id] === tid)

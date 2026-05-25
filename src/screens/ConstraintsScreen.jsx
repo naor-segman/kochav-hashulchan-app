@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -17,9 +18,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
   const [formType, setFormType] = useState("together");
 
   const sorted    = ev.guests.slice().sort((a, b) => a.name.localeCompare(b.name));
-  const sideLabel = s => s === "bride"
-    ? (ev.brideName ? "צד " + ev.brideName : "צד כלה")
-    : (ev.groomName ? "צד " + ev.groomName : "צד חתן");
+  const sideLabel = s => getSideLabel(ev, s);
   const gMap = Object.fromEntries(ev.guests.map(g => [g.id, g]));
 
   const addConstraint = () => {

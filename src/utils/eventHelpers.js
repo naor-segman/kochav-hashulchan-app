@@ -127,7 +127,42 @@ export function duplicateEvent(ev) {
   });
 }
 
-// ── Event-type personal-field helpers ────────────────────────────────────────
+/**
+ * Returns both side labels for a given event, keyed by "bride" and "groom"
+ * (the internal storage values, preserved for backward compatibility).
+ * Labels adapt to the event type so the UI feels personal and event-aware.
+ */
+export function getSideLabels(ev) {
+  const type = ev?.type || "חתונה";
+  if (type === "חתונה" || type === "אירוס" || type === "חינה") {
+    return {
+      bride: ev.brideName ? "צד " + ev.brideName : "צד כלה",
+      groom: ev.groomName ? "צד " + ev.groomName : "צד חתן",
+    };
+  }
+  if (type === "בר מצווה" || type === "בת מצווה") {
+    return { bride: "משפחת האם", groom: "משפחת האב" };
+  }
+  if (type === "אירוע עסקי") {
+    return { bride: "הנהלה", groom: "עובדים" };
+  }
+  if (type === "יום הולדת") {
+    return { bride: "משפחה", groom: "חברים" };
+  }
+  if (type === "אירוע משפחתי") {
+    return { bride: "צד האם", groom: "צד האב" };
+  }
+  return { bride: "צד א׳", groom: "צד ב׳" };
+}
+
+/**
+ * Returns the display label for a single side ("bride" or "groom").
+ * Falls back safely for unknown side values.
+ */
+export function getSideLabel(ev, side) {
+  const labels = getSideLabels(ev);
+  return labels[side] ?? (side === "bride" ? "צד א׳" : "צד ב׳");
+}
 //
 // EventSetupScreen uses these to show the right personal fields for each
 // event type without embedding business logic in the component.

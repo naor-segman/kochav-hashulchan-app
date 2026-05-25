@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
+import { getSideLabels, getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canAddGuest } from "../utils/featureGates.js";
@@ -23,9 +24,8 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
   const dropRef = useRef(null);
   const fileRef = useRef(null);
 
-  const brideSide = ev.brideName ? "צד " + ev.brideName : "צד כלה";
-  const groomSide = ev.groomName ? "צד " + ev.groomName : "צד חתן";
-  const sideLabel = s => s === "bride" ? brideSide : groomSide;
+  const { bride: brideSide, groom: groomSide } = getSideLabels(ev);
+  const sideLabel = s => getSideLabel(ev, s);
 
   const classifyRows = (rawRows) => {
     const existingNames  = new Set(ev.guests.map(g => g.name.trim().toLowerCase()));
@@ -425,10 +425,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
   useEffect(() => { if (!editId) nameRef.current && nameRef.current.focus(); }, []);
 
-  const sideLabel = s =>
-    s === "bride"
-      ? (ev.brideName ? "צד " + ev.brideName : "צד כלה")
-      : (ev.groomName ? "צד " + ev.groomName : "צד חתן");
+  const sideLabel = s => getSideLabel(ev, s);
 
   const saveGuest = () => {
     if (!form.name.trim()) { showToast("יש להזין שם אורח", "err"); return; }
