@@ -57,6 +57,24 @@
   box-shadow: 0 4px 16px rgba(190, 122, 56, 0.5);
 }
 
+/* ── Plan gate upgrade tip ── */
+.upgradeTip {
+  margin: 6px 0 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text2);
+  background: var(--accent-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius);
+  line-height: 1.5;
+}
+
+.upgradeTipLink {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
 /* ── Full onboarding empty state ── */
 .onboarding {
   text-align: center;

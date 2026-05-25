@@ -61,7 +61,7 @@ function cardBtnLabel(cardKey, currentPlanKey) {
 
 // ── AccountScreen ─────────────────────────────────────────────────────────────
 
-export default function AccountScreen() {
+export default function AccountScreen({ eventCount = 0 }) {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -169,6 +169,29 @@ export default function AccountScreen() {
                   אין מנוי פעיל — משתמש בתוכנית החינמית.
                 </p>
               )}
+
+              {/* Current usage */}
+              {(() => {
+                const { maxEvents, maxGuests } = getPlanLimits(planKey);
+                return (
+                  <div className={styles.usageSection}>
+                    <div className={styles.usageRow}>
+                      <span className={styles.usageLabel}>אירועים בשימוש</span>
+                      <span className={styles.usageVal}>
+                        {eventCount}
+                        {" / "}
+                        {maxEvents === Infinity ? "∞" : maxEvents}
+                      </span>
+                    </div>
+                    <div className={styles.usageRow}>
+                      <span className={styles.usageLabel}>מגבלת אורחים לאירוע</span>
+                      <span className={styles.usageVal}>
+                        {maxGuests === Infinity ? "ללא הגבלה" : `עד ${maxGuests}`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
             </>
           )}
         </section>

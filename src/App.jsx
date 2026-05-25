@@ -8,9 +8,11 @@ import { duplicateEvent } from "./utils/eventHelpers.js";
 import { useAuth }          from "./hooks/useAuth.js";
 import { useEvents }        from "./hooks/useEvents.js";
 import { useToast }         from "./hooks/useToast.js";
+import { usePlan }          from "./hooks/usePlan.js";
 import { useActiveEvent }   from "./hooks/useActiveEvent.js";
 import { useMigration, MIGRATION_STATUS } from "./hooks/useMigration.js";
 import { SYNC_STATUS } from "./utils/cloudSync.js";
+import { canCreateEvent } from "./utils/featureGates.js";
 import Shell              from "./components/layout/Shell.jsx";
 import Toast              from "./components/feedback/Toast.jsx";
 import MigrationBanner    from "./components/migration/MigrationBanner.jsx";
@@ -80,6 +82,7 @@ export default function App() {
   const { user }                                                        = useAuth();
   const { events, addEvent, removeEvent, patchEventById, syncStatus }  = useEvents(user);
   const { toast, showToast }                                            = useToast();
+  const { plan }                                                        = usePlan();
   const navigate                                                        = useNavigate();
   const migration = useMigration(events, patchEventById, user);
 
@@ -93,6 +96,11 @@ export default function App() {
   }, [syncStatus, showToast]);
 
   const createEvent = useCallback((template) => {
+    const gate = canCreateEvent(plan, events.length);
+    if (!gate.allowed) {
+      showToast(gate.reason + " — שדרג את התוכנית להוספת אירועים נוספים", "err");
+      return;
+    }
     const now = Date.now();
     const ev = {
       id: uid(), name: "", type: template?.type || "חתונה", date: "", venue: "",
@@ -105,7 +113,7 @@ export default function App() {
     addEvent(ev);
     navigate(`/events/${ev.id}/setup`);
     window.scrollTo(0, 0);
-  }, [addEvent, navigate]);
+  }, [addEvent, navigate, plan, events.length, showToast]);
 
   const deleteEvent = useCallback((id) => {
     removeEvent(id);
@@ -141,6 +149,7 @@ export default function App() {
             )}
             <DashboardScreen
               events={events}
+              plan={plan}
               onCreateEvent={createEvent}
               onOpenEvent={id => { navigate(`/events/${id}/setup`); window.scrollTo(0, 0); }}
               onDeleteEvent={deleteEvent}
@@ -165,7 +174,7 @@ export default function App() {
       {/* ── Customer auth routes — standalone full-page screens ── */}
       <Route path="/login"   element={<LoginScreen />} />
       <Route path="/signup"  element={<SignupScreen />} />
-      <Route path="/account" element={<AccountScreen />} />
+      <Route path="/account" element={<AccountScreen eventCount={events.length} />} />
 
       {/* ── Admin area — lazy-loaded, completely isolated from customer app ── */}
       <Route

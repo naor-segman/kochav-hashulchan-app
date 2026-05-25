@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
 import { uid } from "../utils/uid.js";
+import { usePlan } from "../hooks/usePlan.js";
+import { canAddGuest } from "../utils/featureGates.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
@@ -13,7 +15,7 @@ import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./GuestManagerScreen.module.css";
 
-function ExcelImportFlow({ ev, patchEvent, showToast, onClose }) {
+function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
   const [step, setStep]             = useState("upload");
   const [classified, setClassified] = useState(null);
   const [parseErr, setParseErr]     = useState("");
@@ -130,6 +132,16 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose }) {
       ? newGuests
       : [...newGuests, ...duplicates.map(d => d.guest)];
     if (toImport.length === 0) { showToast("אין רשומות לייבוא", "err"); return; }
+    if (maxGuests !== Infinity && ev.guests.length + toImport.length > maxGuests) {
+      const remaining = Math.max(0, maxGuests - ev.guests.length);
+      showToast(
+        remaining === 0
+          ? `הגעת למגבלת ${maxGuests} האורחים בתוכנית הנוכחית — שדרג להוספת אורחים נוספים`
+          : `ניתן להוסיף עוד ${remaining} אורחים בלבד בתוכנית הנוכחית (${ev.guests.length}/${maxGuests})`,
+        "err"
+      );
+      return;
+    }
     patchEvent(e => Object.assign({}, e, { guests: e.guests.concat(toImport) }));
     const seats  = toImport.reduce((s, g) => s + (g.count || 1), 0);
     const dupMsg = skipDups && duplicates.length > 0
@@ -408,6 +420,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const [filter, setFilter]     = useState({ side: "all", group: "all", search: "" });
   const nameRef                 = useRef(null);
   const setF = (k, v) => setForm(p => Object.assign({}, p, { [k]: v }));
+  const { plan, limits } = usePlan();
+  const { maxGuests } = limits;
 
   useEffect(() => { if (!editId) nameRef.current && nameRef.current.focus(); }, []);
 
@@ -427,6 +441,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       setEditId(null);
       showToast("פרטי האורח עודכנו ✓");
     } else {
+      const guestGate = canAddGuest(plan, ev.guests.length);
+      if (!guestGate.allowed) {
+        showToast(guestGate.reason + " — שדרג להוספת אורחים נוספים", "err");
+        return;
+      }
       const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1 });
       patchEvent(e => Object.assign({}, e, { guests: e.guests.concat([newG]) }));
       showToast(form.name.trim() + " נוסף/ה לרשימה ✓");
@@ -491,6 +510,15 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         <span className={styles.stepBadge}>שלב 3 מתוך 5 — אורחים</span>
         <span className={styles.stepText}>הוסיפו אורחים ידנית אחד-אחד, או ייבאו רשימה שלמה מ-Excel. לאחר מכן המשיכו לאילוצים. כל שינוי נשמר אוטומטית.</span>
       </div>
+
+      {/* ── Guest limit upgrade tip ── */}
+      {maxGuests !== Infinity && ev.guests.length >= maxGuests && (
+        <p className={styles.upgradeTip}>
+          🔒 הגעת למגבלת {maxGuests} האורחים בתוכנית הנוכחית —{" "}
+          <a href="/account" className={styles.upgradeTipLink}>שדרג את התוכנית</a>{" "}
+          להוספת אורחים נוספים.
+        </p>
+      )}
 
       <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")}>
         <SectionLabel>
@@ -577,6 +605,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             patchEvent={patchEvent}
             showToast={showToast}
             onClose={() => setShowBulk(false)}
+            maxGuests={maxGuests}
           />
         )}
       </div>

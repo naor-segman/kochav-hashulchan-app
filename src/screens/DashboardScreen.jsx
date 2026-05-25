@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { fmtDate } from "../utils/dateFormat.js";
 import { useTemplates } from "../hooks/useTemplates.js";
+import { canCreateEvent } from "../utils/featureGates.js";
 import { eventHealth, dashStats, summaryMessages } from "../utils/eventAnalytics.js";
 import Chip from "../components/ui/Chip.jsx";
 import base from "../styles/screenBase.module.css";
@@ -17,7 +18,7 @@ const DEMO_STEPS = [
   { label: "ייצא לאולם",            hint: "ייצא את הסידור לקובץ Excel לצוות האולם" },
 ];
 
-export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
+export default function DashboardScreen({ events, plan = "free", onCreateEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showDemo,      setShowDemo]      = useState(false);
   const [doneSteps,     setDoneSteps]     = useState(() => new Set());
@@ -32,6 +33,7 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
   const stats         = useMemo(() => dashStats(events), [events]);
   const summaries     = useMemo(() => summaryMessages(stats), [stats]);
   const { mainTemplates, emptyTemplate, source: templateSource, loading: templateLoading } = useTemplates();
+  const eventGate     = canCreateEvent(plan, events.length);
 
   const openTemplate = (tpl) => {
     setShowTemplates(false);
@@ -49,8 +51,21 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
             <span className={styles.logoName}>כוכב השולחן</span>
             <span className={styles.heroBarSub}>סידור הושבה לאירועים</span>
           </div>
-          <button className={styles.heroCta} onClick={() => setShowTemplates(true)}>+ אירוע חדש</button>
+          <button
+            className={styles.heroCta}
+            onClick={() => eventGate.allowed ? setShowTemplates(true) : onCreateEvent(null)}
+          >
+            + אירוע חדש
+          </button>
         </div>
+      )}
+
+      {/* ── Event limit upgrade tip ── */}
+      {!eventGate.allowed && hasEvents && (
+        <p className={styles.upgradeTip}>
+          🔒 {eventGate.reason} —{" "}
+          <a href="/account" className={styles.upgradeTipLink}>שדרג את התוכנית</a>
+        </p>
       )}
 
       {/* ── Full onboarding: shown when no events ── */}
@@ -93,7 +108,10 @@ export default function DashboardScreen({ events, onCreateEvent, onOpenEvent, on
             ))}
           </div>
 
-          <button className={styles.heroCta} onClick={() => setShowTemplates(true)}>
+          <button
+            className={styles.heroCta}
+            onClick={() => eventGate.allowed ? setShowTemplates(true) : onCreateEvent(null)}
+          >
             + צור אירוע ראשון
           </button>
 

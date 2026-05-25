@@ -27,6 +27,24 @@
   line-height: 1.4;
 }
 
+/* Plan gate upgrade tip */
+.upgradeTip {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text2);
+  background: var(--accent-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius);
+  line-height: 1.5;
+}
+
+.upgradeTipLink {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
 /* Add-form hint (manual vs Excel) */
 .addHint {
   font-size: 12px;

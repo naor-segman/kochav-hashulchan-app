@@ -109,6 +109,31 @@
   font-style: italic;
 }
 
+/* ── Usage stats ── */
+.usageSection {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.usageRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 13px;
+}
+
+.usageLabel {
+  color: var(--text2);
+}
+
+.usageVal {
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Plan comparison cards ── */
 .planGrid {
   display: grid;
