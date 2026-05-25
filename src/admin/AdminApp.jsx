@@ -100,7 +100,7 @@ export default function AdminApp() {
         }
       />
       {/* Catch-all: redirect to dashboard, AdminGuard handles the unauthed case */}
-      <Route path="*" element={<Navigate to="dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
     </Routes>
   );
 }
