@@ -587,7 +587,14 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         </Field>
 
         <div className={base.formActions}>
-          <button className={base.btnPrimary} onClick={saveGuest}>
+          <button
+            className={base.btnPrimary}
+            onClick={saveGuest}
+            disabled={!editId && maxGuests !== Infinity && ev.guests.length >= maxGuests}
+            title={!editId && maxGuests !== Infinity && ev.guests.length >= maxGuests
+              ? `הגעת למגבלת ${maxGuests} האורחים — שדרג את התוכנית`
+              : undefined}
+          >
             {editId ? "שמור שינויים" : "+ הוסף אורח"}
           </button>
           {editId && <button className={base.btnSecondary} onClick={cancelEdit}>ביטול</button>}

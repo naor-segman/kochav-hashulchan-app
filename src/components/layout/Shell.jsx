@@ -76,8 +76,8 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus })
                 <span className={styles.accountLabel}>{user.email.split("@")[0]}</span>
               </Link>
             ) : (
-              <Link to="/login" className={styles.accountBtn}>
-                כניסה
+              <Link to="/signup" className={styles.signupBtn}>
+                הצטרף חינם
               </Link>
             )
         )}

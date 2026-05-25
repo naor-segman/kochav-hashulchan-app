@@ -22,3 +22,7 @@
 .err {
   background: var(--red);
 }
+
+.warn {
+  background: var(--warn);
+}

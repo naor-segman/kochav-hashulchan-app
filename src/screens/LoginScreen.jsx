@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
-import { isSupabaseConfigured } from "../lib/supabase.js";
+import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
 
 function friendlyError(message) {
@@ -19,10 +19,15 @@ export default function LoginScreen() {
   const location  = useLocation();
   const from      = location.state?.from || "/account";
 
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [error,    setError]    = useState(location.state?.error || "");
-  const [busy,     setBusy]     = useState(false);
+  const [email,       setEmail]       = useState("");
+  const [password,    setPassword]    = useState("");
+  const [error,       setError]       = useState(location.state?.error || "");
+  const [busy,        setBusy]        = useState(false);
+  const [forgotMode,  setForgotMode]  = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotBusy,  setForgotBusy]  = useState(false);
+  const [forgotDone,  setForgotDone]  = useState(false);
+  const [forgotError, setForgotError] = useState("");
 
   // Already logged in → redirect
   useEffect(() => {
@@ -40,6 +45,22 @@ export default function LoginScreen() {
       setError(friendlyError(err.message));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setForgotError("");
+    setForgotBusy(true);
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim());
+      if (err) throw err;
+      setForgotDone(true);
+    } catch (err) {
+      setForgotError(err.message?.includes("network") ? "שגיאת חיבור. נסה שוב." : "שגיאה בשליחת הקישור. בדוק את כתובת האימייל.");
+    } finally {
+      setForgotBusy(false);
     }
   };
 
@@ -106,12 +127,53 @@ export default function LoginScreen() {
           </button>
         </form>
 
+        {/* ── Forgot password ── */}
+        {!forgotMode ? (
+          <button
+            type="button"
+            className={styles.forgotLink}
+            onClick={() => { setForgotMode(true); setForgotEmail(email); }}
+            disabled={!isSupabaseConfigured}
+          >
+            שכחת סיסמה?
+          </button>
+        ) : forgotDone ? (
+          <div className={styles.forgotSuccess}>
+            ✓ קישור לאיפוס סיסמה נשלח לכתובת <strong>{forgotEmail}</strong>. בדוק את תיבת הדואר.
+          </div>
+        ) : (
+          <form onSubmit={handleForgot} className={styles.forgotForm} noValidate>
+            <p className={styles.forgotTitle}>איפוס סיסמה</p>
+            <input
+              className={styles.input}
+              type="email"
+              value={forgotEmail}
+              onChange={e => setForgotEmail(e.target.value)}
+              placeholder="your@email.com"
+              dir="ltr"
+              autoComplete="email"
+              required
+            />
+            {forgotError && <p className={styles.errorMsg}>{forgotError}</p>}
+            <button type="submit" className={styles.submitBtn} disabled={forgotBusy || !forgotEmail}>
+              {forgotBusy ? "שולח…" : "שלח קישור איפוס"}
+            </button>
+            <button
+              type="button"
+              className={styles.forgotLink}
+              onClick={() => { setForgotMode(false); setForgotError(""); }}
+            >
+              ← חזור לכניסה
+            </button>
+          </form>
+        )}
+
         <p className={styles.switchLine}>
           אין לך חשבון?{" "}
-          <Link to="/signup" className={styles.switchLink}>הרשמה</Link>
+          <Link to="/signup" className={styles.switchLink}>הרשמה חינמית</Link>
         </p>
 
-        <Link to="/" className={styles.backLink}>← חזרה לאפליקציה</Link>
+        <Link to="/" className={styles.backLink}>← המשך ללא חשבון</Link>
 
       </div>
     </div>

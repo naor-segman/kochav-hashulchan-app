@@ -268,9 +268,9 @@ export default function AccountScreen({ eventCount = 0 }) {
                           isCurrent ? styles.planCardBtnCurrent : styles.planCardBtnUpgrade,
                         ].join(" ")}
                         disabled
-                        title="תשלומים עדיין לא פעילים במערכת"
+                        title={isCurrent ? "זוהי התוכנית הנוכחית שלך" : "שדרוג יהיה זמין בקרוב"}
                       >
-                        {btnLabel}
+                        {isCurrent ? "תוכנית נוכחית ✓" : "בקרוב"}
                       </button>
                     )}
                   </div>
@@ -283,16 +283,19 @@ export default function AccountScreen({ eventCount = 0 }) {
               <button
                 className={styles.billingBtn}
                 disabled
-                title="תשלומים עדיין לא פעילים במערכת"
+                title="ניהול חיוב יהיה זמין בקרוב"
               >
                 ניהול חיוב ↗
               </button>
             )}
 
-            {/* Inactive payments note */}
+            {/* Beta note */}
             <div className={styles.inactiveNote}>
-              <span className={styles.inactiveNoteIcon}>⚠</span>
-              <span>תשלומים עדיין לא פעילים במערכת — שדרוג יהיה זמין בקרוב.</span>
+              <span className={styles.inactiveNoteIcon}>✦</span>
+              <span>
+                אנחנו בשלב בטא — כל הפונקציות זמינות כרגע ללא תשלום.
+                שדרוג לתוכניות בתשלום יהיה זמין בקרוב. תודה שאתם איתנו!
+              </span>
             </div>
           </section>
         )}

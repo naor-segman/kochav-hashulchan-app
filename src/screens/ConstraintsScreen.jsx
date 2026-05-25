@@ -34,7 +34,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       c.type !== formType &&
       ((c.guestA === formA && c.guestB === formB) || (c.guestA === formB && c.guestB === formA))
     );
-    if (contra) showToast("⚠ שים לב: קיים אילוץ הפוך לאותה זוג — נוסף בכל זאת", "err");
+    if (contra) showToast("⚠ קיים אילוץ הפוך לאותה זוג — האילוץ החדש נוסף בכל זאת", "warn");
     patchEvent(e => Object.assign({}, e, {
       constraints: e.constraints.concat([{ id: uid(), type: formType, guestA: formA, guestB: formB }])
     }));

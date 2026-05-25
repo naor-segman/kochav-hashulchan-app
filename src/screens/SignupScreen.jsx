@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
-import { isSupabaseConfigured } from "../lib/supabase.js";
+import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css"; // shares layout styles
 
 function friendlyError(message) {
@@ -25,8 +25,11 @@ export default function SignupScreen() {
   const [password, setPassword] = useState("");
   const [confirm,  setConfirm]  = useState("");
   const [error,    setError]    = useState("");
-  const [busy,     setBusy]     = useState(false);
-  const [done,     setDone]     = useState(false); // email confirmation sent
+  const [busy,        setBusy]        = useState(false);
+  const [done,        setDone]        = useState(false); // email confirmation sent
+  const [resentDone,  setResentDone]  = useState(false);
+  const [resentBusy,  setResentBusy]  = useState(false);
+  const [resentError, setResentError] = useState("");
 
   useEffect(() => {
     if (!loading && user) navigate("/account", { replace: true });
@@ -62,6 +65,21 @@ export default function SignupScreen() {
 
   if (loading) return null;
 
+  const handleResend = async () => {
+    if (!supabase || resentBusy) return;
+    setResentError("");
+    setResentBusy(true);
+    try {
+      const { error: err } = await supabase.auth.resend({ type: "signup", email: email.trim() });
+      if (err) throw err;
+      setResentDone(true);
+    } catch (err) {
+      setResentError("שגיאה בשליחה חוזרת. נסה שוב.");
+    } finally {
+      setResentBusy(false);
+    }
+  };
+
   if (done) {
     return (
       <div className={styles.page}>
@@ -70,11 +88,32 @@ export default function SignupScreen() {
             <span className={styles.brandMark}>✦</span>
             <span className={styles.brandName}>כוכב השולחן</span>
           </div>
-          <h1 className={styles.title}>בדוק את האימייל שלך</h1>
-          <p style={{ textAlign: "center", color: "var(--text2)", fontSize: 14, margin: 0 }}>
+          <h1 className={styles.title}>בדוק את האימייל שלך ✉</h1>
+          <p style={{ textAlign: "center", color: "var(--text2)", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
             שלחנו קישור אישור לכתובת <strong>{email}</strong>.
-            לחץ על הקישור כדי להפעיל את החשבון.
+            לחץ על הקישור לאישור החשבון.
           </p>
+          {resentDone ? (
+            <p style={{ textAlign: "center", fontSize: 13, color: "var(--green)", margin: 0, fontWeight: 600 }}>
+              ✓ הקישור נשלח שוב — בדוק את תיבת הדואר
+            </p>
+          ) : (
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 6px" }}>לא קיבלת אימייל?</p>
+              {resentError && <p style={{ fontSize: 12, color: "var(--red)", margin: "0 0 6px" }}>{resentError}</p>}
+              <button
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "var(--accent)", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+                  textDecoration: "underline", padding: 0,
+                }}
+                onClick={handleResend}
+                disabled={resentBusy || !isSupabaseConfigured}
+              >
+                {resentBusy ? "שולח…" : "שלח שוב"}
+              </button>
+            </div>
+          )}
           <Link to="/login" className={styles.backLink}>← חזרה לכניסה</Link>
         </div>
       </div>
@@ -163,7 +202,7 @@ export default function SignupScreen() {
           <Link to="/login" className={styles.switchLink}>כניסה</Link>
         </p>
 
-        <Link to="/" className={styles.backLink}>← חזרה לאפליקציה</Link>
+        <Link to="/" className={styles.backLink}>← המשך ללא חשבון</Link>
 
       </div>
     </div>

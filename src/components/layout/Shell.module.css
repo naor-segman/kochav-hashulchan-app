@@ -142,6 +142,30 @@
 
 .accountIcon { font-size: 13px; flex-shrink: 0; }
 
+/* ── Signup CTA (shown for unauthenticated users) ── */
+.signupBtn {
+  display: flex;
+  align-items: center;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.12s, box-shadow 0.12s;
+  margin-inline-start: auto;
+}
+
+.signupBtn:hover {
+  background: #a86a2e;
+  box-shadow: 0 2px 8px rgba(190, 122, 56, 0.35);
+}
+
 .accountLabel {
   overflow: hidden;
   text-overflow: ellipsis;
