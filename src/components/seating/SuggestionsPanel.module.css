@@ -108,9 +108,11 @@
   border-bottom: 1px solid var(--border);
 }
 
-.groupHeader_critical { background: var(--red-bg); }
-.groupHeader_warning  { background: var(--warn-bg); }
-.groupHeader_info     { background: var(--bg); }
+.groupHeader_critical      { background: var(--red-bg); }
+.groupHeader_warning       { background: var(--warn-bg); }
+.groupHeader_info          { background: var(--bg); }
+.groupHeader_fixes         { background: var(--accent-bg); }
+.groupHeader_opportunities { background: var(--bg); }
 
 .groupIcon  { font-size: 11px; flex-shrink: 0; }
 
@@ -122,9 +124,11 @@
   flex: 1;
 }
 
-.groupHeader_critical .groupLabel { color: var(--red); }
-.groupHeader_warning  .groupLabel { color: var(--warn); }
-.groupHeader_info     .groupLabel { color: var(--muted); }
+.groupHeader_critical      .groupLabel { color: var(--red); }
+.groupHeader_warning       .groupLabel { color: var(--warn); }
+.groupHeader_info          .groupLabel { color: var(--muted); }
+.groupHeader_fixes         .groupLabel { color: var(--accent); }
+.groupHeader_opportunities .groupLabel { color: var(--muted); }
 
 .groupCount {
   font-size: 10px;
@@ -225,6 +229,52 @@
 }
 
 .emptyIcon { font-size: 14px; font-weight: 800; }
+
+/* ── Row meta chips ────────────────────────────────────────────────────────── */
+
+.rowChips {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+
+.scoreImpactChip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+  white-space: nowrap;
+}
+
+.violDeltaChip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+  white-space: nowrap;
+}
+
+.confidenceChip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
 
 /* ── Disclaimer footer ─────────────────────────────────────────────────────── */
 

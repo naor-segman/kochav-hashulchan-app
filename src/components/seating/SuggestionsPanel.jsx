@@ -1,9 +1,21 @@
 import { useState, useEffect } from "react";
 import styles from "./SuggestionsPanel.module.css";
 
-const SEVERITY_ICON  = { critical: "🔴", warning: "⚡", info: "💡" };
-const GROUP_LABEL    = { critical: "בעיות קריטיות", warning: "דורש תשומת לב", info: "המלצות לשיפור" };
-const GROUP_ICON     = { critical: "🔴", warning: "⚡", info: "💡" };
+const SEVERITY_ICON = { critical: "🔴", warning: "⚡", info: "💡" };
+
+const SECTION_META = {
+  critical:      { label: "בעיות קריטיות",       icon: "🔴", style: "critical" },
+  fixes:         { label: "תיקונים מוצעים",       icon: "⚡", style: "fixes"    },
+  opportunities: { label: "הזדמנויות לשיפור",    icon: "💡", style: "opportunities" },
+};
+
+// Derive section for suggestions that predate V2 (no section field)
+function getSection(s) {
+  if (s.section) return s.section;
+  if (s.severity === "critical") return "critical";
+  if (s.severity === "warning")  return "fixes";
+  return "opportunities";
+}
 
 function hasCriticalOrWarning(suggestions) {
   return suggestions.some(s => s.severity === "critical" || s.severity === "warning");
@@ -18,8 +30,8 @@ function scoreColorClass(score) {
 
 /**
  * @param {object[]}    suggestions   Output of generateSuggestions()
- * @param {number|null} [qualityScore] Output of computeQualityScore()
- * @param {function}    [onApply]      Called with suggestion when "החל" is clicked
+ * @param {number|null} qualityScore  Output of computeQualityScore()
+ * @param {function}    onApply       Called with suggestion when "החל" is clicked
  */
 export default function SuggestionsPanel({ suggestions, qualityScore = null, onApply }) {
   const [open, setOpen] = useState(() => hasCriticalOrWarning(suggestions));
@@ -39,9 +51,9 @@ export default function SuggestionsPanel({ suggestions, qualityScore = null, onA
     ? "המלצה אחת"
     : `${suggestions.length} המלצות`;
 
-  // Build groups — only the severities that have items
-  const groups = ["critical", "warning", "info"]
-    .map(sev => ({ sev, items: suggestions.filter(s => s.severity === sev) }))
+  // Build section groups — only sections that have items
+  const groups = ["critical", "fixes", "opportunities"]
+    .map(sec => ({ sec, items: suggestions.filter(s => getSection(s) === sec) }))
     .filter(g => g.items.length > 0);
 
   return (
@@ -54,7 +66,7 @@ export default function SuggestionsPanel({ suggestions, qualityScore = null, onA
       >
         <div className={styles.toggleLeft}>
           <span className={styles.toggleIcon}>✦</span>
-          <span className={styles.toggleTitle}>הצעות חכמות</span>
+          <span className={styles.toggleTitle}>עוזר חכם</span>
           <span
             className={[
               styles.toggleBadge,
@@ -85,48 +97,69 @@ export default function SuggestionsPanel({ suggestions, qualityScore = null, onA
               <span>לא נמצאו המלצות — ההושבה נראית תקינה.</span>
             </div>
           ) : (
-            groups.map(({ sev, items }) => (
-              <div key={sev} className={styles.group}>
-                {/* Section header */}
-                <div className={[styles.groupHeader, styles["groupHeader_" + sev]].join(" ")}>
-                  <span className={styles.groupIcon} aria-hidden="true">{GROUP_ICON[sev]}</span>
-                  <span className={styles.groupLabel}>{GROUP_LABEL[sev]}</span>
-                  <span className={styles.groupCount}>{items.length}</span>
-                </div>
+            groups.map(({ sec, items }) => {
+              const meta = SECTION_META[sec] || SECTION_META.opportunities;
+              return (
+                <div key={sec} className={styles.group}>
+                  {/* Section header */}
+                  <div className={[styles.groupHeader, styles["groupHeader_" + meta.style]].join(" ")}>
+                    <span className={styles.groupIcon} aria-hidden="true">{meta.icon}</span>
+                    <span className={styles.groupLabel}>{meta.label}</span>
+                    <span className={styles.groupCount}>{items.length}</span>
+                  </div>
 
-                {/* Suggestion rows */}
-                <ul className={styles.list}>
-                  {items.map(s => (
-                    <li
-                      key={s.id}
-                      className={[styles.row, styles["row_" + s.severity]].join(" ")}
-                    >
-                      <span className={styles.rowIcon} aria-hidden="true">
-                        {SEVERITY_ICON[s.severity]}
-                      </span>
-                      <div className={styles.rowContent}>
-                        <span className={styles.rowText}>{s.explanation}</span>
-                        {s.whyMatters && (
-                          <span className={styles.rowWhy}>{s.whyMatters}</span>
+                  {/* Suggestion rows */}
+                  <ul className={styles.list}>
+                    {items.map(s => (
+                      <li
+                        key={s.id}
+                        className={[styles.row, styles["row_" + s.severity]].join(" ")}
+                      >
+                        <span className={styles.rowIcon} aria-hidden="true">
+                          {SEVERITY_ICON[s.severity]}
+                        </span>
+                        <div className={styles.rowContent}>
+                          <span className={styles.rowText}>{s.explanation}</span>
+                          {s.whyMatters && (
+                            <span className={styles.rowWhy}>{s.whyMatters}</span>
+                          )}
+                          {s.recommendedAction && (
+                            <span className={styles.rowAction}>{s.recommendedAction}</span>
+                          )}
+                          {/* Score / confidence chips */}
+                          {(s.score > 2 || s.violationDelta < 0) && (
+                            <div className={styles.rowChips}>
+                              {s.score > 2 && (
+                                <span className={styles.scoreImpactChip}>
+                                  +{s.score} ציון
+                                </span>
+                              )}
+                              {s.violationDelta < 0 && (
+                                <span className={styles.violDeltaChip}>
+                                  {Math.abs(s.violationDelta)} הפרות פחות
+                                </span>
+                              )}
+                              {s.confidence === "high" && (
+                                <span className={styles.confidenceChip}>ביטחון גבוה</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {s.canApply && onApply && (
+                          <button
+                            className={styles.applyBtn}
+                            onClick={() => onApply(s)}
+                            title="החל פעולה זו (תוצג בקשת אישור לפני הביצוע)"
+                          >
+                            החל
+                          </button>
                         )}
-                        {s.recommendedAction && (
-                          <span className={styles.rowAction}>{s.recommendedAction}</span>
-                        )}
-                      </div>
-                      {s.canApply && onApply && (
-                        <button
-                          className={styles.applyBtn}
-                          onClick={() => onApply(s)}
-                          title="החל פעולה זו (תוצג בקשת אישור לפני הביצוע)"
-                        >
-                          החל
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })
           )}
           <p className={styles.disclaimer}>
             ההצעות הן מידע בלבד — כל החלה מצריכה אישורך.

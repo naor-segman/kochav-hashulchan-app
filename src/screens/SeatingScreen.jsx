@@ -67,9 +67,15 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   );
 
   const suggestions = useMemo(() =>
-    generateSuggestions(ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore),
-    [ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore]
+    generateSuggestions(ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore, {
+      lockedGuestIds: ev.lockedGuests || [],
+      lockedTableIds: ev.lockedTables || [],
+    }),
+    [ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore, ev.lockedGuests, ev.lockedTables]
   );
+
+  const lockedGuestsSet = useMemo(() => new Set(ev.lockedGuests || []), [ev.lockedGuests]);
+  const isGuestLocked   = id => lockedGuestsSet.has(id);
 
   const unassigned     = ev.guests.filter(g => !ev.seating[g.id]);
   const nAssigned      = ev.guests.filter(g => ev.seating[g.id]).length;
@@ -142,6 +148,15 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     showToast("השינוי בוטל ✓");
   };
 
+  const toggleGuestLock = (guestId) => {
+    patchEvent(e => {
+      const locked = new Set(e.lockedGuests || []);
+      if (locked.has(guestId)) locked.delete(guestId);
+      else locked.add(guestId);
+      return Object.assign({}, e, { lockedGuests: [...locked] });
+    });
+  };
+
   const handleApplySuggestion = (suggestion) => {
     const { applyAction } = suggestion;
     if (!applyAction) return;
@@ -151,6 +166,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       confirmMsg = `להחזיר את ${applyAction.guestName} מ${applyAction.tableName} לרשימת הממתינים?`;
     } else if (applyAction.type === "moveGuest") {
       confirmMsg = `להעביר את ${applyAction.guestName} מ${applyAction.fromTableName} ל${applyAction.toTableName}?`;
+    } else if (applyAction.type === "swapGuests") {
+      confirmMsg = `להחליף בין ${applyAction.guestAName} (${applyAction.tableAName}) ל${applyAction.guestBName} (${applyAction.tableBName})?`;
     }
 
     if (!confirm(confirmMsg)) return;
@@ -170,6 +187,15 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         return Object.assign({}, e, { seating: s });
       });
       showToast(applyAction.guestName + " הועבר ל" + applyAction.toTableName + " ✓");
+    } else if (applyAction.type === "swapGuests") {
+      patchEvent(e => {
+        const s = Object.assign({}, e.seating, {
+          [applyAction.guestAId]: applyAction.tableBId,
+          [applyAction.guestBId]: applyAction.tableAId,
+        });
+        return Object.assign({}, e, { seating: s });
+      });
+      showToast(applyAction.guestAName + " ו" + applyAction.guestBName + " הוחלפו ✓");
     }
   };
 
@@ -566,11 +592,24 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                               <DraggableGuestRow key={g.id} guestId={g.id} className={styles.tGuestRow}>
                                 <SideDot side={g.side} />
                                 <div className={base.gInfo} style={{ flex: 1 }}>
-                                  <span className={base.gName}>{g.name}</span>
+                                  <span className={base.gName}>
+                                    {g.name}
+                                    {isGuestLocked(g.id) && (
+                                      <span className={styles.tGuestLockedBadge} title="אורח נעול — לא יוצע להזזה">🔒</span>
+                                    )}
+                                  </span>
                                   <span className={base.gMeta}>
                                     {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
                                   </span>
                                 </div>
+                                <button
+                                  className={[styles.tGuestLockBtn, isGuestLocked(g.id) ? styles.tGuestLockBtnActive : ""].filter(Boolean).join(" ")}
+                                  onPointerDown={e => e.stopPropagation()}
+                                  onClick={e => { e.stopPropagation(); toggleGuestLock(g.id); }}
+                                  title={isGuestLocked(g.id) ? "בטל נעילה — האורח יוכל לקבל הצעות" : "נעל אורח — לא יוצע להזזה על-ידי העוזר החכם"}
+                                >
+                                  {isGuestLocked(g.id) ? "🔒" : "🔓"}
+                                </button>
                                 <button
                                   className={styles.tGuestRemoveBtn}
                                   onPointerDown={e => e.stopPropagation()}

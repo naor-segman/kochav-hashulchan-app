@@ -595,6 +595,41 @@
   background: var(--red-bg);
 }
 
+/* ─── Per-guest lock button ──────────────────────────────────────────────── */
+.tGuestLockBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0 3px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+  opacity: 0;
+  transition: opacity 0.12s, border-color 0.12s;
+}
+
+.tGuestRow:hover .tGuestLockBtn {
+  opacity: 0.5;
+}
+
+.tGuestLockBtn:hover {
+  opacity: 1 !important;
+  border-color: var(--warn-border);
+}
+
+.tGuestLockBtnActive {
+  opacity: 1 !important;
+}
+
+.tGuestLockedBadge {
+  font-size: 10px;
+  margin-inline-start: 4px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
 /* ─── Per-guest quick-remove button ─────────────────────────────────────── */
 .tGuestRemoveBtn {
   background: none;
