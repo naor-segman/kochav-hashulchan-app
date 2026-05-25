@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { EVENT_TYPES } from "../data/constants.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Divider from "../components/ui/Divider.jsx";
@@ -20,15 +20,29 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   });
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [errors, setErrors] = useState({});
+  const nameRef = useRef(null);
 
   const set = (k, v) => {
     setForm(p => Object.assign({}, p, { [k]: v }));
     setDirty(true);
     setSaved(false);
+    if (errors[k]) setErrors(p => { const n = { ...p }; delete n[k]; return n; });
+  };
+
+  const validate = () => {
+    const errs = {};
+    if (!form.name.trim()) errs.name = "יש להזין שם לאירוע";
+    setErrors(errs);
+    if (errs.name) {
+      showToast("יש להזין שם לאירוע", "err");
+      nameRef.current?.focus();
+    }
+    return Object.keys(errs).length === 0;
   };
 
   const save = () => {
-    if (!form.name.trim()) { showToast("יש להזין שם לאירוע", "err"); return; }
+    if (!validate()) return;
     patchEvent(form);
     setDirty(false);
     setSaved(true);
@@ -36,12 +50,13 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   };
 
   const goNext = () => {
-    if (dirty && form.name.trim()) patchEvent(form);
+    if (!validate()) return;
+    if (dirty) patchEvent(form);
     go("tables");
   };
 
   const saveAndNext = () => {
-    if (!form.name.trim()) { showToast("יש להזין שם לאירוע", "err"); return; }
+    if (!validate()) return;
     if (dirty) patchEvent(form);
     setDirty(false);
     setSaved(true);
@@ -57,7 +72,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         title={isNew ? "אירוע חדש" : "פרטי האירוע"}
         icon="✦"
         sub={isNew
-          ? "התחל בהזנת שם האירוע — זהו השדה היחיד הנדרש. שאר הפרטים אפשר להשלים בכל עת."
+          ? "הזן שם לאירוע — שדה חובה לפני המשך. שאר הפרטים אפשר להשלים בכל עת."
           : "עדכן את פרטי האירוע. תוכל לשנות הכל בכל שלב."
         }
       />
@@ -81,18 +96,20 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
 
       <div className={[base.card, dirty ? base.cardDirty : ""].filter(Boolean).join(" ")}>
         <SectionLabel>פרטי האירוע</SectionLabel>
-        <p className={styles.requiredNote}>* שדה חובה</p>
+        <p className={styles.requiredNote}>* שדה חובה — נדרש לפני המעבר לשלב הבא</p>
 
         <div className={base.grid2}>
           <Field label="שם האירוע" required hint="ישמש לזיהוי לאורך כל המערכת">
             <input
-              className={base.input}
+              ref={nameRef}
+              className={[base.input, errors.name ? base.inputError : ""].filter(Boolean).join(" ")}
               value={form.name}
               placeholder="לדוגמה: חתונת טל ונועה"
               autoFocus={isNew}
               onChange={e => set("name", e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") save(); }}
             />
+            {errors.name && <span className={styles.fieldError}>{errors.name}</span>}
           </Field>
           <Field label="סוג האירוע">
             <select className={base.select} value={form.type} onChange={e => set("type", e.target.value)}>

@@ -37,3 +37,10 @@
   font-size: 12px;
   color: var(--green);
 }
+
+.fieldError {
+  font-size: 12px;
+  color: var(--red);
+  margin-top: 2px;
+  line-height: 1.4;
+}

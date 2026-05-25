@@ -78,6 +78,18 @@
   border-color: var(--border2);
 }
 
+/* Validation error state — compound selector beats .input alone */
+.input.inputError,
+.input.inputError:hover:not(:focus) {
+  border-color: var(--red);
+  background: var(--red-bg);
+}
+
+.input.inputError:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-border);
+}
+
 .select {
   width: 100%;
   max-width: 100%;
