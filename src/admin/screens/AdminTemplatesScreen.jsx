@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
+import { invalidateTemplateCache } from "../../utils/templateHelpers.js";
 import styles from "./AdminTemplatesScreen.module.css";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -271,6 +272,7 @@ export default function AdminTemplatesScreen() {
       return;
     }
 
+    invalidateTemplateCache();
     handleClose();
     loadTemplates();
   };
@@ -283,6 +285,7 @@ export default function AdminTemplatesScreen() {
       .eq("id", template.id);
     setToggling(null);
     if (!err) {
+      invalidateTemplateCache();
       // Optimistic update to avoid full reload flash
       setTemplates((prev) =>
         (prev || []).map((t) =>

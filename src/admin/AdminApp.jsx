@@ -16,12 +16,16 @@ import AdminActivityScreen       from "./screens/AdminActivityScreen.jsx";
 // Never shares state, hooks, or layout with the customer app.
 //
 // Route map:
-//   /admin/login      — public, redirects to dashboard if already authed
-//   /admin/dashboard  — protected by AdminGuard
-//   /admin/*          — catch-all redirects to dashboard (guard handles unauthed)
-//
-// TODO(admin-phase2): add /admin/users, /admin/events routes here.
-// TODO(admin-phase3): add /admin/templates, /admin/subscriptions routes here.
+//   /admin/login              — public, redirects to dashboard if already authed
+//   /admin/dashboard          — protected by AdminGuard
+//   /admin/users              — protected
+//   /admin/events             — protected
+//   /admin/events/:eventId    — protected
+//   /admin/templates          — protected
+//   /admin/subscriptions      — protected
+//   /admin/activity           — protected
+//   /admin/settings           — protected
+//   /admin/*                  — catch-all redirects to dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AdminApp() {

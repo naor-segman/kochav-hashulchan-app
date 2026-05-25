@@ -45,6 +45,10 @@ export function normalizeEvent(ev) {
     // Set by cloudSync.createCloudEvent() after first successful upload.
     // Preserved here so it survives localStorage ↔ normalizeEvent round-trips.
     cloudId:     ev.cloudId                    ?? null,
+    // Locking — guests/tables excluded from smart-assistant suggestions.
+    // Must be preserved here so locks survive page reload (localStorage round-trip).
+    lockedGuests: Array.isArray(ev.lockedGuests) ? ev.lockedGuests : [],
+    lockedTables: Array.isArray(ev.lockedTables) ? ev.lockedTables : [],
   };
 }
 

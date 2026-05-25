@@ -225,39 +225,8 @@ export const STRIPE_EVENTS = {
   INVOICE_PAYMENT_SUCCEEDED: "invoice.payment_succeeded",
 };
 
-// ── Webhook handler skeleton (for Edge Function reference) ───────────────────
+// ── Webhook implementation ────────────────────────────────────────────────────
 //
-// Paste this into supabase/functions/stripe-webhook/index.ts as a starting point.
-// Replace TODO comments with real implementation.
-//
-// import Stripe from "https://esm.sh/stripe@14";
-// import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-//
-// const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { apiVersion: "2024-06-20" });
-// const supabase = createClient(
-//   Deno.env.get("SUPABASE_URL")!,
-//   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,   // ← service role bypasses RLS
-// );
-//
-// Deno.serve(async (req) => {
-//   const sig    = req.headers.get("stripe-signature")!;
-//   const body   = await req.text();
-//   let event: Stripe.Event;
-//   try {
-//     event = stripe.webhooks.constructEvent(body, sig, Deno.env.get("STRIPE_WEBHOOK_SECRET")!);
-//   } catch (err) {
-//     return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
-//   }
-//
-//   switch (event.type) {
-//     case "checkout.session.completed":       // TODO: upsert subscription
-//     case "customer.subscription.updated":    // TODO: update plan/status
-//     case "customer.subscription.deleted":    // TODO: mark cancelled
-//     case "invoice.payment_failed":           // TODO: set payment_past_due
-//     case "invoice.payment_succeeded":        // TODO: clear payment_past_due
-//     default:
-//       break;                                 // ignore unhandled events
-//   }
-//
-//   return new Response(JSON.stringify({ received: true }), { status: 200 });
-// });
+// The live webhook handler is in supabase/functions/stripe-webhook/index.ts.
+// It handles all five events listed in STRIPE_EVENTS above.
+// Deploy with: supabase functions deploy stripe-webhook
