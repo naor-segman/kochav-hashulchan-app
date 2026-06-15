@@ -31,9 +31,10 @@ export async function exportToExcel(ev, sideLabel, violations) {
   ]);
 
   ev.tables.forEach(t => {
-    const tGuests  = ev.guests.filter(g => ev.seating[g.id] === t.id);
-    const typeHe   = TABLE_TYPE_HE[t.type] || t.type;
-    const occupied = tGuests.length + " / " + t.capacity;
+    const tGuests      = ev.guests.filter(g => ev.seating[g.id] === t.id);
+    const typeHe       = TABLE_TYPE_HE[t.type] || t.type;
+    const seatedSeats  = tGuests.reduce((s, g) => s + (g.count != null ? g.count : 1), 0);
+    const occupied     = seatedSeats + " / " + t.capacity;
 
     if (tGuests.length === 0) {
       rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", ""]);

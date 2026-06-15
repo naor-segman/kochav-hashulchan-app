@@ -151,8 +151,8 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
       const remaining = Math.max(0, maxGuests - ev.guests.length);
       showToast(
         remaining === 0
-          ? `הגעת למגבלת ${maxGuests} האורחים בתוכנית הנוכחית — שדרג להוספת אורחים נוספים`
-          : `ניתן להוסיף עוד ${remaining} אורחים בלבד בתוכנית הנוכחית (${ev.guests.length}/${maxGuests})`,
+          ? `הגעת למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרג להוספת אורחים נוספים`
+          : `ניתן להוסיף עוד ${remaining} רשומות בלבד בתוכנית הנוכחית (${ev.guests.length}/${maxGuests})`,
         "err"
       );
       return;
@@ -320,7 +320,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
           {cl.newGuests.length > 0 && (
             <div>
               <div className={styles.importSectionHead} style={{ color: "var(--green)" }}>
-                ✓ אורחים חדשים — {cl.newGuests.length}
+                ✓ רשומות חדשות — {cl.newGuests.length}
               </div>
               <GuestMiniTable rows={cl.newGuests} />
             </div>
@@ -564,7 +564,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       {/* ── Guest limit upgrade tip ── */}
       {maxGuests !== Infinity && ev.guests.length >= maxGuests && (
         <p className={styles.upgradeTip}>
-          🔒 הגעת למגבלת {maxGuests} האורחים בתוכנית הנוכחית —{" "}
+          🔒 הגעת למגבלת {maxGuests} הרשומות בתוכנית הנוכחית —{" "}
           <a href="/account" className={styles.upgradeTipLink}>שדרג את התוכנית</a>{" "}
           להוספת אורחים נוספים.
         </p>
@@ -597,7 +597,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             <input className={base.input} value={form.phone} placeholder="050-0000000"
               onChange={e => setF("phone", e.target.value)} />
           </Field>
-          <Field label="מס׳ מוזמנים" hint="כמה מקומות תופסת הרשומה הזו">
+          <Field label="כמות מקומות" hint="כמה מקומות תופסת הרשומה הזו">
             <input className={base.input} type="number" min="1" max="50" value={form.count || 1}
               onChange={e => setF("count", Math.max(1, parseInt(e.target.value) || 1))} />
           </Field>
@@ -716,7 +716,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               </button>
             </>
           ) : (
-            <span className={base.filterCount}>{ev.guests.length} אורחים</span>
+            <span className={base.filterCount}>{ev.guests.length} רשומות</span>
           )}
         </div>
       )}

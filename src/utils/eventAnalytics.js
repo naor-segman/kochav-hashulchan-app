@@ -35,7 +35,7 @@ export function eventHealth(ev) {
     indicators.push({ key: "not_seated", label: "הושבה לא בוצעה",  severity: "warn" });
     needsAttention = true;
   } else if (unassigned > 0) {
-    indicators.push({ key: "unassigned", label: unassigned + " ממתינים", severity: "warn" });
+    indicators.push({ key: "unassigned", label: unassigned + " מקומות ממתינים", severity: "warn" });
     needsAttention = true;
   }
   if (viols > 0) {
@@ -96,7 +96,7 @@ export function summaryMessages(stats) {
   }
   const unassigned = stats.totalGuests - stats.seatedGuests;
   if (unassigned > 0) {
-    msgs.push({ text: "נשארו " + unassigned + " אורחים ללא שולחן", severity: "warn" });
+    msgs.push({ text: "נשארו " + unassigned + " מקומות ללא שיבוץ", severity: "warn" });
   }
   return msgs;
 }

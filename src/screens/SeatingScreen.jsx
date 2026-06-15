@@ -114,21 +114,21 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     const placed = Object.keys(newSeating).length;
     const missed = ev.guests.length - placed;
     if (missed > 0)
-      showToast("שובצו " + placed + " אורחים. " + missed + " לא נכנסו — הוסף מקומות נוספים", "err");
+      showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסף מקומות נוספים", "err");
     else
-      showToast("כל " + placed + " האורחים שובצו ✓");
+      showToast("כל " + placed + " הרשומות שובצו ✓");
     setExpandedTable(null);
   };
 
   const clearAll = () => {
     if (!confirm(
       "לנקות את כל ההושבה?\n\n" +
-      "כל " + nAssigned + " האורחים השובצים יחזרו לרשימת הממתינים.\n" +
+      "כל " + nAssigned + " הרשומות השובצות יחזרו לרשימת הממתינים.\n" +
       "ניתן לשחזר בלחיצה על \"↩ בטל\" — אך לא לאחר יציאה מהמסך."
     )) return;
     pushHistory();
     patchEvent(e => Object.assign({}, e, { seating: {} }));
-    showToast("ההושבה נוקתה — " + nAssigned + " אורחים ממתינים לשיבוץ");
+    showToast("ההושבה נוקתה — " + nAssigned + " רשומות ממתינות לשיבוץ");
     setExpandedTable(null);
   };
 
@@ -216,7 +216,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       return Object.assign({}, e, { seating: s });
     });
     const t = ev.tables.find(t => t.id === tableId);
-    showToast((t?.name || "השולחן") + " פונה — " + guests.length + " אורחים חזרו לממתינים");
+    showToast((t?.name || "השולחן") + " פונה — " + guests.length + " רשומות חזרו לממתינים");
   };
 
   const handleDragStart  = ({ active }) => setActiveId(active.id);
@@ -297,7 +297,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
               </div>
               <div className={styles.runCardStats}>
-                {nAssignedSeats} / {totalSeats} מקומות שובצו · {nAssigned}/{ev.guests.length} רשומות · {totalCap} כסאות באולם
+                {nAssignedSeats} / {totalSeats} מקומות שובצו · {nAssigned}/{ev.guests.length} רשומות · {totalCap} קיבולת האולם
               </div>
             </div>
             <div className={styles.runCardActions}>
@@ -363,7 +363,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               <div>
                 <div className={styles.successTitle}>הושבה מלאה וללא הפרות 🎉</div>
                 <div className={styles.successSub}>
-                  כל {ev.guests.length} האורחים שובצו בהצלחה ל{ev.tables.length} שולחנות.
+                  כל {ev.guests.length} הרשומות שובצו בהצלחה ל{ev.tables.length} שולחנות.
                 </div>
               </div>
             </div>
@@ -421,7 +421,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   <div className={styles.unassignedHeader}>
                     <span className={styles.unassignedTitle}>⏳ ממתינים לשיבוץ</span>
                     {unassigned.length > 0 && (
-                      <span className={styles.unassignedCount}>{unassigned.length} אורחים</span>
+                      <span className={styles.unassignedCount}>{unassigned.length} רשומות</span>
                     )}
                   </div>
 
@@ -707,7 +707,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             </p>
           )}
           <p className={styles.pvStats}>
-            {nAssigned}/{ev.guests.length} אורחים שובצו ({nAssignedSeats}/{totalSeats} מקומות) · {ev.tables.length} שולחנות · {totalCap} כסאות באולם
+            {nAssigned}/{ev.guests.length} רשומות שובצו ({nAssignedSeats}/{totalSeats} מקומות) · {ev.tables.length} שולחנות · {totalCap} קיבולת האולם
           </p>
           <div className={styles.pvModeLabel}>
             {printMode === "compact" ? "גרסת צוות האולם — שמות בלבד" : "סידור הושבה מלא"}

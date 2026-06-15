@@ -17,8 +17,9 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   const [editId, setEditId]     = useState(null);
   const [editVals, setEditVals] = useState({});
 
-  const totalCap = ev.tables.reduce((s, t) => s + t.capacity, 0);
-  const gap      = totalCap - ev.guests.length;
+  const totalCap       = ev.tables.reduce((s, t) => s + t.capacity, 0);
+  const totalGuestSeats = ev.guests.reduce((s, g) => s + (g.count || 1), 0);
+  const gap            = totalCap - totalGuestSeats;
   const batchCnt    = Math.max(1, parseInt(batch.count)    || 0);
   const batchCap    = Math.max(1, parseInt(batch.capacity) || 0);
   const batchTotal  = batchCnt * batchCap;
@@ -64,10 +65,12 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   const delTable = id => {
     const t     = ev.tables.find(t => t.id === id);
     const tName = t ? t.name : "";
-    const cnt   = ev.guests.filter(g => ev.seating[g.id] === id).length;
+    const cnt   = ev.guests
+      .filter(g => ev.seating[g.id] === id)
+      .reduce((s, g) => s + (g.count || 1), 0);
     const msg   = cnt > 0
       ? "למחוק את השולחן \"" + tName + "\"?\n\n" +
-        cnt + " אורחים שובצו לשולחן זה — הם יחזרו לרשימת הממתינים.\n\nפעולה זו אינה ניתנת לביטול."
+        cnt + " מקומות שובצו לשולחן זה — הרשומות יחזרו לרשימת הממתינים.\n\nפעולה זו אינה ניתנת לביטול."
       : "למחוק את השולחן \"" + tName + "\"?\n\nהשולחן ריק. פעולה זו אינה ניתנת לביטול.";
     if (!confirm(msg)) return;
     patchEvent(e => Object.assign({}, e, {
@@ -96,13 +99,13 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
         <span className={styles.stepText}>הגדירו כמה שולחנות יש באולם ומה הקיבולת שלהם. לאחר מכן המשיכו לרשימת האורחים. כל שינוי נשמר אוטומטית.</span>
       </div>
 
-      {gap < 0 && ev.guests.length > 0 && (
+      {gap < 0 && totalGuestSeats > 0 && (
         <Banner variant="warn">
-          חסרים {Math.abs(gap)} מקומות — יש יותר אורחים ממקומות פנויים.
+          חסרים {Math.abs(gap)} מקומות — יש יותר מקומות לאורחים ({totalGuestSeats}) ממקומות פנויים ({totalCap}).
         </Banner>
       )}
-      {gap > 0 && ev.tables.length > 0 && ev.guests.length > 0 && (
-        <Banner variant="ok">{gap} מקומות פנויים מעבר למספר האורחים.</Banner>
+      {gap > 0 && ev.tables.length > 0 && totalGuestSeats > 0 && (
+        <Banner variant="ok">{gap} מקומות פנויים מעבר לכמות מקומות האורחים ({totalGuestSeats}).</Banner>
       )}
 
       <div className={base.card}>
@@ -155,17 +158,17 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       {ev.tables.length > 0 && (
         <div className={base.card}>
           <SectionLabel>השולחנות שלי ({ev.tables.length})</SectionLabel>
-          {totalCap > 0 && ev.guests.length === 0 && (
+          {totalCap > 0 && totalGuestSeats === 0 && (
             <p className={styles.capStat}>קיבולת כוללת: {totalCap} מקומות</p>
           )}
-          {totalCap > 0 && ev.guests.length > 0 && gap < 0 && (
+          {totalCap > 0 && totalGuestSeats > 0 && gap < 0 && (
             <p className={styles.capStatWarn}>
-              חסרים {Math.abs(gap)} מקומות — {ev.guests.length} אורחים, {totalCap} מקומות בלבד
+              חסרים {Math.abs(gap)} מקומות — {totalGuestSeats} מקומות לאורחים, {totalCap} מקומות זמינים בלבד
             </p>
           )}
-          {totalCap > 0 && ev.guests.length > 0 && gap >= 0 && (
+          {totalCap > 0 && totalGuestSeats > 0 && gap >= 0 && (
             <p className={styles.capStatOk}>
-              קיבולת מספיקה — {ev.guests.length} אורחים, {gap} מקומות פנויים מתוך {totalCap}
+              קיבולת מספיקה — {totalGuestSeats} מקומות לאורחים, {gap} פנויים מתוך {totalCap}
             </p>
           )}
           <div className={base.tableGrid}>
@@ -177,7 +180,9 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
               <span />
             </div>
             {ev.tables.map(t => {
-              const seated = ev.guests.filter(g => ev.seating[g.id] === t.id).length;
+              const seated = ev.guests
+                .filter(g => ev.seating[g.id] === t.id)
+                .reduce((s, g) => s + (g.count || 1), 0);
               const isEdit = editId === t.id;
               const isOver = seated > t.capacity;
               const pct    = t.capacity > 0 ? seated / t.capacity : 0;

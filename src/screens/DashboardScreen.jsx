@@ -130,7 +130,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
           </div>
           <div className={styles.statTile}>
             <span className={styles.statValue}>{stats.totalGuests}</span>
-            <span className={styles.statLabel}>אורחים</span>
+            <span className={styles.statLabel}>מקומות</span>
           </div>
           <div className={styles.statTile}>
             <span className={[styles.statValue, stats.seatedPct === 100 ? styles.statValueGreen : ""].filter(Boolean).join(" ")}>
@@ -193,7 +193,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
                         onClick={() => {
                           const details = [];
                           if (ev.tables.length > 0) details.push(ev.tables.length + " שולחנות");
-                          if (ev.guests.length > 0) details.push(ev.guests.length + " אורחים");
+                          if (ev.guests.length > 0) details.push(ev.guests.length + " רשומות");
                           const dataNote = details.length > 0
                             ? "\n\nיימחקו: " + details.join(" ו-") + " וכל ההושבה."
                             : "";
@@ -223,7 +223,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
                     <div className={styles.eventChips}>
                       {ev.tables.length > 0 && <Chip icon="⬡" label={ev.tables.length + " שולחנות"} />}
                       {cap > 0 && <Chip icon="💺" label={cap + " מקומות"} />}
-                      {ev.guests.length > 0 && <Chip icon="👥" label={ev.guests.length + " אורחים"} />}
+                      {ev.guests.length > 0 && <Chip icon="👥" label={ev.guests.length + " רשומות"} />}
                     </div>
                   )}
 
