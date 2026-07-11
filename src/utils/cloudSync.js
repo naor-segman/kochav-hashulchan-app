@@ -97,32 +97,6 @@ export function mapCloudEventToLocalEvent(cloudRow) {
   };
 }
 
-// ── Conflict helpers ──────────────────────────────────────────────────────────
-
-/**
- * True when the local copy is newer than the cloud copy.
- * Uses updatedAt (unix ms) as the primary signal and version as a tiebreaker.
- * Pass the result of mapCloudEventToLocalEvent() as `cloudLocal`.
- */
-export function isLocalNewer(localEvent, cloudLocal) {
-  if (localEvent.updatedAt !== cloudLocal.updatedAt) {
-    return localEvent.updatedAt > cloudLocal.updatedAt;
-  }
-  return (localEvent.version ?? 1) > (cloudLocal.version ?? 1);
-}
-
-/**
- * True when the local event is already in sync with the cloud row.
- * Compares version + updatedAt; avoids a full deep-equal on large events.
- */
-export function isSynced(localEvent, cloudLocal) {
-  return (
-    localEvent.cloudId  === cloudLocal.cloudId &&
-    localEvent.version  === cloudLocal.version &&
-    localEvent.updatedAt === cloudLocal.updatedAt
-  );
-}
-
 // ── Cloud CRUD ────────────────────────────────────────────────────────────────
 //
 // All functions are no-ops (return null / []) when Supabase is not configured.

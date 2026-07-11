@@ -1,61 +1,29 @@
 /* Design tokens – single source of truth */
 :root {
-  /* === Brand palette === */
-  --color-gold-50:  #fdf8ec;
-  --color-gold-100: #f9edcc;
-  --color-gold-200: #f2d87a;
-  --color-gold-300: #e9c03a;
-  --color-gold-400: #d4a82a;
-  --color-gold-500: #b8911f;
-  --color-gold-600: #9a7718;
-
-  --color-navy-900: #0f1b2d;
-  --color-navy-800: #162035;
-  --color-navy-700: #1e2d47;
-  --color-navy-600: #2a3e5e;
-
-  --color-neutral-50:  #fafafa;
-  --color-neutral-100: #f5f5f5;
-  --color-neutral-200: #e5e5e5;
-  --color-neutral-300: #d4d4d4;
-  --color-neutral-500: #737373;
-  --color-neutral-700: #404040;
-  --color-neutral-900: #171717;
-
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error:   #ef4444;
-
-  /* === Semantic aliases === */
-  --color-brand-primary:   var(--color-gold-300);
-  --color-brand-secondary: var(--color-navy-800);
-  --color-surface:         #ffffff;
-  --color-surface-alt:     var(--color-neutral-50);
-  --color-text-primary:    var(--color-neutral-900);
-  --color-text-secondary:  var(--color-neutral-500);
-  --color-border:          var(--color-neutral-200);
-
-  /* === Typography === */
-  --font-family-base: 'Heebo', sans-serif;
-  --font-size-xs:   0.75rem;   /* 12px */
-  --font-size-sm:   0.875rem;  /* 14px */
-  --font-size-base: 1rem;      /* 16px */
-  --font-size-lg:   1.125rem;  /* 18px */
-  --font-size-xl:   1.25rem;   /* 20px */
-  --font-size-2xl:  1.5rem;    /* 24px */
-  --font-size-3xl:  1.875rem;  /* 30px */
-  --font-size-4xl:  2.25rem;   /* 36px */
-  --font-weight-light:    300;
-  --font-weight-regular:  400;
-  --font-weight-medium:   500;
-  --font-weight-semibold: 600;
-  --font-weight-bold:     700;
-  --font-weight-extrabold:800;
+  /* ─────────────────────────────────────────────────────────────
+     Typography scale — used by reset.css (base styles) and utilities.css
+     ───────────────────────────────────────────────────────────── */
+  --font-size-xs:   0.75rem;
+  --font-size-sm:   0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg:   1.125rem;
+  --font-size-xl:   1.25rem;
+  --font-size-2xl:  1.5rem;
+  --font-size-3xl:  1.875rem;
+  --font-size-4xl:  2.25rem;
+  --font-weight-light:     300;
+  --font-weight-regular:   400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+  --font-weight-extrabold: 800;
   --line-height-tight:  1.25;
   --line-height-normal: 1.5;
   --line-height-loose:  1.75;
 
-  /* === Spacing scale (4px base) === */
+  /* ─────────────────────────────────────────────────────────────
+     Spacing scale — used by utilities.css
+     ───────────────────────────────────────────────────────────── */
   --space-1:  0.25rem;
   --space-2:  0.5rem;
   --space-3:  0.75rem;
@@ -69,40 +37,18 @@
   --space-20: 5rem;
   --space-24: 6rem;
 
-  /* === Border radius === */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
-  --radius-full: 9999px;
-
-  /* === Shadows === */
-  --shadow-sm:  0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md:  0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg:  0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-  --shadow-xl:  0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.05);
-
-  /* === Transitions === */
-  --transition-fast:   150ms ease;
-  --transition-normal: 250ms ease;
-  --transition-slow:   400ms ease;
-
-  /* === Breakpoints (for reference in JS) === */
-  --breakpoint-sm: 640px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
-
-  /* === Layout === */
-  --container-max: 1200px;
+  /* Container — used by utilities.css .container */
+  --container-max:     1200px;
   --container-padding: var(--space-4);
-  --header-height: 64px;
+
+  /* Radius — subset actually used in components */
+  --radius-sm:   0.25rem;  /* ConstraintsScreen autocomplete */
+  --radius-full: 9999px;   /* Shell nav badges */
 
   /* ─────────────────────────────────────────────────────────────
-     V1 semantic variables — exact values from V1 design system.
-     These power all migrated V1 screens and components.
-     Do not rename or remove during V1 migration phases.
+     V1 semantic variables — active design system.
+     All screens and components use exclusively these variables.
+     Do not rename or remove.
      ───────────────────────────────────────────────────────────── */
 
   /* Surfaces */
@@ -147,11 +93,4 @@
   --radius-lg:    16px;
   --shadow:       0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
   --shadow-md:    0 4px 14px rgba(0,0,0,.10);
-}
-
-@media (min-width: 768px) {
-  :root {
-    --container-padding: var(--space-8);
-    --header-height: 72px;
-  }
 }
