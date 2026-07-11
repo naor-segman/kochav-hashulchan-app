@@ -180,12 +180,12 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       c.type !== formType &&
       ((c.guestA === formA && c.guestB === formB) || (c.guestA === formB && c.guestB === formA))
     );
-    if (contra) showToast("⚠ קיים אילוץ הפוך לאותה זוג — האילוץ החדש נוסף בכל זאת", "warn");
     patchEvent(e => Object.assign({}, e, {
       constraints: e.constraints.concat([{ id: uid(), type: formType, guestA: formA, guestB: formB }])
     }));
     setFormA(""); setFormB("");
-    showToast("האילוץ נוסף ✓");
+    if (contra) showToast("⚠ קיים אילוץ הפוך לאותה זוג — האילוץ החדש נוסף בכל זאת", "warn");
+    else        showToast("האילוץ נוסף ✓");
   };
 
   const delConstraint = (id, nameA, nameB, type) => {

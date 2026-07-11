@@ -452,6 +452,10 @@
   flex-shrink: 0;
 }
 
+.successText {
+  flex: 1;
+}
+
 .successTitle {
   font-weight: 800;
   font-size: 16px;
@@ -462,6 +466,22 @@
 .successSub {
   font-size: 13px;
   color: var(--text2);
+}
+
+.successExportBtn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.successExportBtn:hover {
+  opacity: 0.88;
 }
 
 /* ─── Drag and drop ─────────────────────────────────────────────────────── */

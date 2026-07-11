@@ -10,8 +10,6 @@ import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalys
 import { exportToExcel } from "../utils/exportHelpers.js";
 import { getSideLabel, getSideLabels } from "../utils/eventHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
-import { usePlan } from "../hooks/usePlan.js";
-import { canUseAdvancedExports, canUseAI } from "../utils/featureGates.js";
 import Banner from "../components/feedback/Banner.jsx";
 import CapBar from "../components/ui/CapBar.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -45,8 +43,6 @@ function DraggableGuestRow({ guestId, className, children }) {
 const MAX_UNDO = 20;
 
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  const { plan } = usePlan();
-
   const [expandedTable, setExpandedTable]   = useState(null);
   const [activeId, setActiveId]             = useState(null);
   const [seatingHistory, setSeatingHistory] = useState([]);
@@ -345,27 +341,22 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             </div>
           </div>
 
-          {/* Soft upgrade tips — shown only when relevant (has data) and plan lacks the feature */}
-          {!canUseAdvancedExports(plan).allowed && (ev.guests.length > 0 || ev.tables.length > 0) && (
-            <p className={styles.upgradeTip}>
-              💡 {canUseAdvancedExports(plan).upgradeNote}
-            </p>
-          )}
-          {!canUseAI(plan).allowed && nAssigned > 0 && (
-            <p className={styles.upgradeTip}>
-              🤖 {canUseAI(plan).upgradeNote}
-            </p>
-          )}
-
           {allSeated && noProblems && (
             <div className={styles.successCard}>
               <div className={styles.successIconWrap}>✓</div>
-              <div>
+              <div className={styles.successText}>
                 <div className={styles.successTitle}>הושבה מלאה וללא הפרות 🎉</div>
                 <div className={styles.successSub}>
                   כל {ev.guests.length} הרשומות שובצו בהצלחה ל{ev.tables.length} שולחנות.
                 </div>
               </div>
+              <button
+                className={styles.successExportBtn}
+                onClick={() => exportToExcel(ev, sideLabel, violations)}
+                title="ייצוא לקובץ אקסל"
+              >
+                📊 ייצוא לאקסל
+              </button>
             </div>
           )}
 

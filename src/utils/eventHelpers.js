@@ -124,6 +124,7 @@ export function duplicateEvent(ev) {
     guests,
     constraints,
     seating:     {},
+    cloudId:     null,
     createdAt:   now,
     updatedAt:   now,
     version:     1,
