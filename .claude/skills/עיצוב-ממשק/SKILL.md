@@ -1,5 +1,5 @@
 ---
-name: ui-ux-pro-max
+name: עיצוב-ממשק
 description: Design intelligence skill for building beautiful UIs. Use when the user asks to build a UI, landing page, dashboard, or any frontend interface. Provides searchable database of UI styles, color palettes, font pairings, chart types, and UX guidelines with AI-powered design recommendations. Supports React, Next.js, Vue, Svelte, SwiftUI, React Native, Flutter, and Tailwind.
 ---
 
