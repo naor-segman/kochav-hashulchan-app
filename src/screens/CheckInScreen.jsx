@@ -1,15 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getSideLabel } from "../utils/eventHelpers.js";
+import { uid } from "../utils/uid.js";
 import styles from "./CheckInScreen.module.css";
 
 export default function CheckInScreen({ events, patchEventById }) {
   const { eventId } = useParams();
   const navigate    = useNavigate();
   const ev          = events.find(e => e.id === eventId);
-  const [search, setSearch]     = useState("");
+  const [search, setSearch]         = useState("");
   const [lastChecked, setLastChecked] = useState(null);
+  const [walkInOpen, setWalkInOpen] = useState(false);
+  const [walkInName, setWalkInName] = useState("");
+  const [walkInCount, setWalkInCount] = useState(1);
+  const [walkInSide, setWalkInSide] = useState("bride");
   const searchRef = useRef(null);
+  const walkInRef = useRef(null);
 
   useEffect(() => {
     searchRef.current?.focus();
@@ -31,6 +37,29 @@ export default function CheckInScreen({ events, patchEventById }) {
       ),
     }));
     if (!guest?.arrived) setLastChecked(guestId);
+  };
+
+  const addWalkIn = () => {
+    const name = walkInName.trim();
+    if (!name) return;
+    const newGuest = {
+      id: uid(), name,
+      count: walkInCount || 1,
+      side: walkInSide,
+      group: "הגיע ביום האירוע",
+      rsvp: "confirmed",
+      phone: "",
+      notes: "",
+      meal: "regular",
+      arrived: true,
+    };
+    patchEvent(e => ({ ...e, guests: [...e.guests, newGuest] }));
+    setLastChecked(newGuest.id);
+    setWalkInOpen(false);
+    setWalkInName("");
+    setWalkInCount(1);
+    setSearch("");
+    setTimeout(() => searchRef.current?.focus(), 50);
   };
 
   const setGift = (guestId, amount) => {
@@ -67,9 +96,12 @@ export default function CheckInScreen({ events, patchEventById }) {
       {/* ── Top bar ── */}
       <div className={styles.topbar}>
         <button className={styles.backBtn} onClick={() => navigate(`/events/${eventId}/seating`)}>
-          ← חזור להושבה
+          ← חזור
         </button>
         <div className={styles.eventName}>{ev.name || "אירוע"}</div>
+        <button className={styles.walkInTopBtn} onClick={() => { setWalkInName(""); setWalkInOpen(true); }}>
+          ➕ אורח חדש
+        </button>
         <div className={styles.topStats}>
           <span className={styles.arrivedCount}>{nArrived}/{active.length}</span>
           {totalGifts > 0 && (
@@ -121,12 +153,65 @@ export default function CheckInScreen({ events, patchEventById }) {
         );
       })()}
 
+      {/* ── Walk-in modal ── */}
+      {walkInOpen && (
+        <div className={styles.walkInOverlay} onClick={e => { if (e.target === e.currentTarget) setWalkInOpen(false); }}>
+          <div className={styles.walkInPanel}>
+            <div className={styles.walkInTitle}>הוסף אורח שהגיע ביום האירוע</div>
+            <input
+              ref={walkInRef}
+              className={styles.walkInInput}
+              value={walkInName}
+              onChange={e => setWalkInName(e.target.value)}
+              placeholder="שם מלא..."
+              onKeyDown={e => { if (e.key === "Enter") addWalkIn(); }}
+              autoFocus
+            />
+            <div className={styles.walkInRow}>
+              <label className={styles.walkInLabel}>מספר מקומות:</label>
+              <input
+                className={styles.walkInCountInput}
+                type="number"
+                min="1"
+                max="20"
+                value={walkInCount}
+                onChange={e => setWalkInCount(Math.max(1, parseInt(e.target.value) || 1))}
+              />
+            </div>
+            <div className={styles.walkInRow}>
+              <label className={styles.walkInLabel}>צד:</label>
+              <div className={styles.walkInSideBtns}>
+                <button
+                  className={[styles.walkInSideBtn, walkInSide === "bride" ? styles.walkInSideBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setWalkInSide("bride")}
+                >{sideLabel("bride")}</button>
+                <button
+                  className={[styles.walkInSideBtn, walkInSide === "groom" ? styles.walkInSideBtnActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setWalkInSide("groom")}
+                >{sideLabel("groom")}</button>
+              </div>
+            </div>
+            <div className={styles.walkInActions}>
+              <button className={styles.walkInSaveBtn} onClick={addWalkIn} disabled={!walkInName.trim()}>
+                הוסף וסמן כהגיע/ה
+              </button>
+              <button className={styles.walkInCancelBtn} onClick={() => setWalkInOpen(false)}>
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Results ── */}
       {searchTrim.length >= 1 && results.length === 0 && (
         <div className={styles.noResult}>
           <div className={styles.noResultIcon}>🔍</div>
-          <div className={styles.noResultText}>לא נמצא אורח עם שם "{searchTrim}"</div>
+          <div className={styles.noResultText}>לא נמצא אורח עם שם &ldquo;{searchTrim}&rdquo;</div>
           <div className={styles.noResultSub}>בדוק את האיות או חפש לפי מספר טלפון</div>
+          <button className={styles.walkInTriggerBtn} onClick={() => { setWalkInName(searchTrim); setWalkInOpen(true); }}>
+            הוסף כאורח שהגיע ביום האירוע
+          </button>
         </div>
       )}
 
