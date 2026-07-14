@@ -579,6 +579,16 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     return true;
   });
 
+  const bulkSetRsvp = (rsvpValue) => {
+    const ids = new Set(visible.map(g => g.id));
+    patchEvent(e => ({
+      ...e,
+      guests: e.guests.map(g => ids.has(g.id) ? { ...g, rsvp: rsvpValue } : g),
+    }));
+    const label = RSVP_OPTIONS.find(o => o.value === rsvpValue)?.label || rsvpValue;
+    showToast(`${ids.size} אורחים עודכנו ל"${label}" ✓`);
+  };
+
   const groups     = Array.from(new Set(ev.guests.map(g => g.group))).sort();
   const nBride     = ev.guests.filter(g => g.side === "bride").length;
   const nGroom     = ev.guests.filter(g => g.side === "groom").length;
@@ -859,6 +869,22 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           ) : (
             <span className={base.filterCount}>{ev.guests.length} רשומות</span>
           )}
+        </div>
+      )}
+
+      {isFiltered && visible.length > 0 && (
+        <div className={styles.bulkBar}>
+          <span className={styles.bulkLabel}>עדכן {visible.length} מסוננים:</span>
+          {RSVP_OPTIONS.map(o => (
+            <button
+              key={o.value}
+              className={styles.bulkRsvpBtn}
+              style={o.style}
+              onClick={() => bulkSetRsvp(o.value)}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
       )}
 
