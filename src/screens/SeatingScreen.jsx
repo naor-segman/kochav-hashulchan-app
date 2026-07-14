@@ -100,6 +100,23 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     return "https://wa.me/" + intl;
   };
 
+  const buildWhatsAppTableMsg = (g) => {
+    const tid   = ev.seating[g.id];
+    if (!tid) return null;
+    const table = ev.tables.find(t => t.id === tid);
+    if (!table) return null;
+    const eventName = ev.name || "האירוע";
+    const msg = `שלום ${g.name} 👋\n\nב${eventName} תשבו ב*שולחן ${table.name}*.\n\nנשמח לראותכם! 🎉`;
+    const digits = (g.phone || "").replace(/\D/g, "");
+    if (!digits) return null;
+    const intl = digits.startsWith("0") ? "972" + digits.slice(1) : digits;
+    return "https://wa.me/" + intl + "?text=" + encodeURIComponent(msg);
+  };
+
+  const whatsappBulkCount = activeGuests.filter(g =>
+    ev.seating[g.id] && g.phone && g.phone.replace(/\D/g, "")
+  ).length;
+
   const daySearchTrim = daySearch.trim();
   const daySearchResults = daySearchTrim.length >= 2
     ? ev.guests.filter(g =>
@@ -418,6 +435,44 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               >
                 📊 ייצוא לאקסל
               </button>
+            </div>
+          )}
+
+          {whatsappBulkCount > 0 && nAssigned > 0 && (
+            <div className={styles.waNotifyCard}>
+              <div className={styles.waNotifyIcon}>💬</div>
+              <div className={styles.waNotifyText}>
+                <div className={styles.waNotifyTitle}>שלח מספר שולחן בווטסאפ</div>
+                <div className={styles.waNotifySub}>
+                  {whatsappBulkCount} אורחים משובצים עם מספר טלפון — שלח להם הודעה אישית עם מספר השולחן.
+                </div>
+              </div>
+              <div className={styles.waNotifyList}>
+                {activeGuests
+                  .filter(g => ev.seating[g.id] && g.phone && g.phone.replace(/\D/g, ""))
+                  .sort((a, b) => {
+                    const ta = ev.tables.find(t => t.id === ev.seating[a.id])?.name || "";
+                    const tb = ev.tables.find(t => t.id === ev.seating[b.id])?.name || "";
+                    return ta.localeCompare(tb, "he") || a.name.localeCompare(b.name, "he");
+                  })
+                  .slice(0, 5)
+                  .map(g => {
+                    const url = buildWhatsAppTableMsg(g);
+                    const table = ev.tables.find(t => t.id === ev.seating[g.id]);
+                    return url ? (
+                      <a key={g.id} href={url} target="_blank" rel="noreferrer" className={styles.waNotifyItem}>
+                        <SideDot side={g.side} />
+                        <span className={styles.waNotifyName}>{g.name}</span>
+                        <span className={styles.waNotifyTable}>שולחן {table?.name}</span>
+                        <span className={styles.waNotifyArrow}>📤</span>
+                      </a>
+                    ) : null;
+                  })
+                }
+                {whatsappBulkCount > 5 && (
+                  <div className={styles.waNotifyMore}>ועוד {whatsappBulkCount - 5} אורחים נוספים — ייצא לאקסל לרשימה מלאה</div>
+                )}
+              </div>
             </div>
           )}
 
