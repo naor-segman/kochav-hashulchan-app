@@ -22,10 +22,11 @@ export default function CheckInScreen({ events, patchEventById }) {
     searchRef.current?.focus();
   }, []);
 
-  if (!ev) {
-    navigate("/", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (!ev) navigate("/", { replace: true });
+  }, [ev, navigate]);
+
+  if (!ev) return null;
 
   const patchEvent = (patch) => patchEventById(eventId, patch);
 

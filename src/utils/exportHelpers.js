@@ -177,17 +177,18 @@ export async function exportToExcel(ev, sideLabel, violations) {
   // ── Sheet 6: Gift reconciliation report ─────────────────────────────────
   {
     const tableMap   = Object.fromEntries(ev.tables.map(t => [t.id, t]));
+    const giftAmt    = g => Number(g.giftAmount) || 0;
     const giftGuests = ev.guests
-      .filter(g => g.arrived || g.giftAmount > 0)
+      .filter(g => g.arrived || giftAmt(g) > 0)
       .sort((a, b) => {
-        if (b.giftAmount !== a.giftAmount) return (b.giftAmount || 0) - (a.giftAmount || 0);
+        if (giftAmt(b) !== giftAmt(a)) return giftAmt(b) - giftAmt(a);
         return a.name.localeCompare(b.name, "he");
       });
 
     if (giftGuests.length > 0 || ev.guests.some(g => g.arrived)) {
       const allArrived   = ev.guests.filter(g => g.arrived);
-      const giftTotal    = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
-      const giftCount    = ev.guests.filter(g => g.giftAmount > 0).length;
+      const giftTotal    = ev.guests.reduce((s, g) => s + giftAmt(g), 0);
+      const giftCount    = ev.guests.filter(g => giftAmt(g) > 0).length;
       const avgGift      = giftCount > 0 ? Math.round(giftTotal / giftCount) : 0;
 
       const gRows = [
@@ -201,14 +202,14 @@ export async function exportToExcel(ev, sideLabel, violations) {
             const aArrived = a.arrived ? 0 : 1;
             const bArrived = b.arrived ? 0 : 1;
             if (aArrived !== bArrived) return aArrived - bArrived;
-            return (b.giftAmount || 0) - (a.giftAmount || 0);
+            return giftAmt(b) - giftAmt(a);
           })
           .map(g => [
             g.name || "",
             tableMap[ev.seating[g.id]]?.name || "",
             g.count != null ? g.count : 1,
             g.arrived ? "✓" : "",
-            g.giftAmount > 0 ? g.giftAmount : "",
+            giftAmt(g) > 0 ? giftAmt(g) : "",
           ]),
         [],
         ["", "", "", "סה״כ", giftTotal],

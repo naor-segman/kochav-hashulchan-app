@@ -299,7 +299,7 @@
   background: var(--accent-bg);
   padding: 4px 12px;
   border-radius: var(--radius);
-  border: 1px solid #e5c99a;
+  border: 1px solid var(--accent-border);
 }
 
 .noTable {

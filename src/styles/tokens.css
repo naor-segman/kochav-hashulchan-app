@@ -65,9 +65,10 @@
   --muted:        #97938D;
 
   /* Brand accent (warm amber) */
-  --accent:       #BE7A38;
-  --accent-bg:    #FBF2E7;
-  --accent-light: #FEF8F0;
+  --accent:        #BE7A38;
+  --accent-bg:     #FBF2E7;
+  --accent-light:  #FEF8F0;
+  --accent-border: #E5C99A;
 
   /* Side colors */
   --bride:        #AD6A9C;
