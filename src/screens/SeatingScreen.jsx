@@ -48,6 +48,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const [seatingHistory, setSeatingHistory] = useState([]);
   const [printMode, setPrintMode]           = useState("full");
   const [daySearch, setDaySearch]           = useState("");
+  const [checkInMode, setCheckInMode]       = useState(false);
+  const [checkInSearch, setCheckInSearch]   = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -382,6 +384,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 📋 לצוות האולם
               </button>
               <button
+                className={[base.btnSm, checkInMode ? base.btnPrimary : base.btnGhost].join(" ")}
+                onClick={() => { setCheckInMode(m => !m); setCheckInSearch(""); }}
+                title="מצב צ׳ק אין — רשימה אלפביתית לאנשי הכניסה"
+              >
+                ✅ {checkInMode ? "סגור צ׳ק אין" : "צ׳ק אין"}
+              </button>
+              <button
                 className={[base.btnSm, styles.xlsBtn].join(" ")}
                 onClick={() => exportToExcel(ev, sideLabel, violations)}
                 title="ייצוא לקובץ אקסל"
@@ -498,6 +507,62 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   })}
                 </div>
               )}
+            </div>
+          )}
+
+          {checkInMode && (
+            <div className={styles.checkInPanel}>
+              <div className={styles.checkInHeader}>
+                <span className={styles.checkInTitle}>✅ מצב צ׳ק אין</span>
+                <span className={styles.checkInProgress}>
+                  {nArrived} / {ev.guests.filter(g => g.rsvp !== "declined").length} הגיעו
+                </span>
+              </div>
+              <div className={styles.checkInProgressBar}>
+                <div
+                  className={styles.checkInProgressFill}
+                  style={{ width: ev.guests.filter(g => g.rsvp !== "declined").length > 0
+                    ? (nArrived / ev.guests.filter(g => g.rsvp !== "declined").length * 100) + "%"
+                    : "0%" }}
+                />
+              </div>
+              <input
+                className={base.input}
+                value={checkInSearch}
+                onChange={e => setCheckInSearch(e.target.value)}
+                placeholder="חפש אורח לצ׳ק אין..."
+                autoFocus
+              />
+              <div className={styles.checkInList}>
+                {ev.guests
+                  .filter(g => g.rsvp !== "declined")
+                  .filter(g => !checkInSearch || g.name.includes(checkInSearch) || (g.phone && g.phone.includes(checkInSearch)))
+                  .sort((a, b) => a.name.localeCompare(b.name, "he"))
+                  .map(g => {
+                    const tid   = ev.seating[g.id];
+                    const table = tid ? ev.tables.find(t => t.id === tid) : null;
+                    return (
+                      <div key={g.id} className={[styles.checkInRow, g.arrived ? styles.checkInRowDone : ""].filter(Boolean).join(" ")}>
+                        <div className={styles.checkInRowInfo}>
+                          <SideDot side={g.side} />
+                          <span className={styles.checkInName}>{g.name}</span>
+                          {table
+                            ? <span className={styles.checkInTable}>שולחן {table.name}</span>
+                            : <span className={styles.checkInUnseated}>לא שובץ</span>
+                          }
+                          {g.count > 1 && <span className={styles.checkInCount}>×{g.count}</span>}
+                        </div>
+                        <button
+                          className={[styles.checkInBtn, g.arrived ? styles.checkInBtnDone : ""].filter(Boolean).join(" ")}
+                          onClick={() => toggleGuestArrived(g.id)}
+                        >
+                          {g.arrived ? "✓ הגיע/ה" : "צ׳ק אין"}
+                        </button>
+                      </div>
+                    );
+                  })
+                }
+              </div>
             </div>
           )}
 
