@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { GROUP_OPTIONS } from "../data/constants.js";
+import { GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
 import { getSideLabels, getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
@@ -81,7 +81,15 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
         : rawRsvp.includes("סירב") || rawRsvp === "declined" ? "declined"
         : "pending";
 
-      const guest = { id: uid(), name, count, phone, notes, group, side, rsvp };
+      const rawMeal = String(r["מנה"] || "").trim();
+      const meal = rawMeal === "כשר מהדרין" ? "kosher"
+        : rawMeal === "טבעוני" ? "vegan"
+        : rawMeal === "צמחוני" ? "vegetarian"
+        : rawMeal === "ילדים" ? "child"
+        : rawMeal === "לא אוכל" ? "none"
+        : MEAL_DEFAULT;
+
+      const guest = { id: uid(), name, count, phone, notes, group, side, rsvp, meal };
 
       const nameMatch  = existingNames.has(name.toLowerCase());
       const phoneMatch = phone && existingPhones.has(phone);
@@ -438,7 +446,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
 }
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending" };
+  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT };
   const [form, setForm]           = useState(EF);
   const [editId, setEditId]       = useState(null);
   const [showBulk, setShowBulk]   = useState(false);
@@ -535,6 +543,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     { value: "declined",  label: "סירב/ה",  style: { color: "var(--red)" } },
   ];
   const rsvpLabel = v => RSVP_OPTIONS.find(o => o.value === v)?.label || "ממתין";
+  const mealLabel = v => MEAL_OPTIONS.find(o => o.value === v)?.label || "";
+  const mealEmoji = v => MEAL_OPTIONS.find(o => o.value === v)?.emoji || "";
 
   const visible = ev.guests.filter(g => {
     if (filter.side !== "all" && g.side !== filter.side) return false;
@@ -548,9 +558,13 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const nBride     = ev.guests.filter(g => g.side === "bride").length;
   const nGroom     = ev.guests.filter(g => g.side === "groom").length;
   const nSeated    = ev.guests.filter(g => ev.seating[g.id]).length;
-  const nUnseated  = ev.guests.length - nSeated;
   const nConfirmed = ev.guests.filter(g => g.rsvp === "confirmed").length;
   const nDeclined  = ev.guests.filter(g => g.rsvp === "declined").length;
+  const mealCounts = MEAL_OPTIONS.reduce((acc, o) => {
+    const n = ev.guests.filter(g => (g.meal || MEAL_DEFAULT) === o.value).length;
+    if (n > 0) acc.push({ ...o, n });
+    return acc;
+  }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < ev.guests.length);
   const tableOf    = id => { const tid = ev.seating[id]; return tid ? ev.tables.find(t => t.id === tid) : null; };
   const isFiltered = filter.side !== "all" || filter.group !== "all" || filter.rsvp !== "all" || filter.search;
 
@@ -568,6 +582,9 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             {nConfirmed > 0 && <StatPill n={nConfirmed} label="אישרו" color="var(--green)" />}
             {nDeclined > 0 && <StatPill n={nDeclined} label="סירבו" color="var(--red)" />}
             {nSeated > 0 && <StatPill n={nSeated} label="משובצים" color="var(--green)" />}
+            {mealCounts.map(m => (
+              <StatPill key={m.value} n={m.n} label={m.emoji + " " + m.label} />
+            ))}
           </div>
         }
       />
@@ -668,15 +685,20 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               {RSVP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
-          <Field label="הערות">
-            <input
-              className={base.input}
-              value={form.notes}
-              placeholder="הגבלות תזונה, מוגבלות, הערה כלשהי..."
-              onChange={e => setF("notes", e.target.value)}
-            />
+          <Field label="מנה">
+            <select className={base.select} value={form.meal || MEAL_DEFAULT} onChange={e => setF("meal", e.target.value)}>
+              {MEAL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.emoji} {o.label}</option>)}
+            </select>
           </Field>
         </div>
+        <Field label="הערות">
+          <input
+            className={base.input}
+            value={form.notes}
+            placeholder="מוגבלות, הערה כלשהי..."
+            onChange={e => setF("notes", e.target.value)}
+          />
+        </Field>
 
         <div className={base.formActions}>
           <button
@@ -765,6 +787,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   <span className={base.gMeta}>
                     {sideLabel(g.side)} · {g.group}
                     {(g.count || 1) > 1 ? " · " + (g.count) + " מקומות" : ""}
+                    {g.meal && g.meal !== MEAL_DEFAULT ? " · " + mealEmoji(g.meal) + " " + mealLabel(g.meal) : ""}
                     {g.phone ? " · " + g.phone : ""}
                     {g.notes ? " · " + g.notes : ""}
                   </span>
@@ -782,7 +805,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => {
-                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending" });
+                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending", meal: g.meal || MEAL_DEFAULT });
                       setEditId(g.id);
                       window.scrollTo(0, 0);
                     }}>

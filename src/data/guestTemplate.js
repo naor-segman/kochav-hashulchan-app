@@ -1,8 +1,8 @@
-import { GROUP_OPTIONS } from "./constants.js";
+import { GROUP_OPTIONS, MEAL_OPTIONS } from "./constants.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
 
-const COLUMNS   = ["שם מלא", "טלפון", "כמות", "צד", "קבוצה", "RSVP", "הערות"];
-const COL_WIDTHS = [{ wch: 26 }, { wch: 16 }, { wch: 9 }, { wch: 18 }, { wch: 22 }, { wch: 10 }, { wch: 30 }];
+const COLUMNS   = ["שם מלא", "טלפון", "כמות", "צד", "קבוצה", "RSVP", "מנה", "הערות"];
+const COL_WIDTHS = [{ wch: 26 }, { wch: 16 }, { wch: 9 }, { wch: 18 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 30 }];
 
 /**
  * Build and download a .xlsx guest-list template.
@@ -20,8 +20,8 @@ export async function downloadGuestTemplate(filename, ev) {
 
   // ── Sheet 1 — "אורחים": the data sheet users fill in ────────────────────
   const exampleRows = [
-    ["דוגמה: ישראל ישראלי", "050-0000000", 1, sideLabels.groom, "משפחה קרובה", "אישר/ה", ""],
-    ["דוגמה: שרה כהן",      "052-0000000", 2, sideLabels.bride, "חברים",        "ממתין",  "מגיעה עם מלווה"],
+    ["דוגמה: ישראל ישראלי", "050-0000000", 1, sideLabels.groom, "משפחה קרובה", "אישר/ה", "רגיל",       ""],
+    ["דוגמה: שרה כהן",      "052-0000000", 2, sideLabels.bride, "חברים",        "ממתין",  "כשר מהדרין", "מגיעה עם מלווה"],
   ];
 
   const wsData = XLSX.utils.aoa_to_sheet([COLUMNS, ...exampleRows]);
@@ -79,8 +79,14 @@ export async function downloadGuestTemplate(filename, ev) {
       "אישר/ה | סירב/ה | ממתין (ברירת מחדל)",
     ],
     [
+      "מנה",
+      "סוג מנה למטבח. ברירת מחדל: רגיל.",
+      "לא",
+      MEAL_OPTIONS.map(o => o.label).join(" | "),
+    ],
+    [
       "הערות",
-      "הגבלות תזונה, נגישות, מלווה, הערה כלשהי. לא ישפיע על ההושבה.",
+      "נגישות, מלווה, הערה כלשהי. לא ישפיע על ההושבה.",
       "לא",
       "כל טקסט חופשי",
     ],

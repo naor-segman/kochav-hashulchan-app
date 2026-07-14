@@ -1,6 +1,8 @@
 const TABLE_TYPE_HE = { regular: "רגיל", vip: "VIP", head: "שולחן ראשי" };
 const RSVP_HE = { confirmed: "אישר/ה", declined: "סירב/ה", pending: "ממתין" };
 const rsvpHe = r => RSVP_HE[r] || "ממתין";
+const MEAL_HE = { regular: "רגיל", kosher: "כשר מהדרין", vegan: "טבעוני", vegetarian: "צמחוני", child: "ילדים", none: "לא אוכל" };
+const mealHe = m => MEAL_HE[m] || "רגיל";
 
 function fmtDate(dateStr) {
   if (!dateStr) return "";
@@ -29,7 +31,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
 
   rows.push([
     "שולחן", "קיבולת", "סוג שולחן", "שובצו/קיבולת",
-    "שם אורח", "צד", "קבוצה", "כמות", "RSVP", "טלפון", "הערות",
+    "שם אורח", "צד", "קבוצה", "כמות", "RSVP", "מנה", "טלפון", "הערות",
   ]);
 
   ev.tables.forEach(t => {
@@ -39,7 +41,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const occupied     = seatedSeats + " / " + t.capacity;
 
     if (tGuests.length === 0) {
-      rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", "", ""]);
+      rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", "", "", ""]);
     } else {
       tGuests.forEach((g, i) => {
         rows.push([
@@ -52,6 +54,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
           g.group || "",
           g.count != null ? g.count : 1,
           rsvpHe(g.rsvp),
+          mealHe(g.meal),
           g.phone || "",
           g.notes || "",
         ]);
@@ -63,9 +66,9 @@ export async function exportToExcel(ev, sideLabel, violations) {
 
   const ws1 = XLSX.utils.aoa_to_sheet(rows);
   ws1["!cols"] = [
-    { wch: 16 }, { wch: 8 },  { wch: 12 }, { wch: 14 },
+    { wch: 16 }, { wch: 8  }, { wch: 12 }, { wch: 14 },
     { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 6  },
-    { wch: 10 }, { wch: 14 }, { wch: 22 },
+    { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 },
   ];
   XLSX.utils.book_append_sheet(wb, ws1, "סידור הושבה");
 
@@ -75,13 +78,14 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const uRows = [
       ["ממתינים לשיבוץ — " + (ev.name || "")],
       [],
-      ["שם אורח", "צד", "קבוצה", "כמות", "RSVP", "טלפון", "הערות"],
+      ["שם אורח", "צד", "קבוצה", "כמות", "RSVP", "מנה", "טלפון", "הערות"],
       ...unassigned.map(g => [
         g.name  || "",
         sideLabel(g.side),
         g.group || "",
         g.count != null ? g.count : 1,
         rsvpHe(g.rsvp),
+        mealHe(g.meal),
         g.phone || "",
         g.notes || "",
       ]),
@@ -89,7 +93,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const ws2 = XLSX.utils.aoa_to_sheet(uRows);
     ws2["!cols"] = [
       { wch: 20 }, { wch: 14 }, { wch: 14 },
-      { wch: 6  }, { wch: 10 }, { wch: 14 }, { wch: 22 },
+      { wch: 6  }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 },
     ];
     XLSX.utils.book_append_sheet(wb, ws2, "ממתינים לשיבוץ");
   }
@@ -103,12 +107,13 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const aRows = [
       ["רשימת כניסה לפי א׳-ב׳ — " + (ev.name || "")],
       [],
-      ["שם אורח", "שולחן", "צד", "כמות", "טלפון", "הערות"],
+      ["שם אורח", "שולחן", "צד", "כמות", "מנה", "טלפון", "הערות"],
       ...assigned.map(g => [
         g.name || "",
         tableMap[ev.seating[g.id]]?.name || "",
         sideLabel(g.side),
         g.count != null ? g.count : 1,
+        mealHe(g.meal),
         g.phone || "",
         g.notes || "",
       ]),
@@ -116,7 +121,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const ws3e = XLSX.utils.aoa_to_sheet(aRows);
     ws3e["!cols"] = [
       { wch: 22 }, { wch: 16 }, { wch: 14 },
-      { wch: 6  }, { wch: 14 }, { wch: 22 },
+      { wch: 6  }, { wch: 14 }, { wch: 14 }, { wch: 22 },
     ];
     XLSX.utils.book_append_sheet(wb, ws3e, "רשימת כניסה א׳-ב׳");
   }

@@ -18,3 +18,14 @@ export const TABLE_TYPES = [
 ];
 
 export const STORAGE_KEY = "kochav_hashulchan_v1";
+
+export const MEAL_OPTIONS = [
+  { value: "regular",    label: "רגיל",          emoji: "🍽️" },
+  { value: "kosher",     label: "כשר מהדרין",    emoji: "✡️" },
+  { value: "vegan",      label: "טבעוני",         emoji: "🌱" },
+  { value: "vegetarian", label: "צמחוני",         emoji: "🥗" },
+  { value: "child",      label: "ילדים",          emoji: "🧒" },
+  { value: "none",       label: "לא אוכל",        emoji: "❌" },
+];
+
+export const MEAL_DEFAULT = "regular";
