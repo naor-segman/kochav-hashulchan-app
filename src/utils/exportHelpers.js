@@ -174,6 +174,52 @@ export async function exportToExcel(ev, sideLabel, violations) {
     XLSX.utils.book_append_sheet(wb, ws5, "דוח מנות לטבח");
   }
 
+  // ── Sheet 6: Gift reconciliation report ─────────────────────────────────
+  {
+    const tableMap   = Object.fromEntries(ev.tables.map(t => [t.id, t]));
+    const giftGuests = ev.guests
+      .filter(g => g.arrived || g.giftAmount > 0)
+      .sort((a, b) => {
+        if (b.giftAmount !== a.giftAmount) return (b.giftAmount || 0) - (a.giftAmount || 0);
+        return a.name.localeCompare(b.name, "he");
+      });
+
+    if (giftGuests.length > 0 || ev.guests.some(g => g.arrived)) {
+      const allArrived   = ev.guests.filter(g => g.arrived);
+      const giftTotal    = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
+      const giftCount    = ev.guests.filter(g => g.giftAmount > 0).length;
+      const avgGift      = giftCount > 0 ? Math.round(giftTotal / giftCount) : 0;
+
+      const gRows = [
+        ["דוח מתנות — " + (ev.name || "")],
+        [],
+        ["סיכום:", "", "סה״כ הגיעו:", allArrived.length, "סה״כ מתנות:", "₪" + giftTotal.toLocaleString("he-IL"), "ממוצע:", avgGift > 0 ? "₪" + avgGift.toLocaleString("he-IL") : "—"],
+        [],
+        ["שם אורח", "שולחן", "כמות", "הגיע/ה", "סכום מתנה (₪)"],
+        ...ev.guests
+          .sort((a, b) => {
+            const aArrived = a.arrived ? 0 : 1;
+            const bArrived = b.arrived ? 0 : 1;
+            if (aArrived !== bArrived) return aArrived - bArrived;
+            return (b.giftAmount || 0) - (a.giftAmount || 0);
+          })
+          .map(g => [
+            g.name || "",
+            tableMap[ev.seating[g.id]]?.name || "",
+            g.count != null ? g.count : 1,
+            g.arrived ? "✓" : "",
+            g.giftAmount > 0 ? g.giftAmount : "",
+          ]),
+        [],
+        ["", "", "", "סה״כ", giftTotal],
+      ];
+
+      const ws6 = XLSX.utils.aoa_to_sheet(gRows);
+      ws6["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 6 }, { wch: 8 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, ws6, "דוח מתנות");
+    }
+  }
+
   // xlsx 0.18.5: workbook-level RTL is the only reliable way to set sheet direction.
   // ws["!views"] is silently ignored; wb.Workbook.Views survives the write/read cycle.
   wb.Workbook = { Views: [{ RTL: true }] };

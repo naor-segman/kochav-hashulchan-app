@@ -1452,3 +1452,34 @@
   color: var(--muted);
   padding: 4px 10px;
 }
+
+/* ─── Check-in: gift tracking ─────────────────────────────────────────────── */
+.checkInHeaderRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.checkInGiftTotal {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.checkInGiftInput {
+  width: 90px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.checkInGiftInput:focus {
+  outline: none;
+  border-color: var(--green);
+}

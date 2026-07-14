@@ -446,7 +446,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
 }
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT };
+  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "" };
   const [form, setForm]           = useState(EF);
   const [editId, setEditId]       = useState(null);
   const [showBulk, setShowBulk]   = useState(false);
@@ -484,9 +484,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       showToast("יש להזין שם לקבוצה החדשה", "err"); return;
     }
     if (editId) {
+      const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
       patchEvent(e => {
         const updated = e.guests.map(g =>
-          g.id === editId ? Object.assign({}, g, form, { name: form.name.trim(), group }) : g
+          g.id === editId ? Object.assign({}, g, form, { name: form.name.trim(), group, giftAmount }) : g
         );
         const customGroups = newCustom && !e.customGroups?.includes(newCustom)
           ? [...(e.customGroups || []), newCustom]
@@ -501,7 +502,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         showToast(guestGate.reason + " — שדרג להוספת אורחים נוספים", "err");
         return;
       }
-      const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1, group });
+      const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
+      const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1, group, giftAmount });
       patchEvent(e => {
         const customGroups = newCustom && !e.customGroups?.includes(newCustom)
           ? [...(e.customGroups || []), newCustom]
@@ -565,6 +567,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     if (n > 0) acc.push({ ...o, n });
     return acc;
   }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < ev.guests.length);
+  const totalGifts   = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
+  const nGiftsLogged = ev.guests.filter(g => g.giftAmount > 0).length;
   const tableOf    = id => { const tid = ev.seating[id]; return tid ? ev.tables.find(t => t.id === tid) : null; };
   const isFiltered = filter.side !== "all" || filter.group !== "all" || filter.rsvp !== "all" || filter.search;
 
@@ -585,6 +589,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             {mealCounts.map(m => (
               <StatPill key={m.value} n={m.n} label={m.emoji + " " + m.label} />
             ))}
+            {totalGifts > 0 && <StatPill n={"₪" + totalGifts.toLocaleString("he-IL")} label={"מתנות (" + nGiftsLogged + ")"} color="var(--green)" />}
           </div>
         }
       />
@@ -691,14 +696,27 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             </select>
           </Field>
         </div>
-        <Field label="הערות">
-          <input
-            className={base.input}
-            value={form.notes}
-            placeholder="מוגבלות, הערה כלשהי..."
-            onChange={e => setF("notes", e.target.value)}
-          />
-        </Field>
+        <div className={base.grid2}>
+          <Field label="הערות">
+            <input
+              className={base.input}
+              value={form.notes}
+              placeholder="מוגבלות, הערה כלשהי..."
+              onChange={e => setF("notes", e.target.value)}
+            />
+          </Field>
+          <Field label="סכום מתנה (₪)" hint="אופציונלי — לדוח גמ״ח">
+            <input
+              className={base.input}
+              type="number"
+              min="0"
+              step="50"
+              value={form.giftAmount}
+              placeholder="0"
+              onChange={e => setF("giftAmount", e.target.value)}
+            />
+          </Field>
+        </div>
 
         <div className={base.formActions}>
           <button
@@ -790,6 +808,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                     {g.meal && g.meal !== MEAL_DEFAULT ? " · " + mealEmoji(g.meal) + " " + mealLabel(g.meal) : ""}
                     {g.phone ? " · " + g.phone : ""}
                     {g.notes ? " · " + g.notes : ""}
+                    {g.giftAmount > 0 ? " · 💰 ₪" + g.giftAmount.toLocaleString("he-IL") : ""}
                   </span>
                 </div>
                 {(g.rsvp === "confirmed" || g.rsvp === "declined") && (
@@ -805,7 +824,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => {
-                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending", meal: g.meal || MEAL_DEFAULT });
+                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending", meal: g.meal || MEAL_DEFAULT, giftAmount: g.giftAmount || "" });
                       setEditId(g.id);
                       window.scrollTo(0, 0);
                     }}>

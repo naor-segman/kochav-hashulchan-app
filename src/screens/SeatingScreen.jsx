@@ -211,7 +211,16 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     }));
   };
 
-  const nArrived = ev.guests.filter(g => g.arrived).length;
+  const nArrived    = ev.guests.filter(g => g.arrived).length;
+  const totalGifts  = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
+  const nGiftRecorded = ev.guests.filter(g => g.arrived && g.giftAmount != null && g.giftAmount > 0).length;
+
+  const setGuestGift = (guestId, amount) => {
+    patchEvent(e => ({
+      ...e,
+      guests: e.guests.map(g => g.id === guestId ? { ...g, giftAmount: amount } : g),
+    }));
+  };
 
   const toggleTableLock = (tableId) => {
     patchEvent(e => {
@@ -330,6 +339,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
                 {nArrived > 0 && <StatPill n={nArrived} label="הגיעו" color="var(--green)" />}
+                {totalGifts > 0 && <StatPill n={"₪" + totalGifts.toLocaleString("he-IL")} label="מתנות" color="var(--green)" />}
                 <StatPill n={violations.length}   label="הפרות"   color={violations.length > 0 ? "var(--red)" : undefined} />
               </div>
             }
@@ -569,9 +579,16 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             <div className={styles.checkInPanel}>
               <div className={styles.checkInHeader}>
                 <span className={styles.checkInTitle}>✅ מצב צ׳ק אין</span>
-                <span className={styles.checkInProgress}>
-                  {nArrived} / {ev.guests.filter(g => g.rsvp !== "declined").length} הגיעו
-                </span>
+                <div className={styles.checkInHeaderRight}>
+                  <span className={styles.checkInProgress}>
+                    {nArrived} / {ev.guests.filter(g => g.rsvp !== "declined").length} הגיעו
+                  </span>
+                  {totalGifts > 0 && (
+                    <span className={styles.checkInGiftTotal}>
+                      💰 ₪{totalGifts.toLocaleString("he-IL")} — {nGiftRecorded} מתנות
+                    </span>
+                  )}
+                </div>
               </div>
               <div className={styles.checkInProgressBar}>
                 <div
@@ -613,6 +630,18 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                         >
                           {g.arrived ? "✓ הגיע/ה" : "צ׳ק אין"}
                         </button>
+                        {g.arrived && (
+                          <input
+                            className={styles.checkInGiftInput}
+                            type="number"
+                            min="0"
+                            step="50"
+                            placeholder="₪ מתנה"
+                            value={g.giftAmount || ""}
+                            onPointerDown={e => e.stopPropagation()}
+                            onChange={e => setGuestGift(g.id, e.target.value ? Math.max(0, parseInt(e.target.value) || 0) : 0)}
+                          />
+                        )}
                       </div>
                     );
                   })
