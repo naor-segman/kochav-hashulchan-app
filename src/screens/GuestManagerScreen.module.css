@@ -151,3 +151,43 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ── List-add panel ── */
+.listAddPanel {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.listAddTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.listAddHint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.listAddTextarea {
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.8;
+  min-height: 120px;
+}
+
+.listAddRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

@@ -449,7 +449,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "" };
   const [form, setForm]           = useState(EF);
   const [editId, setEditId]       = useState(null);
-  const [showBulk, setShowBulk]   = useState(false);
+  const [showBulk, setShowBulk]     = useState(false);
+  const [showList, setShowList]     = useState(false);
+  const [listText, setListText]     = useState("");
+  const [listSide, setListSide]     = useState("bride");
+  const [listGroup, setListGroup]   = useState("משפחה קרובה");
   const [filter, setFilter]       = useState({ side: "all", group: "all", rsvp: "all", search: "" });
   const [customGroupInput, setCustomGroupInput] = useState("");
   const nameRef                   = useRef(null);
@@ -522,6 +526,25 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     setEditId(null);
     setForm(EF);
     setCustomGroupInput("");
+    setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
+  };
+
+  const addFromList = () => {
+    const names = listText
+      .split(/\n/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+    if (names.length === 0) return;
+    const gate = canAddGuest(plan, ev.guests.length);
+    if (!gate.allowed) { showToast(gate.reason + " — שדרג להוספת אורחים נוספים", "err"); return; }
+    const newGuests = names.map(name => ({
+      id: uid(), name, count: 1, side: listSide, group: listGroup,
+      phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
+    }));
+    patchEvent(e => Object.assign({}, e, { guests: e.guests.concat(newGuests) }));
+    showToast("נוספו " + newGuests.length + " אורחים ✓");
+    setListText("");
+    setShowList(false);
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
 
@@ -731,12 +754,62 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           </button>
           {editId && <button className={base.btnSecondary} onClick={cancelEdit}>ביטול</button>}
           {!editId && (
-            <button className={base.btnSecondary} onClick={() => setShowBulk(p => !p)}>
+            <button className={base.btnSecondary} onClick={() => { setShowList(p => !p); setShowBulk(false); }}>
+              {showList ? "סגור רשימה" : "📝 הוסף לפי רשימה"}
+            </button>
+          )}
+          {!editId && (
+            <button className={base.btnSecondary} onClick={() => { setShowBulk(p => !p); setShowList(false); }}>
               {showBulk ? "סגור ייבוא" : "📥 ייבוא מ-Excel"}
             </button>
           )}
           {!editId && <span className={base.fieldHint}>Enter = הוסף מהיר</span>}
         </div>
+
+        {showList && !editId && (
+          <div className={styles.listAddPanel}>
+            <div className={styles.listAddTitle}>הוסף אורחים לפי רשימה</div>
+            <p className={styles.listAddHint}>הכנס שם אחד בכל שורה. כל האורחים יקבלו את אותו הצד והקבוצה.</p>
+            <textarea
+              className={[base.input, styles.listAddTextarea].join(" ")}
+              value={listText}
+              onChange={e => setListText(e.target.value)}
+              placeholder={"דוד לוי\nשרה כהן\nמשפחת אברהם\n..."}
+              rows={6}
+              autoFocus
+            />
+            <div className={styles.listAddRow}>
+              <div className={base.seg}>
+                {["bride", "groom"].map(s => (
+                  <button
+                    key={s}
+                    className={[base.segBtn, listSide === s ? (s === "bride" ? base.segBride : base.segGroom) : ""].filter(Boolean).join(" ")}
+                    onClick={() => setListSide(s)}
+                  >
+                    {sideLabel(s)}
+                  </button>
+                ))}
+              </div>
+              <select
+                className={base.select}
+                value={listGroup}
+                onChange={e => setListGroup(e.target.value)}
+              >
+                {allGroupOptions.filter(g => g !== "אחר").map(g => <option key={g}>{g}</option>)}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className={base.btnPrimary}
+                onClick={addFromList}
+                disabled={!listText.trim()}
+              >
+                + הוסף {listText.trim() ? listText.split("\n").filter(s => s.trim()).length : 0} אורחים
+              </button>
+              <button className={base.btnSecondary} onClick={() => setShowList(false)}>ביטול</button>
+            </div>
+          </div>
+        )}
 
         {showBulk && (
           <ExcelImportFlow
