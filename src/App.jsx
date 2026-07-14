@@ -28,6 +28,7 @@ import SignupScreen       from "./screens/SignupScreen.jsx";
 import AccountScreen      from "./screens/AccountScreen.jsx";
 import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
 import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
+import CheckInScreen      from "./screens/CheckInScreen.jsx";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
 const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
@@ -185,6 +186,11 @@ export default function App() {
             {toast && <Toast msg={toast.msg} variant={toast.variant} />}
           </Shell>
         }
+      />
+      {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}
+      <Route
+        path="/events/:eventId/checkin"
+        element={<CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} />}
       />
       <Route
         path="/events/:eventId/*"

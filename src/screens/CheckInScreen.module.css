@@ -1,0 +1,436 @@
+/* CheckInScreen — full-screen, mobile-optimized event-day check-in */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+}
+
+/* ── Top bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-wrap: wrap;
+}
+
+.backBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text2);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.backBtn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.eventName {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topStats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.arrivedCount {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.giftTotal {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+/* ── Progress bar ── */
+.progressWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.progressBar {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Search ── */
+.searchWrap {
+  position: relative;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 14px 40px 14px 16px;
+  font-size: 18px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.searchInput:focus {
+  border-color: var(--accent);
+}
+
+.searchClear {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  inset-inline-start: 28px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+/* ── Last checked-in highlight ── */
+.lastChecked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 16px 0;
+  padding: 10px 14px;
+  background: var(--green-bg);
+  border: 2px solid var(--green);
+  border-radius: var(--radius-lg);
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lastCheckedIcon {
+  font-size: 22px;
+  color: var(--green);
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.lastCheckedInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lastCheckedName {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lastCheckedTable {
+  font-size: 13px;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.lastCheckedDismiss {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ── No result ── */
+.noResult {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 16px;
+  gap: 8px;
+}
+
+.noResultIcon {
+  font-size: 40px;
+}
+
+.noResultText {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+}
+
+.noResultSub {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── Guest list ── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 8px 16px 24px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 8px;
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.rowArrived {
+  background: var(--green-bg);
+  border-color: var(--green);
+}
+
+.rowLast {
+  box-shadow: 0 0 0 3px var(--green);
+}
+
+.rowMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  flex-wrap: wrap;
+}
+
+.rowLeft {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.guestName {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.guestMeta {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.rowRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tableTag {
+  display: inline-block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  border: 1px solid #e5c99a;
+}
+
+.noTable {
+  font-size: 13px;
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.checkBtn {
+  padding: 10px 20px;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  min-width: 100px;
+  text-align: center;
+}
+
+.checkBtn:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-bg);
+}
+
+.checkBtnDone {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.checkBtnDone:hover {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  opacity: 0.85;
+}
+
+/* ── Gift row ── */
+.giftRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--green) 5%, var(--surface));
+  border-top: 1px solid var(--green-border);
+  flex-wrap: wrap;
+}
+
+.giftLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+.giftInput {
+  flex: 1;
+  min-width: 120px;
+  max-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+
+.giftInput:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+.giftRecorded {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green);
+  white-space: nowrap;
+}
+
+/* ── Empty state ── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 20px;
+  gap: 10px;
+}
+
+.emptyIcon {
+  font-size: 56px;
+}
+
+.emptyTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+}
+
+.emptySub {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 300px;
+}
+
+/* ── Mobile optimizations ── */
+@media (max-width: 480px) {
+  .searchInput {
+    font-size: 16px;
+    padding: 12px 36px 12px 12px;
+  }
+
+  .guestName {
+    font-size: 18px;
+  }
+
+  .checkBtn {
+    font-size: 14px;
+    padding: 10px 14px;
+    min-width: 80px;
+  }
+
+  .tableTag {
+    font-size: 13px;
+  }
+}

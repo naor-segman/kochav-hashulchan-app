@@ -1,4 +1,5 @@
 import { useState, useMemo, Fragment } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   DndContext, DragOverlay,
   useDraggable, useDroppable,
@@ -43,6 +44,7 @@ function DraggableGuestRow({ guestId, className, children }) {
 const MAX_UNDO = 20;
 
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  const navigate = useNavigate();
   const [expandedTable, setExpandedTable]   = useState(null);
   const [activeId, setActiveId]             = useState(null);
   const [seatingHistory, setSeatingHistory] = useState([]);
@@ -416,6 +418,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 title="מצב צ׳ק אין — רשימה אלפביתית לאנשי הכניסה"
               >
                 ✅ {checkInMode ? "סגור צ׳ק אין" : "צ׳ק אין"}
+              </button>
+              <button
+                className={[base.btnSm, base.btnGhost].join(" ")}
+                onClick={() => navigate("/events/" + ev.id + "/checkin")}
+                title="פתח מסך צ׳ק אין מלא — לשימוש על טאבלט בכניסה לאירוע"
+              >
+                📱 מסך כניסה
               </button>
               <button
                 className={[base.btnSm, styles.xlsBtn].join(" ")}
