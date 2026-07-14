@@ -14,6 +14,7 @@ export default function CheckInScreen({ events, patchEventById }) {
   const [walkInName, setWalkInName] = useState("");
   const [walkInCount, setWalkInCount] = useState(1);
   const [walkInSide, setWalkInSide] = useState("bride");
+  const [viewMode, setViewMode]     = useState("name"); // "name" | "table"
   const searchRef = useRef(null);
   const walkInRef = useRef(null);
 
@@ -71,6 +72,15 @@ export default function CheckInScreen({ events, patchEventById }) {
     }));
   };
 
+  const markTableArrived = (tableId, arrived) => {
+    patchEvent(e => ({
+      ...e,
+      guests: e.guests.map(g =>
+        ev.seating[g.id] === tableId ? { ...g, arrived } : g
+      ),
+    }));
+  };
+
   const sideLabel = s => getSideLabel(ev, s);
 
   const active = ev.guests.filter(g => g.rsvp !== "declined");
@@ -118,23 +128,41 @@ export default function CheckInScreen({ events, patchEventById }) {
         <span className={styles.progressLabel}>{pct}% הגיעו</span>
       </div>
 
-      {/* ── Search ── */}
-      <div className={styles.searchWrap}>
-        <input
-          ref={searchRef}
-          className={styles.searchInput}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 חפש שם או טלפון..."
-          inputMode="text"
-          autoComplete="off"
-        />
-        {search && (
-          <button className={styles.searchClear} onClick={() => { setSearch(""); searchRef.current?.focus(); }}>
-            ✕
-          </button>
-        )}
+      {/* ── View mode tabs ── */}
+      <div className={styles.viewTabs}>
+        <button
+          className={[styles.viewTab, viewMode === "name" ? styles.viewTabActive : ""].filter(Boolean).join(" ")}
+          onClick={() => setViewMode("name")}
+        >
+          🔍 לפי שם
+        </button>
+        <button
+          className={[styles.viewTab, viewMode === "table" ? styles.viewTabActive : ""].filter(Boolean).join(" ")}
+          onClick={() => setViewMode("table")}
+        >
+          ⬡ לפי שולחן
+        </button>
       </div>
+
+      {/* ── Search (name mode only) ── */}
+      {viewMode === "name" && (
+        <div className={styles.searchWrap}>
+          <input
+            ref={searchRef}
+            className={styles.searchInput}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="🔍 חפש שם או טלפון..."
+            inputMode="text"
+            autoComplete="off"
+          />
+          {search && (
+            <button className={styles.searchClear} onClick={() => { setSearch(""); searchRef.current?.focus(); }}>
+              ✕
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Last checked-in highlight ── */}
       {lastChecked && !searchTrim && (() => {
@@ -273,8 +301,8 @@ export default function CheckInScreen({ events, patchEventById }) {
         })}
       </div>
 
-      {/* ── Empty state (no search) ── */}
-      {!searchTrim && (
+      {/* ── Empty state (name mode, no search) ── */}
+      {viewMode === "name" && !searchTrim && (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>✅</div>
           <div className={styles.emptyTitle}>מצב צ׳ק אין — {ev.name || "אירוע"}</div>
@@ -283,6 +311,62 @@ export default function CheckInScreen({ events, patchEventById }) {
               ? `${nArrived} אורחים הגיעו עד כה${totalGifts > 0 ? ` · ₪${totalGifts.toLocaleString("he-IL")} במתנות` : ""}`
               : "הקלד שם או מספר טלפון לחיפוש אורח"}
           </div>
+        </div>
+      )}
+
+      {/* ── Table view ── */}
+      {viewMode === "table" && (
+        <div className={styles.tableView}>
+          {ev.tables.length === 0 && (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>⬡</div>
+              <div className={styles.emptyTitle}>לא הוגדרו שולחנות</div>
+            </div>
+          )}
+          {ev.tables.map(t => {
+            const tGuests  = ev.guests.filter(g => ev.seating[g.id] === t.id && g.rsvp !== "declined");
+            const nTabArrived = tGuests.filter(g => g.arrived).length;
+            const allArrived  = tGuests.length > 0 && nTabArrived === tGuests.length;
+            return (
+              <div key={t.id} className={[styles.tableBlock, allArrived ? styles.tableBlockDone : ""].filter(Boolean).join(" ")}>
+                <div className={styles.tableBlockHead}>
+                  <div className={styles.tableBlockName}>
+                    {t.name}
+                    <span className={styles.tableBlockCount}>{nTabArrived}/{tGuests.length}</span>
+                  </div>
+                  <div className={styles.tableBlockActions}>
+                    {!allArrived && tGuests.length > 0 && (
+                      <button className={styles.tableMarkAllBtn} onClick={() => markTableArrived(t.id, true)}>
+                        כולם הגיעו ✓
+                      </button>
+                    )}
+                    {allArrived && (
+                      <button className={styles.tableUnmarkAllBtn} onClick={() => markTableArrived(t.id, false)}>
+                        בטל הכל
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className={styles.tableGuestList}>
+                  {tGuests.length === 0
+                    ? <span className={styles.tableGuestEmpty}>שולחן ריק</span>
+                    : tGuests.map(g => (
+                        <div
+                          key={g.id}
+                          className={[styles.tableGuestRow, g.arrived ? styles.tableGuestRowDone : ""].filter(Boolean).join(" ")}
+                          onClick={() => toggleArrived(g.id)}
+                        >
+                          <span className={styles.tableGuestName}>{g.name}{g.count > 1 ? ` ×${g.count}` : ""}</span>
+                          <span className={[styles.tableGuestStatus, g.arrived ? styles.tableGuestStatusDone : ""].filter(Boolean).join(" ")}>
+                            {g.arrived ? "✓ הגיע/ה" : "טרם הגיע"}
+                          </span>
+                        </div>
+                      ))
+                  }
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

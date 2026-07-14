@@ -598,3 +598,148 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* ── View mode tabs ── */
+.viewTabs {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.viewTab {
+  flex: 1;
+  padding: 10px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.viewTabActive {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Table view ── */
+.tableView {
+  padding: 12px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tableBlock {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.tableBlockDone {
+  background: var(--green-bg);
+  border-color: var(--green);
+}
+
+.tableBlockHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tableBlockDone .tableBlockHead {
+  border-bottom-color: var(--green-border);
+}
+
+.tableBlockName {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tableBlockCount {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.tableBlockActions {
+  display: flex;
+  gap: 8px;
+}
+
+.tableMarkAllBtn {
+  padding: 8px 14px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tableUnmarkAllBtn {
+  padding: 8px 14px;
+  background: none;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tableGuestList {
+  display: flex;
+  flex-direction: column;
+}
+
+.tableGuestEmpty {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tableGuestRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.tableGuestRow:hover {
+  background: var(--accent-bg);
+}
+
+.tableGuestRowDone {
+  background: color-mix(in srgb, var(--green) 8%, var(--surface));
+}
+
+.tableGuestName {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.tableGuestStatus {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.tableGuestStatusDone {
+  color: var(--green);
+}
