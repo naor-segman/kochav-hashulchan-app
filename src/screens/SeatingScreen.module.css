@@ -1093,3 +1093,81 @@
   padding-top: 7px;
   border-top: 1px solid #E2DFD8;
 }
+
+/* Day-of-event search */
+.daySearchCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.daySearchLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.daySearchResults {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.daySearchRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+.daySearchName {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.daySearchTable {
+  color: var(--green);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.daySearchUnseated {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.daySearchWa {
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.daySearchEmpty {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 4px 0;
+}
+
+/* WhatsApp button in seated guest row */
+.tGuestWaBtn {
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+
+.tGuestWaBtn:hover {
+  opacity: 1;
+}

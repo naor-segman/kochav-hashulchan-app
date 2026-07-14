@@ -433,11 +433,11 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
 }
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "" };
+  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending" };
   const [form, setForm]           = useState(EF);
   const [editId, setEditId]       = useState(null);
   const [showBulk, setShowBulk]   = useState(false);
-  const [filter, setFilter]       = useState({ side: "all", group: "all", search: "" });
+  const [filter, setFilter]       = useState({ side: "all", group: "all", rsvp: "all", search: "" });
   const [customGroupInput, setCustomGroupInput] = useState("");
   const nameRef                   = useRef(null);
   const setF = (k, v) => setForm(p => Object.assign({}, p, { [k]: v }));
@@ -524,20 +524,30 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     showToast(name + " הוסר/ה מהרשימה ✓");
   };
 
+  const RSVP_OPTIONS = [
+    { value: "pending",   label: "ממתין",   style: { color: "var(--warn)" } },
+    { value: "confirmed", label: "אישר/ה",  style: { color: "var(--green)" } },
+    { value: "declined",  label: "סירב/ה",  style: { color: "var(--red)" } },
+  ];
+  const rsvpLabel = v => RSVP_OPTIONS.find(o => o.value === v)?.label || "ממתין";
+
   const visible = ev.guests.filter(g => {
     if (filter.side !== "all" && g.side !== filter.side) return false;
     if (filter.group !== "all" && g.group !== filter.group) return false;
+    if (filter.rsvp !== "all" && (g.rsvp || "pending") !== filter.rsvp) return false;
     if (filter.search && !g.name.includes(filter.search)) return false;
     return true;
   });
 
-  const groups    = Array.from(new Set(ev.guests.map(g => g.group))).sort();
-  const nBride    = ev.guests.filter(g => g.side === "bride").length;
-  const nGroom    = ev.guests.filter(g => g.side === "groom").length;
-  const nSeated   = ev.guests.filter(g => ev.seating[g.id]).length;
-  const nUnseated = ev.guests.length - nSeated;
-  const tableOf   = id => { const tid = ev.seating[id]; return tid ? ev.tables.find(t => t.id === tid) : null; };
-  const isFiltered = filter.side !== "all" || filter.group !== "all" || filter.search;
+  const groups     = Array.from(new Set(ev.guests.map(g => g.group))).sort();
+  const nBride     = ev.guests.filter(g => g.side === "bride").length;
+  const nGroom     = ev.guests.filter(g => g.side === "groom").length;
+  const nSeated    = ev.guests.filter(g => ev.seating[g.id]).length;
+  const nUnseated  = ev.guests.length - nSeated;
+  const nConfirmed = ev.guests.filter(g => g.rsvp === "confirmed").length;
+  const nDeclined  = ev.guests.filter(g => g.rsvp === "declined").length;
+  const tableOf    = id => { const tid = ev.seating[id]; return tid ? ev.tables.find(t => t.id === tid) : null; };
+  const isFiltered = filter.side !== "all" || filter.group !== "all" || filter.rsvp !== "all" || filter.search;
 
   return (
     <div className={base.page}>
@@ -550,8 +560,9 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             <StatPill n={ev.guests.length} label="סה״כ" />
             <StatPill n={nBride} label={sideLabel("bride")} color="var(--bride)" />
             <StatPill n={nGroom} label={sideLabel("groom")} color="var(--groom)" />
+            {nConfirmed > 0 && <StatPill n={nConfirmed} label="אישרו" color="var(--green)" />}
+            {nDeclined > 0 && <StatPill n={nDeclined} label="סירבו" color="var(--red)" />}
             {nSeated > 0 && <StatPill n={nSeated} label="משובצים" color="var(--green)" />}
-            {nUnseated > 0 && nSeated > 0 && <StatPill n={nUnseated} label="ממתינים" color="var(--warn)" />}
           </div>
         }
       />
@@ -646,14 +657,21 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           </Field>
         </div>
 
-        <Field label="הערות">
-          <input
-            className={base.input}
-            value={form.notes}
-            placeholder="הגבלות תזונה, מוגבלות, הערה כלשהי..."
-            onChange={e => setF("notes", e.target.value)}
-          />
-        </Field>
+        <div className={base.grid2}>
+          <Field label="סטטוס RSVP">
+            <select className={base.select} value={form.rsvp || "pending"} onChange={e => setF("rsvp", e.target.value)}>
+              {RSVP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
+          <Field label="הערות">
+            <input
+              className={base.input}
+              value={form.notes}
+              placeholder="הגבלות תזונה, מוגבלות, הערה כלשהי..."
+              onChange={e => setF("notes", e.target.value)}
+            />
+          </Field>
+        </div>
 
         <div className={base.formActions}>
           <button
@@ -707,11 +725,16 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             <option value="all">כל הקבוצות</option>
             {groups.map(g => <option key={g}>{g}</option>)}
           </select>
+          <select className={base.select} style={{ minWidth: 120 }} value={filter.rsvp}
+            onChange={e => setFilter(p => Object.assign({}, p, { rsvp: e.target.value }))}>
+            <option value="all">כל הסטטוסים</option>
+            {RSVP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
           {isFiltered ? (
             <>
               <span className={base.filterCount}>מציג {visible.length} מתוך {ev.guests.length}</span>
               <button className={[base.btnSm, base.btnGhost].join(" ")}
-                onClick={() => setFilter({ side: "all", group: "all", search: "" })}>
+                onClick={() => setFilter({ side: "all", group: "all", rsvp: "all", search: "" })}>
                 נקה ✕
               </button>
             </>
@@ -741,6 +764,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                     {g.notes ? " · " + g.notes : ""}
                   </span>
                 </div>
+                {(g.rsvp === "confirmed" || g.rsvp === "declined") && (
+                  <span className={g.rsvp === "confirmed" ? base.tagSeated : base.tagUnseated}
+                    style={g.rsvp === "declined" ? { color: "var(--red)", borderColor: "var(--red)" } : undefined}>
+                    {rsvpLabel(g.rsvp)}
+                  </span>
+                )}
                 {t
                   ? <span className={base.tagSeated}>⬡ {t.name}</span>
                   : <span className={base.tagUnseated}>לא שובץ</span>
@@ -748,7 +777,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => {
-                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "" });
+                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending" });
                       setEditId(g.id);
                       window.scrollTo(0, 0);
                     }}>

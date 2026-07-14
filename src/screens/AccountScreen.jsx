@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
+import { supabase } from "../lib/supabase.js";
 import {
   getPlanLabel, getStatusLabel, getPlanLimits,
   PLAN_META, STATUS_META, PLAN_KEYS,
@@ -64,6 +65,10 @@ export default function AccountScreen({ eventCount = 0 }) {
   } = useSubscription();
   const [signingOut,      setSigningOut]      = useState(false);
   const [checkoutResult,  setCheckoutResult]  = useState(null); // "success" | "cancelled" | null
+  const [pwForm,          setPwForm]          = useState({ current: "", next: "", confirm: "" });
+  const [pwSaving,        setPwSaving]        = useState(false);
+  const [pwError,         setPwError]         = useState("");
+  const [pwDone,          setPwDone]          = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -94,6 +99,22 @@ export default function AccountScreen({ eventCount = 0 }) {
     setSigningOut(true);
     await signOut();
     navigate("/", { replace: true });
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPwError("");
+    if (pwForm.next.length < 6) { setPwError("הסיסמה חייבת להכיל לפחות 6 תווים."); return; }
+    if (pwForm.next !== pwForm.confirm) { setPwError("הסיסמאות אינן תואמות."); return; }
+    setPwSaving(true);
+    const { error } = await supabase.auth.updateUser({ password: pwForm.next });
+    setPwSaving(false);
+    if (error) {
+      setPwError(error.message || "שגיאה בשינוי הסיסמה.");
+    } else {
+      setPwDone(true);
+      setPwForm({ current: "", next: "", confirm: "" });
+    }
   };
 
   if (loading || !user) return null;
@@ -127,6 +148,43 @@ export default function AccountScreen({ eventCount = 0 }) {
             </span>
           </div>
         </section>
+
+        {/* ── Password change ── */}
+        {supabase && (
+          <section className={styles.section}>
+            <h2 className={styles.sectionLabel}>שינוי סיסמה</h2>
+            {pwDone ? (
+              <p className={styles.successMsg}>✓ הסיסמה שונתה בהצלחה.</p>
+            ) : (
+              <form onSubmit={handlePasswordChange} className={styles.pwForm} noValidate>
+                <input
+                  className={styles.input}
+                  type="password"
+                  placeholder="סיסמה חדשה"
+                  value={pwForm.next}
+                  onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))}
+                  dir="ltr"
+                  autoComplete="new-password"
+                  required
+                />
+                <input
+                  className={styles.input}
+                  type="password"
+                  placeholder="אימות סיסמה חדשה"
+                  value={pwForm.confirm}
+                  onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))}
+                  dir="ltr"
+                  autoComplete="new-password"
+                  required
+                />
+                {pwError && <p className={styles.errorMsg}>{pwError}</p>}
+                <button type="submit" className={styles.pwBtn} disabled={pwSaving || !pwForm.next || !pwForm.confirm}>
+                  {pwSaving ? "שומר…" : "שנה סיסמה"}
+                </button>
+              </form>
+            )}
+          </section>
+        )}
 
         {/* ── Subscription info ── */}
         <section className={styles.section}>

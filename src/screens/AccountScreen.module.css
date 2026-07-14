@@ -469,3 +469,56 @@
   .planCardName    { font-size: 11px; }
   .planCardBtn     { font-size: 9px; padding: 5px 2px; }
 }
+
+/* Password change form */
+.pwForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.pwBtn {
+  align-self: flex-start;
+  padding: 8px 18px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pwBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.successMsg {
+  font-size: 13px;
+  color: var(--green);
+  font-weight: 600;
+  margin: 0;
+}
+
+.errorMsg {
+  font-size: 13px;
+  color: var(--red);
+  margin: 0;
+}

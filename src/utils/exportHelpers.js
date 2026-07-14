@@ -90,7 +90,34 @@ export async function exportToExcel(ev, sideLabel, violations) {
     XLSX.utils.book_append_sheet(wb, ws2, "ממתינים לשיבוץ");
   }
 
-  // ── Sheet 3: Violations (only when present) ──────────────────────────
+  // ── Sheet 3: Alphabetical entrance list ─────────────────────────────
+  {
+    const assigned = ev.guests
+      .filter(g => ev.seating[g.id])
+      .sort((a, b) => a.name.localeCompare(b.name, "he"));
+    const tableMap = Object.fromEntries(ev.tables.map(t => [t.id, t]));
+    const aRows = [
+      ["רשימת כניסה לפי א׳-ב׳ — " + (ev.name || "")],
+      [],
+      ["שם אורח", "שולחן", "צד", "כמות", "טלפון", "הערות"],
+      ...assigned.map(g => [
+        g.name || "",
+        tableMap[ev.seating[g.id]]?.name || "",
+        sideLabel(g.side),
+        g.count != null ? g.count : 1,
+        g.phone || "",
+        g.notes || "",
+      ]),
+    ];
+    const ws3e = XLSX.utils.aoa_to_sheet(aRows);
+    ws3e["!cols"] = [
+      { wch: 22 }, { wch: 16 }, { wch: 14 },
+      { wch: 6  }, { wch: 14 }, { wch: 22 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws3e, "רשימת כניסה א׳-ב׳");
+  }
+
+  // ── Sheet 4: Violations (only when present) ──────────────────────────
   if (violations && violations.length > 0) {
     const typeHe = t =>
       t === "capacity" ? "חריגת קיבולת"
@@ -103,9 +130,9 @@ export async function exportToExcel(ev, sideLabel, violations) {
       ["סוג הפרה", "תיאור"],
       ...violations.map(v => [typeHe(v.type), v.text || ""]),
     ];
-    const ws3 = XLSX.utils.aoa_to_sheet(vRows);
-    ws3["!cols"] = [{ wch: 22 }, { wch: 50 }];
-    XLSX.utils.book_append_sheet(wb, ws3, "הפרות אילוצים");
+    const ws4 = XLSX.utils.aoa_to_sheet(vRows);
+    ws4["!cols"] = [{ wch: 22 }, { wch: 50 }];
+    XLSX.utils.book_append_sheet(wb, ws4, "הפרות אילוצים");
   }
 
   // xlsx 0.18.5: workbook-level RTL is the only reliable way to set sheet direction.

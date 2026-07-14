@@ -47,6 +47,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const [activeId, setActiveId]             = useState(null);
   const [seatingHistory, setSeatingHistory] = useState([]);
   const [printMode, setPrintMode]           = useState("full");
+  const [daySearch, setDaySearch]           = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -87,6 +88,20 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const sideLabel   = s => getSideLabel(ev, s);
   const tableGuests = tid => ev.guests.filter(g => ev.seating[g.id] === tid);
+
+  const whatsappUrl = (phone) => {
+    const digits = phone.replace(/\D/g, "");
+    const intl   = digits.startsWith("0") ? "972" + digits.slice(1) : digits;
+    return "https://wa.me/" + intl;
+  };
+
+  const daySearchTrim = daySearch.trim();
+  const daySearchResults = daySearchTrim.length >= 2
+    ? ev.guests.filter(g =>
+        g.name.includes(daySearchTrim) ||
+        (g.phone && g.phone.replace(/\D/g, "").includes(daySearchTrim.replace(/\D/g, "")))
+      )
+    : [];
   const tableSeats  = tid => ev.guests
     .filter(g => ev.seating[g.id] === tid)
     .reduce((s, g) => s + (g.count || 1), 0);
@@ -402,6 +417,50 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             />
           )}
 
+          {nAssigned > 0 && (
+            <div className={styles.daySearchCard}>
+              <div className={styles.daySearchLabel}>🔍 חיפוש אורח — יום האירוע</div>
+              <input
+                className={base.input}
+                value={daySearch}
+                onChange={e => setDaySearch(e.target.value)}
+                placeholder="חפש לפי שם או מספר טלפון..."
+              />
+              {daySearchTrim.length >= 2 && daySearchResults.length === 0 && (
+                <div className={styles.daySearchEmpty}>אורח לא נמצא</div>
+              )}
+              {daySearchResults.length > 0 && (
+                <div className={styles.daySearchResults}>
+                  {daySearchResults.map(g => {
+                    const tid   = ev.seating[g.id];
+                    const table = tid ? ev.tables.find(t => t.id === tid) : null;
+                    return (
+                      <div key={g.id} className={styles.daySearchRow}>
+                        <SideDot side={g.side} />
+                        <span className={styles.daySearchName}>{g.name}</span>
+                        {table
+                          ? <span className={styles.daySearchTable}>שולחן {table.name}</span>
+                          : <span className={styles.daySearchUnseated}>לא שובץ</span>
+                        }
+                        {g.phone && (
+                          <a
+                            href={whatsappUrl(g.phone)}
+                            className={styles.daySearchWa}
+                            target="_blank"
+                            rel="noreferrer"
+                            onPointerDown={e => e.stopPropagation()}
+                          >
+                            📱
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {(unassigned.length > 0 || !!activeId) && (
             <DroppableWrapper id="unassigned">
               {({ ref, isOver: isDragOver }) => (
@@ -599,6 +658,16 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                     {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
                                   </span>
                                 </div>
+                                {g.phone && (
+                                  <a
+                                    href={whatsappUrl(g.phone)}
+                                    className={styles.tGuestWaBtn}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={"WhatsApp: " + g.phone}
+                                    onPointerDown={e => e.stopPropagation()}
+                                  >📱</a>
+                                )}
                                 <button
                                   className={[styles.tGuestLockBtn, isGuestLocked(g.id) ? styles.tGuestLockBtnActive : ""].filter(Boolean).join(" ")}
                                   onPointerDown={e => e.stopPropagation()}
