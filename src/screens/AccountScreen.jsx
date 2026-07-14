@@ -282,7 +282,7 @@ export default function AccountScreen({ eventCount = 0 }) {
                   if (isCurrent || billing.checkoutTarget) return;
                   if (isEnterprise) {
                     window.location.href =
-                      "mailto:naor.segman@gmail.com?subject=Enterprise%20Plan%20Inquiry";
+                      `mailto:${import.meta.env.VITE_SUPPORT_EMAIL || "support@kochav-hashulchan.co.il"}?subject=Enterprise%20Plan%20Inquiry`;
                     return;
                   }
                   billing.startCheckout(key);
@@ -411,7 +411,7 @@ export default function AccountScreen({ eventCount = 0 }) {
         </div>
 
         <a
-          href="mailto:naor.segman@gmail.com?subject=%D7%9E%D7%A9%D7%95%D7%91%20%D7%A2%D7%9C%20%D7%9B%D7%95%D7%9B%D7%91%20%D7%94%D7%A9%D7%95%D7%9C%D7%97%D7%9F&body=%D7%A9%D7%9C%D7%95%D7%9D%2C%0A%0A%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A9%D7%AA%D7%A3%20%D7%9E%D7%A9%D7%95%D7%91%2F%D7%A8%D7%A2%D7%99%D7%95%D7%9F%3A%0A%0A"
+          href={`mailto:${import.meta.env.VITE_SUPPORT_EMAIL || "support@kochav-hashulchan.co.il"}?subject=%D7%9E%D7%A9%D7%95%D7%91%20%D7%A2%D7%9C%20%D7%9B%D7%95%D7%9B%D7%91%20%D7%94%D7%A9%D7%95%D7%9C%D7%97%D7%9F&body=%D7%A9%D7%9C%D7%95%D7%9D%2C%0A%0A%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A9%D7%AA%D7%A3%20%D7%9E%D7%A9%D7%95%D7%91%2F%D7%A8%D7%A2%D7%99%D7%95%D7%9F%3A%0A%0A`}
           className={styles.feedbackLink}
           target="_blank"
           rel="noreferrer"

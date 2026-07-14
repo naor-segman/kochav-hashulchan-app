@@ -25,6 +25,8 @@ import SeatingScreen      from "./screens/SeatingScreen.jsx";
 import LoginScreen        from "./screens/LoginScreen.jsx";
 import SignupScreen       from "./screens/SignupScreen.jsx";
 import AccountScreen      from "./screens/AccountScreen.jsx";
+import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
+import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
 const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
@@ -177,9 +179,10 @@ export default function App() {
         }
       />
       {/* ── Customer auth routes — standalone full-page screens ── */}
-      <Route path="/login"   element={<LoginScreen />} />
-      <Route path="/signup"  element={<SignupScreen />} />
-      <Route path="/account" element={<AccountScreen eventCount={events.length} />} />
+      <Route path="/login"         element={<LoginScreen />} />
+      <Route path="/signup"        element={<SignupScreen />} />
+      <Route path="/account"       element={<AccountScreen eventCount={events.length} />} />
+      <Route path="/auth/callback" element={<AuthCallbackScreen />} />
 
       {/* ── Admin area — lazy-loaded, completely isolated from customer app ── */}
       <Route
@@ -190,7 +193,7 @@ export default function App() {
           </Suspense>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundScreen />} />
     </Routes>
   );
 }

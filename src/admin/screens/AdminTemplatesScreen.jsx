@@ -2,11 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import { invalidateTemplateCache } from "../../utils/templateHelpers.js";
+import { EVENT_TYPES } from "../../data/constants.js";
 import styles from "./AdminTemplatesScreen.module.css";
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const EVENT_TYPES = ["חתונה", "בר/בת מצווה", "ברית", "חינה", "אירועי חברה"];
 
 const FORM_DEFAULTS = {
   name:        "",

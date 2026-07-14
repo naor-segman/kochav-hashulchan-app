@@ -49,13 +49,25 @@ function seatedCount(tState_entry, guestMap) {
   return tState_entry.seated.reduce((s, id) => s + guestSeats(guestMap[id] || {}), 0);
 }
 
-export function autoAssign(guests, tables, constraints) {
-  if (!guests.length || !tables.length) return {};
+export function autoAssign(guests, tables, constraints, lockedSeating = {}) {
+  if (!guests.length || !tables.length) return lockedSeating;
   const guestMap = Object.fromEntries(guests.map(g => [g.id, g]));
   const apartSet = buildApartSet(constraints);
-  const clusters = buildClusters(guests, constraints);
-  const tState   = tables.map(t => ({ id:t.id, capacity:t.capacity, seated:[] }));
-  const seating  = {};
+
+  // Pre-populate table state with locked guests so capacity is respected
+  const lockedIds = new Set(Object.keys(lockedSeating).filter(id => lockedSeating[id]));
+  const tState    = tables.map(t => ({ id:t.id, capacity:t.capacity, seated:[] }));
+  guests.forEach(g => {
+    if (lockedIds.has(g.id)) {
+      const t = tState.find(t => t.id === lockedSeating[g.id]);
+      if (t) t.seated.push(g.id);
+    }
+  });
+
+  // Only cluster non-locked guests
+  const unlockedGuests = guests.filter(g => !lockedIds.has(g.id));
+  const clusters = buildClusters(unlockedGuests, constraints);
+  const seating  = { ...lockedSeating };
 
   const clusterSeats = ids => ids.reduce((s, id) => s + guestSeats(guestMap[id] || {}), 0);
 
@@ -85,7 +97,7 @@ export function autoAssign(guests, tables, constraints) {
     seatCluster(cluster);
   });
 
-  const unseated = guests.filter(g => !seating[g.id]);
+  const unseated = unlockedGuests.filter(g => !seating[g.id]);
   unseated.sort((a, b) => (a.side + a.group).localeCompare(b.side + b.group));
   unseated.forEach(g => {
     let best = null, bestScore = -Infinity;

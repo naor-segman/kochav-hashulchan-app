@@ -105,7 +105,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     if (noTables) { showToast("יש להגדיר שולחנות תחילה", "err"); return; }
     if (noGuests) { showToast("יש להוסיף אורחים תחילה", "err"); return; }
     pushHistory();
-    const newSeating = autoAssign(ev.guests, ev.tables, ev.constraints);
+    const lockedGuestIds = new Set(ev.lockedGuests || []);
+    const lockedSeating  = Object.fromEntries(
+      Object.entries(ev.seating).filter(([id]) => lockedGuestIds.has(id))
+    );
+    const newSeating = autoAssign(ev.guests, ev.tables, ev.constraints, lockedSeating);
     patchEvent(e => Object.assign({}, e, { seating: newSeating }));
     const placed = Object.keys(newSeating).length;
     const missed = ev.guests.length - placed;
