@@ -1,4 +1,6 @@
 const TABLE_TYPE_HE = { regular: "רגיל", vip: "VIP", head: "שולחן ראשי" };
+const RSVP_HE = { confirmed: "אישר/ה", declined: "סירב/ה", pending: "ממתין" };
+const rsvpHe = r => RSVP_HE[r] || "ממתין";
 
 function fmtDate(dateStr) {
   if (!dateStr) return "";
@@ -27,7 +29,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
 
   rows.push([
     "שולחן", "קיבולת", "סוג שולחן", "שובצו/קיבולת",
-    "שם אורח", "צד", "קבוצה", "כמות", "טלפון", "הערות",
+    "שם אורח", "צד", "קבוצה", "כמות", "RSVP", "טלפון", "הערות",
   ]);
 
   ev.tables.forEach(t => {
@@ -37,7 +39,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const occupied     = seatedSeats + " / " + t.capacity;
 
     if (tGuests.length === 0) {
-      rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", ""]);
+      rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", "", ""]);
     } else {
       tGuests.forEach((g, i) => {
         rows.push([
@@ -49,6 +51,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
           sideLabel(g.side),
           g.group || "",
           g.count != null ? g.count : 1,
+          rsvpHe(g.rsvp),
           g.phone || "",
           g.notes || "",
         ]);
@@ -62,7 +65,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
   ws1["!cols"] = [
     { wch: 16 }, { wch: 8 },  { wch: 12 }, { wch: 14 },
     { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 6  },
-    { wch: 14 }, { wch: 22 },
+    { wch: 10 }, { wch: 14 }, { wch: 22 },
   ];
   XLSX.utils.book_append_sheet(wb, ws1, "סידור הושבה");
 
@@ -72,12 +75,13 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const uRows = [
       ["ממתינים לשיבוץ — " + (ev.name || "")],
       [],
-      ["שם אורח", "צד", "קבוצה", "כמות", "טלפון", "הערות"],
+      ["שם אורח", "צד", "קבוצה", "כמות", "RSVP", "טלפון", "הערות"],
       ...unassigned.map(g => [
         g.name  || "",
         sideLabel(g.side),
         g.group || "",
         g.count != null ? g.count : 1,
+        rsvpHe(g.rsvp),
         g.phone || "",
         g.notes || "",
       ]),
@@ -85,7 +89,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const ws2 = XLSX.utils.aoa_to_sheet(uRows);
     ws2["!cols"] = [
       { wch: 20 }, { wch: 14 }, { wch: 14 },
-      { wch: 6  }, { wch: 14 }, { wch: 22 },
+      { wch: 6  }, { wch: 10 }, { wch: 14 }, { wch: 22 },
     ];
     XLSX.utils.book_append_sheet(wb, ws2, "ממתינים לשיבוץ");
   }

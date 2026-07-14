@@ -1,8 +1,8 @@
 import { GROUP_OPTIONS } from "./constants.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
 
-const COLUMNS   = ["שם מלא", "טלפון", "כמות", "צד", "קבוצה", "הערות"];
-const COL_WIDTHS = [{ wch: 26 }, { wch: 16 }, { wch: 9 }, { wch: 18 }, { wch: 22 }, { wch: 30 }];
+const COLUMNS   = ["שם מלא", "טלפון", "כמות", "צד", "קבוצה", "RSVP", "הערות"];
+const COL_WIDTHS = [{ wch: 26 }, { wch: 16 }, { wch: 9 }, { wch: 18 }, { wch: 22 }, { wch: 10 }, { wch: 30 }];
 
 /**
  * Build and download a .xlsx guest-list template.
@@ -20,8 +20,8 @@ export async function downloadGuestTemplate(filename, ev) {
 
   // ── Sheet 1 — "אורחים": the data sheet users fill in ────────────────────
   const exampleRows = [
-    ["דוגמה: ישראל ישראלי", "050-0000000", 1, sideLabels.groom, "משפחה קרובה", ""],
-    ["דוגמה: שרה כהן",      "052-0000000", 2, sideLabels.bride, "חברים",        "מגיעה עם מלווה"],
+    ["דוגמה: ישראל ישראלי", "050-0000000", 1, sideLabels.groom, "משפחה קרובה", "אישר/ה", ""],
+    ["דוגמה: שרה כהן",      "052-0000000", 2, sideLabels.bride, "חברים",        "ממתין",  "מגיעה עם מלווה"],
   ];
 
   const wsData = XLSX.utils.aoa_to_sheet([COLUMNS, ...exampleRows]);
@@ -71,6 +71,12 @@ export async function downloadGuestTemplate(filename, ev) {
       "הקבוצה החברתית של האורח — תשפיע על ההושבה האוטומטית. ניתן להקליד שם קבוצה חדשה.",
       "לא",
       "ראה רשימה למטה",
+    ],
+    [
+      "RSVP",
+      "סטטוס אישור הגעה של האורח.",
+      "לא",
+      "אישר/ה | סירב/ה | ממתין (ברירת מחדל)",
     ],
     [
       "הערות",

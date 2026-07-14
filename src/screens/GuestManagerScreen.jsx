@@ -76,7 +76,12 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
       if (rawSide.includes("חתן") || rawSide === groomSide) side = "groom";
       else if (rawSide.includes("כלה") || rawSide === brideSide) side = "bride";
 
-      const guest = { id: uid(), name, count, phone, notes, group, side };
+      const rawRsvp = String(r["RSVP"] || r["סטטוס"] || "").trim().toLowerCase();
+      const rsvp = rawRsvp.includes("אישר") || rawRsvp === "confirmed" ? "confirmed"
+        : rawRsvp.includes("סירב") || rawRsvp === "declined" ? "declined"
+        : "pending";
+
+      const guest = { id: uid(), name, count, phone, notes, group, side, rsvp };
 
       const nameMatch  = existingNames.has(name.toLowerCase());
       const phoneMatch = phone && existingPhones.has(phone);
