@@ -9,9 +9,19 @@ export function loadState() {
   return { events: [] };
 }
 
-/** Persist the full app state snapshot to localStorage. */
+/** Persist the full app state snapshot to localStorage. Returns true on success. */
 export function persist(state) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {}
+    return true;
+  } catch (err) {
+    if (err instanceof DOMException && (
+      err.name === "QuotaExceededError" ||
+      err.name === "NS_ERROR_DOM_QUOTA_REACHED"
+    )) {
+      console.error("[storage] localStorage quota exceeded — data not saved");
+      window.dispatchEvent(new CustomEvent("storage-quota-exceeded"));
+    }
+    return false;
+  }
 }

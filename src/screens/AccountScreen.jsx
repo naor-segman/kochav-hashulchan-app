@@ -104,9 +104,19 @@ export default function AccountScreen({ eventCount = 0 }) {
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     setPwError("");
-    if (pwForm.next.length < 6) { setPwError("הסיסמה חייבת להכיל לפחות 6 תווים."); return; }
+    if (!pwForm.current) { setPwError("יש להזין את הסיסמה הנוכחית."); return; }
+    if (pwForm.next.length < 6) { setPwError("הסיסמה החדשה חייבת להכיל לפחות 6 תווים."); return; }
     if (pwForm.next !== pwForm.confirm) { setPwError("הסיסמאות אינן תואמות."); return; }
     setPwSaving(true);
+    // Re-authenticate to verify current password before allowing the change.
+    const { error: authErr } = await supabase.auth.signInWithPassword({
+      email: user.email, password: pwForm.current,
+    });
+    if (authErr) {
+      setPwSaving(false);
+      setPwError("הסיסמה הנוכחית שגויה.");
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password: pwForm.next });
     setPwSaving(false);
     if (error) {
@@ -160,7 +170,17 @@ export default function AccountScreen({ eventCount = 0 }) {
                 <input
                   className={styles.input}
                   type="password"
-                  placeholder="סיסמה חדשה"
+                  placeholder="סיסמה נוכחית"
+                  value={pwForm.current}
+                  onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))}
+                  dir="ltr"
+                  autoComplete="current-password"
+                  required
+                />
+                <input
+                  className={styles.input}
+                  type="password"
+                  placeholder="סיסמה חדשה (לפחות 6 תווים)"
                   value={pwForm.next}
                   onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))}
                   dir="ltr"
@@ -178,8 +198,8 @@ export default function AccountScreen({ eventCount = 0 }) {
                   required
                 />
                 {pwError && <p className={styles.errorMsg}>{pwError}</p>}
-                <button type="submit" className={styles.pwBtn} disabled={pwSaving || !pwForm.next || !pwForm.confirm}>
-                  {pwSaving ? "שומר…" : "שנה סיסמה"}
+                <button type="submit" className={styles.pwBtn} disabled={pwSaving || !pwForm.current || !pwForm.next || !pwForm.confirm}>
+                  {pwSaving ? "מאמת ושומר…" : "שנה סיסמה"}
                 </button>
               </form>
             )}

@@ -97,6 +97,13 @@ export default function App() {
     prevSyncRef.current = syncStatus;
   }, [syncStatus, showToast]);
 
+  // Warn when localStorage quota is exceeded (data not persisted).
+  useEffect(() => {
+    const handler = () => showToast("⚠ הנפח המקומי מלא — הנתונים לא נשמרו! ייצא לאקסל כעת.", "err");
+    window.addEventListener("storage-quota-exceeded", handler);
+    return () => window.removeEventListener("storage-quota-exceeded", handler);
+  }, [showToast]);
+
   const createEvent = useCallback((template) => {
     const gate = canCreateEvent(plan, events.length);
     if (!gate.allowed) {

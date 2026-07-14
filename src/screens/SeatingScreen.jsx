@@ -76,22 +76,25 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const lockedGuestsSet = useMemo(() => new Set(ev.lockedGuests || []), [ev.lockedGuests]);
   const isGuestLocked   = id => lockedGuestsSet.has(id);
 
-  const unassigned     = ev.guests.filter(g => !ev.seating[g.id]);
+  const activeGuests   = ev.guests.filter(g => g.rsvp !== "declined");
+  const declinedGuests = ev.guests.filter(g => g.rsvp === "declined");
+  const unassigned     = activeGuests.filter(g => !ev.seating[g.id]);
   const nAssigned      = ev.guests.filter(g => ev.seating[g.id]).length;
   const nAssignedSeats = ev.guests.filter(g => ev.seating[g.id]).reduce((s, g) => s + (g.count || 1), 0);
-  const totalSeats     = ev.guests.reduce((s, g) => s + (g.count || 1), 0);
+  const totalSeats     = activeGuests.reduce((s, g) => s + (g.count || 1), 0);
   const totalCap       = ev.tables.reduce((s, t) => s + t.capacity, 0);
-  const allSeated      = nAssigned === ev.guests.length && ev.guests.length > 0;
+  const allSeated      = activeGuests.length > 0 && activeGuests.every(g => ev.seating[g.id]);
   const noProblems     = violations.length === 0;
   const noTables       = ev.tables.length === 0;
-  const noGuests       = ev.guests.length === 0;
+  const noGuests       = activeGuests.length === 0;
 
   const sideLabel   = s => getSideLabel(ev, s);
   const tableGuests = tid => ev.guests.filter(g => ev.seating[g.id] === tid);
 
   const whatsappUrl = (phone) => {
     const digits = phone.replace(/\D/g, "");
-    const intl   = digits.startsWith("0") ? "972" + digits.slice(1) : digits;
+    if (!digits) return null;
+    const intl = digits.startsWith("0") ? "972" + digits.slice(1) : digits;
     return "https://wa.me/" + intl;
   };
 
@@ -119,15 +122,20 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const runAuto = () => {
     if (noTables) { showToast("יש להגדיר שולחנות תחילה", "err"); return; }
     if (noGuests) { showToast("יש להוסיף אורחים תחילה", "err"); return; }
+    if (nAssigned > 0 && !confirm(
+      "לחשב מחדש את ההושבה?\n\n" +
+      nAssigned + " שיבוצים קיימים יוחלפו (אורחים נעולים ישמרו במקומם).\n" +
+      "ניתן לבטל עד 20 פעולות אחרי ההרצה."
+    )) return;
     pushHistory();
     const lockedGuestIds = new Set(ev.lockedGuests || []);
     const lockedSeating  = Object.fromEntries(
       Object.entries(ev.seating).filter(([id]) => lockedGuestIds.has(id))
     );
-    const newSeating = autoAssign(ev.guests, ev.tables, ev.constraints, lockedSeating);
+    const newSeating = autoAssign(activeGuests, ev.tables, ev.constraints, lockedSeating);
     patchEvent(e => Object.assign({}, e, { seating: newSeating }));
     const placed = Object.keys(newSeating).length;
-    const missed = ev.guests.length - placed;
+    const missed = activeGuests.length - placed;
     if (missed > 0)
       showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסף מקומות נוספים", "err");
     else
@@ -278,9 +286,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             sub="חשב הושבה אוטומטית ואז ערוך ידנית לפי הצורך."
             aside={
               <div className={base.pills}>
-                <StatPill n={nAssigned}         label="שובצו"   color={allSeated ? "var(--green)" : "var(--accent)"} />
-                <StatPill n={unassigned.length} label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
-                <StatPill n={violations.length} label="הפרות"   color={violations.length > 0 ? "var(--red)" : undefined} />
+                <StatPill n={nAssigned}           label="שובצו"   color={allSeated ? "var(--green)" : "var(--accent)"} />
+                <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
+                {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
+                <StatPill n={violations.length}   label="הפרות"   color={violations.length > 0 ? "var(--red)" : undefined} />
               </div>
             }
           />
@@ -312,7 +321,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
               </div>
               <div className={styles.runCardStats}>
-                {nAssignedSeats} / {totalSeats} מקומות שובצו · {nAssigned}/{ev.guests.length} רשומות · {totalCap} קיבולת האולם
+                {nAssignedSeats} / {totalSeats} מקומות שובצו · {nAssigned}/{activeGuests.length} רשומות פעילות · {totalCap} קיבולת האולם
+                {declinedGuests.length > 0 && ` · ${declinedGuests.length} סירבו (לא משובצים)`}
               </div>
             </div>
             <div className={styles.runCardActions}>
@@ -442,7 +452,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                           ? <span className={styles.daySearchTable}>שולחן {table.name}</span>
                           : <span className={styles.daySearchUnseated}>לא שובץ</span>
                         }
-                        {g.phone && (
+                        {g.phone && whatsappUrl(g.phone) && (
                           <a
                             href={whatsappUrl(g.phone)}
                             className={styles.daySearchWa}
@@ -658,7 +668,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                     {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
                                   </span>
                                 </div>
-                                {g.phone && (
+                                {g.phone && whatsappUrl(g.phone) && (
                                   <a
                                     href={whatsappUrl(g.phone)}
                                     className={styles.tGuestWaBtn}

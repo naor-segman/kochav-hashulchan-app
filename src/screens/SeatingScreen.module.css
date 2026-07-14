@@ -733,6 +733,10 @@
   margin-inline-start: 4px;
 }
 
+@media (max-width: 600px) {
+  .printBtn { display: none; }
+}
+
 .xlsBtn {
   background: #1D6F42;
   color: #fff;
