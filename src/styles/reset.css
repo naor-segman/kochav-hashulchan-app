@@ -9,6 +9,27 @@ html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  /* Smooth scrollbar on Windows */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+/* Webkit custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* Text selection */
+::selection {
+  background: var(--accent-bg);
+  color: var(--accent-dark);
 }
 
 body {
@@ -22,6 +43,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   direction: rtl;
   text-align: right;
+  /* Prevent layout shift on scrollbar appear/disappear */
+  overflow-y: scroll;
 }
 
 img, picture, video, canvas, svg {
@@ -64,15 +87,24 @@ h1, h2, h3, h4, h5, h6 {
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  border-color: var(--accent);
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
 button:not(:disabled):active {
   transform: scale(.97);
+  transition: transform 0.07s ease;
 }
 
 select option:disabled {
-  color: #bbb;
+  color: var(--muted);
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

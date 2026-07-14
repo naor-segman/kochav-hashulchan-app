@@ -301,12 +301,12 @@
 /* ── Checkout result banners ── */
 .checkoutSuccessBanner {
   padding: 10px 14px;
-  background: var(--green-bg, #f0fdf4);
-  border: 1px solid var(--green-border, #bbf7d0);
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
   border-radius: var(--radius);
   font-size: 13px;
   font-weight: 600;
-  color: var(--green, #16a34a);
+  color: var(--green);
 }
 
 .checkoutCancelledBanner {
@@ -321,7 +321,7 @@
 /* ── Billing error ── */
 .billingError {
   font-size: 13px;
-  color: var(--red, #dc2626);
+  color: var(--red);
   text-align: center;
   margin: 0;
 }

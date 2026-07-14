@@ -1,3 +1,8 @@
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
 .page {
   min-height: 100vh;
   background: var(--bg);
@@ -11,13 +16,14 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   padding: 36px 32px 28px;
   width: 100%;
   max-width: 400px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  animation: popIn 0.22s ease;
 }
 
 .brand {
@@ -110,13 +116,14 @@
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.12s, box-shadow 0.12s;
+  transition: background 0.12s, box-shadow 0.12s, transform 0.12s;
   margin-top: 2px;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: #a86a2e;
-  box-shadow: 0 3px 10px rgba(190, 122, 56, 0.30);
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-accent-lg);
+  transform: translateY(-1px);
 }
 
 .submitBtn:disabled {

@@ -83,14 +83,15 @@
   border-radius: var(--radius);
   font-size: 15px;
   font-weight: 800;
-  box-shadow: 0 2px 10px rgba(190, 122, 56, 0.35);
+  box-shadow: var(--shadow-accent);
   white-space: nowrap;
-  transition: background 0.15s, box-shadow 0.15s;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .runBtn:hover:not(:disabled) {
-  background: #a86a2e;
-  box-shadow: 0 4px 16px rgba(190, 122, 56, 0.5);
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-accent-lg);
+  transform: translateY(-1px);
 }
 
 .runBtn:disabled {
@@ -101,19 +102,19 @@
 
 /* ─── Unassigned queue ──────────────────────────────────────────────────── */
 .unassignedCard {
-  background: #fffdf0;
+  background: var(--warn-bg);
   border: 1px solid var(--warn-border);
   border-inline-start: 4px solid var(--warn);
   border-radius: var(--radius-lg);
   padding: 16px;
   margin-bottom: 14px;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--transition), background var(--transition);
 }
 
 /* When any drag is active but not hovering this card */
 .unassignedDropReady {
-  border-color: rgba(190, 122, 56, 0.4);
-  background: #fffdf0;
+  border-color: var(--accent-border);
+  background: var(--warn-bg);
 }
 
 /* When drag is directly over this card */
@@ -155,9 +156,9 @@
 
 /* ─── Violations card ───────────────────────────────────────────────────── */
 .violCard {
-  background: #fffaeb;
+  background: var(--warn-bg);
   border: 1px solid var(--warn-border);
-  border-inline-start: 4px solid #D4680A;
+  border-inline-start: 4px solid var(--warn);
   border-radius: var(--radius-lg);
   padding: 18px;
   margin-bottom: 14px;
@@ -175,7 +176,7 @@
 .violTitle {
   font-weight: 700;
   font-size: 14px;
-  color: #9a5000;
+  color: var(--warn);
 }
 
 .violExplain {
@@ -210,7 +211,7 @@
 
 .violTog {
   background: var(--green-bg);
-  color: #1a5c36;
+  color: var(--green);
   border-inline-start-color: var(--green);
 }
 
@@ -221,9 +222,9 @@
 }
 
 .violCap {
-  background: #fff0ee;
-  color: #922020;
-  border-inline-start-color: #BB3527;
+  background: var(--red-bg);
+  color: var(--red);
+  border-inline-start-color: var(--red);
 }
 
 /* ─── Table cards grid ──────────────────────────────────────────────────── */
@@ -251,12 +252,13 @@
 }
 
 .tCard:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 /* When any drag is active: all table cards glow subtly as drop targets */
 .tableCardsDragging .tCard {
-  box-shadow: 0 0 0 2px rgba(190, 122, 56, 0.18), var(--shadow);
+  box-shadow: 0 0 0 2px var(--accent-border), var(--shadow);
 }
 
 /* Empty label becomes inviting during drag */
@@ -375,14 +377,16 @@
 
 .tChipBride {
   color: var(--bride);
-  background: #F5ECF3;
-  border: 1px solid #E0C6DB;
+  background: var(--bride-bg);
+  border: 1px solid var(--bride);
+  opacity: 0.85;
 }
 
 .tChipGroom {
   color: var(--groom);
-  background: #EBF2FB;
-  border: 1px solid #C5D9F0;
+  background: var(--groom-bg);
+  border: 1px solid var(--groom);
+  opacity: 0.85;
 }
 
 .tCardCapLabel {
@@ -442,7 +446,7 @@
   border-radius: var(--radius-lg);
   padding: 18px 20px;
   margin-bottom: 14px;
-  box-shadow: 0 2px 12px rgba(52, 168, 83, 0.12), var(--shadow);
+  box-shadow: var(--shadow-md);
 }
 
 .successIconWrap {
@@ -558,10 +562,10 @@
 
 /* ─── Drag-state table card modifiers ───────────────────────────────────── */
 
-/* Table can accept the dragged guest — glow green-ish */
+/* Table can accept the dragged guest — glow amber */
 .tCardDragReady {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 2px rgba(190, 122, 56, 0.22), var(--shadow) !important;
+  box-shadow: 0 0 0 2px var(--accent-border), var(--shadow) !important;
 }
 
 /* Table is full — mute it so it reads as invalid */
@@ -574,7 +578,7 @@
 /* Guest is hovering over a valid table — strong green ring */
 .tCardDropOver {
   border-color: var(--green) !important;
-  box-shadow: 0 0 0 3px rgba(52, 168, 83, 0.28), var(--shadow) !important;
+  box-shadow: 0 0 0 3px var(--green-border), var(--shadow) !important;
   background: var(--green-bg) !important;
   transform: scale(1.01);
 }
@@ -582,8 +586,8 @@
 /* Guest is hovering over a full table — red ring */
 .tCardDropBlocked {
   border-color: var(--red) !important;
-  box-shadow: 0 0 0 3px rgba(187, 53, 39, 0.22), var(--shadow) !important;
-  background: #FFF5F5 !important;
+  box-shadow: 0 0 0 3px var(--red-border), var(--shadow) !important;
+  background: var(--red-bg) !important;
 }
 
 /* Near-capacity badge inside tCardRight */
@@ -645,7 +649,7 @@
 .tTableLockBtnActive {
   border-color: var(--accent);
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: var(--accent-bg);
 }
 
 /* ─── Per-guest lock button ──────────────────────────────────────────────── */
@@ -771,14 +775,16 @@
 }
 
 .xlsBtn {
-  background: #1D6F42;
+  background: var(--green);
   color: #fff;
   border: none;
-  transition: background 0.15s;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
 }
 
 .xlsBtn:hover:not(:disabled) {
-  background: #175c37;
+  opacity: 0.85;
+  transform: translateY(-1px);
 }
 
 .xlsBtn:disabled {
@@ -818,7 +824,7 @@
     display: block !important;
     font-family: 'Heebo', Arial, sans-serif;
     font-size: 13px;
-    color: #17140F;
+    color: var(--text);
     direction: rtl;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
@@ -879,7 +885,7 @@
 .pvBrand {
   font-size: 10px;
   font-weight: 700;
-  color: #BE7A38;
+  color: var(--accent);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 3px;
@@ -888,20 +894,20 @@
 .pvTitle {
   font-size: 22px;
   font-weight: 800;
-  color: #17140F;
+  color: var(--text);
   margin: 0 0 3px;
   break-after: avoid;
 }
 
 .pvMeta {
   font-size: 13px;
-  color: #55524C;
+  color: var(--text2);
   margin: 0 0 2px;
 }
 
 .pvStats {
   font-size: 11px;
-  color: #97938D;
+  color: var(--muted);
   margin: 0 0 3px;
 }
 
@@ -909,9 +915,9 @@
   display: inline-block;
   font-size: 10px;
   font-weight: 700;
-  color: #BE7A38;
-  background: #FBF2E7;
-  border: 1px solid #E5C99A;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
   border-radius: 4px;
   padding: 1px 6px;
   margin-top: 2px;
@@ -920,19 +926,19 @@
 
 .pvDivider {
   border: none;
-  border-top: 2px solid #17140F;
+  border-top: 2px solid var(--text);
   margin: 10px 0;
 }
 
 .pvViolWarn {
-  background: #FEF8E7;
-  border: 1px solid #F5DC95;
-  border-inline-start: 3px solid #956700;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-inline-start: 3px solid var(--warn);
   border-radius: 6px;
   padding: 7px 12px;
   font-size: 12px;
   font-weight: 700;
-  color: #956700;
+  color: var(--warn);
   margin-bottom: 10px;
   break-inside: avoid;
   page-break-inside: avoid;
@@ -947,7 +953,7 @@
 }
 
 .pvTable {
-  border: 1px solid #D8D5CE;
+  border: 1px solid var(--border2);
   border-radius: 6px;
   overflow: hidden;
   break-inside: avoid;
@@ -957,7 +963,7 @@
 }
 
 .pvTableOver {
-  border-color: #BB3527;
+  border-color: var(--red);
 }
 
 .pvTableHead {
@@ -965,31 +971,31 @@
   justify-content: space-between;
   align-items: center;
   padding: 5px 10px;
-  background: #EDECEA;
-  border-bottom: 1px solid #D8D5CE;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border2);
   break-after: avoid;
   page-break-after: avoid;
 }
 
 .pvTableOver .pvTableHead {
-  background: #FEEEEC;
-  border-bottom-color: #F8C9C4;
+  background: var(--red-bg);
+  border-bottom-color: var(--red-border);
 }
 
 .pvTableName {
   font-size: 12px;
   font-weight: 800;
-  color: #17140F;
+  color: var(--text);
 }
 
 .pvTableCount {
   font-size: 11px;
   font-weight: 600;
-  color: #55524C;
+  color: var(--text2);
 }
 
 .pvTableOver .pvTableCount {
-  color: #BB3527;
+  color: var(--red);
   font-weight: 700;
 }
 
@@ -1002,7 +1008,7 @@
   justify-content: space-between;
   align-items: baseline;
   padding: 3px 10px;
-  border-bottom: 1px solid #F0EEE8;
+  border-bottom: 1px solid var(--border);
   gap: 8px;
 }
 
@@ -1016,18 +1022,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #17140F;
+  color: var(--text);
 }
 
 .pvGuestCount {
   font-size: 10px;
   font-weight: 700;
-  color: #BE7A38;
+  color: var(--accent);
 }
 
 .pvGuestMeta {
   font-size: 10px;
-  color: #97938D;
+  color: var(--muted);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1036,15 +1042,15 @@
   display: block;
   padding: 5px 10px;
   font-size: 11px;
-  color: #97938D;
+  color: var(--muted);
   font-style: italic;
 }
 
 /* Unassigned section */
 .pvUnassigned {
-  border: 1px solid #F5DC95;
-  border-inline-start: 3px solid #956700;
-  background: #FEF8E7;
+  border: 1px solid var(--warn-border);
+  border-inline-start: 3px solid var(--warn);
+  background: var(--warn-bg);
   border-radius: 6px;
   padding: 9px 14px;
   margin-bottom: 12px;
@@ -1055,7 +1061,7 @@
 .pvUnassignedTitle {
   font-size: 12px;
   font-weight: 700;
-  color: #956700;
+  color: var(--warn);
   margin-bottom: 6px;
   break-after: avoid;
   page-break-after: avoid;
@@ -1069,7 +1075,7 @@
 
 .pvUnassignedGuest {
   font-size: 11px;
-  color: #17140F;
+  color: var(--text);
 }
 
 /* ── Compact-mode 3-column grid (venue staff) ───────────────────────────── */
@@ -1081,7 +1087,7 @@
 }
 
 .pvCompactTable {
-  border: 1px solid #C8C5BE;
+  border: 1px solid var(--border2);
   border-radius: 5px;
   overflow: hidden;
   break-inside: avoid;
@@ -1093,7 +1099,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 5px 8px;
-  background: #1E2D47;
+  background: var(--text);
   color: #fff;
   break-after: avoid;
   page-break-after: avoid;
@@ -1118,8 +1124,8 @@
   padding: 3px 8px;
   font-size: 12px;
   font-weight: 500;
-  color: #17140F;
-  border-bottom: 1px solid #EDEBE6;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1133,18 +1139,18 @@
   display: block;
   padding: 4px 8px;
   font-size: 10px;
-  color: #97938D;
+  color: var(--muted);
   font-style: italic;
 }
 
 .pvCompactUnassigned {
-  border: 1px solid #F5DC95;
-  border-inline-start: 3px solid #956700;
-  background: #FEF8E7;
+  border: 1px solid var(--warn-border);
+  border-inline-start: 3px solid var(--warn);
+  background: var(--warn-bg);
   border-radius: 5px;
   padding: 6px 12px;
   font-size: 11px;
-  color: #956700;
+  color: var(--warn);
   margin-bottom: 10px;
   break-inside: avoid;
   page-break-inside: avoid;
@@ -1154,11 +1160,11 @@
 /* Footer */
 .pvFooter {
   font-size: 10px;
-  color: #97938D;
+  color: var(--muted);
   text-align: center;
   margin-top: 14px;
   padding-top: 7px;
-  border-top: 1px solid #E2DFD8;
+  border-top: 1px solid var(--border);
 }
 
 /* Day-of-event search */
@@ -1220,7 +1226,7 @@
 }
 
 .daySearchRowArrived {
-  background: color-mix(in srgb, var(--green) 8%, var(--bg));
+  background: var(--green-bg);
   border-color: var(--green);
   opacity: 0.75;
 }
@@ -1247,7 +1253,7 @@
 .dayCheckInBtnDone {
   border-color: var(--green);
   color: var(--green);
-  background: color-mix(in srgb, var(--green) 12%, transparent);
+  background: var(--green-bg);
 }
 
 .daySearchEmpty {
@@ -1335,7 +1341,7 @@
 }
 
 .checkInRowDone {
-  background: color-mix(in srgb, var(--green) 6%, var(--bg));
+  background: var(--green-bg);
   border-color: var(--green);
   opacity: 0.65;
 }
@@ -1402,7 +1408,7 @@
 .checkInBtnDone {
   border-color: var(--green);
   color: var(--green);
-  background: color-mix(in srgb, var(--green) 12%, transparent);
+  background: var(--green-bg);
 }
 
 /* ─── WhatsApp Notification Card ────────────────────────────────────────── */
@@ -1522,7 +1528,7 @@
 }
 
 .pvCard {
-  border: 2px solid #C9A84C;
+  border: 2px solid var(--accent);
   border-radius: 8px;
   padding: 14px 16px;
   page-break-inside: avoid;
@@ -1535,7 +1541,7 @@
 
 .pvCardBrand {
   font-size: 9px;
-  color: #888;
+  color: var(--muted);
   letter-spacing: 0.5px;
   margin-bottom: 6px;
 }
@@ -1543,7 +1549,7 @@
 .pvCardTableName {
   font-size: 28px;
   font-weight: 900;
-  color: #1a1a2e;
+  color: var(--text);
   line-height: 1.1;
   margin-bottom: 8px;
 }
@@ -1551,7 +1557,7 @@
 .pvCardDivider {
   width: 40px;
   height: 2px;
-  background: #C9A84C;
+  background: var(--accent);
   margin: 0 auto 10px;
   border-radius: 1px;
 }
@@ -1565,14 +1571,14 @@
 
 .pvCardGuest {
   font-size: 12px;
-  color: #333;
+  color: var(--text);
   padding: 2px 0;
 }
 
 .pvCardFooter {
   font-size: 9px;
-  color: #aaa;
-  border-top: 1px solid #eee;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
   padding-top: 6px;
   margin-top: 4px;
 }

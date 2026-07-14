@@ -5,7 +5,7 @@
   max-width: 880px;
   margin: 0 auto;
   padding: 28px 20px;
-  animation: fadeUp 0.2s ease;
+  animation: fadeUp 0.22s ease;
 }
 
 @media (max-width: 400px) {
@@ -19,9 +19,15 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 22px;
   margin-bottom: 20px;
   box-shadow: var(--shadow);
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+
+.card:focus-within {
+  border-color: var(--border2);
+  box-shadow: var(--shadow-md);
 }
 
 .cardDirty {
@@ -32,6 +38,7 @@
 .cardEdit {
   border-color: var(--accent);
   background: var(--accent-light);
+  box-shadow: var(--shadow-accent);
 }
 
 /* Grids */
@@ -71,14 +78,14 @@
   font-size: 14px;
   color: var(--text);
   direction: rtl;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
 }
 
 .input:hover:not(:focus) {
   border-color: var(--border2);
 }
 
-/* Validation error state — compound selector beats .input alone */
+/* Validation error state */
 .input.inputError,
 .input.inputError:hover:not(:focus) {
   border-color: var(--red);
@@ -101,7 +108,7 @@
   color: var(--text);
   direction: rtl;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .select:hover:not(:focus) {
@@ -120,6 +127,7 @@
   resize: vertical;
   font-family: inherit;
   line-height: 1.7;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .formActions {
@@ -136,23 +144,28 @@
   line-height: 1.4;
 }
 
-/* Buttons */
+/* ── Buttons ── */
 .btnPrimary {
   background: var(--accent);
   color: #fff;
   border: none;
   cursor: pointer;
-  padding: 10px 18px;
+  padding: 10px 20px;
   border-radius: var(--radius);
   font-size: 14px;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(190, 122, 56, 0.28);
-  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow-accent);
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background: #a86a2e;
-  box-shadow: 0 3px 10px rgba(190, 122, 56, 0.42);
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-accent-lg);
+  transform: translateY(-1px);
+}
+
+.btnPrimary:active:not(:disabled) {
+  transform: translateY(0) scale(.97);
 }
 
 .btnPrimary:disabled {
@@ -169,13 +182,14 @@
   border-radius: var(--radius);
   font-size: 14px;
   font-weight: 600;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
 }
 
 .btnSecondary:hover:not(:disabled) {
   background: var(--accent-bg);
-  border-color: var(--accent-light);
+  border-color: var(--accent-border);
   color: var(--accent);
+  box-shadow: var(--shadow);
 }
 
 .btnSm {
@@ -188,36 +202,38 @@
   background: var(--accent);
   color: #fff;
   flex-shrink: 0;
-  transition: background 0.12s;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .btnSm:hover:not(:disabled) {
-  background: #a86a2e;
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-accent);
+  transform: translateY(-1px);
 }
 
 .btnGhost {
   background: var(--bg);
   color: var(--text2);
   border: 1px solid var(--border2);
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .btnGhost:hover:not(:disabled) {
   background: var(--accent-bg);
   color: var(--accent);
-  border-color: var(--accent);
+  border-color: var(--accent-border);
 }
 
 .btnDanger {
   background: var(--red-bg);
   color: var(--red);
   border: 1px solid var(--red-border);
-  transition: border-color 0.12s, box-shadow 0.12s;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .btnDanger:hover:not(:disabled) {
   border-color: var(--red);
-  box-shadow: 0 0 0 1px var(--red-border);
+  box-shadow: 0 0 0 2px var(--red-border);
 }
 
 /* Pills group */
@@ -253,17 +269,17 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--text2);
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition), color var(--transition);
 }
 
 .segBride {
-  background: #f2e8f0;
+  background: var(--bride-bg);
   color: var(--bride);
   font-weight: 700;
 }
 
 .segGroom {
-  background: #e8eff8;
+  background: var(--groom-bg);
   color: var(--groom);
   font-weight: 700;
 }
@@ -305,29 +321,31 @@
 .gList {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 }
 
 .gRow {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
+  padding: 11px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow);
-  transition: border-color 0.12s, box-shadow 0.12s;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .gRow:hover {
   border-color: var(--border2);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .gRowActive {
   border-color: var(--accent);
   background: var(--accent-light);
+  box-shadow: var(--shadow-accent);
 }
 
 .gInfo {
@@ -360,7 +378,7 @@
   font-weight: 700;
   background: var(--accent-bg);
   color: var(--accent);
-  border: 1px solid #e5c99a;
+  border: 1px solid var(--accent-border);
   border-radius: 20px;
   padding: 0 6px;
   margin-inline-end: 6px;
@@ -374,7 +392,7 @@
   color: var(--green);
   border: 1px solid var(--green-border);
   border-radius: 20px;
-  padding: 2px 9px;
+  padding: 2px 10px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -385,7 +403,7 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 2px 9px;
+  padding: 2px 10px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -405,6 +423,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--shadow);
 }
 
 .tRow {
@@ -415,6 +434,13 @@
   padding: 9px 14px;
   border-bottom: 1px solid var(--border);
   font-size: 14px;
+  transition: background var(--transition-fast);
+}
+
+.tRow:last-child { border-bottom: none; }
+
+.tRow:not(.tHead):not(.tRowEdit):hover {
+  background: var(--accent-light);
 }
 
 /* The 5-column tRow grid exceeds ~375px viewport. Switch tableGrid to an
@@ -435,7 +461,7 @@
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .tRowEdit {
@@ -474,15 +500,16 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   background: var(--accent-bg);
-  border: 1px solid #e5c99a;
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius-lg);
   flex-wrap: wrap;
+  box-shadow: var(--shadow);
 }
 
 .templateCardIcon {
-  font-size: 26px;
+  font-size: 28px;
   flex-shrink: 0;
 }
 
@@ -508,29 +535,41 @@
   border-radius: var(--radius);
   font-size: 14px;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(190, 122, 56, 0.28);
+  box-shadow: var(--shadow-accent);
   flex-shrink: 0;
   white-space: nowrap;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.downloadLink:hover {
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-accent-lg);
+  transform: translateY(-1px);
 }
 
 .importDropzone {
-  border: 2px dashed var(--border);
+  border: 2px dashed var(--border2);
   border-radius: var(--radius-lg);
-  padding: 32px 24px;
+  padding: 36px 24px;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.importDropzone:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
 }
 
 .importDropzoneIcon {
-  font-size: 32px;
-  margin-bottom: 8px;
+  font-size: 36px;
+  margin-bottom: 10px;
   opacity: 0.5;
 }
 
 .importDropzoneText {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text2);
   margin-bottom: 4px;
 }
@@ -554,13 +593,13 @@
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   border-bottom: 1px solid var(--border);
 }
 
 .importTd {
   padding: 7px 10px;
-  border-bottom: 0.5px solid var(--border);
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
@@ -575,7 +614,7 @@
 .stepPill {
   font-size: 12px;
   font-weight: 600;
-  padding: 3px 10px;
+  padding: 3px 11px;
   border-radius: 20px;
   background: var(--bg);
   color: var(--muted);
@@ -586,6 +625,7 @@
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .stepPillSep {

@@ -61,7 +61,7 @@
 
 .toggleBadgeCrit { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-border);   }
 .toggleBadgeWarn { background: var(--warn-bg);  color: var(--warn);  border: 1px solid var(--warn-border);  }
-.toggleBadgeInfo { background: var(--accent-bg); color: var(--accent); border: 1px solid #e5c99a; }
+.toggleBadgeInfo { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
 .toggleBadgeOk   { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
 
 /* ── Quality score chip ────────────────────────────────────────────────────── */

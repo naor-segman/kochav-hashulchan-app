@@ -1,4 +1,4 @@
-/* Shell layout — values verbatim from V1 S object */
+/* Shell layout */
 
 .root {
   background: var(--bg);
@@ -10,15 +10,18 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 56px;
+  height: 58px;
   padding: 0 20px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 200;
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   overflow: hidden;
+  /* Glass effect for depth */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .logo {
@@ -30,11 +33,15 @@
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;
+  transition: opacity var(--transition);
 }
 
+.logo:hover { opacity: 0.8; }
+
 .logoMark {
-  font-size: 19px;
+  font-size: 20px;
   color: var(--accent);
+  filter: drop-shadow(0 1px 3px rgba(190,122,56,.35));
 }
 
 .logoName {
@@ -49,10 +56,10 @@
   font-weight: 800;
   color: var(--accent);
   background: var(--accent-bg);
-  border: 1px solid var(--warn-border);
+  border: 1px solid var(--accent-border);
   border-radius: 20px;
   padding: 1px 6px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   flex-shrink: 0;
 }
 
@@ -82,12 +89,12 @@
   border-radius: var(--radius);
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background 0.12s, color 0.12s;
+  transition: background var(--transition), color var(--transition);
 }
 
 .bcBack:hover {
   background: var(--accent-bg);
-  color: #a86a2e;
+  color: var(--accent-dark);
 }
 
 .bcSep {
@@ -114,6 +121,7 @@
   border-radius: 20px;
   padding: 3px 10px;
   letter-spacing: 0.01em;
+  transition: all var(--transition);
 }
 
 .autoSaving {
@@ -128,7 +136,7 @@
   border-color: var(--red-border);
 }
 
-/* ── Account button (topbar right) ── */
+/* ── Account button ── */
 .accountBtn {
   display: flex;
   align-items: center;
@@ -144,7 +152,7 @@
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
   max-width: 140px;
   overflow: hidden;
   margin-inline-start: auto;
@@ -152,13 +160,14 @@
 
 .accountBtn:hover {
   background: var(--accent-bg);
-  border-color: var(--accent);
+  border-color: var(--accent-border);
   color: var(--accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .accountIcon { font-size: 13px; flex-shrink: 0; }
 
-/* ── Signup CTA (shown for unauthenticated users) ── */
+/* ── Signup CTA ── */
 .signupBtn {
   display: flex;
   align-items: center;
@@ -166,20 +175,22 @@
   color: #fff;
   border: none;
   border-radius: var(--radius-full);
-  padding: 5px 14px;
+  padding: 6px 16px;
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
-  transition: background 0.12s, box-shadow 0.12s;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
   margin-inline-start: auto;
+  box-shadow: var(--shadow-accent);
 }
 
 .signupBtn:hover {
-  background: #a86a2e;
-  box-shadow: 0 2px 8px rgba(190, 122, 56, 0.35);
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-accent-lg);
+  transform: translateY(-1px);
 }
 
 .accountLabel {
@@ -198,7 +209,6 @@
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
-  /* Smooth momentum scroll on iOS; hide scrollbar for clean look */
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
@@ -226,13 +236,13 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 11px 12px;
+  padding: 12px 12px;
   font-size: 12px;
   font-weight: 500;
   color: var(--text2);
   border-bottom: 2px solid transparent;
   white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s, background 0.12s;
+  transition: color var(--transition), border-color var(--transition), background var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -263,7 +273,7 @@
   background: var(--border);
   color: var(--muted);
   flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition), color var(--transition);
 }
 
 .stepDotDone {
@@ -283,30 +293,17 @@
 
 /* ── Mobile overrides ── */
 @media (max-width: 480px) {
-  /* Collapse logo to mark-only to give breadcrumb room */
-  .logoName {
-    display: none;
-  }
-
-  /* autoSave indicator not visible at this width anyway; omit */
-  .autoSave {
-    display: none;
-  }
-
-  /* Tighter tab padding so more tabs fit in the scrollable subnav */
-  .subnavBtn {
-    padding: 11px 8px;
-    font-size: 11px;
-  }
+  .logoName { display: none; }
+  .autoSave { display: none; }
+  .subnavBtn { padding: 11px 8px; font-size: 11px; }
 }
 
-/* ── Print: hide shell chrome so only the screen content prints ── */
+/* ── Print: hide shell chrome ── */
 @media print {
   .topbar,
   .subnav {
     display: none !important;
   }
-
   .main {
     padding: 0 !important;
   }
