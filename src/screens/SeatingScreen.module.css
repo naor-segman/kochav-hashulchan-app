@@ -804,6 +804,11 @@
   display: none;
 }
 
+/* Cards-only section: never visible on screen */
+.pvCardsOnly {
+  display: none;
+}
+
 @media print {
   .screenContent {
     display: none !important;
@@ -831,6 +836,31 @@
 
   .printView[data-print-mode="compact"] .pvCompactOnly {
     display: block !important;
+  }
+
+  /* Cards mode: hide full/compact, reveal cards grid */
+  .printView[data-print-mode="cards"] .pvFullOnly {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvCompactOnly {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvCardsOnly {
+    display: block !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvHeader {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvDivider {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvFooter {
+    display: none !important;
   }
 
   @page {
@@ -1482,4 +1512,67 @@
 .checkInGiftInput:focus {
   outline: none;
   border-color: var(--green);
+}
+
+/* ─── Print: table cards mode ────────────────────────────────────────────── */
+.pvCardsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8mm;
+}
+
+.pvCard {
+  border: 2px solid #C9A84C;
+  border-radius: 8px;
+  padding: 14px 16px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  background: #fff;
+  text-align: center;
+  font-family: 'Heebo', Arial, sans-serif;
+  direction: rtl;
+}
+
+.pvCardBrand {
+  font-size: 9px;
+  color: #888;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.pvCardTableName {
+  font-size: 28px;
+  font-weight: 900;
+  color: #1a1a2e;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.pvCardDivider {
+  width: 40px;
+  height: 2px;
+  background: #C9A84C;
+  margin: 0 auto 10px;
+  border-radius: 1px;
+}
+
+.pvCardGuests {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.pvCardGuest {
+  font-size: 12px;
+  color: #333;
+  padding: 2px 0;
+}
+
+.pvCardFooter {
+  font-size: 9px;
+  color: #aaa;
+  border-top: 1px solid #eee;
+  padding-top: 6px;
+  margin-top: 4px;
 }

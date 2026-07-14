@@ -413,6 +413,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 📋 לצוות האולם
               </button>
               <button
+                className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
+                onClick={() => handlePrint("cards")}
+                title="הדפס כרטיסי שולחן — כרטיס אחד לכל שולחן למיקום על השולחן"
+              >
+                🃏 כרטיסי שולחן
+              </button>
+              <button
                 className={[base.btnSm, checkInMode ? base.btnPrimary : base.btnGhost].join(" ")}
                 onClick={() => { setCheckInMode(m => !m); setCheckInSearch(""); }}
                 title="מצב צ׳ק אין — רשימה אלפביתית לאנשי הכניסה"
@@ -1078,6 +1085,30 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               ⏳ ממתינים לשיבוץ ({unassigned.length}): {unassigned.map(g => g.name).join(" · ")}
             </div>
           )}
+        </div>
+
+        {/* ── Cards mode — one card per table, meant to be cut and placed on tables ── */}
+        <div className={styles.pvCardsOnly}>
+          <div className={styles.pvCardsGrid}>
+            {ev.tables.filter(t => tableGuests(t.id).length > 0).map(t => {
+              const tg = tableGuests(t.id);
+              return (
+                <div key={t.id} className={styles.pvCard}>
+                  <div className={styles.pvCardBrand}>כוכב השולחן · {ev.name || "האירוע"}</div>
+                  <div className={styles.pvCardTableName}>{t.name}</div>
+                  <div className={styles.pvCardDivider} />
+                  <div className={styles.pvCardGuests}>
+                    {tg.map(g => (
+                      <div key={g.id} className={styles.pvCardGuest}>
+                        {g.name}{(g.count || 1) > 1 ? ` (${g.count})` : ""}
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.pvCardFooter}>{tg.reduce((s, g) => s + (g.count || 1), 0)} / {t.capacity} מקומות</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className={styles.pvFooter}>
