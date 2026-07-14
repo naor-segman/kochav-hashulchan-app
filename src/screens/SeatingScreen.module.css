@@ -308,6 +308,13 @@
 }
 
 /* Badges — slightly larger for scanability */
+.tCardBadgeLock {
+  font-size: 12px;
+  margin-inline-start: 4px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
 .tCardBadgeRed {
   font-size: 11px;
   font-weight: 800;
@@ -595,6 +602,7 @@
 .tGuestListActions {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   padding: 4px 14px 2px;
   border-bottom: 1px solid var(--border);
 }
@@ -613,6 +621,31 @@
 
 .tClearTableBtn:hover {
   background: var(--red-bg);
+}
+
+/* ─── Table lock button ─────────────────────────────────────────────────── */
+.tTableLockBtn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.tTableLockBtn:hover {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.tTableLockBtnActive {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 /* ─── Per-guest lock button ──────────────────────────────────────────────── */
@@ -1154,6 +1187,37 @@
   text-decoration: none;
   font-size: 15px;
   line-height: 1;
+}
+
+.daySearchRowArrived {
+  background: color-mix(in srgb, var(--green) 8%, var(--bg));
+  border-color: var(--green);
+  opacity: 0.75;
+}
+
+.dayCheckInBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.dayCheckInBtn:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.dayCheckInBtnDone {
+  border-color: var(--green);
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
 }
 
 .daySearchEmpty {

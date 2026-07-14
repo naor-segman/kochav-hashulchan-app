@@ -144,6 +144,36 @@ export async function exportToExcel(ev, sideLabel, violations) {
     XLSX.utils.book_append_sheet(wb, ws4, "הפרות אילוצים");
   }
 
+  // ── Sheet 5: Meal report for caterer ────────────────────────────────────
+  {
+    const mealKeys  = Object.keys(MEAL_HE);
+    const mealHdr   = ["שולחן", ...mealKeys.map(k => MEAL_HE[k]), "סה״כ"];
+    const mealRows  = [
+      ["דוח מנות לטבח — " + (ev.name || "")],
+      [],
+      mealHdr,
+    ];
+    const mealTotals = Object.fromEntries(mealKeys.map(k => [k, 0]));
+    ev.tables.forEach(t => {
+      const tGuests = ev.guests.filter(g => ev.seating[g.id] === t.id);
+      if (tGuests.length === 0) return;
+      const counts  = Object.fromEntries(mealKeys.map(k => [k, 0]));
+      tGuests.forEach(g => {
+        const key = g.meal || "regular";
+        counts[key] = (counts[key] || 0) + (g.count != null ? g.count : 1);
+        mealTotals[key] = (mealTotals[key] || 0) + (g.count != null ? g.count : 1);
+      });
+      const total = Object.values(counts).reduce((s, n) => s + n, 0);
+      mealRows.push([t.name, ...mealKeys.map(k => counts[k] || 0), total]);
+    });
+    const grandTotal = Object.values(mealTotals).reduce((s, n) => s + n, 0);
+    mealRows.push([]);
+    mealRows.push(["סה״כ", ...mealKeys.map(k => mealTotals[k] || 0), grandTotal]);
+    const ws5 = XLSX.utils.aoa_to_sheet(mealRows);
+    ws5["!cols"] = [{ wch: 16 }, ...mealKeys.map(() => ({ wch: 14 })), { wch: 8 }];
+    XLSX.utils.book_append_sheet(wb, ws5, "דוח מנות לטבח");
+  }
+
   // xlsx 0.18.5: workbook-level RTL is the only reliable way to set sheet direction.
   // ws["!views"] is silently ignored; wb.Workbook.Views survives the write/read cycle.
   wb.Workbook = { Views: [{ RTL: true }] };

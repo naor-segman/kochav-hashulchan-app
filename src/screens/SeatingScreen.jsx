@@ -182,6 +182,27 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     });
   };
 
+  const lockedTablesSet = useMemo(() => new Set(ev.lockedTables || []), [ev.lockedTables]);
+  const isTableLocked   = id => lockedTablesSet.has(id);
+
+  const toggleGuestArrived = (guestId) => {
+    patchEvent(e => ({
+      ...e,
+      guests: e.guests.map(g => g.id === guestId ? { ...g, arrived: !g.arrived } : g),
+    }));
+  };
+
+  const nArrived = ev.guests.filter(g => g.arrived).length;
+
+  const toggleTableLock = (tableId) => {
+    patchEvent(e => {
+      const locked = new Set(e.lockedTables || []);
+      if (locked.has(tableId)) locked.delete(tableId);
+      else locked.add(tableId);
+      return Object.assign({}, e, { lockedTables: [...locked] });
+    });
+  };
+
   const handleApplySuggestion = (suggestion) => {
     const { applyAction } = suggestion;
     if (!applyAction) return;
@@ -289,6 +310,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 <StatPill n={nAssigned}           label="שובצו"   color={allSeated ? "var(--green)" : "var(--accent)"} />
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
+                {nArrived > 0 && <StatPill n={nArrived} label="הגיעו" color="var(--green)" />}
                 <StatPill n={violations.length}   label="הפרות"   color={violations.length > 0 ? "var(--red)" : undefined} />
               </div>
             }
@@ -446,7 +468,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     const tid   = ev.seating[g.id];
                     const table = tid ? ev.tables.find(t => t.id === tid) : null;
                     return (
-                      <div key={g.id} className={styles.daySearchRow}>
+                      <div key={g.id} className={[styles.daySearchRow, g.arrived ? styles.daySearchRowArrived : ""].filter(Boolean).join(" ")}>
                         <SideDot side={g.side} />
                         <span className={styles.daySearchName}>{g.name}</span>
                         {table
@@ -464,6 +486,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                             📱
                           </a>
                         )}
+                        <button
+                          className={[styles.dayCheckInBtn, g.arrived ? styles.dayCheckInBtnDone : ""].filter(Boolean).join(" ")}
+                          onClick={() => toggleGuestArrived(g.id)}
+                          title={g.arrived ? "בטל צ׳ק אין" : "סמן כהגיע/ה"}
+                        >
+                          {g.arrived ? "✓ הגיע/ה" : "צ׳ק אין"}
+                        </button>
                       </div>
                     );
                   })}
@@ -565,6 +594,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 const isCapOver    = usedSeats > t.capacity;
                 const hasViol      = violatedTables.has(t.name);
                 const isExpanded   = expandedTable === t.id;
+                const isLocked     = isTableLocked(t.id);
                 const pct          = t.capacity > 0 ? usedSeats / t.capacity : 0;
                 const staticBorder = isCapOver ? "var(--red)" : hasViol ? "var(--warn)" : "var(--border)";
                 const draggedSeats  = activeGuest?.count || 1;
@@ -595,6 +625,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                               <div className={styles.tCardName}>
                                 {t.name}
                                 {t.type !== "regular" && <TypeTag type={t.type} />}
+                                {isLocked              && <span className={styles.tCardBadgeLock}>🔒</span>}
                                 {isCapOver             && <span className={styles.tCardBadgeRed}>חריגה!</span>}
                                 {hasViol && !isCapOver && <span className={styles.tCardBadgeWarn}>הפרה</span>}
                               </div>
@@ -649,6 +680,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   onClick={e => { e.stopPropagation(); clearTable(t.id); }}
                                 >
                                   ✕ פנה שולחן
+                                </button>
+                                <button
+                                  className={[styles.tTableLockBtn, isLocked ? styles.tTableLockBtnActive : ""].filter(Boolean).join(" ")}
+                                  onPointerDown={e => e.stopPropagation()}
+                                  onClick={e => { e.stopPropagation(); toggleTableLock(t.id); }}
+                                  title={isLocked ? "בטל נעילת שולחן — יוכל לקבל הצעות מהעוזר החכם" : "נעל שולחן — לא יוצעו שינויים לשולחן זה"}
+                                >
+                                  {isLocked ? "🔒 שולחן נעול" : "🔓 נעל שולחן"}
                                 </button>
                               </div>
                             )}

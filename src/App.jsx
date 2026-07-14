@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, lazy, Suspense } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
 import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
@@ -87,6 +88,18 @@ export default function App() {
   const { plan }                                                        = usePlan();
   const navigate                                                        = useNavigate();
   const migration = useMigration(events, patchEventById, user);
+
+  // PWA update — auto-apply the new service worker and notify the user
+  const { needRefresh, updateServiceWorker } = useRegisterSW({
+    onRegistered() {},
+    onRegisterError() {},
+  });
+  useEffect(() => {
+    if (needRefresh[0]) {
+      updateServiceWorker(true);
+      showToast("האפליקציה עודכנה לגרסה החדשה ✓");
+    }
+  }, [needRefresh, updateServiceWorker, showToast]);
 
   // Show a one-time toast whenever a cloud sync error occurs.
   const prevSyncRef = useRef(null);
