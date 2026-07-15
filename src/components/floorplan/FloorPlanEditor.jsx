@@ -259,7 +259,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       floorPlan: {
         ...ev.floorPlan,
         tablePositions: {
-          ...ev.floorPlan.tablePositions,
+          ...ev.floorPlan?.tablePositions,
           [placingId]: {
             x: Math.min(0.94, Math.max(0.06, x)),
             y: Math.min(0.94, Math.max(0.06, y)),
@@ -283,25 +283,29 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
     const { type } = active.data.current;
 
     if (type === "chip") {
-      // Reposition chip: apply delta relative to container size
+      // Reposition chip: apply delta relative to container size.
+      // cur is read INSIDE patchEvent so we always use the latest committed
+      // position, not a render-time snapshot that may have been stale.
       const { tableId } = active.data.current;
       const container = containerRef.current;
       if (!container) return;
       const { width, height } = container.getBoundingClientRect();
-      const cur = positions[tableId] ?? { x: 0.5, y: 0.5 };
-      patchEvent(e => ({
-        ...e,
-        floorPlan: {
-          ...e.floorPlan,
-          tablePositions: {
-            ...e.floorPlan.tablePositions,
-            [tableId]: {
-              x: Math.min(0.94, Math.max(0.06, cur.x + delta.x / width)),
-              y: Math.min(0.94, Math.max(0.06, cur.y + delta.y / height)),
+      patchEvent(e => {
+        const cur = e.floorPlan?.tablePositions?.[tableId] ?? { x: 0.5, y: 0.5 };
+        return {
+          ...e,
+          floorPlan: {
+            ...e.floorPlan,
+            tablePositions: {
+              ...e.floorPlan?.tablePositions,
+              [tableId]: {
+                x: Math.min(0.94, Math.max(0.06, cur.x + delta.x / width)),
+                y: Math.min(0.94, Math.max(0.06, cur.y + delta.y / height)),
+              },
             },
           },
-        },
-      }));
+        };
+      });
       return;
     }
 
@@ -402,7 +406,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
           </div>
           <div className={styles.detActions}>
             <button className={styles.toolBtnPrimary} onClick={handleConfirmDetection}>
-              ✓ הוסף {detResult.totalDetected} שולחנות
+              ✓ הוסף {detResult.tables.length} שולחנות
             </button>
             <button className={styles.toolBtn} onClick={() => setDetResult(null)}>בטל</button>
           </div>
