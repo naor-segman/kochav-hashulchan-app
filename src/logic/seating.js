@@ -71,6 +71,28 @@ export function autoAssign(guests, tables, constraints, lockedSeating = {}) {
 
   const clusterSeats = ids => ids.reduce((s, id) => s + guestSeats(guestMap[id] || {}), 0);
 
+  // Pre-assign unlocked guests that have a "together" constraint with a locked guest.
+  // buildClusters only receives unlockedGuests, so locked-side together constraints
+  // are silently ignored otherwise — the unlocked guest would be placed by affinity alone.
+  const lockedTogetherMap = {};
+  constraints.filter(c => c.type === "together").forEach(c => {
+    if (lockedIds.has(c.guestA) && !lockedIds.has(c.guestB))
+      lockedTogetherMap[c.guestB] = lockedSeating[c.guestA];
+    else if (lockedIds.has(c.guestB) && !lockedIds.has(c.guestA))
+      lockedTogetherMap[c.guestA] = lockedSeating[c.guestB];
+  });
+  Object.entries(lockedTogetherMap).forEach(([unlockedId, tableId]) => {
+    if (seating[unlockedId] || !tableId) return;
+    const t = tState.find(t => t.id === tableId);
+    if (!t) return;
+    const g = guestMap[unlockedId];
+    if (!g) return;
+    if (seatedCount(t, guestMap) + guestSeats(g) > t.capacity) return;
+    if (apartConflict(apartSet, unlockedId, t.seated)) return;
+    t.seated.push(unlockedId);
+    seating[unlockedId] = tableId;
+  });
+
   const seatCluster = (ids) => {
     const sorted = [...tState].sort((a, b) =>
       affinityScore(guestMap[ids[0]], b.seated, guestMap) -
@@ -92,7 +114,7 @@ export function autoAssign(guests, tables, constraints, lockedSeating = {}) {
     return false;
   };
 
-  [...clusters].sort((a, b) => b.length - a.length).forEach(cluster => {
+  [...clusters].sort((a, b) => clusterSeats(b) - clusterSeats(a)).forEach(cluster => {
     if (cluster.every(id => seating[id])) return;
     seatCluster(cluster);
   });

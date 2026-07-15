@@ -1462,8 +1462,8 @@
 }
 
 .waNotifyItem:hover {
-  border-color: #25D366;
-  background: color-mix(in srgb, #25D366 6%, var(--bg));
+  border-color: var(--whatsapp);
+  background: color-mix(in srgb, var(--whatsapp) 6%, var(--bg));
 }
 
 .waNotifyName {

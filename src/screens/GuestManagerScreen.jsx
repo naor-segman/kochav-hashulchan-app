@@ -488,6 +488,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       showToast("יש להזין שם לקבוצה החדשה", "err"); return;
     }
     if (editId) {
+      if (!ev.guests.some(g => g.id === editId)) {
+        cancelEdit();
+        showToast("האורח כבר נמחק", "err");
+        return;
+      }
       const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
       patchEvent(e => {
         const updated = e.guests.map(g =>
@@ -535,8 +540,16 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       .map(s => s.trim())
       .filter(s => s.length > 0);
     if (names.length === 0) return;
-    const gate = canAddGuest(plan, ev.guests.length);
-    if (!gate.allowed) { showToast(gate.reason + " — שדרג להוספת אורחים נוספים", "err"); return; }
+    if (maxGuests !== Infinity && ev.guests.length + names.length > maxGuests) {
+      const remaining = Math.max(0, maxGuests - ev.guests.length);
+      showToast(
+        remaining === 0
+          ? `הגעת למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרג להוספת אורחים נוספים`
+          : `ניתן להוסיף עוד ${remaining} רשומות בלבד בתוכנית הנוכחית (${ev.guests.length}/${maxGuests})`,
+        "err"
+      );
+      return;
+    }
     const newGuests = names.map(name => ({
       id: uid(), name, count: 1, side: listSide, group: listGroup,
       phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
@@ -555,6 +568,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית.\n\nפעולה זו אינה ניתנת לביטול."
       : "למחוק את \"" + name + "\" מרשימת האורחים?\n\nפעולה זו אינה ניתנת לביטול.";
     if (!confirm(msg)) return;
+    if (editId === id) { setEditId(null); setForm(EF); setCustomGroupInput(""); }
     patchEvent(e => Object.assign({}, e, {
       guests:  e.guests.filter(g => g.id !== id),
       seating: Object.fromEntries(Object.entries(e.seating).filter(([gid]) => gid !== id)),
@@ -644,7 +658,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")}>
         <SectionLabel>
           {editId
-            ? ("✏ עריכת אורח — " + (ev.guests.find(g => g.id === editId) || {}).name)
+            ? ("✏ עריכת אורח — " + (ev.guests.find(g => g.id === editId)?.name ?? ""))
             : "הוספת אורח ידנית"}
         </SectionLabel>
         {!editId && (

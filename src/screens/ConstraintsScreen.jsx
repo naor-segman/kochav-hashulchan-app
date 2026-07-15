@@ -64,7 +64,7 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
   const lquery  = query.toLowerCase();
   const results = guests
     .filter(g => g.id !== exclude)
-    .filter(g => !query || g.name.toLowerCase().includes(lquery))
+    .filter(g => !query || (g.name || '').toLowerCase().includes(lquery))
     .slice(0, 10);
 
   const select = (g) => {
@@ -164,7 +164,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
   const [formB, setFormB]       = useState("");
   const [formType, setFormType] = useState("together");
 
-  const sorted    = ev.guests.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const sorted    = ev.guests.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
   const sideLabel = s => getSideLabel(ev, s);
   const gMap = Object.fromEntries(ev.guests.map(g => [g.id, g]));
 

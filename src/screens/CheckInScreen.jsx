@@ -30,15 +30,14 @@ export default function CheckInScreen({ events, patchEventById }) {
 
   const patchEvent = (patch) => patchEventById(eventId, patch);
 
-  const toggleArrived = (guestId) => {
-    const guest = ev.guests.find(g => g.id === guestId);
+  const toggleArrived = (guestId, wasArrived) => {
     patchEvent(e => ({
       ...e,
       guests: e.guests.map(g =>
-        g.id === guestId ? { ...g, arrived: !g.arrived } : g
+        g.id === guestId ? { ...g, arrived: !wasArrived } : g
       ),
     }));
-    if (!guest?.arrived) setLastChecked(guestId);
+    if (!wasArrived) setLastChecked(guestId);
   };
 
   const addWalkIn = () => {
@@ -77,7 +76,7 @@ export default function CheckInScreen({ events, patchEventById }) {
     patchEvent(e => ({
       ...e,
       guests: e.guests.map(g =>
-        ev.seating[g.id] === tableId ? { ...g, arrived } : g
+        e.seating?.[g.id] === tableId ? { ...g, arrived } : g
       ),
     }));
   };
@@ -273,7 +272,7 @@ export default function CheckInScreen({ events, patchEventById }) {
                   }
                   <button
                     className={[styles.checkBtn, g.arrived ? styles.checkBtnDone : ""].filter(Boolean).join(" ")}
-                    onClick={() => toggleArrived(g.id)}
+                    onClick={() => toggleArrived(g.id, g.arrived)}
                   >
                     {g.arrived ? "✓ הגיע/ה" : "צ׳ק אין"}
                   </button>
@@ -355,7 +354,7 @@ export default function CheckInScreen({ events, patchEventById }) {
                         <div
                           key={g.id}
                           className={[styles.tableGuestRow, g.arrived ? styles.tableGuestRowDone : ""].filter(Boolean).join(" ")}
-                          onClick={() => toggleArrived(g.id)}
+                          onClick={() => toggleArrived(g.id, g.arrived)}
                         >
                           <span className={styles.tableGuestName}>{g.name}{g.count > 1 ? ` ×${g.count}` : ""}</span>
                           <span className={[styles.tableGuestStatus, g.arrived ? styles.tableGuestStatusDone : ""].filter(Boolean).join(" ")}>
@@ -368,6 +367,36 @@ export default function CheckInScreen({ events, patchEventById }) {
               </div>
             );
           })}
+          {/* Walk-in guests with no table assignment are otherwise invisible in table view */}
+          {(() => {
+            const unassigned = active.filter(g => !ev.seating?.[g.id]);
+            if (unassigned.length === 0) return null;
+            const nUnassignedArrived = unassigned.filter(g => g.arrived).length;
+            return (
+              <div className={styles.tableBlock}>
+                <div className={styles.tableBlockHead}>
+                  <div className={styles.tableBlockName}>
+                    לא משובצים
+                    <span className={styles.tableBlockCount}>{nUnassignedArrived}/{unassigned.length}</span>
+                  </div>
+                </div>
+                <div className={styles.tableGuestList}>
+                  {unassigned.map(g => (
+                    <div
+                      key={g.id}
+                      className={[styles.tableGuestRow, g.arrived ? styles.tableGuestRowDone : ""].filter(Boolean).join(" ")}
+                      onClick={() => toggleArrived(g.id, g.arrived)}
+                    >
+                      <span className={styles.tableGuestName}>{g.name}{g.count > 1 ? ` ×${g.count}` : ""}</span>
+                      <span className={[styles.tableGuestStatus, g.arrived ? styles.tableGuestStatusDone : ""].filter(Boolean).join(" ")}>
+                        {g.arrived ? "✓ הגיע/ה" : "טרם הגיע"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

@@ -102,7 +102,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
   {
     const assigned = ev.guests
       .filter(g => ev.seating[g.id])
-      .sort((a, b) => a.name.localeCompare(b.name, "he"));
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', "he"));
     const tableMap = Object.fromEntries(ev.tables.map(t => [t.id, t]));
     const aRows = [
       ["רשימת כניסה לפי א׳-ב׳ — " + (ev.name || "")],
@@ -182,7 +182,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
       .filter(g => g.arrived || giftAmt(g) > 0)
       .sort((a, b) => {
         if (giftAmt(b) !== giftAmt(a)) return giftAmt(b) - giftAmt(a);
-        return a.name.localeCompare(b.name, "he");
+        return (a.name || '').localeCompare(b.name || '', "he");
       });
 
     if (giftGuests.length > 0 || ev.guests.some(g => g.arrived)) {
@@ -197,7 +197,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
         ["סיכום:", "", "סה״כ הגיעו:", allArrived.length, "סה״כ מתנות:", "₪" + giftTotal.toLocaleString("he-IL"), "ממוצע:", avgGift > 0 ? "₪" + avgGift.toLocaleString("he-IL") : "—"],
         [],
         ["שם אורח", "שולחן", "כמות", "הגיע/ה", "סכום מתנה (₪)"],
-        ...ev.guests
+        ...[...ev.guests]
           .sort((a, b) => {
             const aArrived = a.arrived ? 0 : 1;
             const bArrived = b.arrived ? 0 : 1;

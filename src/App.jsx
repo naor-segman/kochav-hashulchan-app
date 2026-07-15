@@ -56,8 +56,13 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
     else navigate(`/events/${newEventId || eventId}/${screen}`);
   }, [navigate, eventId]);
 
-  // Unknown event ID → back to dashboard
-  if (!activeEvent) return <Navigate to="/" replace />;
+  // Unknown event ID → wait for cloud sync before bouncing to dashboard.
+  // Without this guard, a bookmarked URL on a fresh device would immediately
+  // redirect before cloud events have loaded.
+  if (!activeEvent) {
+    if (syncStatus === SYNC_STATUS.SYNCING) return <div aria-busy="true" />;
+    return <Navigate to="/" replace />;
+  }
 
   // Derive active tab name from last URL segment ("setup", "tables", …)
   const segments = location.pathname.split("/");

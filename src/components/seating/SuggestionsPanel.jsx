@@ -33,7 +33,7 @@ function scoreColorClass(score) {
  * @param {number|null} qualityScore  Output of computeQualityScore()
  * @param {function}    onApply       Called with suggestion when "החל" is clicked
  */
-export default function SuggestionsPanel({ suggestions, qualityScore = null, onApply }) {
+export default function SuggestionsPanel({ suggestions = [], qualityScore = null, onApply }) {
   const [open, setOpen] = useState(() => hasCriticalOrWarning(suggestions));
 
   useEffect(() => {

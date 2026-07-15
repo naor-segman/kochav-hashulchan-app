@@ -51,7 +51,7 @@ export function computeQualityScore(guests, tables, constraints, seating, violat
 
   const unassigned = guests.filter(g => !seating[g.id]);
   if (unassigned.length > 0) {
-    score -= Math.min(20, unassigned.length * 3);
+    score -= Math.min(20, unassigned.reduce((s, g) => s + (g.count || 1), 0) * 3);
   }
 
   let underPenalty = 0;
@@ -434,7 +434,7 @@ export function generateSuggestions(
     });
 
     let mergeCount = 0;
-    outer: for (let i = 0; i < underfilled.length && mergeCount < 2; i++) {
+    for (let i = 0; i < underfilled.length && mergeCount < 2; i++) {
       for (let j = i + 1; j < underfilled.length && mergeCount < 2; j++) {
         const tA   = underfilled[i];
         const tB   = underfilled[j];
@@ -446,12 +446,7 @@ export function generateSuggestions(
         // Quick "apart" conflict check between the two sets of guests
         const idsA = tableGuests(tA.id).map(g => g.id);
         const idsB = tableGuests(tB.id).map(g => g.id);
-        let conflict = false;
-        for (const a of idsA) {
-          for (const b of idsB) {
-            if (apartPairs.has([a, b].sort().join("___"))) { conflict = true; break outer; }
-          }
-        }
+        const conflict = idsA.some(a => idsB.some(b => apartPairs.has([a, b].sort().join("___"))));
         if (conflict) continue;
 
         const larger = tA.capacity >= tB.capacity ? tA : tB;

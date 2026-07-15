@@ -7,15 +7,17 @@ export default function AuthCallbackScreen() {
   const [msg, setMsg] = useState("מאמת…");
 
   useEffect(() => {
+    let tid;
     supabase?.auth.getSession().then(({ data }) => {
       if (data?.session) {
         setMsg("האימות הצליח! מעביר…");
-        setTimeout(() => navigate("/", { replace: true }), 1200);
+        tid = setTimeout(() => navigate("/", { replace: true }), 1200);
       } else {
         setMsg("הקישור פג תוקף. נסה להתחבר מחדש.");
-        setTimeout(() => navigate("/login", { replace: true }), 2500);
+        tid = setTimeout(() => navigate("/login", { replace: true }), 2500);
       }
     });
+    return () => clearTimeout(tid);
   }, [navigate]);
 
   return (

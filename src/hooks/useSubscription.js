@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./useAuth.js";
 import { supabase } from "../lib/supabase.js";
 
@@ -35,10 +35,14 @@ async function fetchSub(userId) {
 export function useSubscription() {
   const { user, loading: authLoading } = useAuth();
   const [sub, setSub] = useState(undefined); // undefined=loading, null=none
+  const refreshCountRef = useRef(0);
 
   const refresh = useCallback(() => {
     if (!user) return;
-    fetchSub(user.id).then(setSub);
+    const token = ++refreshCountRef.current;
+    fetchSub(user.id).then(data => {
+      if (token === refreshCountRef.current) setSub(data);
+    });
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -47,8 +51,12 @@ export function useSubscription() {
       setSub(null);
       return;
     }
+    let cancelled = false;
     setSub(undefined);
-    fetchSub(user.id).then(setSub);
+    fetchSub(user.id).then(data => {
+      if (!cancelled) setSub(data);
+    });
+    return () => { cancelled = true; };
   }, [user?.id, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const planKey        = sub?.plan   || "free";

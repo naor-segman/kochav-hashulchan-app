@@ -21,8 +21,8 @@ export function normalizeEvent(ev) {
   if (!ev || typeof ev !== "object") return null;
   const now = Date.now();
   return {
-    // Core identity
-    id:          ev.id,
+    // Core identity — generate a fresh uid if the stored id is missing/undefined
+    id:          ev.id ?? uid(),
     // Display fields — default to empty strings
     name:        ev.name        ?? "",
     type:        ev.type        ?? "חתונה",
@@ -124,6 +124,9 @@ export function duplicateEvent(ev) {
     guests,
     constraints,
     seating:     {},
+    // Locks reference IDs that don't exist in the duplicate — clear them.
+    lockedGuests: [],
+    lockedTables: [],
     cloudId:     null,
     createdAt:   now,
     updatedAt:   now,

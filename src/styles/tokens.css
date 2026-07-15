@@ -99,6 +99,9 @@
   --bride-bg:     #f7eef5;
   --groom-bg:     #eaf0f9;
 
+  /* Brand colors — third-party services */
+  --whatsapp:     #25D366;
+
   /* V1 radius + shadow shortcuts */
   --radius:       10px;
   --radius-lg:    16px;

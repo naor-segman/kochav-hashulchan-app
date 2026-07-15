@@ -52,6 +52,8 @@ export function useEvents(user) {
   const loadedForRef = useRef(null);
   const syncTimers   = useRef({});  // debounce timers keyed by event id
 
+  useEffect(() => () => { Object.values(syncTimers.current).forEach(clearTimeout); }, []);
+
   useEffect(() => { eventsRef.current = events; });
   useEffect(() => { userRef.current = user; }, [user]);
 
@@ -103,8 +105,10 @@ export function useEvents(user) {
     createCloudEvent(normalized, currentUser.id)
       .then(cloudId => {
         if (cloudId) {
-          // Store cloudId on the local copy so future patches know where to write.
           setEvents(prev => prev.map(e => e.id === normalized.id ? { ...e, cloudId } : e));
+          // Push any edits that arrived during the round-trip so the cloud row stays current.
+          const latest = eventsRef.current.find(e => e.id === normalized.id);
+          if (latest) updateCloudEvent({ ...latest, cloudId }, currentUser.id).catch(() => {});
         }
         setSyncStatus(SYNC_STATUS.SYNCED);
       })
@@ -128,6 +132,20 @@ export function useEvents(user) {
   }, []);
 
   const patchEventById = useCallback((id, patch) => {
+    // Internal cloudId-only patches must not bump updatedAt/version or trigger
+    // a cloud write — the row was just created by addEvent.
+    const isOnlyCloudId =
+      patch !== null &&
+      typeof patch === "object" &&
+      !Array.isArray(patch) &&
+      Object.keys(patch).length === 1 &&
+      "cloudId" in patch;
+
+    if (isOnlyCloudId) {
+      setEvents(prev => prev.map(e => e.id === id ? { ...e, cloudId: patch.cloudId } : e));
+      return;
+    }
+
     setEvents(prev => prev.map(e => {
       if (e.id !== id) return e;
       const patched = typeof patch === "function"
@@ -135,16 +153,6 @@ export function useEvents(user) {
         : Object.assign({}, e, patch);
       return updateEventTimestamp(patched);
     }));
-
-    // Internal cloudId-only patches (set by addEvent / migration) must not
-    // trigger a redundant cloud write — the row was just created.
-    const isOnlyCloudId =
-      patch !== null &&
-      typeof patch === "object" &&
-      !Array.isArray(patch) &&
-      Object.keys(patch).length === 1 &&
-      "cloudId" in patch;
-    if (isOnlyCloudId) return;
 
     // Debounce cloud writes so rapid-fire patches (e.g. typing in a field)
     // don't generate one request per keystroke.

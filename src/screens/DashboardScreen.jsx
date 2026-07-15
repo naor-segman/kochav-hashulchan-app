@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { fmtDate } from "../utils/dateFormat.js";
 import { useTemplates } from "../hooks/useTemplates.js";
 import { canCreateEvent } from "../utils/featureGates.js";
@@ -64,7 +65,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
       {!eventGate.allowed && hasEvents && (
         <p className={styles.upgradeTip}>
           🔒 {eventGate.reason} —{" "}
-          <a href="/account" className={styles.upgradeTipLink}>שדרג את התוכנית</a>
+          <Link to="/account" className={styles.upgradeTipLink}>שדרג את התוכנית</Link>
         </p>
       )}
 

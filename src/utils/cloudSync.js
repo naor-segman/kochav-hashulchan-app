@@ -25,8 +25,9 @@ export const SYNC_STATUS = {
  * @returns {object}           — row object suitable for supabase.from("events").insert/update
  */
 export function mapLocalEventToCloudPayload(localEvent, userId) {
-  const seated = Object.keys(localEvent.seating ?? {}).length;
-  const total  = (localEvent.guests ?? []).length;
+  const guestMap  = new Map((localEvent.guests ?? []).map(g => [g.id, g]));
+  const seated    = Object.keys(localEvent.seating ?? {}).reduce((s, id) => s + ((guestMap.get(id)?.count) || 1), 0);
+  const total     = (localEvent.guests ?? []).reduce((s, g) => s + (g.count || 1), 0);
   const seatedPct = total > 0 ? parseFloat(((seated / total) * 100).toFixed(2)) : 0;
 
   return {

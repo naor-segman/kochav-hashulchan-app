@@ -35,13 +35,15 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     const cnt = parseInt(batch.count);
     if (!cap || cap < 1) { showToast("יש להזין מספר מקומות תקני", "err"); return; }
     if (!cnt || cnt < 1) { showToast("יש להזין כמות שולחנות תקנית", "err"); return; }
-    const rows = Array.from({ length: cnt }, (_, i) => ({
-      id:       uid(),
-      name:     previewPrefix + " " + (ev.tables.length + i + 1),
-      capacity: cap,
-      type:     batch.type,
-    }));
-    patchEvent(e => Object.assign({}, e, { tables: e.tables.concat(rows) }));
+    patchEvent(e => {
+      const rows = Array.from({ length: cnt }, (_, i) => ({
+        id:       uid(),
+        name:     previewPrefix + " " + (e.tables.length + i + 1),
+        capacity: cap,
+        type:     batch.type,
+      }));
+      return Object.assign({}, e, { tables: e.tables.concat(rows) });
+    });
     showToast("נוספו " + (cnt === 1 ? "שולחן אחד" : cnt + " שולחנות") + " (" + batchTotal + " מקומות) ✓");
     setBatch(p => Object.assign({}, p, { prefix: "", count: "1" }));
   };
