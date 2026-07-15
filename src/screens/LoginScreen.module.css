@@ -1,11 +1,12 @@
 @keyframes popIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
 .page {
   min-height: 100vh;
-  background: var(--bg);
+  background: var(--nav-bg);
+  background-image: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(196,138,26,.18) 0%, transparent 70%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,30 +15,39 @@
 
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 36px 32px 28px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.45), 0 6px 24px rgba(0,0,0,.20), var(--shadow-accent);
+  padding: 40px 36px 32px;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  animation: popIn 0.22s ease;
+  animation: popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .brand {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.brandMark { font-size: 22px; color: var(--accent); }
-.brandName { font-size: 18px; font-weight: 900; color: var(--text); letter-spacing: -0.02em; }
+.brandMark {
+  font-size: 26px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 10px rgba(196,138,26,.50));
+}
+.brandName {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -0.03em;
+}
 
 .title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--text);
   margin: 0;
@@ -69,14 +79,14 @@
 
 .label {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text2);
 }
 
 .input {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 12px;
+  padding: 11px 14px;
   font-size: 14px;
   color: var(--text);
   background: var(--bg);
@@ -107,27 +117,29 @@
 }
 
 .submitBtn {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
   color: #fff;
   border: none;
   border-radius: var(--radius);
-  padding: 11px 0;
+  padding: 13px 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.12s, box-shadow 0.12s, transform 0.12s;
+  transition: opacity 0.12s, box-shadow 0.12s, transform 0.12s;
   margin-top: 2px;
+  box-shadow: var(--shadow-accent);
+  letter-spacing: 0.01em;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: var(--accent-dark);
+  opacity: 0.92;
   box-shadow: var(--shadow-accent-lg);
   transform: translateY(-1px);
 }
 
 .submitBtn:disabled {
-  opacity: 0.55;
+  opacity: 0.50;
   cursor: not-allowed;
 }
 
@@ -218,5 +230,5 @@
 }
 
 @media (max-width: 480px) {
-  .card { padding: 28px 20px 24px; }
+  .card { padding: 30px 22px 26px; }
 }

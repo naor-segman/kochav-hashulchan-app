@@ -56,63 +56,69 @@
      Do not rename or remove.
      ───────────────────────────────────────────────────────────── */
 
-  /* Surfaces */
-  --bg:           #F5F4F1;
-  --surface:      #FFFFFF;
+  /* Surfaces — warm cream palette, clearly different from white */
+  --bg:           #EEE7DC;
+  --surface:      #FBF8F3;
 
-  /* Borders */
-  --border:       #E2DFD8;
-  --border2:      #CCCAC2;
+  /* Borders — warmer, more visible */
+  --border:       #D4C9BB;
+  --border2:      #B8A994;
 
-  /* Text */
-  --text:         #17140F;
-  --text2:        #55524C;
-  --muted:        #97938D;
+  /* Text — rich warm browns, not neutral grays */
+  --text:         #1C1208;
+  --text2:        #4A3B2A;
+  --muted:        #8A7463;
 
-  /* Brand accent (warm amber) */
-  --accent:        #BE7A38;
-  --accent-bg:     #FBF2E7;
-  --accent-light:  #FEF8F0;
-  --accent-border: #E5C99A;
+  /* Brand accent — richer, more vibrant gold */
+  --accent:        #C48A1A;
+  --accent-bg:     #FEF2D8;
+  --accent-light:  #FFF8EE;
+  --accent-border: #D9A840;
+
+  /* Navigation bar — dark warm background for topbar */
+  --nav-bg:        #1C1208;
+  --nav-text:      #F2E8D6;
+  --nav-muted:     #9A8670;
+  --nav-border:    rgba(242,232,214,.10);
 
   /* Side colors */
-  --bride:        #AD6A9C;
-  --groom:        #4478B8;
+  --bride:        #B55FA0;
+  --groom:        #3470BE;
 
   /* Semantic state — green */
-  --green:        #2A7A50;
-  --green-light:  #3d9e6a;
-  --green-bg:     #EAF6F0;
-  --green-border: #B2DAC5;
+  --green:        #1F7845;
+  --green-light:  #3A9E68;
+  --green-bg:     #E4F5EC;
+  --green-border: #A8D8BC;
 
   /* Semantic state — red */
-  --red:          #BB3527;
-  --red-bg:       #FEEEEC;
-  --red-border:   #F8C9C4;
+  --red:          #C02B1C;
+  --red-bg:       #FDECEA;
+  --red-border:   #F5BCB6;
 
   /* Semantic state — warning */
-  --warn:         #956700;
-  --warn-bg:      #FEF8E7;
-  --warn-border:  #F5DC95;
+  --warn:         #9A5F00;
+  --warn-bg:      #FEF6E0;
+  --warn-border:  #F0D080;
 
   /* Side color backgrounds */
-  --bride-bg:     #f7eef5;
-  --groom-bg:     #eaf0f9;
+  --bride-bg:     #F6EAF4;
+  --groom-bg:     #E8EFF8;
 
   /* Brand colors — third-party services */
   --whatsapp:     #25D366;
 
-  /* V1 radius + shadow shortcuts */
-  --radius:       10px;
-  --radius-lg:    16px;
-  --shadow:       0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-md:    0 4px 20px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.06);
-  --shadow-lg:    0 8px 40px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.07);
+  /* V1 radius + shadow shortcuts — slightly more rounded */
+  --radius:       12px;
+  --radius-lg:    20px;
+  --shadow:       0 1px 4px rgba(80,45,10,.10), 0 1px 2px rgba(80,45,10,.06);
+  --shadow-md:    0 4px 24px rgba(80,45,10,.14), 0 2px 6px rgba(80,45,10,.08);
+  --shadow-lg:    0 10px 50px rgba(80,45,10,.18), 0 4px 12px rgba(80,45,10,.10);
 
   /* Accent hover & shadow */
-  --accent-dark:       #9a5e25;
-  --shadow-accent:     0 2px 10px rgba(190,122,56,.28);
-  --shadow-accent-lg:  0 5px 22px rgba(190,122,56,.42);
+  --accent-dark:       #8A5C10;
+  --shadow-accent:     0 2px 12px rgba(196,138,26,.35);
+  --shadow-accent-lg:  0 6px 28px rgba(196,138,26,.48);
 
   /* Transition presets */
   --transition:        0.15s ease;

@@ -5,23 +5,19 @@
   min-height: 100vh;
 }
 
-/* ── Topbar ── */
+/* ── Topbar — dark premium navigation ── */
 .topbar {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 58px;
-  padding: 0 20px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  height: 62px;
+  padding: 0 24px;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
   position: sticky;
   top: 0;
   z-index: 200;
-  box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  overflow: hidden;
-  /* Glass effect for depth */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 16px rgba(0,0,0,.28), 0 1px 4px rgba(0,0,0,.18);
 }
 
 .logo {
@@ -39,15 +35,15 @@
 .logo:hover { opacity: 0.8; }
 
 .logoMark {
-  font-size: 20px;
+  font-size: 22px;
   color: var(--accent);
-  filter: drop-shadow(0 1px 3px rgba(190,122,56,.35));
+  filter: drop-shadow(0 0 8px rgba(196,138,26,.50));
 }
 
 .logoName {
   font-size: 17px;
   font-weight: 900;
-  color: var(--text);
+  color: var(--nav-text);
   letter-spacing: -0.02em;
 }
 
@@ -55,8 +51,8 @@
   font-size: 9px;
   font-weight: 800;
   color: var(--accent);
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: rgba(196,138,26,.14);
+  border: 1px solid rgba(196,138,26,.30);
   border-radius: 20px;
   padding: 1px 6px;
   letter-spacing: 0.06em;
@@ -72,7 +68,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: var(--text2);
+  color: var(--nav-muted);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -93,18 +89,19 @@
 }
 
 .bcBack:hover {
-  background: var(--accent-bg);
-  color: var(--accent-dark);
+  background: rgba(196,138,26,.14);
+  color: var(--accent-border);
 }
 
 .bcSep {
-  opacity: 0.3;
+  opacity: 0.25;
   flex-shrink: 0;
+  color: var(--nav-muted);
 }
 
 .bcCurrent {
   font-weight: 700;
-  color: var(--text);
+  color: var(--nav-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -116,8 +113,8 @@
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
-  background: var(--green-bg);
-  border: 1px solid var(--green-border);
+  background: rgba(30,120,70,.18);
+  border: 1px solid rgba(30,120,70,.30);
   border-radius: 20px;
   padding: 3px 10px;
   letter-spacing: 0.01em;
@@ -125,15 +122,15 @@
 }
 
 .autoSaving {
-  color: var(--warn);
-  background: var(--warn-bg);
-  border-color: var(--warn-border);
+  color: var(--accent-border);
+  background: rgba(196,138,26,.14);
+  border-color: rgba(196,138,26,.28);
 }
 
 .autoSaveErr {
   color: var(--red);
-  background: var(--red-bg);
-  border-color: var(--red-border);
+  background: rgba(192,43,28,.14);
+  border-color: rgba(192,43,28,.28);
 }
 
 /* ── Account button ── */
@@ -141,13 +138,13 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  background: none;
-  border: 1px solid var(--border2);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
   border-radius: var(--radius-full);
   padding: 5px 12px;
   font-size: 12px;
   font-weight: 700;
-  color: var(--text2);
+  color: var(--nav-muted);
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
@@ -159,10 +156,9 @@
 }
 
 .accountBtn:hover {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
+  background: rgba(196,138,26,.16);
+  border-color: rgba(196,138,26,.35);
   color: var(--accent);
-  box-shadow: var(--shadow-accent);
 }
 
 .accountIcon { font-size: 13px; flex-shrink: 0; }
@@ -175,9 +171,9 @@
   color: #fff;
   border: none;
   border-radius: var(--radius-full);
-  padding: 6px 16px;
+  padding: 7px 18px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
@@ -212,6 +208,7 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
+  box-shadow: 0 2px 8px rgba(80,45,10,.06);
 }
 
 .subnav::-webkit-scrollbar {
@@ -236,7 +233,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 12px 12px;
+  padding: 13px 12px;
   font-size: 12px;
   font-weight: 500;
   color: var(--text2);
@@ -254,7 +251,7 @@
 .subnavActive {
   color: var(--accent);
   border-bottom-color: var(--accent);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .subnavLabel {
@@ -296,6 +293,7 @@
   .logoName { display: none; }
   .autoSave { display: none; }
   .subnavBtn { padding: 11px 8px; font-size: 11px; }
+  .topbar { padding: 0 16px; }
 }
 
 /* ── Print: hide shell chrome ── */

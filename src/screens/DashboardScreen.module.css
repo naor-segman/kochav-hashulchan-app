@@ -17,12 +17,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 22px;
+  padding: 18px 24px;
   border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  margin-bottom: 20px;
-  box-shadow: var(--shadow);
+  background: linear-gradient(135deg, var(--nav-bg) 0%, #2C1E0E 100%);
+  border: 1px solid rgba(196,138,26,.25);
+  margin-bottom: 22px;
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.06);
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -34,20 +34,21 @@
 }
 
 .logoMark {
-  font-size: 19px;
+  font-size: 20px;
   color: var(--accent);
+  filter: drop-shadow(0 0 8px rgba(196,138,26,.50));
 }
 
 .logoName {
   font-size: 20px;
   font-weight: 900;
-  color: var(--text);
+  color: var(--nav-text);
   letter-spacing: -0.02em;
 }
 
 .heroBarSub {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--nav-muted);
 }
 
 .heroCta {
@@ -251,18 +252,36 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 18px;
+  padding: 20px;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: var(--transition);
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.eventCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+  opacity: 0;
+  transition: opacity var(--transition);
 }
 
 .eventCard:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
-  border-color: var(--border2);
+  border-color: var(--accent-border);
+}
+
+.eventCard:hover::before {
+  opacity: 1;
 }
 
 .eventCardTop {

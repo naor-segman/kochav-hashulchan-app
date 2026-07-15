@@ -19,25 +19,25 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 22px;
+  padding: 24px;
   margin-bottom: 20px;
   box-shadow: var(--shadow);
   transition: box-shadow var(--transition), border-color var(--transition);
 }
 
 .card:focus-within {
-  border-color: var(--border2);
+  border-color: var(--accent-border);
   box-shadow: var(--shadow-md);
 }
 
 .cardDirty {
   border-color: var(--warn);
-  border-inline-start-width: 3px;
+  border-inline-start: 3px solid var(--warn);
 }
 
 .cardEdit {
-  border-color: var(--accent);
-  background: var(--accent-light);
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
   box-shadow: var(--shadow-accent);
 }
 
