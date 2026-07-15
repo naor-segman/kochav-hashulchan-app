@@ -78,6 +78,7 @@ function TableChipOnImage({ table, guests }) {
         isDragging ? styles.chipDragging : "",
         isOver     ? styles.chipOver     : "",
       ].filter(Boolean).join(" ")}
+      onClick={e => e.stopPropagation()}
     >
       <div className={styles.chipHandle} {...dragAttrs} {...dragListeners}>
         ⠿ {table.name}

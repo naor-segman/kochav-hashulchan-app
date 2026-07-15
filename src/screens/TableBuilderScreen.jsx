@@ -82,10 +82,14 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
         cnt + " מקומות שובצו לשולחן זה — הרשומות יחזרו לרשימת הממתינים.\n\nפעולה זו אינה ניתנת לביטול."
       : "למחוק את השולחן \"" + tName + "\"?\n\nהשולחן ריק. פעולה זו אינה ניתנת לביטול.";
     if (!confirm(msg)) return;
-    patchEvent(e => Object.assign({}, e, {
-      tables:  e.tables.filter(t => t.id !== id),
-      seating: Object.fromEntries(Object.entries(e.seating).filter(([, tid]) => tid !== id)),
-    }));
+    patchEvent(e => {
+      const tables  = e.tables.filter(t => t.id !== id);
+      const seating = Object.fromEntries(Object.entries(e.seating).filter(([, tid]) => tid !== id));
+      const floorPlan = e.floorPlan
+        ? { ...e.floorPlan, tablePositions: Object.fromEntries(Object.entries(e.floorPlan.tablePositions ?? {}).filter(([tid]) => tid !== id)) }
+        : e.floorPlan;
+      return Object.assign({}, e, { tables, seating, floorPlan });
+    });
     showToast("השולחן \"" + tName + "\" נמחק");
   };
 
