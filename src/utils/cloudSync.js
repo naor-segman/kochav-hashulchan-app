@@ -59,6 +59,11 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       version:          localEvent.version          ?? 1,
       lockedGuests:     Array.isArray(localEvent.lockedGuests) ? localEvent.lockedGuests : [],
       lockedTables:     Array.isArray(localEvent.lockedTables) ? localEvent.lockedTables : [],
+      // Floor plan: sync positions only — the image (base64) is too large for
+      // Postgres JSONB and stays in localStorage on each device. If the user
+      // opens the event on a new device they will need to re-upload the image,
+      // but the table positions will already be in place.
+      floorPlanPositions: localEvent.floorPlan?.tablePositions ?? null,
     },
   };
 }
@@ -95,6 +100,11 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     cloudId:          cloudRow.id,
     lockedGuests:     Array.isArray(p.lockedGuests) ? p.lockedGuests : [],
     lockedTables:     Array.isArray(p.lockedTables) ? p.lockedTables : [],
+    // Floor plan: positions are synced; image stays in localStorage (too large for cloud).
+    // On a new device the user must re-upload the image, but positions are restored.
+    floorPlan: p.floorPlanPositions
+      ? { image: null, tablePositions: p.floorPlanPositions }
+      : null,
   };
 }
 
