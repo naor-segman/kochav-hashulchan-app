@@ -216,27 +216,34 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   };
 
   const handleConfirmDetection = () => {
-    const nextIdx = ev.tables.length;
-    const newTables = detResult.tables.map((det, i) => ({
-      id:       uid(),
-      name:     "שולחן " + (nextIdx + i + 1),
-      capacity: det.seats || 8,
-      type:     "regular",
-    }));
-    const newPositions = { ...positions };
-    detResult.tables.forEach((det, i) => {
-      newPositions[newTables[i].id] = {
-        x: Math.min(0.94, Math.max(0.06, det.x / 100)),
-        y: Math.min(0.94, Math.max(0.06, det.y / 100)),
+    const snapshot = detResult; // capture before async state clear
+    // Pre-generate IDs so positions map can reference them before patchEvent runs
+    const newIds = snapshot.tables.map(() => uid());
+
+    patchEvent(e => {
+      const baseIdx   = e.tables.length;
+      const newTables = snapshot.tables.map((det, i) => ({
+        id:       newIds[i],
+        name:     "שולחן " + (baseIdx + i + 1),
+        capacity: det.seats || 8,
+        type:     "regular",
+      }));
+      // Merge into fresh positions so any drags done since detection are kept.
+      const freshPositions = { ...(e.floorPlan?.tablePositions ?? {}) };
+      snapshot.tables.forEach((det, i) => {
+        freshPositions[newIds[i]] = {
+          x: Math.min(0.94, Math.max(0.06, det.x / 100)),
+          y: Math.min(0.94, Math.max(0.06, det.y / 100)),
+        };
+      });
+      return {
+        ...e,
+        tables:    e.tables.concat(newTables),
+        floorPlan: { ...e.floorPlan, tablePositions: freshPositions },
       };
     });
-    patchEvent(e => ({
-      ...e,
-      tables:   e.tables.concat(newTables),
-      floorPlan: { ...e.floorPlan, tablePositions: newPositions },
-    }));
     setDetResult(null);
-    showToast("נוספו " + newTables.length + " שולחנות מהסקיצה ✓");
+    showToast("נוספו " + snapshot.tables.length + " שולחנות מהסקיצה ✓");
   };
 
   // ── Place table on image by clicking ─────────────────────────────────────
