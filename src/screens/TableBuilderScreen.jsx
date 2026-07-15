@@ -4,6 +4,7 @@ import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
+import FloorPlanEditor from "../components/floorplan/FloorPlanEditor.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -12,10 +13,16 @@ import TypeTag from "../components/ui/TypeTag.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./TableBuilderScreen.module.css";
 
+const TABS = [
+  { id: "list",      label: "שולחנות",   icon: "⬡" },
+  { id: "floorplan", label: "מפת האולם", icon: "🏛️" },
+];
+
 export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  const [batch, setBatch]       = useState({ prefix: "", capacity: "10", count: "1", type: "regular" });
-  const [editId, setEditId]     = useState(null);
-  const [editVals, setEditVals] = useState({});
+  const [tab,     setTab]     = useState("list");
+  const [batch,   setBatch]   = useState({ prefix: "", capacity: "10", count: "1", type: "regular" });
+  const [editId,  setEditId]  = useState(null);
+  const [editVals,setEditVals]= useState({});
 
   const totalCap       = ev.tables.reduce((s, t) => s + t.capacity, 0);
   const totalGuestSeats = ev.guests.reduce((s, g) => s + (g.count || 1), 0);
@@ -110,144 +117,174 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
         <Banner variant="ok">{gap} מקומות פנויים מעבר לכמות מקומות האורחים ({totalGuestSeats}).</Banner>
       )}
 
-      <div className={base.card}>
-        <SectionLabel>הוספת שולחנות</SectionLabel>
-        <p className={styles.batchHint}>ניתן להוסיף כמה שולחנות בבת אחת — כולם יקבלו את אותה קיבולת וסוג. לשמות ייווצרו אוטומטית מספרים רצופים.</p>
-        <div className={base.batchGrid}>
-          <Field label="שם / קידומת" hint="לדוגמה: שולחן, אביר">
-            <input
-              className={base.input}
-              value={batch.prefix}
-              placeholder="שולחן"
-              onChange={e => setBatch(p => Object.assign({}, p, { prefix: e.target.value }))}
-            />
-          </Field>
-          <Field label="מקומות לשולחן">
-            <input className={base.input} type="number" min="1" max="100" value={batch.capacity}
-              onChange={e => setBatch(p => Object.assign({}, p, { capacity: e.target.value }))} />
-          </Field>
-          <Field label="כמות שולחנות">
-            <input className={base.input} type="number" min="1" max="200" value={batch.count}
-              onChange={e => setBatch(p => Object.assign({}, p, { count: e.target.value }))} />
-          </Field>
-          <Field label="סוג">
-            <select className={base.select} value={batch.type} onChange={e => setBatch(p => Object.assign({}, p, { type: e.target.value }))}>
-              {TABLE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </Field>
-        </div>
-
-        {batchTotal > 0 && (
-          <div className={base.batchPreview}>
-            <span style={{ color: "var(--accent)", flexShrink: 0 }}>⬡</span>
-            <span>
-              {batchCnt === 1
-                ? ("יתווסף שולחן אחד: " + previewNames + " (" + batchCap + " מקומות)")
-                : ("יתווספו " + batchCnt + " שולחנות: " + previewNames + (batchCnt > 3 ? "..." : "") + " (" + batchCap + " מקומות כ\"א)")}
-              {" · סה\"כ לאחר ההוספה: "}
-              <strong>{totalCap + batchTotal} מקומות</strong>
-            </span>
-          </div>
-        )}
-
-        <div className={base.formActions}>
-          <button className={base.btnPrimary} onClick={addBatch}>
-            + הוסף {batchCnt > 1 ? (batchCnt + " שולחנות") : "שולחן"}
+      {/* ── Tabs ── */}
+      <div className={styles.tabBar}>
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            className={[styles.tabBtn, tab === t.id ? styles.tabActive : ""].filter(Boolean).join(" ")}
+            onClick={() => setTab(t.id)}
+          >
+            <span className={styles.tabIcon}>{t.icon}</span>
+            {t.label}
           </button>
-        </div>
+        ))}
       </div>
 
-      {ev.tables.length > 0 && (
-        <div className={base.card}>
-          <SectionLabel>השולחנות שלי ({ev.tables.length})</SectionLabel>
-          {totalCap > 0 && totalGuestSeats === 0 && (
-            <p className={styles.capStat}>קיבולת כוללת: {totalCap} מקומות</p>
-          )}
-          {totalCap > 0 && totalGuestSeats > 0 && gap < 0 && (
-            <p className={styles.capStatWarn}>
-              חסרים {Math.abs(gap)} מקומות — {totalGuestSeats} מקומות לאורחים, {totalCap} מקומות זמינים בלבד
-            </p>
-          )}
-          {totalCap > 0 && totalGuestSeats > 0 && gap >= 0 && (
-            <p className={styles.capStatOk}>
-              קיבולת מספיקה — {totalGuestSeats} מקומות לאורחים, {gap} פנויים מתוך {totalCap}
-            </p>
-          )}
-          <div className={base.tableGrid}>
-            <div className={[base.tRow, base.tHead].join(" ")}>
-              <span>שם השולחן</span>
-              <span style={{ textAlign: "center" }}>מקומות</span>
-              <span style={{ textAlign: "center" }}>סוג</span>
-              <span style={{ textAlign: "center" }}>מושבצים</span>
-              <span />
+      {/* ── Tab: Table list ── */}
+      {tab === "list" && (
+        <>
+          <div className={base.card}>
+            <SectionLabel>הוספת שולחנות</SectionLabel>
+            <p className={styles.batchHint}>ניתן להוסיף כמה שולחנות בבת אחת — כולם יקבלו את אותה קיבולת וסוג. לשמות ייווצרו אוטומטית מספרים רצופים.</p>
+            <div className={base.batchGrid}>
+              <Field label="שם / קידומת" hint="לדוגמה: שולחן, אביר">
+                <input
+                  className={base.input}
+                  value={batch.prefix}
+                  placeholder="שולחן"
+                  onChange={e => setBatch(p => Object.assign({}, p, { prefix: e.target.value }))}
+                />
+              </Field>
+              <Field label="מקומות לשולחן">
+                <input className={base.input} type="number" min="1" max="100" value={batch.capacity}
+                  onChange={e => setBatch(p => Object.assign({}, p, { capacity: e.target.value }))} />
+              </Field>
+              <Field label="כמות שולחנות">
+                <input className={base.input} type="number" min="1" max="200" value={batch.count}
+                  onChange={e => setBatch(p => Object.assign({}, p, { count: e.target.value }))} />
+              </Field>
+              <Field label="סוג">
+                <select className={base.select} value={batch.type} onChange={e => setBatch(p => Object.assign({}, p, { type: e.target.value }))}>
+                  {TABLE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </Field>
             </div>
-            {ev.tables.map(t => {
-              const seated = ev.guests
-                .filter(g => ev.seating[g.id] === t.id)
-                .reduce((s, g) => s + (g.count || 1), 0);
-              const isEdit = editId === t.id;
-              const isOver = seated > t.capacity;
-              const pct    = t.capacity > 0 ? seated / t.capacity : 0;
-              return (
-                <div key={t.id} className={[base.tRow, isEdit ? base.tRowEdit : ""].filter(Boolean).join(" ")}>
-                  {isEdit ? (
-                    <>
-                      <input
-                        className={base.input}
-                        value={editVals.name}
-                        autoFocus
-                        onChange={e => setEditVals(p => Object.assign({}, p, { name: e.target.value }))}
-                        onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
-                      />
-                      <input
-                        className={base.input}
-                        style={{ textAlign: "center" }}
-                        type="number"
-                        min="1"
-                        value={editVals.capacity}
-                        onChange={e => setEditVals(p => Object.assign({}, p, { capacity: e.target.value }))}
-                      />
-                      <select
-                        className={base.select}
-                        value={editVals.type}
-                        onChange={e => setEditVals(p => Object.assign({}, p, { type: e.target.value }))}
-                      >
-                        {TABLE_TYPES.map(tp => <option key={tp.value} value={tp.value}>{tp.label}</option>)}
-                      </select>
-                      <span />
-                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                        <button className={base.btnSm} onClick={saveEdit}>שמור</button>
-                        <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={cancelEdit}>ביטול</button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <span style={{ fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
-                      <span style={{ textAlign: "center" }}>{t.capacity}</span>
-                      <span style={{ textAlign: "center" }}><TypeTag type={t.type} /></span>
-                      <span style={{
-                        textAlign: "center",
-                        fontWeight: seated > 0 ? 700 : 400,
-                        color: isOver ? "var(--red)" : pct > 0.85 ? "var(--warn)" : seated > 0 ? "var(--green)" : "var(--muted)"
-                      }}>
-                        {seated}/{t.capacity}
-                      </span>
-                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                        <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => startEdit(t)}>עריכה</button>
-                        <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delTable(t.id)}>מחק</button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
+
+            {batchTotal > 0 && (
+              <div className={base.batchPreview}>
+                <span style={{ color: "var(--accent)", flexShrink: 0 }}>⬡</span>
+                <span>
+                  {batchCnt === 1
+                    ? ("יתווסף שולחן אחד: " + previewNames + " (" + batchCap + " מקומות)")
+                    : ("יתווספו " + batchCnt + " שולחנות: " + previewNames + (batchCnt > 3 ? "..." : "") + " (" + batchCap + " מקומות כ\"א)")}
+                  {" · סה\"כ לאחר ההוספה: "}
+                  <strong>{totalCap + batchTotal} מקומות</strong>
+                </span>
+              </div>
+            )}
+
+            <div className={base.formActions}>
+              <button className={base.btnPrimary} onClick={addBatch}>
+                + הוסף {batchCnt > 1 ? (batchCnt + " שולחנות") : "שולחן"}
+              </button>
+            </div>
           </div>
-        </div>
+
+          {ev.tables.length > 0 && (
+            <div className={base.card}>
+              <SectionLabel>השולחנות שלי ({ev.tables.length})</SectionLabel>
+              {totalCap > 0 && totalGuestSeats === 0 && (
+                <p className={styles.capStat}>קיבולת כוללת: {totalCap} מקומות</p>
+              )}
+              {totalCap > 0 && totalGuestSeats > 0 && gap < 0 && (
+                <p className={styles.capStatWarn}>
+                  חסרים {Math.abs(gap)} מקומות — {totalGuestSeats} מקומות לאורחים, {totalCap} מקומות זמינים בלבד
+                </p>
+              )}
+              {totalCap > 0 && totalGuestSeats > 0 && gap >= 0 && (
+                <p className={styles.capStatOk}>
+                  קיבולת מספיקה — {totalGuestSeats} מקומות לאורחים, {gap} פנויים מתוך {totalCap}
+                </p>
+              )}
+              <div className={base.tableGrid}>
+                <div className={[base.tRow, base.tHead].join(" ")}>
+                  <span>שם השולחן</span>
+                  <span style={{ textAlign: "center" }}>מקומות</span>
+                  <span style={{ textAlign: "center" }}>סוג</span>
+                  <span style={{ textAlign: "center" }}>מושבצים</span>
+                  <span />
+                </div>
+                {ev.tables.map(t => {
+                  const seated = ev.guests
+                    .filter(g => ev.seating[g.id] === t.id)
+                    .reduce((s, g) => s + (g.count || 1), 0);
+                  const isEdit = editId === t.id;
+                  const isOver = seated > t.capacity;
+                  const pct    = t.capacity > 0 ? seated / t.capacity : 0;
+                  return (
+                    <div key={t.id} className={[base.tRow, isEdit ? base.tRowEdit : ""].filter(Boolean).join(" ")}>
+                      {isEdit ? (
+                        <>
+                          <input
+                            className={base.input}
+                            value={editVals.name}
+                            autoFocus
+                            onChange={e => setEditVals(p => Object.assign({}, p, { name: e.target.value }))}
+                            onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                          />
+                          <input
+                            className={base.input}
+                            style={{ textAlign: "center" }}
+                            type="number"
+                            min="1"
+                            value={editVals.capacity}
+                            onChange={e => setEditVals(p => Object.assign({}, p, { capacity: e.target.value }))}
+                          />
+                          <select
+                            className={base.select}
+                            value={editVals.type}
+                            onChange={e => setEditVals(p => Object.assign({}, p, { type: e.target.value }))}
+                          >
+                            {TABLE_TYPES.map(tp => <option key={tp.value} value={tp.value}>{tp.label}</option>)}
+                          </select>
+                          <span />
+                          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                            <button className={base.btnSm} onClick={saveEdit}>שמור</button>
+                            <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={cancelEdit}>ביטול</button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+                          <span style={{ textAlign: "center" }}>{t.capacity}</span>
+                          <span style={{ textAlign: "center" }}><TypeTag type={t.type} /></span>
+                          <span style={{
+                            textAlign: "center",
+                            fontWeight: seated > 0 ? 700 : 400,
+                            color: isOver ? "var(--red)" : pct > 0.85 ? "var(--warn)" : seated > 0 ? "var(--green)" : "var(--muted)"
+                          }}>
+                            {seated}/{t.capacity}
+                          </span>
+                          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                            <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => startEdit(t)}>עריכה</button>
+                            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delTable(t.id)}>מחק</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {ev.tables.length === 0 && (
+            <EmptyState icon="⬡" title="טרם הוגדרו שולחנות"
+              text='השתמשו בטופס למעלה כדי להוסיף שולחנות. לדוגמה: 15 שולחנות עגולים עם 10 מקומות כל אחד — הכניסו 15 בשדה "כמות" ו-10 בשדה "מקומות".' />
+          )}
+        </>
       )}
 
-      {ev.tables.length === 0 && (
-        <EmptyState icon="⬡" title="טרם הוגדרו שולחנות"
-          text='השתמשו בטופס למעלה כדי להוסיף שולחנות. לדוגמה: 15 שולחנות עגולים עם 10 מקומות כל אחד — הכניסו 15 בשדה "כמות" ו-10 בשדה "מקומות".' />
+      {/* ── Tab: Floor plan ── */}
+      {tab === "floorplan" && (
+        <div className={base.card}>
+          <SectionLabel>סקיצת האולם</SectionLabel>
+          <p className={styles.floorPlanHint}>
+            העלו את מפת האולם שקיבלתם מהמקום. המערכת תזהה אוטומטית את השולחנות ותאפשר לכם לגרור אורחים בין שולחנות ישירות על גבי הסקיצה.
+          </p>
+          <FloorPlanEditor ev={ev} patchEvent={patchEvent} showToast={showToast} />
+        </div>
       )}
 
       <NextStep

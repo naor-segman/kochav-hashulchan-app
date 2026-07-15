@@ -57,6 +57,12 @@ export function normalizeEvent(ev) {
     // Must be preserved here so locks survive page reload (localStorage round-trip).
     lockedGuests: Array.isArray(ev.lockedGuests) ? ev.lockedGuests : [],
     lockedTables: Array.isArray(ev.lockedTables) ? ev.lockedTables : [],
+    // Floor plan — optional venue sketch uploaded by the user.
+    // image: base64 data URL (JPEG, compressed client-side).
+    // tablePositions: { [tableId]: { x, y } } — fractional positions (0-1) on the image.
+    floorPlan: (ev.floorPlan && typeof ev.floorPlan === "object")
+      ? { image: ev.floorPlan.image ?? null, tablePositions: ev.floorPlan.tablePositions ?? {} }
+      : null,
   };
 }
 

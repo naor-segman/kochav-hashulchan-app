@@ -1,0 +1,378 @@
+/* ── Upload zone ─────────────────────────────────────────────────────────── */
+.uploadZone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.uploadZone:hover,
+.uploadZoneDragging {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.uploadIcon { font-size: 44px; opacity: 0.7; }
+
+.uploadTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.uploadHint {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.toolBtn {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  border-radius: var(--radius);
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+.toolBtn:hover:not(:disabled) {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.toolBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.toolBtnPrimary {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: var(--shadow-accent);
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+.toolBtnPrimary:hover:not(:disabled) {
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-accent-lg);
+  transform: translateY(-1px);
+}
+.toolBtnPrimary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.toolHint {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cancelPlace {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 4px;
+  line-height: 1;
+  font-family: inherit;
+}
+
+/* ── Detection result card ───────────────────────────────────────────────── */
+.detectionCard {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.detNote {
+  font-size: 12px;
+  color: var(--text2);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.detList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.detPill {
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--accent-border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  color: var(--text2);
+}
+
+.detActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Image container ─────────────────────────────────────────────────────── */
+.imageContainer {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: var(--shadow-md);
+  line-height: 0;
+}
+
+.imageContainer.placingMode {
+  cursor: crosshair;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg), var(--shadow-md);
+}
+
+.floorImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ── Table chip overlaid on image ────────────────────────────────────────── */
+.tableChip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 120px;
+  max-width: 180px;
+  background: rgba(251, 248, 243, 0.92);
+  backdrop-filter: blur(6px);
+  border: 1.5px solid var(--accent-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.12);
+  overflow: hidden;
+  z-index: 10;
+  transition: box-shadow var(--transition), border-color var(--transition);
+  user-select: none;
+}
+
+.tableChip:hover {
+  box-shadow: 0 6px 28px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.14);
+  z-index: 20;
+}
+
+.chipDragging {
+  opacity: 0.4;
+  box-shadow: none !important;
+}
+
+.chipOver {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg), 0 4px 20px rgba(196,138,26,.25) !important;
+}
+
+.chipHandle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: grab;
+  line-height: 1.3;
+}
+
+.chipHandle:active { cursor: grabbing; }
+
+.chipCap {
+  font-size: 10px;
+  font-weight: 600;
+  margin-inline-start: auto;
+  color: var(--nav-muted);
+  white-space: nowrap;
+}
+
+.capOver { color: #f87171 !important; }
+.capWarn { color: #fbbf24 !important; }
+
+.chipGuests {
+  padding: 6px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 1;
+}
+
+.chipEmpty {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 0;
+}
+
+/* ── Guest pills (inside chips + unassigned panel) ───────────────────────── */
+.guestPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  color: var(--text);
+  cursor: grab;
+  white-space: nowrap;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+.guestPill:hover {
+  background: var(--accent-light);
+  box-shadow: var(--shadow-accent);
+}
+.guestPill:active { cursor: grabbing; }
+
+.guestPill.dragging {
+  opacity: 0.3;
+}
+
+.pillCount {
+  font-size: 10px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Drag overlay versions */
+.overlayPill {
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  transform: scale(1.08);
+  opacity: 0.95;
+  cursor: grabbing;
+}
+.overlayChip {
+  opacity: 0.95;
+  cursor: grabbing;
+}
+
+/* ── Unplaced tables strip ───────────────────────────────────────────────── */
+.unplacedStrip {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.unplacedLabel {
+  font-size: 12px;
+  color: var(--text2);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.unplacedList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.unplacedBtn {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+.unplacedBtn:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.unplacedBtnActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow-accent);
+}
+
+/* ── Unassigned guests panel ─────────────────────────────────────────────── */
+.unassignedPanel {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.panelOver {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.panelLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.panelGuests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+@media (max-width: 600px) {
+  .tableChip {
+    min-width: 100px;
+    max-width: 150px;
+  }
+  .chipHandle { font-size: 10px; }
+  .chipGuests { padding: 4px 6px; }
+}
