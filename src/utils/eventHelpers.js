@@ -122,6 +122,16 @@ export function duplicateEvent(ev) {
     guestB: guestIdMap[c.guestB] || c.guestB,
   }));
 
+  // Remap floor plan table positions to the new table IDs.
+  const floorPlan = ev.floorPlan ? {
+    image: ev.floorPlan.image,
+    tablePositions: Object.fromEntries(
+      Object.entries(ev.floorPlan.tablePositions ?? {})
+        .filter(([oldId]) => tableIdMap[oldId])
+        .map(([oldId, pos]) => [tableIdMap[oldId], pos])
+    ),
+  } : null;
+
   const now = Date.now();
   return Object.assign({}, ev, {
     id:          uid(),
@@ -130,6 +140,7 @@ export function duplicateEvent(ev) {
     guests,
     constraints,
     seating:     {},
+    floorPlan,
     // Locks reference IDs that don't exist in the duplicate — clear them.
     lockedGuests: [],
     lockedTables: [],
