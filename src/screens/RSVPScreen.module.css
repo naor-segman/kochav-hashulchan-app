@@ -194,58 +194,58 @@
 
 .choiceButtons {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  gap: 12px;
+  width: 100%;
+}
+
+.btnYes,
+.btnNo {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius);
+  padding: 16px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+  line-height: 1.25;
 }
 
 .btnYes {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--accent);
+  background: var(--green);
   color: #fff;
-  border: none;
-  border-radius: var(--radius);
-  padding: 14px 24px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  box-shadow: 0 2px 16px rgba(196,138,26,0.35);
-  transition: background 0.18s, transform 0.18s;
+  box-shadow: 0 2px 12px rgba(31, 120, 69, 0.30);
 }
 
 .btnYes:hover {
-  background: var(--accent-dark);
+  opacity: 0.88;
   transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(31, 120, 69, 0.38);
 }
 
 .btnNo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--surface);
-  color: var(--text2);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  padding: 13px 24px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.18s, border-color 0.18s;
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(192, 43, 28, 0.28);
 }
 
 .btnNo:hover {
-  background: var(--bg);
-  border-color: var(--text2);
+  opacity: 0.88;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(192, 43, 28, 0.36);
 }
 
 .choiceBtnIcon {
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 /* ── Compact event banner (shown on form/confirm steps) ─────────────────── */
@@ -253,17 +253,19 @@
 .eventBanner {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 3px;
-  padding: 12px 0;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border);
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-block-end: 22px;
 }
 
 .eventBannerMark {
   color: var(--accent);
-  font-size: 14px;
-  opacity: 0.5;
+  font-size: 13px;
+  line-height: 1;
+  margin-block-end: 2px;
 }
 
 .eventBannerName {
@@ -321,7 +323,8 @@
 .input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(196,138,26,0.12);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+  background: var(--surface);
 }
 
 .input:hover:not(:focus) {
@@ -346,48 +349,53 @@
 
 .btnSubmitYes {
   width: 100%;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
   color: #fff;
   border: none;
   border-radius: var(--radius);
-  padding: 14px 24px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
+  padding: 13px 0;
+  font-size: 15px;
+  font-weight: 800;
   font-family: inherit;
-  box-shadow: 0 2px 16px rgba(196,138,26,0.3);
-  transition: background 0.18s, transform 0.18s;
-  margin-top: 4px;
+  cursor: pointer;
+  box-shadow: var(--shadow-accent);
+  transition: opacity var(--transition), box-shadow var(--transition), transform var(--transition);
+  margin-block-start: 4px;
 }
 
 .btnSubmitYes:hover:not(:disabled) {
-  background: var(--accent-dark);
+  opacity: 0.92;
+  box-shadow: var(--shadow-accent-lg);
   transform: translateY(-1px);
 }
 
 .btnSubmitYes:disabled {
-  opacity: 0.5;
+  opacity: 0.48;
   cursor: not-allowed;
 }
 
 /* ── No confirm ─────────────────────────────────────────────────────────── */
 
 .noConfirmBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   text-align: center;
-  margin-bottom: 20px;
+  padding: 16px 0 22px;
 }
 
 .sadEmoji {
   font-size: 44px;
-  display: block;
-  margin-bottom: 12px;
+  line-height: 1;
 }
 
 .noConfirmTitle {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--text);
-  margin: 0 0 8px;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .noConfirmBody {
@@ -399,26 +407,28 @@
 
 .btnSubmitNo {
   width: 100%;
-  background: var(--surface);
-  color: var(--text2);
-  border: 1px solid var(--border2);
+  background: var(--red);
+  color: #fff;
+  border: none;
   border-radius: var(--radius);
-  padding: 13px 24px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
+  padding: 13px 0;
+  font-size: 15px;
+  font-weight: 800;
   font-family: inherit;
-  transition: background 0.18s, border-color 0.18s;
-  margin-bottom: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(192, 43, 28, 0.28);
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+  margin-block-end: 8px;
 }
 
 .btnSubmitNo:hover:not(:disabled) {
-  background: var(--bg);
-  border-color: var(--text2);
+  opacity: 0.88;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(192, 43, 28, 0.36);
 }
 
 .btnSubmitNo:disabled {
-  opacity: 0.5;
+  opacity: 0.48;
   cursor: not-allowed;
 }
 
