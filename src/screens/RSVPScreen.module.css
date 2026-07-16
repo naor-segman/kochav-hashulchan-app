@@ -1,3 +1,26 @@
+/* ── Animations ─────────────────────────────────────────────────────────── */
+
+@keyframes spinStar {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@keyframes checkBounce {
+  0%   { opacity: 0; transform: scale(0.5);  }
+  60%  { opacity: 1; transform: scale(1.14); }
+  80%  {             transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1);    }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
 /* ── Page shell ─────────────────────────────────────────────────────────── */
 
 .page {
@@ -7,27 +30,31 @@
   flex-direction: column;
 }
 
-/* ── Small logo header ──────────────────────────────────────────────────── */
+/* ── Dark header bar ────────────────────────────────────────────────────── */
 
 .header {
+  background: var(--nav-bg);
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 20px 24px;
+  gap: 10px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--nav-border);
 }
 
 .headerMark {
   color: var(--accent);
-  font-size: 16px;
-  opacity: 0.7;
+  font-size: 18px;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px rgba(196, 138, 26, 0.5));
 }
 
 .headerName {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--muted);
-  letter-spacing: 0.03em;
+  color: var(--nav-text);
+  letter-spacing: -0.01em;
 }
 
 /* ── Loading state ──────────────────────────────────────────────────────── */
@@ -45,11 +72,8 @@
   display: block;
   font-size: 28px;
   color: var(--accent);
-  animation: spin 2s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  animation: spinStar 1.4s linear infinite;
+  line-height: 1;
 }
 
 .loadingText {
@@ -71,12 +95,13 @@
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 32px rgba(0,0,0,0.07);
-  padding: 40px 32px;
+  box-shadow: var(--shadow-md);
+  padding: 32px 28px 28px;
   width: 100%;
-  max-width: 460px;
-  direction: rtl;
+  max-width: 480px;
+  animation: popIn 0.26s cubic-bezier(0.34, 1.46, 0.64, 1);
 }
 
 /* ── Error state ────────────────────────────────────────────────────────── */
