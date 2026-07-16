@@ -32,8 +32,16 @@ import CheckInScreen      from "./screens/CheckInScreen.jsx";
 import LandingScreen      from "./screens/LandingScreen.jsx";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
-const AdminApp      = lazy(() => import("./admin/AdminApp.jsx"));
-const PricingScreen = lazy(() => import("./screens/PricingScreen.jsx"));
+const AdminApp       = lazy(() => import("./admin/AdminApp.jsx"));
+const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
+// Public pages — standalone, no auth, token-based
+const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
+const InviteScreen   = lazy(() => import("./screens/InviteScreen.jsx"));
+const HostessScreen  = lazy(() => import("./screens/HostessScreen.jsx"));
+const GiftScreen     = lazy(() => import("./screens/GiftScreen.jsx"));
+const GiftWallScreen = lazy(() => import("./screens/GiftWallScreen.jsx"));
+// App screens — lazy to keep initial bundle lean
+const CostScreen     = lazy(() => import("./screens/CostScreen.jsx"));
 
 // ── Event layout + nested routes ─────────────────────────────────────────────
 // Rendered for every /events/:eventId/* path.
@@ -80,6 +88,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
         <Route path="guests"      element={<GuestManagerScreen  {...sp} />} />
         <Route path="constraints" element={<ConstraintsScreen   {...sp} />} />
         <Route path="seating"     element={<SeatingScreen       {...sp} />} />
+        <Route path="costs"       element={<Suspense fallback={null}><CostScreen activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
         <Route index              element={<Navigate to="setup" replace />} />
       </Routes>
       {toast && <Toast msg={toast.msg} variant={toast.variant} />}
@@ -209,6 +218,13 @@ export default function App() {
           </Suspense>
         }
       />
+      {/* ── Public token-based pages — no auth required ── */}
+      {/* /gift/:token/wall MUST precede /gift/:token — React Router first-match */}
+      <Route path="/gift/:token/wall" element={<Suspense fallback={null}><GiftWallScreen /></Suspense>} />
+      <Route path="/gift/:token"      element={<Suspense fallback={null}><GiftScreen /></Suspense>} />
+      <Route path="/rsvp/:token"      element={<Suspense fallback={null}><RSVPScreen /></Suspense>} />
+      <Route path="/invite/:token"    element={<Suspense fallback={null}><InviteScreen /></Suspense>} />
+      <Route path="/hostess/:token"   element={<Suspense fallback={null}><HostessScreen /></Suspense>} />
       {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}
       <Route
         path="/events/:eventId/checkin"

@@ -23,10 +23,14 @@ function mergeCloudWithLocal(localEvents, cloudEvents) {
     const localMatch = localEvents.find(le =>
       le.id === ce.id || (le.cloudId && le.cloudId === ce.cloudId)
     );
-    if (localMatch?.floorPlan?.image && !normalized.floorPlan?.image) {
-      return { ...normalized, floorPlan: { ...normalized.floorPlan, image: localMatch.floorPlan.image } };
+    let result = normalized;
+    if (localMatch?.floorPlan?.image && !result.floorPlan?.image) {
+      result = { ...result, floorPlan: { ...result.floorPlan, image: localMatch.floorPlan.image } };
     }
-    return normalized;
+    if (localMatch?.tokens && !result.tokens) {
+      result = { ...result, tokens: localMatch.tokens };
+    }
+    return result;
   });
 
   for (const le of localEvents) {

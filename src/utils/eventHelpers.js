@@ -63,6 +63,18 @@ export function normalizeEvent(ev) {
     floorPlan: (ev.floorPlan && typeof ev.floorPlan === "object")
       ? { image: ev.floorPlan.image ?? null, tablePositions: ev.floorPlan.tablePositions ?? {} }
       : null,
+    // Public-URL tokens — stable random UUIDs generated once, never changed.
+    // Each token grants access to one public page (RSVP, invite, gift, hostess).
+    tokens: (ev.tokens && typeof ev.tokens === "object")
+      ? {
+          rsvp:    ev.tokens.rsvp    ?? uid(),
+          invite:  ev.tokens.invite  ?? uid(),
+          gift:    ev.tokens.gift    ?? uid(),
+          hostess: ev.tokens.hostess ?? uid(),
+        }
+      : { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid() },
+    // Event cost planning — stored per event, updated via CostScreen.
+    costs: (ev.costs && typeof ev.costs === "object") ? ev.costs : {},
   };
 }
 
@@ -144,6 +156,7 @@ export function duplicateEvent(ev) {
     // Locks reference IDs that don't exist in the duplicate — clear them.
     lockedGuests: [],
     lockedTables: [],
+    costs:       {},
     cloudId:     null,
     createdAt:   now,
     updatedAt:   now,

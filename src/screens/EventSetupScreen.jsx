@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { EVENT_TYPES } from "../data/constants.js";
 import { getEventPersonalConfig, getEventNamePlaceholder } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -9,6 +9,13 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventSetupScreen.module.css";
+
+const SHARE_LINKS = [
+  { key: "rsvp",    label: "אישור הגעה (RSVP)", path: "/rsvp/",    icon: "✅" },
+  { key: "invite",  label: "הזמנה דיגיטלית",    path: "/invite/",  icon: "💌" },
+  { key: "gift",    label: "מעטפה דיגיטלית",    path: "/gift/",    icon: "🎁" },
+  { key: "hostess", label: "מודול פקידה",        path: "/hostess/", icon: "🔍" },
+];
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [form, setForm] = useState({
@@ -26,7 +33,18 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
+  const [copiedKey, setCopiedKey] = useState(null);
   const nameRef = useRef(null);
+
+  const copyLink = useCallback(async (key, url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(k => k === key ? null : k), 2000);
+    } catch {
+      showToast("לא ניתן להעתיק — העתק ידנית", "err");
+    }
+  }, [showToast]);
 
   const set = (k, v) => {
     setForm(p => Object.assign({}, p, { [k]: v }));
@@ -247,6 +265,41 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         hint={ev.tables.length > 0 ? (ev.tables.length + " שולחנות מוגדרים") : "עדיין לא הוגדרו שולחנות"}
         onClick={goNext}
       />
+
+      {/* ── Sharing links card ── */}
+      {ev.tokens && (
+        <div className={base.card}>
+          <SectionLabel>קישורי שיתוף</SectionLabel>
+          <p className={base.fieldHint} style={{ marginBottom: 14 }}>
+            קישורים ייחודיים לאירוע זה — שלח לאורחים, לצוות ולמשפחה.
+          </p>
+          <div className={styles.shareList}>
+            {SHARE_LINKS.map(sl => {
+              const token = ev.tokens[sl.key];
+              const url   = token ? window.location.origin + sl.path + token : null;
+              return (
+                <div key={sl.key} className={styles.shareRow}>
+                  <span className={styles.shareIcon}>{sl.icon}</span>
+                  <div className={styles.shareInfo}>
+                    <span className={styles.shareLabel}>{sl.label}</span>
+                    <span className={styles.shareUrl}>{url || "טוקן חסר — שמור את האירוע תחילה"}</span>
+                  </div>
+                  {url && (
+                    <button
+                      className={[styles.copyBtn, copiedKey === sl.key ? styles.copyBtnDone : ""].join(" ")}
+                      onClick={() => copyLink(sl.key, url)}
+                      type="button"
+                      disabled={!url}
+                    >
+                      {copiedKey === sl.key ? "הועתק ✓" : "העתק"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

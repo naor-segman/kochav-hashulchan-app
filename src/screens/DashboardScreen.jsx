@@ -42,7 +42,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
   };
 
   return (
-    <div className={base.page}>
+    <div className={base.pageWide}>
 
       {/* ── Compact header: shown when events exist ── */}
       {hasEvents && (

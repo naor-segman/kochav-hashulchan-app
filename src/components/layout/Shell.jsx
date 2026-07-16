@@ -12,6 +12,7 @@ const NAV = [
   { id: "guests",      label: "אורחים",  num: 3 },
   { id: "constraints", label: "אילוצים", num: 4 },
   { id: "seating",     label: "הושבה",   num: 5 },
+  { id: "costs",       label: "עלויות",  num: 6 },
 ];
 
 export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {

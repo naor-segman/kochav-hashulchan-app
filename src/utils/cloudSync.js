@@ -40,6 +40,10 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
     table_count: (localEvent.tables ?? []).length,
     seated_pct:  seatedPct,
     version:     localEvent.version     ?? 1,
+    rsvp_token:    localEvent.tokens?.rsvp    ?? null,
+    invite_token:  localEvent.tokens?.invite  ?? null,
+    gift_token:    localEvent.tokens?.gift    ?? null,
+    hostess_token: localEvent.tokens?.hostess ?? null,
     updated_at:  new Date(localEvent.updatedAt ?? Date.now()).toISOString(),
     payload: {
       localId:          localEvent.id,
@@ -59,6 +63,8 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       version:          localEvent.version          ?? 1,
       lockedGuests:     Array.isArray(localEvent.lockedGuests) ? localEvent.lockedGuests : [],
       lockedTables:     Array.isArray(localEvent.lockedTables) ? localEvent.lockedTables : [],
+      tokens: localEvent.tokens ?? null,
+      costs:  localEvent.costs  ?? {},
       // Floor plan: sync positions only — the image (base64) is too large for
       // Postgres JSONB and stays in localStorage on each device. If the user
       // opens the event on a new device they will need to re-upload the image,
@@ -100,6 +106,13 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     cloudId:          cloudRow.id,
     lockedGuests:     Array.isArray(p.lockedGuests) ? p.lockedGuests : [],
     lockedTables:     Array.isArray(p.lockedTables) ? p.lockedTables : [],
+    tokens: cloudRow.rsvp_token ? {
+      rsvp:    cloudRow.rsvp_token    ?? null,
+      invite:  cloudRow.invite_token  ?? null,
+      gift:    cloudRow.gift_token    ?? null,
+      hostess: cloudRow.hostess_token ?? null,
+    } : (p.tokens ?? null),
+    costs: (p.costs && typeof p.costs === "object") ? p.costs : {},
     // Floor plan: positions are synced; image stays in localStorage (too large for cloud).
     // On a new device the user must re-upload the image, but positions are restored.
     floorPlan: p.floorPlanPositions
