@@ -1,8 +1,9 @@
+/* ── Stats row ── */
 .statsRow {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .stat {
@@ -21,7 +22,8 @@
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.02em;
-  line-height: 1;
+  line-height: 1.1;
+  word-break: break-all;
 }
 
 .statOver  { color: var(--red); }
@@ -35,27 +37,43 @@
   text-transform: uppercase;
 }
 
+/* ── Catering hint ── */
+.cateringHint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--warn-bg);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--warn);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warn);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.cateringHintIcon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
 /* ── Table ── */
+.tableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 4px;
+}
+
 .table {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  min-width: 480px;
 }
 
-.tableHead {
-  display: grid;
-  grid-template-columns: 1fr 130px 130px 100px 36px;
-  gap: 8px;
-  padding: 8px 14px;
-  background: var(--bg);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--border);
-}
-
+/* Shared row grid */
 .tableRow {
   display: grid;
   grid-template-columns: 1fr 130px 130px 100px 36px;
@@ -63,17 +81,54 @@
   align-items: center;
   padding: 8px 14px;
   border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .tableRow:last-child {
   border-bottom: none;
 }
 
-.tableRow:hover {
+/* Header row */
+.tableHead {
+  background: var(--bg);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Data rows hover */
+.tableRow:not(.tableHead):not(.totalsRow):hover {
   background: var(--accent-light);
 }
 
+/* ── Totals row ── */
+.totalsRow {
+  background: var(--bg);
+  border-top: 2px solid var(--border2);
+  border-bottom: none;
+}
+
+.totalsLabel {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  padding-inline-start: 2px;
+}
+
+.totalsNum {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.totalsOver {
+  color: var(--red);
+}
+
+/* ── Columns ── */
 .colCat {
   display: flex;
   align-items: center;
@@ -94,13 +149,7 @@
   justify-content: center;
 }
 
-.catEmoji {
-  font-size: 16px;
-  flex-shrink: 0;
-  width: 20px;
-  text-align: center;
-}
-
+/* ── Inputs ── */
 .nameInput {
   flex: 1;
   min-width: 0;
@@ -112,7 +161,7 @@
   font-family: inherit;
   padding: 2px 4px;
   border-radius: 4px;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .nameInput:hover {
@@ -122,7 +171,7 @@
 .nameInput:focus {
   outline: none;
   background: var(--bg);
-  box-shadow: 0 0 0 2px rgba(196,138,26,0.2);
+  box-shadow: 0 0 0 2px var(--accent-border);
 }
 
 .amtInput {
@@ -137,21 +186,27 @@
   text-align: right;
   font-family: inherit;
   box-sizing: border-box;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.amtInput:hover:not(:focus) {
+  border-color: var(--border2);
 }
 
 .amtInput:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(196,138,26,0.15);
+  box-shadow: 0 0 0 2px var(--accent-border);
 }
 
+/* ── Diff badges ── */
 .diffBadge {
   display: inline-block;
   font-size: 12px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 999px;
+  white-space: nowrap;
 }
 
 .over {
@@ -177,11 +232,7 @@
   font-size: 13px;
 }
 
-.pct {
-  font-weight: 500;
-  opacity: 0.75;
-}
-
+/* ── Delete button ── */
 .delBtn {
   background: none;
   border: none;
@@ -191,7 +242,7 @@
   padding: 4px 6px;
   border-radius: 4px;
   line-height: 1;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .delBtn:hover {
@@ -199,11 +250,13 @@
   color: var(--red);
 }
 
+/* ── Add row ── */
 .addRow {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
+  background: var(--surface);
 }
 
 .cancelBtn {
@@ -215,7 +268,7 @@
 .addBtn {
   display: block;
   width: 100%;
-  padding: 10px 14px;
+  padding: 11px 14px;
   background: none;
   border: none;
   border-top: 1px dashed var(--border2);
@@ -226,36 +279,26 @@
   text-align: right;
   direction: rtl;
   font-family: inherit;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
+  border-radius: 0 0 var(--radius) var(--radius);
 }
 
 .addBtn:hover {
   background: var(--accent-light);
 }
 
-/* ── Responsive ── */
-@media (max-width: 700px) {
-  .statsRow {
-    grid-template-columns: 1fr 1fr;
-  }
+/* ── Save hint ── */
+.savedHint {
+  font-size: 12px;
+  color: var(--muted);
 }
 
-@media (max-width: 600px) {
-  .tableHead {
-    display: none;
+/* ── Responsive ── */
+@media (max-width: 780px) {
+  .statsRow {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
-
-  .tableRow {
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-    gap: 6px;
-    padding: 10px 14px;
-  }
-
-  .colCat  { grid-column: 1; }
-  .colDel  { grid-column: 2; grid-row: 1; }
-  .colAmt  { grid-column: 1; }
-  .colDiff { grid-column: 2; }
 }
 
 @media (max-width: 400px) {
@@ -265,6 +308,10 @@
   }
 
   .statNum {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+  }
+
+  .cateringHint {
+    font-size: 12px;
   }
 }

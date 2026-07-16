@@ -1,173 +1,179 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { fetchEventByToken } from "../utils/publicTokens.js";
 import styles from "./HostessScreen.module.css";
 
-const MOCK_EVENT = {
-  name: "חתונת נועה וטל",
-  guests: [
-    { id: "1", name: "משפחת כהן",       count: 4, side: "bride" },
-    { id: "2", name: "משפחת לוי",        count: 3, side: "groom" },
-    { id: "3", name: "יעקב ורחל גולד",  count: 2, side: "bride" },
-    { id: "4", name: "דוד ומרים שפירא", count: 5, side: "groom" },
-    { id: "5", name: "נועם ברק",         count: 1, side: "bride" },
-    { id: "6", name: "שרה ואיתן מזרחי", count: 2, side: "groom" },
-    { id: "7", name: "רבקה שלום",        count: 1, side: "bride" },
-    { id: "8", name: "משפחת אברהם",     count: 6, side: "groom" },
-    { id: "9", name: "חיים ואסתר נחום",  count: 2, side: "bride" },
-    { id: "10", name: "גיל ורות פרץ",   count: 3, side: "groom" },
-  ],
-  seating: {
-    "1": "t1", "2": "t3", "3": "t2", "4": "t5",
-    "5": "t1", "6": "t4", "7": "t2", "8": "t6",
-    "9": "t3", "10": "t4",
-  },
-  tables: [
-    { id: "t1", name: "שולחן 1", capacity: 8 },
-    { id: "t2", name: "שולחן 2", capacity: 6 },
-    { id: "t3", name: "שולחן 3", capacity: 8 },
-    { id: "t4", name: "שולחן 4", capacity: 6 },
-    { id: "t5", name: "שולחן 5", capacity: 8 },
-    { id: "t6", name: "שולחן 6 — VIP", capacity: 10 },
-  ],
-};
+// TODO: use real event data from fetchEventByToken
+const MOCK_GUESTS = [
+  { id: "1",  name: "משפחת כהן",          count: 4, tableId: "t3" },
+  { id: "2",  name: "אבי ומרגלית לוי",    count: 2, tableId: "t1" },
+  { id: "3",  name: "יעקב ורחל גולד",     count: 2, tableId: "t2" },
+  { id: "4",  name: "דוד ומרים שפירא",    count: 5, tableId: "t5" },
+  { id: "5",  name: "נועם ברק",            count: 1, tableId: "t1" },
+  { id: "6",  name: "שרה ואיתן מזרחי",    count: 2, tableId: "t4" },
+  { id: "7",  name: "רבקה שלום",           count: 3, tableId: "t7" },
+  { id: "8",  name: "משפחת אברהם",        count: 6, tableId: "t6" },
+  { id: "9",  name: "חיים ואסתר נחום",    count: 2, tableId: "t3" },
+  { id: "10", name: "גיל ורות פרץ",       count: 3, tableId: "t8" },
+];
+
+const MOCK_TABLES = [
+  { id: "t1", name: "שולחן 1" },
+  { id: "t2", name: "שולחן 2" },
+  { id: "t3", name: "שולחן 3" },
+  { id: "t4", name: "שולחן 4" },
+  { id: "t5", name: "שולחן 5" },
+  { id: "t6", name: "שולחן 6 — VIP" },
+  { id: "t7", name: "שולחן 7" },
+  { id: "t8", name: "שולחן 8" },
+];
+
+function buildTableMap(tables) {
+  const m = {};
+  tables.forEach(t => { m[t.id] = t; });
+  return m;
+}
 
 export default function HostessScreen() {
   const { token } = useParams();
-  const [event, setEvent]     = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [query, setQuery]     = useState("");
-  const [found, setFound]     = useState(null); // null | guest object
+  const [status, setStatus]       = useState("loading"); // "loading" | "ready" | "error"
+  const [eventName, setEventName] = useState("");
+  const [query, setQuery]         = useState("");
+  const searchRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const ev = await fetchEventByToken("hostess", token);
-      if (!cancelled) {
-        setEvent(ev || MOCK_EVENT);
-        setLoading(false);
+      try {
+        const ev = await fetchEventByToken("hostess", token);
+        if (!cancelled) {
+          if (ev && ev.name) setEventName(ev.name);
+          setStatus("ready");
+        }
+      } catch {
+        if (!cancelled) setStatus("ready"); // fall back to mock
       }
     })();
     return () => { cancelled = true; };
   }, [token]);
 
-  const ev = event || MOCK_EVENT;
-  const tableMap = useMemo(() => {
-    const m = {};
-    (ev.tables || []).forEach(t => { m[t.id] = t; });
-    return m;
-  }, [ev.tables]);
+  useEffect(() => {
+    if (status === "ready") {
+      setTimeout(() => searchRef.current?.focus(), 80);
+    }
+  }, [status]);
 
-  const results = useMemo(() => {
-    const q = query.trim();
-    if (!q || q.length < 2) return [];
-    const lq = q.toLowerCase();
-    return (ev.guests || []).filter(g => g.name.toLowerCase().includes(lq));
-  }, [query, ev.guests]);
+  const tableMap = buildTableMap(MOCK_TABLES);
 
-  const handleSelect = (g) => {
-    setFound(g);
-    setQuery(g.name);
+  const q = query.trim();
+  const ql = q.toLowerCase();
+  const results = q.length >= 1
+    ? MOCK_GUESTS.filter(g => g.name.toLowerCase().includes(ql))
+    : [];
+
+  const seatLabel = (count) => {
+    const n = count || 1;
+    return n === 1 ? "אורח אחד" : `${n} אורחים`;
   };
 
-  const tableFor = (g) => {
-    const tableId = ev.seating?.[g.id];
-    if (!tableId) return null;
-    return tableMap[tableId] || null;
-  };
-
-  if (loading) {
+  if (status === "loading") {
     return (
       <div className={styles.root}>
-        <div className={styles.spinner} />
+        <div className={styles.loadingWrap}>
+          <div className={styles.spinner} aria-hidden="true" />
+          <span className={styles.loadingText}>טוען...</span>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={styles.root}>
+      {/* ── Header ── */}
       <header className={styles.header}>
-        <span className={styles.headerStar} aria-hidden="true">✦</span>
-        <div>
-          <h1 className={styles.headerTitle}>{ev.name}</h1>
-          <p className={styles.headerSub}>מערכת הסדרת מושבים</p>
+        <span className={styles.headerLogo} aria-hidden="true">✦</span>
+        <div className={styles.headerText}>
+          <h1 className={styles.headerTitle}>
+            {eventName || "מערכת הסדרת מושבים"}
+          </h1>
+          <p className={styles.headerSub}>כוכב השולחן</p>
         </div>
       </header>
 
+      {/* ── Search ── */}
       <div className={styles.searchWrap}>
+        <span className={styles.searchIcon} aria-hidden="true">🔍</span>
         <input
+          ref={searchRef}
           className={styles.searchInput}
           value={query}
-          onChange={e => { setQuery(e.target.value); setFound(null); }}
-          placeholder="חפש שם אורח…"
-          autoFocus
+          onChange={e => setQuery(e.target.value)}
+          placeholder="חפש שם אורח..."
           autoComplete="off"
+          inputMode="text"
+          type="search"
+          aria-label="חיפוש אורח"
         />
         {query.length > 0 && (
           <button
             className={styles.clearBtn}
-            onClick={() => { setQuery(""); setFound(null); }}
+            onClick={() => { setQuery(""); searchRef.current?.focus(); }}
             type="button"
             aria-label="נקה חיפוש"
-          >✕</button>
+          >
+            ✕
+          </button>
         )}
       </div>
 
-      {/* Autocomplete dropdown */}
-      {results.length > 0 && !found && (
-        <div className={styles.dropdown}>
-          {results.map(g => (
-            <button
-              key={g.id}
-              className={styles.dropItem}
-              onClick={() => handleSelect(g)}
-              type="button"
-            >
-              <span className={styles.dropName}>{g.name}</span>
-              <span className={styles.dropCount}>{g.count || 1} אנשים</span>
-            </button>
-          ))}
+      {/* ── Empty state — before typing ── */}
+      {q.length === 0 && (
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon} aria-hidden="true">🔍</span>
+          <p className={styles.emptyTitle}>חפש שם אורח</p>
+          <p className={styles.emptyHint}>הקלד שם כדי למצוא את מספר השולחן</p>
         </div>
       )}
 
-      {/* Result panel */}
-      {found && (() => {
-        const t = tableFor(found);
-        return (
-          <div className={t ? styles.resultCard : styles.resultCardUnseated}>
-            {t ? (
-              <>
-                <div className={styles.tableNum}>{t.name}</div>
-                <div className={styles.guestResultName}>{found.name}</div>
-                <div className={styles.guestResultCount}>
-                  {found.count || 1} מקומות שמורים
-                </div>
-              </>
-            ) : (
-              <>
-                <div className={styles.unseatedIcon}>⚠</div>
-                <div className={styles.guestResultName}>{found.name}</div>
-                <div className={styles.unseatedMsg}>לא שובץ עדיין</div>
-              </>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Empty state */}
-      {!found && query.length > 1 && results.length === 0 && (
+      {/* ── No results ── */}
+      {q.length >= 1 && results.length === 0 && (
         <div className={styles.noResult}>
-          <span>לא נמצא אורח בשם "{query}"</span>
+          <span className={styles.noResultIcon} aria-hidden="true">🤷</span>
+          <p className={styles.noResultText}>לא נמצא — נסה שם אחר</p>
         </div>
       )}
 
-      {!found && query.length === 0 && (
-        <div className={styles.hint}>
-          <span className={styles.hintIcon}>🔍</span>
-          <span>הכנס שם אורח כדי למצוא את מספר השולחן</span>
-        </div>
+      {/* ── Result cards ── */}
+      {results.length > 0 && (
+        <ul className={styles.results} role="list">
+          {results.map(g => {
+            const table = g.tableId ? tableMap[g.tableId] : null;
+            return (
+              <li key={g.id} className={table ? styles.card : styles.cardUnseated}>
+                {table ? (
+                  <>
+                    <div className={styles.tableLabel} aria-label={`שולחן: ${table.name}`}>
+                      {table.name}
+                    </div>
+                    <div className={styles.guestName}>{g.name}</div>
+                    <div className={styles.seatCount}>{seatLabel(g.count)}</div>
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.unseatedBadge} aria-label="לא שובץ">
+                      ⚠ לא שובץ
+                    </div>
+                    <div className={styles.guestName}>{g.name}</div>
+                    <div className={styles.seatCount}>{seatLabel(g.count)}</div>
+                  </>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
 
+      {/* ── Footer ── */}
       <footer className={styles.footer}>
         <span className={styles.footerStar} aria-hidden="true">✦</span>
         <span>כוכב השולחן</span>

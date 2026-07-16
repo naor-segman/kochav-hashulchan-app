@@ -11,10 +11,10 @@ import base from "../styles/screenBase.module.css";
 import styles from "./EventSetupScreen.module.css";
 
 const SHARE_LINKS = [
-  { key: "rsvp",    label: "אישור הגעה (RSVP)", path: "/rsvp/",    icon: "✅" },
-  { key: "invite",  label: "הזמנה דיגיטלית",    path: "/invite/",  icon: "💌" },
-  { key: "gift",    label: "מעטפה דיגיטלית",    path: "/gift/",    icon: "🎁" },
-  { key: "hostess", label: "מודול פקידה",        path: "/hostess/", icon: "🔍" },
+  { key: "rsvp",    label: "RSVP אישור הגעה",  path: "/rsvp/",    icon: "📋" },
+  { key: "invite",  label: "הזמנה דיגיטלית",   path: "/invite/",  icon: "💌" },
+  { key: "gift",    label: "מתנה דיגיטלית",    path: "/gift/",    icon: "💛" },
+  { key: "hostess", label: "מצב דיילות",        path: "/hostess/", icon: "🏷" },
 ];
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
@@ -86,6 +86,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     go("tables");
   };
 
+  const BASE_URL        = window.location.origin;
   const personal        = getEventPersonalConfig(form.type);
   const namePlaceholder = getEventNamePlaceholder(form.type);
   const isNew           = !ev.name;
@@ -260,46 +261,41 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         </div>
       </div>
 
+      {/* ── Sharing links card ── */}
+      <div className={base.card}>
+        <SectionLabel>שיתוף האירוע</SectionLabel>
+        <p className={base.fieldHint} style={{ marginBottom: 14 }}>
+          לינקים ייחודיים לשיתוף עם האורחים
+        </p>
+        {SHARE_LINKS.map(sl => {
+          const url = BASE_URL + sl.path + (ev.tokens?.[sl.key] || "");
+          return (
+            <div key={sl.key} className={styles.shareRow}>
+              <span className={styles.shareLabel}>{sl.icon} {sl.label}</span>
+              <div className={styles.shareInputRow}>
+                <input
+                  className={[base.input, styles.shareInput].join(" ")}
+                  readOnly
+                  value={url}
+                />
+                <button
+                  className={[base.btnSm, styles.copyBtn].join(" ")}
+                  onClick={() => copyLink(sl.key, url)}
+                  type="button"
+                >
+                  {copiedKey === sl.key ? "הועתק ✓" : "העתק"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       <NextStep
         label="המשך להגדרת שולחנות"
         hint={ev.tables.length > 0 ? (ev.tables.length + " שולחנות מוגדרים") : "עדיין לא הוגדרו שולחנות"}
         onClick={goNext}
       />
-
-      {/* ── Sharing links card ── */}
-      {ev.tokens && (
-        <div className={base.card}>
-          <SectionLabel>קישורי שיתוף</SectionLabel>
-          <p className={base.fieldHint} style={{ marginBottom: 14 }}>
-            קישורים ייחודיים לאירוע זה — שלח לאורחים, לצוות ולמשפחה.
-          </p>
-          <div className={styles.shareList}>
-            {SHARE_LINKS.map(sl => {
-              const token = ev.tokens[sl.key];
-              const url   = token ? window.location.origin + sl.path + token : null;
-              return (
-                <div key={sl.key} className={styles.shareRow}>
-                  <span className={styles.shareIcon}>{sl.icon}</span>
-                  <div className={styles.shareInfo}>
-                    <span className={styles.shareLabel}>{sl.label}</span>
-                    <span className={styles.shareUrl}>{url || "טוקן חסר — שמור את האירוע תחילה"}</span>
-                  </div>
-                  {url && (
-                    <button
-                      className={[styles.copyBtn, copiedKey === sl.key ? styles.copyBtnDone : ""].join(" ")}
-                      onClick={() => copyLink(sl.key, url)}
-                      type="button"
-                      disabled={!url}
-                    >
-                      {copiedKey === sl.key ? "הועתק ✓" : "העתק"}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
