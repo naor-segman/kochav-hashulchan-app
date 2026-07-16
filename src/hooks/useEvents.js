@@ -16,7 +16,18 @@ function mergeCloudWithLocal(localEvents, cloudEvents) {
   const cloudLocalIds = new Set(cloudEvents.map(e => e.id));
   const cloudIds      = new Set(cloudEvents.map(e => e.cloudId).filter(Boolean));
 
-  const merged = cloudEvents.map(normalizeEvent);
+  const merged = cloudEvents.map(ce => {
+    const normalized = normalizeEvent(ce);
+    // Floor plan image is never uploaded to cloud (base64 is too large).
+    // Preserve whatever is in localStorage so the image survives hydration.
+    const localMatch = localEvents.find(le =>
+      le.id === ce.id || (le.cloudId && le.cloudId === ce.cloudId)
+    );
+    if (localMatch?.floorPlan?.image && !normalized.floorPlan?.image) {
+      return { ...normalized, floorPlan: { ...normalized.floorPlan, image: localMatch.floorPlan.image } };
+    }
+    return normalized;
+  });
 
   for (const le of localEvents) {
     const inCloud = cloudLocalIds.has(le.id) || (le.cloudId && cloudIds.has(le.cloudId));
