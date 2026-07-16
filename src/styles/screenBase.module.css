@@ -8,6 +8,13 @@
   animation: fadeUp 0.22s ease;
 }
 
+.pageWide {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 28px 20px;
+  animation: fadeUp 0.22s ease;
+}
+
 @media (max-width: 400px) {
   .page {
     padding: 20px 14px;

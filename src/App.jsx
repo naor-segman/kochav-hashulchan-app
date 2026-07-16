@@ -29,9 +29,11 @@ import AccountScreen      from "./screens/AccountScreen.jsx";
 import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
 import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
 import CheckInScreen      from "./screens/CheckInScreen.jsx";
+import LandingScreen      from "./screens/LandingScreen.jsx";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
-const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
+const AdminApp      = lazy(() => import("./admin/AdminApp.jsx"));
+const PricingScreen = lazy(() => import("./screens/PricingScreen.jsx"));
 
 // ── Event layout + nested routes ─────────────────────────────────────────────
 // Rendered for every /events/:eventId/* path.
@@ -52,7 +54,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
 
   const go = useCallback((screen, newEventId) => {
     window.scrollTo(0, 0);
-    if (screen === "dashboard") navigate("/");
+    if (screen === "dashboard") navigate("/app");
     else navigate(`/events/${newEventId || eventId}/${screen}`);
   }, [navigate, eventId]);
 
@@ -61,7 +63,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
   // redirect before cloud events have loaded.
   if (!activeEvent) {
     if (syncStatus === SYNC_STATUS.SYNCING) return <div aria-busy="true" />;
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   // Derive active tab name from last URL segment ("setup", "tables", …)
@@ -88,7 +90,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
 // ── Root app ──────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const { user }                                                        = useAuth();
+  const { user, loading: authLoading }                                  = useAuth();
   const { events, addEvent, removeEvent, patchEventById, syncStatus }  = useEvents(user);
   const { toast, showToast }                                            = useToast();
   const { plan }                                                        = usePlan();
@@ -167,14 +169,20 @@ export default function App() {
   // the logo click (→ "/") needs to be handled here.
   const dashGo = useCallback((screen, id) => {
     window.scrollTo(0, 0);
-    if (screen === "dashboard") navigate("/");
+    if (screen === "dashboard") navigate("/app");
     else if (id) navigate(`/events/${id}/${screen}`);
   }, [navigate]);
 
   return (
     <Routes>
+      {/* Landing page — unauthenticated visitors */}
       <Route
         path="/"
+        element={authLoading ? <div /> : user ? <Navigate to="/app" replace /> : <LandingScreen />}
+      />
+      {/* Dashboard — authenticated app */}
+      <Route
+        path="/app"
         element={
           <Shell screen="dashboard" activeEvent={null} go={dashGo}>
             {(migration.shouldPrompt || migration.status !== MIGRATION_STATUS.IDLE) && (
@@ -190,6 +198,15 @@ export default function App() {
             />
             {toast && <Toast msg={toast.msg} variant={toast.variant} />}
           </Shell>
+        }
+      />
+      {/* Pricing page */}
+      <Route
+        path="/pricing"
+        element={
+          <Suspense fallback={null}>
+            <PricingScreen user={user} />
+          </Suspense>
         }
       />
       {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}
