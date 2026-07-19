@@ -139,24 +139,60 @@ export default function LandingScreen() {
           <span className={styles.decorStar1}>✦</span>
           <span className={styles.decorStar2}>✦</span>
         </div>
-        <div className={styles.heroInner}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeDot} />
-            הפלטפורמה המובילה לסידור הושבה בישראל
+        <div className={styles.heroLayout}>
+          <div className={styles.heroInner}>
+            <div className={styles.heroBadge}>
+              <span className={styles.heroBadgeDot} />
+              הפלטפורמה המובילה לסידור הושבה בישראל
+            </div>
+            <h1 className={styles.heroHeadline}>
+              כל האורחים<br />
+              <span className={styles.heroGold}>במקום הנכון</span>
+            </h1>
+            <p className={styles.heroSub}>
+              סידור הושבה אוטומטי, ניהול אורחים חכם, אישורי הגעה בוואטסאפ —
+              הכל במקום אחד, לאירוע שתמיד חלמתם עליו
+            </p>
+            <div className={styles.heroActions}>
+              <Link to="/signup" className={styles.heroCta}>התחל חינם ←</Link>
+              <a href="#how" className={styles.heroSecondary}>ראה איך זה עובד</a>
+            </div>
+            <p className={styles.heroNote}>ללא כרטיס אשראי · ניסיון חינם לכל החיים</p>
           </div>
-          <h1 className={styles.heroHeadline}>
-            כל האורחים<br />
-            <span className={styles.heroGold}>במקום הנכון</span>
-          </h1>
-          <p className={styles.heroSub}>
-            סידור הושבה אוטומטי, ניהול אורחים חכם, אישורי הגעה בוואטסאפ —
-            הכל במקום אחד, לאירוע שתמיד חלמתם עליו
-          </p>
-          <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.heroCta}>התחל חינם ←</Link>
-            <a href="#how" className={styles.heroSecondary}>ראה איך זה עובד</a>
+          <div className={styles.heroVisual} aria-hidden="true">
+            <div className={styles.mockCard}>
+              <div className={styles.mockCardHead}>
+                <span className={styles.mockCardMark}>✦</span>
+                <span className={styles.mockCardTitle}>תוכנית ישיבה</span>
+                <span className={styles.mockCardStat}>58 אורחים</span>
+              </div>
+              <div className={styles.mockTables}>
+                {[
+                  { name: "שולחן 1",   total: 10, filled: 10 },
+                  { name: "שולחן 2",   total: 8,  filled: 7  },
+                  { name: "שולחן 3",   total: 10, filled: 9  },
+                  { name: "שולחן 4",   total: 8,  filled: 8  },
+                  { name: "שולחן 5",   total: 10, filled: 6  },
+                  { name: "שולחן VIP", total: 8,  filled: 8  },
+                ].map(t => (
+                  <div key={t.name} className={styles.mockTable}>
+                    <div className={styles.mockTableDots}>
+                      {Array.from({ length: t.total }).map((_, i) => (
+                        <span
+                          key={i}
+                          className={i < t.filled ? styles.mockDotFull : styles.mockDotEmpty}
+                        />
+                      ))}
+                    </div>
+                    <span className={styles.mockTableLabel}>{t.name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className={styles.mockCardFoot}>
+                <span className={styles.mockCardFootBadge}>✓ 48 מתוך 54 אורחים סודרו</span>
+              </div>
+            </div>
           </div>
-          <p className={styles.heroNote}>ללא כרטיס אשראי · ניסיון חינם לכל החיים</p>
         </div>
       </section>
 

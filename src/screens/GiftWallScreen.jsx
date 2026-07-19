@@ -58,14 +58,17 @@ export default function GiftWallScreen() {
         const { supabase } = await import("../lib/supabase.js");
         const { data } = await supabase
           .from("gifts")
-          .select("*")
+          .select("id, donor_name, amount, message, paid, created_at")
           .eq("event_id", event.cloudId)
+          .eq("paid", true)
           .order("created_at", { ascending: false });
         if (!cancelled && data) setGifts(data);
       } catch { /* fall through — subscription will still add new gifts */ }
     })();
     const unsub = subscribeToGifts(event.cloudId, (newGift) => {
-      setGifts((prev) => [newGift, ...prev.filter(g => g.id !== newGift.id)]);
+      if (newGift.paid === true) {
+        setGifts((prev) => [newGift, ...prev.filter(g => g.id !== newGift.id)]);
+      }
     });
     return () => { cancelled = true; unsub(); };
   }, [event?.cloudId]);

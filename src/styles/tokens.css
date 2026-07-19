@@ -115,10 +115,19 @@
   --shadow-md:    0 4px 24px rgba(80,45,10,.14), 0 2px 6px rgba(80,45,10,.08);
   --shadow-lg:    0 10px 50px rgba(80,45,10,.18), 0 4px 12px rgba(80,45,10,.10);
 
+  /* Alpha-channel RGB components — use as rgba(var(--accent-rgb), 0.12) */
+  --accent-rgb:   196, 138, 26;
+  --text-rgb:     28, 18, 8;
+  --nav-text-rgb: 242, 232, 214;
+  --green-rgb:    31, 120, 69;
+  --red-rgb:      192, 43, 28;
+  /* White text on colored (accent / green / red) backgrounds */
+  --on-accent:    #fff;
+
   /* Accent hover & shadow */
   --accent-dark:       #8A5C10;
-  --shadow-accent:     0 2px 12px rgba(196,138,26,.35);
-  --shadow-accent-lg:  0 6px 28px rgba(196,138,26,.48);
+  --shadow-accent:     0 2px 12px rgba(var(--accent-rgb),.35);
+  --shadow-accent-lg:  0 6px 28px rgba(var(--accent-rgb),.48);
 
   /* Transition presets */
   --transition:        0.15s ease;

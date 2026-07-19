@@ -62,8 +62,9 @@ export default function GiftScreen() {
           message,
         });
       } catch {
-        // Gift submission failed — still show success so UX isn't broken,
-        // but the record was not written (dev/Supabase-not-configured path).
+        setStep("form");
+        setErrors({ submit: "אירעה שגיאה בשמירת המתנה. אנא נסה שוב." });
+        return;
       }
     }
     setStep("submitted");
@@ -282,6 +283,7 @@ export default function GiftScreen() {
           </div>
 
           {/* Submit */}
+          {errors.submit && <p className={styles.fieldErr}>{errors.submit}</p>}
           <button
             className={styles.submitBtn}
             onClick={handleSubmit}

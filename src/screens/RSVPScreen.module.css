@@ -47,7 +47,7 @@
   color: var(--accent);
   font-size: 18px;
   line-height: 1;
-  filter: drop-shadow(0 0 8px rgba(196, 138, 26, 0.5));
+  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.5));
 }
 
 .headerName {
@@ -220,26 +220,26 @@
 
 .btnYes {
   background: var(--green);
-  color: #fff;
-  box-shadow: 0 2px 12px rgba(31, 120, 69, 0.30);
+  color: var(--on-accent);
+  box-shadow: 0 2px 12px rgba(var(--green-rgb), 0.30);
 }
 
 .btnYes:hover {
   opacity: 0.88;
   transform: translateY(-1px);
-  box-shadow: 0 4px 18px rgba(31, 120, 69, 0.38);
+  box-shadow: 0 4px 18px rgba(var(--green-rgb), 0.38);
 }
 
 .btnNo {
   background: var(--red);
-  color: #fff;
-  box-shadow: 0 2px 12px rgba(192, 43, 28, 0.28);
+  color: var(--on-accent);
+  box-shadow: 0 2px 12px rgba(var(--red-rgb), 0.28);
 }
 
 .btnNo:hover {
   opacity: 0.88;
   transform: translateY(-1px);
-  box-shadow: 0 4px 18px rgba(192, 43, 28, 0.36);
+  box-shadow: 0 4px 18px rgba(var(--red-rgb), 0.36);
 }
 
 .choiceBtnIcon {
@@ -350,7 +350,7 @@
 .btnSubmitYes {
   width: 100%;
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
   padding: 13px 0;
@@ -408,7 +408,7 @@
 .btnSubmitNo {
   width: 100%;
   background: var(--red);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
   padding: 13px 0;
@@ -416,7 +416,7 @@
   font-weight: 800;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(192, 43, 28, 0.28);
+  box-shadow: 0 2px 10px rgba(var(--red-rgb), 0.28);
   transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
   margin-block-end: 8px;
 }
@@ -424,7 +424,7 @@
 .btnSubmitNo:hover:not(:disabled) {
   opacity: 0.88;
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(192, 43, 28, 0.36);
+  box-shadow: 0 4px 16px rgba(var(--red-rgb), 0.36);
 }
 
 .btnSubmitNo:disabled {
@@ -474,13 +474,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(31, 120, 69, 0.38);
+  box-shadow: 0 4px 20px rgba(var(--green-rgb), 0.38);
   animation: checkBounce 0.45s cubic-bezier(0.34, 1.46, 0.64, 1) both;
 }
 
 .checkMark {
   font-size: 30px;
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 700;
   line-height: 1;
 }
