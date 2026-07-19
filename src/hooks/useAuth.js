@@ -51,7 +51,11 @@ export function useAuth() {
 
   const signUp = async (email, password) => {
     if (!supabase) throw new Error("Supabase not configured");
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin + "/auth/callback" },
+    });
     if (error) throw error;
     // session is null when email confirmation is required
     return { needsConfirmation: !data.session };
