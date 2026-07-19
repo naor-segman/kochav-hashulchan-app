@@ -25,6 +25,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState("");
   const [confirm,  setConfirm]  = useState("");
   const [error,    setError]    = useState("");
+  const [showPw,   setShowPw]   = useState(false);
   const [busy,        setBusy]        = useState(false);
   const [done,        setDone]        = useState(false); // email confirmation sent
   const [resentDone,  setResentDone]  = useState(false);
@@ -89,24 +90,18 @@ export default function SignupScreen() {
             <span className={styles.brandName}>כוכב השולחן</span>
           </div>
           <h1 className={styles.title}>בדוק את האימייל שלך ✉</h1>
-          <p style={{ textAlign: "center", color: "var(--text2)", fontSize: 14, margin: 0, lineHeight: 1.6 }}>
+          <p className={styles.confirmBody}>
             שלחנו קישור אישור לכתובת <strong>{email}</strong>.
             לחץ על הקישור לאישור החשבון.
           </p>
           {resentDone ? (
-            <p style={{ textAlign: "center", fontSize: 13, color: "var(--green)", margin: 0, fontWeight: 600 }}>
-              ✓ הקישור נשלח שוב — בדוק את תיבת הדואר
-            </p>
+            <p className={styles.confirmSuccess}>✓ הקישור נשלח שוב — בדוק את תיבת הדואר</p>
           ) : (
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 6px" }}>לא קיבלת אימייל?</p>
-              {resentError && <p style={{ fontSize: 12, color: "var(--red)", margin: "0 0 6px" }}>{resentError}</p>}
+            <div className={styles.resendWrap}>
+              <p className={styles.resendNote}>לא קיבלת אימייל?</p>
+              {resentError && <p className={styles.resendError}>{resentError}</p>}
               <button
-                style={{
-                  background: "none", border: "none", cursor: "pointer",
-                  color: "var(--accent)", fontSize: 13, fontWeight: 700, fontFamily: "inherit",
-                  textDecoration: "underline", padding: 0,
-                }}
+                className={styles.resendBtn}
                 onClick={handleResend}
                 disabled={resentBusy || !isSupabaseConfigured}
               >
@@ -156,18 +151,29 @@ export default function SignupScreen() {
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="signup-pw">סיסמה</label>
-            <input
-              id="signup-pw"
-              className={styles.input}
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="לפחות 6 תווים"
-              dir="ltr"
-              autoComplete="new-password"
-              disabled={!isSupabaseConfigured || busy}
-              required
-            />
+            <div className={styles.passwordWrap}>
+              <input
+                id="signup-pw"
+                className={styles.input}
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="לפחות 6 תווים"
+                dir="ltr"
+                autoComplete="new-password"
+                disabled={!isSupabaseConfigured || busy}
+                required
+              />
+              <button
+                type="button"
+                className={styles.eyeBtn}
+                onClick={() => setShowPw(v => !v)}
+                aria-label={showPw ? "הסתר סיסמה" : "הצג סיסמה"}
+                tabIndex={-1}
+              >
+                {showPw ? "🙈" : "👁"}
+              </button>
+            </div>
           </div>
 
           <div className={styles.field}>

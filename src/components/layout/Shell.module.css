@@ -37,7 +37,7 @@
 .logoMark {
   font-size: 22px;
   color: var(--accent);
-  filter: drop-shadow(0 0 8px rgba(196,138,26,.50));
+  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb),.50));
 }
 
 .logoName {
@@ -51,8 +51,8 @@
   font-size: 9px;
   font-weight: 800;
   color: var(--accent);
-  background: rgba(196,138,26,.14);
-  border: 1px solid rgba(196,138,26,.30);
+  background: rgba(var(--accent-rgb),.14);
+  border: 1px solid rgba(var(--accent-rgb),.30);
   border-radius: 20px;
   padding: 1px 6px;
   letter-spacing: 0.06em;
@@ -89,7 +89,7 @@
 }
 
 .bcBack:hover {
-  background: rgba(196,138,26,.14);
+  background: rgba(var(--accent-rgb),.14);
   color: var(--accent-border);
 }
 
@@ -113,8 +113,8 @@
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
-  background: rgba(30,120,70,.18);
-  border: 1px solid rgba(30,120,70,.30);
+  background: rgba(var(--green-rgb),.18);
+  border: 1px solid rgba(var(--green-rgb),.30);
   border-radius: 20px;
   padding: 3px 10px;
   letter-spacing: 0.01em;
@@ -123,14 +123,14 @@
 
 .autoSaving {
   color: var(--accent-border);
-  background: rgba(196,138,26,.14);
-  border-color: rgba(196,138,26,.28);
+  background: rgba(var(--accent-rgb),.14);
+  border-color: rgba(var(--accent-rgb),.28);
 }
 
 .autoSaveErr {
   color: var(--red);
-  background: rgba(192,43,28,.14);
-  border-color: rgba(192,43,28,.28);
+  background: rgba(var(--red-rgb),.14);
+  border-color: rgba(var(--red-rgb),.28);
 }
 
 /* ── Account button ── */
@@ -156,8 +156,8 @@
 }
 
 .accountBtn:hover {
-  background: rgba(196,138,26,.16);
-  border-color: rgba(196,138,26,.35);
+  background: rgba(var(--accent-rgb),.16);
+  border-color: rgba(var(--accent-rgb),.35);
   color: var(--accent);
 }
 

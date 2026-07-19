@@ -23,6 +23,7 @@ export default function LoginScreen() {
   const [password,    setPassword]    = useState("");
   const [error,       setError]       = useState(location.state?.error || "");
   const [busy,        setBusy]        = useState(false);
+  const [showPw,      setShowPw]      = useState(false);
   const [forgotMode,  setForgotMode]  = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotBusy,  setForgotBusy]  = useState(false);
@@ -65,12 +66,8 @@ export default function LoginScreen() {
   };
 
   if (loading) return (
-    <div style={{
-      minHeight: "100vh", display: "flex", alignItems: "center",
-      justifyContent: "center", background: "var(--bg)",
-    }}>
-      <span style={{ fontSize: "28px", color: "var(--border2)", animation: "spin 1.2s linear infinite" }}>✦</span>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div className={styles.page}>
+      <span className={styles.loadingMark}>✦</span>
     </div>
   );
 
@@ -110,18 +107,29 @@ export default function LoginScreen() {
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="login-pw">סיסמה</label>
-            <input
-              id="login-pw"
-              className={styles.input}
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              dir="ltr"
-              autoComplete="current-password"
-              disabled={!isSupabaseConfigured || busy}
-              required
-            />
+            <div className={styles.passwordWrap}>
+              <input
+                id="login-pw"
+                className={styles.input}
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                dir="ltr"
+                autoComplete="current-password"
+                disabled={!isSupabaseConfigured || busy}
+                required
+              />
+              <button
+                type="button"
+                className={styles.eyeBtn}
+                onClick={() => setShowPw(v => !v)}
+                aria-label={showPw ? "הסתר סיסמה" : "הצג סיסמה"}
+                tabIndex={-1}
+              >
+                {showPw ? "🙈" : "👁"}
+              </button>
+            </div>
           </div>
 
           {error && <p className={styles.errorMsg}>{error}</p>}
