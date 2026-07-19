@@ -1,0 +1,268 @@
+/* ConstraintsScreen-specific styles */
+
+/* Step guidance banner */
+.stepGuide {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.stepBadge {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stepText {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+/* Type-selector hint */
+.typeHint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+  margin-bottom: 0;
+  line-height: 1.4;
+}
+
+.constraintFormRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.constraintVerb {
+  padding-bottom: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 14px;
+  gap: 10px;
+}
+
+.cRowMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.cstName {
+  font-weight: 700;
+}
+
+.cstVerb {
+  color: var(--text2);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* Preview inner elements */
+.previewIcon {
+  font-size: 22px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.previewContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.previewNames {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.previewVerb {
+  font-weight: 400;
+  margin: 0 8px;
+  opacity: 0.7;
+}
+
+.previewMeta {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 3px;
+}
+
+.previewOutcome {
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid currentColor;
+  opacity: 0.6;
+}
+
+.constraintPreview {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.constraintPreviewTog {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+
+.constraintPreviewApart {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+}
+
+/* ── Guest autocomplete ── */
+.acWrap {
+  position: relative;
+}
+
+.acInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 10px 0 6px;
+  transition: border-color 0.15s;
+}
+
+.acInputWrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.acInputSelected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.acInput {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding-inline-start: 4px;
+  flex: 1;
+}
+
+.acClear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  line-height: 1;
+  transition: color 0.12s;
+}
+
+.acClear:hover { color: var(--red); }
+
+.acDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 200;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.acItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: right;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  transition: background 0.1s;
+}
+
+.acItem:last-child { border-bottom: none; }
+
+.acItem:hover,
+.acItemHi {
+  background: var(--accent-bg);
+}
+
+.acName {
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.acMeta {
+  font-size: 12px;
+  color: var(--muted);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acMark {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: 2px;
+  font-weight: 800;
+  font-style: normal;
+}
+
+.acEmpty {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}

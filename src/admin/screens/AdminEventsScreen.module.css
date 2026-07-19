@@ -1,0 +1,437 @@
+/* Admin events screen — isolated from customer app styles */
+
+.page {
+  min-height: 100vh;
+  background: #f4f4f5;
+  font-family: inherit;
+}
+
+/* ── Top bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 24px;
+  height: 56px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backLink {
+  font-size: 18px;
+  color: #888;
+  text-decoration: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: background 0.12s, color 0.12s;
+}
+
+.backLink:hover {
+  background: #f4f4f5;
+  color: #333;
+}
+
+.brandMark {
+  font-size: 18px;
+  color: #be7a38;
+}
+
+.brandName {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: -0.01em;
+}
+
+.brandSep { color: #ccc; }
+
+.brandSub {
+  font-size: 13px;
+  color: #888;
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.adminEmail {
+  font-size: 13px;
+  color: #666;
+  direction: ltr;
+}
+
+.logoutBtn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+
+.logoutBtn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+/* ── Main ── */
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Error banner ── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-inline-start: 4px solid #f87171;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #b91c1c;
+  direction: ltr;
+  text-align: left;
+}
+
+.retryBtn {
+  background: none;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b91c1c;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+
+.retryBtn:hover { background: #fee2e2; }
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.searchWrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 340px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #aaa;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.searchInput {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 12px 8px 32px;
+  font-size: 14px;
+  color: #111;
+  background: #fff;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.searchInput:focus {
+  border-color: #be7a38;
+  box-shadow: 0 0 0 3px rgba(190, 122, 56, 0.12);
+}
+
+.filterSelect {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 130px;
+}
+
+.filterSelect:focus {
+  border-color: #be7a38;
+  box-shadow: 0 0 0 3px rgba(190, 122, 56, 0.12);
+}
+
+.filterSelect:disabled {
+  color: #bbb;
+  cursor: default;
+}
+
+.resultCount {
+  font-size: 13px;
+  color: #888;
+  white-space: nowrap;
+}
+
+/* ── State boxes ── */
+.stateBox {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.loadingText {
+  font-size: 14px;
+  color: #aaa;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 6px;
+}
+
+.emptyHint {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+/* ── Table ── */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  direction: ltr;
+  text-align: left;
+}
+
+.table th {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #222;
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover td { background: #fafafa; }
+
+/* ── Cell variants ── */
+.nameCell {
+  font-weight: 600;
+  color: #111;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.typeCell  { color: #555; white-space: nowrap; }
+.dateCell  { color: #666; white-space: nowrap; font-size: 12px; }
+
+.venueCell {
+  color: #444;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ownerCell {
+  color: #555;
+  font-size: 12px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.numCol    { text-align: center; }
+.numCell   { text-align: center; font-variant-numeric: tabular-nums; color: #555; }
+
+.relativeCell { color: #888; font-size: 12px; white-space: nowrap; }
+
+.muted { color: #ccc; }
+
+.viewLink {
+  display: inline-block;
+  text-decoration: none;
+  color: #be7a38;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 5px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.viewLink:hover {
+  background: #fef3c7;
+  border-color: #fbbf24;
+}
+
+/* ── Status badges ── */
+.statusEmpty,
+.statusWarning,
+.statusReady,
+.statusProgress,
+.statusIssues,
+.statusPending {
+  display: inline-block;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* grey — no guests and no tables */
+.statusEmpty {
+  background: #f4f4f5;
+  color: #888;
+  border: 1px solid #e5e7eb;
+}
+
+/* amber — missing guests or tables */
+.statusWarning {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+/* blue — ready to seat but not started */
+.statusPending {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+/* orange — seating in progress, >= 50% */
+.statusProgress {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+}
+
+/* red — seating started but < 50% (possible issues) */
+.statusIssues {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* green — 90%+ seated */
+.statusReady {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .topbar { padding: 0 14px; height: auto; padding-block: 10px; }
+  .main { padding: 16px 12px 40px; }
+}
+
+/* ── Live badge ── */
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2a7a50;
+  background: #eaf6f0;
+  border: 1px solid #b2dac5;
+  border-radius: 20px;
+  padding: 2px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.liveDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2a7a50;
+  flex-shrink: 0;
+}
+
+/* ── Owner link (email → filter events) ── */
+.ownerLink {
+  color: #be7a38;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.ownerLink:hover {
+  text-decoration: underline;
+}

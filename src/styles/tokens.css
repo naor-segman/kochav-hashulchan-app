@@ -1,0 +1,127 @@
+/* Design tokens – single source of truth */
+:root {
+  /* ─────────────────────────────────────────────────────────────
+     Typography — font-family defined here, used by reset.css
+     ───────────────────────────────────────────────────────────── */
+  --font-family-base: "Heebo", system-ui, -apple-system, Arial, sans-serif;
+
+  /* ─────────────────────────────────────────────────────────────
+     Typography scale — used by reset.css (base styles) and utilities.css
+     ───────────────────────────────────────────────────────────── */
+  --font-size-xs:   0.75rem;
+  --font-size-sm:   0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg:   1.125rem;
+  --font-size-xl:   1.25rem;
+  --font-size-2xl:  1.5rem;
+  --font-size-3xl:  1.875rem;
+  --font-size-4xl:  2.25rem;
+  --font-weight-light:     300;
+  --font-weight-regular:   400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+  --font-weight-extrabold: 800;
+  --line-height-tight:  1.25;
+  --line-height-normal: 1.5;
+  --line-height-loose:  1.75;
+
+  /* ─────────────────────────────────────────────────────────────
+     Spacing scale — used by utilities.css
+     ───────────────────────────────────────────────────────────── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Container — used by utilities.css .container */
+  --container-max:     1200px;
+  --container-padding: var(--space-4);
+
+  /* Radius — subset actually used in components */
+  --radius-sm:   0.25rem;  /* ConstraintsScreen autocomplete */
+  --radius-full: 9999px;   /* Shell nav badges */
+
+  /* ─────────────────────────────────────────────────────────────
+     V1 semantic variables — active design system.
+     All screens and components use exclusively these variables.
+     Do not rename or remove.
+     ───────────────────────────────────────────────────────────── */
+
+  /* Surfaces — warm cream palette, clearly different from white */
+  --bg:           #EEE7DC;
+  --surface:      #FBF8F3;
+
+  /* Borders — warmer, more visible */
+  --border:       #D4C9BB;
+  --border2:      #B8A994;
+
+  /* Text — rich warm browns, not neutral grays */
+  --text:         #1C1208;
+  --text2:        #4A3B2A;
+  --muted:        #8A7463;
+
+  /* Brand accent — richer, more vibrant gold */
+  --accent:        #C48A1A;
+  --accent-bg:     #FEF2D8;
+  --accent-light:  #FFF8EE;
+  --accent-border: #D9A840;
+
+  /* Navigation bar — dark warm background for topbar */
+  --nav-bg:        #1C1208;
+  --nav-text:      #F2E8D6;
+  --nav-muted:     #9A8670;
+  --nav-border:    rgba(242,232,214,.10);
+
+  /* Side colors */
+  --bride:        #B55FA0;
+  --groom:        #3470BE;
+
+  /* Semantic state — green */
+  --green:        #1F7845;
+  --green-light:  #3A9E68;
+  --green-bg:     #E4F5EC;
+  --green-border: #A8D8BC;
+
+  /* Semantic state — red */
+  --red:          #C02B1C;
+  --red-bg:       #FDECEA;
+  --red-border:   #F5BCB6;
+
+  /* Semantic state — warning */
+  --warn:         #9A5F00;
+  --warn-bg:      #FEF6E0;
+  --warn-border:  #F0D080;
+
+  /* Side color backgrounds */
+  --bride-bg:     #F6EAF4;
+  --groom-bg:     #E8EFF8;
+
+  /* Brand colors — third-party services */
+  --whatsapp:     #25D366;
+
+  /* V1 radius + shadow shortcuts — slightly more rounded */
+  --radius:       12px;
+  --radius-lg:    20px;
+  --shadow:       0 1px 4px rgba(80,45,10,.10), 0 1px 2px rgba(80,45,10,.06);
+  --shadow-md:    0 4px 24px rgba(80,45,10,.14), 0 2px 6px rgba(80,45,10,.08);
+  --shadow-lg:    0 10px 50px rgba(80,45,10,.18), 0 4px 12px rgba(80,45,10,.10);
+
+  /* Accent hover & shadow */
+  --accent-dark:       #8A5C10;
+  --shadow-accent:     0 2px 12px rgba(196,138,26,.35);
+  --shadow-accent-lg:  0 6px 28px rgba(196,138,26,.48);
+
+  /* Transition presets */
+  --transition:        0.15s ease;
+  --transition-fast:   0.10s ease;
+  --transition-slow:   0.25s ease;
+}

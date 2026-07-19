@@ -1,0 +1,59 @@
+/* NextStep footer banner */
+.nextBanner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-top: 18px;
+  gap: 14px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-accent);
+}
+
+@media (max-width: 480px) {
+  .nextBanner {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+.nextLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 3px;
+}
+
+.nextHint {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 10px 22px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: var(--shadow-accent);
+  white-space: nowrap;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.btn:hover {
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-accent-lg);
+  transform: translateY(-1px);
+}

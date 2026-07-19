@@ -1,0 +1,30 @@
+/* EmptyState placeholder */
+.empty {
+  text-align: center;
+  padding: 44px 20px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.emptyIcon {
+  font-size: 38px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.emptyTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 5px;
+}
+
+.emptyText {
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 48ch;
+  margin-inline: auto;
+}

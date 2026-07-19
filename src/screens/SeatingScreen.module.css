@@ -1,0 +1,1584 @@
+/* SeatingScreen-specific styles */
+
+/* ─── Step guidance banner ──────────────────────────────────────────────── */
+.stepGuide {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.stepBadge {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stepText {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+/* ─── Run card ──────────────────────────────────────────────────────────── */
+.runCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.runCardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.runCardTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.runCardSub {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.runCardStats {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.runCardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.runBtn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: var(--shadow-accent);
+  white-space: nowrap;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.runBtn:hover:not(:disabled) {
+  background: var(--accent-dark);
+  box-shadow: var(--shadow-accent-lg);
+  transform: translateY(-1px);
+}
+
+.runBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ─── Unassigned queue ──────────────────────────────────────────────────── */
+.unassignedCard {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-inline-start: 4px solid var(--warn);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 14px;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+/* When any drag is active but not hovering this card */
+.unassignedDropReady {
+  border-color: var(--accent-border);
+  background: var(--warn-bg);
+}
+
+/* When drag is directly over this card */
+.unassignedDropActive {
+  border-color: var(--accent) !important;
+  border-inline-start-color: var(--accent) !important;
+  background: var(--accent-bg) !important;
+}
+
+.unassignedHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.unassignedTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--warn);
+}
+
+.unassignedCount {
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-border);
+  border-radius: 20px;
+  padding: 2px 9px;
+}
+
+.unassignedHint {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+/* ─── Violations card ───────────────────────────────────────────────────── */
+.violCard {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-inline-start: 4px solid var(--warn);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.violHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.violTitle {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--warn);
+}
+
+.violExplain {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.violList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.violRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-inline-start: 3px solid transparent;
+  line-height: 1.5;
+}
+
+.violIcon {
+  flex-shrink: 0;
+  font-size: 14px;
+  margin-top: 1px;
+}
+
+.violTog {
+  background: var(--green-bg);
+  color: var(--green);
+  border-inline-start-color: var(--green);
+}
+
+.violApart {
+  background: var(--red-bg);
+  color: var(--red);
+  border-inline-start-color: var(--red);
+}
+
+.violCap {
+  background: var(--red-bg);
+  color: var(--red);
+  border-inline-start-color: var(--red);
+}
+
+/* ─── Table cards grid ──────────────────────────────────────────────────── */
+.tableCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin-top: 6px;
+}
+
+@media (max-width: 480px) {
+  .tableCards {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.tCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.1s, opacity 0.15s;
+}
+
+.tCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* When any drag is active: all table cards glow subtly as drop targets */
+.tableCardsDragging .tCard {
+  box-shadow: 0 0 0 2px var(--accent-border), var(--shadow);
+}
+
+/* Empty label becomes inviting during drag */
+.tableCardsDragging .tCard .tCardEmpty {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.tCardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  gap: 10px;
+  text-align: right;
+  transition: background 0.12s;
+}
+
+.tCardHead:hover {
+  background: var(--accent-light);
+}
+
+.tCardLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tCardIcon {
+  font-size: 18px;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tCardName {
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* Badges — slightly larger for scanability */
+.tCardBadgeLock {
+  font-size: 12px;
+  margin-inline-start: 4px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.tCardBadgeRed {
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+  border-inline-start: 2px solid var(--red);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
+.tCardBadgeWarn {
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-border);
+  border-inline-start: 2px solid var(--warn);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
+.tCardRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tCardCount {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tCardChevron {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* Side breakdown chips */
+.tChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+
+.tChipRow {
+  display: flex;
+  gap: 5px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+
+.tChipBride {
+  color: var(--bride);
+  background: var(--bride-bg);
+  border: 1px solid var(--bride);
+  opacity: 0.85;
+}
+
+.tChipGroom {
+  color: var(--groom);
+  background: var(--groom-bg);
+  border: 1px solid var(--groom);
+  opacity: 0.85;
+}
+
+.tCardCapLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.7;
+  margin-inline-start: 2px;
+}
+
+.tCardEmpty {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-style: italic;
+  transition: color 0.15s;
+}
+
+/* ─── Expanded guest list ───────────────────────────────────────────────── */
+.tGuestList {
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+}
+
+.tGuestRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-size: 14px;
+  transition: background 0.1s;
+}
+
+.emptyInline {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 8px 14px;
+  display: block;
+  font-style: italic;
+  transition: color 0.15s;
+}
+
+/* During drag, empty table slots look more inviting */
+.tableCardsDragging .tCard .emptyInline {
+  color: var(--accent);
+  font-style: normal;
+}
+
+/* ─── Success card ──────────────────────────────────────────────────────── */
+.successCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+  border-inline-start: 4px solid var(--green);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-md);
+}
+
+.successIconWrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.successText {
+  flex: 1;
+}
+
+.successTitle {
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--green);
+  margin-bottom: 3px;
+}
+
+.successSub {
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.successExportBtn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.successExportBtn:hover {
+  opacity: 0.88;
+}
+
+/* ─── Drag and drop ─────────────────────────────────────────────────────── */
+
+/* Drag handle icon — appears on hover */
+.dragHandle {
+  font-size: 14px;
+  color: var(--border2);
+  flex-shrink: 0;
+  opacity: 0.3;
+  transition: opacity 0.12s, color 0.12s;
+  user-select: none;
+  line-height: 1;
+}
+
+/* Draggable row base */
+.draggableRow {
+  cursor: grab;
+  user-select: none;
+  transition: background 0.12s;
+}
+
+.draggableRow:active {
+  cursor: grabbing;
+}
+
+/* Hover: reveal drag handle + amber tint */
+.draggableRow:hover .dragHandle {
+  opacity: 1;
+}
+
+.draggableRow:hover {
+  background: var(--accent-bg);
+}
+
+/* Source row disappears while dragging — replaced by DragOverlay */
+.guestDragging {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Floating drag ghost */
+.dragOverlayRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 10px 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.10);
+  cursor: grabbing;
+  font-size: 14px;
+  transform: scale(1.03) rotate(-0.5deg);
+}
+
+.dragOverlayName {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dragOverlayMeta {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ─── Drag-state table card modifiers ───────────────────────────────────── */
+
+/* Table can accept the dragged guest — glow amber */
+.tCardDragReady {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px var(--accent-border), var(--shadow) !important;
+}
+
+/* Table is full — mute it so it reads as invalid */
+.tCardDragBlocked {
+  opacity: 0.55;
+  border-color: var(--border) !important;
+  box-shadow: none !important;
+}
+
+/* Guest is hovering over a valid table — strong green ring */
+.tCardDropOver {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 0 3px var(--green-border), var(--shadow) !important;
+  background: var(--green-bg) !important;
+  transform: scale(1.01);
+}
+
+/* Guest is hovering over a full table — red ring */
+.tCardDropBlocked {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 3px var(--red-border), var(--shadow) !important;
+  background: var(--red-bg) !important;
+}
+
+/* Near-capacity badge inside tCardRight */
+.tCardNearCap {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* ─── Table guest-list action bar ───────────────────────────────────────── */
+.tGuestListActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 4px 14px 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tClearTableBtn {
+  background: none;
+  border: 1px solid var(--red-border);
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.tClearTableBtn:hover {
+  background: var(--red-bg);
+}
+
+/* ─── Table lock button ─────────────────────────────────────────────────── */
+.tTableLockBtn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.tTableLockBtn:hover {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.tTableLockBtnActive {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* ─── Per-guest lock button ──────────────────────────────────────────────── */
+.tGuestLockBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0 3px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+  opacity: 0;
+  transition: opacity 0.12s, border-color 0.12s;
+}
+
+.tGuestRow:hover .tGuestLockBtn {
+  opacity: 0.5;
+}
+
+.tGuestLockBtn:hover {
+  opacity: 1 !important;
+  border-color: var(--warn-border);
+}
+
+.tGuestLockBtnActive {
+  opacity: 1 !important;
+}
+
+.tGuestLockedBadge {
+  font-size: 10px;
+  margin-inline-start: 4px;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+/* ─── Per-guest quick-remove button ─────────────────────────────────────── */
+.tGuestRemoveBtn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 2px;
+  margin-inline-start: auto;
+  border-radius: 4px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+
+.tGuestRow:hover .tGuestRemoveBtn {
+  opacity: 1;
+}
+
+.tGuestRemoveBtn:hover {
+  color: var(--red);
+  background: var(--red-bg);
+}
+
+/* ─── Unassigned side-group labels ──────────────────────────────────────── */
+.unassignedSideLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 0 2px;
+  margin-top: 6px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unassignedSideCount {
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--border);
+  color: var(--text2);
+  border-radius: 20px;
+  padding: 1px 6px;
+}
+
+/* Empty drop hint shown when all guests are assigned */
+.unassignedEmptyDrop {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+  padding: 12px 0 4px;
+  text-align: center;
+}
+
+/* ─── Action buttons (undo / print / excel) ─────────────────────────────── */
+.undoBtn {
+  /* Visually separated from the primary danger actions */
+  border-style: dashed;
+}
+
+.undoBtn:disabled {
+  opacity: 0.35;
+}
+
+.upgradeTip {
+  margin: 6px 20px 0;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--accent-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius);
+  line-height: 1.5;
+}
+
+.printBtn {
+  margin-inline-start: 4px;
+}
+
+@media (max-width: 600px) {
+  .printBtn { display: none; }
+}
+
+.xlsBtn {
+  background: var(--green);
+  color: #fff;
+  border: none;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+
+.xlsBtn:hover:not(:disabled) {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.xlsBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ─── Screen / print visibility swap ───────────────────────────────────── */
+
+/* .screenContent is added to the base.page div.
+   In screen mode it has no visual effect.
+   @media print hides it and reveals .printView instead. */
+.screenContent {
+  /* transparent in screen mode — no layout change */
+}
+
+.printView {
+  display: none; /* invisible on screen */
+}
+
+/* Compact-only section: never visible on screen */
+.pvCompactOnly {
+  display: none;
+}
+
+/* Cards-only section: never visible on screen */
+.pvCardsOnly {
+  display: none;
+}
+
+@media print {
+  .screenContent {
+    display: none !important;
+  }
+
+  .printView {
+    display: block !important;
+    font-family: 'Heebo', Arial, sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    direction: rtl;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Full mode: hide compact grid */
+  .printView[data-print-mode="full"] .pvCompactOnly {
+    display: none !important;
+  }
+
+  /* Compact mode: hide full-only sections, reveal compact grid */
+  .printView[data-print-mode="compact"] .pvFullOnly {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="compact"] .pvCompactOnly {
+    display: block !important;
+  }
+
+  /* Cards mode: hide full/compact, reveal cards grid */
+  .printView[data-print-mode="cards"] .pvFullOnly {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvCompactOnly {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvCardsOnly {
+    display: block !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvHeader {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvDivider {
+    display: none !important;
+  }
+
+  .printView[data-print-mode="cards"] .pvFooter {
+    display: none !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 15mm 12mm 12mm;
+  }
+}
+
+/* ─── Print view layout (all pv* classes) ───────────────────────────────── */
+/* These styles apply whenever .printView is visible (i.e. during print).   */
+
+.pvHeader {
+  margin-bottom: 10px;
+}
+
+.pvBrand {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.pvTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 3px;
+  break-after: avoid;
+}
+
+.pvMeta {
+  font-size: 13px;
+  color: var(--text2);
+  margin: 0 0 2px;
+}
+
+.pvStats {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0 0 3px;
+}
+
+.pvModeLabel {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-top: 2px;
+  letter-spacing: 0.03em;
+}
+
+.pvDivider {
+  border: none;
+  border-top: 2px solid var(--text);
+  margin: 10px 0;
+}
+
+.pvViolWarn {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-inline-start: 3px solid var(--warn);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--warn);
+  margin-bottom: 10px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ── Full-mode 2-column table grid ─────────────────────────────────────── */
+.pvGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.pvTable {
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  orphans: 3;
+  widows: 3;
+}
+
+.pvTableOver {
+  border-color: var(--red);
+}
+
+.pvTableHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border2);
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.pvTableOver .pvTableHead {
+  background: var(--red-bg);
+  border-bottom-color: var(--red-border);
+}
+
+.pvTableName {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.pvTableCount {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.pvTableOver .pvTableCount {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.pvTableBody {
+  padding: 2px 0;
+}
+
+.pvGuest {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 10px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.pvGuest:last-child {
+  border-bottom: none;
+}
+
+.pvGuestName {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.pvGuestCount {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.pvGuestMeta {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pvEmpty {
+  display: block;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Unassigned section */
+.pvUnassigned {
+  border: 1px solid var(--warn-border);
+  border-inline-start: 3px solid var(--warn);
+  background: var(--warn-bg);
+  border-radius: 6px;
+  padding: 9px 14px;
+  margin-bottom: 12px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pvUnassignedTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--warn);
+  margin-bottom: 6px;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.pvUnassignedList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+}
+
+.pvUnassignedGuest {
+  font-size: 11px;
+  color: var(--text);
+}
+
+/* ── Compact-mode 3-column grid (venue staff) ───────────────────────────── */
+.pvCompactGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pvCompactTable {
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pvCompactHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  background: var(--text);
+  color: #fff;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.pvCompactName {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pvCompactCount {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.pvCompactBody {
+  padding: 2px 0;
+}
+
+.pvCompactGuest {
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pvCompactGuest:last-child {
+  border-bottom: none;
+}
+
+.pvCompactEmpty {
+  display: block;
+  padding: 4px 8px;
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.pvCompactUnassigned {
+  border: 1px solid var(--warn-border);
+  border-inline-start: 3px solid var(--warn);
+  background: var(--warn-bg);
+  border-radius: 5px;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--warn);
+  margin-bottom: 10px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  line-height: 1.5;
+}
+
+/* Footer */
+.pvFooter {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 14px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+}
+
+/* Day-of-event search */
+.daySearchCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.daySearchLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.daySearchResults {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.daySearchRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+.daySearchName {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.daySearchTable {
+  color: var(--green);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.daySearchUnseated {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.daySearchWa {
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.daySearchRowArrived {
+  background: var(--green-bg);
+  border-color: var(--green);
+  opacity: 0.75;
+}
+
+.dayCheckInBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.dayCheckInBtn:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.dayCheckInBtnDone {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-bg);
+}
+
+.daySearchEmpty {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 4px 0;
+}
+
+/* WhatsApp button in seated guest row */
+.tGuestWaBtn {
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.15s;
+}
+
+.tGuestWaBtn:hover {
+  opacity: 1;
+}
+
+/* ─── Check-In Mode Panel ────────────────────────────────────────────────── */
+.checkInPanel {
+  background: var(--surface);
+  border: 2px solid var(--green);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkInHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkInTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.checkInProgress {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.checkInProgressBar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.checkInProgressFill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.checkInList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.checkInRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 13px;
+  transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+}
+
+.checkInRowDone {
+  background: var(--green-bg);
+  border-color: var(--green);
+  opacity: 0.65;
+}
+
+.checkInRowInfo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+
+.checkInName {
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.checkInTable {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.checkInUnseated {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.checkInCount {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: var(--muted);
+}
+
+.checkInBtn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+
+.checkInBtn:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.checkInBtnDone {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-bg);
+}
+
+/* ─── WhatsApp Notification Card ────────────────────────────────────────── */
+.waNotifyCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.waNotifyIcon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.waNotifyText {}
+
+.waNotifyTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.waNotifySub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.waNotifyList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.waNotifyItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  text-decoration: none;
+  font-size: 13px;
+  transition: border-color 0.12s, background 0.12s;
+  cursor: pointer;
+}
+
+.waNotifyItem:hover {
+  border-color: var(--whatsapp);
+  background: color-mix(in srgb, var(--whatsapp) 6%, var(--bg));
+}
+
+.waNotifyName {
+  flex: 1;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.waNotifyTable {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.waNotifyArrow {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.waNotifyMore {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 10px;
+}
+
+/* ─── Check-in: gift tracking ─────────────────────────────────────────────── */
+.checkInHeaderRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.checkInGiftTotal {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.checkInGiftInput {
+  width: 90px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.checkInGiftInput:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+/* ─── Print: table cards mode ────────────────────────────────────────────── */
+.pvCardsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8mm;
+}
+
+.pvCard {
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 14px 16px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  background: #fff;
+  text-align: center;
+  font-family: 'Heebo', Arial, sans-serif;
+  direction: rtl;
+}
+
+.pvCardBrand {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.pvCardTableName {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.pvCardDivider {
+  width: 40px;
+  height: 2px;
+  background: var(--accent);
+  margin: 0 auto 10px;
+  border-radius: 1px;
+}
+
+.pvCardGuests {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.pvCardGuest {
+  font-size: 12px;
+  color: var(--text);
+  padding: 2px 0;
+}
+
+.pvCardFooter {
+  font-size: 9px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  margin-top: 4px;
+}

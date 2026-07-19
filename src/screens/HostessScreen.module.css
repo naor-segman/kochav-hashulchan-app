@@ -1,0 +1,367 @@
+/* HostessScreen — public read-only venue staff page, dark tablet-optimized UI */
+
+/* ── Root ── */
+.root {
+  min-height: 100dvh;
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 20px 48px;
+  box-sizing: border-box;
+}
+
+/* ── Loading ── */
+.loadingWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex: 1;
+  min-height: 60dvh;
+}
+
+.spinner {
+  width: 52px;
+  height: 52px;
+  border: 4px solid var(--nav-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loadingText {
+  color: var(--nav-muted);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 36px;
+}
+
+.headerLogo {
+  color: var(--accent);
+  font-size: 2rem;
+  opacity: 0.75;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.headerTitle {
+  font-size: clamp(1.25rem, 4vw, 1.6rem);
+  font-weight: 800;
+  color: var(--nav-text);
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.headerSub {
+  font-size: 0.875rem;
+  color: var(--nav-muted);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ── Search ── */
+.searchWrap {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 24px;
+}
+
+.searchIcon {
+  position: absolute;
+  inset-inline-end: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.3rem;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 64px;
+  background: var(--nav-border);
+  border: 2px solid var(--nav-border);
+  border-radius: var(--radius);
+  padding: 0 56px 0 56px;
+  font-size: 1.3rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--nav-text);
+  direction: rtl;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.searchInput::placeholder {
+  color: var(--nav-muted);
+  font-weight: 400;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-border);
+}
+
+/* hide native search clear button */
+.searchInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.clearBtn {
+  position: absolute;
+  inset-inline-start: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--nav-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 8px;
+  line-height: 1;
+  transition: color 0.15s;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clearBtn:hover {
+  color: var(--nav-text);
+}
+
+/* ── Empty state (before typing) ── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 56px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 4rem;
+  opacity: 0.35;
+  display: block;
+  line-height: 1;
+}
+
+.emptyTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--nav-muted);
+  margin: 0;
+}
+
+.emptyHint {
+  font-size: 1rem;
+  color: var(--nav-muted);
+  margin: 0;
+  opacity: 0.6;
+}
+
+/* ── No results ── */
+.noResult {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 20px;
+  text-align: center;
+  width: 100%;
+  max-width: 600px;
+}
+
+.noResultIcon {
+  font-size: 3rem;
+  display: block;
+  opacity: 0.4;
+  line-height: 1;
+}
+
+.noResultText {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--nav-muted);
+  margin: 0;
+}
+
+/* ── Results list ── */
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Result card (seated) ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 180px;
+  justify-content: center;
+  transition: box-shadow 0.18s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Result card (unseated) ── */
+.cardUnseated {
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 160px;
+  justify-content: center;
+}
+
+/* ── Table label — the most prominent element ── */
+.tableLabel {
+  font-size: clamp(2.8rem, 9vw, 4.5rem);
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* ── Guest name ── */
+.guestName {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+/* ── Seat count ── */
+.seatCount {
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Unseated badge ── */
+.unseatedBadge {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--red);
+  letter-spacing: -0.01em;
+}
+
+/* ── Footer ── */
+.footer {
+  margin-top: auto;
+  padding-top: 56px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nav-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.5;
+}
+
+.footerStar {
+  color: var(--accent);
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .root {
+    padding: 20px 14px 40px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .searchInput {
+    font-size: 1.1rem;
+    min-height: 60px;
+  }
+
+  .tableLabel {
+    font-size: clamp(2.5rem, 14vw, 3.5rem);
+  }
+
+  .guestName {
+    font-size: 1.15rem;
+  }
+
+  .card,
+  .cardUnseated {
+    padding: 24px 20px;
+    min-height: 150px;
+  }
+}
+
+@media (min-width: 768px) {
+  .root {
+    padding: 40px 32px 64px;
+  }
+
+  .card,
+  .cardUnseated {
+    padding: 36px 48px;
+  }
+
+  .tableLabel {
+    font-size: 5rem;
+  }
+
+  .guestName {
+    font-size: 1.5rem;
+  }
+
+  .seatCount {
+    font-size: 1.1rem;
+  }
+}

@@ -1,0 +1,14 @@
+/* NavBadge — default accent colours; dynamic override applied inline */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 20px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+}

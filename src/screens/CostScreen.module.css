@@ -1,0 +1,317 @@
+/* ── Stats row ── */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow);
+}
+
+.statNum {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  word-break: break-all;
+}
+
+.statOver  { color: var(--red); }
+.statUnder { color: var(--green); }
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── Catering hint ── */
+.cateringHint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--warn-bg);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--warn);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warn);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.cateringHintIcon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* ── Table ── */
+.tableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 4px;
+}
+
+.table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-width: 480px;
+}
+
+/* Shared row grid */
+.tableRow {
+  display: grid;
+  grid-template-columns: 1fr 130px 130px 100px 36px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition-fast);
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+/* Header row */
+.tableHead {
+  background: var(--bg);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Data rows hover */
+.tableRow:not(.tableHead):not(.totalsRow):hover {
+  background: var(--accent-light);
+}
+
+/* ── Totals row ── */
+.totalsRow {
+  background: var(--bg);
+  border-top: 2px solid var(--border2);
+  border-bottom: none;
+}
+
+.totalsLabel {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  padding-inline-start: 2px;
+}
+
+.totalsNum {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.totalsOver {
+  color: var(--red);
+}
+
+/* ── Columns ── */
+.colCat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.colAmt {
+  min-width: 0;
+}
+
+.colDiff {
+  min-width: 0;
+}
+
+.colDel {
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Inputs ── */
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  color: var(--text);
+  direction: rtl;
+  font-family: inherit;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background var(--transition-fast);
+}
+
+.nameInput:hover {
+  background: var(--bg);
+}
+
+.nameInput:focus {
+  outline: none;
+  background: var(--bg);
+  box-shadow: 0 0 0 2px var(--accent-border);
+}
+
+.amtInput {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 14px;
+  color: var(--text);
+  direction: ltr;
+  text-align: right;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.amtInput:hover:not(:focus) {
+  border-color: var(--border2);
+}
+
+.amtInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-border);
+}
+
+/* ── Diff badges ── */
+.diffBadge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.over {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+}
+
+.under {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+
+.exact {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+}
+
+.diffEmpty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ── Delete button ── */
+.delBtn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.delBtn:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+/* ── Add row ── */
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface);
+}
+
+.cancelBtn {
+  background: var(--surface);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+}
+
+.addBtn {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  border-top: 1px dashed var(--border2);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: right;
+  direction: rtl;
+  font-family: inherit;
+  transition: background var(--transition-fast);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.addBtn:hover {
+  background: var(--accent-light);
+}
+
+/* ── Save hint ── */
+.savedHint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ── Responsive ── */
+@media (max-width: 780px) {
+  .statsRow {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .statsRow {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .statNum {
+    font-size: 1.05rem;
+  }
+
+  .cateringHint {
+    font-size: 12px;
+  }
+}
