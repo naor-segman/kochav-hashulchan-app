@@ -69,6 +69,7 @@ export default function AccountScreen({ eventCount = 0 }) {
   const [pwSaving,        setPwSaving]        = useState(false);
   const [pwError,         setPwError]         = useState("");
   const [pwDone,          setPwDone]          = useState(false);
+  const [showPw,          setShowPw]          = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -153,7 +154,7 @@ export default function AccountScreen({ eventCount = 0 }) {
           </div>
           <div className={styles.infoRow}>
             <span className={styles.infoKey}>מזהה משתמש</span>
-            <span className={styles.infoVal} dir="ltr" style={{ fontSize: 11, color: "var(--muted)" }}>
+            <span className={styles.infoValMeta} dir="ltr">
               {user.id.slice(0, 8)}…
             </span>
           </div>
@@ -167,19 +168,26 @@ export default function AccountScreen({ eventCount = 0 }) {
               <p className={styles.successMsg}>✓ הסיסמה שונתה בהצלחה.</p>
             ) : (
               <form onSubmit={handlePasswordChange} className={styles.pwForm} noValidate>
+                <div className={styles.pwFieldWrap}>
+                  <input
+                    className={styles.input}
+                    type={showPw ? "text" : "password"}
+                    placeholder="סיסמה נוכחית"
+                    value={pwForm.current}
+                    onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))}
+                    dir="ltr"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button type="button" className={styles.pwEyeBtn}
+                    onClick={() => setShowPw(v => !v)} tabIndex={-1}
+                    aria-label={showPw ? "הסתר סיסמה" : "הצג סיסמה"}>
+                    {showPw ? "🙈" : "👁"}
+                  </button>
+                </div>
                 <input
                   className={styles.input}
-                  type="password"
-                  placeholder="סיסמה נוכחית"
-                  value={pwForm.current}
-                  onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))}
-                  dir="ltr"
-                  autoComplete="current-password"
-                  required
-                />
-                <input
-                  className={styles.input}
-                  type="password"
+                  type={showPw ? "text" : "password"}
                   placeholder="סיסמה חדשה (לפחות 6 תווים)"
                   value={pwForm.next}
                   onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))}
@@ -189,7 +197,7 @@ export default function AccountScreen({ eventCount = 0 }) {
                 />
                 <input
                   className={styles.input}
-                  type="password"
+                  type={showPw ? "text" : "password"}
                   placeholder="אימות סיסמה חדשה"
                   value={pwForm.confirm}
                   onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))}
