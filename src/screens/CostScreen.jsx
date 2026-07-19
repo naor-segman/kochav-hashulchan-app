@@ -75,7 +75,8 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
     : 0;
 
   const cateringActual = useMemo(() => {
-    const cat = cats.find(c => c.id === "catering");
+    // Match by name (case-insensitive) so the hint survives delete+re-add of the row.
+    const cat = cats.find(c => c.name?.trim() === "קייטרינג" || c.id === "catering");
     return cat ? parseAmt(cat.actual) : 0;
   }, [cats]);
 
@@ -190,7 +191,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
                       ].join(" ")}>
                         {d === 0
                           ? "✓"
-                          : (d > 0 ? "+" : "") + "₪" + Math.abs(d).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
+                          : (d > 0 ? "+" : "−") + "₪" + Math.abs(d).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
                       </span>
                     ) : (
                       <span className={styles.diffEmpty}>—</span>
@@ -239,7 +240,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
                   ].join(" ")}>
                     {totalDiff === 0
                       ? "✓"
-                      : (totalDiff > 0 ? "+" : "") + "₪" + Math.abs(totalDiff).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
+                      : (totalDiff > 0 ? "+" : "−") + "₪" + Math.abs(totalDiff).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
                   </span>
                 ) : (
                   <span className={styles.diffEmpty}>—</span>

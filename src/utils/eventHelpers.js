@@ -157,6 +157,9 @@ export function duplicateEvent(ev) {
     lockedGuests: [],
     lockedTables: [],
     costs:       {},
+    // Each duplicated event gets its own fresh public-URL tokens so that
+    // the copy's RSVP/gift/invite/hostess links don't collide with the original.
+    tokens:      { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid() },
     cloudId:     null,
     createdAt:   now,
     updatedAt:   now,

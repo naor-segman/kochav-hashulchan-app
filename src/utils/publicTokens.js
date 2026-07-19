@@ -31,7 +31,7 @@ export async function submitRSVP(eventCloudId, response) {
     guest_name:   response.name,
     phone:        response.phone   || null,
     attending:    response.attending,
-    guests_count: response.guestsCount || 1,
+    guests_count: response.attending ? (response.guestsCount ?? 1) : 0,
   });
   if (error) throw error;
 }

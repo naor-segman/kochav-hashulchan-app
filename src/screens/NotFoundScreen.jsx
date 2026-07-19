@@ -21,7 +21,7 @@ export default function NotFoundScreen() {
         הכתובת שביקשת לא קיימת.
       </p>
       <Link
-        to="/"
+        to="/app"
         style={{
           marginTop: "12px",
           padding: "10px 24px",

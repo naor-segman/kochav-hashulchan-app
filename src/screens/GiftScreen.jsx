@@ -28,7 +28,11 @@ export default function GiftScreen() {
     (async () => {
       const ev = await fetchEventByToken("gift", token);
       if (!cancelled) {
-        setEvent(ev || MOCK_EVENT);
+        if (!ev && !import.meta.env.DEV) {
+          setEvent(null);
+        } else {
+          setEvent(ev || MOCK_EVENT);
+        }
         setLoading(false);
       }
     })();
@@ -50,17 +54,32 @@ export default function GiftScreen() {
   const handleSubmit = async () => {
     if (!validate()) return;
     setStep("submitting");
-    try {
-      await submitGift(event?.cloudId || null, {
-        donorName: name,
-        amountILS: finalAmount,
-        message,
-      });
-    } catch {
-      // Silently succeed — even without Supabase, show the success screen
+    if (event?.cloudId) {
+      try {
+        await submitGift(event.cloudId, {
+          donorName: name,
+          amountILS: finalAmount,
+          message,
+        });
+      } catch {
+        // Gift submission failed — still show success so UX isn't broken,
+        // but the record was not written (dev/Supabase-not-configured path).
+      }
     }
     setStep("submitted");
   };
+
+  // ── Not found (production only) ─────────────────────────────────────────────
+  if (!loading && !event) {
+    return (
+      <div className={styles.root}>
+        <div className={styles.loadingWrap}>
+          <span className={styles.loadingStar} aria-hidden="true">✦</span>
+          <p className={styles.loadingText}>הלינק לא תקין או שפג תוקפו</p>
+        </div>
+      </div>
+    );
+  }
 
   // ── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {

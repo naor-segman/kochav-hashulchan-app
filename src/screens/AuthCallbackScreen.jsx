@@ -11,7 +11,7 @@ export default function AuthCallbackScreen() {
     supabase?.auth.getSession().then(({ data }) => {
       if (data?.session) {
         setMsg("האימות הצליח! מעביר…");
-        tid = setTimeout(() => navigate("/", { replace: true }), 1200);
+        tid = setTimeout(() => navigate("/app", { replace: true }), 1200);
       } else {
         setMsg("הקישור פג תוקף. נסה להתחבר מחדש.");
         tid = setTimeout(() => navigate("/login", { replace: true }), 2500);

@@ -51,7 +51,7 @@ export default function HostessScreen() {
           setStatus("ready");
         }
       } catch {
-        if (!cancelled) setStatus("ready"); // fall back to mock
+        if (!cancelled) setStatus("error");
       }
     })();
     return () => { cancelled = true; };
@@ -82,6 +82,17 @@ export default function HostessScreen() {
         <div className={styles.loadingWrap}>
           <div className={styles.spinner} aria-hidden="true" />
           <span className={styles.loadingText}>טוען...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className={styles.root}>
+        <div className={styles.loadingWrap}>
+          <span style={{ fontSize: 36 }} aria-hidden="true">⚠</span>
+          <span className={styles.loadingText}>שגיאת חיבור — נסה לרענן את הדף</span>
         </div>
       </div>
     );

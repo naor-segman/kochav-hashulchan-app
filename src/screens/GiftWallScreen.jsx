@@ -51,10 +51,23 @@ export default function GiftWallScreen() {
 
   useEffect(() => {
     if (!event?.cloudId) return;
+    let cancelled = false;
+    // Fetch existing gifts first, then subscribe for new ones
+    (async () => {
+      try {
+        const { supabase } = await import("../lib/supabase.js");
+        const { data } = await supabase
+          .from("gifts")
+          .select("*")
+          .eq("event_id", event.cloudId)
+          .order("created_at", { ascending: false });
+        if (!cancelled && data) setGifts(data);
+      } catch { /* fall through — subscription will still add new gifts */ }
+    })();
     const unsub = subscribeToGifts(event.cloudId, (newGift) => {
-      setGifts((prev) => [newGift, ...prev]);
+      setGifts((prev) => [newGift, ...prev.filter(g => g.id !== newGift.id)]);
     });
-    return unsub;
+    return () => { cancelled = true; unsub(); };
   }, [event?.cloudId]);
 
   const totalILS = gifts
