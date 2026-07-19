@@ -379,68 +379,79 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               </div>
             </div>
             <div className={styles.runCardActions}>
-              <button className={styles.runBtn} onClick={runAuto} disabled={noTables || noGuests}>
-                {nAssigned > 0 ? "חשב מחדש" : "חשב הושבה"}
-              </button>
-              {nAssigned > 0 && (
-                <button
-                  className={[base.btnSm, base.btnDanger].join(" ")}
-                  onClick={clearAll}
-                >
-                  נקה הכל
+              {/* ── Primary: calculate / clear / undo ── */}
+              <div className={styles.runActionsMain}>
+                <button className={styles.runBtn} onClick={runAuto} disabled={noTables || noGuests}>
+                  {nAssigned > 0 ? "חשב מחדש" : "חשב הושבה"}
                 </button>
-              )}
-              <button
-                className={[base.btnSm, base.btnGhost, styles.undoBtn].join(" ")}
-                onClick={undo}
-                disabled={seatingHistory.length === 0}
-                title={seatingHistory.length > 0 ? "בטל שינוי הושבה אחרון (" + seatingHistory.length + " זמינים)" : "אין שינויים לביטול"}
-              >
-                ↩ בטל
-              </button>
-              <button
-                className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
-                onClick={() => handlePrint("full")}
-                title="הדפס סידור הושבה המלא עם פרטי צד וקבוצה"
-              >
-                🖨 הדפס
-              </button>
-              <button
-                className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
-                onClick={() => handlePrint("compact")}
-                title="הדפס גרסה קומפקטית לצוות האולם — שמות בלבד"
-              >
-                📋 לצוות האולם
-              </button>
-              <button
-                className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
-                onClick={() => handlePrint("cards")}
-                title="הדפס כרטיסי שולחן — כרטיס אחד לכל שולחן למיקום על השולחן"
-              >
-                🃏 כרטיסי שולחן
-              </button>
-              <button
-                className={[base.btnSm, checkInMode ? base.btnPrimary : base.btnGhost].join(" ")}
-                onClick={() => { setCheckInMode(m => !m); setCheckInSearch(""); }}
-                title="מצב צ׳ק אין — רשימה אלפביתית לאנשי הכניסה"
-              >
-                ✅ {checkInMode ? "סגור צ׳ק אין" : "צ׳ק אין"}
-              </button>
-              <button
-                className={[base.btnSm, base.btnGhost].join(" ")}
-                onClick={() => navigate("/events/" + ev.id + "/checkin")}
-                title="פתח מסך צ׳ק אין מלא — לשימוש על טאבלט בכניסה לאירוע"
-              >
-                📱 מסך כניסה
-              </button>
-              <button
-                className={[base.btnSm, styles.xlsBtn].join(" ")}
-                onClick={() => exportToExcel(ev, sideLabel, violations)}
-                title="ייצוא לקובץ אקסל"
-                disabled={ev.guests.length === 0 && ev.tables.length === 0}
-              >
-                📊 ייצוא לאקסל
-              </button>
+                {nAssigned > 0 && (
+                  <button
+                    className={[base.btnSm, base.btnDanger].join(" ")}
+                    onClick={clearAll}
+                  >
+                    נקה הכל
+                  </button>
+                )}
+                <button
+                  className={[base.btnSm, base.btnGhost, styles.undoBtn].join(" ")}
+                  onClick={undo}
+                  disabled={seatingHistory.length === 0}
+                  title={seatingHistory.length > 0 ? "בטל שינוי הושבה אחרון (" + seatingHistory.length + " זמינים)" : "אין שינויים לביטול"}
+                >
+                  ↩ בטל
+                </button>
+              </div>
+
+              {/* ── Secondary: print / check-in / export ── */}
+              <div className={styles.runActionsSecondary}>
+                <div className={styles.runActionsGroup}>
+                  <button
+                    className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
+                    onClick={() => handlePrint("full")}
+                    title="הדפס סידור הושבה המלא עם פרטי צד וקבוצה"
+                  >
+                    🖨 הדפס
+                  </button>
+                  <button
+                    className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
+                    onClick={() => handlePrint("compact")}
+                    title="הדפס גרסה קומפקטית לצוות האולם — שמות בלבד"
+                  >
+                    📋 לצוות האולם
+                  </button>
+                  <button
+                    className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
+                    onClick={() => handlePrint("cards")}
+                    title="הדפס כרטיסי שולחן — כרטיס אחד לכל שולחן למיקום על השולחן"
+                  >
+                    🃏 כרטיסי שולחן
+                  </button>
+                </div>
+                <div className={styles.runActionsGroup}>
+                  <button
+                    className={[base.btnSm, checkInMode ? base.btnPrimary : base.btnGhost].join(" ")}
+                    onClick={() => { setCheckInMode(m => !m); setCheckInSearch(""); }}
+                    title="מצב צ׳ק אין — רשימה אלפביתית לאנשי הכניסה"
+                  >
+                    ✅ {checkInMode ? "סגור צ׳ק אין" : "צ׳ק אין"}
+                  </button>
+                  <button
+                    className={[base.btnSm, base.btnGhost].join(" ")}
+                    onClick={() => navigate("/events/" + ev.id + "/checkin")}
+                    title="פתח מסך צ׳ק אין מלא — לשימוש על טאבלט בכניסה לאירוע"
+                  >
+                    📱 מסך כניסה
+                  </button>
+                </div>
+                <button
+                  className={[base.btnSm, styles.xlsBtn].join(" ")}
+                  onClick={() => exportToExcel(ev, sideLabel, violations)}
+                  title="ייצוא לקובץ אקסל"
+                  disabled={ev.guests.length === 0 && ev.tables.length === 0}
+                >
+                  📊 ייצוא לאקסל
+                </button>
+              </div>
             </div>
           </div>
 

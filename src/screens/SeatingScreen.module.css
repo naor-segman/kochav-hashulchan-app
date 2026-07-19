@@ -30,7 +30,7 @@
 /* ─── Run card ──────────────────────────────────────────────────────────── */
 .runCard {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
@@ -68,10 +68,39 @@
 
 .runCardActions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.runActionsMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
+}
+
+.runActionsSecondary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.runActionsGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-inline-end: 6px;
+  border-inline-end: 1px solid var(--border);
+}
+
+.runActionsGroup:last-of-type {
+  padding-inline-end: 0;
+  border-inline-end: none;
 }
 
 .runBtn {
@@ -772,6 +801,8 @@
 
 @media (max-width: 600px) {
   .printBtn { display: none; }
+  .runActionsSecondary { padding-top: 0; border-top: none; }
+  .runActionsGroup { padding-inline-end: 4px; }
 }
 
 .xlsBtn {
