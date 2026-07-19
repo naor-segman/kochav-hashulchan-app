@@ -111,8 +111,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         <Banner variant="warn">
           יש שינויים שלא נשמרו —
           <button
-            className={[base.btnSm].join(" ")}
-            style={{ marginInlineEnd: 10, marginInlineStart: 4 }}
+            className={base.btnSm}
             onClick={save}
           >שמור עכשיו</button>
         </Banner>
@@ -159,7 +158,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {personal.kind === "wedding" && (
           <>
             <Divider label={personal.divider} />
-            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
               ישמשו לתיוג אורחים ("צד כלה" / "צד חתן") לאורך כל המערכת.
             </p>
             <div className={base.grid2}>
@@ -186,7 +185,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {(personal.kind === "bar" || personal.kind === "bat") && (
           <>
             <Divider label={personal.divider} />
-            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
               ישמש לזיהוי האירוע ולתיוג האורחים לאורך כל המערכת.
             </p>
             <div className={base.grid2}>
@@ -205,7 +204,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {personal.kind === "business" && (
           <>
             <Divider label={personal.divider} />
-            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
               ישמשו לזיהוי האירוע ולתיוג בכל המערכת.
             </p>
             <div className={base.grid2}>
@@ -232,7 +231,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {personal.kind === "owner" && (
           <>
             <Divider label={personal.divider} />
-            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
               ישמש לזיהוי האירוע ולתיוג בכל המערכת.
             </p>
             <div className={base.grid2}>
@@ -264,7 +263,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
       {/* ── Sharing links card ── */}
       <div className={base.card}>
         <SectionLabel>שיתוף האירוע</SectionLabel>
-        <p className={base.fieldHint} style={{ marginBottom: 14 }}>
+        <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
           לינקים ייחודיים לשיתוף עם האורחים
         </p>
         {SHARE_LINKS.map(sl => {

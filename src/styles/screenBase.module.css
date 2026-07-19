@@ -151,6 +151,10 @@
   line-height: 1.4;
 }
 
+.fieldHintSep {
+  margin-bottom: 12px;
+}
+
 /* ── Buttons ── */
 .btnPrimary {
   background: var(--accent);
