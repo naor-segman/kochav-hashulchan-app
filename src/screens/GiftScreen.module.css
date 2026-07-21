@@ -458,8 +458,8 @@
 
 .submitBtn {
   width: 100%;
-  background: var(--accent);
-  color: var(--nav-bg);
+  background: var(--cta);
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
   padding: 15px 24px;
@@ -468,7 +468,7 @@
   cursor: pointer;
   font-family: inherit;
   letter-spacing: 0.02em;
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-cta);
   transition:
     background var(--transition),
     transform var(--transition),
@@ -479,9 +479,9 @@
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: var(--accent-dark);
+  background: var(--cta-dark);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-accent-lg);
+  box-shadow: var(--shadow-cta-lg);
 }
 
 .submitBtn:focus-visible {

@@ -156,22 +156,23 @@
 }
 
 /* ── Buttons ── */
+/* Primary = warm coral CTA (the one action color). */
 .btnPrimary {
-  background: var(--accent);
-  color: #fff;
+  background: var(--cta);
+  color: var(--on-accent);
   border: none;
   cursor: pointer;
   padding: 10px 20px;
   border-radius: var(--radius);
   font-size: 14px;
   font-weight: 700;
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-cta);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
   transform: translateY(-1px);
 }
 

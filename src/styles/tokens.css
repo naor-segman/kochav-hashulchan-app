@@ -3,7 +3,9 @@
   /* ─────────────────────────────────────────────────────────────
      Typography — font-family defined here, used by reset.css
      ───────────────────────────────────────────────────────────── */
-  --font-family-base: "Heebo", system-ui, -apple-system, Arial, sans-serif;
+  --font-family-base:    "Heebo", system-ui, -apple-system, Arial, sans-serif;
+  /* Display / heading face — crisp modern Israeli voice */
+  --font-family-display: "Rubik", "Heebo", system-ui, -apple-system, Arial, sans-serif;
 
   /* ─────────────────────────────────────────────────────────────
      Typography scale — used by reset.css (base styles) and utilities.css
@@ -56,51 +58,56 @@
      Do not rename or remove.
      ───────────────────────────────────────────────────────────── */
 
-  /* Surfaces — warm cream palette, clearly different from white */
-  --bg:           #EEE7DC;
-  --surface:      #FBF8F3;
+  /* Surfaces — cool light workspace: white cards lift off a barely-tinted bg */
+  --bg:           #F6F9FB;
+  --surface:      #FFFFFF;
 
-  /* Borders — warmer, more visible */
-  --border:       #D4C9BB;
-  --border2:      #B8A994;
+  /* Borders — cool grey with a teal bias */
+  --border:       #D8E2E8;
+  --border2:      #B7C7D0;
 
-  /* Text — rich warm browns, not neutral grays */
-  --text:         #1C1208;
-  --text2:        #4A3B2A;
-  --muted:        #8A7463;
+  /* Text — deep teal-charcoal, never pure black */
+  --text:         #0E2A33;
+  --text2:        #34505C;
+  --muted:        #5E7885;
 
-  /* Brand accent — richer, more vibrant gold */
-  --accent:        #C48A1A;
-  --accent-bg:     #FEF2D8;
-  --accent-light:  #FFF8EE;
-  --accent-border: #D9A840;
+  /* Brand accent — תכלת / teal. The brand spine: nav, links, active states. */
+  --accent:        #0E9AB8;
+  --accent-bg:     #DFF1F5;
+  --accent-light:  #EFF8FA;
+  --accent-border: #A9DBE6;
 
-  /* Navigation bar — dark warm background for topbar */
-  --nav-bg:        #1C1208;
-  --nav-bg2:       #2C1E0E;
-  --nav-text:      #F2E8D6;
-  --nav-muted:     #9A8670;
-  --nav-border:    rgba(242,232,214,.10);
+  /* CTA — warm coral. The action/celebration color: primary buttons only. */
+  --cta:           #FF6B4A;
+  --cta-dark:      #E8552F;
+  --cta-bg:        #FFEDE8;
+
+  /* Navigation bar — deep teal topbar */
+  --nav-bg:        #0A3A44;
+  --nav-bg2:       #0E4A56;
+  --nav-text:      #EAF6F8;
+  --nav-muted:     #7FA9B4;
+  --nav-border:    rgba(234,246,248,.10);
 
   /* Side colors */
   --bride:        #B55FA0;
   --groom:        #3470BE;
 
-  /* Semantic state — green */
-  --green:        #1F7845;
-  --green-light:  #3A9E68;
-  --green-bg:     #E4F5EC;
-  --green-border: #A8D8BC;
+  /* Semantic state — green (success) */
+  --green:        #1F9D6B;
+  --green-light:  #35B383;
+  --green-bg:     #E4F5EE;
+  --green-border: #A9E0C9;
 
-  /* Semantic state — red */
-  --red:          #C02B1C;
-  --red-bg:       #FDECEA;
-  --red-border:   #F5BCB6;
+  /* Semantic state — red (danger) */
+  --red:          #D14343;
+  --red-bg:       #FBE6E6;
+  --red-border:   #EFC0C0;
 
-  /* Semantic state — warning */
-  --warn:         #9A5F00;
-  --warn-bg:      #FEF6E0;
-  --warn-border:  #F0D080;
+  /* Semantic state — warning (amber, never the old alarm-yellow) */
+  --warn:         #C98A16;
+  --warn-bg:      #FBF1DA;
+  --warn-border:  #EAD08A;
 
   /* Side color backgrounds */
   --bride-bg:     #F6EAF4;
@@ -109,26 +116,29 @@
   /* Brand colors — third-party services */
   --whatsapp:     #25D366;
 
-  /* V1 radius + shadow shortcuts — slightly more rounded */
-  --radius:       12px;
-  --radius-lg:    20px;
-  --shadow:       0 1px 4px rgba(80,45,10,.10), 0 1px 2px rgba(80,45,10,.06);
-  --shadow-md:    0 4px 24px rgba(80,45,10,.14), 0 2px 6px rgba(80,45,10,.08);
-  --shadow-lg:    0 10px 50px rgba(80,45,10,.18), 0 4px 12px rgba(80,45,10,.10);
+  /* V1 radius + shadow shortcuts — crisp modern */
+  --radius:       10px;
+  --radius-lg:    14px;
+  --shadow:       0 1px 2px rgba(14,42,51,.04), 0 4px 16px rgba(14,42,51,.05);
+  --shadow-md:    0 2px 6px rgba(14,42,51,.06), 0 8px 28px rgba(14,42,51,.08);
+  --shadow-lg:    0 10px 40px rgba(14,42,51,.12), 0 4px 12px rgba(14,42,51,.08);
 
   /* Alpha-channel RGB components — use as rgba(var(--accent-rgb), 0.12) */
-  --accent-rgb:   196, 138, 26;
-  --text-rgb:     28, 18, 8;
-  --nav-text-rgb: 242, 232, 214;
-  --green-rgb:    31, 120, 69;
-  --red-rgb:      192, 43, 28;
-  /* White text on colored (accent / green / red) backgrounds */
+  --accent-rgb:   14, 154, 184;
+  --cta-rgb:      255, 107, 74;
+  --text-rgb:     14, 42, 51;
+  --nav-text-rgb: 234, 246, 248;
+  --green-rgb:    31, 157, 107;
+  --red-rgb:      209, 67, 67;
+  /* White text on colored (accent / cta / green / red) backgrounds */
   --on-accent:    #fff;
 
-  /* Accent hover & shadow */
-  --accent-dark:       #8A5C10;
-  --shadow-accent:     0 2px 12px rgba(var(--accent-rgb),.35);
-  --shadow-accent-lg:  0 6px 28px rgba(var(--accent-rgb),.48);
+  /* Accent hover & shadows */
+  --accent-dark:       #0A7488;
+  --shadow-accent:     0 2px 12px rgba(var(--accent-rgb),.30);
+  --shadow-accent-lg:  0 6px 24px rgba(var(--accent-rgb),.42);
+  --shadow-cta:        0 4px 12px rgba(var(--cta-rgb),.30);
+  --shadow-cta-lg:     0 6px 20px rgba(var(--cta-rgb),.42);
 
   /* Transition presets */
   --transition:        0.15s ease;
