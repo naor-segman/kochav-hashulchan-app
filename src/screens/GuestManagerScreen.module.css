@@ -227,3 +227,10 @@
 .bulkRsvpBtn:hover {
   opacity: 0.75;
 }
+
+/* Per-guest WhatsApp invite button */
+.waBtn {
+  background: var(--whatsapp);
+  color: var(--on-accent);
+}
+.waBtn:hover { filter: brightness(0.93); }
