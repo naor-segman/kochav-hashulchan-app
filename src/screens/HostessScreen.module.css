@@ -42,6 +42,10 @@
   font-weight: 500;
 }
 
+.stateIcon {
+  font-size: 36px;
+}
+
 /* ── Header ── */
 .header {
   display: flex;

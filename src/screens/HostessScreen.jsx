@@ -1,32 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { fetchEventByToken } from "../utils/publicTokens.js";
+import { fetchHostessData } from "../utils/publicTokens.js";
 import styles from "./HostessScreen.module.css";
-
-// TODO: use real event data from fetchEventByToken
-const MOCK_GUESTS = [
-  { id: "1",  name: "משפחת כהן",          count: 4, tableId: "t3" },
-  { id: "2",  name: "אבי ומרגלית לוי",    count: 2, tableId: "t1" },
-  { id: "3",  name: "יעקב ורחל גולד",     count: 2, tableId: "t2" },
-  { id: "4",  name: "דוד ומרים שפירא",    count: 5, tableId: "t5" },
-  { id: "5",  name: "נועם ברק",            count: 1, tableId: "t1" },
-  { id: "6",  name: "שרה ואיתן מזרחי",    count: 2, tableId: "t4" },
-  { id: "7",  name: "רבקה שלום",           count: 3, tableId: "t7" },
-  { id: "8",  name: "משפחת אברהם",        count: 6, tableId: "t6" },
-  { id: "9",  name: "חיים ואסתר נחום",    count: 2, tableId: "t3" },
-  { id: "10", name: "גיל ורות פרץ",       count: 3, tableId: "t8" },
-];
-
-const MOCK_TABLES = [
-  { id: "t1", name: "שולחן 1" },
-  { id: "t2", name: "שולחן 2" },
-  { id: "t3", name: "שולחן 3" },
-  { id: "t4", name: "שולחן 4" },
-  { id: "t5", name: "שולחן 5" },
-  { id: "t6", name: "שולחן 6 — VIP" },
-  { id: "t7", name: "שולחן 7" },
-  { id: "t8", name: "שולחן 8" },
-];
 
 function buildTableMap(tables) {
   const m = {};
@@ -36,8 +11,11 @@ function buildTableMap(tables) {
 
 export default function HostessScreen() {
   const { token } = useParams();
-  const [status, setStatus]       = useState("loading"); // "loading" | "ready" | "error"
+  const [status, setStatus]       = useState("loading"); // "loading" | "ready" | "notfound" | "error"
   const [eventName, setEventName] = useState("");
+  const [guests, setGuests]       = useState([]);
+  const [tables, setTables]       = useState([]);
+  const [seating, setSeating]     = useState({});
   const [query, setQuery]         = useState("");
   const searchRef = useRef(null);
 
@@ -45,11 +23,17 @@ export default function HostessScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const ev = await fetchEventByToken("hostess", token);
-        if (!cancelled) {
-          if (ev && ev.name) setEventName(ev.name);
-          setStatus("ready");
+        const data = await fetchHostessData(token);
+        if (cancelled) return;
+        if (!data) {
+          setStatus("notfound");
+          return;
         }
+        setEventName(data.name);
+        setGuests(data.guests);
+        setTables(data.tables);
+        setSeating(data.seating);
+        setStatus("ready");
       } catch {
         if (!cancelled) setStatus("error");
       }
@@ -63,12 +47,12 @@ export default function HostessScreen() {
     }
   }, [status]);
 
-  const tableMap = buildTableMap(MOCK_TABLES);
+  const tableMap = buildTableMap(tables);
 
   const q = query.trim();
   const ql = q.toLowerCase();
   const results = q.length >= 1
-    ? MOCK_GUESTS.filter(g => g.name.toLowerCase().includes(ql))
+    ? guests.filter(g => (g.name || "").toLowerCase().includes(ql))
     : [];
 
   const seatLabel = (count) => {
@@ -87,11 +71,22 @@ export default function HostessScreen() {
     );
   }
 
+  if (status === "notfound") {
+    return (
+      <div className={styles.root}>
+        <div className={styles.loadingWrap}>
+          <span className={styles.stateIcon} aria-hidden="true">⚠</span>
+          <span className={styles.loadingText}>הקישור אינו תקין או שהאירוע הוסר</span>
+        </div>
+      </div>
+    );
+  }
+
   if (status === "error") {
     return (
       <div className={styles.root}>
         <div className={styles.loadingWrap}>
-          <span style={{ fontSize: 36 }} aria-hidden="true">⚠</span>
+          <span className={styles.stateIcon} aria-hidden="true">⚠</span>
           <span className={styles.loadingText}>שגיאת חיבור — נסה לרענן את הדף</span>
         </div>
       </div>
@@ -158,7 +153,8 @@ export default function HostessScreen() {
       {results.length > 0 && (
         <ul className={styles.results} role="list">
           {results.map(g => {
-            const table = g.tableId ? tableMap[g.tableId] : null;
+            const tableId = seating[g.id];
+            const table = tableId ? tableMap[tableId] : null;
             return (
               <li key={g.id} className={table ? styles.card : styles.cardUnseated}>
                 {table ? (

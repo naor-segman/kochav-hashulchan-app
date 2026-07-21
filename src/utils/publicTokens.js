@@ -1,12 +1,5 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 
-// Minimal public fields — never exposes other tokens or private guest data
-const PUBLIC_EVENT_FIELDS = [
-  "id", "name", "type", "date", "venue",
-  "bride_name", "groom_name", "celebrant_name",
-  "organization_name", "contact_name", "owner_name",
-].join(", ");
-
 function mapPublicEvent(data) {
   return {
     cloudId:          data.id,
@@ -26,7 +19,9 @@ function mapPublicEvent(data) {
 /**
  * Fetch the public event data for a given token type and token value.
  * Used by public pages (RSVP, invite, gift, hostess) that have no user auth.
- * Only fetches the minimal columns needed — never exposes cross-page tokens.
+ * Calls a SECURITY DEFINER function that requires a valid token and returns
+ * only minimal public fields — anonymous callers cannot read the events table
+ * directly, so cross-event enumeration is impossible.
  *
  * @param {"rsvp"|"invite"|"gift"|"hostess"} tokenType
  * @param {string} token  — the UUID token from the URL
@@ -34,14 +29,54 @@ function mapPublicEvent(data) {
  */
 export async function fetchEventByToken(tokenType, token) {
   if (!isSupabaseConfigured || !supabase || !token) return null;
-  const column = tokenType + "_token";
-  const { data, error } = await supabase
-    .from("events")
-    .select(PUBLIC_EVENT_FIELDS)
-    .eq(column, token)
-    .single();
+  const { data, error } = await supabase.rpc("public_event_by_token", {
+    token_type:  tokenType,
+    token_value: token,
+  });
   if (error || !data) return null;
   return mapPublicEvent(data);
+}
+
+/**
+ * Fetch the hostess dataset (guest list + tables + seating map) by hostess
+ * token. Guest phone numbers are never included — the SQL function returns
+ * only id / name / count per guest.
+ *
+ * @param {string} token — the hostess UUID token from the URL
+ * @returns {{ id, name, guests: [], tables: [], seating: {} }|null}
+ */
+export async function fetchHostessData(token) {
+  if (!isSupabaseConfigured || !supabase || !token) return null;
+  const { data, error } = await supabase.rpc("hostess_data_by_token", {
+    token_value: token,
+  });
+  if (error || !data) return null;
+  return {
+    cloudId: data.id,
+    name:    data.name    ?? "",
+    guests:  Array.isArray(data.guests) ? data.guests : [],
+    tables:  Array.isArray(data.tables) ? data.tables : [],
+    seating: (data.seating && typeof data.seating === "object") ? data.seating : {},
+  };
+}
+
+/**
+ * Fetch all RSVP responses for an event the current user owns.
+ * Relies on the "rsvp_owner_select" RLS policy — anonymous or non-owner
+ * callers get an empty list.
+ *
+ * @param {string} eventCloudId — Supabase events.id
+ * @returns {object[]} responses, newest first
+ */
+export async function fetchRSVPResponses(eventCloudId) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
+  const { data, error } = await supabase
+    .from("rsvp_responses")
+    .select("id, guest_name, phone, attending, guests_count, created_at")
+    .eq("event_id", eventCloudId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
 }
 
 /**
