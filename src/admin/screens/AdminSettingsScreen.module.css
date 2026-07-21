@@ -28,7 +28,7 @@
 }
 .backLink:hover { background: #f4f4f5; color: #333; }
 
-.brandMark { font-size: 18px; color: #be7a38; }
+.brandMark { font-size: 18px; color: #0E9AB8; }
 
 .brandName {
   font-size: 16px; font-weight: 800; color: #111; letter-spacing: -0.01em;
@@ -95,12 +95,12 @@
 
 .retryBtn {
   margin-top: 8px;
-  background: #be7a38; color: #fff; border: none;
+  background: #0E9AB8; color: #fff; border: none;
   border-radius: 8px; padding: 10px 22px;
   font-size: 14px; font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s;
 }
-.retryBtn:hover { background: #a86a2e; }
+.retryBtn:hover { background: #0A7488; }
 
 /* ── Error banner ── */
 .errorBanner {
@@ -153,8 +153,8 @@
 }
 
 .input:focus, .select:focus {
-  border-color: #be7a38;
-  box-shadow: 0 0 0 3px rgba(190, 122, 56, 0.12);
+  border-color: #0E9AB8;
+  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
   background: #fff;
 }
 
@@ -166,8 +166,8 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .textarea:focus {
-  border-color: #be7a38;
-  box-shadow: 0 0 0 3px rgba(190, 122, 56, 0.12);
+  border-color: #0E9AB8;
+  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
   background: #fff;
 }
 
@@ -188,7 +188,7 @@
 }
 .flagRow:hover { background: #fafafa; }
 
-.checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: #be7a38; flex-shrink: 0; }
+.checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: #0E9AB8; flex-shrink: 0; }
 
 .flagLabel { font-size: 14px; font-weight: 600; color: #222; flex: 1; }
 
@@ -221,14 +221,14 @@
 }
 
 .saveBtn {
-  background: #be7a38; color: #fff; border: none;
+  background: #0E9AB8; color: #fff; border: none;
   border-radius: 8px; padding: 11px 28px;
   font-size: 14px; font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s, box-shadow 0.12s;
 }
 .saveBtn:hover:not(:disabled) {
-  background: #a86a2e;
-  box-shadow: 0 3px 10px rgba(190, 122, 56, 0.30);
+  background: #0A7488;
+  box-shadow: 0 3px 10px rgba(14, 154, 184, 0.30);
 }
 .saveBtn:disabled { opacity: 0.55; cursor: default; }
 

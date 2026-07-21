@@ -107,6 +107,7 @@ export function normalizeEventSite(site, type) {
     address:      site.address      ?? "",
     wazeUrl:      site.wazeUrl      ?? "",
     parkingNote:  site.parkingNote  ?? "",
+    shuttles:     Array.isArray(site.shuttles) ? site.shuttles : def.shuttles,
     faq:          Array.isArray(site.faq) ? site.faq : def.faq,
     contactPhone: site.contactPhone ?? "",
     sections: (site.sections && typeof site.sections === "object")

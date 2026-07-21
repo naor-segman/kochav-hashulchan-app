@@ -32,7 +32,7 @@ async function compressImage(file, maxPx = 1200, quality = 0.72) {
   });
 }
 
-export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, showToast }) {
   const site = ev.eventSite;
   const fileRef = useRef(null);
   const [copied, setCopied] = useState(false);
@@ -49,6 +49,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, go,
   const addSchedule = () => set({ schedule: [...site.schedule, { id: uid(), time: "", title: "", icon: "•" }] });
   const editSchedule = (id, patch) => set({ schedule: site.schedule.map(s => s.id === id ? { ...s, ...patch } : s) });
   const delSchedule = (id) => set({ schedule: site.schedule.filter(s => s.id !== id) });
+
+  // Shuttle editing
+  const addShuttle = () => set({ shuttles: [...(site.shuttles || []), { id: uid(), direction: "הלוך", place: "", time: "" }] });
+  const editShuttle = (id, patch) => set({ shuttles: site.shuttles.map(s => s.id === id ? { ...s, ...patch } : s) });
+  const delShuttle = (id) => set({ shuttles: site.shuttles.filter(s => s.id !== id) });
 
   // FAQ editing
   const addFaq = () => set({ faq: [...site.faq, { id: uid(), q: "", a: "" }] });
@@ -228,6 +233,30 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, go,
               onChange={e => set({ parkingNote: e.target.value })} />
           </Field>
         </div>
+      </div>
+
+      {/* ── Shuttles ── */}
+      <div className={base.card}>
+        <div className={styles.secToggleHead}>
+          <SectionLabel>הסעות</SectionLabel>
+          <Toggle on={site.sections.shuttles} onChange={v => setSection("shuttles", v)} />
+        </div>
+        <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>הוסיפו מסלולי הסעה הלוך וחזור עם שעות ונקודות איסוף.</p>
+        {(site.shuttles || []).map(s => (
+          <div key={s.id} className={styles.scheduleRow}>
+            <input className={[base.input, styles.timeInput].join(" ")} value={s.time} placeholder="17:15"
+              onChange={e => editShuttle(s.id, { time: e.target.value })} />
+            <select className={[base.select, styles.dirSelect].join(" ")} value={s.direction}
+              onChange={e => editShuttle(s.id, { direction: e.target.value })}>
+              <option>הלוך</option>
+              <option>חזור</option>
+            </select>
+            <input className={base.input} value={s.place} placeholder="נקודת איסוף — נס ציונה"
+              onChange={e => editShuttle(s.id, { place: e.target.value })} />
+            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delShuttle(s.id)}>✕</button>
+          </div>
+        ))}
+        <button className={base.btnSecondary} onClick={addShuttle}>+ הוסף הסעה</button>
       </div>
 
       {/* ── Blessings + gift toggles ── */}

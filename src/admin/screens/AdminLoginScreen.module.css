@@ -28,7 +28,7 @@
 .logo {
   display: block;
   font-size: 30px;
-  color: #be7a38;
+  color: #0E9AB8;
   margin-bottom: 10px;
 }
 
@@ -101,8 +101,8 @@
 }
 
 .input:focus {
-  border-color: #be7a38;
-  box-shadow: 0 0 0 3px rgba(190, 122, 56, 0.12);
+  border-color: #0E9AB8;
+  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
   background: #fff;
 }
 
@@ -120,7 +120,7 @@
 }
 
 .btn {
-  background: #be7a38;
+  background: #0E9AB8;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -134,8 +134,8 @@
 }
 
 .btn:hover:not(:disabled) {
-  background: #a86a2e;
-  box-shadow: 0 3px 12px rgba(190, 122, 56, 0.35);
+  background: #0A7488;
+  box-shadow: 0 3px 12px rgba(14, 154, 184, 0.35);
 }
 
 .btn:disabled {

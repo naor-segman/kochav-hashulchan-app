@@ -27,7 +27,7 @@
 
 .brandMark {
   font-size: 18px;
-  color: #be7a38;
+  color: #0E9AB8;
 }
 
 .brandName {
@@ -274,12 +274,12 @@
 .navItemLink:hover {
   background: #fffbf7;
   border-color: #e4c49a;
-  box-shadow: 0 2px 8px rgba(190, 122, 56, 0.10);
+  box-shadow: 0 2px 8px rgba(14, 154, 184, 0.10);
 }
 
 .navArrow {
   font-size: 16px;
-  color: #be7a38;
+  color: #0E9AB8;
   margin-inline-start: auto;
 }
 
@@ -332,8 +332,8 @@
 
 .refreshBtn:hover {
   background: #f9fafb;
-  border-color: #be7a38;
-  color: #be7a38;
+  border-color: #0E9AB8;
+  color: #0E9AB8;
 }
 
 .lastRefreshed {

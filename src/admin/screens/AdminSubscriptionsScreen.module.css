@@ -28,7 +28,7 @@
 }
 .backLink:hover { background: #f4f4f5; color: #333; }
 
-.brandMark { font-size: 18px; color: #be7a38; }
+.brandMark { font-size: 18px; color: #0E9AB8; }
 .brandName { font-size: 16px; font-weight: 800; color: #111; letter-spacing: -0.01em; }
 .brandSep  { color: #ccc; }
 .brandSub  { font-size: 13px; color: #888; }
@@ -90,12 +90,12 @@
 }
 
 .retryBtn {
-  background: #be7a38; color: #fff; border: none;
+  background: #0E9AB8; color: #fff; border: none;
   border-radius: 8px; padding: 10px 22px;
   font-size: 14px; font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s;
 }
-.retryBtn:hover { background: #a86a2e; }
+.retryBtn:hover { background: #0A7488; }
 
 /* ── Section title ── */
 .sectionTitle {
@@ -155,8 +155,8 @@
   width: 200px; transition: border-color 0.15s, box-shadow 0.15s;
 }
 .searchInput:focus {
-  border-color: #be7a38;
-  box-shadow: 0 0 0 3px rgba(190,122,56,0.12);
+  border-color: #0E9AB8;
+  box-shadow: 0 0 0 3px rgba(14, 154, 184,0.12);
 }
 
 .filterSelect {
@@ -166,7 +166,7 @@
   transition: border-color 0.15s;
   cursor: pointer;
 }
-.filterSelect:focus { border-color: #be7a38; }
+.filterSelect:focus { border-color: #0E9AB8; }
 
 .resultCount { font-size: 13px; color: #888; white-space: nowrap; }
 
