@@ -5,19 +5,7 @@
 -- where possible; CREATE TABLE statements assume an empty schema).
 -- =============================================================================
 
--- ═══ 1. Helper: is_admin() ═══════════════════════════════════════════════════
-
-CREATE OR REPLACE FUNCTION public.is_admin()
-  RETURNS boolean
-  LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'admin'
-  );
-$$;
-
--- ═══ 2. profiles ═════════════════════════════════════════════════════════════
+-- ═══ 1. profiles (table must exist before is_admin() references it) ══════════
 
 CREATE TABLE IF NOT EXISTS public.profiles (
   id          uuid        PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
@@ -28,6 +16,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
+
+-- ═══ 2. Helper: is_admin() ═══════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+  RETURNS boolean
+  LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
   RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
