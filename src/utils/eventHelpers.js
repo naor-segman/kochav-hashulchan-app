@@ -84,6 +84,9 @@ export function normalizeEvent(ev) {
     // Event site — the auto-built guest-facing site (hero, schedule, location,
     // gift, blessings, FAQ). Defaults are seeded per event type; host edits.
     eventSite: normalizeEventSite(ev.eventSite, ev.type),
+    // No-show factor (%) for the meal-count forecast. Israeli weddings run
+    // ~8–15% no-shows; couples get burned ordering meals for 100% of confirmers.
+    noShowPct: Number.isFinite(ev.noShowPct) ? ev.noShowPct : 10,
   };
 }
 

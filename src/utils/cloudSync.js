@@ -68,6 +68,7 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       giftBitPhone:   localEvent.giftBitPhone   ?? "",
       giftPayboxLink: localEvent.giftPayboxLink ?? "",
       eventSite:      localEvent.eventSite      ?? null,
+      noShowPct:      localEvent.noShowPct      ?? 10,
       // Floor plan: sync positions only — the image (base64) is too large for
       // Postgres JSONB and stays in localStorage on each device. If the user
       // opens the event on a new device they will need to re-upload the image,
@@ -119,6 +120,7 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     giftBitPhone:   p.giftBitPhone   ?? "",
     giftPayboxLink: p.giftPayboxLink ?? "",
     eventSite:      p.eventSite      ?? null,
+    noShowPct:      Number.isFinite(p.noShowPct) ? p.noShowPct : 10,
     // Floor plan: positions are synced; image stays in localStorage (too large for cloud).
     // On a new device the user must re-upload the image, but positions are restored.
     floorPlan: p.floorPlanPositions
