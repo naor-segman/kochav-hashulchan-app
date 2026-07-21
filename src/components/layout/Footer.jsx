@@ -29,8 +29,11 @@ export default function Footer() {
             <Link to="/account" className={styles.colLink}>הגדרות</Link>
           </div>
           <div className={styles.col}>
-            <div className={styles.colTitle}>תמיכה</div>
+            <div className={styles.colTitle}>תמיכה ומידע</div>
             <a href="mailto:support@kochav-hashulchan.co.il" className={styles.colLink}>צור קשר</a>
+            <Link to="/privacy" className={styles.colLink}>מדיניות פרטיות</Link>
+            <Link to="/terms" className={styles.colLink}>תנאי שימוש</Link>
+            <Link to="/accessibility" className={styles.colLink}>הצהרת נגישות</Link>
           </div>
         </div>
       </div>
