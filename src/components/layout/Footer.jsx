@@ -30,6 +30,7 @@ export default function Footer() {
           </div>
           <div className={styles.col}>
             <div className={styles.colTitle}>תמיכה ומידע</div>
+            <Link to="/help" className={styles.colLink}>מרכז עזרה</Link>
             <a href="mailto:support@kochav-hashulchan.co.il" className={styles.colLink}>צור קשר</a>
             <Link to="/privacy" className={styles.colLink}>מדיניות פרטיות</Link>
             <Link to="/terms" className={styles.colLink}>תנאי שימוש</Link>

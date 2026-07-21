@@ -45,6 +45,7 @@ const CostScreen          = lazy(() => import("./screens/CostScreen.jsx"));
 const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
 const EventSiteEditorScreen = lazy(() => import("./screens/EventSiteEditorScreen.jsx"));
 // Legal / policy pages — lazy, rarely visited
+const HelpScreen          = lazy(() => import("./screens/HelpScreen.jsx"));
 const PrivacyScreen       = lazy(() => import("./screens/PrivacyScreen.jsx"));
 const TermsScreen         = lazy(() => import("./screens/TermsScreen.jsx"));
 const AccessibilityScreen = lazy(() => import("./screens/AccessibilityScreen.jsx"));
@@ -269,7 +270,8 @@ export default function App() {
       <Route path="/account"       element={<AccountScreen eventCount={events.length} />} />
       <Route path="/auth/callback" element={<AuthCallbackScreen />} />
 
-      {/* ── Legal / policy pages ── */}
+      {/* ── Legal / policy / help pages ── */}
+      <Route path="/help"          element={<Suspense fallback={null}><HelpScreen /></Suspense>} />
       <Route path="/privacy"       element={<Suspense fallback={null}><PrivacyScreen /></Suspense>} />
       <Route path="/terms"         element={<Suspense fallback={null}><TermsScreen /></Suspense>} />
       <Route path="/accessibility" element={<Suspense fallback={null}><AccessibilityScreen /></Suspense>} />
