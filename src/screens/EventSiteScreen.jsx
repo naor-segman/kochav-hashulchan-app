@@ -105,15 +105,16 @@ export default function EventSiteScreen() {
   const hosts = hostsLabel(ev);
   const dateStr = heDate(ev.date);
   const sec = site?.sections || {};
-  const scrollTo = (ref) => { setMenuOpen(false); ref.current?.scrollIntoView({ behavior: "smooth" }); };
+  const refByKey = { schedule: scheduleRef, location: locationRef, blessings: blessingsRef, faq: faqRef };
+  const scrollTo = (key) => { setMenuOpen(false); refByKey[key]?.current?.scrollIntoView({ behavior: "smooth" }); };
   const rsvpUrl = ev.rsvpToken ? `/rsvp/${ev.rsvpToken}` : null;
   const giftUrl = ev.giftToken ? `/gift/${ev.giftToken}` : null;
 
   const navItems = !visible ? [] : [
-    site?.schedule?.length && sec.schedule && { label: "לוז", ref: scheduleRef },
-    (site?.address) && sec.location && { label: "מיקום", ref: locationRef },
-    sec.blessings && { label: "ברכות", ref: blessingsRef },
-    site?.faq?.length && sec.faq && { label: "שאלות", ref: faqRef },
+    site?.schedule?.length && sec.schedule && { label: "לוז", key: "schedule" },
+    (site?.address) && sec.location && { label: "מיקום", key: "location" },
+    sec.blessings && { label: "ברכות", key: "blessings" },
+    site?.faq?.length && sec.faq && { label: "שאלות", key: "faq" },
   ].filter(Boolean);
   const showRsvp = visible && rsvpUrl;
 
@@ -132,8 +133,8 @@ export default function EventSiteScreen() {
         </div>
         {menuOpen && (
           <div className={styles.navMenu}>
-            {navItems.map((it, i) => (
-              <button key={i} onClick={() => scrollTo(it.ref)}>{it.label}</button>
+            {navItems.map((it) => (
+              <button key={it.key} onClick={() => scrollTo(it.key)}>{it.label}</button>
             ))}
           </div>
         )}
