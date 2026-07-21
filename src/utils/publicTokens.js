@@ -15,6 +15,10 @@ function mapPublicEvent(data) {
     ownerName:        data.owner_name        ?? "",
     giftBitPhone:     data.bit_phone         ?? "",
     giftPayboxLink:   data.paybox_link       ?? "",
+    site: (data.site && typeof data.site === "object") ? data.site : null,
+    rsvpToken:        data.rsvp_token        ?? null,
+    giftToken:        data.gift_token        ?? null,
+    hostessToken:     data.hostess_token     ?? null,
   };
 }
 

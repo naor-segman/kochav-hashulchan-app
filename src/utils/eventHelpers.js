@@ -1,4 +1,5 @@
 import { uid } from "./uid.js";
+import { defaultEventSite } from "../data/eventSiteTemplates.js";
 
 // ── Event schema helpers ──────────────────────────────────────────────────────
 //
@@ -80,6 +81,34 @@ export function normalizeEvent(ev) {
     // recipient's phone number; PayBox supports shareable group links.
     giftBitPhone:   ev.giftBitPhone   ?? "",
     giftPayboxLink: ev.giftPayboxLink ?? "",
+    // Event site — the auto-built guest-facing site (hero, schedule, location,
+    // gift, blessings, FAQ). Defaults are seeded per event type; host edits.
+    eventSite: normalizeEventSite(ev.eventSite, ev.type),
+  };
+}
+
+/**
+ * Ensure an eventSite object has all required fields, seeding per-type defaults
+ * for a fresh event. Preserves existing host-entered content.
+ */
+export function normalizeEventSite(site, type) {
+  const def = defaultEventSite(type);
+  if (!site || typeof site !== "object") return def;
+  return {
+    enabled:      typeof site.enabled === "boolean" ? site.enabled : def.enabled,
+    themeKey:     site.themeKey     ?? def.themeKey,
+    heroEn:       site.heroEn       ?? def.heroEn,
+    coverPhoto:   site.coverPhoto   ?? null,
+    story:        site.story        ?? "",
+    schedule:     Array.isArray(site.schedule) ? site.schedule : def.schedule,
+    address:      site.address      ?? "",
+    wazeUrl:      site.wazeUrl      ?? "",
+    parkingNote:  site.parkingNote  ?? "",
+    faq:          Array.isArray(site.faq) ? site.faq : def.faq,
+    contactPhone: site.contactPhone ?? "",
+    sections: (site.sections && typeof site.sections === "object")
+      ? { ...def.sections, ...site.sections }
+      : def.sections,
   };
 }
 
