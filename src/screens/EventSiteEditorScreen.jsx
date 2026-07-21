@@ -94,7 +94,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, go,
         <div className={styles.shareRow}>
           <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" />
           <button className={base.btnSm} onClick={copyLink}>{copied ? "הועתק ✓" : "העתק"}</button>
-          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open(siteUrl + "?preview=1", "_blank")}>צפה</button>
+          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open("/events/" + ev.id + "/preview-site", "_blank")}>צפה</button>
         </div>
       </div>
 

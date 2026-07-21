@@ -300,7 +300,8 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
     'celebrant_name', e.payload->>'celebrantName', 'organization_name', e.payload->>'organizationName',
     'contact_name', e.payload->>'contactName', 'owner_name', e.payload->>'ownerName',
     'bit_phone', e.payload->>'giftBitPhone', 'paybox_link', e.payload->>'giftPayboxLink',
-    'site', e.payload->'eventSite',
+    'site', CASE WHEN COALESCE((e.payload->'eventSite'->>'enabled')::boolean, false)
+                 THEN e.payload->'eventSite' ELSE NULL END,
     -- hostess_token intentionally excluded (unlocks full guest list + seating)
     'rsvp_token', e.rsvp_token, 'gift_token', e.gift_token)
   FROM public.events e

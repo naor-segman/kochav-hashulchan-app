@@ -13,7 +13,10 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
     'celebrant_name', e.payload->>'celebrantName', 'organization_name', e.payload->>'organizationName',
     'contact_name', e.payload->>'contactName', 'owner_name', e.payload->>'ownerName',
     'bit_phone', e.payload->>'giftBitPhone', 'paybox_link', e.payload->>'giftPayboxLink',
-    'site', e.payload->'eventSite',
+    -- Only serve the site once the host has published it (enabled=true), so an
+    -- unpublished/unpublished-again draft is never delivered to guests.
+    'site', CASE WHEN COALESCE((e.payload->'eventSite'->>'enabled')::boolean, false)
+                 THEN e.payload->'eventSite' ELSE NULL END,
     -- sibling public tokens so the event site can link to RSVP / gift pages.
     -- hostess_token is deliberately NOT exposed: it unlocks the full guest list
     -- and seating map, and the invite link is shared with every guest.
