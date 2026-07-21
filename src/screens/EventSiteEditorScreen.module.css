@@ -6,6 +6,19 @@
 .shareRow { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
 .shareInput { flex: 1; min-width: 0; font-size: 12px; }
 
+/* Share-with-guests message rows */
+.msgRow {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 0; border-bottom: 1px dashed var(--border); flex-wrap: wrap;
+}
+.msgRow:last-child { border-bottom: none; }
+.msgInfo { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.msgLabel { font-size: 14px; font-weight: 700; color: var(--text); }
+.msgPreview { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msgActions { display: flex; gap: 6px; flex-shrink: 0; }
+.msgWa { background: var(--whatsapp); text-decoration: none; display: inline-flex; align-items: center; }
+.msgWa:hover { filter: brightness(0.93); }
+
 /* Theme swatches */
 .themeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 6px; }
 .themeSwatch {

@@ -98,6 +98,42 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, go,
         </div>
       </div>
 
+      {/* ── Share with guests ── */}
+      {site.enabled && (
+        <div className={base.card}>
+          <SectionLabel>שתפו עם האורחים</SectionLabel>
+          <p className={base.fieldHint}>
+            הודעות מוכנות לשליחה בוואטסאפ — עם קישור לאתר האירוע. העתיקו או שלחו ישירות.
+          </p>
+          {[
+            { key: "invite", label: "הזמנה", text: `היי! אתם מוזמנים ל${ev.name || "אירוע שלנו"} 💛\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}` },
+            { key: "remind", label: "תזכורת", text: `רק תזכורת קטנה — ${ev.name || "האירוע"} מתקרב! 🎉\nפרטים ואישור הגעה:\n${siteUrl}` },
+            { key: "thanks", label: "תודה", text: `תודה מכל הלב שחגגתם איתנו! 💛\nהייתם חלק מהרגעים הכי מרגשים שלנו.` },
+          ].map(m => (
+            <div key={m.key} className={styles.msgRow}>
+              <div className={styles.msgInfo}>
+                <span className={styles.msgLabel}>{m.label}</span>
+                <span className={styles.msgPreview}>{m.text.split("\n")[0]}</span>
+              </div>
+              <div className={styles.msgActions}>
+                <button
+                  className={base.btnSm}
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(m.text); showToast("ההודעה הועתקה ✓"); }
+                    catch { showToast("לא ניתן להעתיק", "err"); }
+                  }}
+                >העתק</button>
+                <a
+                  className={[base.btnSm, styles.msgWa].join(" ")}
+                  href={`https://wa.me/?text=${encodeURIComponent(m.text)}`}
+                  target="_blank" rel="noopener noreferrer"
+                >שלח בוואטסאפ</a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── Theme ── */}
       <div className={base.card}>
         <SectionLabel>עיצוב האתר</SectionLabel>
