@@ -9,14 +9,21 @@
   font-family: "Heebo", system-ui, sans-serif;
 }
 
-/* ── State screens ── */
+/* ── State screens (render before per-event theme vars exist → app tokens) ── */
 .stateWrap {
   min-height: 100vh; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 12px;
-  background: #F4F9FB; color: #173747; text-align: center; direction: rtl; padding: 24px;
+  background: var(--bg); color: var(--text); text-align: center; direction: rtl; padding: 24px;
 }
-.stateStar { font-size: 40px; color: #2E86C1; }
-.stateLink { color: #2E86C1; font-weight: 700; text-decoration: none; margin-top: 8px; }
+.stateStar { font-size: 40px; color: var(--accent); }
+.stateLink { color: var(--accent); font-weight: 700; text-decoration: none; margin-top: 8px; }
+
+/* ── Coming soon (unpublished, guest view) ── */
+.comingSoon {
+  max-width: var(--maxw); margin: 0 auto; padding: 60px 24px 80px; text-align: center;
+}
+.comingSoonStar { display: block; font-size: 34px; color: var(--s-accent); margin-bottom: 14px; }
+.comingSoon p { font-size: 16px; line-height: 1.8; color: var(--s-muted); margin: 0; }
 
 /* ── Sticky nav ── */
 .nav {

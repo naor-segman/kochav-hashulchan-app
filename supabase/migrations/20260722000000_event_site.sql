@@ -14,8 +14,10 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
     'contact_name', e.payload->>'contactName', 'owner_name', e.payload->>'ownerName',
     'bit_phone', e.payload->>'giftBitPhone', 'paybox_link', e.payload->>'giftPayboxLink',
     'site', e.payload->'eventSite',
-    -- sibling public tokens so the event site can link to RSVP / gift pages
-    'rsvp_token', e.rsvp_token, 'gift_token', e.gift_token, 'hostess_token', e.hostess_token)
+    -- sibling public tokens so the event site can link to RSVP / gift pages.
+    -- hostess_token is deliberately NOT exposed: it unlocks the full guest list
+    -- and seating map, and the invite link is shared with every guest.
+    'rsvp_token', e.rsvp_token, 'gift_token', e.gift_token)
   FROM public.events e
   WHERE token_value IS NOT NULL AND char_length(token_value) >= 8
     AND CASE token_type

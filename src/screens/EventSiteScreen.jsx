@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme } from "../data/eventSiteTemplates.js";
@@ -47,6 +47,8 @@ function hostsLabel(ev) {
 
 export default function EventSiteScreen() {
   const { token } = useParams();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get("preview") === "1";
   const [ev, setEv] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | notfound
   const [wishes, setWishes] = useState([]);
@@ -96,8 +98,10 @@ export default function EventSiteScreen() {
     );
   }
 
-  // If the host hasn't published a site yet, show a graceful minimal invite.
+  // Content is shown only once the host publishes. Before that, guests see a
+  // minimal "coming soon" teaser — but the host can preview via ?preview=1.
   const published = site && site.enabled;
+  const visible = published || isPreview;
   const hosts = hostsLabel(ev);
   const dateStr = heDate(ev.date);
   const sec = site?.sections || {};
@@ -105,12 +109,13 @@ export default function EventSiteScreen() {
   const rsvpUrl = ev.rsvpToken ? `/rsvp/${ev.rsvpToken}` : null;
   const giftUrl = ev.giftToken ? `/gift/${ev.giftToken}` : null;
 
-  const navItems = [
+  const navItems = !visible ? [] : [
     site?.schedule?.length && sec.schedule && { label: "לוז", ref: scheduleRef },
     (site?.address) && sec.location && { label: "מיקום", ref: locationRef },
     sec.blessings && { label: "ברכות", ref: blessingsRef },
     site?.faq?.length && sec.faq && { label: "שאלות", ref: faqRef },
   ].filter(Boolean);
+  const showRsvp = visible && rsvpUrl;
 
   return (
     <div className={styles.site} style={themeVars}>
@@ -118,7 +123,7 @@ export default function EventSiteScreen() {
       <nav className={styles.nav}>
         <span className={styles.navBrand}>✦ {hosts}</span>
         <div className={styles.navRight}>
-          {rsvpUrl && <Link to={rsvpUrl} className={styles.navRsvp}>אישור הגעה</Link>}
+          {showRsvp && <Link to={rsvpUrl} className={styles.navRsvp}>אישור הגעה</Link>}
           {navItems.length > 0 && (
             <button className={styles.navBurger} onClick={() => setMenuOpen(o => !o)} aria-label="תפריט">
               {menuOpen ? "✕" : "☰"}
@@ -146,23 +151,29 @@ export default function EventSiteScreen() {
           <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
           {dateStr && <div className={styles.heroDate}>{dateStr}</div>}
           {ev.venue && <div className={styles.heroVenue}>📍 {ev.venue}</div>}
-          {rsvpUrl && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
+          {showRsvp && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
         </div>
       </header>
 
-      {!published && (
-        <div className={styles.draftNote}>האתר עדיין בהכנה — בעלי השמחה טרם פרסמו אותו.</div>
+      {isPreview && !published && (
+        <div className={styles.draftNote}>מצב תצוגה מקדימה — האתר עדיין לא פורסם. רק אתם רואים אותו.</div>
+      )}
+      {!visible && (
+        <div className={styles.comingSoon}>
+          <span className={styles.comingSoonStar} aria-hidden="true">✦</span>
+          <p>האתר בהכנה 💛<br />בעלי השמחה יפרסמו אותו בקרוב.</p>
+        </div>
       )}
 
       {/* ── Story ── */}
-      {site?.story && (
+      {visible && site?.story && (
         <section className={styles.story}>
           <p>{site.story}</p>
         </section>
       )}
 
       {/* ── Schedule ── */}
-      {sec.schedule && site?.schedule?.length > 0 && (
+      {visible && sec.schedule && site?.schedule?.length > 0 && (
         <section ref={scheduleRef} className={styles.section}>
           <h2 className={styles.secTitle}>לוז האירוע</h2>
           <ol className={styles.timeline}>
@@ -178,7 +189,7 @@ export default function EventSiteScreen() {
       )}
 
       {/* ── Location ── */}
-      {sec.location && site?.address && (
+      {visible && sec.location && site?.address && (
         <section ref={locationRef} className={styles.section}>
           <h2 className={styles.secTitle}>מיקום והגעה</h2>
           <div className={styles.locCard}>
@@ -196,7 +207,7 @@ export default function EventSiteScreen() {
       )}
 
       {/* ── Gift ── */}
-      {sec.gift && giftUrl && (
+      {visible && sec.gift && giftUrl && (
         <section className={styles.section}>
           <h2 className={styles.secTitle}>מתנה 💝</h2>
           <div className={styles.giftCard}>
@@ -207,7 +218,7 @@ export default function EventSiteScreen() {
       )}
 
       {/* ── Blessings wall ── */}
-      {sec.blessings && (
+      {visible && sec.blessings && (
         <section ref={blessingsRef} className={styles.section}>
           <h2 className={styles.secTitle}>קיר ברכות</h2>
           {wishes.length === 0 ? (
@@ -228,7 +239,7 @@ export default function EventSiteScreen() {
       )}
 
       {/* ── FAQ ── */}
-      {sec.faq && site?.faq?.length > 0 && (
+      {visible && sec.faq && site?.faq?.length > 0 && (
         <section ref={faqRef} className={styles.section}>
           <h2 className={styles.secTitle}>שאלות נפוצות</h2>
           <div className={styles.faqList}>

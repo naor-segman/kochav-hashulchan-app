@@ -9,7 +9,9 @@ import base from "../styles/screenBase.module.css";
 import styles from "./EventSiteEditorScreen.module.css";
 
 // Compress an uploaded cover photo to a reasonable data URL for the site.
-async function compressImage(file, maxPx = 1400, quality = 0.8) {
+// Kept modest (stored in payload JSONB + served via the public RPC) — a future
+// improvement is to move covers to Supabase Storage and sync only a URL.
+async function compressImage(file, maxPx = 1200, quality = 0.72) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -92,7 +94,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, go,
         <div className={styles.shareRow}>
           <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" />
           <button className={base.btnSm} onClick={copyLink}>{copied ? "הועתק ✓" : "העתק"}</button>
-          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open(siteUrl, "_blank")}>צפה</button>
+          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open(siteUrl + "?preview=1", "_blank")}>צפה</button>
         </div>
       </div>
 

@@ -18,7 +18,6 @@ function mapPublicEvent(data) {
     site: (data.site && typeof data.site === "object") ? data.site : null,
     rsvpToken:        data.rsvp_token        ?? null,
     giftToken:        data.gift_token        ?? null,
-    hostessToken:     data.hostess_token     ?? null,
   };
 }
 

@@ -52,7 +52,7 @@
 .toggleOn { background: var(--green); }
 .toggleKnob {
   position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%;
-  background: #fff; transition: transform var(--transition); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  background: var(--surface); transition: transform var(--transition); box-shadow: 0 1px 3px rgba(0,0,0,.25);
 }
 .toggleOn .toggleKnob { transform: translateX(-18px); }
 
