@@ -14,8 +14,8 @@ import base from "../styles/screenBase.module.css";
 import styles from "./TableBuilderScreen.module.css";
 
 const TABS = [
-  { id: "list",      label: "שולחנות",   icon: "⬡" },
-  { id: "floorplan", label: "מפת האולם", icon: "🏛️" },
+  { id: "list",      label: "רשימת שולחנות", icon: "⬡" },
+  { id: "floorplan", label: "מפת אולם (רשות)", icon: "🏛️" },
 ];
 
 export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, showToast }) {
@@ -283,9 +283,11 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       {/* ── Tab: Floor plan ── */}
       {tab === "floorplan" && (
         <div className={base.card}>
-          <SectionLabel>סקיצת האולם</SectionLabel>
+          <SectionLabel>מפת אולם — אופציונלי</SectionLabel>
           <p className={styles.floorPlanHint}>
-            העלו את מפת האולם שקיבלתם מהמקום. המערכת תזהה אוטומטית את השולחנות ותאפשר לכם לגרור אורחים בין שולחנות ישירות על גבי הסקיצה.
+            תכונה לרשות בלבד. אם קיבלתם סקיצה של האולם מהמקום — העלו אותה כאן,
+            מקמו עליה את השולחנות, ותוכלו לגרור אורחים ישירות על גבי המפה. אין
+            חובה — סידור ההושבה הרגיל נעשה במסך "הושבה".
           </p>
           <FloorPlanEditor ev={ev} patchEvent={patchEvent} showToast={showToast} />
         </div>

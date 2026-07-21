@@ -1,30 +1,66 @@
-/* EmptyState placeholder */
+/* EmptyState placeholder — guiding, not a dead-end */
 .empty {
   text-align: center;
-  padding: 44px 20px;
+  padding: 48px 24px;
   color: var(--muted);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px dashed var(--border2);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .emptyIcon {
-  font-size: 38px;
-  margin-bottom: 12px;
-  opacity: 0.5;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+  margin-bottom: 16px;
 }
 
 .emptyTitle {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text2);
-  margin-bottom: 5px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
 }
 
 .emptyText {
   font-size: 14px;
-  line-height: 1.6;
-  max-width: 48ch;
+  line-height: 1.65;
+  max-width: 46ch;
   margin-inline: auto;
+  color: var(--muted);
+}
+
+.emptyAction {
+  margin-top: 18px;
+  background: var(--cta);
+  color: var(--on-accent);
+  border: none;
+  cursor: pointer;
+  padding: 11px 22px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  box-shadow: var(--shadow-cta);
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.emptyAction:hover {
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+  .empty { padding: 36px 18px; }
 }

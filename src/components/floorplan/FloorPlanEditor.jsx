@@ -9,6 +9,11 @@ import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
 import styles from "./FloorPlanEditor.module.css";
 
+// AI table-detection needs the `detect-floor-plan` Edge Function deployed.
+// Disabled until that function is live so the button can never error out.
+// Flip to true once the function is deployed (Enterprise feature).
+const ENABLE_AI_DETECT = false;
+
 // ── Image helpers ────────────────────────────────────────────────────────────
 
 async function compressImage(file, maxPx = 1400, quality = 0.82) {
@@ -381,16 +386,15 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         <button className={styles.toolBtn} onClick={() => fileInputRef.current?.click()}>
           החלף תמונה
         </button>
-        <button
-          className={styles.toolBtnPrimary}
-          onClick={handleDetect}
-          disabled={detecting || !isSupabaseConfigured}
-          title={!isSupabaseConfigured ? "זיהוי אוטומטי דורש חיבור לענן" : undefined}
-        >
-          {detecting ? "⏳ מזהה..." : "✨ זיהוי שולחנות אוטומטי"}
-        </button>
-        {!isSupabaseConfigured && (
-          <span className={styles.toolHint}>זיהוי אוטומטי דורש חיבור לענן</span>
+        {ENABLE_AI_DETECT && (
+          <button
+            className={styles.toolBtnPrimary}
+            onClick={handleDetect}
+            disabled={detecting || !isSupabaseConfigured}
+            title={!isSupabaseConfigured ? "זיהוי אוטומטי דורש חיבור לענן" : undefined}
+          >
+            {detecting ? "⏳ מזהה..." : "✨ זיהוי שולחנות אוטומטי"}
+          </button>
         )}
         {placingId && (
           <span className={styles.toolHint}>
@@ -401,7 +405,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       </div>
 
       {/* Detection result */}
-      {detResult && (
+      {ENABLE_AI_DETECT && detResult && (
         <div className={styles.detectionCard}>
           <div className={styles.detTitle}>✨ זוהו {detResult.totalDetected} שולחנות בסקיצה</div>
           {detResult.note && <p className={styles.detNote}>{detResult.note}</p>}
