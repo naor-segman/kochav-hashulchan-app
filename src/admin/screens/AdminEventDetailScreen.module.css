@@ -40,7 +40,7 @@
   color: #333;
 }
 
-.brandMark   { font-size: 18px; color: #be7a38; }
+.brandMark   { font-size: 18px; color: #0E9AB8; }
 
 .brandName {
   font-size: 16px;
@@ -148,7 +148,7 @@
 .backBtn {
   display: inline-block;
   text-decoration: none;
-  background: #be7a38;
+  background: #0E9AB8;
   color: #fff;
   border-radius: 8px;
   padding: 10px 20px;
@@ -157,7 +157,7 @@
   transition: background 0.12s;
 }
 
-.backBtn:hover { background: #a86a2e; }
+.backBtn:hover { background: #0A7488; }
 
 /* ── Title row ── */
 .titleRow {

@@ -42,7 +42,7 @@
 
 .brandMark {
   font-size: 18px;
-  color: #be7a38;
+  color: #0E9AB8;
 }
 
 .brandName {
@@ -175,8 +175,8 @@
 }
 
 .searchInput:focus {
-  border-color: #be7a38;
-  box-shadow: 0 0 0 3px rgba(190, 122, 56, 0.12);
+  border-color: #0E9AB8;
+  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
 }
 
 .resultCount {
@@ -374,7 +374,7 @@
 
 /* ── Event count link ── */
 .eventsLink {
-  color: #be7a38;
+  color: #0E9AB8;
   text-decoration: none;
   font-weight: 700;
 }

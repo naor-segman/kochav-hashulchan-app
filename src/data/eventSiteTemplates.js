@@ -32,6 +32,16 @@ export const SITE_THEMES = {
     bg: "#FAF7F2", surface: "#FFFFFF", ink: "#3B342B", muted: "#857A6B",
     accent: "#C89B5A", accentSoft: "#F3EADB", line: "#E7DECE", onAccent: "#FFFFFF",
   },
+  emerald: {
+    key: "emerald", label: "אמרלד",
+    bg: "#F3F8F5", surface: "#FFFFFF", ink: "#1E3A2E", muted: "#5C7A6C",
+    accent: "#2E8B6A", accentSoft: "#E2F2EA", line: "#D8E8DF", onAccent: "#FFFFFF",
+  },
+  plum: {
+    key: "plum", label: "שזיף",
+    bg: "#F9F5FA", surface: "#FFFFFF", ink: "#3A2A40", muted: "#7C6A84",
+    accent: "#8B5EA6", accentSoft: "#F0E7F4", line: "#E7DCEC", onAccent: "#FFFFFF",
+  },
 };
 
 export const SITE_THEME_LIST = Object.values(SITE_THEMES);
@@ -93,8 +103,9 @@ export function defaultEventSite(type) {
     address: "",
     wazeUrl: "",
     parkingNote: "",
+    shuttles: [],
     faq: t.faq.map(f => ({ ...f })),
     contactPhone: "",
-    sections: { schedule: true, location: true, gift: true, blessings: true, faq: true },
+    sections: { schedule: true, location: true, shuttles: false, gift: true, blessings: true, faq: true },
   };
 }

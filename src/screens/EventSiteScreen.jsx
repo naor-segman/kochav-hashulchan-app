@@ -67,6 +67,7 @@ export default function EventSiteScreen({ localEvent }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const scheduleRef = useRef(null);
   const locationRef = useRef(null);
+  const shuttlesRef = useRef(null);
   const blessingsRef = useRef(null);
   const faqRef = useRef(null);
 
@@ -119,7 +120,7 @@ export default function EventSiteScreen({ localEvent }) {
   const hosts = hostsLabel(ev);
   const dateStr = heDate(ev.date);
   const sec = site?.sections || {};
-  const refByKey = { schedule: scheduleRef, location: locationRef, blessings: blessingsRef, faq: faqRef };
+  const refByKey = { schedule: scheduleRef, location: locationRef, shuttles: shuttlesRef, blessings: blessingsRef, faq: faqRef };
   const scrollTo = (key) => { setMenuOpen(false); refByKey[key]?.current?.scrollIntoView({ behavior: "smooth" }); };
   const rsvpUrl = ev.rsvpToken ? `/rsvp/${ev.rsvpToken}` : null;
   const giftUrl = ev.giftToken ? `/gift/${ev.giftToken}` : null;
@@ -127,6 +128,7 @@ export default function EventSiteScreen({ localEvent }) {
   const navItems = !visible ? [] : [
     site?.schedule?.length && sec.schedule && { label: "לוז", key: "schedule" },
     (site?.address) && sec.location && { label: "מיקום", key: "location" },
+    site?.shuttles?.length && sec.shuttles && { label: "הסעות", key: "shuttles" },
     sec.blessings && { label: "ברכות", key: "blessings" },
     site?.faq?.length && sec.faq && { label: "שאלות", key: "faq" },
   ].filter(Boolean);
@@ -219,6 +221,22 @@ export default function EventSiteScreen({ localEvent }) {
                 target="_blank" rel="noopener noreferrer"
               >ניווט ב-Waze ←</a>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* ── Shuttles ── */}
+      {visible && sec.shuttles && site?.shuttles?.length > 0 && (
+        <section ref={shuttlesRef} className={styles.section}>
+          <h2 className={styles.secTitle}>הסעות 🚌</h2>
+          <div className={styles.locCard}>
+            {site.shuttles.map(s => (
+              <div key={s.id} className={styles.shuttleRow}>
+                <span className={styles.shuttleTime}>{s.time}</span>
+                <span className={styles.shuttleDir}>{s.direction}</span>
+                <span className={styles.shuttlePlace}>{s.place}</span>
+              </div>
+            ))}
           </div>
         </section>
       )}

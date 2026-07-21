@@ -42,7 +42,7 @@
 
 .brandMark {
   font-size: 18px;
-  color: #be7a38;
+  color: #0E9AB8;
 }
 
 .brandName {
@@ -175,8 +175,8 @@
 }
 
 .searchInput:focus {
-  border-color: #be7a38;
-  box-shadow: 0 0 0 3px rgba(190, 122, 56, 0.12);
+  border-color: #0E9AB8;
+  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
 }
 
 .filterSelect {
@@ -194,8 +194,8 @@
 }
 
 .filterSelect:focus {
-  border-color: #be7a38;
-  box-shadow: 0 0 0 3px rgba(190, 122, 56, 0.12);
+  border-color: #0E9AB8;
+  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
 }
 
 .filterSelect:disabled {
@@ -321,7 +321,7 @@
 .viewLink {
   display: inline-block;
   text-decoration: none;
-  color: #be7a38;
+  color: #0E9AB8;
   background: #fffbeb;
   border: 1px solid #fde68a;
   border-radius: 5px;
@@ -427,7 +427,7 @@
 
 /* ── Owner link (email → filter events) ── */
 .ownerLink {
-  color: #be7a38;
+  color: #0E9AB8;
   text-decoration: none;
   font-size: 12px;
 }
