@@ -1,0 +1,61 @@
+/* Event Site editor — host-facing builder */
+
+.publishRow { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.publishTitle { font-size: 15px; font-weight: 800; color: var(--text); }
+.publishSub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.shareRow { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+.shareInput { flex: 1; min-width: 0; font-size: 12px; }
+
+/* Theme swatches */
+.themeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 6px; }
+.themeSwatch {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; transition: border-color var(--transition), box-shadow var(--transition);
+  font-family: inherit;
+}
+.themeSwatch:hover { border-color: var(--accent-border); }
+.themeActive { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.themeColors { display: inline-flex; border-radius: 6px; overflow: hidden; flex-shrink: 0; border: 1px solid var(--border); }
+.themeColors span { width: 16px; height: 26px; }
+.themeName { font-size: 13px; font-weight: 600; color: var(--text); }
+
+/* Cover */
+.coverRow { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.coverPreview {
+  width: 120px; height: 80px; border-radius: 10px; background: var(--bg) center/cover no-repeat;
+  border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 11px; flex-shrink: 0;
+}
+.coverActions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Section toggle header */
+.secToggleHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+
+/* Schedule rows */
+.scheduleRow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.timeInput { width: 78px; flex-shrink: 0; text-align: center; font-variant-numeric: tabular-nums; }
+.iconInput { width: 54px; flex-shrink: 0; text-align: center; }
+
+/* FAQ edit */
+.faqEdit { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; background: var(--bg); }
+.faqEditTop { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.faqEditTop input { flex: 1; }
+
+/* Toggle switch */
+.toggleList { display: flex; flex-direction: column; gap: 12px; }
+.toggleRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--text); }
+.toggle {
+  width: 44px; height: 26px; border-radius: 100px; background: var(--border2); border: none;
+  cursor: pointer; position: relative; flex-shrink: 0; transition: background var(--transition); padding: 0;
+}
+.toggleOn { background: var(--green); }
+.toggleKnob {
+  position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface); transition: transform var(--transition); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.toggleOn .toggleKnob { transform: translateX(-18px); }
+
+@media (max-width: 480px) {
+  .coverPreview { width: 100px; height: 66px; }
+}

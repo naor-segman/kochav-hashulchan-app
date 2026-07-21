@@ -1,0 +1,162 @@
+/* Public Event Site — themed via inline --s-* vars per event. Mobile-first. */
+
+.site {
+  --maxw: 620px;
+  background: var(--s-bg);
+  color: var(--s-ink);
+  min-height: 100vh;
+  direction: rtl;
+  font-family: "Heebo", system-ui, sans-serif;
+}
+
+/* ── State screens (render before per-event theme vars exist → app tokens) ── */
+.stateWrap {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  background: var(--bg); color: var(--text); text-align: center; direction: rtl; padding: 24px;
+}
+.stateStar { font-size: 40px; color: var(--accent); }
+.stateLink { color: var(--accent); font-weight: 700; text-decoration: none; margin-top: 8px; }
+
+/* ── Coming soon (unpublished, guest view) ── */
+.comingSoon {
+  max-width: var(--maxw); margin: 0 auto; padding: 60px 24px 80px; text-align: center;
+}
+.comingSoonStar { display: block; font-size: 34px; color: var(--s-accent); margin-bottom: 14px; }
+.comingSoon p { font-size: 16px; line-height: 1.8; color: var(--s-muted); margin: 0; }
+
+/* ── Sticky nav ── */
+.nav {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 18px; background: color-mix(in srgb, var(--s-surface) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--s-line);
+}
+.navBrand { font-weight: 800; font-size: 14px; color: var(--s-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navRight { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.navRsvp {
+  background: var(--s-accent); color: var(--s-on-accent); text-decoration: none;
+  font-size: 12.5px; font-weight: 800; padding: 7px 14px; border-radius: 100px;
+}
+.navBurger {
+  background: none; border: none; font-size: 18px; color: var(--s-ink); cursor: pointer; padding: 2px 6px;
+}
+.navMenu {
+  position: absolute; top: 100%; inset-inline-end: 12px; margin-top: 6px;
+  background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.12); overflow: hidden; display: flex; flex-direction: column; min-width: 140px;
+}
+.navMenu button {
+  background: none; border: none; text-align: start; padding: 11px 16px; font-size: 14px;
+  color: var(--s-ink); cursor: pointer; font-family: inherit;
+}
+.navMenu button:hover { background: var(--s-accent-soft); }
+
+/* ── Hero ── */
+.hero {
+  position: relative; overflow: hidden;
+  padding: 64px 22px 56px; text-align: center;
+  background: var(--s-surface);
+}
+.heroPhoto {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  opacity: 0.22; filter: saturate(1.05);
+}
+.heroInner { position: relative; max-width: var(--maxw); margin: 0 auto; }
+.heroTag {
+  display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .12em;
+  color: var(--s-accent); background: var(--s-accent-soft);
+  padding: 4px 14px; border-radius: 100px; margin-bottom: 18px;
+}
+.heroNames {
+  font-family: "Rubik", sans-serif; font-weight: 500; font-size: clamp(30px, 9vw, 48px);
+  line-height: 1.1; color: var(--s-ink); letter-spacing: -.01em;
+}
+.heroEn {
+  font-family: "Rubik", sans-serif; font-size: 15px; letter-spacing: .28em;
+  color: var(--s-muted); margin-top: 12px; text-transform: uppercase;
+}
+.heroDivider { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 22px auto; max-width: 220px; }
+.heroDivider span:first-child, .heroDivider span:last-child { height: 1px; flex: 1; background: var(--s-line); }
+.heroStar { color: var(--s-accent); font-size: 15px; }
+.heroDate { font-size: 16px; font-weight: 600; color: var(--s-ink); }
+.heroVenue { font-size: 14px; color: var(--s-muted); margin-top: 6px; }
+.heroCta {
+  display: inline-block; margin-top: 26px; background: var(--s-accent); color: var(--s-on-accent);
+  text-decoration: none; font-size: 15px; font-weight: 800; padding: 13px 30px; border-radius: 100px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--s-accent) 35%, transparent);
+  transition: transform .15s ease;
+}
+.heroCta:hover { transform: translateY(-2px); }
+
+.draftNote {
+  text-align: center; font-size: 13px; color: var(--s-muted);
+  background: var(--s-accent-soft); padding: 10px; margin: 0;
+}
+
+/* ── Sections ── */
+.section { max-width: var(--maxw); margin: 0 auto; padding: 40px 22px; }
+.secTitle {
+  font-family: "Rubik", sans-serif; font-size: 22px; font-weight: 700; text-align: center;
+  color: var(--s-ink); margin-bottom: 24px;
+}
+.story {
+  max-width: var(--maxw); margin: 0 auto; padding: 34px 26px; text-align: center;
+}
+.story p { font-size: 16px; line-height: 1.8; color: var(--s-muted); margin: 0; }
+
+/* ── Timeline ── */
+.timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.timeline::before {
+  content: ""; position: absolute; inset-inline-start: calc(50% - .5px); top: 8px; bottom: 8px;
+  width: 1px; background: var(--s-line);
+}
+.tlItem {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px;
+  padding: 12px 0;
+}
+.tlTime { text-align: start; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; color: var(--s-accent); }
+.tlDot { width: 12px; height: 12px; border-radius: 50%; background: var(--s-accent); border: 3px solid var(--s-bg); position: relative; z-index: 1; }
+.tlTitle { text-align: end; font-size: 15px; font-weight: 600; color: var(--s-ink); }
+
+/* ── Location / gift cards ── */
+.locCard, .giftCard {
+  background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 16px;
+  padding: 22px; text-align: center; box-shadow: 0 3px 14px rgba(0,0,0,.04);
+}
+.locAddr { font-size: 16px; font-weight: 700; color: var(--s-ink); }
+.locNote { font-size: 13.5px; color: var(--s-muted); margin: 10px 0 0; line-height: 1.6; }
+.giftCard p { font-size: 15px; color: var(--s-muted); margin: 0 0 16px; line-height: 1.7; }
+.locBtn {
+  display: inline-block; margin-top: 16px; background: var(--s-accent); color: var(--s-on-accent);
+  text-decoration: none; font-size: 14px; font-weight: 800; padding: 11px 24px; border-radius: 100px;
+}
+
+/* ── Wishes ── */
+.wishEmpty { text-align: center; color: var(--s-muted); font-size: 14.5px; padding: 20px; }
+.wishLink { color: var(--s-accent); font-weight: 700; }
+.wishGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wishCard { background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 14px; padding: 14px; }
+.wishMsg { font-size: 13.5px; line-height: 1.6; color: var(--s-ink); margin: 0 0 8px; }
+.wishName { font-size: 12px; font-weight: 700; color: var(--s-accent); }
+
+/* ── FAQ ── */
+.faqList { display: flex; flex-direction: column; gap: 10px; }
+.faqItem { background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 12px; overflow: hidden; }
+.faqQ {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: none; border: none; padding: 15px 18px; font-size: 14.5px; font-weight: 700;
+  color: var(--s-ink); cursor: pointer; text-align: start; font-family: inherit;
+}
+.faqChevron { color: var(--s-accent); font-size: 18px; flex-shrink: 0; }
+.faqA { margin: 0; padding: 0 18px 15px; font-size: 14px; line-height: 1.7; color: var(--s-muted); }
+
+/* ── Footer ── */
+.footer { text-align: center; padding: 40px 22px 50px; border-top: 1px solid var(--s-line); margin-top: 20px; }
+.footContact { display: inline-block; color: var(--s-accent); font-weight: 700; font-size: 14px; text-decoration: none; margin-bottom: 18px; }
+.footBrand { font-size: 12px; color: var(--s-muted); }
+
+@media (min-width: 640px) {
+  .wishGrid { grid-template-columns: 1fr 1fr 1fr; }
+}

@@ -7,13 +7,14 @@ import NavBadge from "../navigation/NavBadge.jsx";
 import styles from "./Shell.module.css";
 
 const NAV = [
-  { id: "setup",       label: "האירוע",  num: 1 },
-  { id: "tables",      label: "שולחנות", num: 2 },
-  { id: "guests",      label: "אורחים",  num: 3 },
-  { id: "rsvps",       label: "אישורים", num: 4 },
-  { id: "constraints", label: "אילוצים", num: 5 },
-  { id: "seating",     label: "הושבה",   num: 6 },
-  { id: "costs",       label: "עלויות",  num: 7 },
+  { id: "setup",       label: "האירוע",     num: 1 },
+  { id: "site",        label: "אתר האירוע", num: 2 },
+  { id: "tables",      label: "שולחנות",    num: 3 },
+  { id: "guests",      label: "אורחים",     num: 4 },
+  { id: "rsvps",       label: "אישורים",    num: 5 },
+  { id: "constraints", label: "אילוצים",    num: 6 },
+  { id: "seating",     label: "הושבה",      num: 7 },
+  { id: "costs",       label: "עלויות",     num: 8 },
 ];
 
 export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {
@@ -31,6 +32,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
   const stepDone = (id) => {
     if (!activeEvent) return false;
     if (id === "setup")   return !!activeEvent.name;
+    if (id === "site")    return !!activeEvent.eventSite?.enabled;
     if (id === "tables")  return activeEvent.tables.length > 0;
     if (id === "guests")  return activeEvent.guests.length > 0;
     if (id === "rsvps")   return activeEvent.guests.some(g => g.rsvp === "confirmed" || g.rsvp === "declined");

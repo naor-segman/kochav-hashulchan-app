@@ -59,6 +59,15 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     return { total: responses.length, confirmed: confirmed.length, declined: declined.length, coming };
   }, [responses]);
 
+  // Meal forecast — count confirmed seats across the guest list (manual +
+  // synced RSVPs), then apply the no-show factor to recommend meals to order.
+  const confirmedSeats = useMemo(
+    () => (ev.guests || []).filter(g => g.rsvp === "confirmed").reduce((s, g) => s + (g.count || 1), 0),
+    [ev.guests],
+  );
+  const noShowPct = Number.isFinite(ev.noShowPct) ? ev.noShowPct : 10;
+  const recommendedMeals = Math.round(confirmedSeats * (1 - noShowPct / 100));
+
   // A response is "applied" when the matched guest already reflects it.
   const isApplied = useCallback((r, guest) => {
     if (!guest) return false;
@@ -128,6 +137,41 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
           <div className={[styles.statTile, styles.statNo].join(" ")}>
             <span className={styles.statNum}>{stats.declined}</span>
             <span className={styles.statLabel}>לא מגיעים</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Meal forecast ── */}
+      {confirmedSeats > 0 && (
+        <div className={base.card}>
+          <SectionLabel>כמה מנות להזמין?</SectionLabel>
+          <p className={base.fieldHint}>
+            לא כל מי שאישר מגיע בפועל. הזינו את מקדם אי-ההגעה המשוער וקבלו המלצה
+            כמה מנות לסגור מול האולם — כדי לא לשלם על מנות מיותרות.
+          </p>
+          <div className={styles.forecastRow}>
+            <div className={styles.forecastField}>
+              <label className={styles.forecastLabel}>מקדם אי-הגעה</label>
+              <div className={styles.forecastInputWrap}>
+                <input
+                  className={base.input}
+                  type="number" min="0" max="40"
+                  value={noShowPct}
+                  onChange={e => {
+                    const v = Math.max(0, Math.min(40, parseInt(e.target.value) || 0));
+                    patchEvent({ noShowPct: v });
+                  }}
+                />
+                <span className={styles.forecastPct}>%</span>
+              </div>
+            </div>
+            <div className={styles.forecastResult}>
+              <span className={styles.forecastNum}>{recommendedMeals}</span>
+              <span className={styles.forecastResultLabel}>מנות מומלצות</span>
+            </div>
+            <div className={styles.forecastMeta}>
+              מתוך {confirmedSeats} שאישרו הגעה
+            </div>
           </div>
         </div>
       )}

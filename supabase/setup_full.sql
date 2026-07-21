@@ -299,7 +299,10 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
     'bride_name', e.payload->>'brideName', 'groom_name', e.payload->>'groomName',
     'celebrant_name', e.payload->>'celebrantName', 'organization_name', e.payload->>'organizationName',
     'contact_name', e.payload->>'contactName', 'owner_name', e.payload->>'ownerName',
-    'bit_phone', e.payload->>'giftBitPhone', 'paybox_link', e.payload->>'giftPayboxLink')
+    'bit_phone', e.payload->>'giftBitPhone', 'paybox_link', e.payload->>'giftPayboxLink',
+    'site', e.payload->'eventSite',
+    -- hostess_token intentionally excluded (unlocks full guest list + seating)
+    'rsvp_token', e.rsvp_token, 'gift_token', e.gift_token)
   FROM public.events e
   WHERE token_value IS NOT NULL AND char_length(token_value) >= 8
     AND CASE token_type
