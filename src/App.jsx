@@ -41,7 +41,8 @@ const HostessScreen  = lazy(() => import("./screens/HostessScreen.jsx"));
 const GiftScreen     = lazy(() => import("./screens/GiftScreen.jsx"));
 const GiftWallScreen = lazy(() => import("./screens/GiftWallScreen.jsx"));
 // App screens — lazy to keep initial bundle lean
-const CostScreen     = lazy(() => import("./screens/CostScreen.jsx"));
+const CostScreen          = lazy(() => import("./screens/CostScreen.jsx"));
+const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
 
 // ── Event layout + nested routes ─────────────────────────────────────────────
 // Rendered for every /events/:eventId/* path.
@@ -88,6 +89,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
         <Route path="guests"      element={<GuestManagerScreen  {...sp} />} />
         <Route path="constraints" element={<ConstraintsScreen   {...sp} />} />
         <Route path="seating"     element={<SeatingScreen       {...sp} />} />
+        <Route path="rsvps"       element={<Suspense fallback={null}><RSVPResponsesScreen {...sp} /></Suspense>} />
         <Route path="costs"       element={<Suspense fallback={null}><CostScreen activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
         <Route index              element={<Navigate to="setup" replace />} />
       </Routes>
