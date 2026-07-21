@@ -170,7 +170,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
               <span className={styles.forecastResultLabel}>מנות מומלצות</span>
             </div>
             <div className={styles.forecastMeta}>
-              מתוך {confirmedSeats} שאישרו הגעה
+              מתוך {confirmedSeats} שסומנו כ״מגיעים״ ברשימת האורחים
             </div>
           </div>
         </div>

@@ -65,15 +65,15 @@ const WEDDING_SCHEDULE = () => [
 ];
 
 export const EVENT_TYPE_TEMPLATES = {
-  "חתונה":        base("rose",  "OUR WEDDING DAY", { schedule: WEDDING_SCHEDULE(), heroHe: "מתחתנים!" }),
-  "אירוס":        base("rose",  "WE'RE ENGAGED",   { heroHe: "חוגגים אירוסין" }),
-  "חינה":         base("sand",  "HENNA NIGHT",     { heroHe: "חוגגים חינה" }),
-  "בר מצווה":     base("sky",   "BAR MITZVAH",     { heroHe: "חוגגים בר מצווה" }),
-  "בת מצווה":     base("rose",  "BAT MITZVAH",     { heroHe: "חוגגים בת מצווה" }),
-  "יום הולדת":    base("sky",   "BIRTHDAY",        { heroHe: "חוגגים יום הולדת" }),
-  "אירוע משפחתי": base("olive", "FAMILY EVENT",    { heroHe: "אירוע משפחתי" }),
-  "אירוע עסקי":   base("night", "OUR EVENT",       { heroHe: "אירוע עסקי" }),
-  "אחר":          base("sky",   "OUR EVENT",       { heroHe: "האירוע שלנו" }),
+  "חתונה":        base("rose",  "OUR WEDDING DAY", { schedule: WEDDING_SCHEDULE() }),
+  "אירוס":        base("rose",  "WE'RE ENGAGED"),
+  "חינה":         base("sand",  "HENNA NIGHT"),
+  "בר מצווה":     base("sky",   "BAR MITZVAH"),
+  "בת מצווה":     base("rose",  "BAT MITZVAH"),
+  "יום הולדת":    base("sky",   "BIRTHDAY"),
+  "אירוע משפחתי": base("olive", "FAMILY EVENT"),
+  "אירוע עסקי":   base("night", "OUR EVENT"),
+  "אחר":          base("sky",   "OUR EVENT"),
 };
 
 export function getEventTypeTemplate(type) {

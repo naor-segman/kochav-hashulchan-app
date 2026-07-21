@@ -104,6 +104,14 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
   );
 }
 
+// Host-only preview of the event site, rendered from local (owned) event data.
+function EventSitePreview({ events }) {
+  const { eventId } = useParams();
+  const ev = events.find(e => e.id === eventId);
+  if (!ev) return <Navigate to="/app" replace />;
+  return <Suspense fallback={null}><EventSiteScreen localEvent={ev} /></Suspense>;
+}
+
 // ── Root app ──────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -237,6 +245,11 @@ export default function App() {
       <Route
         path="/events/:eventId/checkin"
         element={<CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} />}
+      />
+      {/* Host-only draft preview of the event site — renders from local data */}
+      <Route
+        path="/events/:eventId/preview-site"
+        element={<EventSitePreview events={events} />}
       />
       <Route
         path="/events/:eventId/*"

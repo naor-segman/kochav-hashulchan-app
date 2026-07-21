@@ -1,9 +1,21 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme } from "../data/eventSiteTemplates.js";
 import styles from "./EventSiteScreen.module.css";
+
+// Map a local (host-owned) event into the public-site shape, so the host can
+// preview drafts securely from inside the authenticated app.
+function fromLocalEvent(le) {
+  return {
+    name: le.name, type: le.type, date: le.date, venue: le.venue,
+    brideName: le.brideName, groomName: le.groomName, celebrantName: le.celebrantName,
+    organizationName: le.organizationName, ownerName: le.ownerName,
+    site: le.eventSite,
+    rsvpToken: le.tokens?.rsvp ?? null, giftToken: le.tokens?.gift ?? null,
+  };
+}
 
 // DEV-only preview event so the site can be designed without a live token.
 const MOCK = {
@@ -45,10 +57,10 @@ function hostsLabel(ev) {
   return ev.celebrantName || ev.organizationName || ev.ownerName || ev.name || "";
 }
 
-export default function EventSiteScreen() {
+export default function EventSiteScreen({ localEvent }) {
   const { token } = useParams();
-  const [searchParams] = useSearchParams();
-  const isPreview = searchParams.get("preview") === "1";
+  // Host preview: rendered inside the app with the owner's local event data.
+  const isPreview = !!localEvent;
   const [ev, setEv] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | notfound
   const [wishes, setWishes] = useState([]);
@@ -59,6 +71,7 @@ export default function EventSiteScreen() {
   const faqRef = useRef(null);
 
   useEffect(() => {
+    if (localEvent) { setEv(fromLocalEvent(localEvent)); setState("ready"); return; }
     let cancelled = false;
     (async () => {
       const data = await fetchEventByToken("invite", token);
@@ -68,7 +81,7 @@ export default function EventSiteScreen() {
       else setState("notfound");
     })();
     return () => { cancelled = true; };
-  }, [token]);
+  }, [token, localEvent]);
 
   const site = ev?.site;
   useEffect(() => {
@@ -99,7 +112,8 @@ export default function EventSiteScreen() {
   }
 
   // Content is shown only once the host publishes. Before that, guests see a
-  // minimal "coming soon" teaser — but the host can preview via ?preview=1.
+  // minimal "coming soon" teaser. The host previews drafts securely from
+  // inside the app (localEvent), never via a public query param.
   const published = site && site.enabled;
   const visible = published || isPreview;
   const hosts = hostsLabel(ev);
@@ -140,21 +154,23 @@ export default function EventSiteScreen() {
         )}
       </nav>
 
-      {/* ── Hero ── */}
-      <header className={styles.hero}>
-        {site?.coverPhoto && (
-          <div className={styles.heroPhoto} style={{ backgroundImage: `url(${site.coverPhoto})` }} aria-hidden="true" />
-        )}
-        <div className={styles.heroInner}>
-          <span className={styles.heroTag}>{ev.type}</span>
-          <div className={styles.heroNames}>{hosts}</div>
-          {site?.heroEn && <div className={styles.heroEn}>{site.heroEn}</div>}
-          <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
-          {dateStr && <div className={styles.heroDate}>{dateStr}</div>}
-          {ev.venue && <div className={styles.heroVenue}>📍 {ev.venue}</div>}
-          {showRsvp && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
-        </div>
-      </header>
+      {/* ── Hero (only once published / in host preview) ── */}
+      {visible && (
+        <header className={styles.hero}>
+          {site?.coverPhoto && (
+            <div className={styles.heroPhoto} style={{ backgroundImage: `url(${site.coverPhoto})` }} aria-hidden="true" />
+          )}
+          <div className={styles.heroInner}>
+            <span className={styles.heroTag}>{ev.type}</span>
+            <div className={styles.heroNames}>{hosts}</div>
+            {site?.heroEn && <div className={styles.heroEn}>{site.heroEn}</div>}
+            <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
+            {dateStr && <div className={styles.heroDate}>{dateStr}</div>}
+            {ev.venue && <div className={styles.heroVenue}>📍 {ev.venue}</div>}
+            {showRsvp && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
+          </div>
+        </header>
+      )}
 
       {isPreview && !published && (
         <div className={styles.draftNote}>מצב תצוגה מקדימה — האתר עדיין לא פורסם. רק אתם רואים אותו.</div>
@@ -218,8 +234,8 @@ export default function EventSiteScreen() {
         </section>
       )}
 
-      {/* ── Blessings wall ── */}
-      {visible && sec.blessings && (
+      {/* ── Blessings wall (needs the gift page to collect blessings) ── */}
+      {visible && sec.blessings && giftUrl && (
         <section ref={blessingsRef} className={styles.section}>
           <h2 className={styles.secTitle}>קיר ברכות</h2>
           {wishes.length === 0 ? (
