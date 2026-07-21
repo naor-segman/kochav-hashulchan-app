@@ -585,6 +585,15 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const mealLabel = v => MEAL_OPTIONS.find(o => o.value === v)?.label || "";
   const mealEmoji = v => MEAL_OPTIONS.find(o => o.value === v)?.emoji || "";
 
+  // Open WhatsApp to a specific guest with a personal invite + event-site link.
+  const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
+  const waGuest = (guest) => {
+    const phone = (guest.phone || "").replace(/[^\d]/g, "").replace(/^0/, "972");
+    const msg = `היי ${guest.name}! 💛\nאתם מוזמנים ל${ev.name || "אירוע שלנו"}.\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}`;
+    const base = phone ? `https://wa.me/${phone}` : "https://wa.me/";
+    window.open(`${base}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+  };
+
   const visible = ev.guests.filter(g => {
     if (filter.side !== "all" && g.side !== filter.side) return false;
     if (filter.group !== "all" && g.group !== filter.group) return false;
@@ -935,6 +944,15 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   : <span className={base.tagUnseated}>לא שובץ</span>
                 }
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  {g.phone && (
+                    <button
+                      className={[base.btnSm, styles.waBtn].join(" ")}
+                      title="שלח הזמנה בוואטסאפ"
+                      onClick={() => waGuest(g)}
+                    >
+                      וואטסאפ
+                    </button>
+                  )}
                   <button className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => {
                       setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending", meal: g.meal || MEAL_DEFAULT, giftAmount: g.giftAmount || "" });
