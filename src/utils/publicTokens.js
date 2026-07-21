@@ -13,6 +13,8 @@ function mapPublicEvent(data) {
     organizationName: data.organization_name ?? "",
     contactName:      data.contact_name      ?? "",
     ownerName:        data.owner_name        ?? "",
+    giftBitPhone:     data.bit_phone         ?? "",
+    giftPayboxLink:   data.paybox_link       ?? "",
   };
 }
 
@@ -112,19 +114,18 @@ export async function submitGift(eventCloudId, gift) {
 }
 
 /**
- * Subscribe to real-time gift updates for the gift wall.
- * Returns an unsubscribe function.
+ * Fetch the public gift wall (blessings only — no amounts) by gift token.
+ * Realtime is not used here: RLS hides unpaid gift rows from anon SELECT, so
+ * postgres_changes would never deliver them. Callers poll this instead.
+ *
+ * @param {string} token — the gift UUID token from the URL
+ * @returns {object[]} [{ id, donor_name, message, created_at }], newest first
  */
-export function subscribeToGifts(eventCloudId, onGift) {
-  if (!isSupabaseConfigured || !supabase) return () => {};
-  const channel = supabase
-    .channel("gifts:" + eventCloudId)
-    .on("postgres_changes", {
-      event: "INSERT", schema: "public", table: "gifts",
-      filter: "event_id=eq." + eventCloudId,
-    }, payload => {
-      if (payload.new.paid === true) onGift(payload.new);
-    })
-    .subscribe();
-  return () => supabase.removeChannel(channel);
+export async function fetchGiftWall(token) {
+  if (!isSupabaseConfigured || !supabase || !token) return [];
+  const { data, error } = await supabase.rpc("gift_wall_by_token", {
+    token_value: token,
+  });
+  if (error || !Array.isArray(data)) return [];
+  return data;
 }

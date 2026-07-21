@@ -40,7 +40,9 @@ AS $$
     'celebrant_name',    e.payload->>'celebrantName',
     'organization_name', e.payload->>'organizationName',
     'contact_name',      e.payload->>'contactName',
-    'owner_name',        e.payload->>'ownerName'
+    'owner_name',        e.payload->>'ownerName',
+    'bit_phone',         e.payload->>'giftBitPhone',
+    'paybox_link',       e.payload->>'giftPayboxLink'
   )
   FROM public.events e
   WHERE token_value IS NOT NULL
@@ -96,3 +98,34 @@ $$;
 
 REVOKE ALL ON FUNCTION public.hostess_data_by_token(text) FROM public;
 GRANT EXECUTE ON FUNCTION public.hostess_data_by_token(text) TO anon, authenticated;
+
+-- ── 4. Gift wall by token (blessings only — no amounts, no paid status) ───────
+-- The public wall shows every blessing regardless of payment state; payments
+-- happen out-of-band via bit/PayBox until a licensed processor is integrated.
+
+CREATE OR REPLACE FUNCTION public.gift_wall_by_token(token_value text)
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE((
+    SELECT jsonb_agg(jsonb_build_object(
+      'id',         g.id,
+      'donor_name', g.donor_name,
+      'message',    g.message,
+      'created_at', g.created_at
+    ) ORDER BY g.created_at DESC)
+    FROM public.gifts g
+    WHERE g.event_id = e.id
+  ), '[]'::jsonb)
+  FROM public.events e
+  WHERE token_value IS NOT NULL
+    AND char_length(token_value) >= 8
+    AND e.gift_token = token_value
+  LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.gift_wall_by_token(text) FROM public;
+GRANT EXECUTE ON FUNCTION public.gift_wall_by_token(text) TO anon, authenticated;

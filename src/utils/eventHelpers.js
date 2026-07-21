@@ -75,6 +75,11 @@ export function normalizeEvent(ev) {
       : { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid() },
     // Event cost planning — stored per event, updated via CostScreen.
     costs: (ev.costs && typeof ev.costs === "object") ? ev.costs : {},
+    // Digital gift transfer details — shown to guests on the public gift page.
+    // bit has no permanent payment links for individuals, so we store the
+    // recipient's phone number; PayBox supports shareable group links.
+    giftBitPhone:   ev.giftBitPhone   ?? "",
+    giftPayboxLink: ev.giftPayboxLink ?? "",
   };
 }
 

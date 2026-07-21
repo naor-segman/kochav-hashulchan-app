@@ -355,18 +355,17 @@
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12);
 }
 
-/* ── Payment card — coming soon ───────────────────────────────────────────── */
+/* ── Payment info note ────────────────────────────────────────────────────── */
 
 .payCard {
   background: var(--bg);
   border: 1.5px dashed var(--border2);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 16px 20px;
   margin-bottom: 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  opacity: 0.72;
+  gap: 6px;
 }
 
 .payCardTitle {
@@ -375,28 +374,84 @@
   color: var(--text2);
 }
 
-.payInput {
-  background: var(--surface);
-  color: var(--muted);
-  cursor: not-allowed;
-}
-
-.payInput:hover {
-  border-color: var(--border);
-}
-
-.payRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
 .payComing {
   font-size: 12px;
   color: var(--muted);
-  text-align: center;
   margin: 0;
-  font-style: italic;
+}
+
+/* ── Transfer instructions (success screen) ───────────────────────────────── */
+
+.transferBox {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin: 18px 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: start;
+}
+
+.transferTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.transferRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.transferMethod {
+  font-size: 13px;
+  color: var(--text2);
+  font-weight: 600;
+}
+
+.transferValue {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+
+.transferCopy {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  transition: background var(--transition);
+}
+
+.transferCopy:hover {
+  background: var(--accent-dark);
+}
+
+.transferLink {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  transition: background var(--transition);
+}
+
+.transferLink:hover {
+  background: var(--accent-dark);
 }
 
 /* ── Submit button ────────────────────────────────────────────────────────── */

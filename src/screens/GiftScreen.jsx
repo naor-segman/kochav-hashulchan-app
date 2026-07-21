@@ -22,6 +22,7 @@ export default function GiftScreen() {
   const [name, setName]           = useState("");
   const [step, setStep]           = useState("form"); // "form" | "submitting" | "submitted"
   const [errors, setErrors]       = useState({});
+  const [copied, setCopied]       = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +102,7 @@ export default function GiftScreen() {
 
   // ── Success ─────────────────────────────────────────────────────────────────
   if (step === "submitted") {
+    const hasPayment = !!(ev.giftBitPhone || ev.giftPayboxLink);
     return (
       <div className={styles.root}>
         <header className={styles.header}>
@@ -133,6 +135,45 @@ export default function GiftScreen() {
                 </div>
               )}
             </div>
+
+            {/* Transfer instructions — bit / PayBox */}
+            {hasPayment && (
+              <div className={styles.transferBox}>
+                <div className={styles.transferTitle}>להשלמת המתנה — העבירו ₪{finalAmount.toLocaleString()}:</div>
+                {ev.giftBitPhone && (
+                  <div className={styles.transferRow}>
+                    <span className={styles.transferMethod}>ביט למספר</span>
+                    <span className={styles.transferValue} dir="ltr">{ev.giftBitPhone}</span>
+                    <button
+                      type="button"
+                      className={styles.transferCopy}
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(ev.giftBitPhone);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        } catch { /* manual copy */ }
+                      }}
+                    >
+                      {copied ? "הועתק ✓" : "העתק"}
+                    </button>
+                  </div>
+                )}
+                {ev.giftPayboxLink && (
+                  <a
+                    className={styles.transferLink}
+                    href={ev.giftPayboxLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    מעבר לתשלום ב-PayBox ←
+                  </a>
+                )}
+              </div>
+            )}
+            {!hasPayment && (
+              <p className={styles.successClosing}>את המתנה אפשר להעניק ביום האירוע</p>
+            )}
             <p className={styles.successClosing}>שיהיה בשעה טובה</p>
           </div>
         </div>
@@ -252,35 +293,19 @@ export default function GiftScreen() {
             {errors.name && <span className={styles.fieldErr}>{errors.name}</span>}
           </div>
 
-          {/* Payment card — coming soon */}
-          <div className={styles.payCard}>
-            <div className={styles.payCardTitle}>💳 תשלום מאובטח</div>
-            <input
-              className={`${styles.input} ${styles.payInput}`}
-              placeholder="מספר כרטיס אשראי"
-              disabled
-              aria-label="מספר כרטיס"
-              autoComplete="off"
-            />
-            <div className={styles.payRow}>
-              <input
-                className={`${styles.input} ${styles.payInput}`}
-                placeholder="MM / YY"
-                disabled
-                aria-label="תוקף"
-                autoComplete="off"
-              />
-              <input
-                className={`${styles.input} ${styles.payInput}`}
-                placeholder="CVV"
-                disabled
-                aria-label="CVV"
-                autoComplete="off"
-              />
+          {/* How the money is transferred */}
+          {(ev.giftBitPhone || ev.giftPayboxLink) && (
+            <div className={styles.payCard}>
+              <div className={styles.payCardTitle}>💛 איך מעבירים את המתנה?</div>
+              <p className={styles.payComing}>
+                אחרי שליחת הברכה יוצגו פרטי ההעברה
+                {ev.giftBitPhone && " בביט"}
+                {ev.giftBitPhone && ev.giftPayboxLink && " או"}
+                {ev.giftPayboxLink && " ב-PayBox"}
+                .
+              </p>
             </div>
-            {/* TODO: integrate Stripe Elements — payments not live yet */}
-            <p className={styles.payComing}>שירות זה יהיה זמין בקרוב</p>
-          </div>
+          )}
 
           {/* Submit */}
           {errors.submit && <p className={styles.fieldErr}>{errors.submit}</p>}
@@ -293,7 +318,7 @@ export default function GiftScreen() {
           </button>
 
           {/* Fine print */}
-          <p className={styles.finePrint}>3 תשלומים ללא ריבית · Stripe מאובטח</p>
+          <p className={styles.finePrint}>הברכה תופיע בקיר הברכות של האירוע</p>
         </div>
       </main>
     </div>
