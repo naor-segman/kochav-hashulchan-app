@@ -277,7 +277,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const handlePrint = (mode) => {
     setPrintMode(mode);
-    setTimeout(() => { window.print(); setPrintMode("full"); }, 60);
+    // 200ms gives React time to re-render the chosen print layout before the
+    // print dialog snapshots the page (60ms was too tight on slow devices).
+    setTimeout(() => { window.print(); setPrintMode("full"); }, 200);
   };
 
   const clearTable = (tableId) => {
