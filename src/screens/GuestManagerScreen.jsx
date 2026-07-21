@@ -587,8 +587,17 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
   // Open WhatsApp to a specific guest with a personal invite + event-site link.
   const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
+  // Normalize an Israeli phone to wa.me international form (972…) — handles
+  // "05x-xxxxxxx", "+972…", "972…" and "00972…".
+  const normalizePhone = (raw) => {
+    let d = (raw || "").replace(/[^\d]/g, "");
+    if (d.startsWith("00")) d = d.slice(2);
+    if (d.startsWith("972")) return d;
+    if (d.startsWith("0")) return "972" + d.slice(1);
+    return d;
+  };
   const waGuest = (guest) => {
-    const phone = (guest.phone || "").replace(/[^\d]/g, "").replace(/^0/, "972");
+    const phone = normalizePhone(guest.phone);
     const msg = `היי ${guest.name}! 💛\nאתם מוזמנים ל${ev.name || "אירוע שלנו"}.\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}`;
     const base = phone ? `https://wa.me/${phone}` : "https://wa.me/";
     window.open(`${base}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
