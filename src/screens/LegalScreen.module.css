@@ -1,0 +1,99 @@
+/* Shared layout for legal/policy pages: privacy, terms, accessibility */
+
+.root {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  direction: rtl;
+}
+
+.header {
+  background: var(--nav-bg);
+  padding: 14px 24px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.logoMark {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.logoName {
+  color: var(--nav-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.updated {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+
+.section {
+  margin-bottom: 26px;
+}
+
+.sectionTitle {
+  font-size: 17px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.text {
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--text2);
+  margin-bottom: 10px;
+}
+
+.text a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.list {
+  padding-inline-start: 20px;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.list li {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text2);
+}
+
+.backRow {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.backLink {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}

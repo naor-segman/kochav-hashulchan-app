@@ -75,6 +75,11 @@ export function normalizeEvent(ev) {
       : { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid() },
     // Event cost planning — stored per event, updated via CostScreen.
     costs: (ev.costs && typeof ev.costs === "object") ? ev.costs : {},
+    // Digital gift transfer details — shown to guests on the public gift page.
+    // bit has no permanent payment links for individuals, so we store the
+    // recipient's phone number; PayBox supports shareable group links.
+    giftBitPhone:   ev.giftBitPhone   ?? "",
+    giftPayboxLink: ev.giftPayboxLink ?? "",
   };
 }
 
@@ -157,6 +162,9 @@ export function duplicateEvent(ev) {
     lockedGuests: [],
     lockedTables: [],
     costs:       {},
+    // Each duplicated event gets its own fresh public-URL tokens so that
+    // the copy's RSVP/gift/invite/hostess links don't collide with the original.
+    tokens:      { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid() },
     cloudId:     null,
     createdAt:   now,
     updatedAt:   now,

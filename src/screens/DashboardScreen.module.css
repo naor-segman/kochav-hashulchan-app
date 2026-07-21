@@ -19,8 +19,8 @@
   justify-content: space-between;
   padding: 18px 24px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--nav-bg) 0%, #2C1E0E 100%);
-  border: 1px solid rgba(196,138,26,.25);
+  background: linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg2) 100%);
+  border: 1px solid rgba(var(--accent-rgb),.25);
   margin-bottom: 22px;
   box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,.06);
   flex-wrap: wrap;
@@ -36,7 +36,7 @@
 .logoMark {
   font-size: 20px;
   color: var(--accent);
-  filter: drop-shadow(0 0 8px rgba(196,138,26,.50));
+  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb),.50));
 }
 
 .logoName {
@@ -260,11 +260,11 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 20px 20px 16px;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
   position: relative;
   overflow: hidden;
@@ -275,7 +275,7 @@
   position: absolute;
   top: 0;
   inset-inline-start: 0;
-  width: 3px;
+  width: 4px;
   height: 100%;
   background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
   opacity: 0;
@@ -595,34 +595,55 @@
 .statsBar {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 18px;
 }
 
 .statTile {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 10px;
+  border-radius: var(--radius-lg);
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   box-shadow: var(--shadow);
   text-align: center;
-  transition: var(--transition);
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.statTile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-border) 100%);
+  opacity: 0;
+  transition: opacity var(--transition);
 }
 
 .statTile:hover {
   box-shadow: var(--shadow-md);
-  border-color: var(--border2);
+  border-color: var(--accent-border);
+  transform: translateY(-1px);
+}
+
+.statTile:hover::before {
+  opacity: 1;
 }
 
 .statValue {
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 26px;
+  font-weight: 900;
   color: var(--text);
   line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .statValueGreen {
@@ -635,10 +656,10 @@
 
 .statLabel {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 /* ── Summary banners ── */

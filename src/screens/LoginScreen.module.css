@@ -3,10 +3,20 @@
   to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loadingMark {
+  font-size: 32px;
+  color: var(--accent);
+  animation: spin 1.4s linear infinite;
+}
+
 .page {
   min-height: 100vh;
   background: var(--nav-bg);
-  background-image: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(196,138,26,.18) 0%, transparent 70%);
+  background-image: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(var(--accent-rgb),.18) 0%, transparent 70%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -37,7 +47,7 @@
 .brandMark {
   font-size: 26px;
   color: var(--accent);
-  filter: drop-shadow(0 0 10px rgba(196,138,26,.50));
+  filter: drop-shadow(0 0 10px rgba(var(--accent-rgb),.50));
 }
 .brandName {
   font-size: 20px;
@@ -106,6 +116,38 @@
   cursor: not-allowed;
 }
 
+/* ── Password field with show/hide toggle ── */
+.passwordWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordWrap .input {
+  width: 100%;
+  padding-inline-end: 44px;
+}
+
+.eyeBtn {
+  position: absolute;
+  inset-inline-end: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eyeBtn:hover { color: var(--accent); }
+
 .errorMsg {
   font-size: 13px;
   color: var(--red);
@@ -159,14 +201,44 @@
 .switchLink:hover { text-decoration: underline; }
 
 .backLink {
-  font-size: 12px;
-  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
   text-decoration: none;
   text-align: center;
-  transition: color 0.12s;
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 
-.backLink:hover { color: var(--text2); }
+.backLink:hover {
+  border-color: var(--border2);
+  color: var(--text);
+  background: var(--surface);
+}
+
+/* ── Guest mode section ── */
+.guestBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.guestNote {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
 
 /* ── Forgot password ── */
 .forgotLink {
@@ -213,21 +285,56 @@
   line-height: 1.5;
 }
 
-/* ── Guest mode section ── */
-.guestBlock {
+/* ── Signup success / confirm-email state ── */
+.confirmBody {
+  text-align: center;
+  color: var(--text2);
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.confirmSuccess {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+  text-align: center;
+  margin: 0;
+}
+
+.resendWrap {
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
-.guestNote {
-  font-size: 11px;
+.resendNote {
+  font-size: 12px;
   color: var(--muted);
-  text-align: center;
   margin: 0;
-  line-height: 1.4;
 }
+
+.resendError {
+  font-size: 12px;
+  color: var(--red);
+  margin: 0;
+}
+
+.resendBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.resendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 480px) {
   .card { padding: 30px 22px 26px; }

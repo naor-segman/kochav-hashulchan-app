@@ -44,6 +44,15 @@
   margin-top: 12px;
 }
 
+.constraintFormField {
+  flex: 1;
+  min-width: 180px;
+}
+
+.bannerAction {
+  margin-inline-end: 8px;
+}
+
 .constraintVerb {
   padding-bottom: 10px;
   color: var(--muted);
@@ -86,6 +95,18 @@
   color: var(--text2);
   font-size: 13px;
   flex-shrink: 0;
+}
+
+.cstVerbApart {
+  color: var(--red);
+}
+
+.cardTogether {
+  border-color: var(--green-border);
+}
+
+.cardApart {
+  border-color: var(--red-border);
 }
 
 /* Preview inner elements */

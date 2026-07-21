@@ -41,7 +41,12 @@ const HostessScreen  = lazy(() => import("./screens/HostessScreen.jsx"));
 const GiftScreen     = lazy(() => import("./screens/GiftScreen.jsx"));
 const GiftWallScreen = lazy(() => import("./screens/GiftWallScreen.jsx"));
 // App screens — lazy to keep initial bundle lean
-const CostScreen     = lazy(() => import("./screens/CostScreen.jsx"));
+const CostScreen          = lazy(() => import("./screens/CostScreen.jsx"));
+const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
+// Legal / policy pages — lazy, rarely visited
+const PrivacyScreen       = lazy(() => import("./screens/PrivacyScreen.jsx"));
+const TermsScreen         = lazy(() => import("./screens/TermsScreen.jsx"));
+const AccessibilityScreen = lazy(() => import("./screens/AccessibilityScreen.jsx"));
 
 // ── Event layout + nested routes ─────────────────────────────────────────────
 // Rendered for every /events/:eventId/* path.
@@ -88,6 +93,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
         <Route path="guests"      element={<GuestManagerScreen  {...sp} />} />
         <Route path="constraints" element={<ConstraintsScreen   {...sp} />} />
         <Route path="seating"     element={<SeatingScreen       {...sp} />} />
+        <Route path="rsvps"       element={<Suspense fallback={null}><RSVPResponsesScreen {...sp} /></Suspense>} />
         <Route path="costs"       element={<Suspense fallback={null}><CostScreen activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
         <Route index              element={<Navigate to="setup" replace />} />
       </Routes>
@@ -247,6 +253,11 @@ export default function App() {
       <Route path="/signup"        element={<SignupScreen />} />
       <Route path="/account"       element={<AccountScreen eventCount={events.length} />} />
       <Route path="/auth/callback" element={<AuthCallbackScreen />} />
+
+      {/* ── Legal / policy pages ── */}
+      <Route path="/privacy"       element={<Suspense fallback={null}><PrivacyScreen /></Suspense>} />
+      <Route path="/terms"         element={<Suspense fallback={null}><TermsScreen /></Suspense>} />
+      <Route path="/accessibility" element={<Suspense fallback={null}><AccessibilityScreen /></Suspense>} />
 
       {/* ── Admin area — lazy-loaded, completely isolated from customer app ── */}
       <Route

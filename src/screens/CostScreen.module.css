@@ -183,7 +183,7 @@
   font-size: 14px;
   color: var(--text);
   direction: ltr;
-  text-align: right;
+  text-align: end;
   font-family: inherit;
   box-sizing: border-box;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
@@ -276,7 +276,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  text-align: right;
+  text-align: end;
   direction: rtl;
   font-family: inherit;
   transition: background var(--transition-fast);

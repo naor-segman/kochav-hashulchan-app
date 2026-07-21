@@ -27,7 +27,10 @@ function mergeCloudWithLocal(localEvents, cloudEvents) {
     if (localMatch?.floorPlan?.image && !result.floorPlan?.image) {
       result = { ...result, floorPlan: { ...result.floorPlan, image: localMatch.floorPlan.image } };
     }
-    if (localMatch?.tokens && !result.tokens) {
+    // normalizeEvent always produces a tokens object, so check the raw cloud
+    // record (ce) instead of the normalized result — if the DB row had no
+    // token columns, preserve the locally-generated tokens unchanged.
+    if (localMatch?.tokens && !ce.tokens) {
       result = { ...result, tokens: localMatch.tokens };
     }
     return result;

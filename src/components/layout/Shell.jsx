@@ -10,9 +10,10 @@ const NAV = [
   { id: "setup",       label: "האירוע",  num: 1 },
   { id: "tables",      label: "שולחנות", num: 2 },
   { id: "guests",      label: "אורחים",  num: 3 },
-  { id: "constraints", label: "אילוצים", num: 4 },
-  { id: "seating",     label: "הושבה",   num: 5 },
-  { id: "costs",       label: "עלויות",  num: 6 },
+  { id: "rsvps",       label: "אישורים", num: 4 },
+  { id: "constraints", label: "אילוצים", num: 5 },
+  { id: "seating",     label: "הושבה",   num: 6 },
+  { id: "costs",       label: "עלויות",  num: 7 },
 ];
 
 export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {
@@ -32,6 +33,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
     if (id === "setup")   return !!activeEvent.name;
     if (id === "tables")  return activeEvent.tables.length > 0;
     if (id === "guests")  return activeEvent.guests.length > 0;
+    if (id === "rsvps")   return activeEvent.guests.some(g => g.rsvp === "confirmed" || g.rsvp === "declined");
     if (id === "seating") return Object.keys(activeEvent.seating).length > 0;
     return false;
   };

@@ -1,9 +1,29 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
-import { mapCloudEventToLocalEvent } from "./cloudSync.js";
+
+function mapPublicEvent(data) {
+  return {
+    cloudId:          data.id,
+    name:             data.name              ?? "",
+    type:             data.type              ?? "חתונה",
+    date:             data.date              ?? "",
+    venue:            data.venue             ?? "",
+    brideName:        data.bride_name        ?? "",
+    groomName:        data.groom_name        ?? "",
+    celebrantName:    data.celebrant_name    ?? "",
+    organizationName: data.organization_name ?? "",
+    contactName:      data.contact_name      ?? "",
+    ownerName:        data.owner_name        ?? "",
+    giftBitPhone:     data.bit_phone         ?? "",
+    giftPayboxLink:   data.paybox_link       ?? "",
+  };
+}
 
 /**
  * Fetch the public event data for a given token type and token value.
  * Used by public pages (RSVP, invite, gift, hostess) that have no user auth.
+ * Calls a SECURITY DEFINER function that requires a valid token and returns
+ * only minimal public fields — anonymous callers cannot read the events table
+ * directly, so cross-event enumeration is impossible.
  *
  * @param {"rsvp"|"invite"|"gift"|"hostess"} tokenType
  * @param {string} token  — the UUID token from the URL
@@ -11,14 +31,54 @@ import { mapCloudEventToLocalEvent } from "./cloudSync.js";
  */
 export async function fetchEventByToken(tokenType, token) {
   if (!isSupabaseConfigured || !supabase || !token) return null;
-  const column = tokenType + "_token";
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq(column, token)
-    .single();
+  const { data, error } = await supabase.rpc("public_event_by_token", {
+    token_type:  tokenType,
+    token_value: token,
+  });
   if (error || !data) return null;
-  return mapCloudEventToLocalEvent(data);
+  return mapPublicEvent(data);
+}
+
+/**
+ * Fetch the hostess dataset (guest list + tables + seating map) by hostess
+ * token. Guest phone numbers are never included — the SQL function returns
+ * only id / name / count per guest.
+ *
+ * @param {string} token — the hostess UUID token from the URL
+ * @returns {{ id, name, guests: [], tables: [], seating: {} }|null}
+ */
+export async function fetchHostessData(token) {
+  if (!isSupabaseConfigured || !supabase || !token) return null;
+  const { data, error } = await supabase.rpc("hostess_data_by_token", {
+    token_value: token,
+  });
+  if (error || !data) return null;
+  return {
+    cloudId: data.id,
+    name:    data.name    ?? "",
+    guests:  Array.isArray(data.guests) ? data.guests : [],
+    tables:  Array.isArray(data.tables) ? data.tables : [],
+    seating: (data.seating && typeof data.seating === "object") ? data.seating : {},
+  };
+}
+
+/**
+ * Fetch all RSVP responses for an event the current user owns.
+ * Relies on the "rsvp_owner_select" RLS policy — anonymous or non-owner
+ * callers get an empty list.
+ *
+ * @param {string} eventCloudId — Supabase events.id
+ * @returns {object[]} responses, newest first
+ */
+export async function fetchRSVPResponses(eventCloudId) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
+  const { data, error } = await supabase
+    .from("rsvp_responses")
+    .select("id, guest_name, phone, attending, guests_count, created_at")
+    .eq("event_id", eventCloudId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
 }
 
 /**
@@ -26,12 +86,13 @@ export async function fetchEventByToken(tokenType, token) {
  */
 export async function submitRSVP(eventCloudId, response) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const rawCount = response.attending ? (response.guestsCount ?? 1) : 0;
   const { error } = await supabase.from("rsvp_responses").insert({
     event_id:     eventCloudId,
     guest_name:   response.name,
     phone:        response.phone   || null,
     attending:    response.attending,
-    guests_count: response.guestsCount || 1,
+    guests_count: Math.max(0, Math.min(50, rawCount)),
   });
   if (error) throw error;
 }
@@ -53,17 +114,18 @@ export async function submitGift(eventCloudId, gift) {
 }
 
 /**
- * Subscribe to real-time gift updates for the gift wall.
- * Returns an unsubscribe function.
+ * Fetch the public gift wall (blessings only — no amounts) by gift token.
+ * Realtime is not used here: RLS hides unpaid gift rows from anon SELECT, so
+ * postgres_changes would never deliver them. Callers poll this instead.
+ *
+ * @param {string} token — the gift UUID token from the URL
+ * @returns {object[]} [{ id, donor_name, message, created_at }], newest first
  */
-export function subscribeToGifts(eventCloudId, onGift) {
-  if (!isSupabaseConfigured || !supabase) return () => {};
-  const channel = supabase
-    .channel("gifts:" + eventCloudId)
-    .on("postgres_changes", {
-      event: "INSERT", schema: "public", table: "gifts",
-      filter: "event_id=eq." + eventCloudId,
-    }, payload => onGift(payload.new))
-    .subscribe();
-  return () => supabase.removeChannel(channel);
+export async function fetchGiftWall(token) {
+  if (!isSupabaseConfigured || !supabase || !token) return [];
+  const { data, error } = await supabase.rpc("gift_wall_by_token", {
+    token_value: token,
+  });
+  if (error || !Array.isArray(data)) return [];
+  return data;
 }

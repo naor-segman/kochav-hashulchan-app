@@ -207,7 +207,7 @@
 
 .chipOver {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg), 0 4px 20px rgba(196,138,26,.25) !important;
+  box-shadow: 0 0 0 3px var(--accent-bg), 0 4px 20px rgba(var(--accent-rgb),.25) !important;
 }
 
 .chipHandle {

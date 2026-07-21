@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import { fetchEventByToken, submitRSVP } from "../utils/publicTokens.js";
 import styles from "./RSVPScreen.module.css";
 
-// TODO: remove this fallback when the Supabase rsvp_token migration is applied.
+// DEV-only preview fallback — used only when import.meta.env.DEV and Supabase
+// returns no event, so the page can be designed without a live token.
 const MOCK_EVENT = {
   id: null,
   cloudId: null,

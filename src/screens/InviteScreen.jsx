@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import QRCode from "qrcode";
 import { fetchEventByToken } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./InviteScreen.module.css";
@@ -39,6 +40,16 @@ export default function InviteScreen() {
   const [loading,  setLoading]  = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [copied,   setCopied]   = useState(false);
+  const [qrUrl,    setQrUrl]    = useState("");
+
+  // Generate a QR that opens the RSVP page — the action a guest scanning a
+  // printed invite actually needs.
+  useEffect(() => {
+    const rsvpUrl = window.location.origin + "/rsvp/" + token;
+    QRCode.toDataURL(rsvpUrl, { width: 220, margin: 1 })
+      .then(setQrUrl)
+      .catch(() => setQrUrl(""));
+  }, [token]);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,13 +203,21 @@ export default function InviteScreen() {
             </button>
           </div>
 
-          {/* QR code placeholder */}
-          <div className={styles.qrSection}>
-            <div className={styles.qrBox} aria-label="QR קוד להזמנה">
-              <span className={styles.qrLabel}>QR</span>
+          {/* QR code — opens the RSVP page */}
+          {qrUrl && (
+            <div className={styles.qrSection}>
+              <div className={styles.qrBox}>
+                <img
+                  className={styles.qrImg}
+                  src={qrUrl}
+                  alt="QR קוד לאישור הגעה"
+                  width="110"
+                  height="110"
+                />
+              </div>
+              <p className={styles.qrCaption}>סרקו לאישור הגעה</p>
             </div>
-            <p className={styles.qrCaption}>QR קוד</p>
-          </div>
+          )}
         </article>
       </main>
     </div>

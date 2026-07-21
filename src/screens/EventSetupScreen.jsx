@@ -29,6 +29,8 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     organizationName: ev.organizationName || "",
     contactName:      ev.contactName      || "",
     ownerName:        ev.ownerName        || "",
+    giftBitPhone:     ev.giftBitPhone     || "",
+    giftPayboxLink:   ev.giftPayboxLink   || "",
   });
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -111,8 +113,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         <Banner variant="warn">
           יש שינויים שלא נשמרו —
           <button
-            className={[base.btnSm].join(" ")}
-            style={{ marginInlineEnd: 10, marginInlineStart: 4 }}
+            className={base.btnSm}
             onClick={save}
           >שמור עכשיו</button>
         </Banner>
@@ -159,7 +160,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {personal.kind === "wedding" && (
           <>
             <Divider label={personal.divider} />
-            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
               ישמשו לתיוג אורחים ("צד כלה" / "צד חתן") לאורך כל המערכת.
             </p>
             <div className={base.grid2}>
@@ -186,7 +187,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {(personal.kind === "bar" || personal.kind === "bat") && (
           <>
             <Divider label={personal.divider} />
-            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
               ישמש לזיהוי האירוע ולתיוג האורחים לאורך כל המערכת.
             </p>
             <div className={base.grid2}>
@@ -205,7 +206,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {personal.kind === "business" && (
           <>
             <Divider label={personal.divider} />
-            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
               ישמשו לזיהוי האירוע ולתיוג בכל המערכת.
             </p>
             <div className={base.grid2}>
@@ -232,7 +233,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {personal.kind === "owner" && (
           <>
             <Divider label={personal.divider} />
-            <p className={base.fieldHint} style={{ marginBottom: 12 }}>
+            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
               ישמש לזיהוי האירוע ולתיוג בכל המערכת.
             </p>
             <div className={base.grid2}>
@@ -264,7 +265,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
       {/* ── Sharing links card ── */}
       <div className={base.card}>
         <SectionLabel>שיתוף האירוע</SectionLabel>
-        <p className={base.fieldHint} style={{ marginBottom: 14 }}>
+        <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
           לינקים ייחודיים לשיתוף עם האורחים
         </p>
         {SHARE_LINKS.map(sl => {
@@ -289,6 +290,31 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
             </div>
           );
         })}
+
+        <Divider label="קבלת מתנות — ביט / PayBox" />
+        <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+          הפרטים יוצגו לאורחים בדף המתנה אחרי שליחת הברכה. אפשר למלא אחד מהם או את שניהם.
+        </p>
+        <div className={base.grid2}>
+          <Field label="מספר טלפון לביט" hint="האורחים יעבירו אליו את המתנה בביט">
+            <input
+              className={base.input}
+              value={form.giftBitPhone}
+              placeholder="050-1234567"
+              inputMode="tel"
+              onChange={e => set("giftBitPhone", e.target.value)}
+            />
+          </Field>
+          <Field label="קישור PayBox" hint="קישור לקבוצת PayBox של האירוע (אופציונלי)">
+            <input
+              className={base.input}
+              value={form.giftPayboxLink}
+              placeholder="https://payboxapp.page.link/..."
+              dir="ltr"
+              onChange={e => set("giftPayboxLink", e.target.value)}
+            />
+          </Field>
+        </div>
       </div>
 
       <NextStep

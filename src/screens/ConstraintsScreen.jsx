@@ -225,8 +225,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         <Banner variant="warn">
           יש להוסיף לפחות שני אורחים לפני הגדרת אילוצים.
           <button
-            className={base.btnSm}
-            style={{ marginInlineEnd: 8 }}
+            className={[base.btnSm, styles.bannerAction].join(" ")}
             onClick={() => go("guests")}
           >עבור לאורחים</button>
         </Banner>
@@ -236,8 +235,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         <Banner variant="warn">
           {stale.length === 1 ? "אילוץ אחד מפנה" : (stale.length + " אילוצים מפנים")} לאורחים שנמחקו.
           <button
-            className={[base.btnSm, base.btnDanger].join(" ")}
-            style={{ marginInlineEnd: 8 }}
+            className={[base.btnSm, base.btnDanger, styles.bannerAction].join(" ")}
             onClick={() => patchEvent(e => Object.assign({}, e, {
               constraints: e.constraints.filter(c => gMap[c.guestA] && gMap[c.guestB])
             }))}
@@ -274,7 +272,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         </p>
 
         <div className={styles.constraintFormRow}>
-          <div style={{ flex: 1, minWidth: 180 }}>
+          <div className={styles.constraintFormField}>
             <Field label="אורח א׳">
               <GuestAutocomplete
                 guests={sorted}
@@ -289,7 +287,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
           <div className={styles.constraintVerb}>
             {formType === "together" ? "יחד עם" : "בנפרד מ-"}
           </div>
-          <div style={{ flex: 1, minWidth: 180 }}>
+          <div className={styles.constraintFormField}>
             <Field label="אורח ב׳">
               <GuestAutocomplete
                 guests={sorted}
@@ -303,7 +301,6 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
           </div>
           <button
             className={base.btnPrimary}
-            style={{ alignSelf: "flex-end", flexShrink: 0 }}
             onClick={addConstraint}
           >
             הוסף
@@ -342,7 +339,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       </div>
 
       {together.length > 0 && (
-        <div className={base.card} style={{ borderColor: "var(--green-border)" }}>
+        <div className={[base.card, styles.cardTogether].join(" ")}>
           <SectionLabel>🤝 חייבים לשבת יחד — {together.length}</SectionLabel>
           <div className={styles.cList}>
             {together.map(c => {
@@ -370,7 +367,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       )}
 
       {apart.length > 0 && (
-        <div className={base.card} style={{ borderColor: "var(--red-border)" }}>
+        <div className={[base.card, styles.cardApart].join(" ")}>
           <SectionLabel>⛔ לא יכולים לשבת יחד — {apart.length}</SectionLabel>
           <div className={styles.cList}>
             {apart.map(c => {
@@ -380,7 +377,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
                   <div className={styles.cRowMain}>
                     <SideDot side={ga.side} />
                     <span className={styles.cstName}>{ga.name}</span>
-                    <span className={styles.cstVerb} style={{ color: "var(--red)" }}>בנפרד מ-</span>
+                    <span className={[styles.cstVerb, styles.cstVerbApart].join(" ")}>בנפרד מ-</span>
                     <SideDot side={gb.side} />
                     <span className={styles.cstName}>{gb.name}</span>
                   </div>

@@ -30,7 +30,7 @@
 /* ─── Run card ──────────────────────────────────────────────────────────── */
 .runCard {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
@@ -68,29 +68,58 @@
 
 .runCardActions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.runActionsMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
+.runActionsSecondary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.runActionsGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-inline-end: 6px;
+  border-inline-end: 1px solid var(--border);
+}
+
+.runActionsGroup:last-of-type {
+  padding-inline-end: 0;
+  border-inline-end: none;
+}
+
 .runBtn {
-  background: var(--accent);
-  color: #fff;
+  background: var(--cta);
+  color: var(--on-accent);
   border: none;
   cursor: pointer;
   padding: 12px 24px;
   border-radius: var(--radius);
   font-size: 15px;
   font-weight: 800;
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-cta);
   white-space: nowrap;
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .runBtn:hover:not(:disabled) {
-  background: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
   transform: translateY(-1px);
 }
 
@@ -307,6 +336,13 @@
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
+}
+
+/* Full-table star — the signature ✦ that lights up when a table is complete */
+.tCardStar {
+  color: var(--cta);
+  font-size: 13px;
+  line-height: 1;
 }
 
 /* Badges — slightly larger for scanability */
@@ -772,6 +808,8 @@
 
 @media (max-width: 600px) {
   .printBtn { display: none; }
+  .runActionsSecondary { padding-top: 0; border-top: none; }
+  .runActionsGroup { padding-inline-end: 4px; }
 }
 
 .xlsBtn {
