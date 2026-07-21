@@ -338,6 +338,13 @@
   flex-wrap: wrap;
 }
 
+/* Full-table star — the signature ✦ that lights up when a table is complete */
+.tCardStar {
+  color: var(--cta);
+  font-size: 13px;
+  line-height: 1;
+}
+
 /* Badges — slightly larger for scanability */
 .tCardBadgeLock {
   font-size: 12px;

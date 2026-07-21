@@ -802,6 +802,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                             <div>
                               <div className={styles.tCardName}>
                                 {t.name}
+                                {!isCapOver && usedSeats >= t.capacity && t.capacity > 0 && (
+                                  <span className={styles.tCardStar} title="שולחן מלא">✦</span>
+                                )}
                                 {t.type !== "regular" && <TypeTag type={t.type} />}
                                 {isLocked              && <span className={styles.tCardBadgeLock}>🔒</span>}
                                 {isCapOver             && <span className={styles.tCardBadgeRed}>חריגה!</span>}
