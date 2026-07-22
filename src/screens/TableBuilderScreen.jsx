@@ -15,8 +15,8 @@ import base from "../styles/screenBase.module.css";
 import styles from "./TableBuilderScreen.module.css";
 
 const TABS = [
-  { id: "list",      label: "רשימת שולחנות", icon: "⬡" },
-  { id: "floorplan", label: "מפת אולם (רשות)", icon: "🏛️" },
+  { id: "list",      label: "רשימת שולחנות", icon: "hexagon" },
+  { id: "floorplan", label: "מפת אולם (רשות)", icon: "building" },
 ];
 
 export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, showToast }) {
@@ -130,7 +130,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
             className={[styles.tabBtn, tab === t.id ? styles.tabActive : ""].filter(Boolean).join(" ")}
             onClick={() => setTab(t.id)}
           >
-            <span className={styles.tabIcon}>{t.icon}</span>
+            <span className={styles.tabIcon}><Icon name={t.icon} size={16} /></span>
             {t.label}
           </button>
         ))}
@@ -168,7 +168,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
 
             {batchTotal > 0 && (
               <div className={base.batchPreview}>
-                <span style={{ color: "var(--accent)", flexShrink: 0 }}>⬡</span>
+                <span style={{ color: "var(--accent)", flexShrink: 0, display: "inline-flex" }}><Icon name="hexagon" size={15} /></span>
                 <span>
                   {batchCnt === 1
                     ? ("יתווסף שולחן אחד: " + previewNames + " (" + batchCap + " מקומות)")
