@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
+import Icon from "../../components/ui/Icon.jsx";
 import {
   ACTION_META,
   ACTION_KEYS,
   ENTITY_TYPE_LABELS,
   getActionLabel,
-  getActionIcon,
   getEntityLabel,
 } from "../lib/activityConfig.js";
 import styles from "./AdminActivityScreen.module.css";
@@ -137,7 +137,7 @@ export default function AdminActivityScreen() {
         {/* ── Table not yet created ── */}
         {!loading && notConfigured && (
           <div className={styles.setupBox}>
-            <div className={styles.setupIcon}>📋</div>
+            <div className={styles.setupIcon}><Icon name="bell" size={30} /></div>
             <h2 className={styles.setupTitle}>יומן הפעילות לא מוגדר עדיין</h2>
             <p className={styles.setupText}>
               טבלת <code className={styles.inlineCode}>activity_logs</code> לא נמצאה ב-Supabase.
@@ -151,7 +151,7 @@ export default function AdminActivityScreen() {
                 const meta = ACTION_META[key];
                 return (
                   <div key={key} className={styles.actionTypePill}>
-                    <span className={styles.actionTypeIcon}>{meta.icon}</span>
+                    <span className={styles.actionTypeIcon} style={{ color: meta.color }}><Icon name={meta.icon} size={16} /></span>
                     <span className={styles.actionTypeLabel}>{meta.label}</span>
                   </div>
                 );
@@ -184,7 +184,7 @@ export default function AdminActivityScreen() {
                 >
                   <option value="all">כל הפעולות</option>
                   {ACTION_KEYS.map(k => (
-                    <option key={k} value={k}>{ACTION_META[k].icon} {ACTION_META[k].label}</option>
+                    <option key={k} value={k}>{ACTION_META[k].label}</option>
                   ))}
                 </select>
               </div>
@@ -194,7 +194,7 @@ export default function AdminActivityScreen() {
             {/* Empty — no logs yet */}
             {(logs || []).length === 0 && (
               <div className={styles.stateBox}>
-                <div className={styles.emptyIcon}>📋</div>
+                <div className={styles.emptyIcon}><Icon name="bell" size={28} /></div>
                 <p className={styles.emptyTitle}>אין פעילות עדיין</p>
                 <p className={styles.emptyHint}>
                   פעולות מערכת יירשמו כאן ברגע שיוגדר מנגנון הרישום.
@@ -233,9 +233,9 @@ export default function AdminActivityScreen() {
                           <td>
                             <span
                               className={styles.actionBadge}
-                              style={{ color: meta?.color ?? "#374151" }}
+                              style={{ color: meta?.color ?? "#374151", display: "inline-flex", alignItems: "center", gap: "6px" }}
                             >
-                              {meta?.icon ?? "•"} {getActionLabel(row.action)}
+                              {meta?.icon && <Icon name={meta.icon} size={15} />} {getActionLabel(row.action)}
                             </span>
                           </td>
                           <td className={styles.emailCell}>{row.actorEmail}</td>

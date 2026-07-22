@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import Icon from "../components/ui/Icon.jsx";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -206,7 +207,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
     <div className={base.page}>
       <PageHeader
         title="אילוצים"
-        icon="⚖"
+        icon={<Icon name="scale" />}
         sub="הגדר מי חייב לשבת יחד ומי לא יכול — המערכת תכבד זאת בסידור האוטומטי."
         aside={
           <div className={base.pills}>
@@ -395,7 +396,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       )}
 
       {ev.constraints.length === 0 && (
-        <EmptyState icon="⚖" title="טרם הוגדרו אילוצים"
+        <EmptyState icon={<Icon name="scale" />} title="טרם הוגדרו אילוצים"
           text="שלב זה אופציונלי לחלוטין. אם יש אורחים שחייבים לשבת יחד (כמו הורים עם ילדים קטנים) או שאסור שיישבו יחד — הגדירו זאת כאן לפני הרצת הסידור." />
       )}
 

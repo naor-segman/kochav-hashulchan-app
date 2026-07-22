@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import Icon from "../components/ui/Icon.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./CostScreen.module.css";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -88,7 +89,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
     <div className={base.page}>
       <PageHeader
         title="תקציב ועלויות"
-        icon="📊"
+        icon={<Icon name="chart" />}
         sub="עקוב אחר התקציב המתוכנן מול ההוצאה בפועל לאורך תכנון האירוע."
       />
 

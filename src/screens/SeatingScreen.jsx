@@ -1,4 +1,5 @@
 import { useState, useMemo, Fragment } from "react";
+import Icon from "../components/ui/Icon.jsx";
 import { useNavigate } from "react-router-dom";
 import {
   DndContext, DragOverlay,
@@ -335,7 +336,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         <div className={[base.page, styles.screenContent].join(" ")}>
           <PageHeader
             title="סידור הושבה"
-            icon="🪑"
+            icon={<Icon name="chair" />}
             sub="חשב הושבה אוטומטית ואז ערוך ידנית לפי הצורך."
             aside={
               <div className={base.pills}>
@@ -412,21 +413,21 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     onClick={() => handlePrint("full")}
                     title="הדפס סידור הושבה המלא עם פרטי צד וקבוצה"
                   >
-                    🖨 הדפס
+                    <Icon name="print" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />הדפס
                   </button>
                   <button
                     className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
                     onClick={() => handlePrint("compact")}
                     title="הדפס גרסה קומפקטית לצוות האולם — שמות בלבד"
                   >
-                    📋 לצוות האולם
+                    <Icon name="clipboard" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />לצוות האולם
                   </button>
                   <button
                     className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
                     onClick={() => handlePrint("cards")}
                     title="הדפס כרטיסי שולחן — כרטיס אחד לכל שולחן למיקום על השולחן"
                   >
-                    🃏 כרטיסי שולחן
+                    <Icon name="cards" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />כרטיסי שולחן
                   </button>
                 </div>
                 <div className={styles.runActionsGroup}>
@@ -435,14 +436,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     onClick={() => { setCheckInMode(m => !m); setCheckInSearch(""); }}
                     title="מצב צ׳ק אין — רשימה אלפביתית לאנשי הכניסה"
                   >
-                    ✅ {checkInMode ? "סגור צ׳ק אין" : "צ׳ק אין"}
+                    <Icon name="check" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />{checkInMode ? "סגור צ׳ק אין" : "צ׳ק אין"}
                   </button>
                   <button
                     className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => navigate("/events/" + ev.id + "/checkin")}
                     title="פתח מסך צ׳ק אין מלא — לשימוש על טאבלט בכניסה לאירוע"
                   >
-                    📱 מסך כניסה
+                    <Icon name="phone" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />מסך כניסה
                   </button>
                 </div>
                 <button
@@ -451,7 +452,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   title="ייצוא לקובץ אקסל"
                   disabled={ev.guests.length === 0 && ev.tables.length === 0}
                 >
-                  📊 ייצוא לאקסל
+                  <Icon name="chart" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />ייצוא לאקסל
                 </button>
               </div>
             </div>
@@ -472,14 +473,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 onClick={() => exportToExcel(ev, sideLabel, violations)}
                 title="ייצוא לקובץ אקסל"
               >
-                📊 ייצוא לאקסל
+                <Icon name="chart" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />ייצוא לאקסל
               </button>
             </div>
           )}
 
           {whatsappBulkCount > 0 && nAssigned > 0 && (
             <div className={styles.waNotifyCard}>
-              <div className={styles.waNotifyIcon}>💬</div>
+              <div className={styles.waNotifyIcon}><Icon name="chat" size={22} /></div>
               <div className={styles.waNotifyText}>
                 <div className={styles.waNotifyTitle}>שלח מספר שולחן בווטסאפ</div>
                 <div className={styles.waNotifySub}>
@@ -503,7 +504,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                         <SideDot side={g.side} />
                         <span className={styles.waNotifyName}>{g.name}</span>
                         <span className={styles.waNotifyTable}>שולחן {table?.name}</span>
-                        <span className={styles.waNotifyArrow}>📤</span>
+                        <span className={styles.waNotifyArrow}><Icon name="send" size={16} /></span>
                       </a>
                     ) : null;
                   })
@@ -555,7 +556,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
           {nAssigned > 0 && (
             <div className={styles.daySearchCard}>
-              <div className={styles.daySearchLabel}>🔍 חיפוש אורח — יום האירוע</div>
+              <div className={styles.daySearchLabel}><Icon name="search" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />חיפוש אורח — יום האירוע</div>
               <input
                 className={base.input}
                 value={daySearch}
@@ -614,7 +615,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   </span>
                   {totalGifts > 0 && (
                     <span className={styles.checkInGiftTotal}>
-                      💰 ₪{totalGifts.toLocaleString("he-IL")} — {nGiftRecorded} מתנות
+                      <Icon name="money" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />₪{totalGifts.toLocaleString("he-IL")} — {nGiftRecorded} מתנות
                     </span>
                   )}
                 </div>

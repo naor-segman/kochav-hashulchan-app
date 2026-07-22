@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
+import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSettingsScreen.module.css";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -189,7 +190,7 @@ export default function AdminSettingsScreen() {
         {/* ── Table missing ── */}
         {!loading && notConfigured && (
           <div className={styles.notConfiguredBox}>
-            <div className={styles.notConfiguredIcon}>⚙️</div>
+            <div className={styles.notConfiguredIcon}><Icon name="settings" size={30} /></div>
             <h2 className={styles.notConfiguredTitle}>טבלת ההגדרות לא נמצאה</h2>
             <p className={styles.notConfiguredText}>
               הפעל את המיגרציה הבאה ב-Supabase SQL Editor כדי להפעיל את מסך ההגדרות:

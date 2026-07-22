@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "../components/ui/Icon.jsx";
 import { TABLE_TYPES } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -97,7 +98,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     <div className={base.page}>
       <PageHeader
         title="שולחנות"
-        icon="⬡"
+        icon={<Icon name="hexagon" />}
         sub="הגדר את השולחנות באולם לפי מבנה האירוע."
         aside={
           <div className={base.pills}>
@@ -274,7 +275,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
           )}
 
           {ev.tables.length === 0 && (
-            <EmptyState icon="⬡" title="טרם הוגדרו שולחנות"
+            <EmptyState icon={<Icon name="hexagon" />} title="טרם הוגדרו שולחנות"
               text='השתמשו בטופס למעלה כדי להוסיף שולחנות. לדוגמה: 15 שולחנות עגולים עם 10 מקומות כל אחד — הכניסו 15 בשדה "כמות" ו-10 בשדה "מקומות".' />
           )}
         </>

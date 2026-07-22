@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import Icon from "../components/ui/Icon.jsx";
 import { uid } from "../utils/uid.js";
 import { SITE_THEME_LIST } from "../data/eventSiteTemplates.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -76,7 +77,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     <div className={base.page}>
       <PageHeader
         title="אתר האירוע"
-        icon="🌐"
+        icon={<Icon name="globe" />}
         sub="בנו את אתר האירוע שלכם — הוא נבנה אוטומטית ונשלח לאורחים. מלאו פרטים, בחרו עיצוב, ופרסמו."
       />
 

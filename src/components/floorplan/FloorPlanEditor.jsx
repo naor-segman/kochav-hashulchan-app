@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import Icon from "../ui/Icon.jsx";
 import {
   DndContext, DragOverlay,
   useDraggable, useDroppable,
@@ -131,7 +132,7 @@ function UploadZone({ onClick, onDrop }) {
         if (file) onDrop(file);
       }}
     >
-      <div className={styles.uploadIcon}>🏛️</div>
+      <div className={styles.uploadIcon}><Icon name="building" size={32} /></div>
       <div className={styles.uploadTitle}>העלו סקיצת אולם</div>
       <div className={styles.uploadHint}>
         לחצו לבחירת קובץ תמונה, או גררו לכאן<br />
@@ -393,7 +394,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
             disabled={detecting || !isSupabaseConfigured}
             title={!isSupabaseConfigured ? "זיהוי אוטומטי דורש חיבור לענן" : undefined}
           >
-            {detecting ? "⏳ מזהה..." : "✨ זיהוי שולחנות אוטומטי"}
+            {detecting ? "מזהה..." : <><Icon name="sparkle" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />זיהוי שולחנות אוטומטי</>}
           </button>
         )}
         {placingId && (
@@ -407,7 +408,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       {/* Detection result */}
       {ENABLE_AI_DETECT && detResult && (
         <div className={styles.detectionCard}>
-          <div className={styles.detTitle}>✨ זוהו {detResult.totalDetected} שולחנות בסקיצה</div>
+          <div className={styles.detTitle}><Icon name="sparkle" size={16} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />זוהו {detResult.totalDetected} שולחנות בסקיצה</div>
           {detResult.note && <p className={styles.detNote}>{detResult.note}</p>}
           <div className={styles.detList}>
             {detResult.tables.map((t, i) => (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/ui/Icon.jsx";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
@@ -171,7 +172,7 @@ export default function SignupScreen() {
                 aria-label={showPw ? "הסתר סיסמה" : "הצג סיסמה"}
                 tabIndex={-1}
               >
-                {showPw ? "🙈" : "👁"}
+                {showPw ? <Icon name="eyeOff" size={18} /> : <Icon name="eye" size={18} />}
               </button>
             </div>
           </div>
