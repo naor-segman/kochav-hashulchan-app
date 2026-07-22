@@ -290,7 +290,10 @@ export default function EventSiteScreen({ localEvent }) {
             יש שאלה? דברו איתנו בוואטסאפ
           </a>
         )}
-        <div className={styles.footBrand}>✦ נבנה בכוכב השולחן</div>
+        <Link to="/" className={styles.footBrand}>✦ נבנה בכוכב השולחן</Link>
+        <Link to="/signup" className={styles.footPromo}>
+          מתכננים אירוע? בנו אתר כזה בחינם →
+        </Link>
       </footer>
     </div>
   );

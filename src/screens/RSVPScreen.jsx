@@ -437,6 +437,12 @@ export default function RSVPScreen() {
               <span className={styles.eventTagMark} aria-hidden="true">✦</span>
               {event.name}
             </div>
+
+            {/* Tasteful, opt-in growth CTA — appears only after the guest is done */}
+            <Link to="/signup" className={styles.successPromo}>
+              <span className={styles.successPromoTitle}>מתכננים אירוע בקרוב?</span>
+              <span className={styles.successPromoText}>בנו אתר אירוע כזה, נהלו אישורי הגעה וסידור הושבה — בחינם →</span>
+            </Link>
           </div>
         </div>
       </div>
