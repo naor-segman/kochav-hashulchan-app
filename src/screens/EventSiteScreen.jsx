@@ -198,9 +198,9 @@ export default function EventSiteScreen({ localEvent }) {
           <ol className={styles.timeline}>
             {site.schedule.map(item => (
               <li key={item.id} className={styles.tlItem}>
-                <span className={styles.tlTime}>{item.time}</span>
-                <span className={styles.tlDot} aria-hidden="true" />
                 <span className={styles.tlTitle}>{item.icon} {item.title}</span>
+                <span className={styles.tlDot} aria-hidden="true" />
+                <span className={styles.tlTime}>{item.time}</span>
               </li>
             ))}
           </ol>
