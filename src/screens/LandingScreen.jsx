@@ -2,37 +2,34 @@ import { Link } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import styles from "./LandingScreen.module.css";
 
+// Clean line icons (stroke = currentColor) — replaces emoji so the page reads
+// as one designed system rather than a template.
+const I = (paths) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths}</svg>
+);
+const ICONS = {
+  seating: I(<><circle cx="12" cy="12" r="4" /><circle cx="12" cy="3.5" r="1.4" /><circle cx="12" cy="20.5" r="1.4" /><circle cx="3.5" cy="12" r="1.4" /><circle cx="20.5" cy="12" r="1.4" /></>),
+  guests:  I(<><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0" /><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6" /><path d="M17 14.2A5.5 5.5 0 0 1 20.5 19" /></>),
+  plan:    I(<><rect x="3.5" y="3.5" width="17" height="17" rx="2" /><path d="M3.5 9.5h17M9.5 9.5v11" /></>),
+  checkin: I(<><path d="M20 7 10 17l-5-5" /></>),
+  pages:   I(<><rect x="6.5" y="2.5" width="11" height="19" rx="2.5" /><path d="M10.5 18.5h3" /></>),
+  cloud:   I(<><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.5 11 3.5 3.5 0 0 1 17 18Z" /></>),
+};
+
 const FEATURES = [
-  {
-    icon: "✦",
-    title: "הושבה אוטומטית",
-    desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרת",
-  },
-  {
-    icon: "📋",
-    title: "ניהול אורחים",
-    desc: "ייבוא מאקסל, הוספה ידנית, מעקב אישורי הגעה לפי קבוצות — הכל בממשק אחד נוח",
-  },
-  {
-    icon: "🗺",
-    title: "תכנית מגרש",
-    desc: "גרור שולחנות על תמונת האולם ותקבל תצוגה חזותית מושלמת של הסידור",
-  },
-  {
-    icon: "✅",
-    title: "צ׳ק-אין ביום האירוע",
-    desc: "מצא כל אורח בשניות וראה את מספר השולחן שלו — מצב מלופית מושלם לכניסה לאולם",
-  },
-  {
-    icon: "📱",
-    title: "דפי אורח דיגיטליים",
-    desc: "הזמנה, אישור הגעה, מתנה וברכות — קישור אישי לכל אירוע שנשלח לאורחים בקליק",
-  },
-  {
-    icon: "☁",
-    title: "סנכרון ענן",
-    desc: "גישה מכל מכשיר, שמירה אוטומטית — עבוד מהמחשב, המשך מהטלפון",
-  },
+  { icon: "seating", title: "הושבה אוטומטית",
+    desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרת" },
+  { icon: "guests", title: "ניהול אורחים",
+    desc: "ייבוא מאקסל, הוספה ידנית, מעקב אישורי הגעה לפי קבוצות — הכל בממשק אחד נוח" },
+  { icon: "plan", title: "תכנית מגרש",
+    desc: "גרור שולחנות על תמונת האולם ותקבל תצוגה חזותית מושלמת של הסידור" },
+  { icon: "checkin", title: "צ׳ק-אין ביום האירוע",
+    desc: "מצא כל אורח בשניות וראה את מספר השולחן שלו — מצב מושלם לכניסה לאולם" },
+  { icon: "pages", title: "דפי אורח דיגיטליים",
+    desc: "הזמנה, אישור הגעה, מתנה וברכות — קישור אישי לכל אירוע שנשלח לאורחים בקליק" },
+  { icon: "cloud", title: "סנכרון ענן",
+    desc: "גישה מכל מכשיר, שמירה אוטומטית — עבוד מהמחשב, המשך מהטלפון" },
 ];
 
 const HOW_IT_WORKS = [
@@ -227,7 +224,7 @@ export default function LandingScreen() {
             {FEATURES.map(f => (
               <div key={f.title} className={styles.featureCard}>
                 <div className={styles.featureIconWrap}>
-                  <span className={styles.featureIcon}>{f.icon}</span>
+                  <span className={styles.featureIcon}>{ICONS[f.icon]}</span>
                 </div>
                 <h3 className={styles.featureTitle}>{f.title}</h3>
                 <p className={styles.featureDesc}>{f.desc}</p>

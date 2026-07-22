@@ -2,3 +2,28 @@
 @import './reset.css';
 @import './utilities.css';
 @import './animations.css';
+
+/* ── Self-hosted editorial serif (Frank Ruhl Libre) ──────────────────────────
+   Served locally from /public/fonts so it renders without the Google CDN
+   (faster, privacy-friendly, and works in any preview environment). */
+@font-face {
+  font-family: "Frank Ruhl Libre";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/frl-500.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Frank Ruhl Libre";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/frl-700.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Frank Ruhl Libre";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/frl-900.ttf") format("truetype");
+}

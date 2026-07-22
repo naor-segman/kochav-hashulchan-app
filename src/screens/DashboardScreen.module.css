@@ -120,9 +120,10 @@
 }
 
 .onboardingTitle {
-  font-size: 38px;
+  font-family: var(--font-family-serif);
+  font-size: 42px;
   font-weight: 900;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   color: var(--text);
   margin: 0;
 }
@@ -168,9 +169,10 @@
 }
 
 .valueTileIcon {
-  font-size: 22px;
   line-height: 1;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
+  color: var(--accent);
+  display: inline-flex;
 }
 
 .valueTileTitle {
