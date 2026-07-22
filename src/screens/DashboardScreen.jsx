@@ -10,6 +10,17 @@ import styles from "./DashboardScreen.module.css";
 
 const WORKFLOW_STEPS = ["פרטי האירוע", "שולחנות", "אורחים", "אילוצים", "הושבה"];
 
+// Line icons (stroke = currentColor) for the onboarding value tiles.
+const svg = (paths) => (
+  <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
+       strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths}</svg>
+);
+const DASH_ICONS = {
+  auto:        svg(<><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" /></>),
+  constraints: svg(<><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" /><path d="M9 6.5h5a3.5 3.5 0 0 1 3.5 3.5v5" /></>),
+  export:      svg(<><path d="M4 20h16" /><path d="M7 16V9M12 16V5M17 16v-4" /></>),
+};
+
 const DEMO_STEPS = [
   { label: "צור אירוע חדש",        hint: 'לחץ "צור אירוע" ובחר את סוג האירוע מהתפריט' },
   { label: "הוסף שולחנות",          hint: "הגדר כמה שולחנות יש באולם ואת הקיבולת שלהם" },
@@ -84,17 +95,17 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
 
           <div className={styles.valueRow}>
             <div className={styles.valueTile}>
-              <span className={styles.valueTileIcon}>⚡</span>
+              <span className={styles.valueTileIcon}>{DASH_ICONS.auto}</span>
               <span className={styles.valueTileTitle}>סידור אוטומטי</span>
               <span className={styles.valueTileSub}>האלגוריתם ממלא שולחנות תוך שניות, ללא עבודה ידנית</span>
             </div>
             <div className={styles.valueTile}>
-              <span className={styles.valueTileIcon}>🔗</span>
+              <span className={styles.valueTileIcon}>{DASH_ICONS.constraints}</span>
               <span className={styles.valueTileTitle}>אילוצים בין אורחים</span>
               <span className={styles.valueTileSub}>הפרדות, ישיבות משותפות ועדיפויות — הכל נלקח בחשבון</span>
             </div>
             <div className={styles.valueTile}>
-              <span className={styles.valueTileIcon}>📊</span>
+              <span className={styles.valueTileIcon}>{DASH_ICONS.export}</span>
               <span className={styles.valueTileTitle}>ייצוא לאולם</span>
               <span className={styles.valueTileSub}>ייצוא מלא לקובץ Excel עם פירוט שולחנות ואורחים</span>
             </div>
