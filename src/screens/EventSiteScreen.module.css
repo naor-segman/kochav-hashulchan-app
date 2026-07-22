@@ -169,7 +169,20 @@
 /* ── Footer ── */
 .footer { text-align: center; padding: 40px 22px 50px; border-top: 1px solid var(--s-line); margin-top: 20px; }
 .footContact { display: inline-block; color: var(--s-accent); font-weight: 700; font-size: 14px; text-decoration: none; margin-bottom: 18px; }
-.footBrand { font-size: 12px; color: var(--s-muted); }
+.footBrand { font-size: 12px; color: var(--s-muted); text-decoration: none; display: inline-block; }
+.footPromo {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--s-accent);
+  text-decoration: none;
+  padding: 7px 16px;
+  border: 1px solid var(--s-line);
+  border-radius: 100px;
+  transition: background .15s;
+}
+.footPromo:hover { background: var(--s-accent-soft); }
 
 @media (min-width: 640px) {
   .wishGrid { grid-template-columns: 1fr 1fr 1fr; }

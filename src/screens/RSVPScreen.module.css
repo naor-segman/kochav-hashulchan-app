@@ -622,3 +622,31 @@
     font-size: 14px;
   }
 }
+
+/* ── Growth CTA on success screen (opt-in, below the fold) ── */
+.successPromo {
+  display: block;
+  margin-top: 28px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-decoration: none;
+  text-align: center;
+  transition: border-color .15s, box-shadow .15s;
+}
+.successPromo:hover { border-color: var(--accent-border); box-shadow: var(--shadow); }
+.successPromoTitle {
+  display: block;
+  font-family: var(--font-family-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.successPromoText {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}

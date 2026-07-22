@@ -457,7 +457,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
 }
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "" };
+  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "", companions: [] };
   const [form, setForm]           = useState(EF);
   const [editId, setEditId]       = useState(null);
   const [showBulk, setShowBulk]     = useState(false);
@@ -495,6 +495,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const saveGuest = () => {
     if (!form.name.trim()) { showToast("יש להזין שם אורח", "err"); return; }
     const { group, newCustom } = resolveGroup();
+    // Keep only as many companion names as there are extra seats; drop blanks
+    // at the tail but preserve positions so "מלווה 2" stays the second seat.
+    const cnt = form.count || 1;
+    const rawComp = (form.companions || []).slice(0, cnt - 1).map(c => (c || "").trim());
+    while (rawComp.length && rawComp[rawComp.length - 1] === "") rawComp.pop();
+    const companions = rawComp;
     if (form.group === "אחר" && !customGroupInput.trim()) {
       showToast("יש להזין שם לקבוצה החדשה", "err"); return;
     }
@@ -507,7 +513,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
       patchEvent(e => {
         const updated = e.guests.map(g =>
-          g.id === editId ? Object.assign({}, g, form, { name: form.name.trim(), group, giftAmount }) : g
+          g.id === editId ? Object.assign({}, g, form, { name: form.name.trim(), group, giftAmount, companions }) : g
         );
         const customGroups = newCustom && !e.customGroups?.includes(newCustom)
           ? [...(e.customGroups || []), newCustom]
@@ -523,7 +529,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         return;
       }
       const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
-      const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1, group, giftAmount });
+      const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1, group, giftAmount, companions });
       patchEvent(e => {
         const customGroups = newCustom && !e.customGroups?.includes(newCustom)
           ? [...(e.customGroups || []), newCustom]
@@ -717,6 +723,29 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               onChange={e => setF("count", Math.max(1, parseInt(e.target.value) || 1))} />
           </Field>
         </div>
+
+        {(form.count || 1) > 1 && (
+          <Field
+            label={`שמות המגיעים עם ${form.name.trim() || "האורח"} (אופציונלי)`}
+            hint="כדי לראות שם על כל כיסא בשולחן. מה שלא ימולא יוצג כ״+1 / +2״."
+          >
+            <div className={styles.companionsGrid}>
+              {Array.from({ length: (form.count || 1) - 1 }).map((_, i) => (
+                <input
+                  key={i}
+                  className={base.input}
+                  value={(form.companions || [])[i] || ""}
+                  placeholder={`מלווה ${i + 1}`}
+                  onChange={e => {
+                    const arr = [...(form.companions || [])];
+                    arr[i] = e.target.value;
+                    setF("companions", arr);
+                  }}
+                />
+              ))}
+            </div>
+          </Field>
+        )}
 
         <div className={base.grid2}>
           <Field label="צד" hint="מי מזמין את האורח">
@@ -980,7 +1009,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   )}
                   <button className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => {
-                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending", meal: g.meal || MEAL_DEFAULT, giftAmount: g.giftAmount || "" });
+                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending", meal: g.meal || MEAL_DEFAULT, giftAmount: g.giftAmount || "", companions: Array.isArray(g.companions) ? g.companions : [] });
                       setEditId(g.id);
                       window.scrollTo(0, 0);
                     }}>

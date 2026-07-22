@@ -275,6 +275,28 @@ export function getSideLabel(ev, side) {
   const labels = getSideLabels(ev);
   return labels[side] ?? (side === "bride" ? "צד א׳" : "צד ב׳");
 }
+
+/**
+ * Expand a guest "group" row into one display name per physical seat.
+ * A guest represents a party: `count` seats, an optional `companions` list of
+ * the other people's names. Named companions render as "רונית (טל)" so it's
+ * clear they belong to טל's table; any remaining unnamed seats render as
+ * "טל +1", "טל +2" — a chair bound to טל that must not move alone.
+ *
+ * @returns {string[]} one label per seat, length === guest seat count.
+ */
+export function guestSeatNames(g) {
+  if (!g) return [];
+  const base  = (g.name || "").trim() || "אורח";
+  const count = Math.max(1, g.count || 1);
+  const comps = (Array.isArray(g.companions) ? g.companions : [])
+    .map(c => (c || "").trim()).filter(Boolean);
+  const names = [base];
+  comps.forEach(c => { if (names.length < count) names.push(`${c} (${base})`); });
+  let extra = 1;
+  while (names.length < count) names.push(`${base} +${extra++}`);
+  return names.slice(0, count);
+}
 //
 // EventSetupScreen uses these to show the right personal fields for each
 // event type without embedding business logic in the component.

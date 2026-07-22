@@ -234,3 +234,13 @@
   color: var(--on-accent);
 }
 .waBtn:hover { filter: brightness(0.93); }
+
+/* Companion-name inputs (multi-seat guest) */
+.companionsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+@media (max-width: 480px) {
+  .companionsGrid { grid-template-columns: 1fr; }
+}
