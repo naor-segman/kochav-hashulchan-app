@@ -228,7 +228,7 @@ export default function EventSiteScreen({ localEvent }) {
       {/* ── Shuttles ── */}
       {visible && sec.shuttles && site?.shuttles?.length > 0 && (
         <section ref={shuttlesRef} className={styles.section}>
-          <h2 className={styles.secTitle}>הסעות 🚌</h2>
+          <h2 className={styles.secTitle}>הסעות</h2>
           <div className={styles.locCard}>
             {site.shuttles.map(s => (
               <div key={s.id} className={styles.shuttleRow}>
@@ -244,7 +244,7 @@ export default function EventSiteScreen({ localEvent }) {
       {/* ── Gift ── */}
       {visible && sec.gift && giftUrl && (
         <section className={styles.section}>
-          <h2 className={styles.secTitle}>מתנה 💝</h2>
+          <h2 className={styles.secTitle}>מתנה</h2>
           <div className={styles.giftCard}>
             <p>גם אם לא תגיעו — אפשר לשמח אותנו במתנה ובברכה חמה.</p>
             <Link to={giftUrl} className={styles.locBtn}>למסך המתנה ←</Link>

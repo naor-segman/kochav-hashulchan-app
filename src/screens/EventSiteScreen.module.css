@@ -65,9 +65,8 @@
 }
 .heroInner { position: relative; max-width: var(--maxw); margin: 0 auto; }
 .heroTag {
-  display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .12em;
-  color: var(--s-accent); background: var(--s-accent-soft);
-  padding: 4px 14px; border-radius: 100px; margin-bottom: 18px;
+  display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .26em;
+  color: var(--s-accent); margin-bottom: 20px;
 }
 .heroNames {
   font-family: "Rubik", sans-serif; font-weight: 500; font-size: clamp(30px, 9vw, 48px);
@@ -80,8 +79,8 @@
 .heroDivider { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 22px auto; max-width: 220px; }
 .heroDivider span:first-child, .heroDivider span:last-child { height: 1px; flex: 1; background: var(--s-line); }
 .heroStar { color: var(--s-accent); font-size: 15px; }
-.heroDate { font-size: 16px; font-weight: 600; color: var(--s-ink); }
-.heroVenue { font-size: 14px; color: var(--s-muted); margin-top: 6px; }
+.heroDate { font-size: clamp(17px, 4.5vw, 20px); font-weight: 700; color: var(--s-ink); letter-spacing: -.01em; }
+.heroVenue { font-size: 14px; color: var(--s-muted); margin-top: 8px; }
 .heroCta {
   display: inline-block; margin-top: 26px; background: var(--s-accent); color: var(--s-on-accent);
   text-decoration: none; font-size: 15px; font-weight: 800; padding: 13px 30px; border-radius: 100px;
@@ -98,8 +97,12 @@
 /* ── Sections ── */
 .section { max-width: var(--maxw); margin: 0 auto; padding: 40px 22px; }
 .secTitle {
-  font-family: "Rubik", sans-serif; font-size: 22px; font-weight: 700; text-align: center;
-  color: var(--s-ink); margin-bottom: 24px;
+  font-family: "Rubik", sans-serif; font-size: clamp(21px, 5vw, 26px); font-weight: 700; text-align: center;
+  color: var(--s-ink); margin-bottom: 28px; letter-spacing: -.015em;
+}
+.secTitle::after {
+  content: ""; display: block; width: 34px; height: 2px; border-radius: 2px;
+  margin: 12px auto 0; background: var(--s-accent);
 }
 .story {
   max-width: var(--maxw); margin: 0 auto; padding: 34px 26px; text-align: center;
