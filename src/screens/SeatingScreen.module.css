@@ -1657,3 +1657,8 @@
   margin-top: 3px;
   line-height: 1.5;
 }
+
+/* Keep the move-to-table select from crushing the guest name/companions column */
+.tGuestRow { flex-wrap: wrap; row-gap: 6px; }
+.tGuestRow select { flex: 0 1 190px; min-width: 130px; max-width: 210px; }
+.seatNames { word-break: normal; overflow-wrap: anywhere; }
