@@ -1,25 +1,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
+import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminDashboardScreen.module.css";
 
 // Stat tile definitions — key maps to the stats object returned by fetchStats().
 const STAT_DEFS = [
-  { icon: "👥", label: "משתמשים",       key: "users" },
-  { icon: "📅", label: "אירועים",       key: "events" },
-  { icon: "📋", label: "תבניות",        key: "templates" },
-  { icon: "💳", label: "מנויים פעילים", key: "subscriptions" },
+  { icon: "users",     label: "משתמשים",       key: "users" },
+  { icon: "calendar",  label: "אירועים",       key: "events" },
+  { icon: "clipboard", label: "תבניות",        key: "templates" },
+  { icon: "card",      label: "מנויים פעילים", key: "subscriptions" },
 ];
 
 // live: true  → rendered as a real Link (route exists)
 // phase: "N"  → rendered as a static item with a phase badge (not built yet)
 const NAV_ITEMS = [
-  { icon: "👥", label: "ניהול משתמשים",   path: "/admin/users",         live: true },
-  { icon: "📅", label: "כל האירועים",     path: "/admin/events",        live: true  },
-  { icon: "📋", label: "ניהול תבניות",    path: "/admin/templates",     live: true  },
-  { icon: "💳", label: "מנויים ותשלומים", path: "/admin/subscriptions", live: true },
-  { icon: "📋", label: "יומן פעילות",     path: "/admin/activity",      live: true },
-  { icon: "⚙️", label: "הגדרות מערכת",   path: "/admin/settings",      live: true },
+  { icon: "users",     label: "ניהול משתמשים",   path: "/admin/users",         live: true },
+  { icon: "calendar",  label: "כל האירועים",     path: "/admin/events",        live: true  },
+  { icon: "clipboard", label: "ניהול תבניות",    path: "/admin/templates",     live: true  },
+  { icon: "card",      label: "מנויים ותשלומים", path: "/admin/subscriptions", live: true },
+  { icon: "bell",      label: "יומן פעילות",     path: "/admin/activity",      live: true },
+  { icon: "settings",  label: "הגדרות מערכת",   path: "/admin/settings",      live: true },
 ];
 
 // Run all four count queries in parallel.
@@ -139,7 +140,7 @@ export default function AdminDashboardScreen() {
               const value = stats?.[key];
               return (
                 <div key={key} className={styles.statCard}>
-                  <span className={styles.statIcon}>{icon}</span>
+                  <span className={styles.statIcon}><Icon name={icon} size={22} /></span>
                   <span className={loading ? styles.statValueLoading : styles.statValue}>
                     {loading ? "…" : (value === null ? "—" : value.toLocaleString())}
                   </span>
@@ -158,14 +159,14 @@ export default function AdminDashboardScreen() {
               item.live ? (
                 <li key={item.path}>
                   <Link to={item.path} className={styles.navItemLink}>
-                    <span className={styles.navIcon}>{item.icon}</span>
+                    <span className={styles.navIcon}><Icon name={item.icon} size={20} /></span>
                     <span className={styles.navLabel}>{item.label}</span>
                     <span className={styles.navArrow}>→</span>
                   </Link>
                 </li>
               ) : (
                 <li key={item.path} className={styles.navItem}>
-                  <span className={styles.navIcon}>{item.icon}</span>
+                  <span className={styles.navIcon}><Icon name={item.icon} size={20} /></span>
                   <span className={styles.navLabel}>{item.label}</span>
                   <span className={styles.navPhase}>Phase {item.phase}</span>
                 </li>

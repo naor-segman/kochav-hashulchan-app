@@ -10,6 +10,7 @@ import {
   PLAN_KEYS,
   STATUS_KEYS,
 } from "../lib/planConfig.js";
+import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSubscriptionsScreen.module.css";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -184,7 +185,7 @@ export default function AdminSubscriptionsScreen() {
         {/* ── Table missing ── */}
         {!loading && notConfigured && (
           <div className={styles.notConfiguredBox}>
-            <div className={styles.notConfiguredIcon}>💳</div>
+            <div className={styles.notConfiguredIcon}><Icon name="card" size={30} /></div>
             <h2 className={styles.notConfiguredTitle}>טבלת מנויים לא נמצאה</h2>
             <p className={styles.notConfiguredText}>
               הפעל את המיגרציה הבאה ב-Supabase SQL Editor:

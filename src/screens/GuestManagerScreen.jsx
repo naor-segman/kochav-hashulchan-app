@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
 import { getSideLabels, getSideLabel } from "../utils/eventHelpers.js";
@@ -652,7 +653,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     <div className={base.page}>
       <PageHeader
         title="אורחים"
-        icon="👥"
+        icon={<Icon name="users" />}
         sub="נהל את רשימת האורחים. לחץ Enter להוספה מהירה."
         aside={
           <div className={base.pills}>
@@ -996,11 +997,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {ev.guests.length === 0 && (
-        <EmptyState icon="👥" title="טרם נוספו אורחים"
+        <EmptyState icon={<Icon name="users" />} title="טרם נוספו אורחים"
           text='הוסיפו אורחים ידנית דרך הטופס למעלה, או לחצו על "ייבוא מ-Excel" לייבוא רשימה שלמה בבת אחת.' />
       )}
       {visible.length === 0 && ev.guests.length > 0 && (
-        <EmptyState icon="🔍" title="אין תוצאות לסינון הנוכחי"
+        <EmptyState icon={<Icon name="search" />} title="אין תוצאות לסינון הנוכחי"
           text='לחצו על "נקה" כדי לאפס את הסינון ולראות את כל האורחים.' />
       )}
 

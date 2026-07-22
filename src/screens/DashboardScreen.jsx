@@ -5,6 +5,7 @@ import { useTemplates } from "../hooks/useTemplates.js";
 import { canCreateEvent } from "../utils/featureGates.js";
 import { eventHealth, dashStats, summaryMessages } from "../utils/eventAnalytics.js";
 import Chip from "../components/ui/Chip.jsx";
+import Icon from "../components/ui/Icon.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./DashboardScreen.module.css";
 
@@ -233,9 +234,9 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
 
                   {(ev.tables.length > 0 || cap > 0 || ev.guests.length > 0) && (
                     <div className={styles.eventChips}>
-                      {ev.tables.length > 0 && <Chip icon="⬡" label={ev.tables.length + " שולחנות"} />}
-                      {cap > 0 && <Chip icon="💺" label={cap + " מקומות"} />}
-                      {ev.guests.length > 0 && <Chip icon="👥" label={ev.guests.length + " רשומות"} />}
+                      {ev.tables.length > 0 && <Chip icon={<Icon name="hexagon" size={13} />} label={ev.tables.length + " שולחנות"} />}
+                      {cap > 0 && <Chip icon={<Icon name="chair" size={13} />} label={cap + " מקומות"} />}
+                      {ev.guests.length > 0 && <Chip icon={<Icon name="users" size={13} />} label={ev.guests.length + " רשומות"} />}
                     </div>
                   )}
 

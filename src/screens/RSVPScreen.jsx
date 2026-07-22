@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP } from "../utils/publicTokens.js";
 import styles from "./RSVPScreen.module.css";
@@ -150,7 +151,7 @@ export default function RSVPScreen() {
         <div className={styles.cardWrap}>
           <div className={styles.card}>
             <div className={styles.errorState}>
-              <span className={styles.errorIcon} aria-hidden="true">🔗</span>
+              <span className={styles.errorIcon} aria-hidden="true"><Icon name="link" size={26} /></span>
               <h1 className={styles.errorTitle}>הלינק לא תקין או שפג תוקפו</h1>
               <p className={styles.errorBody}>
                 ייתכן שהקישור פג תוקף, שגוי, או שהאירוע בוטל.
@@ -180,13 +181,13 @@ export default function RSVPScreen() {
               <h1 className={styles.eventName}>{event.name}</h1>
               {formattedDate && (
                 <p className={styles.eventDetail}>
-                  <span className={styles.detailIcon} aria-hidden="true">📅</span>
+                  <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={18} /></span>
                   {formattedDate}
                 </p>
               )}
               {event.venue && (
                 <p className={styles.eventDetail}>
-                  <span className={styles.detailIcon} aria-hidden="true">📍</span>
+                  <span className={styles.detailIcon} aria-hidden="true"><Icon name="pin" size={18} /></span>
                   {event.venue}
                 </p>
               )}

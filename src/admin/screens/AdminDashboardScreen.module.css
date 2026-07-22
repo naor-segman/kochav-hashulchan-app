@@ -138,8 +138,9 @@
 }
 
 .statIcon {
-  font-size: 22px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  color: var(--accent);
+  display: inline-flex;
 }
 
 .statValue {
@@ -236,8 +237,9 @@
 }
 
 .navIcon {
-  font-size: 18px;
   flex-shrink: 0;
+  color: var(--accent);
+  display: inline-flex;
 }
 
 .navLabel {
