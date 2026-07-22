@@ -10,7 +10,7 @@ import {
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
-import { getSideLabel, getSideLabels } from "../utils/eventHelpers.js";
+import { getSideLabel, getSideLabels, guestSeatNames } from "../utils/eventHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import Banner from "../components/feedback/Banner.jsx";
 import CapBar from "../components/ui/CapBar.jsx";
@@ -47,6 +47,7 @@ const MAX_UNDO = 20;
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const navigate = useNavigate();
   const [expandedTable, setExpandedTable]   = useState(null);
+  const [expandAll,     setExpandAll]       = useState(false);
   const [activeId, setActiveId]             = useState(null);
   const [seatingHistory, setSeatingHistory] = useState([]);
   const [printMode, setPrintMode]           = useState("full");
@@ -766,13 +767,26 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           )}
 
           {ev.tables.length > 0 && (
+            <div className={styles.tablesToolbar}>
+              <span className={styles.tablesToolbarTitle}>השולחנות שלי ({ev.tables.length})</span>
+              <button
+                className={styles.expandAllBtn}
+                onClick={() => { setExpandAll(v => !v); setExpandedTable(null); }}
+              >
+                <Icon name={expandAll ? "check" : "users"} size={15} style={{ verticalAlign: "middle", marginInlineEnd: 5 }} />
+                {expandAll ? "הסתר שמות" : "הצג שמות בכל השולחנות"}
+              </button>
+            </div>
+          )}
+
+          {ev.tables.length > 0 && (
             <div className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}>
               {ev.tables.map(t => {
                 const tGuests      = tableGuests(t.id);
                 const usedSeats    = tGuests.reduce((s, g) => s + (g.count || 1), 0);
                 const isCapOver    = usedSeats > t.capacity;
                 const hasViol      = violatedTables.has(t.name);
-                const isExpanded   = expandedTable === t.id;
+                const isExpanded   = expandAll || expandedTable === t.id;
                 const isLocked     = isTableLocked(t.id);
                 const pct          = t.capacity > 0 ? usedSeats / t.capacity : 0;
                 const staticBorder = isCapOver ? "var(--red)" : hasViol ? "var(--warn)" : "var(--border)";
@@ -889,6 +903,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   <span className={base.gMeta}>
                                     {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
                                   </span>
+                                  {(g.count || 1) > 1 && (
+                                    <span className={styles.seatNames}>
+                                      {guestSeatNames(g).slice(1).join("  ·  ")}
+                                    </span>
+                                  )}
                                 </div>
                                 {g.phone && whatsappUrl(g.phone) && (
                                   <a

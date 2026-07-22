@@ -1620,3 +1620,40 @@
   padding-top: 6px;
   margin-top: 4px;
 }
+
+/* ── Tables toolbar: show-names-in-all-tables toggle ── */
+.tablesToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0 10px;
+  flex-wrap: wrap;
+}
+.tablesToolbarTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.expandAllBtn {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.expandAllBtn:hover { background: var(--accent-light); }
+
+/* ── Per-seat names for a multi-seat guest (companions / +N) ── */
+.seatNames {
+  display: block;
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 3px;
+  line-height: 1.5;
+}
