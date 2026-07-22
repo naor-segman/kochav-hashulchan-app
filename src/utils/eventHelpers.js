@@ -110,6 +110,7 @@ export function normalizeEventSite(site, type) {
     shuttles:     Array.isArray(site.shuttles) ? site.shuttles : def.shuttles,
     faq:          Array.isArray(site.faq) ? site.faq : def.faq,
     contactPhone: site.contactPhone ?? "",
+    rsvpMessage:  site.rsvpMessage  ?? "",
     sections: (site.sections && typeof site.sections === "object")
       ? { ...def.sections, ...site.sections }
       : def.sections,

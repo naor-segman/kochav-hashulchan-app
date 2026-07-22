@@ -18,6 +18,7 @@ function mapPublicEvent(data) {
     site: (data.site && typeof data.site === "object") ? data.site : null,
     rsvpToken:        data.rsvp_token        ?? null,
     giftToken:        data.gift_token        ?? null,
+    inviteToken:      data.invite_token      ?? null,
   };
 }
 
@@ -77,7 +78,7 @@ export async function fetchRSVPResponses(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
   const { data, error } = await supabase
     .from("rsvp_responses")
-    .select("id, guest_name, phone, attending, guests_count, created_at")
+    .select("id, guest_name, phone, attending, guests_count, status, created_at")
     .eq("event_id", eventCloudId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -89,13 +90,16 @@ export async function fetchRSVPResponses(eventCloudId) {
  */
 export async function submitRSVP(eventCloudId, response) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const rawCount = response.attending ? (response.guestsCount ?? 1) : 0;
+  // status: "yes" | "no" | "maybe" — `attending` stays for backward compat.
+  const status = response.status || (response.attending ? "yes" : "no");
+  const rawCount = status === "yes" ? (response.guestsCount ?? 1) : 0;
   const { error } = await supabase.from("rsvp_responses").insert({
     event_id:     eventCloudId,
     guest_name:   response.name,
     phone:        response.phone   || null,
-    attending:    response.attending,
+    attending:    status === "yes",
     guests_count: Math.max(0, Math.min(50, rawCount)),
+    status,
   });
   if (error) throw error;
 }

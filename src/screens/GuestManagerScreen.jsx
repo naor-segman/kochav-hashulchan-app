@@ -579,6 +579,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const RSVP_OPTIONS = [
     { value: "pending",   label: "ממתין",   style: { color: "var(--warn)" } },
     { value: "confirmed", label: "אישר/ה",  style: { color: "var(--green)" } },
+    { value: "maybe",     label: "אולי",    style: { color: "var(--warn)" } },
     { value: "declined",  label: "סירב/ה",  style: { color: "var(--red)" } },
   ];
   const rsvpLabel = v => RSVP_OPTIONS.find(o => o.value === v)?.label || "ממתין";
@@ -942,9 +943,13 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                     {g.giftAmount > 0 ? " · 💰 ₪" + g.giftAmount.toLocaleString("he-IL") : ""}
                   </span>
                 </div>
-                {(g.rsvp === "confirmed" || g.rsvp === "declined") && (
+                {(g.rsvp === "confirmed" || g.rsvp === "declined" || g.rsvp === "maybe") && (
                   <span className={g.rsvp === "confirmed" ? base.tagSeated : base.tagUnseated}
-                    style={g.rsvp === "declined" ? { color: "var(--red)", borderColor: "var(--red)" } : undefined}>
+                    style={
+                      g.rsvp === "declined" ? { color: "var(--red)", borderColor: "var(--red)" } :
+                      g.rsvp === "maybe"    ? { color: "var(--warn)", borderColor: "var(--warn-border)", background: "var(--warn-bg)" } :
+                      undefined
+                    }>
                     {rsvpLabel(g.rsvp)}
                   </span>
                 )}

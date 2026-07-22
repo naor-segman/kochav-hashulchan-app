@@ -239,6 +239,7 @@ CREATE TABLE IF NOT EXISTS public.rsvp_responses (
   phone        text,
   attending    boolean     NOT NULL,
   guests_count integer     NOT NULL DEFAULT 1,
+  status       text        CHECK (status IS NULL OR status IN ('yes','no','maybe')),
   created_at   timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT ck_rsvp_guest_name_nonempty  CHECK (char_length(guest_name) > 0),
   CONSTRAINT ck_rsvp_guest_name_len       CHECK (char_length(guest_name) <= 200),
@@ -303,7 +304,7 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
     'site', CASE WHEN COALESCE((e.payload->'eventSite'->>'enabled')::boolean, false)
                  THEN e.payload->'eventSite' ELSE NULL END,
     -- hostess_token intentionally excluded (unlocks full guest list + seating)
-    'rsvp_token', e.rsvp_token, 'gift_token', e.gift_token)
+    'rsvp_token', e.rsvp_token, 'gift_token', e.gift_token, 'invite_token', e.invite_token)
   FROM public.events e
   WHERE token_value IS NOT NULL AND char_length(token_value) >= 8
     AND CASE token_type

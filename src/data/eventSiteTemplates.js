@@ -106,6 +106,7 @@ export function defaultEventSite(type) {
     shuttles: [],
     faq: t.faq.map(f => ({ ...f })),
     contactPhone: "",
+    rsvpMessage: "",    // personal note from the hosts, shown after RSVP
     sections: { schedule: true, location: true, shuttles: false, gift: true, blessings: true, faq: true },
   };
 }

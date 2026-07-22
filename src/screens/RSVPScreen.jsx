@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP } from "../utils/publicTokens.js";
 import styles from "./RSVPScreen.module.css";
 
@@ -14,6 +14,9 @@ const MOCK_EVENT = {
   brideName: "נועה",
   groomName: "טל",
   type: "חתונה",
+  inviteToken: "bbbbbbbb",
+  giftToken: "cccccccc",
+  site: { rsvpMessage: "היי, כאן נועה וטל — כיף שאתם באים לחגוג איתנו! 💛", coverPhoto: null },
 };
 
 function formatHebrewDate(isoDate) {
@@ -50,7 +53,7 @@ export default function RSVPScreen() {
   const [guestsCount, setGuestsCount] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [attending, setAttending] = useState(null);
+  const [answer, setAnswer] = useState(null); // "yes" | "maybe" | "no"
 
   useEffect(() => {
     let cancelled = false;
@@ -72,17 +75,12 @@ export default function RSVPScreen() {
     return () => { cancelled = true; };
   }, [token]);
 
-  const handleYesClick = () => {
-    setAttending(true);
-    setStep("yes-details");
-  };
+  const handleYesClick   = () => { setAnswer("yes");   setStep("details"); };
+  const handleMaybeClick = () => { setAnswer("maybe"); setStep("details"); };
+  const handleNoClick    = () => { setAnswer("no");    setStep("no-confirm"); };
 
-  const handleNoClick = () => {
-    setAttending(false);
-    setStep("no-confirm");
-  };
-
-  const handleSubmitYes = async (e) => {
+  // Submit for "yes" / "maybe" (both collect name + count).
+  const handleSubmitDetails = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
     setSubmitError("");
@@ -92,7 +90,8 @@ export default function RSVPScreen() {
         await submitRSVP(event.cloudId, {
           name: name.trim(),
           phone: phone.trim() || null,
-          attending: true,
+          status: answer,
+          attending: answer === "yes",
           guestsCount: Number(guestsCount),
         });
       }
@@ -110,8 +109,9 @@ export default function RSVPScreen() {
     try {
       if (event.cloudId) {
         await submitRSVP(event.cloudId, {
-          name: "",
+          name: name.trim(),
           phone: null,
+          status: "no",
           attending: false,
           guestsCount: 0,
         });
@@ -201,6 +201,10 @@ export default function RSVPScreen() {
                   <span className={styles.choiceBtnIcon} aria-hidden="true">✓</span>
                   כן, אגיע בשמחה
                 </button>
+                <button className={styles.btnMaybe} onClick={handleMaybeClick}>
+                  <span className={styles.choiceBtnIcon} aria-hidden="true">🤔</span>
+                  עדיין לא בטוח/ה
+                </button>
                 <button className={styles.btnNo} onClick={handleNoClick}>
                   <span className={styles.choiceBtnIcon} aria-hidden="true">✗</span>
                   לא אוכל להגיע
@@ -214,8 +218,8 @@ export default function RSVPScreen() {
     );
   }
 
-  // ── Yes Details ─────────────────────────────────────────────────────────────
-  if (step === "yes-details") {
+  // ── Details (yes / maybe) ───────────────────────────────────────────────────
+  if (step === "details") {
     return (
       <div className={styles.page}>
         <PageHeader />
@@ -230,9 +234,9 @@ export default function RSVPScreen() {
               )}
             </div>
 
-            <h2 className={styles.formTitle}>פרטי ההגעה</h2>
+            <h2 className={styles.formTitle}>{answer === "maybe" ? "נשמח לדעת מי אתם" : "פרטי ההגעה"}</h2>
 
-            <form onSubmit={handleSubmitYes} className={styles.form} noValidate>
+            <form onSubmit={handleSubmitDetails} className={styles.form} noValidate>
               <div className={styles.field}>
                 <label className={styles.fieldLabel} htmlFor="rsvp-name">
                   שם מלא *
@@ -295,7 +299,7 @@ export default function RSVPScreen() {
                 className={styles.btnSubmitYes}
                 disabled={submitting || !name.trim()}
               >
-                {submitting ? "שולח…" : "שלח אישור הגעה ←"}
+                {submitting ? "שולח…" : (answer === "maybe" ? "שלח תשובה ←" : "שלח אישור הגעה ←")}
               </button>
             </form>
 
@@ -335,8 +339,22 @@ export default function RSVPScreen() {
               >
                 😔
               </span>
-              <h2 className={styles.noConfirmTitle}>תודה שהודעת</h2>
-              <p className={styles.noConfirmBody}>נשמח לראותך בהזדמנות הבאה.</p>
+              <h2 className={styles.noConfirmTitle}>חבל שלא תוכל/י להגיע</h2>
+              <p className={styles.noConfirmBody}>נשמח אם תשאיר/י שם, כדי שנדע לעדכן את הרשימה.</p>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel} htmlFor="rsvp-no-name">שם מלא *</label>
+              <input
+                id="rsvp-no-name"
+                className={styles.input}
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="ישראל ישראלי"
+                autoComplete="name"
+                disabled={submitting}
+              />
             </div>
 
             {submitError && (
@@ -346,9 +364,9 @@ export default function RSVPScreen() {
             <button
               className={styles.btnSubmitNo}
               onClick={handleSubmitNo}
-              disabled={submitting}
+              disabled={submitting || !name.trim()}
             >
-              {submitting ? "שולח…" : "שלח אי-הגעה"}
+              {submitting ? "שולח…" : "שלח"}
             </button>
 
             <button
@@ -367,25 +385,51 @@ export default function RSVPScreen() {
   }
 
   // ── Submitted ───────────────────────────────────────────────────────────────
+  const site = event.site;
+  const titleByAnswer = {
+    yes:   "תודה! אישור ההגעה נשלח 🎉",
+    maybe: "קיבלנו — תודה שהודעת 🤔",
+    no:    "תודה שהודעת 💛",
+  };
+  const bodyByAnswer = {
+    yes:   "מחכים לראותך ולחגוג יחד!",
+    maybe: "נשמח אם תעדכן/י אותנו ברגע שתדע/י בוודאות.",
+    no:    "חבל שלא תוכל/י להגיע — נשמח לראותך בשמחה הבאה.",
+  };
+  const inviteUrl = event.inviteToken ? "/invite/" + event.inviteToken : null;
+  const giftUrl   = event.giftToken   ? "/gift/"   + event.giftToken   : null;
+
   return (
     <div className={styles.page}>
       <PageHeader />
       <div className={styles.cardWrap}>
         <div className={styles.card}>
           <div className={styles.successBlock}>
+            {site?.coverPhoto && (
+              <div className={styles.successPhoto} style={{ backgroundImage: `url(${site.coverPhoto})` }} aria-hidden="true" />
+            )}
             <div className={styles.checkCircle} aria-hidden="true">
-              <span className={styles.checkMark}>✓</span>
+              <span className={styles.checkMark}>{answer === "no" ? "💛" : "✓"}</span>
             </div>
-            <h2 className={styles.successTitle}>
-              {attending
-                ? "תודה! אישור ההגעה נשלח בהצלחה"
-                : "תגובתך נשלחה בהצלחה"}
-            </h2>
-            <p className={styles.successBody}>
-              {attending
-                ? "מחכים לראותך! 🎉"
-                : "תודה שהודעת. נשמח לראותך בהזדמנות הבאה."}
-            </p>
+            <h2 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתך נשלחה"}</h2>
+            <p className={styles.successBody}>{bodyByAnswer[answer]}</p>
+
+            {site?.rsvpMessage && (
+              <p className={styles.successPersonal}>"{site.rsvpMessage}"</p>
+            )}
+
+            <div className={styles.successActions}>
+              {inviteUrl && (
+                <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>
+              )}
+              {giftUrl && answer !== "no" && (
+                <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה 💝</Link>
+              )}
+              {giftUrl && answer === "no" && (
+                <Link to={giftUrl} className={styles.successBtnGhost}>גם אם לא מגיעים — אפשר לשמח במתנה 💝</Link>
+              )}
+            </div>
+
             <div className={styles.eventTag}>
               <span className={styles.eventTagMark} aria-hidden="true">✦</span>
               {event.name}

@@ -2,14 +2,14 @@
 
 .statsRow {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
   margin-bottom: 18px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .statsRow {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }
 
@@ -125,4 +125,23 @@
 @media (max-width: 480px) {
   .forecastRow { gap: 12px; }
   .forecastResult { padding: 10px 18px; }
+}
+
+/* Maybe (אולי) variants */
+.statMaybe {
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+}
+.statMaybe .statNum { color: var(--warn); }
+.badgeMaybe {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-border);
+  border-radius: 20px;
+  padding: 1px 9px;
+  margin-inline-start: 8px;
+  vertical-align: middle;
+  white-space: nowrap;
 }
