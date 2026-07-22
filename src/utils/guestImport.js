@@ -66,3 +66,21 @@ export function readCell(row, map, field) {
   const key = map[field];
   return key == null ? "" : row[key];
 }
+
+/**
+ * Resolve a raw "side" cell to the internal "bride" | "groom" key.
+ * Explicit words (חתן/כלה, groom/bride, or the event's own side labels) win;
+ * only then does the "second side" heuristic (ב׳ / 2 / b → groom) apply, so a
+ * value like "bride" is never mistaken for side B by its leading "b".
+ * Defaults to "bride" when nothing matches.
+ */
+export function parseSide(rawSide, brideLabel, groomLabel) {
+  const raw = String(rawSide ?? "").trim();
+  const n = raw.toLowerCase();
+  if (!raw) return "bride";
+  if (raw.includes("חתן") || raw === groomLabel || n.includes("groom")) return "groom";
+  if (raw.includes("כלה") || raw === brideLabel || n.includes("bride")) return "bride";
+  if (/^(ב|ב['׳’]|2|b)$/.test(n)) return "groom";
+  if (/^(א|א['׳’]|1|a)$/.test(n)) return "bride";
+  return "bride";
+}

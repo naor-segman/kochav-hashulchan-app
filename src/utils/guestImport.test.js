@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildColumnMap, normalizeHeader, readCell } from "./guestImport.js";
+import { buildColumnMap, normalizeHeader, readCell, parseSide } from "./guestImport.js";
 
 describe("guestImport.buildColumnMap", () => {
   it("maps our own template headers", () => {
@@ -50,5 +50,36 @@ describe("guestImport.buildColumnMap", () => {
   it("normalizeHeader strips punctuation and case", () => {
     expect(normalizeHeader("  Full_Name ")).toBe("fullname");
     expect(normalizeHeader('טלפון נייד')).toBe("טלפוןנייד");
+  });
+});
+
+describe("guestImport.parseSide", () => {
+  it("recognizes Hebrew side words", () => {
+    expect(parseSide("חתן")).toBe("groom");
+    expect(parseSide("כלה")).toBe("bride");
+    expect(parseSide("צד חתן")).toBe("groom");
+  });
+
+  it("recognizes English side words without the b-heuristic misfiring", () => {
+    expect(parseSide("bride")).toBe("bride");   // regression: leading "b" must not read as side B
+    expect(parseSide("groom")).toBe("groom");
+    expect(parseSide("Bride")).toBe("bride");
+  });
+
+  it("applies the a/b · 1/2 · א/ב heuristic only for bare tokens", () => {
+    expect(parseSide("ב")).toBe("groom");
+    expect(parseSide("2")).toBe("groom");
+    expect(parseSide("א")).toBe("bride");
+    expect(parseSide("1")).toBe("bride");
+  });
+
+  it("matches the event's own custom side labels", () => {
+    expect(parseSide("הנהלה", "הנהלה", "עובדים")).toBe("bride");
+    expect(parseSide("עובדים", "הנהלה", "עובדים")).toBe("groom");
+  });
+
+  it("defaults to bride when empty or unknown", () => {
+    expect(parseSide("")).toBe("bride");
+    expect(parseSide("משהו אחר")).toBe("bride");
   });
 });

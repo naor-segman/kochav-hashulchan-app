@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
 import { getSideLabels, getSideLabel } from "../utils/eventHelpers.js";
-import { buildColumnMap, readCell } from "../utils/guestImport.js";
+import { buildColumnMap, readCell, parseSide } from "../utils/guestImport.js";
 import { uid } from "../utils/uid.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canAddGuest } from "../utils/featureGates.js";
@@ -76,11 +76,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
         if (!newCustomGroups.includes(rawGroup)) newCustomGroups.push(rawGroup);
       }
 
-      let side = "bride";
-      const rawSide = String(readCell(r, col, "side") || "").trim();
-      const rawSideN = rawSide.toLowerCase();
-      if (rawSide.includes("חתן") || rawSide === groomSide || /(^|[^א-ת])(ב|2|b)([^א-ת]|$)/.test(rawSideN) || rawSideN.includes("groom")) side = "groom";
-      else if (rawSide.includes("כלה") || rawSide === brideSide || rawSideN.includes("bride")) side = "bride";
+      const side = parseSide(readCell(r, col, "side"), brideSide, groomSide);
 
       const rawRsvp = String(readCell(r, col, "rsvp") || "").trim().toLowerCase();
       const rsvp = rawRsvp.includes("אישר") || rawRsvp === "confirmed" ? "confirmed"
