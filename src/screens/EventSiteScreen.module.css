@@ -69,8 +69,8 @@
   color: var(--s-accent); margin-bottom: 20px;
 }
 .heroNames {
-  font-family: "Rubik", sans-serif; font-weight: 500; font-size: clamp(30px, 9vw, 48px);
-  line-height: 1.1; color: var(--s-ink); letter-spacing: -.01em;
+  font-family: var(--font-family-serif); font-weight: 700; font-size: clamp(32px, 9.5vw, 52px);
+  line-height: 1.06; color: var(--s-ink); letter-spacing: -.005em;
 }
 .heroEn {
   font-family: "Rubik", sans-serif; font-size: 15px; letter-spacing: .28em;
@@ -97,8 +97,8 @@
 /* ── Sections ── */
 .section { max-width: var(--maxw); margin: 0 auto; padding: 40px 22px; }
 .secTitle {
-  font-family: "Rubik", sans-serif; font-size: clamp(21px, 5vw, 26px); font-weight: 700; text-align: center;
-  color: var(--s-ink); margin-bottom: 28px; letter-spacing: -.015em;
+  font-family: var(--font-family-serif); font-size: clamp(22px, 5vw, 28px); font-weight: 700; text-align: center;
+  color: var(--s-ink); margin-bottom: 28px; letter-spacing: -.01em;
 }
 .secTitle::after {
   content: ""; display: block; width: 34px; height: 2px; border-radius: 2px;

@@ -159,11 +159,12 @@
 }
 
 .eventName {
-  font-size: clamp(1.45rem, 4vw, 1.85rem);
+  font-family: var(--font-family-serif);
+  font-size: clamp(1.5rem, 4.2vw, 2rem);
   font-weight: 700;
   color: var(--text);
   margin: 0 0 6px;
-  line-height: 1.2;
+  line-height: 1.18;
   text-wrap: balance;
 }
 

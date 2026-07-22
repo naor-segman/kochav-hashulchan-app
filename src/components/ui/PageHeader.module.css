@@ -14,7 +14,7 @@
     gap: 8px;
   }
   .pageTitle {
-    font-size: 19px;
+    font-size: 22px;
   }
 }
 
@@ -24,10 +24,11 @@
 }
 
 .pageTitle {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  margin-bottom: 2px;
+  font-family: var(--font-family-serif);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  margin-bottom: 3px;
 }
 
 .icon {
