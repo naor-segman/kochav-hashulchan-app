@@ -70,13 +70,14 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  min-width: 480px;
+  min-width: 560px;
 }
 
-/* Shared row grid */
+/* Shared row grid — category column has a readable min so names never clip;
+   the whole table scrolls horizontally inside .tableWrap on narrow screens. */
 .tableRow {
   display: grid;
-  grid-template-columns: 1fr 130px 130px 100px 36px;
+  grid-template-columns: minmax(150px, 1.4fr) 120px 120px 96px 34px;
   gap: 8px;
   align-items: center;
   padding: 8px 14px;
