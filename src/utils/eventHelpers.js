@@ -31,6 +31,16 @@ export function normalizeEvent(ev) {
     venue:       ev.venue       ?? "",
     brideName:        ev.brideName        ?? "",
     groomName:        ev.groomName        ?? "",
+    // Couple composition for weddings/engagements/henna — drives the default
+    // side-role wording so same-sex couples get correct labels.
+    // "bride-groom" (default) | "groom-groom" | "bride-bride".
+    coupleType:       ev.coupleType       ?? "bride-groom",
+    // Custom side labels — optional per-event override of the two side names,
+    // available for EVERY event type. Both must be non-empty to take effect;
+    // otherwise getSideLabels() falls back to the type-based defaults.
+    sideLabels: (ev.sideLabels && typeof ev.sideLabels === "object")
+      ? { bride: (ev.sideLabels.bride ?? "").trim(), groom: (ev.sideLabels.groom ?? "").trim() }
+      : null,
     // Personal fields — populated depending on event type (bar/bat mitzvah, business, etc.)
     celebrantName:    ev.celebrantName    ?? "",
     organizationName: ev.organizationName ?? "",
@@ -206,17 +216,40 @@ export function duplicateEvent(ev) {
   });
 }
 
+// Default side-role wording for couples, by composition. Used when the host
+// hasn't typed the partners' names. Same-sex couples get distinct "א׳/ב׳"
+// suffixes so the two sides stay tellable apart without names.
+const COUPLE_ROLE_WORDS = {
+  "bride-groom": { bride: "צד כלה",    groom: "צד חתן"    },
+  "groom-groom": { bride: "צד חתן א׳", groom: "צד חתן ב׳" },
+  "bride-bride": { bride: "צד כלה א׳", groom: "צד כלה ב׳" },
+};
+
+// Couple-type options offered in the setup screen for wedding-like events.
+export const COUPLE_TYPES = [
+  { value: "bride-groom", label: "כלה וחתן",  brideLabel: "שם הכלה",  groomLabel: "שם החתן"  },
+  { value: "groom-groom", label: "חתן וחתן",  brideLabel: "שם החתן",  groomLabel: "שם החתן השני" },
+  { value: "bride-bride", label: "כלה וכלה",  brideLabel: "שם הכלה",  groomLabel: "שם הכלה השנייה" },
+];
+
 /**
  * Returns both side labels for a given event, keyed by "bride" and "groom"
  * (the internal storage values, preserved for backward compatibility).
- * Labels adapt to the event type so the UI feels personal and event-aware.
+ * Priority: custom per-event override → couple-type/name-aware wedding labels
+ * → event-type defaults. Labels adapt so the UI feels personal and event-aware.
  */
 export function getSideLabels(ev) {
+  // Custom per-event override wins for any event type (both must be filled).
+  const custom = ev?.sideLabels;
+  if (custom && custom.bride && custom.groom) {
+    return { bride: custom.bride, groom: custom.groom };
+  }
   const type = ev?.type || "חתונה";
   if (type === "חתונה" || type === "אירוס" || type === "חינה") {
+    const roles = COUPLE_ROLE_WORDS[ev?.coupleType] || COUPLE_ROLE_WORDS["bride-groom"];
     return {
-      bride: ev.brideName ? "צד " + ev.brideName : "צד כלה",
-      groom: ev.groomName ? "צד " + ev.groomName : "צד חתן",
+      bride: ev?.brideName ? "צד " + ev.brideName : roles.bride,
+      groom: ev?.groomName ? "צד " + ev.groomName : roles.groom,
     };
   }
   if (type === "בר מצווה" || type === "בת מצווה") {

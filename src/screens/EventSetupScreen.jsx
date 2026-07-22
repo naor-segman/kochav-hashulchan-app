@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { EVENT_TYPES } from "../data/constants.js";
-import { getEventPersonalConfig, getEventNamePlaceholder } from "../utils/eventHelpers.js";
+import { getEventPersonalConfig, getEventNamePlaceholder, getSideLabels, COUPLE_TYPES } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Divider from "../components/ui/Divider.jsx";
 import Field from "../components/ui/Field.jsx";
@@ -25,6 +25,10 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     venue:            ev.venue            || "",
     brideName:        ev.brideName        || "",
     groomName:        ev.groomName        || "",
+    coupleType:       ev.coupleType       || "bride-groom",
+    sideLabels: (ev.sideLabels && ev.sideLabels.bride && ev.sideLabels.groom)
+      ? { bride: ev.sideLabels.bride, groom: ev.sideLabels.groom }
+      : { bride: "", groom: "" },
     celebrantName:    ev.celebrantName    || "",
     organizationName: ev.organizationName || "",
     contactName:      ev.contactName      || "",
@@ -53,6 +57,12 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     setDirty(true);
     setSaved(false);
     if (errors[k]) setErrors(p => { const n = { ...p }; delete n[k]; return n; });
+  };
+
+  const setSideLabel = (which, v) => {
+    setForm(p => Object.assign({}, p, { sideLabels: { ...p.sideLabels, [which]: v } }));
+    setDirty(true);
+    setSaved(false);
   };
 
   const validate = () => {
@@ -92,6 +102,10 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   const personal        = getEventPersonalConfig(form.type);
   const namePlaceholder = getEventNamePlaceholder(form.type);
   const isNew           = !ev.name;
+  const coupleCfg       = COUPLE_TYPES.find(c => c.value === form.coupleType) || COUPLE_TYPES[0];
+  // Effective labels the guests/lists will show — used as live placeholders so
+  // the host sees what each side is called before overriding it.
+  const effectiveLabels = getSideLabels({ ...form, sideLabels: null });
 
   return (
     <div className={base.page}>
@@ -160,11 +174,25 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {personal.kind === "wedding" && (
           <>
             <Divider label={personal.divider} />
+            <Field label="בני הזוג" hint="נתאים את התיוג בכל המערכת בהתאם">
+              <div className={base.seg}>
+                {COUPLE_TYPES.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    className={[base.segBtn, form.coupleType === c.value ? base.segActive : ""].filter(Boolean).join(" ")}
+                    onClick={() => set("coupleType", c.value)}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </Field>
             <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              ישמשו לתיוג אורחים ("צד כלה" / "צד חתן") לאורך כל המערכת.
+              ישמשו לתיוג אורחים ("{effectiveLabels.bride}" / "{effectiveLabels.groom}") לאורך כל המערכת.
             </p>
             <div className={base.grid2}>
-              <Field label="שם הכלה">
+              <Field label={coupleCfg.brideLabel}>
                 <input
                   className={base.input}
                   value={form.brideName}
@@ -172,7 +200,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
                   onChange={e => set("brideName", e.target.value)}
                 />
               </Field>
-              <Field label="שם החתן">
+              <Field label={coupleCfg.groomLabel}>
                 <input
                   className={base.input}
                   value={form.groomName}
@@ -248,6 +276,30 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
             </div>
           </>
         )}
+
+        {/* ── Custom side names — available for every event type ── */}
+        <Divider label="שמות הצדדים (אופציונלי)" />
+        <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+          שני הצדדים לתיוג האורחים והושבה מאוזנת. השאירו ריק לשימוש בברירת המחדל של סוג האירוע.
+        </p>
+        <div className={base.grid2}>
+          <Field label="צד ראשון">
+            <input
+              className={base.input}
+              value={form.sideLabels.bride}
+              placeholder={effectiveLabels.bride}
+              onChange={e => setSideLabel("bride", e.target.value)}
+            />
+          </Field>
+          <Field label="צד שני">
+            <input
+              className={base.input}
+              value={form.sideLabels.groom}
+              placeholder={effectiveLabels.groom}
+              onChange={e => setSideLabel("groom", e.target.value)}
+            />
+          </Field>
+        </div>
 
         <div className={base.formActions}>
           <button className={base.btnPrimary} onClick={saveAndNext}>
