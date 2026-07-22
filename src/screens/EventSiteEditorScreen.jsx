@@ -294,9 +294,14 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         <button className={base.btnSecondary} onClick={addFaq}>+ הוסף שאלה</button>
       </div>
 
-      {/* ── Contact ── */}
+      {/* ── Personal message + contact ── */}
       <div className={base.card}>
-        <SectionLabel>יצירת קשר</SectionLabel>
+        <SectionLabel>הודעה אישית ויצירת קשר</SectionLabel>
+        <Field label="הודעה אישית מכם (אופציונלי)" hint='תוצג לאורח אחרי אישור ההגעה. למשל: "היי, כאן נאור וירדן — כיף שאתם באים לחגוג איתנו!"'>
+          <textarea className={base.textarea} rows={2} value={site.rsvpMessage}
+            placeholder="כמה מילים חמות מכם לאורחים…"
+            onChange={e => set({ rsvpMessage: e.target.value })} />
+        </Field>
         <Field label="טלפון לוואטסאפ (אופציונלי)" hint="אורחים יוכלו לפנות אליכם ישירות מהאתר">
           <input className={base.input} value={site.contactPhone} placeholder="050-1234567" inputMode="tel"
             onChange={e => set({ contactPhone: e.target.value })} />

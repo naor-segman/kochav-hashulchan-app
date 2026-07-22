@@ -14,6 +14,11 @@ function normName(s) {
   return (s || "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+// A response's answer: prefer the new status column, fall back to the boolean.
+const respStatus = (r) => r.status || (r.attending ? "yes" : "no");
+// Map an RSVP answer to a guest-list rsvp value.
+const GUEST_RSVP = { yes: "confirmed", maybe: "maybe", no: "declined" };
+
 function formatDate(iso) {
   try {
     return new Date(iso).toLocaleDateString("he-IL", {
@@ -53,10 +58,11 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   }, [ev.guests]);
 
   const stats = useMemo(() => {
-    const confirmed = responses.filter(r => r.attending);
-    const declined  = responses.filter(r => !r.attending);
+    const confirmed = responses.filter(r => respStatus(r) === "yes");
+    const maybe     = responses.filter(r => respStatus(r) === "maybe");
+    const declined  = responses.filter(r => respStatus(r) === "no");
     const coming    = confirmed.reduce((s, r) => s + (r.guests_count || 1), 0);
-    return { total: responses.length, confirmed: confirmed.length, declined: declined.length, coming };
+    return { total: responses.length, confirmed: confirmed.length, maybe: maybe.length, declined: declined.length, coming };
   }, [responses]);
 
   // Meal forecast — count confirmed seats across the guest list (manual +
@@ -71,19 +77,20 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   // A response is "applied" when the matched guest already reflects it.
   const isApplied = useCallback((r, guest) => {
     if (!guest) return false;
-    const wantStatus = r.attending ? "confirmed" : "declined";
+    const wantStatus = GUEST_RSVP[respStatus(r)];
     if ((guest.rsvp || "pending") !== wantStatus) return false;
-    if (r.attending && (guest.count || 1) !== (r.guests_count || 1)) return false;
+    if (respStatus(r) !== "no" && (guest.count || 1) !== (r.guests_count || 1)) return false;
     return true;
   }, []);
 
   const applyToGuest = useCallback((r, guest) => {
+    const hasCount = respStatus(r) !== "no"; // yes + maybe carry a party size
     const patchGuests = ev.guests.map(g =>
       g.id === guest.id
         ? {
             ...g,
-            rsvp:  r.attending ? "confirmed" : "declined",
-            count: r.attending ? (r.guests_count || 1) : (g.count || 1),
+            rsvp:  GUEST_RSVP[respStatus(r)],
+            count: hasCount ? (r.guests_count || 1) : (g.count || 1),
             phone: g.phone || r.phone || "",
           }
         : g
@@ -93,15 +100,16 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   }, [ev.guests, patchEvent, showToast]);
 
   const addAsGuest = useCallback((r) => {
+    const hasCount = respStatus(r) !== "no";
     const newGuest = {
       id: uid(),
       name: (r.guest_name || "").trim(),
       side: "bride",
       group: "אחר",
-      count: r.attending ? (r.guests_count || 1) : 1,
+      count: hasCount ? (r.guests_count || 1) : 1,
       phone: r.phone || "",
       notes: "",
-      rsvp: r.attending ? "confirmed" : "declined",
+      rsvp: GUEST_RSVP[respStatus(r)],
     };
     patchEvent({ guests: [...ev.guests, newGuest] });
     showToast(`"${newGuest.name}" נוסף לרשימת האורחים ✓`);
@@ -133,6 +141,10 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
           <div className={[styles.statTile, styles.statOk].join(" ")}>
             <span className={styles.statNum}>{stats.coming}</span>
             <span className={styles.statLabel}>אורחים מגיעים</span>
+          </div>
+          <div className={[styles.statTile, styles.statMaybe].join(" ")}>
+            <span className={styles.statNum}>{stats.maybe}</span>
+            <span className={styles.statLabel}>אולי</span>
           </div>
           <div className={[styles.statTile, styles.statNo].join(" ")}>
             <span className={styles.statNum}>{stats.declined}</span>
@@ -236,9 +248,9 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                   <div className={base.gInfo}>
                     <span className={base.gName}>
                       {r.guest_name}
-                      {r.attending
-                        ? <span className={styles.badgeYes}>מגיעים · {r.guests_count || 1}</span>
-                        : <span className={styles.badgeNo}>לא מגיעים</span>}
+                      {respStatus(r) === "yes"   && <span className={styles.badgeYes}>מגיעים · {r.guests_count || 1}</span>}
+                      {respStatus(r) === "maybe" && <span className={styles.badgeMaybe}>אולי</span>}
+                      {respStatus(r) === "no"    && <span className={styles.badgeNo}>לא מגיעים</span>}
                     </span>
                     <span className={base.gMeta}>
                       {r.phone ? r.phone + " · " : ""}{formatDate(r.created_at)}

@@ -130,6 +130,7 @@
   --nav-text-rgb: 234, 246, 248;
   --green-rgb:    31, 157, 107;
   --red-rgb:      209, 67, 67;
+  --warn-rgb:     201, 138, 22;
   /* White text on colored (accent / cta / green / red) backgrounds */
   --on-accent:    #fff;
 

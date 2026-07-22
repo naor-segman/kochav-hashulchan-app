@@ -35,7 +35,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
     if (id === "site")    return !!activeEvent.eventSite?.enabled;
     if (id === "tables")  return activeEvent.tables.length > 0;
     if (id === "guests")  return activeEvent.guests.length > 0;
-    if (id === "rsvps")   return activeEvent.guests.some(g => g.rsvp === "confirmed" || g.rsvp === "declined");
+    if (id === "rsvps")   return activeEvent.guests.some(g => g.rsvp === "confirmed" || g.rsvp === "declined" || g.rsvp === "maybe");
     if (id === "seating") return Object.keys(activeEvent.seating).length > 0;
     return false;
   };

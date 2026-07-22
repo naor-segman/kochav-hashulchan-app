@@ -1,5 +1,5 @@
 const TABLE_TYPE_HE = { regular: "רגיל", vip: "VIP", head: "שולחן ראשי" };
-const RSVP_HE = { confirmed: "אישר/ה", declined: "סירב/ה", pending: "ממתין" };
+const RSVP_HE = { confirmed: "אישר/ה", declined: "סירב/ה", maybe: "אולי", pending: "ממתין" };
 const rsvpHe = r => RSVP_HE[r] || "ממתין";
 const MEAL_HE = { regular: "רגיל", kosher: "כשר מהדרין", vegan: "טבעוני", vegetarian: "צמחוני", child: "ילדים", none: "לא אוכל" };
 const mealHe = m => MEAL_HE[m] || "רגיל";
