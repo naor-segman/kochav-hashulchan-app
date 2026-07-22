@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
 import { getSideLabels, getSideLabel } from "../utils/eventHelpers.js";
+import { buildColumnMap, readCell } from "../utils/guestImport.js";
 import { uid } from "../utils/uid.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canAddGuest } from "../utils/featureGates.js";
@@ -37,11 +38,15 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
     const invalid         = [];
     const newCustomGroups = [];
 
+    // Map the file's actual headers to our logical fields so lists from other
+    // services / hand-made sheets import without renaming columns.
+    const col = buildColumnMap(rawRows[0] || {});
+
     rawRows.forEach(r => {
-      const name = String(r["שם מלא"] || r["שם"] || "").trim();
+      const name = String(readCell(r, col, "name") || "").trim();
       if (!name || name.startsWith("דוגמה") || name.startsWith("(")) return;
 
-      const rawCount    = r["כמות"] ?? r["מספר מוזמנים"];
+      const rawCount    = readCell(r, col, "count");
       const rawCountStr = String(rawCount ?? "").trim();
       let count = 1;
       if (rawCountStr !== "") {
@@ -54,12 +59,12 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
       }
 
       // Restore leading zero if Excel converted a phone number to a 9-digit integer
-      const rawPhone = r["טלפון"];
+      const rawPhone = readCell(r, col, "phone");
       let phone = String(rawPhone ?? "").trim();
       if (phone && /^\d{9}$/.test(phone)) phone = "0" + phone;
 
-      const notes    = String(r["הערות"] || "").trim();
-      const rawGroup = String(r["קבוצה"] || "").trim();
+      const notes    = String(readCell(r, col, "notes") || "").trim();
+      const rawGroup = String(readCell(r, col, "group") || "").trim();
       const knownGroups = new Set([...GROUP_OPTIONS, ...(ev.customGroups || [])]);
       let group;
       if (!rawGroup) {
@@ -72,17 +77,18 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
       }
 
       let side = "bride";
-      const rawSide = String(r["צד"] || "").trim();
-      if (rawSide.includes("חתן") || rawSide === groomSide) side = "groom";
-      else if (rawSide.includes("כלה") || rawSide === brideSide) side = "bride";
+      const rawSide = String(readCell(r, col, "side") || "").trim();
+      const rawSideN = rawSide.toLowerCase();
+      if (rawSide.includes("חתן") || rawSide === groomSide || /(^|[^א-ת])(ב|2|b)([^א-ת]|$)/.test(rawSideN) || rawSideN.includes("groom")) side = "groom";
+      else if (rawSide.includes("כלה") || rawSide === brideSide || rawSideN.includes("bride")) side = "bride";
 
-      const rawRsvp = String(r["RSVP"] || r["סטטוס"] || "").trim().toLowerCase();
+      const rawRsvp = String(readCell(r, col, "rsvp") || "").trim().toLowerCase();
       const rsvp = rawRsvp.includes("אישר") || rawRsvp === "confirmed" ? "confirmed"
         : rawRsvp.includes("סירב") || rawRsvp === "declined" ? "declined"
         : rawRsvp.includes("אולי") || rawRsvp === "maybe" ? "maybe"
         : "pending";
 
-      const rawMeal = String(r["מנה"] || "").trim();
+      const rawMeal = String(readCell(r, col, "meal") || "").trim();
       const meal = rawMeal === "כשר מהדרין" ? "kosher"
         : rawMeal === "טבעוני" ? "vegan"
         : rawMeal === "צמחוני" ? "vegetarian"
@@ -132,8 +138,15 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
           rows     = XLSX.utils.sheet_to_json(ws, { defval: "" });
         }
         if (!rows.length) { setParseErr("לא נמצאו שורות בקובץ"); return; }
-        if (!rows[0] || (!("שם מלא" in rows[0]) && !("שם" in rows[0]))) {
-          setParseErr("הקובץ לא נראה כתבנית שלנו. ודא שהורדת את התבנית ומילאת אותה.");
+        // Flexible header detection — accept any file that has a recognizable
+        // name column, not only our exact template.
+        const colMap = buildColumnMap(rows[0] || {});
+        if (!colMap.name) {
+          const found = Object.keys(rows[0] || {}).filter(Boolean).slice(0, 8).join(", ");
+          setParseErr(
+            "לא זוהתה עמודת שם בקובץ. ודאו שיש כותרת כמו \"שם\" או \"שם מלא\"." +
+            (found ? " (כותרות שזוהו: " + found + ")" : "")
+          );
           return;
         }
         const result = classifyRows(rows);
