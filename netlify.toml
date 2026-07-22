@@ -5,6 +5,11 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Per-event OG tags for shared event-site links (WhatsApp/Facebook previews).
+[[edge_functions]]
+  path     = "/invite/*"
+  function = "invite-og"
+
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
