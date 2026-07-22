@@ -17,7 +17,7 @@ export default function LoginScreen() {
   const { user, loading, signIn } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
-  const from      = location.state?.from || "/account";
+  const from      = location.state?.from || "/app";
 
   const [email,       setEmail]       = useState("");
   const [password,    setPassword]    = useState("");
