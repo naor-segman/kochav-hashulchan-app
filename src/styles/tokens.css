@@ -6,6 +6,9 @@
   --font-family-base:    "Heebo", system-ui, -apple-system, Arial, sans-serif;
   /* Display / heading face — crisp modern Israeli voice */
   --font-family-display: "Rubik", "Heebo", system-ui, -apple-system, Arial, sans-serif;
+  /* Editorial serif — for headlines & section titles. Frank Ruhl Libre is an
+     elegant Hebrew serif; falls back to a system serif so it always renders. */
+  --font-family-serif:   "Frank Ruhl Libre", "Georgia", "Times New Roman", serif;
 
   /* ─────────────────────────────────────────────────────────────
      Typography scale — used by reset.css (base styles) and utilities.css
