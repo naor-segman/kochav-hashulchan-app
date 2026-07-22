@@ -215,7 +215,6 @@
 .heroGold {
   color: var(--accent);
   display: block;
-  font-style: italic;
   font-weight: 500;
 }
 
