@@ -79,18 +79,18 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     if (!guest) return false;
     const wantStatus = GUEST_RSVP[respStatus(r)];
     if ((guest.rsvp || "pending") !== wantStatus) return false;
-    if (respStatus(r) === "yes" && (guest.count || 1) !== (r.guests_count || 1)) return false;
+    if (respStatus(r) !== "no" && (guest.count || 1) !== (r.guests_count || 1)) return false;
     return true;
   }, []);
 
   const applyToGuest = useCallback((r, guest) => {
-    const isYes = respStatus(r) === "yes";
+    const hasCount = respStatus(r) !== "no"; // yes + maybe carry a party size
     const patchGuests = ev.guests.map(g =>
       g.id === guest.id
         ? {
             ...g,
             rsvp:  GUEST_RSVP[respStatus(r)],
-            count: isYes ? (r.guests_count || 1) : (g.count || 1),
+            count: hasCount ? (r.guests_count || 1) : (g.count || 1),
             phone: g.phone || r.phone || "",
           }
         : g
@@ -100,13 +100,13 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   }, [ev.guests, patchEvent, showToast]);
 
   const addAsGuest = useCallback((r) => {
-    const isYes = respStatus(r) === "yes";
+    const hasCount = respStatus(r) !== "no";
     const newGuest = {
       id: uid(),
       name: (r.guest_name || "").trim(),
       side: "bride",
       group: "אחר",
-      count: isYes ? (r.guests_count || 1) : 1,
+      count: hasCount ? (r.guests_count || 1) : 1,
       phone: r.phone || "",
       notes: "",
       rsvp: GUEST_RSVP[respStatus(r)],

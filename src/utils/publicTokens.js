@@ -92,7 +92,8 @@ export async function submitRSVP(eventCloudId, response) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   // status: "yes" | "no" | "maybe" — `attending` stays for backward compat.
   const status = response.status || (response.attending ? "yes" : "no");
-  const rawCount = status === "yes" ? (response.guestsCount ?? 1) : 0;
+  // Keep the party size for "yes" and "maybe" (both collect it); "no" is 0.
+  const rawCount = status === "no" ? 0 : (response.guestsCount ?? 1);
   const { error } = await supabase.from("rsvp_responses").insert({
     event_id:     eventCloudId,
     guest_name:   response.name,

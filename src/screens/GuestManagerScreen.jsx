@@ -79,6 +79,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
       const rawRsvp = String(r["RSVP"] || r["סטטוס"] || "").trim().toLowerCase();
       const rsvp = rawRsvp.includes("אישר") || rawRsvp === "confirmed" ? "confirmed"
         : rawRsvp.includes("סירב") || rawRsvp === "declined" ? "declined"
+        : rawRsvp.includes("אולי") || rawRsvp === "maybe" ? "maybe"
         : "pending";
 
       const rawMeal = String(r["מנה"] || "").trim();

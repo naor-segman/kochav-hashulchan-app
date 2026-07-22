@@ -418,17 +418,19 @@ export default function RSVPScreen() {
               <p className={styles.successPersonal}>"{site.rsvpMessage}"</p>
             )}
 
-            <div className={styles.successActions}>
-              {inviteUrl && (
-                <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>
-              )}
-              {giftUrl && answer !== "no" && (
-                <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה 💝</Link>
-              )}
-              {giftUrl && answer === "no" && (
-                <Link to={giftUrl} className={styles.successBtnGhost}>גם אם לא מגיעים — אפשר לשמח במתנה 💝</Link>
-              )}
-            </div>
+            {(inviteUrl || giftUrl) && (
+              <div className={styles.successActions}>
+                {inviteUrl && (
+                  <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>
+                )}
+                {giftUrl && answer !== "no" && (
+                  <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה 💝</Link>
+                )}
+                {giftUrl && answer === "no" && (
+                  <Link to={giftUrl} className={styles.successBtnGhost}>גם אם לא מגיעים — אפשר לשמח במתנה 💝</Link>
+                )}
+              </div>
+            )}
 
             <div className={styles.eventTag}>
               <span className={styles.eventTagMark} aria-hidden="true">✦</span>
