@@ -296,6 +296,12 @@
   font-weight: 700;
 }
 
+.segActive {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .segTog {
   background: var(--green-bg);
   color: var(--green);
