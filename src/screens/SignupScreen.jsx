@@ -33,7 +33,7 @@ export default function SignupScreen() {
   const [resentError, setResentError] = useState("");
 
   useEffect(() => {
-    if (!loading && user) navigate("/account", { replace: true });
+    if (!loading && user) navigate("/app", { replace: true });
   }, [loading, user, navigate]);
 
   const handleSubmit = async (e) => {
@@ -55,7 +55,7 @@ export default function SignupScreen() {
       if (needsConfirmation) {
         setDone(true);
       } else {
-        navigate("/account", { replace: true });
+        navigate("/app", { replace: true });
       }
     } catch (err) {
       setError(friendlyError(err.message));
