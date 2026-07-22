@@ -201,7 +201,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         </div>
         {site.schedule.map(item => (
           <div key={item.id} className={styles.scheduleRow}>
-            <input className={[base.input, styles.timeInput].join(" ")} value={item.time} placeholder="19:00"
+            <input className={[base.input, styles.timeInput].join(" ")} type="time" value={item.time}
               onChange={e => editSchedule(item.id, { time: e.target.value })} />
             <input className={[base.input, styles.iconInput].join(" ")} value={item.icon} placeholder="💍"
               onChange={e => editSchedule(item.id, { icon: e.target.value })} />
@@ -244,7 +244,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>הוסיפו מסלולי הסעה הלוך וחזור עם שעות ונקודות איסוף.</p>
         {(site.shuttles || []).map(s => (
           <div key={s.id} className={styles.scheduleRow}>
-            <input className={[base.input, styles.timeInput].join(" ")} value={s.time} placeholder="17:15"
+            <input className={[base.input, styles.timeInput].join(" ")} type="time" value={s.time}
               onChange={e => editShuttle(s.id, { time: e.target.value })} />
             <select className={[base.select, styles.dirSelect].join(" ")} value={s.direction}
               onChange={e => editShuttle(s.id, { direction: e.target.value })}>
