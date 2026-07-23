@@ -6,15 +6,18 @@ import { SYNC_STATUS } from "../../utils/cloudSync.js";
 import NavBadge from "../navigation/NavBadge.jsx";
 import styles from "./Shell.module.css";
 
+// 5 numbered core steps (the build spine) + un-numbered tools, so the nav
+// matches the "שלב X מתוך 5" badges the screens show.
 const NAV = [
-  { id: "setup",       label: "האירוע",     num: 1 },
-  { id: "site",        label: "אתר האירוע", num: 2 },
-  { id: "tables",      label: "שולחנות",    num: 3 },
-  { id: "guests",      label: "אורחים",     num: 4 },
-  { id: "rsvps",       label: "אישורים",    num: 5 },
-  { id: "constraints", label: "אילוצים",    num: 6 },
-  { id: "seating",     label: "הושבה",      num: 7 },
-  { id: "costs",       label: "עלויות",     num: 8 },
+  { id: "setup",       label: "האירוע",       num: 1 },
+  { id: "tables",      label: "שולחנות",      num: 2 },
+  { id: "guests",      label: "אורחים",       num: 3 },
+  { id: "constraints", label: "אילוצים",      num: 4 },
+  { id: "seating",     label: "הושבה",        num: 5 },
+  { id: "rsvps",       label: "אישורים",      tool: true },
+  { id: "collab",      label: "טבלה שיתופית", tool: true },
+  { id: "site",        label: "אתר האירוע",   tool: true },
+  { id: "costs",       label: "עלויות",       tool: true },
 ];
 
 export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {
@@ -92,13 +95,15 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
       {inEvent && (
         <nav className={styles.subnav}>
           <div className={styles.subnavInner}>
-            {NAV.map((n) => {
+            {NAV.map((n, i) => {
               const isActive = screen === n.id;
               const done     = stepDone(n.id);
               const showViol = n.id === "seating" && violationCount > 0;
+              const firstTool = n.tool && !NAV[i - 1]?.tool;
               return (
                 <button
                   key={n.id}
+                  data-firsttool={firstTool ? "1" : undefined}
                   className={[styles.subnavBtn, isActive && styles.subnavActive].filter(Boolean).join(" ")}
                   onClick={() => {
                     if (n.id !== "setup" && !activeEvent.name?.trim()) {
@@ -114,7 +119,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
                     done && !isActive && styles.stepDotDone,
                     isActive && styles.stepDotActive,
                   ].filter(Boolean).join(" ")}>
-                    {done && !isActive ? "✓" : n.num}
+                    {done && !isActive ? "✓" : (n.tool ? "•" : n.num)}
                   </span>
                   <span className={styles.subnavLabel}>{n.label}</span>
                   {n.id === "tables"      && activeEvent.tables.length > 0      && <NavBadge n={activeEvent.tables.length} />}

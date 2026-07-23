@@ -15,6 +15,13 @@ import {
 
 const norm = (s) => (s || "").toString().trim();
 const sideOf = (s) => (s === "groom" ? "groom" : "bride");
+const normName = (s) => norm(s).replace(/\s+/g, " ").toLowerCase();
+const normPhone = (p) => {
+  let d = (p || "").replace(/\D/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  if (d.startsWith("972")) d = "0" + d.slice(3);
+  return d;
+};
 
 // A collab row is complete enough to become a real guest.
 const collabComplete = (r) =>
@@ -72,12 +79,20 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       applied.current.set(row.id, sig);
       patchEvent((e) => {
         const guests = e.guests || [];
-        const existing = guests.find((g) => g.id === row.id);
-        const merged = guestFromCollab(row, existing);
-        return {
-          ...e,
-          guests: existing ? guests.map((g) => (g.id === row.id ? merged : g)) : [...guests, merged],
-        };
+        // Match by id first; else dedup against an existing guest by phone
+        // (strong) or name, so a family addition of someone already on the list
+        // updates them instead of creating a duplicate.
+        let existing = guests.find((g) => g.id === row.id);
+        if (!existing) {
+          const p = normPhone(row.phone);
+          existing = (p && guests.find((g) => normPhone(g.phone) === p)) ||
+                     guests.find((g) => normName(g.name) === normName(row.name));
+        }
+        if (existing) {
+          const merged = { ...guestFromCollab(row, existing), id: existing.id };
+          return { ...e, guests: guests.map((g) => (g.id === existing.id ? merged : g)) };
+        }
+        return { ...e, guests: [...guests, guestFromCollab(row, null)] };
       });
     };
 

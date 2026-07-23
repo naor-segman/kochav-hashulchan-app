@@ -144,9 +144,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const delGuest = (id, name) => {
     const tableId   = ev.seating[id];
     const tableName = tableId ? (ev.tables.find(t => t.id === tableId)?.name || null) : null;
+    const collabNote = ev.tokens?.collab ? "\n\nהאורח יימחק גם מהטבלה השיתופית של המשפחה." : "";
     const msg = tableName
-      ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית.\n\nפעולה זו אינה ניתנת לביטול."
-      : "למחוק את \"" + name + "\" מרשימת האורחים?\n\nפעולה זו אינה ניתנת לביטול.";
+      ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית." + collabNote + "\n\nפעולה זו אינה ניתנת לביטול."
+      : "למחוק את \"" + name + "\" מרשימת האורחים?" + collabNote + "\n\nפעולה זו אינה ניתנת לביטול.";
     if (!confirm(msg)) return;
     if (editId === id) { setEditId(null); setForm(EF); setCustomGroupInput(""); }
     patchEvent(e => Object.assign({}, e, {
