@@ -5,6 +5,7 @@ import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
+import InfoTip from "../components/ui/InfoTip.jsx";
 import FloorPlanEditor from "../components/floorplan/FloorPlanEditor.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -151,7 +152,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                   onChange={e => setBatch(p => Object.assign({}, p, { prefix: e.target.value }))}
                 />
               </Field>
-              <Field label="מקומות לשולחן">
+              <Field label={<>מקומות לשולחן <InfoTip text="כמה כיסאות יש סביב שולחן אחד — הקיבולת שלו. אורח שהוא משפחה נספר לפי מספר המקומות שהזנתם לו, כך שההושבה לא תחרוג מהקיבולת." /></>}>
                 <input className={base.input} type="number" min="1" max="100" value={batch.capacity}
                   onChange={e => setBatch(p => Object.assign({}, p, { capacity: e.target.value }))} />
               </Field>
