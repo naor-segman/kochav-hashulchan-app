@@ -192,5 +192,6 @@ export async function fetchGuestSubmissions(eventCloudId) {
 /** Host: mark a submission as imported so it isn't offered again. */
 export async function markSubmissionImported(id) {
   if (!isSupabaseConfigured || !supabase || !id) return;
-  await supabase.from("guest_submissions").update({ imported: true }).eq("id", id);
+  const { error } = await supabase.from("guest_submissions").update({ imported: true }).eq("id", id);
+  if (error) throw error;
 }

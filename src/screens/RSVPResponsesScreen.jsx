@@ -88,20 +88,24 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   const applyToGuest = useCallback((r, guest) => {
     const hasCount = respStatus(r) !== "no"; // yes + maybe carry a party size
     const comps = Array.isArray(r.companions) ? r.companions.filter(Boolean) : [];
-    const patchGuests = ev.guests.map(g =>
-      g.id === guest.id
-        ? {
-            ...g,
-            rsvp:  GUEST_RSVP[respStatus(r)],
-            count: hasCount ? (r.guests_count || 1) : (g.count || 1),
-            phone: g.phone || r.phone || "",
-            companions: comps.length ? comps : (g.companions || []),
-          }
-        : g
-    );
-    patchEvent({ guests: patchGuests });
+    // Functional updater so rapid successive edits don't clobber each other
+    // over a stale ev.guests snapshot.
+    patchEvent(e => ({
+      ...e,
+      guests: e.guests.map(g =>
+        g.id === guest.id
+          ? {
+              ...g,
+              rsvp:  GUEST_RSVP[respStatus(r)],
+              count: hasCount ? (r.guests_count || 1) : (g.count || 1),
+              phone: g.phone || r.phone || "",
+              companions: comps.length ? comps : (g.companions || []),
+            }
+          : g,
+      ),
+    }));
     showToast(`"${guest.name}" עודכן ברשימת האורחים ✓`);
-  }, [ev.guests, patchEvent, showToast]);
+  }, [patchEvent, showToast]);
 
   const addAsGuest = useCallback((r) => {
     const hasCount = respStatus(r) !== "no";
@@ -116,9 +120,9 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       rsvp: GUEST_RSVP[respStatus(r)],
       companions: Array.isArray(r.companions) ? r.companions.filter(Boolean) : [],
     };
-    patchEvent({ guests: [...ev.guests, newGuest] });
+    patchEvent(e => ({ ...e, guests: [...e.guests, newGuest] }));
     showToast(`"${newGuest.name}" נוסף לרשימת האורחים ✓`);
-  }, [ev.guests, patchEvent, showToast]);
+  }, [patchEvent, showToast]);
 
   const rsvpLink = ev.tokens?.rsvp
     ? window.location.origin + "/rsvp/" + ev.tokens.rsvp

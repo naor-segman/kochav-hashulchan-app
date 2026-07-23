@@ -39,6 +39,11 @@ DROP POLICY IF EXISTS "gs_owner_update" ON public.guest_submissions;
 CREATE POLICY "gs_owner_update" ON public.guest_submissions
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.events e WHERE e.id = event_id AND e.user_id = auth.uid())
+  )
+  -- WITH CHECK on the NEW row too, otherwise an owner could re-point a row's
+  -- event_id at an event they don't own (cross-event injection).
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.events e WHERE e.id = event_id AND e.user_id = auth.uid())
   );
 
 -- 3. Minimal event info for the public collab form (name + side labels source).
@@ -75,6 +80,11 @@ BEGIN
     WHERE e.collab_token = token_value AND char_length(token_value) >= 8 LIMIT 1;
   IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
   IF char_length(trim(coalesce(guest->>'name',''))) = 0 THEN RAISE EXCEPTION 'name required'; END IF;
+  -- The collab link is semi-public (forwarded around a family); cap total
+  -- submissions per event so a leaked link can't flood the review queue.
+  IF (SELECT count(*) FROM public.guest_submissions WHERE event_id = ev_id) >= 5000 THEN
+    RAISE EXCEPTION 'submission limit reached';
+  END IF;
   INSERT INTO public.guest_submissions (event_id, name, phone, side, guest_group, guests_count, submitted_by)
   VALUES (
     ev_id,

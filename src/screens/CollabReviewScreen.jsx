@@ -30,41 +30,52 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
   const pending = subs.filter(s => !s.imported);
   const importable = pending.filter(s => !existingNames.has(normName(s.name))).length;
 
+  const guestFromSub = (s) => ({
+    id: uid(),
+    name: (s.name || "").trim(),
+    side: s.side === "groom" ? "groom" : "bride",
+    group: s.guest_group || "משפחה קרובה",
+    count: s.guests_count || 1,
+    phone: s.phone || "",
+    notes: s.submitted_by ? `נוסף ע"י ${s.submitted_by}` : "",
+    rsvp: "pending",
+    meal: "regular",
+    companions: [],
+  });
+
   const importOne = useCallback(async (s) => {
-    const g = {
-      id: uid(),
-      name: (s.name || "").trim(),
-      side: s.side === "groom" ? "groom" : "bride",
-      group: s.guest_group || "משפחה קרובה",
-      count: s.guests_count || 1,
-      phone: s.phone || "",
-      notes: s.submitted_by ? `נוסף ע"י ${s.submitted_by}` : "",
-      rsvp: "pending",
-      meal: "regular",
-      companions: [],
-    };
+    const g = guestFromSub(s);
+    try { await markSubmissionImported(s.id); }
+    catch { showToast("שמירת הסטטוס נכשלה — נסו שוב", "err"); return; }
     patchEvent(e => ({ ...e, guests: [...e.guests, g] }));
-    await markSubmissionImported(s.id);
     setSubs(prev => prev.map(x => x.id === s.id ? { ...x, imported: true } : x));
     showToast(`הוספתם את "${g.name}" ✓`);
   }, [patchEvent, showToast]);
 
   const importAll = useCallback(async () => {
-    const fresh = pending.filter(s => !existingNames.has(normName(s.name)));
+    // Dedup against the guest list AND within this batch (two family members
+    // can submit the same person before either is imported).
+    const seen = new Set(existingNames);
+    const fresh = pending.filter(s => {
+      const key = normName(s.name);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     if (!fresh.length) { showToast("אין רשומות חדשות לייבוא", "err"); return; }
-    const newGuests = fresh.map(s => ({
-      id: uid(), name: (s.name || "").trim(),
-      side: s.side === "groom" ? "groom" : "bride",
-      group: s.guest_group || "משפחה קרובה",
-      count: s.guests_count || 1, phone: s.phone || "",
-      notes: s.submitted_by ? `נוסף ע"י ${s.submitted_by}` : "", rsvp: "pending",
-      meal: "regular", companions: [],
-    }));
+    const results = await Promise.allSettled(fresh.map(s => markSubmissionImported(s.id)));
+    const ok = fresh.filter((_, i) => results[i].status === "fulfilled");
+    if (!ok.length) { showToast("הייבוא נכשל — נסו שוב", "err"); return; }
+    const newGuests = ok.map(guestFromSub);
     patchEvent(e => ({ ...e, guests: [...e.guests, ...newGuests] }));
-    await Promise.all(fresh.map(s => markSubmissionImported(s.id)));
-    const ids = new Set(fresh.map(s => s.id));
+    const ids = new Set(ok.map(s => s.id));
     setSubs(prev => prev.map(x => ids.has(x.id) ? { ...x, imported: true } : x));
-    showToast(`יובאו ${newGuests.length} אורחים ✓`);
+    showToast(
+      ok.length < fresh.length
+        ? `יובאו ${ok.length} אורחים · ${fresh.length - ok.length} נכשלו`
+        : `יובאו ${newGuests.length} אורחים ✓`,
+      ok.length < fresh.length ? "err" : undefined,
+    );
   }, [pending, existingNames, patchEvent, showToast]);
 
   const collabLink = ev.tokens?.collab ? window.location.origin + "/collab/" + ev.tokens.collab : null;
