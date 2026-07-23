@@ -195,3 +195,92 @@ export async function markSubmissionImported(id) {
   const { error } = await supabase.from("guest_submissions").update({ imported: true }).eq("id", id);
   if (error) throw error;
 }
+
+// ── Live collaborative guest table ────────────────────────────────────────────
+// A shared, real-time table: family members read the whole list and add/edit/
+// delete rows by token; the owner's app two-way-syncs it with the guest list.
+
+/** Anon: read every row of the shared table for an event, by token. */
+export async function fetchCollabGuests(token) {
+  if (!isSupabaseConfigured || !supabase || !token) return [];
+  const { data, error } = await supabase.rpc("collab_list_by_token", { token_value: token });
+  if (error || !Array.isArray(data)) return [];
+  return data;
+}
+
+/** Anon: insert or update one row (by shared id), by token. */
+export async function upsertCollabGuest(token, row) {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const { error } = await supabase.rpc("collab_upsert_by_token", {
+    token_value: token,
+    row_data: {
+      id:           row.id,
+      name:         row.name ?? "",
+      phone:        row.phone ?? "",
+      side:         row.side ?? null,
+      guest_group:  row.guest_group ?? row.group ?? null,
+      guests_count: Number(row.guests_count ?? row.count) || 1,
+      updated_by:   row.updated_by ?? null,
+    },
+  });
+  if (error) throw error;
+}
+
+/** Anon: delete one row by id, by token. */
+export async function deleteCollabGuest(token, id) {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const { error } = await supabase.rpc("collab_delete_by_token", { token_value: token, row_id: id });
+  if (error) throw error;
+}
+
+/**
+ * Subscribe to live changes on an event's shared table. Returns an unsubscribe
+ * fn. `onChange` fires on any insert/update/delete with the raw payload.
+ * Falls back to a no-op unsubscribe when Supabase isn't configured.
+ */
+export function subscribeCollabGuests(eventId, onChange) {
+  if (!isSupabaseConfigured || !supabase || !eventId) return () => {};
+  const channel = supabase
+    .channel(`collab:${eventId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "collab_guests", filter: `event_id=eq.${eventId}` },
+      (payload) => onChange(payload),
+    )
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}
+
+/** Owner: read the shared table for an owned event (RLS-guarded, direct). */
+export async function fetchCollabGuestsOwner(eventCloudId) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
+  const { data, error } = await supabase
+    .from("collab_guests")
+    .select("id, name, phone, side, guest_group, guests_count, updated_at, updated_by")
+    .eq("event_id", eventCloudId);
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Owner: push one guest row into the shared table (app→table sync). */
+export async function upsertCollabGuestOwner(eventCloudId, row) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId) return;
+  const { error } = await supabase.from("collab_guests").upsert({
+    id:           row.id,
+    event_id:     eventCloudId,
+    name:         row.name ?? "",
+    phone:        row.phone ?? "",
+    side:         row.side ?? null,
+    guest_group:  row.guest_group ?? row.group ?? null,
+    guests_count: Number(row.guests_count ?? row.count) || 1,
+    updated_at:   new Date().toISOString(),
+  });
+  if (error) throw error;
+}
+
+/** Owner: delete rows from the shared table by id (app→table sync). */
+export async function deleteCollabGuestsOwner(eventCloudId, ids) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId || !ids?.length) return;
+  const { error } = await supabase.from("collab_guests").delete().eq("event_id", eventCloudId).in("id", ids);
+  if (error) throw error;
+}
