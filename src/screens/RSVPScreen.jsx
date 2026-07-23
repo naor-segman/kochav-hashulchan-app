@@ -52,6 +52,7 @@ export default function RSVPScreen() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [guestsCount, setGuestsCount] = useState(1);
+  const [companions, setCompanions] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [answer, setAnswer] = useState(null); // "yes" | "maybe" | "no"
@@ -94,6 +95,9 @@ export default function RSVPScreen() {
           status: answer,
           attending: answer === "yes",
           guestsCount: Number(guestsCount),
+          companions: answer === "yes"
+            ? companions.slice(0, Math.max(0, guestsCount - 1)).map(c => (c || "").trim()).filter(Boolean)
+            : [],
         });
       }
       setStep("submitted");
@@ -290,6 +294,28 @@ export default function RSVPScreen() {
                   disabled={submitting}
                 />
               </div>
+
+              {answer === "yes" && guestsCount > 1 && (
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel}>שמות המגיעים איתך (אופציונלי)</label>
+                  <p className={styles.fieldHelp}>נוכל להושיב אתכם יחד באותו שולחן.</p>
+                  {Array.from({ length: guestsCount - 1 }).map((_, i) => (
+                    <input
+                      key={i}
+                      className={styles.input}
+                      style={{ marginBottom: 8 }}
+                      value={companions[i] || ""}
+                      placeholder={`מלווה ${i + 1}`}
+                      disabled={submitting}
+                      onChange={e => {
+                        const arr = [...companions];
+                        arr[i] = e.target.value;
+                        setCompanions(arr);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
 
               {submitError && (
                 <p className={styles.submitError} role="alert">{submitError}</p>

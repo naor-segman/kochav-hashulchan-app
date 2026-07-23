@@ -78,7 +78,9 @@ export default function HostessScreen() {
 
   // Search matches guest names AND table names/numbers.
   const guestResults = q.length >= 1
-    ? guests.filter(g => norm(g.name).includes(q))
+    ? guests.filter(g =>
+        norm(g.name).includes(q) ||
+        (Array.isArray(g.companions) && g.companions.some(c => norm(c).includes(q))))
     : [];
   const tableMatches = q.length >= 1
     ? tables.filter(t => norm(t.name).includes(q) && occupantsByTable[t.id]?.length)
@@ -128,6 +130,7 @@ export default function HostessScreen() {
   // A seated guest card with the big table number.
   const GuestCard = (g) => {
     const table = seating[g.id] ? tableMap[seating[g.id]] : null;
+    const comps = Array.isArray(g.companions) ? g.companions.filter(Boolean) : [];
     return (
       <li key={g.id} className={table ? styles.card : styles.cardUnseated}>
         {table ? (
@@ -135,12 +138,14 @@ export default function HostessScreen() {
             <div className={styles.tableLabel} aria-label={`שולחן: ${table.name}`}>{table.name}</div>
             <div className={styles.guestName}>{g.name}</div>
             <div className={styles.seatCount}>{seatLabel(g.count)}</div>
+            {comps.length > 0 && <div className={styles.guestComps}>עם: {comps.join(", ")}</div>}
           </>
         ) : (
           <>
             <div className={styles.unseatedBadge} aria-label="לא שובץ">⚠ לא שובץ</div>
             <div className={styles.guestName}>{g.name}</div>
             <div className={styles.seatCount}>{seatLabel(g.count)}</div>
+            {comps.length > 0 && <div className={styles.guestComps}>עם: {comps.join(", ")}</div>}
           </>
         )}
       </li>

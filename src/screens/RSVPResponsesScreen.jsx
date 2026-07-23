@@ -87,6 +87,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
   const applyToGuest = useCallback((r, guest) => {
     const hasCount = respStatus(r) !== "no"; // yes + maybe carry a party size
+    const comps = Array.isArray(r.companions) ? r.companions.filter(Boolean) : [];
     const patchGuests = ev.guests.map(g =>
       g.id === guest.id
         ? {
@@ -94,6 +95,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
             rsvp:  GUEST_RSVP[respStatus(r)],
             count: hasCount ? (r.guests_count || 1) : (g.count || 1),
             phone: g.phone || r.phone || "",
+            companions: comps.length ? comps : (g.companions || []),
           }
         : g
     );
@@ -112,6 +114,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       phone: r.phone || "",
       notes: "",
       rsvp: GUEST_RSVP[respStatus(r)],
+      companions: Array.isArray(r.companions) ? r.companions.filter(Boolean) : [],
     };
     patchEvent({ guests: [...ev.guests, newGuest] });
     showToast(`"${newGuest.name}" נוסף לרשימת האורחים ✓`);
