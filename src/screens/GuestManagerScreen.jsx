@@ -3,12 +3,10 @@ import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
 import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
-import { downloadGuestTemplate } from "../data/guestTemplate.js";
-import { getSideLabels, getSideLabel } from "../utils/eventHelpers.js";
+import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canAddGuest } from "../utils/featureGates.js";
-import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
@@ -21,7 +19,7 @@ import styles from "./GuestManagerScreen.module.css";
 
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "", companions: [] };
+  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "", estGift: "", companions: [] };
   const [form, setForm]           = useState(EF);
   const [editId, setEditId]       = useState(null);
   const [showList, setShowList]     = useState(false);
@@ -74,9 +72,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         return;
       }
       const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
+      const estGift = form.estGift !== "" && !isNaN(parseInt(form.estGift)) ? Math.max(0, parseInt(form.estGift)) : undefined;
       patchEvent(e => {
         const updated = e.guests.map(g =>
-          g.id === editId ? Object.assign({}, g, form, { name: form.name.trim(), group, giftAmount, companions }) : g
+          g.id === editId ? Object.assign({}, g, form, { name: form.name.trim(), group, giftAmount, estGift, companions }) : g
         );
         const customGroups = newCustom && !e.customGroups?.includes(newCustom)
           ? [...(e.customGroups || []), newCustom]
@@ -92,7 +91,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         return;
       }
       const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
-      const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1, group, giftAmount, companions });
+      const estGift = form.estGift !== "" && !isNaN(parseInt(form.estGift)) ? Math.max(0, parseInt(form.estGift)) : undefined;
+      const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1, group, giftAmount, estGift, companions });
       patchEvent(e => {
         const customGroups = newCustom && !e.customGroups?.includes(newCustom)
           ? [...(e.customGroups || []), newCustom]
@@ -392,7 +392,18 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               onChange={e => setF("notes", e.target.value)}
             />
           </Field>
-          <Field label={<>סכום מתנה (₪) <InfoTip text="אופציונלי. אם קיבלתם מתנה מהאורח — רשמו כאן את הסכום, והמערכת תסכם לכם את סך כל המתנות שקיבלתם באירוע." /></>}>
+          <Field label={<>מתנה משוערת (₪) <InfoTip text="אופציונלי. כמה אתם מעריכים שהאורח יכניס במתנה — הסכום מכל האורחים נכנס ל'הכנסה צפויה' במסך תכנון התקציב." /></>}>
+            <input
+              className={base.input}
+              type="number"
+              min="0"
+              step="50"
+              value={form.estGift}
+              placeholder="0"
+              onChange={e => setF("estGift", e.target.value)}
+            />
+          </Field>
+          <Field label={<>מתנה שהתקבלה (₪) <InfoTip text="אופציונלי. אם כבר קיבלתם מתנה מהאורח — רשמו כאן את הסכום בפועל. נסכם לכם את סך המתנות שהתקבלו." /></>}>
             <input
               className={base.input}
               type="number"
