@@ -7,6 +7,7 @@ import Divider from "../components/ui/Divider.jsx";
 import Field from "../components/ui/Field.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
+import QrCode from "../components/ui/QrCode.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventSetupScreen.module.css";
@@ -325,7 +326,8 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           לינקים ייחודיים לשיתוף עם האורחים
         </p>
         {SHARE_LINKS.map(sl => {
-          const url = BASE_URL + sl.path + (ev.tokens?.[sl.key] || "");
+          const token = ev.tokens?.[sl.key] || "";
+          const url = BASE_URL + sl.path + token;
           return (
             <div key={sl.key} className={styles.shareRow}>
               <span className={styles.shareLabel}>{sl.icon} {sl.label}</span>
@@ -342,10 +344,12 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
                 >
                   {copiedKey === sl.key ? "הועתק ✓" : "העתיקו"}
                 </button>
+                {token && <QrCode url={url} label={sl.label} filename={"qr-" + sl.key} />}
               </div>
             </div>
           );
         })}
+        <p className={base.fieldHint}>קוד QR (▦) לכל קישור — להדפסה על שילוט בכניסה, בעמדת הדיילות או בהזמנה.</p>
 
         <Divider label="קבלת מתנות — ביט / PayBox" />
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
