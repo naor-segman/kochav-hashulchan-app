@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
 import Icon from "../components/ui/Icon.jsx";
-import { GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
+import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import { usePlan } from "../hooks/usePlan.js";
@@ -19,13 +19,18 @@ import styles from "./GuestManagerScreen.module.css";
 
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "", estGift: "", companions: [] };
+  // Corporate events use a business group set + default; everyone else the
+  // family-oriented one. Custom groups (below) work regardless of type.
+  const isBusiness   = ev.type === "אירוע עסקי";
+  const baseGroups   = isBusiness ? BUSINESS_GROUP_OPTIONS : GROUP_OPTIONS;
+  const defaultGroup = isBusiness ? BUSINESS_GROUP_OPTIONS[0] : "משפחה קרובה";
+  const EF = { name: "", side: "bride", group: defaultGroup, count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "", estGift: "", companions: [] };
   const [form, setForm]           = useState(EF);
   const [editId, setEditId]       = useState(null);
   const [showList, setShowList]     = useState(false);
   const [listText, setListText]     = useState("");
   const [listSide, setListSide]     = useState("bride");
-  const [listGroup, setListGroup]   = useState("משפחה קרובה");
+  const [listGroup, setListGroup]   = useState(defaultGroup);
   const [filter, setFilter]       = useState({ side: "all", group: "all", rsvp: "all", search: "" });
   const [customGroupInput, setCustomGroupInput] = useState("");
   const nameRef                   = useRef(null);
@@ -34,17 +39,30 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   // All group options: standard + event-level custom + any already on guests (legacy compat).
   // "אחר" is always last and acts as the trigger to create a new custom group.
   const allGroupOptions = Array.from(new Set([
-    ...GROUP_OPTIONS.filter(g => g !== "אחר"),
+    ...baseGroups.filter(g => g !== "אחר"),
     ...(ev.customGroups || []),
-    ...ev.guests.map(g => g.group).filter(g => g && g !== "אחר" && !GROUP_OPTIONS.includes(g)),
+    ...ev.guests.map(g => g.group).filter(g => g && g !== "אחר" && !baseGroups.includes(g)),
     "אחר",
   ]));
 
   // Collab-table wording adapts to the event: "family" reads wrong for a
   // corporate event, so business events talk about "the team" instead.
-  const isBusiness  = ev.type === "אירוע עסקי";
   const collabWho   = isBusiness ? "הצוות" : "המשפחה";
   const collabLabel = isBusiness ? "👥 טבלה שיתופית לצוות" : "👨‍👩‍👧 טבלה שיתופית למשפחה";
+
+  // Add a brand-new custom group to this event from anywhere a group is picked.
+  // Saved to customGroups so it appears in every group list + the filter.
+  const addCustomGroup = (setSelected) => {
+    const name = (prompt("שם הקבוצה החדשה (למשל: חברים מהגן / צוות שיווק)") || "").trim();
+    if (!name) return;
+    if (!allGroupOptions.includes(name)) {
+      patchEvent(e => ({ ...e, customGroups: [...(e.customGroups || []), name] }));
+    }
+    setSelected(name);
+  };
+  const chooseListGroup = (value) =>
+    value === "__addgroup__" ? addCustomGroup(setListGroup) : setListGroup(value);
+
   const { plan, limits } = usePlan();
   const { maxGuests } = limits;
 
@@ -107,7 +125,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       });
       showToast(form.name.trim() + " נוסף/ה לרשימה ✓");
     }
-    const nextGroup = group !== "אחר" ? group : "משפחה קרובה";
+    const nextGroup = group !== "אחר" ? group : defaultGroup;
     setForm(p => Object.assign({}, EF, { side: p.side, group: nextGroup }));
     setCustomGroupInput("");
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
@@ -482,9 +500,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               <select
                 className={base.select}
                 value={listGroup}
-                onChange={e => setListGroup(e.target.value)}
+                onChange={e => chooseListGroup(e.target.value)}
               >
-                {allGroupOptions.filter(g => g !== "אחר").map(g => <option key={g}>{g}</option>)}
+                {allGroupOptions.filter(g => g !== "אחר").map(g => <option key={g} value={g}>{g}</option>)}
+                <option value="__addgroup__">➕ קבוצה חדשה…</option>
               </select>
             </div>
             <div style={{ display: "flex", gap: 10 }}>

@@ -11,6 +11,12 @@ export const GROUP_OPTIONS = [
   "חברים מהעבודה","משפחה קרובה","משפחה רחוקה","עמיתים","אחר",
 ];
 
+// Default groups for corporate events, where the family-oriented set above
+// makes no sense. "אחר" stays last and triggers custom-group creation.
+export const BUSINESS_GROUP_OPTIONS = [
+  "הנהלה","עובדים","צוות","לקוחות","ספקים","שותפים עסקיים","אורחי כבוד","אחר",
+];
+
 export const TABLE_TYPES = [
   { value:"regular", label:"רגיל" },
   { value:"knight",  label:"אביר" },
