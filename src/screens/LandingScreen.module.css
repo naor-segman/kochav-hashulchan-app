@@ -106,6 +106,73 @@
   transform: translateY(-1px);
 }
 
+/* ── Mobile menu (hamburger) — hidden on desktop, shown ≤600px ── */
+.navBurger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  margin-inline-start: 4px;
+}
+
+.burgerBar {
+  display: block;
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--nav-text);
+  transition: transform var(--transition), opacity var(--transition);
+}
+.burgerBar1 { transform: translateY(7px) rotate(45deg); }
+.burgerBar2 { opacity: 0; }
+.burgerBar3 { transform: translateY(-7px) rotate(-45deg); }
+
+.mobileMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 16px 16px;
+  border-top: 1px solid var(--nav-border);
+  background: rgba(var(--text-rgb), 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.mobileLink {
+  color: var(--nav-muted);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 8px;
+  border-radius: var(--radius);
+}
+.mobileLink:hover { color: var(--nav-text); }
+
+.mobileMenuCta {
+  margin-top: 8px;
+  text-align: center;
+  background: var(--accent);
+  color: var(--on-accent);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 13px 22px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-accent);
+}
+
+/* Sticky-nav offset so anchor jumps land below the bar, not under it. */
+.features,
+.howSection {
+  scroll-margin-top: 84px;
+}
+
 /* ── Hero ── */
 
 .hero {
@@ -1056,6 +1123,10 @@
 
   .navLoginBtn {
     display: none;
+  }
+
+  .navBurger {
+    display: flex;
   }
 
   .hero {

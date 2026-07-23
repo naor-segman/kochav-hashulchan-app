@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import styles from "./LandingScreen.module.css";
@@ -104,6 +105,8 @@ const PRICING_PLANS = [
 ];
 
 export default function LandingScreen() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
   return (
     <div className={styles.root}>
       {/* ── Nav ── */}
@@ -124,7 +127,29 @@ export default function LandingScreen() {
             <Link to="/login" className={styles.navLoginBtn}>כניסה</Link>
             <Link to="/signup" className={styles.navCta}>התחילו חינם</Link>
           </div>
+
+          <button
+            type="button"
+            className={styles.navBurger}
+            aria-label={menuOpen ? "סגירת תפריט" : "פתיחת תפריט"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(o => !o)}
+          >
+            <span className={[styles.burgerBar, menuOpen && styles.burgerBar1].filter(Boolean).join(" ")} />
+            <span className={[styles.burgerBar, menuOpen && styles.burgerBar2].filter(Boolean).join(" ")} />
+            <span className={[styles.burgerBar, menuOpen && styles.burgerBar3].filter(Boolean).join(" ")} />
+          </button>
         </div>
+
+        {menuOpen && (
+          <div className={styles.mobileMenu}>
+            <a href="#features" className={styles.mobileLink} onClick={closeMenu}>תכונות</a>
+            <a href="#how" className={styles.mobileLink} onClick={closeMenu}>איך זה עובד</a>
+            <Link to="/pricing" className={styles.mobileLink} onClick={closeMenu}>מחירים</Link>
+            <Link to="/login" className={styles.mobileLink} onClick={closeMenu}>כניסה</Link>
+            <Link to="/signup" className={styles.mobileMenuCta} onClick={closeMenu}>התחילו חינם ←</Link>
+          </div>
+        )}
       </header>
 
       {/* ── Hero ── */}

@@ -218,9 +218,9 @@ export default function EventSiteScreen({ localEvent }) {
           <ol className={styles.timeline}>
             {site.schedule.map(item => (
               <li key={item.id} className={styles.tlItem}>
-                <span className={styles.tlTitle}>{item.icon} {item.title}</span>
-                <span className={styles.tlDot} aria-hidden="true" />
                 <span className={styles.tlTime}>{item.time}</span>
+                <span className={styles.tlDot} aria-hidden="true" />
+                <span className={styles.tlTitle}>{item.icon} {item.title}</span>
               </li>
             ))}
           </ol>
@@ -274,6 +274,7 @@ export default function EventSiteScreen({ localEvent }) {
                         : s.contactName}
                     </span>
                   )}
+                  {s.note && <span className={styles.shuttleNote}>{s.note}</span>}
                 </span>
               </div>
             ))}

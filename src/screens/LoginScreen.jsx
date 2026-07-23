@@ -190,7 +190,7 @@ export default function LoginScreen() {
         </p>
 
         <div className={styles.guestBlock}>
-          <Link to="/" className={styles.backLink}>← המשיכו ללא חשבון</Link>
+          <Link to="/app" className={styles.backLink}>← המשיכו ללא חשבון</Link>
           <p className={styles.guestNote}>מצב אורח — נתונים נשמרים בדפדפן זה בלבד, ללא גיבוי ענן</p>
         </div>
 

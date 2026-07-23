@@ -49,6 +49,9 @@ export function normalizeEvent(ev) {
     // Custom groups created by the user for this event.
     // Standard groups come from constants.js GROUP_OPTIONS; this holds only user-created ones.
     customGroups: Array.isArray(ev.customGroups) ? ev.customGroups : [],
+    // Custom table types created by the user (strings, e.g. "שולחן ילדים").
+    // Standard types live in constants.js TABLE_TYPES; this holds only extras.
+    customTableTypes: Array.isArray(ev.customTableTypes) ? ev.customTableTypes : [],
     // Collections — default to empty arrays/objects
     tables:      Array.isArray(ev.tables)      ? ev.tables      : [],
     guests:      Array.isArray(ev.guests)      ? ev.guests      : [],

@@ -143,25 +143,29 @@ export function generateSuggestions(
   };
 
   const assigned   = guests.filter(g =>  seating[g.id]);
-  const unassigned = guests.filter(g => !seating[g.id]);
+  // Declined guests don't need a table, so they must not count as "unassigned"
+  // — otherwise the suggestion/confirm count wouldn't match what the
+  // seatUnassigned action (active guests only) actually seats.
+  const activeForSeating = guests.filter(g => g.rsvp !== "declined");
+  const unassigned = activeForSeating.filter(g => !seating[g.id]);
 
   const apartPairs = buildApartPairs(constraints);
 
   // ── 1. Unassigned guests ──────────────────────────────────────────────────
   if (unassigned.length > 0 && assigned.length > 0) {
-    const pct   = unassigned.length / guests.length;
+    const pct   = unassigned.length / activeForSeating.length;
     const seats = unassigned.reduce((s, g) => s + (g.count || 1), 0);
     suggestions.push({
       id:                "unassigned",
       type:              "unassigned",
       severity:          pct > 0.2 ? "critical" : "warning",
       section:           pct > 0.2 ? "critical" : "fixes",
-      explanation:       `${unassigned.length} מתוך ${guests.length} רשומות עדיין לא קיבלו שולחן`,
+      explanation:       `${unassigned.length} מתוך ${activeForSeating.length} רשומות עדיין לא קיבלו שולחן`,
       whyMatters:        "אורחים ללא מקום ישיבה עלולים להגיע לאירוע ולמצוא עצמם עומדים",
       impact:            `${seats} מקומות לא משובצים`,
-      recommendedAction: 'לחץ "חשב הושבה" לשיבוץ אוטומטי, או שבץ כל אחד ידנית מהרשימה',
-      canApply:          false,
-      applyAction:       null,
+      recommendedAction: 'שבצו אוטומטית את מי שנותר (השיבוצים הקיימים יישמרו), או שבצו כל אחד ידנית מהרשימה',
+      canApply:          true,
+      applyAction:       { type: "seatUnassigned", count: unassigned.length },
       score:             Math.min(20, unassigned.length * 3),
       confidence:        "high",
       violationDelta:    0,

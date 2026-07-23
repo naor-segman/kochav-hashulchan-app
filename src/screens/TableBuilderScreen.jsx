@@ -26,6 +26,38 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   const [editId,  setEditId]  = useState(null);
   const [editVals,setEditVals]= useState({});
 
+  // Table types = the standard set + any custom types the user created for this
+  // event, plus an "add custom" sentinel that prompts for a new one.
+  const customTypes  = ev.customTableTypes || [];
+  const LEGACY_TYPE_LABELS = { head: "שולחן ראשי" };
+  const knownTypeValues = new Set([...TABLE_TYPES.map(s => s.value), ...customTypes]);
+  // Any type already stored on a table but missing from the standard+custom sets
+  // (a legacy "head", or a custom type not in the registry) still needs an
+  // option, or the controlled <select> renders blank for that table.
+  const inUseExtraTypes = Array.from(new Set(ev.tables.map(t => t.type).filter(Boolean)))
+    .filter(t => !knownTypeValues.has(t));
+  const typeOptions  = [
+    ...TABLE_TYPES,
+    ...customTypes
+      .filter(t => !TABLE_TYPES.some(s => s.value === t))
+      .map(t => ({ value: t, label: t })),
+    ...inUseExtraTypes.map(t => ({ value: t, label: LEGACY_TYPE_LABELS[t] || t })),
+  ];
+  const chooseType = (value, apply) => {
+    if (value === "__add__") {
+      const name = (prompt("שם סוג השולחן המותאם (למשל: שולחן ילדים)") || "").trim();
+      if (!name) return;
+      if (!TABLE_TYPES.some(s => s.value === name) && !customTypes.includes(name)) {
+        patchEvent(e => Object.assign({}, e, {
+          customTableTypes: [...(e.customTableTypes || []), name],
+        }));
+      }
+      apply(name);
+    } else {
+      apply(value);
+    }
+  };
+
   const totalCap       = ev.tables.reduce((s, t) => s + t.capacity, 0);
   const totalGuestSeats = ev.guests.reduce((s, g) => s + (g.count || 1), 0);
   const gap            = totalCap - totalGuestSeats;
@@ -161,8 +193,9 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                   onChange={e => setBatch(p => Object.assign({}, p, { count: e.target.value }))} />
               </Field>
               <Field label="סוג">
-                <select className={base.select} value={batch.type} onChange={e => setBatch(p => Object.assign({}, p, { type: e.target.value }))}>
-                  {TABLE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                <select className={base.select} value={batch.type} onChange={e => chooseType(e.target.value, v => setBatch(p => Object.assign({}, p, { type: v })))}>
+                  {typeOptions.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  <option value="__add__">➕ סוג מותאם…</option>
                 </select>
               </Field>
             </div>
@@ -240,9 +273,10 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                           <select
                             className={base.select}
                             value={editVals.type}
-                            onChange={e => setEditVals(p => Object.assign({}, p, { type: e.target.value }))}
+                            onChange={e => chooseType(e.target.value, v => setEditVals(p => Object.assign({}, p, { type: v })))}
                           >
-                            {TABLE_TYPES.map(tp => <option key={tp.value} value={tp.value}>{tp.label}</option>)}
+                            {typeOptions.map(tp => <option key={tp.value} value={tp.value}>{tp.label}</option>)}
+                            <option value="__add__">➕ סוג מותאם…</option>
                           </select>
                           <span />
                           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>

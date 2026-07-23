@@ -56,6 +56,13 @@
   margin-bottom: 12px;
 }
 
+/* Grid children default to min-width:auto, which lets a wide field (e.g. a
+   native date input) force its column past 1fr and overlap the neighbour.
+   Allow the columns to actually shrink. */
+.grid2 > * {
+  min-width: 0;
+}
+
 @media (max-width: 480px) {
   .grid2 {
     grid-template-columns: 1fr;
@@ -78,6 +85,8 @@
 /* Form elements */
 .input {
   width: 100%;
+  min-width: 0; /* let inputs (esp. type=date) shrink inside grid/flex columns */
+  box-sizing: border-box;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -107,6 +116,8 @@
 .select {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);

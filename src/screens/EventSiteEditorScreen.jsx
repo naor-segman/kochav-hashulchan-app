@@ -311,6 +311,8 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
               onChange={e => editShuttle(s.id, { contactName: e.target.value })} />
             <input className={base.input} value={s.contactPhone || ""} placeholder="טלפון איש קשר" dir="ltr"
               onChange={e => editShuttle(s.id, { contactPhone: e.target.value })} />
+            <input className={base.input} value={s.note || ""} placeholder="הערה (אופציונלי) — למשל: יש להירשם מראש"
+              onChange={e => editShuttle(s.id, { note: e.target.value })} />
           </div>
         ))}
         <button className={base.btnSecondary} onClick={addShuttle}>+ הוסיפו הסעה</button>
