@@ -1,4 +1,5 @@
 import { useState, useMemo, Fragment } from "react";
+import { messageSignature } from "../data/company.js";
 import Icon from "../components/ui/Icon.jsx";
 import { useNavigate } from "react-router-dom";
 import {
@@ -110,7 +111,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     const table = ev.tables.find(t => t.id === tid);
     if (!table) return null;
     const eventName = ev.name || "האירוע";
-    const msg = `שלום ${g.name} 👋\n\nב${eventName} תשבו ב*שולחן ${table.name}*.\n\nנשמח לראותכם! 🎉`;
+    const msg = `שלום ${g.name} 👋\n\nב${eventName} תשבו ב*שולחן ${table.name}*.\n\nנשמח לראותכם! 🎉` + messageSignature();
     const digits = (g.phone || "").replace(/\D/g, "");
     if (!digits) return null;
     const intl = digits.startsWith("0") ? "972" + digits.slice(1) : digits;

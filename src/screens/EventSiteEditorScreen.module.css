@@ -73,3 +73,16 @@
 @media (max-width: 480px) {
   .coverPreview { width: 100px; height: 66px; }
 }
+
+/* Gallery editor */
+.galleryEdit { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; }
+.galleryEditItem {
+  position: relative; aspect-ratio: 1; background-size: cover; background-position: center;
+  border-radius: 8px; border: 1px solid var(--border);
+}
+.galleryDel {
+  position: absolute; top: 4px; inset-inline-end: 4px; width: 24px; height: 24px;
+  border-radius: 50%; border: none; background: rgba(0,0,0,.55); color: #fff;
+  font-size: 12px; cursor: pointer; line-height: 1;
+}
+@media (max-width: 480px){ .galleryEdit { grid-template-columns: repeat(3, 1fr); } }

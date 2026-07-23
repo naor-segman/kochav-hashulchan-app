@@ -42,6 +42,21 @@ export const SITE_THEMES = {
     bg: "#F9F5FA", surface: "#FFFFFF", ink: "#3A2A40", muted: "#7C6A84",
     accent: "#8B5EA6", accentSoft: "#F0E7F4", line: "#E7DCEC", onAccent: "#FFFFFF",
   },
+  terracotta: {
+    key: "terracotta", label: "טרקוטה",
+    bg: "#FBF5F1", surface: "#FFFFFF", ink: "#3F2A21", muted: "#8A6E60",
+    accent: "#C4603D", accentSoft: "#F6E5DC", line: "#EDDBD0", onAccent: "#FFFFFF",
+  },
+  midnight: {
+    key: "midnight", label: "כחול חצות",
+    bg: "#0F1826", surface: "#1A2536", ink: "#E6EDF6", muted: "#8FA3BD",
+    accent: "#5B8FD6", accentSoft: "#22314A", line: "#2A3A54", onAccent: "#0F1826",
+  },
+  blush: {
+    key: "blush", label: "פודרה",
+    bg: "#FBF7F5", surface: "#FFFFFF", ink: "#3D3033", muted: "#8A7679",
+    accent: "#B98A8E", accentSoft: "#F5EAEB", line: "#EEE0E1", onAccent: "#FFFFFF",
+  },
 };
 
 export const SITE_THEME_LIST = Object.values(SITE_THEMES);
@@ -99,6 +114,9 @@ export function defaultEventSite(type) {
     heroEn: t.heroEn,
     coverPhoto: null,         // compressed data URL
     story: "",
+    gallery: [],              // array of compressed data URLs (photo gallery)
+    countdown: true,          // show a live countdown to the event date
+    dressCode: "",            // dress-code note shown to guests
     schedule: t.schedule.map(s => ({ ...s })),
     address: "",
     wazeUrl: "",
@@ -107,6 +125,6 @@ export function defaultEventSite(type) {
     faq: t.faq.map(f => ({ ...f })),
     contactPhone: "",
     rsvpMessage: "",    // personal note from the hosts, shown after RSVP
-    sections: { schedule: true, location: true, shuttles: false, gift: true, blessings: true, faq: true },
+    sections: { countdown: true, gallery: true, schedule: true, location: true, shuttles: false, dressCode: false, gift: true, blessings: true, faq: true },
   };
 }

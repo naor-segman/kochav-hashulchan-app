@@ -67,6 +67,17 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     catch { showToast("שגיאה בעיבוד התמונה", "err"); }
   };
 
+  const onGallery = async (files) => {
+    const imgs = [...files].filter(f => f.type.startsWith("image/")).slice(0, 12);
+    if (!imgs.length) { showToast("יש לבחור קובצי תמונה", "err"); return; }
+    try {
+      const compressed = await Promise.all(imgs.map(f => compressImage(f, 1000, 0.7)));
+      set({ gallery: [...(site.gallery || []), ...compressed].slice(0, 12) });
+      showToast(`נוספו ${compressed.length} תמונות ✓`);
+    } catch { showToast("שגיאה בעיבוד התמונות", "err"); }
+  };
+  const delGalleryPhoto = (i) => set({ gallery: (site.gallery || []).filter((_, idx) => idx !== i) });
+
   const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(siteUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }
@@ -94,13 +105,13 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
             className={site.enabled ? [base.btnSecondary].join(" ") : base.btnPrimary}
             onClick={() => set({ enabled: !site.enabled })}
           >
-            {site.enabled ? "בטל פרסום" : "פרסם אתר ←"}
+            {site.enabled ? "בטלו פרסום" : "פרסמו אתר ←"}
           </button>
         </div>
         <div className={styles.shareRow}>
           <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" />
           <button className={base.btnSm} onClick={copyLink}>{copied ? "הועתק ✓" : "העתק"}</button>
-          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open("/events/" + ev.id + "/preview-site", "_blank")}>צפה</button>
+          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open("/events/" + ev.id + "/preview-site", "_blank")}>תצוגה מקדימה</button>
         </div>
       </div>
 
@@ -128,12 +139,12 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
                     try { await navigator.clipboard.writeText(m.text); showToast("ההודעה הועתקה ✓"); }
                     catch { showToast("לא ניתן להעתיק", "err"); }
                   }}
-                >העתק</button>
+                >העתיקו</button>
                 <a
                   className={[base.btnSm, styles.msgWa].join(" ")}
                   href={`https://wa.me/?text=${encodeURIComponent(m.text)}`}
                   target="_blank" rel="noopener noreferrer"
-                >שלח בוואטסאפ</a>
+                >שלחו בוואטסאפ</a>
               </div>
             </div>
           ))}
@@ -174,10 +185,10 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           </div>
           <div className={styles.coverActions}>
             <button className={base.btnSecondary} onClick={() => fileRef.current?.click()}>
-              {site.coverPhoto ? "החלף תמונת רקע" : "העלה תמונת רקע"}
+              {site.coverPhoto ? "החליפו תמונת רקע" : "העלו תמונת רקע"}
             </button>
             {site.coverPhoto && (
-              <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => set({ coverPhoto: null })}>הסר</button>
+              <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => set({ coverPhoto: null })}>הסירו</button>
             )}
           </div>
         </div>
@@ -191,6 +202,47 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <textarea className={base.textarea} rows={3} value={site.story}
             placeholder="ספרו לאורחים קצת על האירוע…"
             onChange={e => set({ story: e.target.value })} />
+        </Field>
+      </div>
+
+      {/* ── Gallery ── */}
+      <div className={base.card}>
+        <div className={styles.secToggleHead}>
+          <SectionLabel>גלריית תמונות</SectionLabel>
+          <Toggle on={site.sections.gallery !== false} onChange={v => setSection("gallery", v)} />
+        </div>
+        <p className={base.fieldHint}>עד 12 תמונות. הראשונה תוצג גדולה יותר.</p>
+        {(site.gallery || []).length > 0 && (
+          <div className={styles.galleryEdit}>
+            {(site.gallery || []).map((src, i) => (
+              <div key={i} className={styles.galleryEditItem} style={{ backgroundImage: `url(${src})` }}>
+                <button className={styles.galleryDel} onClick={() => delGalleryPhoto(i)} title="הסרה">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <label className={base.btnSecondary} style={{ cursor: "pointer", display: "inline-block", marginTop: 10 }}>
+          + הוסיפו תמונות
+          <input type="file" accept="image/*" multiple style={{ display: "none" }}
+            onChange={e => { onGallery(e.target.files); e.target.value = ""; }} />
+        </label>
+      </div>
+
+      {/* ── Countdown + Dress code ── */}
+      <div className={base.card}>
+        <div className={styles.secToggleHead}>
+          <SectionLabel>ספירה לאחור</SectionLabel>
+          <Toggle on={site.countdown !== false} onChange={v => set({ countdown: v })} />
+        </div>
+        <p className={base.fieldHint}>ספירת ימים לקראת מועד האירוע.</p>
+        <div className={styles.secToggleHead} style={{ marginTop: 18 }}>
+          <SectionLabel>קוד לבוש</SectionLabel>
+          <Toggle on={site.sections.dressCode === true} onChange={v => setSection("dressCode", v)} />
+        </div>
+        <Field label="הנחיית לבוש לאורחים (אופציונלי)">
+          <textarea className={base.textarea} rows={2} value={site.dressCode}
+            placeholder="למשל: לבוש חגיגי · צבעים בהירים מומלצים"
+            onChange={e => set({ dressCode: e.target.value })} />
         </Field>
       </div>
 
@@ -211,7 +263,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
             <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delSchedule(item.id)}>✕</button>
           </div>
         ))}
-        <button className={base.btnSecondary} onClick={addSchedule}>+ הוסף שלב</button>
+        <button className={base.btnSecondary} onClick={addSchedule}>+ הוסיפו שלב</button>
       </div>
 
       {/* ── Location ── */}
@@ -255,9 +307,13 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
             <input className={base.input} value={s.place} placeholder="נקודת איסוף — נס ציונה"
               onChange={e => editShuttle(s.id, { place: e.target.value })} />
             <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delShuttle(s.id)}>✕</button>
+            <input className={base.input} value={s.contactName || ""} placeholder="איש קשר (אופציונלי)"
+              onChange={e => editShuttle(s.id, { contactName: e.target.value })} />
+            <input className={base.input} value={s.contactPhone || ""} placeholder="טלפון איש קשר" dir="ltr"
+              onChange={e => editShuttle(s.id, { contactPhone: e.target.value })} />
           </div>
         ))}
-        <button className={base.btnSecondary} onClick={addShuttle}>+ הוסף הסעה</button>
+        <button className={base.btnSecondary} onClick={addShuttle}>+ הוסיפו הסעה</button>
       </div>
 
       {/* ── Blessings + gift toggles ── */}
@@ -292,7 +348,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
               onChange={e => editFaq(f.id, { a: e.target.value })} />
           </div>
         ))}
-        <button className={base.btnSecondary} onClick={addFaq}>+ הוסף שאלה</button>
+        <button className={base.btnSecondary} onClick={addFaq}>+ הוסיפו שאלה</button>
       </div>
 
       {/* ── Personal message + contact ── */}
@@ -311,7 +367,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
 
       {!site.enabled && (
         <Banner variant="warn">
-          האתר עדיין לא מפורסם — האורחים לא יראו אותו עד שתלחצו "פרסם אתר" למעלה.
+          האתר עדיין לא מפורסם — האורחים לא יראו אותו עד שתלחצו "פרסמו אתר" למעלה.
         </Banner>
       )}
     </div>

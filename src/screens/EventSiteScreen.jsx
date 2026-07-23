@@ -184,10 +184,27 @@ export default function EventSiteScreen({ localEvent }) {
         </div>
       )}
 
+      {/* ── Countdown ── */}
+      {visible && site?.countdown !== false && ev.date && (
+        <Countdown date={ev.date} styles={styles} />
+      )}
+
       {/* ── Story ── */}
       {visible && site?.story && (
         <section className={styles.story}>
           <p>{site.story}</p>
+        </section>
+      )}
+
+      {/* ── Photo gallery ── */}
+      {visible && sec.gallery !== false && site?.gallery?.length > 0 && (
+        <section className={styles.section}>
+          <h2 className={styles.secTitle}>הרגעים שלנו</h2>
+          <div className={styles.gallery}>
+            {site.gallery.map((src, i) => (
+              <div key={i} className={styles.galleryItem} style={{ backgroundImage: `url(${src})` }} />
+            ))}
+          </div>
         </section>
       )}
 
@@ -225,6 +242,16 @@ export default function EventSiteScreen({ localEvent }) {
         </section>
       )}
 
+      {/* ── Dress code ── */}
+      {visible && sec.dressCode && site?.dressCode && (
+        <section className={styles.section}>
+          <h2 className={styles.secTitle}>קוד לבוש</h2>
+          <div className={styles.locCard}>
+            <p className={styles.dressText}>{site.dressCode}</p>
+          </div>
+        </section>
+      )}
+
       {/* ── Shuttles ── */}
       {visible && sec.shuttles && site?.shuttles?.length > 0 && (
         <section ref={shuttlesRef} className={styles.section}>
@@ -234,7 +261,17 @@ export default function EventSiteScreen({ localEvent }) {
               <div key={s.id} className={styles.shuttleRow}>
                 <span className={styles.shuttleTime}>{s.time}</span>
                 <span className={styles.shuttleDir}>{s.direction}</span>
-                <span className={styles.shuttlePlace}>{s.place}</span>
+                <span className={styles.shuttlePlace}>
+                  {s.place}
+                  {s.contactName && (
+                    <span className={styles.shuttleContact}>
+                      {" · "}
+                      {s.contactPhone
+                        ? <a href={`https://wa.me/${String(s.contactPhone).replace(/[^\d]/g,"").replace(/^0/,"972")}`} target="_blank" rel="noopener noreferrer">{s.contactName} 📞</a>
+                        : s.contactName}
+                    </span>
+                  )}
+                </span>
               </div>
             ))}
           </div>
@@ -291,11 +328,40 @@ export default function EventSiteScreen({ localEvent }) {
           </a>
         )}
         <Link to="/" className={styles.footBrand}>✦ נבנה בכוכב השולחן</Link>
-        <Link to="/signup" className={styles.footPromo}>
-          מתכננים אירוע? בנו אתר כזה בחינם →
+        <Link to={token ? `/signup?ref=${token}` : "/signup"} className={styles.footPromo}>
+          מתכננים אירוע? בנו אתר כזה בחינם ←
         </Link>
       </footer>
     </div>
+  );
+}
+
+function Countdown({ date, styles }) {
+  const target = useMemo(() => new Date(date + "T18:00:00").getTime(), [date]);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const diff = Math.max(0, target - now);
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  const units = [[d, "ימים"], [pad(h), "שעות"], [pad(m), "דקות"], [pad(s), "שניות"]];
+  return (
+    <section className={styles.section}>
+      <h2 className={styles.secTitle}>הספירה לקראת האירוע</h2>
+      <div className={styles.countdown}>
+        {units.map(([val, label]) => (
+          <div key={label} className={styles.cdUnit}>
+            <span className={styles.cdNum}>{val}</span>
+            <span className={styles.cdLabel}>{label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

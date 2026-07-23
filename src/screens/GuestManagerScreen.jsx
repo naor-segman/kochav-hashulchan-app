@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import InfoTip from "../components/ui/InfoTip.jsx";
+import { messageSignature } from "../data/company.js";
 import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
@@ -616,7 +618,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   };
   const waGuest = (guest) => {
     const phone = normalizePhone(guest.phone);
-    const msg = `היי ${guest.name}! 💛\nאתם מוזמנים ל${ev.name || "אירוע שלנו"}.\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}`;
+    const msg = `היי ${guest.name}! 💛\nאתם מוזמנים ל${ev.name || "אירוע שלנו"}.\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}` + messageSignature();
     const base = phone ? `https://wa.me/${phone}` : "https://wa.me/";
     window.open(`${base}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
   };
@@ -791,7 +793,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         </div>
 
         <div className={base.grid2}>
-          <Field label="סטטוס RSVP">
+          <Field label={<>סטטוס הגעה <InfoTip text="לעדכון ידני של תשובות שקיבלתם בעצמכם (בטלפון או פנים־אל־פנים). אורחים שמאשרים דרך הקישור הדיגיטלי מתעדכנים אוטומטית — אין צורך לעדכן אותם כאן." /></>}>
             <select className={base.select} value={form.rsvp || "pending"} onChange={e => setF("rsvp", e.target.value)}>
               {RSVP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -811,7 +813,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               onChange={e => setF("notes", e.target.value)}
             />
           </Field>
-          <Field label="סכום מתנה (₪)" hint="אופציונלי — לדוח גמ״ח">
+          <Field label={<>סכום מתנה (₪) <InfoTip text="אופציונלי. אם קיבלתם מתנה מהאורח — רשמו כאן את הסכום, והמערכת תסכם לכם את סך כל המתנות שקיבלתם באירוע." /></>}>
             <input
               className={base.input}
               type="number"

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import InfoTip from "../components/ui/InfoTip.jsx";
 import { EVENT_TYPES } from "../data/constants.js";
 import { getEventPersonalConfig, getEventNamePlaceholder, getSideLabels, COUPLE_TYPES } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -113,8 +114,8 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         title={isNew ? "אירוע חדש" : "פרטי האירוע"}
         icon="✦"
         sub={isNew
-          ? "הזן שם לאירוע — שדה חובה לפני המשך. שאר הפרטים אפשר להשלים בכל עת."
-          : "עדכן את פרטי האירוע. תוכל לשנות הכל בכל שלב."
+          ? "הזינו שם לאירוע — שדה חובה לפני המשך. שאר הפרטים אפשר להשלים בכל עת."
+          : "עדכנו את פרטי האירוע. תוכלו לשנות הכל בכל שלב."
         }
       />
 
@@ -280,10 +281,12 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {/* ── Custom side names — available for every event type ── */}
         <Divider label="שמות הצדדים (אופציונלי)" />
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-          שני הצדדים לתיוג האורחים והושבה מאוזנת. השאירו ריק לשימוש בברירת המחדל של סוג האירוע.
+          כל אורח משויך לאחד משני "צדדים" — כך המערכת מאזנת את ההושבה בין שני הצדדים.
+          כאן אפשר לתת לצדדים שם משלכם (למשל "צד הכלה" / "צד החתן"). השאירו ריק כדי להשתמש
+          בברירת המחדל שרואים בשדות למטה.
         </p>
         <div className={base.grid2}>
-          <Field label="צד ראשון">
+          <Field label={<>צד ראשון <InfoTip text="כל אורח משויך לאחד משני צדדים כדי שההושבה תתאזן ביניהם. השאירו ריק לשימוש בברירת המחדל." /></>}>
             <input
               className={base.input}
               value={form.sideLabels.bride}

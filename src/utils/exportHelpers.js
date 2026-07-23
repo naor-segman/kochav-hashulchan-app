@@ -1,3 +1,5 @@
+import { guestSeatNames } from "./eventHelpers.js";
+
 const TABLE_TYPE_HE = { regular: "רגיל", vip: "VIP", head: "שולחן ראשי" };
 const RSVP_HE = { confirmed: "אישר/ה", declined: "סירב/ה", maybe: "אולי", pending: "ממתין" };
 const rsvpHe = r => RSVP_HE[r] || "ממתין";
@@ -100,23 +102,27 @@ export async function exportToExcel(ev, sideLabel, violations) {
 
   // ── Sheet 3: Alphabetical entrance list ─────────────────────────────
   {
-    const assigned = ev.guests
-      .filter(g => ev.seating[g.id])
-      .sort((a, b) => (a.name || '').localeCompare(b.name || '', "he"));
     const tableMap = Object.fromEntries(ev.tables.map(t => [t.id, t]));
+    // One row per SEAT — every individual (incl. named companions "רונית (טל)"
+    // and unnamed "+1/+2") appears, so the entrance team can find anyone by name.
+    const seatRows = ev.guests
+      .filter(g => ev.seating[g.id])
+      .flatMap(g => {
+        const table = tableMap[ev.seating[g.id]]?.name || "";
+        return guestSeatNames(g).map((seatName, idx) => ({
+          name: seatName, table, side: sideLabel(g.side),
+          count: idx === 0 ? (g.count != null ? g.count : 1) : "",
+          meal: mealHe(g.meal),
+          phone: idx === 0 ? (g.phone || "") : "",
+          notes: idx === 0 ? (g.notes || "") : "",
+        }));
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "he"));
     const aRows = [
       ["רשימת כניסה לפי א׳-ב׳ — " + (ev.name || "")],
       [],
       ["שם אורח", "שולחן", "צד", "כמות", "מנה", "טלפון", "הערות"],
-      ...assigned.map(g => [
-        g.name || "",
-        tableMap[ev.seating[g.id]]?.name || "",
-        sideLabel(g.side),
-        g.count != null ? g.count : 1,
-        mealHe(g.meal),
-        g.phone || "",
-        g.notes || "",
-      ]),
+      ...seatRows.map(r => [r.name, r.table, r.side, r.count, r.meal, r.phone, r.notes]),
     ];
     const ws3e = XLSX.utils.aoa_to_sheet(aRows);
     ws3e["!cols"] = [
@@ -144,35 +150,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
     XLSX.utils.book_append_sheet(wb, ws4, "הפרות אילוצים");
   }
 
-  // ── Sheet 5: Meal report for caterer ────────────────────────────────────
-  {
-    const mealKeys  = Object.keys(MEAL_HE);
-    const mealHdr   = ["שולחן", ...mealKeys.map(k => MEAL_HE[k]), "סה״כ"];
-    const mealRows  = [
-      ["דוח מנות לטבח — " + (ev.name || "")],
-      [],
-      mealHdr,
-    ];
-    const mealTotals = Object.fromEntries(mealKeys.map(k => [k, 0]));
-    ev.tables.forEach(t => {
-      const tGuests = ev.guests.filter(g => ev.seating[g.id] === t.id);
-      if (tGuests.length === 0) return;
-      const counts  = Object.fromEntries(mealKeys.map(k => [k, 0]));
-      tGuests.forEach(g => {
-        const key = g.meal || "regular";
-        counts[key] = (counts[key] || 0) + (g.count != null ? g.count : 1);
-        mealTotals[key] = (mealTotals[key] || 0) + (g.count != null ? g.count : 1);
-      });
-      const total = Object.values(counts).reduce((s, n) => s + n, 0);
-      mealRows.push([t.name, ...mealKeys.map(k => counts[k] || 0), total]);
-    });
-    const grandTotal = Object.values(mealTotals).reduce((s, n) => s + n, 0);
-    mealRows.push([]);
-    mealRows.push(["סה״כ", ...mealKeys.map(k => mealTotals[k] || 0), grandTotal]);
-    const ws5 = XLSX.utils.aoa_to_sheet(mealRows);
-    ws5["!cols"] = [{ wch: 16 }, ...mealKeys.map(() => ({ wch: 14 })), { wch: 8 }];
-    XLSX.utils.book_append_sheet(wb, ws5, "דוח מנות לטבח");
-  }
+  // (Sheet 5 "דוח מנות לטבח" removed per feedback — caterers don't need it.)
 
   // ── Sheet 6: Gift reconciliation report ─────────────────────────────────
   {
