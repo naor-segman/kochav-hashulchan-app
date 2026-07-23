@@ -127,15 +127,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         <span className={styles.stepText}>לאחר השמירה תוכלו להמשיך: שולחנות ← אורחים ← אילוצים ← הושבה</span>
       </div>
 
-      {dirty && (
-        <Banner variant="warn">
-          יש שינויים שלא נשמרו —
-          <button
-            className={base.btnSm}
-            onClick={save}
-          >שמרו עכשיו</button>
-        </Banner>
-      )}
+      {dirty && <Banner variant="warn">יש שינויים שלא נשמרו — שמרו בכפתור למטה.</Banner>}
       {saved && !dirty && <Banner variant="ok">הפרטים נשמרו ✓</Banner>}
 
       <div className={[base.card, dirty ? base.cardDirty : ""].filter(Boolean).join(" ")}>
