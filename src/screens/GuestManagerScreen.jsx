@@ -849,9 +849,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             </button>
           )}
           {!editId && (
-            <button className={base.btnSecondary} onClick={() => go("collab")}>
-              👨‍👩‍👧 הוספות מהמשפחה
-            </button>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <button className={base.btnSecondary} onClick={() => go("collab")}>
+                👨‍👩‍👧 טבלה שיתופית למשפחה
+              </button>
+              <InfoTip text="שתפו קישור אחד עם המשפחה — כולם ממלאים את אותה טבלה יחד, בזמן אמת, בלי צורך במשתמש וסיסמה. כל רשומה מלאה נכנסת לכאן אוטומטית, ושינוי כאן מתעדכן אצלם. במקום לשלוח אקסל הלוך ושוב." />
+            </span>
           )}
           {!editId && <span className={base.fieldHint}>Enter = הוספה מהירה</span>}
         </div>
