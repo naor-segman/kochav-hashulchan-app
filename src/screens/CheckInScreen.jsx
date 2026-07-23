@@ -311,6 +311,10 @@ export default function CheckInScreen({ events, patchEventById }) {
               ? `${nArrived} אורחים הגיעו עד כה${totalGifts > 0 ? ` · ₪${totalGifts.toLocaleString("he-IL")} במתנות` : ""}`
               : "הקלידו שם או מספר טלפון לחיפוש אורח"}
           </div>
+          <div className={styles.emptySub} style={{ marginTop: 8, fontSize: 13 }}>
+            כאן מסמנים הגעה ורושמים מתנות. לצוות שרק צריך למצוא לאורח שולחן — שתפו את
+            "קישור הדיילות" מהגדרות האירוע (עובד גם בלי חשבון).
+          </div>
         </div>
       )}
 

@@ -470,13 +470,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   {declinedGuests.length > 0 && ` (${declinedGuests.length} סירבו ולא שובצו)`}
                 </div>
               </div>
-              <button
-                className={styles.successExportBtn}
-                onClick={() => exportToExcel(ev, sideLabel, violations)}
-                title="ייצוא לקובץ אקסל"
-              >
-                <Icon name="chart" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />ייצוא לאקסל
-              </button>
             </div>
           )}
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP } from "../utils/publicTokens.js";
+import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
 
 // DEV-only preview fallback — used only when import.meta.env.DEV and Supabase
@@ -99,6 +100,11 @@ export default function RSVPScreen() {
             ? companions.slice(0, Math.max(0, guestsCount - 1)).map(c => (c || "").trim()).filter(Boolean)
             : [],
         });
+      } else if (isSupabaseConfigured) {
+        // Production with no cloud target — don't fake success and lose the RSVP.
+        setSubmitError("לא ניתן לשלוח כרגע. אנא פנו לבעלי האירוע לקבלת קישור מעודכן.");
+        setSubmitting(false);
+        return;
       }
       setStep("submitted");
     } catch {
@@ -120,6 +126,10 @@ export default function RSVPScreen() {
           attending: false,
           guestsCount: 0,
         });
+      } else if (isSupabaseConfigured) {
+        setSubmitError("לא ניתן לשלוח כרגע. אנא פנו לבעלי האירוע לקבלת קישור מעודכן.");
+        setSubmitting(false);
+        return;
       }
       setStep("submitted");
     } catch {

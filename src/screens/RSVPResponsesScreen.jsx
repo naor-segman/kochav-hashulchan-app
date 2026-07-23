@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { fetchRSVPResponses } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
@@ -13,6 +13,14 @@ import styles from "./RSVPResponsesScreen.module.css";
 // guest-list row: trim, collapse inner whitespace, lowercase.
 function normName(s) {
   return (s || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+// Normalize an Israeli phone to a comparable local form (05x…) for matching.
+function normPhone(p) {
+  let d = (p || "").replace(/\D/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  if (d.startsWith("972")) d = "0" + d.slice(3);
+  return d;
 }
 
 // A response's answer: prefer the new status column, fall back to the boolean.
@@ -52,12 +60,19 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
   useEffect(() => { load(); }, [load]);
 
-  // Match responses to guest-list rows by normalized name.
-  const guestByName = useMemo(() => {
-    const m = new Map();
-    (ev.guests || []).forEach(g => m.set(normName(g.name), g));
-    return m;
+  // Match responses to guest-list rows by phone (strong) then name.
+  const guestIndex = useMemo(() => {
+    const byPhone = new Map(), byName = new Map();
+    (ev.guests || []).forEach(g => {
+      const p = normPhone(g.phone); if (p) byPhone.set(p, g);
+      byName.set(normName(g.name), g);
+    });
+    return { byPhone, byName };
   }, [ev.guests]);
+  const matchGuest = useCallback((r) => {
+    const p = normPhone(r.phone);
+    return (p && guestIndex.byPhone.get(p)) || guestIndex.byName.get(normName(r.guest_name)) || null;
+  }, [guestIndex]);
 
   const stats = useMemo(() => {
     const confirmed = responses.filter(r => respStatus(r) === "yes");
@@ -124,6 +139,35 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     showToast(`"${newGuest.name}" נוסף לרשימת האורחים ✓`);
   }, [patchEvent, showToast]);
 
+  // Auto-sync: a link-RSVP that matches a guest (by phone/name) updates that
+  // guest's status automatically — once. Unmatched responses stay for a manual
+  // "+ הוסיפו לרשימה" (avoids duplicates); host manual overrides afterwards stick.
+  const autoDone = useRef(new Set());
+  useEffect(() => {
+    if (loadState !== "ready" || responses.length === 0) return;
+    const updates = new Map();
+    let n = 0;
+    responses.forEach(r => {
+      if (autoDone.current.has(r.id)) return;
+      const guest = matchGuest(r);
+      if (!guest) return;                       // unmatched → manual add
+      autoDone.current.add(r.id);
+      if (isApplied(r, guest)) return;          // already reflects it
+      const status = respStatus(r), hasCount = status !== "no";
+      const comps = Array.isArray(r.companions) ? r.companions.filter(Boolean) : [];
+      updates.set(guest.id, {
+        rsvp:  GUEST_RSVP[status],
+        count: hasCount ? (r.guests_count || 1) : (guest.count || 1),
+        phone: guest.phone || r.phone || "",
+        companions: comps.length ? comps : (guest.companions || []),
+      });
+      n++;
+    });
+    if (n === 0) return;
+    patchEvent(e => ({ ...e, guests: e.guests.map(g => updates.has(g.id) ? { ...g, ...updates.get(g.id) } : g) }));
+    showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
+  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast]);
+
   const rsvpLink = ev.tokens?.rsvp
     ? window.location.origin + "/rsvp/" + ev.tokens.rsvp
     : null;
@@ -133,7 +177,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       <PageHeader
         title="תשובות אישורי הגעה"
         icon={<Icon name="clipboard" />}
-        sub="כל מי שענה בדף אישור ההגעה — מסונכרן לרשימת האורחים בקליק."
+        sub="כל מי שמאשר דרך הקישור נכנס אוטומטית לרשימת האורחים. כאן רואים תמונת מצב ותחזית מנות."
       />
 
       {/* ── Summary stats ── */}
@@ -255,7 +299,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
           </div>
           <div className={base.gList}>
             {responses.map(r => {
-              const guest   = guestByName.get(normName(r.guest_name));
+              const guest   = matchGuest(r);
               const applied = isApplied(r, guest);
               return (
                 <div key={r.id} className={base.gRow}>

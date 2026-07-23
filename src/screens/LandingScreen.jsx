@@ -81,7 +81,7 @@ const PRICING_PLANS = [
       "ייצוא PDF וסידור מפורט",
       "תמיכה מועדפת",
     ],
-    cta: "שדרגו עכשיו",
+    cta: "התחילו חינם",
     ctaHref: "/signup",
     highlight: true,
   },

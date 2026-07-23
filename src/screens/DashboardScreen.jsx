@@ -25,7 +25,7 @@ const DASH_ICONS = {
 const DEMO_STEPS = [
   { label: "צרו אירוע חדש",        hint: 'לחצו "צרו אירוע" ובחרו את סוג האירוע מהתפריט' },
   { label: "הוסיפו שולחנות",          hint: "הגדירו כמה שולחנות יש באולם ואת הקיבולת שלהם" },
-  { label: "הוסיפו אורחים",           hint: "הזינו ידנית, או ייבאו רשימה מקובץ Excel" },
+  { label: "הוסיפו אורחים",           hint: "הזינו ידנית, הדביקו רשימת שמות, או שתפו טבלה משותפת עם המשפחה" },
   { label: "הגדירו אילוצים",          hint: "הפרדות בין אורחים וישיבות משותפות" },
   { label: "חשבו הושבה אוטומטית",   hint: 'לחצו "חשבו הושבה" בלשונית ההושבה ובדקו את התוצאה' },
   { label: "ייצאו לאולם",            hint: "ייצאו את הסידור לקובץ Excel לצוות האולם" },
@@ -300,8 +300,8 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
       <div className={styles.demoCard}>
         <button className={styles.demoToggle} onClick={() => setShowDemo(v => !v)}>
           <span className={styles.demoToggleStart}>
-            <span className={styles.demoIcon}>🧪</span>
-            <span className={styles.demoTitle}>נסו את המערכת</span>
+            <span className={styles.demoIcon}>🧭</span>
+            <span className={styles.demoTitle}>מדריך התחלה</span>
             {doneSteps.size > 0 && (
               <span className={doneSteps.size === DEMO_STEPS.length ? styles.demoBadgeDone : styles.demoBadge}>
                 {doneSteps.size}/{DEMO_STEPS.length}
@@ -314,8 +314,8 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
         {showDemo && (
           <div className={styles.demoBody}>
             <p className={styles.demoSubtitle}>
-              עקבו אחר השלבים כדי להכיר את המערכת מקצה לקצה.
-              לחצו על שלב לאחר שסיימתם אותו.
+              סיור מודרך להכרת המערכת — לא התקדמות אמיתית של אירוע.
+              סמנו כל צעד אחרי שהתנסיתם בו.
             </p>
             <ol className={styles.demoList}>
               {DEMO_STEPS.map((step, i) => {

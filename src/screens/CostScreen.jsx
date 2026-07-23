@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./CostScreen.module.css";
@@ -29,20 +29,25 @@ function fmtILS(n) {
   return n > 0 ? "₪" + n.toLocaleString("he-IL", { maximumFractionDigits: 0 }) : "—";
 }
 
-export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+export default function CostScreen({ activeEvent: ev, patchEvent }) {
   const [cats, setCats]    = useState(() => initCategories(ev));
-  const [dirty, setDirty]  = useState(false);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
 
+  // Auto-save like every other screen — no manual "save budget" button, no
+  // silent data loss on navigation.
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    patchEvent({ costs: { categories: cats } });
+  }, [cats, patchEvent]);
+
   const setField = (id, field, value) => {
     setCats(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
-    setDirty(true);
   };
 
   const removeRow = (id) => {
     setCats(prev => prev.filter(c => c.id !== id));
-    setDirty(true);
   };
 
   const addRow = () => {
@@ -51,13 +56,6 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
     setCats(prev => [...prev, { id: crypto.randomUUID(), name, budget: "", actual: "" }]);
     setNewName("");
     setAdding(false);
-    setDirty(true);
-  };
-
-  const save = () => {
-    patchEvent({ costs: { categories: cats } });
-    setDirty(false);
-    showToast("תקציב נשמר ✓");
   };
 
   const totalBudget = useMemo(() =>
@@ -88,9 +86,9 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
   return (
     <div className={base.page}>
       <PageHeader
-        title="תקציב ועלויות"
+        title="תכנון תקציב"
         icon={<Icon name="chart" />}
-        sub="עקבו אחר התקציב המתוכנן מול ההוצאה בפועל לאורך תכנון האירוע."
+        sub="נהלו את תקציב האירוע — מתוכנן מול בפועל — לאורך כל הדרך. כל שינוי נשמר אוטומטית."
       />
 
       {/* ── Stats ── */}
@@ -280,12 +278,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
         </div>
 
         <div className={base.formActions}>
-          <button className={base.btnPrimary} onClick={save} disabled={!dirty}>
-            שמרו תקציב
-          </button>
-          {!dirty && (
-            <span className={styles.savedHint}>כל השינויים שמורים</span>
-          )}
+          <span className={styles.savedHint}>✓ נשמר אוטומטית</span>
         </div>
       </div>
     </div>

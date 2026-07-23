@@ -226,6 +226,10 @@
   }
 }
 
+.subnavBtn[data-firsttool="1"] {
+  border-inline-start: 1px solid var(--border);
+  margin-inline-start: 5px;
+}
 .subnavBtn {
   display: flex;
   align-items: center;

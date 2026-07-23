@@ -132,7 +132,9 @@ export default function EventSiteScreen({ localEvent }) {
     sec.blessings && { label: "ברכות", key: "blessings" },
     site?.faq?.length && sec.faq && { label: "שאלות", key: "faq" },
   ].filter(Boolean);
-  const showRsvp = visible && rsvpUrl;
+  // RSVP is always reachable — even before the site is published — so a guest
+  // who arrives early can still confirm attendance.
+  const showRsvp = !!rsvpUrl;
 
   return (
     <div className={styles.site} style={themeVars}>
@@ -181,6 +183,7 @@ export default function EventSiteScreen({ localEvent }) {
         <div className={styles.comingSoon}>
           <span className={styles.comingSoonStar} aria-hidden="true">✦</span>
           <p>האתר בהכנה 💛<br />בעלי השמחה יפרסמו אותו בקרוב.</p>
+          {rsvpUrl && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
         </div>
       )}
 

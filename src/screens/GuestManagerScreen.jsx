@@ -5,7 +5,6 @@ import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
 import { getSideLabels, getSideLabel } from "../utils/eventHelpers.js";
-import { buildColumnMap, readCell, parseSide } from "../utils/guestImport.js";
 import { uid } from "../utils/uid.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canAddGuest } from "../utils/featureGates.js";
@@ -20,449 +19,11 @@ import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./GuestManagerScreen.module.css";
 
-function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
-  const [step, setStep]             = useState("upload");
-  const [classified, setClassified] = useState(null);
-  const [parseErr, setParseErr]     = useState("");
-  const [skipDups, setSkipDups]     = useState(true);
-  const dropRef = useRef(null);
-  const fileRef = useRef(null);
-
-  const { bride: brideSide, groom: groomSide } = getSideLabels(ev);
-  const sideLabel = s => getSideLabel(ev, s);
-
-  const classifyRows = (rawRows) => {
-    const existingNames  = new Set(ev.guests.map(g => g.name.trim().toLowerCase()));
-    const existingPhones = new Set(
-      ev.guests.map(g => (g.phone || "").trim()).filter(Boolean)
-    );
-    const newGuests       = [];
-    const duplicates      = [];
-    const invalid         = [];
-    const newCustomGroups = [];
-
-    // Map the file's actual headers to our logical fields so lists from other
-    // services / hand-made sheets import without renaming columns.
-    const col = buildColumnMap(rawRows[0] || {});
-
-    rawRows.forEach(r => {
-      const name = String(readCell(r, col, "name") || "").trim();
-      if (!name || name.startsWith("דוגמה") || name.startsWith("(")) return;
-
-      const rawCount    = readCell(r, col, "count");
-      const rawCountStr = String(rawCount ?? "").trim();
-      let count = 1;
-      if (rawCountStr !== "") {
-        const parsed = parseInt(rawCountStr);
-        if (isNaN(parsed) || parsed < 1) {
-          invalid.push({ name, issue: 'כמות לא תקינה: "' + rawCountStr + '"' });
-          return;
-        }
-        count = parsed;
-      }
-
-      // Restore leading zero if Excel converted a phone number to a 9-digit integer
-      const rawPhone = readCell(r, col, "phone");
-      let phone = String(rawPhone ?? "").trim();
-      if (phone && /^\d{9}$/.test(phone)) phone = "0" + phone;
-
-      const notes    = String(readCell(r, col, "notes") || "").trim();
-      const rawGroup = String(readCell(r, col, "group") || "").trim();
-      const knownGroups = new Set([...GROUP_OPTIONS, ...(ev.customGroups || [])]);
-      let group;
-      if (!rawGroup) {
-        group = "משפחה קרובה";
-      } else if (knownGroups.has(rawGroup)) {
-        group = rawGroup;
-      } else {
-        group = rawGroup;
-        if (!newCustomGroups.includes(rawGroup)) newCustomGroups.push(rawGroup);
-      }
-
-      const side = parseSide(readCell(r, col, "side"), brideSide, groomSide);
-
-      const rawRsvp = String(readCell(r, col, "rsvp") || "").trim().toLowerCase();
-      const rsvp = rawRsvp.includes("אישר") || rawRsvp === "confirmed" ? "confirmed"
-        : rawRsvp.includes("סירב") || rawRsvp === "declined" ? "declined"
-        : rawRsvp.includes("אולי") || rawRsvp === "maybe" ? "maybe"
-        : "pending";
-
-      const rawMeal = String(readCell(r, col, "meal") || "").trim();
-      const meal = rawMeal === "כשר מהדרין" ? "kosher"
-        : rawMeal === "טבעוני" ? "vegan"
-        : rawMeal === "צמחוני" ? "vegetarian"
-        : rawMeal === "ילדים" ? "child"
-        : rawMeal === "לא אוכל" ? "none"
-        : MEAL_DEFAULT;
-
-      const guest = { id: uid(), name, count, phone, notes, group, side, rsvp, meal };
-
-      const nameMatch  = existingNames.has(name.toLowerCase());
-      const phoneMatch = phone && existingPhones.has(phone);
-
-      if (nameMatch || phoneMatch) {
-        duplicates.push({ guest, reason: nameMatch ? "שם זהה לאורח קיים" : "טלפון זהה לאורח קיים" });
-      } else {
-        newGuests.push(guest);
-      }
-    });
-
-    return { newGuests, duplicates, invalid, newCustomGroups };
-  };
-
-  const parseFile = (file) => {
-    if (!file) return;
-    setParseErr("");
-    const ext    = file.name.split(".").pop().toLowerCase();
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        let rows;
-        if (ext === "csv") {
-          const text  = e.target.result;
-          const lines = text.split(/\r?\n/).filter(l => l.trim());
-          if (!lines.length) { setParseErr("הקובץ ריק"); return; }
-          const sep  = lines[0].includes("\t") ? "\t" : ",";
-          const hdrs = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, ""));
-          rows = lines.slice(1).map(line => {
-            const vals = line.split(sep).map(v => v.trim().replace(/^"|"$/g, ""));
-            const obj  = {};
-            hdrs.forEach((h, i) => { obj[h] = vals[i] || ""; });
-            return obj;
-          });
-        } else {
-          const XLSX = await import("xlsx");
-          const wb = XLSX.read(e.target.result, { type: "array" });
-          const ws = wb.Sheets[wb.SheetNames[0]];
-          rows     = XLSX.utils.sheet_to_json(ws, { defval: "" });
-        }
-        if (!rows.length) { setParseErr("לא נמצאו שורות בקובץ"); return; }
-        // Flexible header detection — accept any file that has a recognizable
-        // name column, not only our exact template.
-        const colMap = buildColumnMap(rows[0] || {});
-        if (!colMap.name) {
-          const found = Object.keys(rows[0] || {}).filter(Boolean).slice(0, 8).join(", ");
-          setParseErr(
-            "לא זוהתה עמודת שם בקובץ. ודאו שיש כותרת כמו \"שם\" או \"שם מלא\"." +
-            (found ? " (כותרות שזוהו: " + found + ")" : "")
-          );
-          return;
-        }
-        const result = classifyRows(rows);
-        if (result.newGuests.length === 0 && result.duplicates.length === 0) {
-          setParseErr(
-            result.invalid.length > 0
-              ? "כל הרשומות לא תקניות (" + result.invalid.length + " שגיאות). בדקו את הקובץ."
-              : "לא נמצאו רשומות לייבוא (שורות הדגמה הוסרו אוטומטית)"
-          );
-          return;
-        }
-        setClassified(result);
-        setStep("confirm");
-      } catch (err) {
-        setParseErr("שגיאה בקריאת הקובץ: " + (err.message || "פורמט לא תקין"));
-      }
-    };
-    if (ext === "csv") reader.readAsText(file, "UTF-8");
-    else reader.readAsArrayBuffer(file);
-  };
-
-  const doImport = () => {
-    const { newGuests, duplicates, newCustomGroups } = classified;
-    const toImport = skipDups
-      ? newGuests
-      : [...newGuests, ...duplicates.map(d => d.guest)];
-    if (toImport.length === 0) { showToast("אין רשומות לייבוא", "err"); return; }
-    if (maxGuests !== Infinity && ev.guests.length + toImport.length > maxGuests) {
-      const remaining = Math.max(0, maxGuests - ev.guests.length);
-      showToast(
-        remaining === 0
-          ? `הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`
-          : `ניתן להוסיף עוד ${remaining} רשומות בלבד בתוכנית הנוכחית (${ev.guests.length}/${maxGuests})`,
-        "err"
-      );
-      return;
-    }
-    patchEvent(e => {
-      const existingCustom = e.customGroups || [];
-      const mergedCustom   = [...existingCustom, ...(newCustomGroups || []).filter(g => !existingCustom.includes(g))];
-      return Object.assign({}, e, { guests: e.guests.concat(toImport), customGroups: mergedCustom });
-    });
-    const seats  = toImport.reduce((s, g) => s + (g.count || 1), 0);
-    const dupMsg = skipDups && duplicates.length > 0
-      ? " · " + duplicates.length + " כפולים דולגו" : "";
-    showToast("יובאו " + toImport.length + " רשומות — " + seats + " מקומות ✓" + dupMsg);
-    onClose();
-  };
-
-  const onDrop = e => {
-    e.preventDefault();
-    if (dropRef.current) dropRef.current.style.borderColor = "";
-    parseFile(e.dataTransfer.files[0]);
-  };
-  const onDragOver = e => {
-    e.preventDefault();
-    if (dropRef.current) dropRef.current.style.borderColor = "var(--accent)";
-  };
-  const onDragLeave = () => {
-    if (dropRef.current) dropRef.current.style.borderColor = "";
-  };
-
-  const cl = classified || { newGuests: [], duplicates: [], invalid: [] };
-  const toImportList = classified
-    ? (skipDups ? cl.newGuests : [...cl.newGuests, ...cl.duplicates.map(d => d.guest)])
-    : [];
-  const toImportCount = toImportList.length;
-  const toImportSeats = toImportList.reduce((s, g) => s + (g.count || 1), 0);
-
-  const GuestMiniTable = ({ rows }) => (
-    <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
-      <table className={base.importPreviewTable}>
-        <thead>
-          <tr>
-            <th className={base.importTh}>שם</th>
-            <th className={base.importTh} style={{ textAlign: "center" }}>מקומות</th>
-            <th className={base.importTh}>צד</th>
-            <th className={base.importTh}>קבוצה</th>
-            <th className={base.importTh}>טלפון</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.slice(0, 100).map((g, i) => (
-            <tr key={i} style={i % 2 === 1 ? { background: "var(--bg)" } : {}}>
-              <td className={base.importTd}>{g.name}</td>
-              <td className={base.importTd} style={{ textAlign: "center" }}>
-                {(g.count || 1) > 1
-                  ? <strong style={{ color: "var(--accent)" }}>{g.count}</strong>
-                  : <span style={{ color: "var(--muted)" }}>1</span>}
-              </td>
-              <td className={base.importTd} style={{ fontSize: 12 }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                  <SideDot side={g.side} />{sideLabel(g.side)}
-                </span>
-              </td>
-              <td className={base.importTd} style={{ fontSize: 12 }}>{g.group}</td>
-              <td className={base.importTd} style={{ color: "var(--muted)", fontSize: 12 }}>{g.phone || "—"}</td>
-            </tr>
-          ))}
-          {rows.length > 100 && (
-            <tr>
-              <td colSpan={5} className={base.importTd} style={{ textAlign: "center", color: "var(--muted)", fontStyle: "italic" }}>
-                ...ועוד {rows.length - 100}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  return (
-    <div className={base.importWrap}>
-      <div className={base.stepPills}>
-        {[["upload", "1. הורידו והכינו"], ["confirm", "2. אשרו וייבאו"]].map(([s, l], i) => (
-          <span key={s} style={{ display: "contents" }}>
-            {i > 0 && <span className={base.stepPillSep}>›</span>}
-            <span className={[base.stepPill, step === s ? base.stepPillActive : ""].filter(Boolean).join(" ")}>{l}</span>
-          </span>
-        ))}
-        <button
-          className={[base.btnSm, base.btnGhost].join(" ")}
-          style={{ marginInlineStart: "auto" }}
-          onClick={onClose}
-        >✕ סגרו</button>
-      </div>
-
-      {step === "upload" && (
-        <div className={base.importStep}>
-          <div className={base.templateCard}>
-            <div className={base.templateCardIcon}>📋</div>
-            <div style={{ flex: 1 }}>
-              <div className={base.templateCardTitle}>התחילו עם תבנית מוכנה</div>
-              <div className={base.templateCardSub}>
-                קובץ Excel עם כל העמודות, רשימות נפתחות לצד ולקבוצה, והסברים בתוך הקובץ.
-                מלאו אותו ואז העלו בחזרה.
-              </div>
-            </div>
-            <button
-              className={base.downloadLink}
-              style={{ border: "none", cursor: "pointer" }}
-              onClick={() => downloadGuestTemplate(
-                "רשימת_אורחים_" + (ev.name || "אורחים").replace(/[^א-תa-zA-Z0-9]/g, "_") + ".xlsx",
-                ev
-              )}
-            >
-              ⬇ הורידו תבנית Excel
-            </button>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0" }}>
-            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>אחרי שמילאתם — העלו כאן</span>
-            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-          </div>
-
-          <div
-            ref={dropRef}
-            className={base.importDropzone}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onClick={() => fileRef.current && fileRef.current.click()}
-          >
-            <div className={base.importDropzoneIcon}>📤</div>
-            <div className={base.importDropzoneText}>גררו לכאן את הקובץ המלא</div>
-            <div className={base.importDropzoneHint}>או לחצו לבחירת קובץ · xlsx, xls, csv</div>
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            style={{ display: "none" }}
-            onChange={e => { if (e.target.files[0]) parseFile(e.target.files[0]); }}
-          />
-
-          {parseErr && <Banner variant="warn">⚠ {parseErr}</Banner>}
-
-          <div className={base.fieldHint}>הקובץ נקרא בדפדפן בלבד — לא נשלח לאף שרת.</div>
-        </div>
-      )}
-
-      {step === "confirm" && classified && (
-        <div className={base.importStep}>
-
-          {/* ── Summary row ── */}
-          <div className={styles.importSummaryRow}>
-            <span className={styles.importSumNew}>✓ {cl.newGuests.length} חדשים</span>
-            {cl.duplicates.length > 0 && (
-              <span className={styles.importSumDup}>⚠ {cl.duplicates.length} כפולים</span>
-            )}
-            {cl.invalid.length > 0 && (
-              <span className={styles.importSumBad}>✕ {cl.invalid.length} לא תקינים</span>
-            )}
-          </div>
-
-          {/* ── New guests ── */}
-          {cl.newGuests.length > 0 && (
-            <div>
-              <div className={styles.importSectionHead} style={{ color: "var(--green)" }}>
-                ✓ רשומות חדשות — {cl.newGuests.length}
-              </div>
-              <GuestMiniTable rows={cl.newGuests} />
-            </div>
-          )}
-
-          {/* ── Duplicates ── */}
-          {cl.duplicates.length > 0 && (
-            <div className={styles.importDupSection}>
-              <div className={styles.importDupHead}>
-                <span className={styles.importSectionHead} style={{ color: "var(--warn)" }}>
-                  ⚠ כפולים אפשריים — {cl.duplicates.length}
-                </span>
-                <label className={styles.importDupToggle}>
-                  <input
-                    type="checkbox"
-                    checked={skipDups}
-                    onChange={e => setSkipDups(e.target.checked)}
-                  />
-                  דלג על כפולים
-                </label>
-              </div>
-              <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid var(--warn-border)", borderRadius: "var(--radius)" }}>
-                <table className={base.importPreviewTable}>
-                  <thead>
-                    <tr>
-                      <th className={base.importTh}>שם</th>
-                      <th className={base.importTh} style={{ textAlign: "center" }}>מקומות</th>
-                      <th className={base.importTh}>צד</th>
-                      <th className={base.importTh}>קבוצה</th>
-                      <th className={base.importTh}>סיבה</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cl.duplicates.slice(0, 50).map((d, i) => (
-                      <tr key={i} className={styles.importRowDup}>
-                        <td className={base.importTd}>{d.guest.name}</td>
-                        <td className={base.importTd} style={{ textAlign: "center" }}>
-                          {(d.guest.count || 1) > 1
-                            ? <strong style={{ color: "var(--accent)" }}>{d.guest.count}</strong>
-                            : <span style={{ color: "var(--muted)" }}>1</span>}
-                        </td>
-                        <td className={base.importTd} style={{ fontSize: 12 }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                            <SideDot side={d.guest.side} />{sideLabel(d.guest.side)}
-                          </span>
-                        </td>
-                        <td className={base.importTd} style={{ fontSize: 12 }}>{d.guest.group}</td>
-                        <td className={base.importTd} style={{ fontSize: 11, color: "var(--warn)" }}>{d.reason}</td>
-                      </tr>
-                    ))}
-                    {cl.duplicates.length > 50 && (
-                      <tr>
-                        <td colSpan={5} className={base.importTd} style={{ textAlign: "center", color: "var(--muted)", fontStyle: "italic" }}>
-                          ...ועוד {cl.duplicates.length - 50}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ── Invalid rows ── */}
-          {cl.invalid.length > 0 && (
-            <div>
-              <div className={styles.importSectionHead} style={{ color: "var(--red)" }}>
-                ✕ שורות לא תקניות — {cl.invalid.length} (לא יובאו)
-              </div>
-              <div style={{ maxHeight: 140, overflowY: "auto", border: "1px solid var(--red-border)", borderRadius: "var(--radius)" }}>
-                <table className={base.importPreviewTable}>
-                  <thead>
-                    <tr>
-                      <th className={base.importTh}>שם</th>
-                      <th className={base.importTh}>בעיה</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cl.invalid.slice(0, 30).map((item, i) => (
-                      <tr key={i} className={styles.importRowBad}>
-                        <td className={base.importTd}>{item.name || "(ללא שם)"}</td>
-                        <td className={base.importTd} style={{ fontSize: 12, color: "var(--red)" }}>{item.issue}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              className={base.btnPrimary}
-              onClick={doImport}
-              disabled={toImportCount === 0}
-            >
-              ✓ ייבאו {toImportCount} רשומות ({toImportSeats} מקומות)
-            </button>
-            <button
-              className={base.btnSecondary}
-              onClick={() => { setStep("upload"); setClassified(null); setParseErr(""); }}
-            >
-              חזרו
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const EF = { name: "", side: "bride", group: "משפחה קרובה", count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "", companions: [] };
   const [form, setForm]           = useState(EF);
   const [editId, setEditId]       = useState(null);
-  const [showBulk, setShowBulk]     = useState(false);
   const [showList, setShowList]     = useState(false);
   const [listText, setListText]     = useState("");
   const [listSide, setListSide]     = useState("bride");
@@ -583,9 +144,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const delGuest = (id, name) => {
     const tableId   = ev.seating[id];
     const tableName = tableId ? (ev.tables.find(t => t.id === tableId)?.name || null) : null;
+    const collabNote = ev.tokens?.collab ? "\n\nהאורח יימחק גם מהטבלה השיתופית של המשפחה." : "";
     const msg = tableName
-      ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית.\n\nפעולה זו אינה ניתנת לביטול."
-      : "למחוק את \"" + name + "\" מרשימת האורחים?\n\nפעולה זו אינה ניתנת לביטול.";
+      ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית." + collabNote + "\n\nפעולה זו אינה ניתנת לביטול."
+      : "למחוק את \"" + name + "\" מרשימת האורחים?" + collabNote + "\n\nפעולה זו אינה ניתנת לביטול.";
     if (!confirm(msg)) return;
     if (editId === id) { setEditId(null); setForm(EF); setCustomGroupInput(""); }
     patchEvent(e => Object.assign({}, e, {
@@ -604,6 +166,23 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const rsvpLabel = v => RSVP_OPTIONS.find(o => o.value === v)?.label || "ממתין";
   const mealLabel = v => MEAL_OPTIONS.find(o => o.value === v)?.label || "";
   const mealEmoji = v => MEAL_OPTIONS.find(o => o.value === v)?.emoji || "";
+
+  // Excel is a report, not a workspace: one button that always downloads the
+  // full, current guest list as a spreadsheet.
+  const exportGuestsExcel = async () => {
+    const XLSX = await import("xlsx");
+    const rsvpTxt = { confirmed: "אישרו", declined: "לא מגיעים", maybe: "אולי", pending: "ממתין" };
+    const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות", "מנה", "אישור הגעה", "הערות"]];
+    ev.guests.forEach(g => aoa.push([
+      g.name || "", g.phone || "", sideLabel(g.side), g.group || "",
+      g.count || 1, mealLabel(g.meal), rsvpTxt[g.rsvp || "pending"] || "", g.notes || "",
+    ]));
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{ wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 }, { wch: 6 }, { wch: 12 }, { wch: 12 }, { wch: 20 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "רשימת אורחים");
+    XLSX.writeFile(wb, `אורחים-${(ev.name || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
+  };
 
   // Open WhatsApp to a specific guest with a personal invite + event-site link.
   const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
@@ -701,7 +280,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         </SectionLabel>
         {!editId && (
           <p className={styles.addHint}>
-            הוספה אחת בכל פעם. להוספה מהירה של עשרות אורחים בבת אחת — לחצו על "ייבוא מ-Excel" למטה.
+            הוספה אחת בכל פעם. להוספה מהירה — "הוסיפו לפי רשימה", או "טבלה שיתופית למשפחה" שכולם ממלאים יחד.
           </p>
         )}
 
@@ -839,19 +418,22 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           </button>
           {editId && <button className={base.btnSecondary} onClick={cancelEdit}>ביטול</button>}
           {!editId && (
-            <button className={base.btnSecondary} onClick={() => { setShowList(p => !p); setShowBulk(false); }}>
+            <button className={base.btnSecondary} onClick={() => setShowList(p => !p)}>
               {showList ? "סגרו רשימה" : "📝 הוסיפו לפי רשימה"}
             </button>
           )}
-          {!editId && (
-            <button className={base.btnSecondary} onClick={() => { setShowBulk(p => !p); setShowList(false); }}>
-              {showBulk ? "סגרו ייבוא" : "📥 ייבוא מ-Excel"}
+          {!editId && ev.guests.length > 0 && (
+            <button className={base.btnSecondary} onClick={exportGuestsExcel}>
+              ⬇ הורדה לאקסל
             </button>
           )}
           {!editId && (
-            <button className={base.btnSecondary} onClick={() => go("collab")}>
-              👨‍👩‍👧 הוספות מהמשפחה
-            </button>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <button className={base.btnSecondary} onClick={() => go("collab")}>
+                👨‍👩‍👧 טבלה שיתופית למשפחה
+              </button>
+              <InfoTip text="שתפו קישור אחד עם המשפחה — כולם ממלאים את אותה טבלה יחד, בזמן אמת, בלי צורך במשתמש וסיסמה. כל רשומה מלאה נכנסת לכאן אוטומטית, ושינוי כאן מתעדכן אצלם. במקום לשלוח אקסל הלוך ושוב." />
+            </span>
           )}
           {!editId && <span className={base.fieldHint}>Enter = הוספה מהירה</span>}
         </div>
@@ -901,15 +483,6 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           </div>
         )}
 
-        {showBulk && (
-          <ExcelImportFlow
-            ev={ev}
-            patchEvent={patchEvent}
-            showToast={showToast}
-            onClose={() => setShowBulk(false)}
-            maxGuests={maxGuests}
-          />
-        )}
       </div>
 
       {ev.guests.length > 0 && (
@@ -1034,7 +607,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
       {ev.guests.length === 0 && (
         <EmptyState icon={<Icon name="users" />} title="טרם נוספו אורחים"
-          text='הוסיפו אורחים ידנית דרך הטופס למעלה, או לחצו על "ייבוא מ-Excel" לייבוא רשימה שלמה בבת אחת.' />
+          text='הוסיפו אורחים ידנית דרך הטופס למעלה, "הוסיפו לפי רשימה" להוספה מהירה, או שתפו "טבלה שיתופית למשפחה".' />
       )}
       {visible.length === 0 && ev.guests.length > 0 && (
         <EmptyState icon={<Icon name="search" />} title="אין תוצאות לסינון הנוכחי"
