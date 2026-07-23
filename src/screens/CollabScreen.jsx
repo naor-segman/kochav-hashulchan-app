@@ -1,6 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { fetchCollabEvent, submitGuestEntry } from "../utils/publicTokens.js";
+import * as XLSX from "xlsx";
+import {
+  fetchCollabEvent, fetchCollabGuests, subscribeCollabGuests,
+  upsertCollabGuest, deleteCollabGuest,
+} from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
@@ -10,46 +14,116 @@ import styles from "./CollabScreen.module.css";
 // DEV mock so the page can be designed without a live token.
 const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתונה", brideName: "נועה", groomName: "טל", coupleType: "bride-groom", sideLabels: null };
 
+// A row syncs to the guest list only when every field the seating system needs
+// is present. Count always defaults to 1, so it's never "missing".
+function missingFields(r) {
+  const m = [];
+  if (!(r.name || "").trim())  m.push("שם");
+  if (!(r.phone || "").trim()) m.push("טלפון");
+  if (!r.side)                 m.push("צד");
+  if (!r.guest_group)          m.push("קבוצה");
+  return m;
+}
+const isComplete = (r) => missingFields(r).length === 0;
+
 export default function CollabScreen() {
   const { token } = useParams();
   const [ev, setEv] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | notfound
-  const [form, setForm] = useState({ name: "", phone: "", side: "bride", group: "משפחה קרובה", count: 1 });
-  const [submittedBy, setSubmittedBy] = useState("");
-  const [added, setAdded] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const [rows, setRows] = useState([]);
+  const [me, setMe] = useState(() => { try { return localStorage.getItem("collab_me") || ""; } catch { return ""; } });
+
+  const editing = useRef(new Set());  // row ids being edited locally right now
+  const timers  = useRef(new Map());  // id -> debounce timeout
+
+  // Apply a live change from another collaborator.
+  const onRealtime = useCallback((payload) => {
+    const type = payload.eventType;
+    setRows(prev => {
+      if (type === "DELETE") return prev.filter(r => r.id !== payload.old?.id);
+      const row = payload.new;
+      if (!row) return prev;
+      if (editing.current.has(row.id)) return prev; // don't clobber my own typing
+      return prev.some(r => r.id === row.id)
+        ? prev.map(r => (r.id === row.id ? { ...r, ...row } : r))
+        : [...prev, row];
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
+    let unsub = () => {};
     (async () => {
       const data = await fetchCollabEvent(token);
       if (cancelled) return;
-      if (data) { setEv(data); setState("ready"); }
-      else if (!isSupabaseConfigured || import.meta.env.DEV) { setEv(MOCK); setState("ready"); }
-      else setState("notfound");
+      if (data) {
+        setEv(data); setState("ready");
+        const list = await fetchCollabGuests(token);
+        if (!cancelled) setRows(list);
+        if (data.cloudId) unsub = subscribeCollabGuests(data.cloudId, onRealtime);
+      } else if (!isSupabaseConfigured || import.meta.env.DEV) {
+        setEv(MOCK); setState("ready");
+      } else {
+        setState("notfound");
+      }
     })();
-    return () => { cancelled = true; };
-  }, [token]);
+    const pending = timers.current;
+    return () => { cancelled = true; unsub(); pending.forEach(clearTimeout); };
+  }, [token, onRealtime]);
 
-  if (state === "loading") return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
+  if (state === "loading")  return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
   if (state === "notfound") return <div className={styles.state}><span className={styles.star}>⚠</span><p>הקישור אינו תקין או שפג תוקפו</p></div>;
 
   const sides = getSideLabels(ev);
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!form.name.trim()) { setErr("יש להזין שם"); return; }
-    setErr(""); setBusy(true);
-    try {
-      if (ev.cloudId) await submitGuestEntry(token, { ...form, name: form.name.trim(), submittedBy: submittedBy.trim() });
-      setAdded(a => [{ _k: uid(), name: form.name.trim(), count: form.count, side: form.side }, ...a]);
-      setForm(f => ({ ...f, name: "", phone: "", count: 1 }));
-    } catch {
-      setErr("אירעה שגיאה בשליחה. נסו שוב.");
-    } finally { setBusy(false); }
+  // Persist a row (debounced). Nameless drafts stay local until they get a name,
+  // so clicking "add" doesn't spam the shared table with empty rows.
+  const scheduleWrite = (row) => {
+    const t = timers.current;
+    if (t.has(row.id)) clearTimeout(t.get(row.id));
+    if (!(row.name || "").trim() || !ev.cloudId) return;
+    t.set(row.id, setTimeout(async () => {
+      t.delete(row.id);
+      try { await upsertCollabGuest(token, { ...row, updated_by: me || null }); }
+      catch { /* transient — next edit retries */ }
+      editing.current.delete(row.id);
+    }, 600));
   };
+
+  const editRow = (id, patch) => {
+    editing.current.add(id);
+    setRows(prev => {
+      const next = prev.map(r => (r.id === id ? { ...r, ...patch } : r));
+      scheduleWrite(next.find(r => r.id === id));
+      return next;
+    });
+  };
+
+  const addRow = () => {
+    const row = { id: uid(), name: "", phone: "", side: "bride", guest_group: "", guests_count: 1 };
+    setRows(prev => [row, ...prev]);
+  };
+
+  const removeRow = async (id) => {
+    if (timers.current.has(id)) { clearTimeout(timers.current.get(id)); timers.current.delete(id); }
+    editing.current.delete(id);
+    setRows(prev => prev.filter(r => r.id !== id));
+    if (ev.cloudId) { try { await deleteCollabGuest(token, id); } catch { /* ignore */ } }
+  };
+
+  const saveMe = (v) => { setMe(v); try { localStorage.setItem("collab_me", v); } catch { /* ignore */ } };
+
+  const downloadExcel = () => {
+    const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות"]];
+    rows.forEach(r => aoa.push([r.name || "", r.phone || "", sides[r.side] || "", r.guest_group || "", r.guests_count || 1]));
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{ wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 }, { wch: 7 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "רשימת אורחים");
+    XLSX.writeFile(wb, `אורחים-${(ev.name || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
+  };
+
+  const completeCount = rows.filter(isComplete).length;
 
   return (
     <div className={styles.page}>
@@ -58,67 +132,71 @@ export default function CollabScreen() {
         <span className={styles.headerName}>{ev.name || "רשימת אורחים משותפת"}</span>
       </header>
 
-      <div className={styles.wrap}>
+      <div className={styles.wrapWide}>
         <div className={styles.card}>
-          <h1 className={styles.title}>הוספת אורחים לרשימה</h1>
-          <p className={styles.sub}>עזרו לבעלי השמחה להשלים את רשימת האורחים — הוסיפו את מי שאתם מכירים. אפשר להוסיף כמה שרוצים.</p>
+          <h1 className={styles.title}>רשימת האורחים המשותפת</h1>
+          <p className={styles.sub}>
+            כולם עורכים את אותה טבלה יחד, בזמן אמת. הוסיפו את מי שאתם מכירים —
+            שם וטלפון בהקלדה, השאר מרשימה. רשומה מלאה נכנסת אוטומטית לרשימה של בעלי השמחה.
+          </p>
 
-          <form onSubmit={submit} className={styles.form} noValidate>
-            <label className={styles.label}>שם מלא *
-              <input className={styles.input} value={form.name} placeholder="שם ושם משפחה"
-                onChange={e => set("name", e.target.value)} disabled={busy} />
-            </label>
+          <label className={styles.meRow}>
+            <span className={styles.meLabel}>השם שלכם (אופציונלי)</span>
+            <input className={styles.input} value={me} placeholder="כדי שידעו מי הוסיף"
+              onChange={e => saveMe(e.target.value)} />
+          </label>
 
-            <div className={styles.row2}>
-              <label className={styles.label}>צד
-                <select className={styles.input} value={form.side} onChange={e => set("side", e.target.value)} disabled={busy}>
-                  <option value="bride">{sides.bride}</option>
-                  <option value="groom">{sides.groom}</option>
-                </select>
-              </label>
-              <label className={styles.label}>כמות מקומות
-                <input className={styles.input} type="number" min={1} max={30} value={form.count} dir="ltr"
-                  onChange={e => set("count", Math.max(1, Math.min(30, Number(e.target.value) || 1)))} disabled={busy} />
-              </label>
-            </div>
-
-            <label className={styles.label}>קבוצה / קרבה
-              <select className={styles.input} value={form.group} onChange={e => set("group", e.target.value)} disabled={busy}>
-                {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </label>
-
-            <label className={styles.label}>טלפון (אופציונלי)
-              <input className={styles.input} value={form.phone} placeholder="050-0000000" dir="ltr"
-                onChange={e => set("phone", e.target.value)} disabled={busy} />
-            </label>
-
-            {err && <p className={styles.err}>{err}</p>}
-            <button type="submit" className={styles.btn} disabled={busy || !form.name.trim()}>
-              {busy ? "מוסיפים…" : "+ הוסיפו לרשימה"}
-            </button>
-          </form>
+          <div className={styles.toolbar}>
+            <button className={styles.btn} onClick={addRow}>+ הוסיפו שורה</button>
+            <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}>⬇ הורדה לאקסל</button>
+          </div>
+          <div className={styles.counts}>
+            {rows.length} רשומות · <span className={styles.ok}>{completeCount} מלאות ומסונכרנות</span>
+            {rows.length - completeCount > 0 && <> · <span className={styles.warn}>{rows.length - completeCount} חסרות פרטים</span></>}
+          </div>
         </div>
 
-        {added.length > 0 && (
-          <div className={styles.card}>
-            <div className={styles.addedHead}>הוספתם עד כה: {added.length}</div>
-            <ul className={styles.addedList}>
-              {added.map((g) => (
-                <li key={g._k} className={styles.addedRow}>
-                  <span className={styles.addedName}>{g.name}</span>
-                  <span className={styles.addedMeta}>{sides[g.side]}{g.count > 1 ? ` · ${g.count} מקומות` : ""}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {rows.length === 0 && (
+          <div className={styles.card}><p className={styles.emptyHint}>עדיין אין אורחים. לחצו "הוסיפו שורה" כדי להתחיל.</p></div>
         )}
 
-        <div className={styles.optional}>
-          <label className={styles.label}>השם שלכם (אופציונלי) — כדי שבעלי השמחה ידעו מי הוסיף
-            <input className={styles.input} value={submittedBy} placeholder="השם שלכם"
-              onChange={e => setSubmittedBy(e.target.value)} />
-          </label>
+        <div className={styles.rowsList}>
+          {rows.map(r => {
+            const miss = missingFields(r);
+            const complete = miss.length === 0;
+            return (
+              <div key={r.id} className={[styles.guestCard, complete ? styles.cardOk : styles.cardWarn].join(" ")}>
+                <div className={styles.cardTop}>
+                  <input className={[styles.input, styles.nameInput].join(" ")} value={r.name || ""} placeholder="שם מלא"
+                    onChange={e => editRow(r.id, { name: e.target.value })} />
+                  <button className={styles.del} onClick={() => removeRow(r.id)} aria-label="מחיקת שורה" title="מחיקה">✕</button>
+                </div>
+
+                <input className={[styles.input, styles.phoneInput].join(" ")} value={r.phone || ""} placeholder="טלפון" dir="ltr" inputMode="tel"
+                  onChange={e => editRow(r.id, { phone: e.target.value })} />
+
+                <div className={styles.fields3}>
+                  <select className={styles.input} value={r.side || ""} onChange={e => editRow(r.id, { side: e.target.value })}>
+                    <option value="" disabled>צד</option>
+                    <option value="bride">{sides.bride}</option>
+                    <option value="groom">{sides.groom}</option>
+                  </select>
+                  <select className={styles.input} value={r.guest_group || ""} onChange={e => editRow(r.id, { guest_group: e.target.value })}>
+                    <option value="" disabled>קבוצה</option>
+                    {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <select className={styles.input} value={r.guests_count || 1} onChange={e => editRow(r.id, { guests_count: Number(e.target.value) })}>
+                    {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} {n === 1 ? "מקום" : "מקומות"}</option>)}
+                  </select>
+                </div>
+
+                {complete
+                  ? <div className={styles.rowOk}>✓ מלאה — מסונכרנת לרשימה</div>
+                  : <div className={styles.rowWarn}>⚠ חסר: {miss.join(", ")} — לא תסתנכרן עד שיושלם</div>}
+                {r.updated_by && <div className={styles.byLine}>עודכן ע"י {r.updated_by}</div>}
+              </div>
+            );
+          })}
         </div>
 
         <footer className={styles.footer}>✦ נבנה בכוכב השולחן</footer>
