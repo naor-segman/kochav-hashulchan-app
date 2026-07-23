@@ -274,6 +274,7 @@ export default function EventSiteScreen({ localEvent }) {
                         : s.contactName}
                     </span>
                   )}
+                  {s.note && <span className={styles.shuttleNote}>{s.note}</span>}
                 </span>
               </div>
             ))}

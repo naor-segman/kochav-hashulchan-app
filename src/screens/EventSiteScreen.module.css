@@ -215,3 +215,4 @@
 
 .shuttleContact { font-size: 13px; color: var(--s-muted); }
 .shuttleContact a { color: var(--s-accent); font-weight: 600; text-decoration: none; }
+.shuttleNote { display: block; font-size: 12px; color: var(--s-muted); margin-top: 2px; }
