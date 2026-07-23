@@ -238,10 +238,13 @@ export async function deleteCollabGuest(token, id) {
  * fn. `onChange` fires on any insert/update/delete with the raw payload.
  * Falls back to a no-op unsubscribe when Supabase isn't configured.
  */
+let _collabChannelSeq = 0;
 export function subscribeCollabGuests(eventId, onChange) {
   if (!isSupabaseConfigured || !supabase || !eventId) return () => {};
+  // Unique channel name per subscriber — two components (the sync engine and the
+  // hub) can watch the same event without colliding on one shared channel.
   const channel = supabase
-    .channel(`collab:${eventId}`)
+    .channel(`collab:${eventId}:${++_collabChannelSeq}`)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "collab_guests", filter: `event_id=eq.${eventId}` },

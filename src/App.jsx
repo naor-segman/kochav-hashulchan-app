@@ -11,6 +11,7 @@ import { useEvents }        from "./hooks/useEvents.js";
 import { useToast }         from "./hooks/useToast.js";
 import { usePlan }          from "./hooks/usePlan.js";
 import { useActiveEvent }   from "./hooks/useActiveEvent.js";
+import { useCollabSync }    from "./hooks/useCollabSync.js";
 import { useMigration, MIGRATION_STATUS } from "./hooks/useMigration.js";
 import { SYNC_STATUS } from "./utils/cloudSync.js";
 import { canCreateEvent } from "./utils/featureGates.js";
@@ -74,6 +75,10 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
     if (screen === "dashboard") navigate("/app");
     else navigate(`/events/${newEventId || eventId}/${screen}`);
   }, [navigate, eventId]);
+
+  // Keep the shared collaborative table and this event's guest list in sync,
+  // both ways, while the event is open. No-op unless collab is enabled + synced.
+  useCollabSync(activeEvent, patchEvent, showToast);
 
   // Unknown event ID → wait for cloud sync before bouncing to dashboard.
   // Without this guard, a bookmarked URL on a fresh device would immediately
