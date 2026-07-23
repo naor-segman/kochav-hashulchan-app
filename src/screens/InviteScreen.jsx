@@ -42,14 +42,16 @@ export default function InviteScreen() {
   const [copied,   setCopied]   = useState(false);
   const [qrUrl,    setQrUrl]    = useState("");
 
-  // Generate a QR that opens the RSVP page — the action a guest scanning a
-  // printed invite actually needs.
+  // Generate a QR that opens the RSVP page — using the event's RSVP token, not
+  // the card/invite token (they differ; the /rsvp page matches on rsvp_token).
   useEffect(() => {
-    const rsvpUrl = window.location.origin + "/rsvp/" + token;
+    const rsvpTok = event?.rsvpToken;
+    if (!rsvpTok) { setQrUrl(""); return; }
+    const rsvpUrl = window.location.origin + "/rsvp/" + rsvpTok;
     QRCode.toDataURL(rsvpUrl, { width: 220, margin: 1 })
       .then(setQrUrl)
       .catch(() => setQrUrl(""));
-  }, [token]);
+  }, [event]);
 
   useEffect(() => {
     let cancelled = false;
@@ -191,7 +193,7 @@ export default function InviteScreen() {
 
           {/* Actions */}
           <div className={styles.actions}>
-            <Link to={`/rsvp/${token}`} className={styles.btnPrimary}>
+            <Link to={`/rsvp/${event?.rsvpToken || token}`} className={styles.btnPrimary}>
               אשרו הגעה ←
             </Link>
             <button

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import * as XLSX from "xlsx";
 import {
-  fetchCollabEvent, fetchCollabGuests, subscribeCollabGuests,
+  fetchCollabEvent, fetchCollabGuests,
   upsertCollabGuest, deleteCollabGuest,
 } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
@@ -33,34 +33,51 @@ export default function CollabScreen() {
   const [rows, setRows] = useState([]);
   const [me, setMe] = useState(() => { try { return localStorage.getItem("collab_me") || ""; } catch { return ""; } });
 
-  const editing = useRef(new Set());  // row ids being edited locally right now
-  const timers  = useRef(new Map());  // id -> debounce timeout
+  const editing   = useRef(new Set());  // row ids being edited locally right now
+  const timers    = useRef(new Map());  // id -> debounce timeout
+  const serverIds = useRef(new Set());  // ids the server has ever returned
 
-  // Apply a live change from another collaborator.
-  const onRealtime = useCallback((payload) => {
-    const type = payload.eventType;
+  // Merge a freshly-polled full list into local state without clobbering rows
+  // the user is currently editing or a locally-added row not yet saved.
+  const mergePolled = useCallback((list) => {
+    list.forEach(r => serverIds.current.add(r.id));
+    const byId = new Map(list.map(r => [r.id, r]));
     setRows(prev => {
-      if (type === "DELETE") return prev.filter(r => r.id !== payload.old?.id);
-      const row = payload.new;
-      if (!row) return prev;
-      if (editing.current.has(row.id)) return prev; // don't clobber my own typing
-      return prev.some(r => r.id === row.id)
-        ? prev.map(r => (r.id === row.id ? { ...r, ...row } : r))
-        : [...prev, row];
+      const seen = new Set();
+      const next = [];
+      prev.forEach(r => {
+        seen.add(r.id);
+        if (editing.current.has(r.id)) { next.push(r); return; } // don't clobber typing
+        const fresh = byId.get(r.id);
+        if (fresh) { next.push({ ...r, ...fresh }); return; }     // updated remotely
+        if (!serverIds.current.has(r.id)) next.push(r);           // local, not yet saved → keep
+        // else: server knew it and it's gone now → deleted remotely → drop
+      });
+      list.forEach(r => { if (!seen.has(r.id)) next.push(r); });  // new remote rows
+      return next;
     });
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    let unsub = () => {};
+    let poll = null;
     (async () => {
       const data = await fetchCollabEvent(token);
       if (cancelled) return;
       if (data) {
         setEv(data); setState("ready");
         const list = await fetchCollabGuests(token);
-        if (!cancelled) setRows(list);
-        if (data.cloudId) unsub = subscribeCollabGuests(data.cloudId, onRealtime);
+        if (cancelled) return;
+        list.forEach(r => serverIds.current.add(r.id));
+        setRows(list);
+        // Poll for others' changes (anon has no direct table read for security,
+        // so Realtime isn't available — the token RPC is the safe channel).
+        if (data.cloudId) {
+          poll = setInterval(async () => {
+            const fresh = await fetchCollabGuests(token);
+            if (!cancelled && Array.isArray(fresh)) mergePolled(fresh);
+          }, 3000);
+        }
       } else if (!isSupabaseConfigured || import.meta.env.DEV) {
         setEv(MOCK); setState("ready");
       } else {
@@ -68,8 +85,8 @@ export default function CollabScreen() {
       }
     })();
     const pending = timers.current;
-    return () => { cancelled = true; unsub(); pending.forEach(clearTimeout); };
-  }, [token, onRealtime]);
+    return () => { cancelled = true; if (poll) clearInterval(poll); pending.forEach(clearTimeout); };
+  }, [token, mergePolled]);
 
   if (state === "loading")  return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
   if (state === "notfound") return <div className={styles.state}><span className={styles.star}>⚠</span><p>הקישור אינו תקין או שפג תוקפו</p></div>;
