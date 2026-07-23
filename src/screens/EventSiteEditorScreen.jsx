@@ -67,6 +67,17 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     catch { showToast("שגיאה בעיבוד התמונה", "err"); }
   };
 
+  const onGallery = async (files) => {
+    const imgs = [...files].filter(f => f.type.startsWith("image/")).slice(0, 12);
+    if (!imgs.length) { showToast("יש לבחור קובצי תמונה", "err"); return; }
+    try {
+      const compressed = await Promise.all(imgs.map(f => compressImage(f, 1000, 0.7)));
+      set({ gallery: [...(site.gallery || []), ...compressed].slice(0, 12) });
+      showToast(`נוספו ${compressed.length} תמונות ✓`);
+    } catch { showToast("שגיאה בעיבוד התמונות", "err"); }
+  };
+  const delGalleryPhoto = (i) => set({ gallery: (site.gallery || []).filter((_, idx) => idx !== i) });
+
   const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(siteUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }
@@ -194,6 +205,47 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         </Field>
       </div>
 
+      {/* ── Gallery ── */}
+      <div className={base.card}>
+        <div className={styles.secToggleHead}>
+          <SectionLabel>גלריית תמונות</SectionLabel>
+          <Toggle on={site.sections.gallery !== false} onChange={v => setSection("gallery", v)} />
+        </div>
+        <p className={base.fieldHint}>עד 12 תמונות. הראשונה תוצג גדולה יותר.</p>
+        {(site.gallery || []).length > 0 && (
+          <div className={styles.galleryEdit}>
+            {(site.gallery || []).map((src, i) => (
+              <div key={i} className={styles.galleryEditItem} style={{ backgroundImage: `url(${src})` }}>
+                <button className={styles.galleryDel} onClick={() => delGalleryPhoto(i)} title="הסר">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <label className={base.btnSecondary} style={{ cursor: "pointer", display: "inline-block", marginTop: 10 }}>
+          + הוסף תמונות
+          <input type="file" accept="image/*" multiple style={{ display: "none" }}
+            onChange={e => { onGallery(e.target.files); e.target.value = ""; }} />
+        </label>
+      </div>
+
+      {/* ── Countdown + Dress code ── */}
+      <div className={base.card}>
+        <div className={styles.secToggleHead}>
+          <SectionLabel>ספירה לאחור</SectionLabel>
+          <Toggle on={site.countdown !== false} onChange={v => set({ countdown: v })} />
+        </div>
+        <p className={base.fieldHint}>טיימר חי לקראת מועד האירוע.</p>
+        <div className={styles.secToggleHead} style={{ marginTop: 18 }}>
+          <SectionLabel>קוד לבוש</SectionLabel>
+          <Toggle on={site.sections.dressCode === true} onChange={v => setSection("dressCode", v)} />
+        </div>
+        <Field label="הנחיית לבוש לאורחים (אופציונלי)">
+          <textarea className={base.textarea} rows={2} value={site.dressCode}
+            placeholder="למשל: לבוש חגיגי · צבעים בהירים מומלצים"
+            onChange={e => set({ dressCode: e.target.value })} />
+        </Field>
+      </div>
+
       {/* ── Schedule ── */}
       <div className={base.card}>
         <div className={styles.secToggleHead}>
@@ -255,6 +307,10 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
             <input className={base.input} value={s.place} placeholder="נקודת איסוף — נס ציונה"
               onChange={e => editShuttle(s.id, { place: e.target.value })} />
             <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delShuttle(s.id)}>✕</button>
+            <input className={base.input} value={s.contactName || ""} placeholder="איש קשר (אופציונלי)"
+              onChange={e => editShuttle(s.id, { contactName: e.target.value })} />
+            <input className={base.input} value={s.contactPhone || ""} placeholder="טלפון איש קשר" dir="ltr"
+              onChange={e => editShuttle(s.id, { contactPhone: e.target.value })} />
           </div>
         ))}
         <button className={base.btnSecondary} onClick={addShuttle}>+ הוסף הסעה</button>

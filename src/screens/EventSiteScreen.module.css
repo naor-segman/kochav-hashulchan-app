@@ -187,3 +187,31 @@
 @media (min-width: 640px) {
   .wishGrid { grid-template-columns: 1fr 1fr 1fr; }
 }
+
+/* ── Photo gallery ── */
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.galleryItem {
+  aspect-ratio: 1; background-size: cover; background-position: center;
+  border-radius: 10px; background-color: var(--s-accent-soft);
+}
+.gallery .galleryItem:first-child { grid-column: span 2; grid-row: span 2; }
+@media (max-width: 480px){ .gallery { grid-template-columns: repeat(2, 1fr); } }
+
+/* ── Countdown ── */
+.countdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 420px; margin: 0 auto; }
+.cdUnit {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--s-surface); border: 1px solid var(--s-line);
+  border-radius: 12px; padding: 16px 6px;
+}
+.cdNum {
+  font-family: var(--font-family-serif); font-size: clamp(24px, 7vw, 34px);
+  font-weight: 700; color: var(--s-accent); line-height: 1; font-variant-numeric: tabular-nums;
+}
+.cdLabel { font-size: 12px; color: var(--s-muted); font-weight: 500; }
+
+/* ── Dress code ── */
+.dressText { font-size: 15px; line-height: 1.7; color: var(--s-ink); margin: 0; text-align: center; }
+
+.shuttleContact { font-size: 13px; color: var(--s-muted); }
+.shuttleContact a { color: var(--s-accent); font-weight: 600; text-decoration: none; }
