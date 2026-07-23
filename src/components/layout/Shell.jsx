@@ -83,7 +83,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
               </Link>
             ) : (
               <Link to="/signup" className={styles.signupBtn}>
-                הצטרף חינם
+                הצטרפו חינם
               </Link>
             )
         )}

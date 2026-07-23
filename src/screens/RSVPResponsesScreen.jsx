@@ -165,7 +165,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       {/* ── Meal forecast (optional — collapsed by default) ── */}
       {confirmedSeats > 0 && !showForecast && (
         <button className={base.btnSecondary} style={{ marginBottom: 14 }} onClick={() => setShowForecast(true)}>
-          🍽 הצג תחזית מנות (אופציונלי)
+          🍽 הציגו תחזית מנות (אופציונלי)
         </button>
       )}
       {confirmedSeats > 0 && showForecast && (
@@ -206,14 +206,14 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       {loadState === "offline" && (
         <Banner variant="warn">
           {isSupabaseConfigured
-            ? "האירוע עדיין לא סונכרן לענן — תשובות יופיעו כאן לאחר הסנכרון הראשון (התחבר לחשבון אם עוד לא)."
+            ? "האירוע עדיין לא סונכרן לענן — תשובות יופיעו כאן לאחר הסנכרון הראשון (התחברו לחשבון אם עוד לא)."
             : "סנכרון ענן אינו מוגדר בסביבה זו."}
         </Banner>
       )}
       {loadState === "error" && (
         <Banner variant="err">
           שגיאה בטעינת התשובות —
-          <button className={base.btnSm} onClick={load}>נסה שוב</button>
+          <button className={base.btnSm} onClick={load}>נסו שוב</button>
         </Banner>
       )}
       {loadState === "loading" && (
@@ -225,7 +225,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
         <div className={base.card}>
           <SectionLabel>עדיין אין תשובות</SectionLabel>
           <p className={base.fieldHint}>
-            שתף את קישור אישור ההגעה עם האורחים — כל תשובה תופיע כאן אוטומטית.
+            שתפו את קישור אישור ההגעה עם האורחים — כל תשובה תופיע כאן אוטומטית.
           </p>
           {rsvpLink && (
             <div className={styles.shareRow}>
@@ -237,10 +237,10 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                     await navigator.clipboard.writeText(rsvpLink);
                     showToast("הקישור הועתק ✓");
                   } catch {
-                    showToast("לא ניתן להעתיק — העתק ידנית", "err");
+                    showToast("לא ניתן להעתיק — העתיקו ידנית", "err");
                   }
                 }}
-              >העתק קישור</button>
+              >העתיקו קישור</button>
             </div>
           )}
         </div>
@@ -250,7 +250,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       {loadState === "ready" && responses.length > 0 && (
         <>
           <div className={base.actionBar}>
-            <button className={base.btnSecondary} onClick={load}>רענן ↺</button>
+            <button className={base.btnSecondary} onClick={load}>רעננו ↺</button>
             <span className={base.fieldHint}>מתעדכן בכל כניסה למסך</span>
           </div>
           <div className={base.gList}>
@@ -274,14 +274,14 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                     <span className={base.tagSeated}>מעודכן ברשימה ✓</span>
                   ) : guest ? (
                     <button className={base.btnSm} onClick={() => applyToGuest(r, guest)}>
-                      עדכן אורח קיים
+                      עדכנו אורח קיים
                     </button>
                   ) : (
                     <button
                       className={[base.btnSm, base.btnGhost].join(" ")}
                       onClick={() => addAsGuest(r)}
                     >
-                      + הוסף לרשימה
+                      + הוסיפו לרשימה
                     </button>
                   )}
                 </div>

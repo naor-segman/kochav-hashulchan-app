@@ -149,7 +149,7 @@ export default function App() {
 
   // Warn when localStorage quota is exceeded (data not persisted).
   useEffect(() => {
-    const handler = () => showToast("⚠ הנפח המקומי מלא — הנתונים לא נשמרו! ייצא לאקסל כעת.", "err");
+    const handler = () => showToast("⚠ הנפח המקומי מלא — הנתונים לא נשמרו! ייצאו לאקסל כעת.", "err");
     window.addEventListener("storage-quota-exceeded", handler);
     return () => window.removeEventListener("storage-quota-exceeded", handler);
   }, [showToast]);
@@ -157,7 +157,7 @@ export default function App() {
   const createEvent = useCallback((template) => {
     const gate = canCreateEvent(plan, events.length);
     if (!gate.allowed) {
-      showToast(gate.reason + " — שדרג את התוכנית להוספת אירועים נוספים", "err");
+      showToast(gate.reason + " — שדרגו את התוכנית להוספת אירועים נוספים", "err");
       return;
     }
     const now = Date.now();
@@ -182,7 +182,7 @@ export default function App() {
   const handleDuplicateEvent = useCallback((id) => {
     const gate = canCreateEvent(plan, events.length);
     if (!gate.allowed) {
-      showToast(gate.reason + " — שדרג את התוכנית להוספת אירועים נוספים", "err");
+      showToast(gate.reason + " — שדרגו את התוכנית להוספת אירועים נוספים", "err");
       return;
     }
     const original = events.find(e => e.id === id);

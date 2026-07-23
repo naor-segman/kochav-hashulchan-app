@@ -110,7 +110,7 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
         <input
           className={[base.input, styles.acInput].join(" ")}
           value={query}
-          placeholder="הקלד שם לחיפוש..."
+          placeholder="הקלידו שם לחיפוש..."
           autoComplete="off"
           onFocus={() => setOpen(true)}
           onChange={handleChange}
@@ -124,7 +124,7 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
             className={styles.acClear}
             onMouseDown={e => { e.preventDefault(); onChange(""); setQuery(""); setOpen(false); }}
             tabIndex={-1}
-            aria-label="נקה בחירה"
+            aria-label="נקו בחירה"
           >✕</button>
         )}
       </div>
@@ -208,7 +208,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       <PageHeader
         title="אילוצים"
         icon={<Icon name="scale" />}
-        sub="הגדר מי חייב לשבת יחד ומי לא יכול — המערכת תכבד זאת בסידור האוטומטי."
+        sub="הגדירו מי חייב לשבת יחד ומי לא יכול — המערכת תכבד זאת בסידור האוטומטי."
         aside={
           <div className={base.pills}>
             <StatPill n={together.length} label="יחד"   color={together.length > 0 ? "var(--green)" : undefined} />
@@ -228,7 +228,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
           <button
             className={[base.btnSm, styles.bannerAction].join(" ")}
             onClick={() => go("guests")}
-          >עבור לאורחים</button>
+          >עברו לאורחים</button>
         </Banner>
       )}
 
@@ -241,7 +241,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
               constraints: e.constraints.filter(c => gMap[c.guestA] && gMap[c.guestB])
             }))}
           >
-            נקה אוטומטית
+            נקו אוטומטית
           </button>
         </Banner>
       )}
@@ -331,8 +331,8 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
               </div>
               <div className={styles.previewOutcome}>
                 {formType === "together"
-                  ? "תוצאה: יושבצו לאותו שולחן — לחץ \"הוסף\" לאישור"
-                  : "תוצאה: יושבצו לשולחנות שונים — לחץ \"הוסף\" לאישור"}
+                  ? "תוצאה: יושבצו לאותו שולחן — לחצו \"הוסיפו\" לאישור"
+                  : "תוצאה: יושבצו לשולחנות שונים — לחצו \"הוסיפו\" לאישור"}
               </div>
             </div>
           </div>
@@ -400,7 +400,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
           text="שלב זה אופציונלי לחלוטין. אם יש אורחים שחייבים לשבת יחד (כמו הורים עם ילדים קטנים) או שאסור שיישבו יחד — הגדירו זאת כאן לפני הרצת הסידור." />
       )}
 
-      <NextStep label="המשך לסידור הושבה" hint="שבץ את כל האורחים לשולחנות" onClick={() => go("seating")} />
+      <NextStep label="המשיכו לסידור הושבה" hint="שבצו את כל האורחים לשולחנות" onClick={() => go("seating")} />
     </div>
   );
 }

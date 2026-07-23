@@ -8,13 +8,13 @@ import styles from "./LoginScreen.module.css"; // shares layout styles
 function friendlyError(message) {
   const m = message.toLowerCase();
   if (m.includes("user already registered") || m.includes("already been registered"))
-    return "כתובת אימייל זו כבר רשומה. נסה להתחבר.";
+    return "כתובת אימייל זו כבר רשומה. נסו להתחבר.";
   if (m.includes("password") && m.includes("6"))
     return "הסיסמה חייבת להכיל לפחות 6 תווים.";
   if (m.includes("too many requests"))
-    return "יותר מדי ניסיונות. נסה שוב מאוחר יותר.";
+    return "יותר מדי ניסיונות. נסו שוב מאוחר יותר.";
   if (m.includes("network") || m.includes("fetch failed"))
-    return "שגיאת חיבור. נסה שוב.";
+    return "שגיאת חיבור. נסו שוב.";
   return message;
 }
 
@@ -76,7 +76,7 @@ export default function SignupScreen() {
       if (err) throw err;
       setResentDone(true);
     } catch (err) {
-      setResentError("שגיאה בשליחה חוזרת. נסה שוב.");
+      setResentError("שגיאה בשליחה חוזרת. נסו שוב.");
     } finally {
       setResentBusy(false);
     }
@@ -90,23 +90,23 @@ export default function SignupScreen() {
             <span className={styles.brandMark}>✦</span>
             <span className={styles.brandName}>כוכב השולחן</span>
           </div>
-          <h1 className={styles.title}>בדוק את האימייל שלך ✉</h1>
+          <h1 className={styles.title}>בדקו את האימייל שלכם ✉</h1>
           <p className={styles.confirmBody}>
             שלחנו קישור אישור לכתובת <strong>{email}</strong>.
-            לחץ על הקישור לאישור החשבון.
+            לחצו על הקישור לאישור החשבון.
           </p>
           {resentDone ? (
-            <p className={styles.confirmSuccess}>✓ הקישור נשלח שוב — בדוק את תיבת הדואר</p>
+            <p className={styles.confirmSuccess}>✓ הקישור נשלח שוב — בדקו את תיבת הדואר</p>
           ) : (
             <div className={styles.resendWrap}>
-              <p className={styles.resendNote}>לא קיבלת אימייל?</p>
+              <p className={styles.resendNote}>לא קיבלתם אימייל?</p>
               {resentError && <p className={styles.resendError}>{resentError}</p>}
               <button
                 className={styles.resendBtn}
                 onClick={handleResend}
                 disabled={resentBusy || !isSupabaseConfigured}
               >
-                {resentBusy ? "שולח…" : "שלח שוב"}
+                {resentBusy ? "שולח…" : "שלחו שוב"}
               </button>
             </div>
           )}
@@ -169,7 +169,7 @@ export default function SignupScreen() {
                 type="button"
                 className={styles.eyeBtn}
                 onClick={() => setShowPw(v => !v)}
-                aria-label={showPw ? "הסתר סיסמה" : "הצג סיסמה"}
+                aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
                 tabIndex={-1}
               >
                 {showPw ? <Icon name="eyeOff" size={18} /> : <Icon name="eye" size={18} />}
@@ -185,7 +185,7 @@ export default function SignupScreen() {
               type="password"
               value={confirm}
               onChange={e => setConfirm(e.target.value)}
-              placeholder="הזן שוב את הסיסמה"
+              placeholder="הזינו שוב את הסיסמה"
               dir="ltr"
               autoComplete="new-password"
               disabled={!isSupabaseConfigured || busy}
@@ -205,12 +205,12 @@ export default function SignupScreen() {
         </form>
 
         <p className={styles.switchLine}>
-          כבר יש לך חשבון?{" "}
+          כבר יש לכם חשבון?{" "}
           <Link to="/login" className={styles.switchLink}>כניסה</Link>
         </p>
 
         <div className={styles.guestBlock}>
-          <Link to="/" className={styles.backLink}>← המשך ללא חשבון</Link>
+          <Link to="/" className={styles.backLink}>← המשיכו ללא חשבון</Link>
           <p className={styles.guestNote}>מצב אורח — נתונים נשמרים בדפדפן זה בלבד, ללא גיבוי ענן</p>
         </div>
 

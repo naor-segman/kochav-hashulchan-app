@@ -99,7 +99,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       <PageHeader
         title="שולחנות"
         icon={<Icon name="hexagon" />}
-        sub="הגדר את השולחנות באולם לפי מבנה האירוע."
+        sub="הגדירו את השולחנות באולם לפי מבנה האירוע."
         aside={
           <div className={base.pills}>
             <StatPill n={ev.tables.length} label="שולחנות" />
@@ -181,7 +181,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
 
             <div className={base.formActions}>
               <button className={base.btnPrimary} onClick={addBatch}>
-                + הוסף {batchCnt > 1 ? (batchCnt + " שולחנות") : "שולחן"}
+                + הוסיפו {batchCnt > 1 ? (batchCnt + " שולחנות") : "שולחן"}
               </button>
             </div>
           </div>
@@ -245,7 +245,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                           </select>
                           <span />
                           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                            <button className={base.btnSm} onClick={saveEdit}>שמור</button>
+                            <button className={base.btnSm} onClick={saveEdit}>שמרו</button>
                             <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={cancelEdit}>ביטול</button>
                           </div>
                         </>
@@ -263,7 +263,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                           </span>
                           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                             <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => startEdit(t)}>עריכה</button>
-                            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delTable(t.id)}>מחק</button>
+                            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delTable(t.id)}>מחקו</button>
                           </div>
                         </>
                       )}
@@ -295,7 +295,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       <NextStep
-        label="המשך לרשימת האורחים"
+        label="המשיכו לרשימת האורחים"
         hint={ev.guests.length > 0 ? (ev.guests.length + " אורחים רשומים") : "עדיין לא נוספו אורחים"}
         onClick={() => go("guests")}
       />

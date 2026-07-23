@@ -30,9 +30,9 @@ export default function MigrationBanner({ migration }) {
         <div className={styles.row}>
           <span className={styles.iconSuccess} aria-hidden="true">✓</span>
           <span className={styles.title}>
-            {progress.total} {progress.total === 1 ? "אירוע יובא" : "אירועים יובאו"} בהצלחה לחשבון שלך
+            {progress.total} {progress.total === 1 ? "אירוע יובא" : "אירועים יובאו"} בהצלחה לחשבון שלכם
           </span>
-          <button className={styles.closeBtn} onClick={dismiss} aria-label="סגור">✕</button>
+          <button className={styles.closeBtn} onClick={dismiss} aria-label="סגרו">✕</button>
         </div>
       </div>
     );
@@ -48,8 +48,8 @@ export default function MigrationBanner({ migration }) {
             {error && <span className={styles.sub}>{error}</span>}
           </div>
           <div className={styles.actions}>
-            <button className={styles.skipBtn}    onClick={dismiss}>דלג</button>
-            <button className={styles.migrateBtn} onClick={migrate}>נסה שוב</button>
+            <button className={styles.skipBtn}    onClick={dismiss}>דלגו</button>
+            <button className={styles.migrateBtn} onClick={migrate}>נסו שוב</button>
           </div>
         </div>
       </div>
@@ -68,12 +68,12 @@ export default function MigrationBanner({ migration }) {
         <div className={styles.body}>
           <span className={styles.title}>נמצאו אירועים מקומיים במכשיר הזה</span>
           <span className={styles.sub}>
-            נמצא {countLabel} — ניתן לייבא לחשבון שלך ולשמור בענן.
+            נמצא {countLabel} — ניתן לייבא לחשבון שלכם ולשמור בענן.
           </span>
         </div>
         <div className={styles.actions}>
-          <button className={styles.skipBtn}    onClick={dismiss}>דלג לעכשיו</button>
-          <button className={styles.migrateBtn} onClick={migrate}>ייבא אירועים ←</button>
+          <button className={styles.skipBtn}    onClick={dismiss}>דלגו לעכשיו</button>
+          <button className={styles.migrateBtn} onClick={migrate}>ייבאו אירועים ←</button>
         </div>
       </div>
     </div>

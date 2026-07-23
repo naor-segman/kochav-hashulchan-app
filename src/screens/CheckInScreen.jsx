@@ -106,7 +106,7 @@ export default function CheckInScreen({ events, patchEventById }) {
       {/* ── Top bar ── */}
       <div className={styles.topbar}>
         <button className={styles.backBtn} onClick={() => navigate(`/events/${eventId}/seating`)}>
-          ← חזור
+          ← חזרו
         </button>
         <div className={styles.eventName}>{ev.name || "אירוע"}</div>
         <button className={styles.walkInTopBtn} onClick={() => { setWalkInName(""); setWalkInOpen(true); }}>
@@ -152,7 +152,7 @@ export default function CheckInScreen({ events, patchEventById }) {
             className={styles.searchInput}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 חפש שם או טלפון..."
+            placeholder="🔍 חפשו שם או טלפון..."
             inputMode="text"
             autoComplete="off"
           />
@@ -185,7 +185,7 @@ export default function CheckInScreen({ events, patchEventById }) {
       {walkInOpen && (
         <div className={styles.walkInOverlay} onClick={e => { if (e.target === e.currentTarget) setWalkInOpen(false); }}>
           <div className={styles.walkInPanel}>
-            <div className={styles.walkInTitle}>הוסף אורח שהגיע ביום האירוע</div>
+            <div className={styles.walkInTitle}>הוסיפו אורח שהגיע ביום האירוע</div>
             <input
               ref={walkInRef}
               className={styles.walkInInput}
@@ -221,7 +221,7 @@ export default function CheckInScreen({ events, patchEventById }) {
             </div>
             <div className={styles.walkInActions}>
               <button className={styles.walkInSaveBtn} onClick={addWalkIn} disabled={!walkInName.trim()}>
-                הוסף וסמן כהגיע/ה
+                הוסיפו וסמנו כהגיע/ה
               </button>
               <button className={styles.walkInCancelBtn} onClick={() => setWalkInOpen(false)}>
                 ביטול
@@ -236,9 +236,9 @@ export default function CheckInScreen({ events, patchEventById }) {
         <div className={styles.noResult}>
           <div className={styles.noResultIcon}>🔍</div>
           <div className={styles.noResultText}>לא נמצא אורח עם שם &ldquo;{searchTrim}&rdquo;</div>
-          <div className={styles.noResultSub}>בדוק את האיות או חפש לפי מספר טלפון</div>
+          <div className={styles.noResultSub}>בדקו את האיות או חפשו לפי מספר טלפון</div>
           <button className={styles.walkInTriggerBtn} onClick={() => { setWalkInName(searchTrim); setWalkInOpen(true); }}>
-            הוסף כאורח שהגיע ביום האירוע
+            הוסיפו כאורח שהגיע ביום האירוע
           </button>
         </div>
       )}
@@ -309,7 +309,7 @@ export default function CheckInScreen({ events, patchEventById }) {
           <div className={styles.emptySub}>
             {nArrived > 0
               ? `${nArrived} אורחים הגיעו עד כה${totalGifts > 0 ? ` · ₪${totalGifts.toLocaleString("he-IL")} במתנות` : ""}`
-              : "הקלד שם או מספר טלפון לחיפוש אורח"}
+              : "הקלידו שם או מספר טלפון לחיפוש אורח"}
           </div>
         </div>
       )}
@@ -342,7 +342,7 @@ export default function CheckInScreen({ events, patchEventById }) {
                     )}
                     {allArrived && (
                       <button className={styles.tableUnmarkAllBtn} onClick={() => markTableArrived(t.id, false)}>
-                        בטל הכל
+                        בטלו הכל
                       </button>
                     )}
                   </div>

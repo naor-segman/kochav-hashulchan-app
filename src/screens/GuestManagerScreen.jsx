@@ -152,7 +152,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
         if (result.newGuests.length === 0 && result.duplicates.length === 0) {
           setParseErr(
             result.invalid.length > 0
-              ? "כל הרשומות לא תקניות (" + result.invalid.length + " שגיאות). בדוק את הקובץ."
+              ? "כל הרשומות לא תקניות (" + result.invalid.length + " שגיאות). בדקו את הקובץ."
               : "לא נמצאו רשומות לייבוא (שורות הדגמה הוסרו אוטומטית)"
           );
           return;
@@ -177,7 +177,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
       const remaining = Math.max(0, maxGuests - ev.guests.length);
       showToast(
         remaining === 0
-          ? `הגעת למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרג להוספת אורחים נוספים`
+          ? `הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`
           : `ניתן להוסיף עוד ${remaining} רשומות בלבד בתוכנית הנוכחית (${ev.guests.length}/${maxGuests})`,
         "err"
       );
@@ -260,7 +260,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
   return (
     <div className={base.importWrap}>
       <div className={base.stepPills}>
-        {[["upload", "1. הורד והכן"], ["confirm", "2. אשר ויבא"]].map(([s, l], i) => (
+        {[["upload", "1. הורידו והכינו"], ["confirm", "2. אשרו וייבאו"]].map(([s, l], i) => (
           <span key={s} style={{ display: "contents" }}>
             {i > 0 && <span className={base.stepPillSep}>›</span>}
             <span className={[base.stepPill, step === s ? base.stepPillActive : ""].filter(Boolean).join(" ")}>{l}</span>
@@ -270,7 +270,7 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
           className={[base.btnSm, base.btnGhost].join(" ")}
           style={{ marginInlineStart: "auto" }}
           onClick={onClose}
-        >✕ סגור</button>
+        >✕ סגרו</button>
       </div>
 
       {step === "upload" && (
@@ -278,10 +278,10 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
           <div className={base.templateCard}>
             <div className={base.templateCardIcon}>📋</div>
             <div style={{ flex: 1 }}>
-              <div className={base.templateCardTitle}>התחל עם תבנית מוכנה</div>
+              <div className={base.templateCardTitle}>התחילו עם תבנית מוכנה</div>
               <div className={base.templateCardSub}>
                 קובץ Excel עם כל העמודות, רשימות נפתחות לצד ולקבוצה, והסברים בתוך הקובץ.
-                מלא אותו ואז העלה בחזרה.
+                מלאו אותו ואז העלו בחזרה.
               </div>
             </div>
             <button
@@ -292,13 +292,13 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
                 ev
               )}
             >
-              ⬇ הורד תבנית Excel
+              ⬇ הורידו תבנית Excel
             </button>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0" }}>
             <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>אחרי שמילאת — העלה כאן</span>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>אחרי שמילאתם — העלו כאן</span>
             <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
           </div>
 
@@ -311,8 +311,8 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
             onClick={() => fileRef.current && fileRef.current.click()}
           >
             <div className={base.importDropzoneIcon}>📤</div>
-            <div className={base.importDropzoneText}>גרור לכאן את הקובץ המלא</div>
-            <div className={base.importDropzoneHint}>או לחץ לבחירת קובץ · xlsx, xls, csv</div>
+            <div className={base.importDropzoneText}>גררו לכאן את הקובץ המלא</div>
+            <div className={base.importDropzoneHint}>או לחצו לבחירת קובץ · xlsx, xls, csv</div>
           </div>
           <input
             ref={fileRef}
@@ -443,13 +443,13 @@ function ExcelImportFlow({ ev, patchEvent, showToast, onClose, maxGuests }) {
               onClick={doImport}
               disabled={toImportCount === 0}
             >
-              ✓ ייבא {toImportCount} רשומות ({toImportSeats} מקומות)
+              ✓ ייבאו {toImportCount} רשומות ({toImportSeats} מקומות)
             </button>
             <button
               className={base.btnSecondary}
               onClick={() => { setStep("upload"); setClassified(null); setParseErr(""); }}
             >
-              חזור
+              חזרו
             </button>
           </div>
         </div>
@@ -527,7 +527,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     } else {
       const guestGate = canAddGuest(plan, ev.guests.length);
       if (!guestGate.allowed) {
-        showToast(guestGate.reason + " — שדרג להוספת אורחים נוספים", "err");
+        showToast(guestGate.reason + " — שדרגו להוספת אורחים נוספים", "err");
         return;
       }
       const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
@@ -563,7 +563,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       const remaining = Math.max(0, maxGuests - ev.guests.length);
       showToast(
         remaining === 0
-          ? `הגעת למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרג להוספת אורחים נוספים`
+          ? `הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`
           : `ניתן להוסיף עוד ${remaining} רשומות בלבד בתוכנית הנוכחית (${ev.guests.length}/${maxGuests})`,
         "err"
       );
@@ -687,8 +687,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       {/* ── Guest limit upgrade tip ── */}
       {maxGuests !== Infinity && ev.guests.length >= maxGuests && (
         <p className={styles.upgradeTip}>
-          🔒 הגעת למגבלת {maxGuests} הרשומות בתוכנית הנוכחית —{" "}
-          <a href="/account" className={styles.upgradeTipLink}>שדרג את התוכנית</a>{" "}
+          🔒 הגעתם למגבלת {maxGuests} הרשומות בתוכנית הנוכחית —{" "}
+          <a href="/account" className={styles.upgradeTipLink}>שדרגו את התוכנית</a>{" "}
           להוספת אורחים נוספים.
         </p>
       )}
@@ -832,20 +832,20 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             onClick={saveGuest}
             disabled={!editId && maxGuests !== Infinity && ev.guests.length >= maxGuests}
             title={!editId && maxGuests !== Infinity && ev.guests.length >= maxGuests
-              ? `הגעת למגבלת ${maxGuests} האורחים — שדרג את התוכנית`
+              ? `הגעתם למגבלת ${maxGuests} האורחים — שדרגו את התוכנית`
               : undefined}
           >
-            {editId ? "שמור שינויים" : "+ הוסף אורח"}
+            {editId ? "שמרו שינויים" : "+ הוסיפו אורח"}
           </button>
           {editId && <button className={base.btnSecondary} onClick={cancelEdit}>ביטול</button>}
           {!editId && (
             <button className={base.btnSecondary} onClick={() => { setShowList(p => !p); setShowBulk(false); }}>
-              {showList ? "סגור רשימה" : "📝 הוסף לפי רשימה"}
+              {showList ? "סגרו רשימה" : "📝 הוסיפו לפי רשימה"}
             </button>
           )}
           {!editId && (
             <button className={base.btnSecondary} onClick={() => { setShowBulk(p => !p); setShowList(false); }}>
-              {showBulk ? "סגור ייבוא" : "📥 ייבוא מ-Excel"}
+              {showBulk ? "סגרו ייבוא" : "📥 ייבוא מ-Excel"}
             </button>
           )}
           {!editId && (
@@ -853,13 +853,13 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               👨‍👩‍👧 הוספות מהמשפחה
             </button>
           )}
-          {!editId && <span className={base.fieldHint}>Enter = הוסף מהיר</span>}
+          {!editId && <span className={base.fieldHint}>Enter = הוספה מהירה</span>}
         </div>
 
         {showList && !editId && (
           <div className={styles.listAddPanel}>
-            <div className={styles.listAddTitle}>הוסף אורחים לפי רשימה</div>
-            <p className={styles.listAddHint}>הכנס שם אחד בכל שורה. כל האורחים יקבלו את אותו הצד והקבוצה.</p>
+            <div className={styles.listAddTitle}>הוסיפו אורחים לפי רשימה</div>
+            <p className={styles.listAddHint}>הכניסו שם אחד בכל שורה. כל האורחים יקבלו את אותו הצד והקבוצה.</p>
             <textarea
               className={[base.input, styles.listAddTextarea].join(" ")}
               value={listText}
@@ -894,7 +894,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                 onClick={addFromList}
                 disabled={!listText.trim()}
               >
-                + הוסף {listText.trim() ? listText.split("\n").filter(s => s.trim()).length : 0} אורחים
+                + הוסיפו {listText.trim() ? listText.split("\n").filter(s => s.trim()).length : 0} אורחים
               </button>
               <button className={base.btnSecondary} onClick={() => setShowList(false)}>ביטול</button>
             </div>
@@ -943,7 +943,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               <span className={base.filterCount}>מציג {visible.length} מתוך {ev.guests.length}</span>
               <button className={[base.btnSm, base.btnGhost].join(" ")}
                 onClick={() => setFilter({ side: "all", group: "all", rsvp: "all", search: "" })}>
-                נקה ✕
+                נקו ✕
               </button>
             </>
           ) : (
@@ -954,7 +954,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
       {isFiltered && visible.length > 0 && (
         <div className={styles.bulkBar}>
-          <span className={styles.bulkLabel}>עדכן {visible.length} מסוננים:</span>
+          <span className={styles.bulkLabel}>עדכנו {visible.length} מסוננים:</span>
           {RSVP_OPTIONS.map(o => (
             <button
               key={o.value}
@@ -1008,7 +1008,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   {g.phone && (
                     <button
                       className={[base.btnSm, styles.waBtn].join(" ")}
-                      title="שלח הזמנה בוואטסאפ"
+                      title="שלחו הזמנה בוואטסאפ"
                       onClick={() => waGuest(g)}
                     >
                       וואטסאפ
@@ -1023,7 +1023,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                     עריכה
                   </button>
                   <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delGuest(g.id, g.name)}>
-                    מחק
+                    מחקו
                   </button>
                 </div>
               </div>
@@ -1038,14 +1038,14 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
       {visible.length === 0 && ev.guests.length > 0 && (
         <EmptyState icon={<Icon name="search" />} title="אין תוצאות לסינון הנוכחי"
-          text='לחצו על "נקה" כדי לאפס את הסינון ולראות את כל האורחים.' />
+          text='לחצו על "נקו" כדי לאפס את הסינון ולראות את כל האורחים.' />
       )}
 
       <NextStep
-        label="המשך להגדרת אילוצים"
+        label="המשיכו להגדרת אילוצים"
         hint={ev.constraints.length > 0
           ? (ev.constraints.length + " אילוצים מוגדרים")
-          : "אופציונלי — הגדר מי חייב / לא יכול לשבת יחד"}
+          : "אופציונלי — הגדירו מי חייב / לא יכול לשבת יחד"}
         onClick={() => go("constraints")}
       />
     </div>

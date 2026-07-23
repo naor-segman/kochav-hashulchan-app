@@ -42,8 +42,8 @@ function planFeatures(key) {
 function cardBtnLabel(cardKey, currentPlanKey) {
   if (cardKey === currentPlanKey) return "תוכנית נוכחית ✓";
   if (cardKey === "free")         return "—";
-  if (cardKey === "pro")          return "שדרג ל-Pro";
-  if (cardKey === "enterprise")   return "צור קשר";
+  if (cardKey === "pro")          return "שדרגו ל-Pro";
+  if (cardKey === "enterprise")   return "צרו קשר";
   return "—";
 }
 
@@ -181,7 +181,7 @@ export default function AccountScreen({ eventCount = 0 }) {
                   />
                   <button type="button" className={styles.pwEyeBtn}
                     onClick={() => setShowPw(v => !v)} tabIndex={-1}
-                    aria-label={showPw ? "הסתר סיסמה" : "הצג סיסמה"}>
+                    aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}>
                     {showPw ? "🙈" : "👁"}
                   </button>
                 </div>
@@ -207,7 +207,7 @@ export default function AccountScreen({ eventCount = 0 }) {
                 />
                 {pwError && <p className={styles.errorMsg}>{pwError}</p>}
                 <button type="submit" className={styles.pwBtn} disabled={pwSaving || !pwForm.current || !pwForm.next || !pwForm.confirm}>
-                  {pwSaving ? "מאמת ושומר…" : "שנה סיסמה"}
+                  {pwSaving ? "מאמת ושומר…" : "שנו סיסמה"}
                 </button>
               </form>
             )}
@@ -300,14 +300,14 @@ export default function AccountScreen({ eventCount = 0 }) {
         {/* ── Subscription status notices ── */}
         {sub && isPaymentFailed && (
           <div className={styles.paymentFailedBanner}>
-            <span>⚠ תשלום נכשל — אנא עדכן את אמצעי התשלום שלך.</span>
+            <span>⚠ תשלום נכשל — אנא עדכנו את אמצעי התשלום שלכם.</span>
             {isPaidPlan(planKey) && isStripeConfigured && (
               <button
                 className={styles.paymentFailedBannerBtn}
                 onClick={billing.openPortal}
                 disabled={billing.checkoutTarget === "portal"}
               >
-                {billing.checkoutTarget === "portal" ? "פותח…" : "עדכן תשלום ↗"}
+                {billing.checkoutTarget === "portal" ? "פותח…" : "עדכנו תשלום ↗"}
               </button>
             )}
           </div>
@@ -320,7 +320,7 @@ export default function AccountScreen({ eventCount = 0 }) {
         )}
         {sub && statusKey === "trialing" && (
           <div className={styles.trialBanner}>
-            ✦ אתה בתקופת ניסיון. ניתן לשדרג בכל עת.
+            ✦ אתם בתקופת ניסיון. ניתן לשדרג בכל עת.
           </div>
         )}
 
@@ -332,7 +332,7 @@ export default function AccountScreen({ eventCount = 0 }) {
         )}
         {checkoutResult === "cancelled" && (
           <div className={styles.checkoutCancelledBanner}>
-            הרשמה לתוכנית בוטלה — לא חויבת. תוכל לשדרג בכל עת.
+            הרשמה לתוכנית בוטלה — לא חויבתם. תוכלו לשדרג בכל עת.
           </div>
         )}
 
@@ -437,10 +437,10 @@ export default function AccountScreen({ eventCount = 0 }) {
                         disabled={isCurrent || isThisLoading}
                         onClick={handleCardAction}
                         title={
-                          isCurrent       ? "זוהי התוכנית הנוכחית שלך" :
+                          isCurrent       ? "זוהי התוכנית הנוכחית שלכם" :
                           !isStripeConfigured && !isEnterprise ? "שדרוג יהיה זמין בקרוב" :
-                          isEnterprise    ? "שלח אימייל לגבי תוכנית ארגוני" :
-                          `שדרג לתוכנית ${getPlanLabel(key)}`
+                          isEnterprise    ? "שלחו אימייל לגבי תוכנית ארגוני" :
+                          `שדרגו לתוכנית ${getPlanLabel(key)}`
                         }
                       >
                         {isCurrent
@@ -466,7 +466,7 @@ export default function AccountScreen({ eventCount = 0 }) {
                 ].filter(Boolean).join(" ")}
                 disabled={!isStripeConfigured || billing.checkoutTarget === "portal"}
                 onClick={isStripeConfigured ? billing.openPortal : undefined}
-                title={isStripeConfigured ? "נהל מנוי, שנה תשלום, או בטל" : "ניהול חיוב יהיה זמין בקרוב"}
+                title={isStripeConfigured ? "נהלו מנוי, שנו תשלום, או בטלו" : "ניהול חיוב יהיה זמין בקרוב"}
               >
                 {billing.checkoutTarget === "portal" ? "פותח…" : "ניהול חיוב ↗"}
               </button>
@@ -502,7 +502,7 @@ export default function AccountScreen({ eventCount = 0 }) {
           target="_blank"
           rel="noreferrer"
         >
-          ✉ שלח משוב / דווח על בעיה
+          ✉ שלחו משוב / דווחו על בעיה
         </a>
 
         <p className={styles.versionLabel}>גרסה 0.1 · בטא מוקדמת</p>

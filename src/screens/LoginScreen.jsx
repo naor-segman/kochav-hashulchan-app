@@ -8,8 +8,8 @@ function friendlyError(message) {
   const m = message.toLowerCase();
   if (m.includes("invalid login credentials")) return "אימייל או סיסמה שגויים.";
   if (m.includes("email not confirmed"))        return "יש לאשר את כתובת האימייל תחילה.";
-  if (m.includes("too many requests"))          return "יותר מדי ניסיונות. נסה שוב מאוחר יותר.";
-  if (m.includes("network") || m.includes("fetch failed")) return "שגיאת חיבור. נסה שוב.";
+  if (m.includes("too many requests"))          return "יותר מדי ניסיונות. נסו שוב מאוחר יותר.";
+  if (m.includes("network") || m.includes("fetch failed")) return "שגיאת חיבור. נסו שוב.";
   return message;
 }
 
@@ -59,7 +59,7 @@ export default function LoginScreen() {
       if (err) throw err;
       setForgotDone(true);
     } catch (err) {
-      setForgotError(err.message?.includes("network") ? "שגיאת חיבור. נסה שוב." : "שגיאה בשליחת הקישור. בדוק את כתובת האימייל.");
+      setForgotError(err.message?.includes("network") ? "שגיאת חיבור. נסו שוב." : "שגיאה בשליחת הקישור. בדקו את כתובת האימייל.");
     } finally {
       setForgotBusy(false);
     }
@@ -124,7 +124,7 @@ export default function LoginScreen() {
                 type="button"
                 className={styles.eyeBtn}
                 onClick={() => setShowPw(v => !v)}
-                aria-label={showPw ? "הסתר סיסמה" : "הצג סיסמה"}
+                aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
                 tabIndex={-1}
               >
                 {showPw ? "🙈" : "👁"}
@@ -151,11 +151,11 @@ export default function LoginScreen() {
             onClick={() => { setForgotMode(true); setForgotEmail(email); }}
             disabled={!isSupabaseConfigured}
           >
-            שכחת סיסמה?
+            שכחתם סיסמה?
           </button>
         ) : forgotDone ? (
           <div className={styles.forgotSuccess}>
-            ✓ קישור לאיפוס סיסמה נשלח לכתובת <strong>{forgotEmail}</strong>. בדוק את תיבת הדואר.
+            ✓ קישור לאיפוס סיסמה נשלח לכתובת <strong>{forgotEmail}</strong>. בדקו את תיבת הדואר.
           </div>
         ) : (
           <form onSubmit={handleForgot} className={styles.forgotForm} noValidate>
@@ -172,25 +172,25 @@ export default function LoginScreen() {
             />
             {forgotError && <p className={styles.errorMsg}>{forgotError}</p>}
             <button type="submit" className={styles.submitBtn} disabled={forgotBusy || !forgotEmail}>
-              {forgotBusy ? "שולח…" : "שלח קישור איפוס"}
+              {forgotBusy ? "שולח…" : "שלחו קישור איפוס"}
             </button>
             <button
               type="button"
               className={styles.forgotLink}
               onClick={() => { setForgotMode(false); setForgotError(""); }}
             >
-              ← חזור לכניסה
+              ← חזרו לכניסה
             </button>
           </form>
         )}
 
         <p className={styles.switchLine}>
-          אין לך חשבון?{" "}
+          אין לכם חשבון?{" "}
           <Link to="/signup" className={styles.switchLink}>הרשמה חינמית</Link>
         </p>
 
         <div className={styles.guestBlock}>
-          <Link to="/" className={styles.backLink}>← המשך ללא חשבון</Link>
+          <Link to="/" className={styles.backLink}>← המשיכו ללא חשבון</Link>
           <p className={styles.guestNote}>מצב אורח — נתונים נשמרים בדפדפן זה בלבד, ללא גיבוי ענן</p>
         </div>
 

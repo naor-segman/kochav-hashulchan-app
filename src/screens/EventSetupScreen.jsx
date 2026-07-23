@@ -50,7 +50,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(k => k === key ? null : k), 2000);
     } catch {
-      showToast("לא ניתן להעתיק — העתק ידנית", "err");
+      showToast("לא ניתן להעתיק — העתיקו ידנית", "err");
     }
   }, [showToast]);
 
@@ -131,7 +131,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           <button
             className={base.btnSm}
             onClick={save}
-          >שמור עכשיו</button>
+          >שמרו עכשיו</button>
         </Banner>
       )}
       {saved && !dirty && <Banner variant="ok">הפרטים נשמרו ✓</Banner>}
@@ -307,10 +307,10 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
 
         <div className={base.formActions}>
           <button className={base.btnPrimary} onClick={saveAndNext}>
-            שמור והמשך לשולחנות ←
+            שמרו והמשיכו לשולחנות ←
           </button>
           <button className={base.btnSecondary} onClick={save}>
-            {dirty ? "שמור בלבד" : (saved ? "נשמר ✓" : "שמור פרטים")}
+            {dirty ? "שמרו בלבד" : (saved ? "נשמר ✓" : "שמרו פרטים")}
           </button>
           {saved && !dirty && (
             <span className={styles.savedNote}>עודכן בהצלחה</span>
@@ -340,7 +340,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
                   onClick={() => copyLink(sl.key, url)}
                   type="button"
                 >
-                  {copiedKey === sl.key ? "הועתק ✓" : "העתק"}
+                  {copiedKey === sl.key ? "הועתק ✓" : "העתיקו"}
                 </button>
               </div>
             </div>
@@ -374,7 +374,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
       </div>
 
       <NextStep
-        label="המשך להגדרת שולחנות"
+        label="המשיכו להגדרת שולחנות"
         hint={ev.tables.length > 0 ? (ev.tables.length + " שולחנות מוגדרים") : "עדיין לא הוגדרו שולחנות"}
         onClick={goNext}
       />

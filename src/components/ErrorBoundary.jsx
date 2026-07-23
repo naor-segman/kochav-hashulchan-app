@@ -32,7 +32,7 @@ export default class ErrorBoundary extends Component {
           אירעה שגיאה בלתי צפויה
         </h1>
         <p style={{ fontSize: "14px", color: "var(--text2)", maxWidth: "360px", lineHeight: 1.6 }}>
-          המידע שלך שמור — זוהי תקלה טכנית בלבד.
+          המידע שלכם שמור — זוהי תקלה טכנית בלבד.
         </p>
         <button
           onClick={() => window.location.reload()}
@@ -48,7 +48,7 @@ export default class ErrorBoundary extends Component {
             cursor: "pointer",
           }}
         >
-          טען מחדש
+          טענו מחדש
         </button>
         <details style={{ marginTop: "12px", fontSize: "11px", color: "var(--muted)", maxWidth: "480px" }}>
           <summary style={{ cursor: "pointer" }}>פרטי שגיאה</summary>

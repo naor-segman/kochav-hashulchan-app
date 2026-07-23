@@ -23,12 +23,12 @@ const DASH_ICONS = {
 };
 
 const DEMO_STEPS = [
-  { label: "צור אירוע חדש",        hint: 'לחץ "צור אירוע" ובחר את סוג האירוע מהתפריט' },
-  { label: "הוסף שולחנות",          hint: "הגדר כמה שולחנות יש באולם ואת הקיבולת שלהם" },
-  { label: "הוסף אורחים",           hint: "הזן ידנית, או ייבא רשימה מקובץ Excel" },
-  { label: "הגדר אילוצים",          hint: "הפרדות בין אורחים וישיבות משותפות" },
-  { label: "חשב הושבה אוטומטית",   hint: 'לחץ "חשב הושבה" בלשונית ההושבה ובדוק את התוצאה' },
-  { label: "ייצא לאולם",            hint: "ייצא את הסידור לקובץ Excel לצוות האולם" },
+  { label: "צרו אירוע חדש",        hint: 'לחצו "צרו אירוע" ובחרו את סוג האירוע מהתפריט' },
+  { label: "הוסיפו שולחנות",          hint: "הגדירו כמה שולחנות יש באולם ואת הקיבולת שלהם" },
+  { label: "הוסיפו אורחים",           hint: "הזינו ידנית, או ייבאו רשימה מקובץ Excel" },
+  { label: "הגדירו אילוצים",          hint: "הפרדות בין אורחים וישיבות משותפות" },
+  { label: "חשבו הושבה אוטומטית",   hint: 'לחצו "חשבו הושבה" בלשונית ההושבה ובדקו את התוצאה' },
+  { label: "ייצאו לאולם",            hint: "ייצאו את הסידור לקובץ Excel לצוות האולם" },
 ];
 
 export default function DashboardScreen({ events, plan = "free", onCreateEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
@@ -77,7 +77,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
       {!eventGate.allowed && hasEvents && (
         <p className={styles.upgradeTip}>
           🔒 {eventGate.reason} —{" "}
-          <Link to="/account" className={styles.upgradeTipLink}>שדרג את התוכנית</Link>
+          <Link to="/account" className={styles.upgradeTipLink}>שדרגו את התוכנית</Link>
         </p>
       )}
 
@@ -125,7 +125,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
             className={styles.heroCta}
             onClick={() => eventGate.allowed ? setShowTemplates(true) : onCreateEvent(null)}
           >
-            + צור אירוע ראשון
+            + צרו אירוע ראשון
           </button>
 
           <p className={styles.onboardingNote}>
@@ -202,7 +202,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
                       )}
                       <button
                         className={styles.deleteBtn}
-                        title="מחק אירוע"
+                        title="מחקו אירוע"
                         onClick={() => {
                           const details = [];
                           if (ev.tables.length > 0) details.push(ev.tables.length + " שולחנות");
@@ -282,10 +282,10 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
 
                   <div className={styles.eventActions}>
                     <button className={styles.eventOpenBtn} onClick={() => onOpenEvent(ev.id)}>
-                      פתח לניהול ←
+                      פתחו לניהול ←
                     </button>
                     <button className={styles.duplicateBtn} onClick={() => onDuplicateEvent(ev.id)}>
-                      שכפל אירוע
+                      שכפלו אירוע
                     </button>
                   </div>
 
@@ -301,7 +301,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
         <button className={styles.demoToggle} onClick={() => setShowDemo(v => !v)}>
           <span className={styles.demoToggleStart}>
             <span className={styles.demoIcon}>🧪</span>
-            <span className={styles.demoTitle}>נסה את המערכת</span>
+            <span className={styles.demoTitle}>נסו את המערכת</span>
             {doneSteps.size > 0 && (
               <span className={doneSteps.size === DEMO_STEPS.length ? styles.demoBadgeDone : styles.demoBadge}>
                 {doneSteps.size}/{DEMO_STEPS.length}
@@ -314,8 +314,8 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
         {showDemo && (
           <div className={styles.demoBody}>
             <p className={styles.demoSubtitle}>
-              עקוב אחר השלבים כדי להכיר את המערכת מקצה לקצה.
-              לחץ על שלב לאחר שסיימת אותו.
+              עקבו אחר השלבים כדי להכיר את המערכת מקצה לקצה.
+              לחצו על שלב לאחר שסיימתם אותו.
             </p>
             <ol className={styles.demoList}>
               {DEMO_STEPS.map((step, i) => {

@@ -81,7 +81,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
   const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(siteUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { showToast("לא ניתן להעתיק — העתק ידנית", "err"); }
+    catch { showToast("לא ניתן להעתיק — העתיקו ידנית", "err"); }
   };
 
   return (
@@ -110,7 +110,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         </div>
         <div className={styles.shareRow}>
           <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" />
-          <button className={base.btnSm} onClick={copyLink}>{copied ? "הועתק ✓" : "העתק"}</button>
+          <button className={base.btnSm} onClick={copyLink}>{copied ? "הועתק ✓" : "העתיקו"}</button>
           <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open("/events/" + ev.id + "/preview-site", "_blank")}>תצוגה מקדימה</button>
         </div>
       </div>

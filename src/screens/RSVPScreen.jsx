@@ -102,7 +102,7 @@ export default function RSVPScreen() {
       }
       setStep("submitted");
     } catch {
-      setSubmitError("אירעה שגיאה בשליחה. אנא נסה שוב.");
+      setSubmitError("אירעה שגיאה בשליחה. אנא נסו שוב.");
     } finally {
       setSubmitting(false);
     }
@@ -123,7 +123,7 @@ export default function RSVPScreen() {
       }
       setStep("submitted");
     } catch {
-      setSubmitError("אירעה שגיאה בשליחה. אנא נסה שוב.");
+      setSubmitError("אירעה שגיאה בשליחה. אנא נסו שוב.");
     } finally {
       setSubmitting(false);
     }
@@ -159,7 +159,7 @@ export default function RSVPScreen() {
               <h1 className={styles.errorTitle}>הלינק לא תקין או שפג תוקפו</h1>
               <p className={styles.errorBody}>
                 ייתכן שהקישור פג תוקף, שגוי, או שהאירוע בוטל.
-                <br />אנא פנה לבעלי האירוע לקבלת לינק מעודכן.
+                <br />אנא פנו לבעלי האירוע לקבלת לינק מעודכן.
               </p>
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function RSVPScreen() {
                 className={styles.btnSubmitYes}
                 disabled={submitting || !name.trim()}
               >
-                {submitting ? "שולח…" : (answer === "maybe" ? "שלח תשובה ←" : "שלח אישור הגעה ←")}
+                {submitting ? "שולח…" : (answer === "maybe" ? "שלחו תשובה ←" : "שלחו אישור הגעה ←")}
               </button>
             </form>
 
@@ -336,7 +336,7 @@ export default function RSVPScreen() {
               onClick={goBack}
               disabled={submitting}
             >
-              ← חזור
+              ← חזרו
             </button>
 
           </div>
@@ -393,7 +393,7 @@ export default function RSVPScreen() {
               onClick={handleSubmitNo}
               disabled={submitting || !name.trim()}
             >
-              {submitting ? "שולח…" : "שלח"}
+              {submitting ? "שולח…" : "שלחו"}
             </button>
 
             <button
@@ -402,7 +402,7 @@ export default function RSVPScreen() {
               onClick={goBack}
               disabled={submitting}
             >
-              ← חזור — שיניתי את דעתי
+              ← חזרו — שיניתי את דעתי
             </button>
 
           </div>
@@ -415,11 +415,11 @@ export default function RSVPScreen() {
   const site = event.site;
   const titleByAnswer = {
     yes:   "תודה! אישור ההגעה נשלח 🎉",
-    maybe: "קיבלנו — תודה שהודעת 🤔",
-    no:    "תודה שהודעת 💛",
+    maybe: "קיבלנו — תודה שהודעתם 🤔",
+    no:    "תודה שהודעתם 💛",
   };
   const bodyByAnswer = {
-    yes:   "מחכים לראותך ולחגוג יחד!",
+    yes:   "מחכים לראותכם ולחגוג יחד!",
     maybe: "נשמח אם תעדכן/י אותנו ברגע שתדע/י בוודאות.",
     no:    "חבל שלא תוכל/י להגיע — נשמח לראותך בשמחה הבאה.",
   };
@@ -438,7 +438,7 @@ export default function RSVPScreen() {
             <div className={styles.checkCircle} aria-hidden="true">
               <span className={styles.checkMark}>{answer === "no" ? "💛" : "✓"}</span>
             </div>
-            <h2 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתך נשלחה"}</h2>
+            <h2 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h2>
             <p className={styles.successBody}>{bodyByAnswer[answer]}</p>
 
             {site?.rsvpMessage && (

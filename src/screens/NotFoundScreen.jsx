@@ -18,7 +18,7 @@ export default function NotFoundScreen() {
       <div style={{ fontSize: "48px", color: "var(--border2)" }}>✦</div>
       <h1 style={{ fontSize: "22px", fontWeight: 700 }}>הדף לא נמצא</h1>
       <p style={{ fontSize: "14px", color: "var(--text2)", maxWidth: "320px", lineHeight: 1.6 }}>
-        הכתובת שביקשת לא קיימת.
+        הכתובת שביקשתם לא קיימת.
       </p>
       <Link
         to="/app"

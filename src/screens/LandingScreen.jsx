@@ -19,25 +19,25 @@ const ICONS = {
 
 const FEATURES = [
   { icon: "seating", title: "הושבה אוטומטית",
-    desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרת" },
+    desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרתם" },
   { icon: "guests", title: "ניהול אורחים",
     desc: "ייבוא מאקסל, הוספה ידנית, מעקב אישורי הגעה לפי קבוצות — הכל בממשק אחד נוח" },
   { icon: "plan", title: "תכנית מגרש",
-    desc: "גרור שולחנות על תמונת האולם ותקבל תצוגה חזותית מושלמת של הסידור" },
+    desc: "גררו שולחנות על תמונת האולם ותקבלו תצוגה חזותית מושלמת של הסידור" },
   { icon: "checkin", title: "צ׳ק-אין ביום האירוע",
-    desc: "מצא כל אורח בשניות וראה את מספר השולחן שלו — מצב מושלם לכניסה לאולם" },
+    desc: "מצאו כל אורח בשניות וראו את מספר השולחן שלו — מצב מושלם לכניסה לאולם" },
   { icon: "pages", title: "דפי אורח דיגיטליים",
     desc: "הזמנה, אישור הגעה, מתנה וברכות — קישור אישי לכל אירוע שנשלח לאורחים בקליק" },
   { icon: "cloud", title: "סנכרון ענן",
-    desc: "גישה מכל מכשיר, שמירה אוטומטית — עבוד מהמחשב, המשך מהטלפון" },
+    desc: "גישה מכל מכשיר, שמירה אוטומטית — עבדו מהמחשב, המשיכו מהטלפון" },
 ];
 
 const HOW_IT_WORKS = [
-  { num: "01", title: "צור אירוע", desc: "בחר סוג אירוע, הזן תאריך ומקום" },
-  { num: "02", title: "הוסף אורחים", desc: "ייבא מאקסל, הוסף ידנית, קבל אישורי הגעה" },
-  { num: "03", title: "בנה שולחנות", desc: "הגדר מספר מקומות וצורת ישיבה לכל שולחן" },
-  { num: "04", title: "הגדר אילוצים", desc: "מי ישב יחד, מי חייב להיות בנפרד" },
-  { num: "05", title: "סדר בלחיצה", desc: "קבל תוכנית ישיבה מושלמת תוך שניות" },
+  { num: "01", title: "צרו אירוע", desc: "בחרו סוג אירוע, הזינו תאריך ומקום" },
+  { num: "02", title: "הוסיפו אורחים", desc: "ייבאו מאקסל, הוסיפו ידנית, קבלו אישורי הגעה" },
+  { num: "03", title: "בנו שולחנות", desc: "הגדירו מספר מקומות וצורת ישיבה לכל שולחן" },
+  { num: "04", title: "הגדירו אילוצים", desc: "מי ישב יחד, מי חייב להיות בנפרד" },
+  { num: "05", title: "סדרו בלחיצה", desc: "קבלו תוכנית ישיבה מושלמת תוך שניות" },
 ];
 
 const TESTIMONIALS = [
@@ -65,7 +65,7 @@ const PRICING_PLANS = [
     price: "₪0",
     per: "/ לנצח",
     features: ["אירוע 1", "עד 80 אורחים", "הושבה אוטומטית", "ייצוא לאקסל"],
-    cta: "התחל חינם",
+    cta: "התחילו חינם",
     ctaHref: "/signup",
     highlight: false,
   },
@@ -81,7 +81,7 @@ const PRICING_PLANS = [
       "ייצוא PDF וסידור מפורט",
       "תמיכה מועדפת",
     ],
-    cta: "שדרג עכשיו",
+    cta: "שדרגו עכשיו",
     ctaHref: "/signup",
     highlight: true,
   },
@@ -96,7 +96,7 @@ const PRICING_PLANS = [
       "שיתוף פעולה בצוות",
       "SLA ותמיכה ייעודית",
     ],
-    cta: "צור קשר",
+    cta: "צרו קשר",
     ctaHref: "mailto:contact@kochav-hashulchan.co.il",
     highlight: false,
     external: true,
@@ -122,7 +122,7 @@ export default function LandingScreen() {
 
           <div className={styles.navActions}>
             <Link to="/login" className={styles.navLoginBtn}>כניסה</Link>
-            <Link to="/signup" className={styles.navCta}>התחל חינם</Link>
+            <Link to="/signup" className={styles.navCta}>התחילו חינם</Link>
           </div>
         </div>
       </header>
@@ -150,8 +150,8 @@ export default function LandingScreen() {
               הכל במקום אחד, לאירוע שתמיד חלמתם עליו
             </p>
             <div className={styles.heroActions}>
-              <Link to="/signup" className={styles.heroCta}>התחל חינם ←</Link>
-              <a href="#how" className={styles.heroSecondary}>ראה איך זה עובד</a>
+              <Link to="/signup" className={styles.heroCta}>התחילו חינם ←</Link>
+              <a href="#how" className={styles.heroSecondary}>ראו איך זה עובד</a>
             </div>
             <p className={styles.heroNote}>ללא כרטיס אשראי · ניסיון חינם לכל החיים</p>
           </div>
@@ -289,7 +289,7 @@ export default function LandingScreen() {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>מחירים</span>
             <h2 className={styles.sectionTitle}>תוכנית לכל צורך</h2>
-            <p className={styles.sectionSub}>התחל חינם, שדרג כשצריך</p>
+            <p className={styles.sectionSub}>התחילו חינם, שדרגו כשצריך</p>
           </div>
 
           <div className={styles.pricingGrid}>
@@ -332,11 +332,11 @@ export default function LandingScreen() {
       <section className={styles.ctaBanner}>
         <div className={styles.ctaBannerInner}>
           <div className={styles.ctaStar} aria-hidden="true">✦</div>
-          <h2 className={styles.ctaTitle}>מוכן להתחיל?</h2>
+          <h2 className={styles.ctaTitle}>מוכנים להתחיל?</h2>
           <p className={styles.ctaSub}>
-            הצטרף לאלפי מארגנים שכבר חסכו שעות של עבודה
+            הצטרפו לאלפי מארגנים שכבר חסכו שעות של עבודה
           </p>
-          <Link to="/signup" className={styles.ctaBtn}>הצטרף חינם עכשיו ←</Link>
+          <Link to="/signup" className={styles.ctaBtn}>הצטרפו חינם עכשיו ←</Link>
           <p className={styles.ctaNote}>ללא כרטיס אשראי · ביטול בכל עת</p>
         </div>
       </section>
