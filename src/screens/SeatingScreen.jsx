@@ -247,6 +247,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       confirmMsg = `להעביר את ${applyAction.guestName} מ${applyAction.fromTableName} ל${applyAction.toTableName}?`;
     } else if (applyAction.type === "swapGuests") {
       confirmMsg = `להחליף בין ${applyAction.guestAName} (${applyAction.tableAName}) ל${applyAction.guestBName} (${applyAction.tableBName})?`;
+    } else if (applyAction.type === "seatUnassigned") {
+      confirmMsg = `לשבץ אוטומטית את ${applyAction.count} הרשומות שנותרו? השיבוצים הקיימים יישמרו במקומם.`;
     }
 
     if (!confirm(confirmMsg)) return;
@@ -275,6 +277,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         return Object.assign({}, e, { seating: s });
       });
       showToast(applyAction.guestAName + " ו" + applyAction.guestBName + " הוחלפו ✓");
+    } else if (applyAction.type === "seatUnassigned") {
+      // Preserve every current placement (pass the whole seating as the locked
+      // base) and let autoAssign fill only the still-unseated active guests.
+      const newSeating = autoAssign(activeGuests, ev.tables, ev.constraints, ev.seating);
+      const added = Object.keys(newSeating).length - Object.keys(ev.seating).length;
+      patchEvent(e => Object.assign({}, e, { seating: newSeating }));
+      if (added > 0) showToast(added + " רשומות שובצו אוטומטית ✓");
+      else showToast("לא נמצא מקום פנוי מתאים — הוסיפו שולחנות או מקומות", "err");
     }
   };
 

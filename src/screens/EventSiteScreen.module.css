@@ -119,10 +119,10 @@
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px;
   padding: 12px 0;
 }
-/* Content on the (RTL) right, time on the left. */
-.tlTitle { text-align: start; font-size: 15px; font-weight: 600; color: var(--s-ink); }
+/* Time on the (RTL) right, content on the left. */
+.tlTitle { text-align: end; font-size: 15px; font-weight: 600; color: var(--s-ink); }
 .tlDot { width: 12px; height: 12px; border-radius: 50%; background: var(--s-accent); border: 3px solid var(--s-bg); position: relative; z-index: 1; }
-.tlTime { text-align: end; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; color: var(--s-accent); }
+.tlTime { text-align: start; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; color: var(--s-accent); }
 
 /* ── Location / gift cards ── */
 .locCard, .giftCard {
