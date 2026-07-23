@@ -29,8 +29,16 @@ function fmtILS(n) {
   return n > 0 ? "₪" + n.toLocaleString("he-IL", { maximumFractionDigits: 0 }) : "—";
 }
 
+// Net can be negative (a deficit) — show a signed amount, not "—".
+function fmtNet(n) {
+  if (!n) return "₪0";
+  const abs = Math.abs(n).toLocaleString("he-IL", { maximumFractionDigits: 0 });
+  return (n < 0 ? "−₪" : "+₪") + abs;
+}
+
 export default function CostScreen({ activeEvent: ev, patchEvent }) {
   const [cats, setCats]    = useState(() => initCategories(ev));
+  const [bulkGift, setBulkGift] = useState("");
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
 
@@ -68,6 +76,31 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
 
   const totalGuests = useMemo(() =>
     (ev?.guests ?? []).reduce((s, g) => s + (g.count || 1), 0), [ev]);
+
+  // ── Income forecast: sum of the PER-GUEST estimated gifts the host entered,
+  // vs actual gifts, and the net picture. Only attending (not declined) count.
+  const estIncome = useMemo(() =>
+    (ev?.guests ?? []).filter(g => g.rsvp !== "declined").reduce((s, g) => s + (g.estGift || 0), 0), [ev]);
+  const nEstimated = useMemo(() =>
+    (ev?.guests ?? []).filter(g => g.rsvp !== "declined" && g.estGift > 0).length, [ev]);
+  const nAttending = useMemo(() =>
+    (ev?.guests ?? []).filter(g => g.rsvp !== "declined").length, [ev]);
+  const actualIncome = useMemo(() =>
+    (ev?.guests ?? []).reduce((s, g) => s + (g.giftAmount || 0), 0), [ev]);
+  const netExpected  = estIncome - totalBudget;
+  const netActual    = actualIncome - totalActual;
+
+  // Convenience: set a per-person estimate on every attending guest at once
+  // (host can then fine-tune individuals in the guest list).
+  const applyBulkEstimate = () => {
+    const per = parseAmt(bulkGift);
+    if (per <= 0) return;
+    patchEvent(e => ({
+      ...e,
+      guests: (e.guests || []).map(g => g.rsvp === "declined" ? g : { ...g, estGift: per * (g.count || 1) }),
+    }));
+    setBulkGift("");
+  };
 
   const costPerGuest = totalGuests > 0 && totalActual > 0
     ? Math.round(totalActual / totalGuests)
@@ -279,6 +312,54 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
 
         <div className={base.formActions}>
           <span className={styles.savedHint}>✓ נשמר אוטומטית</span>
+        </div>
+      </div>
+
+      {/* ── Income forecast + net picture ── */}
+      <div className={base.card}>
+        <SectionLabel>הכנסה צפויה ותמונת נטו</SectionLabel>
+        <p className={base.fieldHint}>
+          "הכנסה צפויה" מסכמת את המתנה המשוערת שהזנתם לכל אורח (במסך האורחים).
+          "הכנסה בפועל" מתמלאת מהמתנות שנרשמות בצ׳ק-אין.
+        </p>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", margin: "8px 0 16px" }}>
+          <div style={{ flex: "1 1 160px", minWidth: 0 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>
+              מילוי מהיר — מתנה משוערת לאדם (₪)
+            </label>
+            <input className={base.input} type="number" min="0" step="50" value={bulkGift}
+              placeholder="למשל 400" onChange={e => setBulkGift(e.target.value)} />
+          </div>
+          <button className={base.btnSecondary} onClick={applyBulkEstimate} disabled={parseAmt(bulkGift) <= 0}>
+            החל לכל האורחים
+          </button>
+        </div>
+        {nAttending > 0 && (
+          <p className={base.fieldHint} style={{ marginTop: -8, marginBottom: 12 }}>
+            הזנתם הערכה ל-{nEstimated} מתוך {nAttending} אורחים. אפשר לכוונן כל אורח בנפרד במסך האורחים.
+          </p>
+        )}
+        <div className={styles.statsRow}>
+          <div className={styles.stat}>
+            <span className={styles.statNum}>{estIncome > 0 ? fmtILS(estIncome) : "—"}</span>
+            <span className={styles.statLabel}>הכנסה צפויה</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statNum}>{actualIncome > 0 ? fmtILS(actualIncome) : "—"}</span>
+            <span className={styles.statLabel}>הכנסה בפועל (מתנות)</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={[styles.statNum, netExpected < 0 ? styles.statOver : ""].join(" ")}>
+              {(estIncome > 0 || totalBudget > 0) ? fmtNet(netExpected) : "—"}
+            </span>
+            <span className={styles.statLabel}>צפי נטו (צפוי − מתוכנן)</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={[styles.statNum, netActual < 0 ? styles.statOver : ""].join(" ")}>
+              {(actualIncome > 0 || totalActual > 0) ? fmtNet(netActual) : "—"}
+            </span>
+            <span className={styles.statLabel}>נטו בפועל</span>
+          </div>
         </div>
       </div>
     </div>
