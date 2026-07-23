@@ -1,3 +1,5 @@
+import { guestSeatNames } from "./eventHelpers.js";
+
 const TABLE_TYPE_HE = { regular: "רגיל", vip: "VIP", head: "שולחן ראשי" };
 const RSVP_HE = { confirmed: "אישר/ה", declined: "סירב/ה", maybe: "אולי", pending: "ממתין" };
 const rsvpHe = r => RSVP_HE[r] || "ממתין";
@@ -100,23 +102,27 @@ export async function exportToExcel(ev, sideLabel, violations) {
 
   // ── Sheet 3: Alphabetical entrance list ─────────────────────────────
   {
-    const assigned = ev.guests
-      .filter(g => ev.seating[g.id])
-      .sort((a, b) => (a.name || '').localeCompare(b.name || '', "he"));
     const tableMap = Object.fromEntries(ev.tables.map(t => [t.id, t]));
+    // One row per SEAT — every individual (incl. named companions "רונית (טל)"
+    // and unnamed "+1/+2") appears, so the entrance team can find anyone by name.
+    const seatRows = ev.guests
+      .filter(g => ev.seating[g.id])
+      .flatMap(g => {
+        const table = tableMap[ev.seating[g.id]]?.name || "";
+        return guestSeatNames(g).map((seatName, idx) => ({
+          name: seatName, table, side: sideLabel(g.side),
+          count: idx === 0 ? (g.count != null ? g.count : 1) : "",
+          meal: mealHe(g.meal),
+          phone: idx === 0 ? (g.phone || "") : "",
+          notes: idx === 0 ? (g.notes || "") : "",
+        }));
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "he"));
     const aRows = [
       ["רשימת כניסה לפי א׳-ב׳ — " + (ev.name || "")],
       [],
       ["שם אורח", "שולחן", "צד", "כמות", "מנה", "טלפון", "הערות"],
-      ...assigned.map(g => [
-        g.name || "",
-        tableMap[ev.seating[g.id]]?.name || "",
-        sideLabel(g.side),
-        g.count != null ? g.count : 1,
-        mealHe(g.meal),
-        g.phone || "",
-        g.notes || "",
-      ]),
+      ...seatRows.map(r => [r.name, r.table, r.side, r.count, r.meal, r.phone, r.notes]),
     ];
     const ws3e = XLSX.utils.aoa_to_sheet(aRows);
     ws3e["!cols"] = [
