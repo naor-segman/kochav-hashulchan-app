@@ -278,9 +278,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       });
       showToast(applyAction.guestAName + " ו" + applyAction.guestBName + " הוחלפו ✓");
     } else if (applyAction.type === "seatUnassigned") {
-      // Preserve every current placement (pass the whole seating as the locked
-      // base) and let autoAssign fill only the still-unseated active guests.
-      const newSeating = autoAssign(activeGuests, ev.tables, ev.constraints, ev.seating);
+      // Fill only the still-unseated active guests, preserving every current
+      // placement. autoAssign counts capacity only for guests it receives, so
+      // we must also pass any declined-but-seated guest (kept locked via the
+      // base) — otherwise their occupied seat is hidden and the table overbooks.
+      const seatedDeclined = declinedGuests.filter(g => ev.seating[g.id]);
+      const guestsForFill  = [...activeGuests, ...seatedDeclined];
+      const newSeating = autoAssign(guestsForFill, ev.tables, ev.constraints, ev.seating);
       const added = Object.keys(newSeating).length - Object.keys(ev.seating).length;
       patchEvent(e => Object.assign({}, e, { seating: newSeating }));
       if (added > 0) showToast(added + " רשומות שובצו אוטומטית ✓");

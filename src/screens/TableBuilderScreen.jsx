@@ -29,11 +29,19 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   // Table types = the standard set + any custom types the user created for this
   // event, plus an "add custom" sentinel that prompts for a new one.
   const customTypes  = ev.customTableTypes || [];
+  const LEGACY_TYPE_LABELS = { head: "שולחן ראשי" };
+  const knownTypeValues = new Set([...TABLE_TYPES.map(s => s.value), ...customTypes]);
+  // Any type already stored on a table but missing from the standard+custom sets
+  // (a legacy "head", or a custom type not in the registry) still needs an
+  // option, or the controlled <select> renders blank for that table.
+  const inUseExtraTypes = Array.from(new Set(ev.tables.map(t => t.type).filter(Boolean)))
+    .filter(t => !knownTypeValues.has(t));
   const typeOptions  = [
     ...TABLE_TYPES,
     ...customTypes
       .filter(t => !TABLE_TYPES.some(s => s.value === t))
       .map(t => ({ value: t, label: t })),
+    ...inUseExtraTypes.map(t => ({ value: t, label: LEGACY_TYPE_LABELS[t] || t })),
   ];
   const chooseType = (value, apply) => {
     if (value === "__add__") {
