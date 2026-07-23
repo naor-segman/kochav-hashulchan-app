@@ -181,12 +181,14 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       c.type !== formType &&
       ((c.guestA === formA && c.guestB === formB) || (c.guestA === formB && c.guestB === formA))
     );
+    // Block contradictions (יחד + בנפרד for the same pair) instead of allowing a
+    // guaranteed seating violation — the host must remove the opposite first.
+    if (contra) { showToast("כבר קיים אילוץ הפוך לאותו זוג. הסירו אותו קודם כדי להוסיף את ההפוך.", "err"); return; }
     patchEvent(e => Object.assign({}, e, {
       constraints: e.constraints.concat([{ id: uid(), type: formType, guestA: formA, guestB: formB }])
     }));
     setFormA(""); setFormB("");
-    if (contra) showToast("⚠ קיים אילוץ הפוך לאותה זוג — האילוץ החדש נוסף בכל זאת", "warn");
-    else        showToast("האילוץ נוסף ✓");
+    showToast("האילוץ נוסף ✓");
   };
 
   const delConstraint = (id, nameA, nameB, type) => {
