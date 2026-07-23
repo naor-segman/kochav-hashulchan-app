@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import InfoTip from "../components/ui/InfoTip.jsx";
 import { EVENT_TYPES } from "../data/constants.js";
 import { getEventPersonalConfig, getEventNamePlaceholder, getSideLabels, COUPLE_TYPES } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -280,7 +281,9 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {/* ── Custom side names — available for every event type ── */}
         <Divider label="שמות הצדדים (אופציונלי)" />
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-          שני הצדדים לתיוג האורחים והושבה מאוזנת. השאירו ריק לשימוש בברירת המחדל של סוג האירוע.
+          כל אורח משויך לאחד משני "צדדים" — כך המערכת מאזנת את ההושבה בין שני הצדדים.
+          כאן אפשר לתת לצדדים שם משלכם (למשל "צד ירדן" / "צד נאור"). השאירו ריק כדי להשתמש
+          בברירת המחדל שרואים בשדות למטה.
         </p>
         <div className={base.grid2}>
           <Field label="צד ראשון">
