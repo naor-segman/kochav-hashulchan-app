@@ -14,12 +14,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_events_collab_token
 CREATE TABLE IF NOT EXISTS public.guest_submissions (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id      uuid NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-  name          text NOT NULL CHECK (char_length(trim(name)) > 0),
-  phone         text,
-  side          text,
-  guest_group   text,
+  name          text NOT NULL CHECK (char_length(trim(name)) > 0 AND char_length(name) <= 120),
+  phone         text CHECK (phone IS NULL OR char_length(phone) <= 20),
+  side          text CHECK (side IS NULL OR char_length(side) <= 20),
+  guest_group   text CHECK (guest_group IS NULL OR char_length(guest_group) <= 60),
   guests_count  int  NOT NULL DEFAULT 1 CHECK (guests_count BETWEEN 1 AND 50),
-  submitted_by  text,
+  submitted_by  text CHECK (submitted_by IS NULL OR char_length(submitted_by) <= 80),
   imported      boolean NOT NULL DEFAULT false,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -79,9 +79,9 @@ BEGIN
   VALUES (
     ev_id,
     left(trim(guest->>'name'), 120),
-    nullif(trim(coalesce(guest->>'phone','')), ''),
-    nullif(guest->>'side',''),
-    nullif(guest->>'group',''),
+    nullif(left(trim(coalesce(guest->>'phone','')), 20), ''),
+    nullif(left(guest->>'side', 20), ''),
+    nullif(left(guest->>'group', 60), ''),
     greatest(1, least(50, coalesce((guest->>'count')::int, 1))),
     nullif(left(trim(coalesce(guest->>'submittedBy','')), 80), '')
   );

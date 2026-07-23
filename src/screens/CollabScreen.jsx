@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { fetchCollabEvent, submitGuestEntry } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
+import { uid } from "../utils/uid.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
 import styles from "./CollabScreen.module.css";
 
@@ -43,7 +44,7 @@ export default function CollabScreen() {
     setErr(""); setBusy(true);
     try {
       if (ev.cloudId) await submitGuestEntry(token, { ...form, name: form.name.trim(), submittedBy: submittedBy.trim() });
-      setAdded(a => [{ name: form.name.trim(), count: form.count, side: form.side }, ...a]);
+      setAdded(a => [{ _k: uid(), name: form.name.trim(), count: form.count, side: form.side }, ...a]);
       setForm(f => ({ ...f, name: "", phone: "", count: 1 }));
     } catch {
       setErr("אירעה שגיאה בשליחה. נסו שוב.");
@@ -94,7 +95,7 @@ export default function CollabScreen() {
 
             {err && <p className={styles.err}>{err}</p>}
             <button type="submit" className={styles.btn} disabled={busy || !form.name.trim()}>
-              {busy ? "מוסיף…" : "+ הוסף לרשימה"}
+              {busy ? "מוסיפים…" : "+ הוסיפו לרשימה"}
             </button>
           </form>
         </div>
@@ -103,8 +104,8 @@ export default function CollabScreen() {
           <div className={styles.card}>
             <div className={styles.addedHead}>הוספתם עד כה: {added.length}</div>
             <ul className={styles.addedList}>
-              {added.map((g, i) => (
-                <li key={i} className={styles.addedRow}>
+              {added.map((g) => (
+                <li key={g._k} className={styles.addedRow}>
                   <span className={styles.addedName}>{g.name}</span>
                   <span className={styles.addedMeta}>{sides[g.side]}{g.count > 1 ? ` · ${g.count} מקומות` : ""}</span>
                 </li>

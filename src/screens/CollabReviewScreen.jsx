@@ -28,6 +28,7 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
   );
 
   const pending = subs.filter(s => !s.imported);
+  const importable = pending.filter(s => !existingNames.has(normName(s.name))).length;
 
   const importOne = useCallback(async (s) => {
     const g = {
@@ -39,11 +40,13 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
       phone: s.phone || "",
       notes: s.submitted_by ? `נוסף ע"י ${s.submitted_by}` : "",
       rsvp: "pending",
+      meal: "regular",
+      companions: [],
     };
     patchEvent(e => ({ ...e, guests: [...e.guests, g] }));
     await markSubmissionImported(s.id);
     setSubs(prev => prev.map(x => x.id === s.id ? { ...x, imported: true } : x));
-    showToast(`"${g.name}" נוסף לרשימה ✓`);
+    showToast(`הוספתם את "${g.name}" ✓`);
   }, [patchEvent, showToast]);
 
   const importAll = useCallback(async () => {
@@ -55,6 +58,7 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
       group: s.guest_group || "משפחה קרובה",
       count: s.guests_count || 1, phone: s.phone || "",
       notes: s.submitted_by ? `נוסף ע"י ${s.submitted_by}` : "", rsvp: "pending",
+      meal: "regular", companions: [],
     }));
     patchEvent(e => ({ ...e, guests: [...e.guests, ...newGuests] }));
     await Promise.all(fresh.map(s => markSubmissionImported(s.id)));
@@ -105,7 +109,7 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
       {loadState === "ready" && pending.length > 0 && (
         <>
           <div className={base.actionBar}>
-            <button className={base.btnPrimary} onClick={importAll}>ייבאו את כל החדשים ({pending.length})</button>
+            <button className={base.btnPrimary} onClick={importAll} disabled={importable === 0}>ייבאו את כל החדשים ({importable})</button>
             <button className={base.btnSecondary} onClick={load}>רענון ↺</button>
           </div>
           <div className={base.gList}>
@@ -123,7 +127,9 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
                       {[s.guest_group, s.phone, s.submitted_by && `נוסף ע"י ${s.submitted_by}`].filter(Boolean).join(" · ")}
                     </span>
                   </div>
-                  <button className={base.btnSm} onClick={() => importOne(s)}>+ הוסיפו</button>
+                  <button className={base.btnSm} onClick={() => importOne(s)} disabled={dup}>
+                    {dup ? "קיים" : "+ הוסיפו"}
+                  </button>
                 </div>
               );
             })}

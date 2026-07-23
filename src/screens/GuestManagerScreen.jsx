@@ -662,7 +662,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       <PageHeader
         title="אורחים"
         icon={<Icon name="users" />}
-        sub="נהל את רשימת האורחים. לחץ Enter להוספה מהירה."
+        sub="נהלו את רשימת האורחים. לחצו Enter להוספה מהירה."
         aside={
           <div className={base.pills}>
             <StatPill n={ev.guests.length} label="סה״כ" />

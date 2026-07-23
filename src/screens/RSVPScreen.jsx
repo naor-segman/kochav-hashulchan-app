@@ -297,7 +297,7 @@ export default function RSVPScreen() {
 
               {answer === "yes" && guestsCount > 1 && (
                 <div className={styles.field}>
-                  <label className={styles.fieldLabel}>שמות המגיעים איתך (אופציונלי)</label>
+                  <label className={styles.fieldLabel}>שמות המגיעים איתכם (אופציונלי)</label>
                   <p className={styles.fieldHelp}>נוכל להושיב אתכם יחד באותו שולחן.</p>
                   {Array.from({ length: guestsCount - 1 }).map((_, i) => (
                     <input
