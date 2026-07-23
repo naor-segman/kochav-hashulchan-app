@@ -44,10 +44,16 @@ export default async (request, context) => {
     }
     if (!ev || !ev.name) return res;
 
+    // "אתר החתונה של…" / "אתר הבר מצווה של…" — a warm, event-typed prefix.
+    const typeSite = {
+      "חתונה": "אתר החתונה של", "אירוס": "אתר האירוסין של", "חינה": "אתר החינה של",
+      "בר מצווה": "אתר הבר מצווה של", "בת מצווה": "אתר הבת מצווה של",
+      "ברית": "אתר הברית של", "יום הולדת": "אתר יום ההולדת של",
+    }[ev.type] || "אתר האירוע של";
     const hosts = (ev.bride_name && ev.groom_name)
       ? `${ev.bride_name} & ${ev.groom_name}`
       : (ev.celebrant_name || ev.organization_name || ev.name);
-    const title = `${hosts} — ${ev.type || "אירוע"} · כוכב השולחן`;
+    const title = `${typeSite} ${hosts}`;
     const desc  = [ev.type, ev.venue].filter(Boolean).join(" · ") || "אתם מוזמנים! פרטים ואישור הגעה בקישור.";
 
     const html = await res.text();

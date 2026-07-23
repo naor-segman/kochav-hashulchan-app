@@ -33,6 +33,7 @@ function formatDate(iso) {
 export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [responses, setResponses] = useState([]);
   const [loadState, setLoadState] = useState("loading"); // "loading" | "ready" | "error" | "offline"
+  const [showForecast, setShowForecast] = useState(false);
 
   const load = useCallback(async () => {
     if (!isSupabaseConfigured || !ev.cloudId) {
@@ -154,8 +155,13 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
         </div>
       )}
 
-      {/* ── Meal forecast ── */}
-      {confirmedSeats > 0 && (
+      {/* ── Meal forecast (optional — collapsed by default) ── */}
+      {confirmedSeats > 0 && !showForecast && (
+        <button className={base.btnSecondary} style={{ marginBottom: 14 }} onClick={() => setShowForecast(true)}>
+          🍽 הצג תחזית מנות (אופציונלי)
+        </button>
+      )}
+      {confirmedSeats > 0 && showForecast && (
         <div className={base.card}>
           <SectionLabel>כמה מנות להזמין?</SectionLabel>
           <p className={base.fieldHint}>
