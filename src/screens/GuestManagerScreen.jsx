@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { messageSignature } from "../data/company.js";
 import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { downloadGuestTemplate } from "../data/guestTemplate.js";
@@ -616,7 +617,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   };
   const waGuest = (guest) => {
     const phone = normalizePhone(guest.phone);
-    const msg = `היי ${guest.name}! 💛\nאתם מוזמנים ל${ev.name || "אירוע שלנו"}.\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}`;
+    const msg = `היי ${guest.name}! 💛\nאתם מוזמנים ל${ev.name || "אירוע שלנו"}.\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}` + messageSignature();
     const base = phone ? `https://wa.me/${phone}` : "https://wa.me/";
     window.open(`${base}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
   };

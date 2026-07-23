@@ -328,7 +328,7 @@ export default function EventSiteScreen({ localEvent }) {
           </a>
         )}
         <Link to="/" className={styles.footBrand}>✦ נבנה בכוכב השולחן</Link>
-        <Link to="/signup" className={styles.footPromo}>
+        <Link to={token ? `/signup?ref=${token}` : "/signup"} className={styles.footPromo}>
           מתכננים אירוע? בנו אתר כזה בחינם →
         </Link>
       </footer>
