@@ -76,6 +76,10 @@
 
 .fields3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
+.companions { display: flex; flex-direction: column; gap: 6px; }
+.companionsLabel { font-size: 12px; color: var(--muted); }
+.companionInput { font-size: 13.5px; }
+
 .rowOk   { font-size: 12.5px; color: var(--green); font-weight: 600; }
 .rowWarn { font-size: 12.5px; color: var(--warn);  font-weight: 600; }
 .byLine  { font-size: 11.5px; color: var(--muted); }

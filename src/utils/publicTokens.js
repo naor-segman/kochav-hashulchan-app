@@ -220,6 +220,7 @@ export async function upsertCollabGuest(token, row) {
       side:         row.side ?? null,
       guest_group:  row.guest_group ?? row.group ?? null,
       guests_count: Number(row.guests_count ?? row.count) || 1,
+      companions:   Array.isArray(row.companions) ? row.companions : [],
       updated_by:   row.updated_by ?? null,
     },
   });
@@ -259,7 +260,7 @@ export async function fetchCollabGuestsOwner(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
   const { data, error } = await supabase
     .from("collab_guests")
-    .select("id, name, phone, side, guest_group, guests_count, updated_at, updated_by")
+    .select("id, name, phone, side, guest_group, guests_count, companions, updated_at, updated_by")
     .eq("event_id", eventCloudId);
   if (error) throw error;
   return data ?? [];
@@ -276,6 +277,7 @@ export async function upsertCollabGuestOwner(eventCloudId, row) {
     side:         row.side ?? null,
     guest_group:  row.guest_group ?? row.group ?? null,
     guests_count: Number(row.guests_count ?? row.count) || 1,
+    companions:   Array.isArray(row.companions) ? row.companions : [],
     updated_at:   new Date().toISOString(),
   });
   if (error) throw error;

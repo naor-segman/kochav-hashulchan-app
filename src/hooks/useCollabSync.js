@@ -26,11 +26,19 @@ const normPhone = (p) => {
 const collabComplete = (r) =>
   !!(norm(r.name) && norm(r.phone) && r.side && norm(r.guest_group));
 
+// Companion names, clamped to the extra seats (count-1) and normalized, so a
+// row with count 3 keeps at most 2 companion names in stable positions.
+const clampComp = (arr, count) =>
+  (Array.isArray(arr) ? arr : [])
+    .slice(0, Math.max(0, (count || 1) - 1))
+    .map((c) => (c || "").toString());
+const compSig = (arr) => (Array.isArray(arr) ? arr.map((c) => norm(c)).join("~") : "");
+
 // Signature of the shared fields — same string ⇒ no real change.
 const sigCollab = (r) =>
-  `${norm(r.name)}|${norm(r.phone)}|${sideOf(r.side)}|${norm(r.guest_group)}|${r.guests_count || 1}`;
+  `${norm(r.name)}|${norm(r.phone)}|${sideOf(r.side)}|${norm(r.guest_group)}|${r.guests_count || 1}|${compSig(clampComp(r.companions, r.guests_count))}`;
 const sigGuest = (g) =>
-  `${norm(g.name)}|${norm(g.phone)}|${sideOf(g.side)}|${norm(g.group)}|${g.count || 1}`;
+  `${norm(g.name)}|${norm(g.phone)}|${sideOf(g.side)}|${norm(g.group)}|${g.count || 1}|${compSig(clampComp(g.companions, g.count))}`;
 
 // Build/merge a guest row from a collab row, preserving app-only fields.
 function guestFromCollab(r, existing) {
@@ -45,13 +53,18 @@ function guestFromCollab(r, existing) {
     meal:       existing?.meal       ?? "regular",
     rsvp:       existing?.rsvp       ?? "pending",
     notes:      existing?.notes      ?? "",
-    companions: existing?.companions ?? [],
+    // Companion names come from the collab row when present; otherwise keep the
+    // app-side ones. Clamp to the seat count so they stay consistent.
+    companions: Array.isArray(r.companions)
+      ? clampComp(r.companions, r.guests_count || 1)
+      : (existing?.companions ?? []),
   };
 }
 const guestToCollab = (g) => ({
   id: g.id, name: norm(g.name), phone: norm(g.phone),
   side: sideOf(g.side), guest_group: norm(g.group),
   guests_count: Math.min(50, Math.max(1, g.count || 1)), // DB CHECK caps at 50
+  companions: clampComp(g.companions, g.count || 1),
 });
 
 export function useCollabSync(activeEvent, patchEvent, showToast) {
