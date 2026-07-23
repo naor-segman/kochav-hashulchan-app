@@ -13,8 +13,10 @@ export const GROUP_OPTIONS = [
 
 export const TABLE_TYPES = [
   { value:"regular", label:"רגיל" },
+  { value:"knight",  label:"אביר" },
   { value:"vip",     label:"VIP" },
-  { value:"head",    label:"שולחן ראשי" },
+  { value:"bar",     label:"בר" },
+  { value:"small",   label:"קטן" },
 ];
 
 export const STORAGE_KEY = "kochav_hashulchan_v1";
