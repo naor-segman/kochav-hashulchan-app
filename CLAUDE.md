@@ -1,5 +1,8 @@
 # CLAUDE.md – Kochav Hashulchan Production Rules
 
+## ⚠️ Work plan — single source of truth
+**`WORKPLAN.md` (repo root) is the living work plan.** It is the source of truth for everything built, in-progress, deferred, every idea raised, and every key decision. At the START of a session read it; DURING the session ADD every new task/idea/decision the user raises (never drop anything); at the END update statuses and COMMIT it. Never reconstruct a fresh plan from the latest chat — always update the existing WORKPLAN.md. The published artifact (a77cf4f1-…) is generated from it.
+
 ## Project identity
 **Kochav Hashulchan** (כוכב השולחן) – Premium Hebrew RTL automatic seating arrangement SaaS for Israeli events (weddings, bar/bat mitzvahs, britot, henna, corporate).
 
