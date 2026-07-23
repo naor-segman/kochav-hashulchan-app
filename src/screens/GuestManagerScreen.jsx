@@ -813,7 +813,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               onChange={e => setF("notes", e.target.value)}
             />
           </Field>
-          <Field label={<>סכום מתנה (₪) <InfoTip text="אופציונלי. אם קיבלתם מתנה מהאורח — רשמו כאן את הסכום, וכוכב יסכם לכם את סך כל המתנות שקיבלתם באירוע." /></>}>
+          <Field label={<>סכום מתנה (₪) <InfoTip text="אופציונלי. אם קיבלתם מתנה מהאורח — רשמו כאן את הסכום, והמערכת תסכם לכם את סך כל המתנות שקיבלתם באירוע." /></>}>
             <input
               className={base.input}
               type="number"

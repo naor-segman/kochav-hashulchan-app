@@ -185,7 +185,7 @@ export default function EventSiteScreen({ localEvent }) {
       )}
 
       {/* ── Countdown ── */}
-      {visible && sec.countdown !== false && ev.date && (
+      {visible && site?.countdown !== false && ev.date && (
         <Countdown date={ev.date} styles={styles} />
       )}
 
@@ -199,7 +199,7 @@ export default function EventSiteScreen({ localEvent }) {
       {/* ── Photo gallery ── */}
       {visible && sec.gallery !== false && site?.gallery?.length > 0 && (
         <section className={styles.section}>
-          <h2 className={styles.secTitle}>רגעים משלנו</h2>
+          <h2 className={styles.secTitle}>הרגעים שלנו</h2>
           <div className={styles.gallery}>
             {site.gallery.map((src, i) => (
               <div key={i} className={styles.galleryItem} style={{ backgroundImage: `url(${src})` }} />
@@ -329,7 +329,7 @@ export default function EventSiteScreen({ localEvent }) {
         )}
         <Link to="/" className={styles.footBrand}>✦ נבנה בכוכב השולחן</Link>
         <Link to={token ? `/signup?ref=${token}` : "/signup"} className={styles.footPromo}>
-          מתכננים אירוע? בנו אתר כזה בחינם →
+          מתכננים אירוע? בנו אתר כזה בחינם ←
         </Link>
       </footer>
     </div>
