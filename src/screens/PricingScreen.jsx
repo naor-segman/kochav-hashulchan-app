@@ -46,7 +46,7 @@ const PLANS = [
       { text: "סנכרון וגיבוי בענן", included: true },
       { text: "ייצוא PDF מפורט", included: true },
     ],
-    cta: "שדרגו עכשיו",
+    cta: "התחילו חינם",
     ctaTo: "/signup",
     highlight: true,
   },
@@ -94,8 +94,8 @@ const FAQ = [
     a: "המערכת תודיע לכם ותציע שדרוג. לא יימחקו לכם נתונים — כל האורחים הקיימים ישמרו.",
   },
   {
-    q: "האם ניתן לייבא נתונים מאקסל?",
-    a: "כן, בכל התוכניות. ניתן לייבא רשימת אורחים מקובץ Excel (XLSX) בלחיצה אחת.",
+    q: "איך בונים את רשימת האורחים?",
+    a: "אפשר להוסיף אורחים ידנית, להדביק רשימת שמות, או לשתף עם המשפחה טבלה שיתופית חיה שכולם ממלאים יחד — והכל מסתנכרן אוטומטית. בכל רגע אפשר להוריד את הרשימה המלאה לאקסל.",
   },
 ];
 
@@ -141,6 +141,9 @@ export default function PricingScreen({ user }) {
       {/* ── Plans ── */}
       <section className={styles.plansSection}>
         <div className={styles.plansInner}>
+          <div style={{ maxWidth: 620, margin: "0 auto 20px", padding: "12px 16px", background: "var(--accent-bg)", color: "var(--accent)", borderRadius: "var(--radius)", textAlign: "center", fontWeight: 700, fontSize: 14 }}>
+            🎉 בתקופת הבטא — כל התוכניות פתוחות ללא תשלום. תיהנו!
+          </div>
           <div className={styles.plansGrid}>
             {PLANS.map(plan => (
               <div

@@ -40,6 +40,7 @@ const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
 const EventSiteScreen = lazy(() => import("./screens/EventSiteScreen.jsx"));
 const HostessScreen  = lazy(() => import("./screens/HostessScreen.jsx"));
 const CollabScreen   = lazy(() => import("./screens/CollabScreen.jsx"));
+const InviteScreen   = lazy(() => import("./screens/InviteScreen.jsx"));
 const GiftScreen     = lazy(() => import("./screens/GiftScreen.jsx"));
 const GiftWallScreen = lazy(() => import("./screens/GiftWallScreen.jsx"));
 // App screens — lazy to keep initial bundle lean
@@ -249,6 +250,7 @@ export default function App() {
       <Route path="/gift/:token"      element={<Suspense fallback={null}><GiftScreen /></Suspense>} />
       <Route path="/rsvp/:token"      element={<Suspense fallback={null}><RSVPScreen /></Suspense>} />
       <Route path="/invite/:token"    element={<Suspense fallback={null}><EventSiteScreen /></Suspense>} />
+      <Route path="/card/:token"      element={<Suspense fallback={null}><InviteScreen /></Suspense>} />
       <Route path="/hostess/:token"   element={<Suspense fallback={null}><HostessScreen /></Suspense>} />
       <Route path="/collab/:token"    element={<Suspense fallback={null}><CollabScreen /></Suspense>} />
       {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}

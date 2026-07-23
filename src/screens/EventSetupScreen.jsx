@@ -15,6 +15,7 @@ import styles from "./EventSetupScreen.module.css";
 const SHARE_LINKS = [
   { key: "rsvp",    label: "RSVP אישור הגעה",  path: "/rsvp/",    icon: "📋" },
   { key: "invite",  label: "הזמנה דיגיטלית",   path: "/invite/",  icon: "💌" },
+  { key: "card",    tokenKey: "invite", label: "כרטיס הזמנה + QR", path: "/card/", icon: "🎴" },
   { key: "gift",    label: "מתנה דיגיטלית",    path: "/gift/",    icon: "💛" },
   { key: "hostess", label: "מצב דיילות",        path: "/hostess/", icon: "🏷" },
   { key: "collab",  label: "הוספת אורחים (למשפחה)", path: "/collab/", icon: "👥" },
@@ -326,7 +327,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           לינקים ייחודיים לשיתוף עם האורחים
         </p>
         {SHARE_LINKS.map(sl => {
-          const token = ev.tokens?.[sl.key] || "";
+          const token = ev.tokens?.[sl.tokenKey || sl.key] || "";
           const url = BASE_URL + sl.path + token;
           return (
             <div key={sl.key} className={styles.shareRow}>
