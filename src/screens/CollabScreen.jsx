@@ -116,8 +116,16 @@ export default function CollabScreen() {
     });
   };
 
+  // Set one companion name at a position, keeping the array sized to count-1.
+  const editCompanion = (row, idx, value) => {
+    const comp = Array.isArray(row.companions) ? [...row.companions] : [];
+    while (comp.length <= idx) comp.push("");
+    comp[idx] = value;
+    editRow(row.id, { companions: comp.slice(0, Math.max(0, (row.guests_count || 1) - 1)) });
+  };
+
   const addRow = () => {
-    const row = { id: uid(), name: "", phone: "", side: "bride", guest_group: "", guests_count: 1 };
+    const row = { id: uid(), name: "", phone: "", side: "bride", guest_group: "", guests_count: 1, companions: [] };
     setRows(prev => [row, ...prev]);
   };
 
@@ -202,10 +210,28 @@ export default function CollabScreen() {
                     <option value="" disabled>קבוצה</option>
                     {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
-                  <select className={styles.input} value={r.guests_count || 1} onChange={e => editRow(r.id, { guests_count: Number(e.target.value) })}>
+                  <select className={styles.input} value={r.guests_count || 1} onChange={e => {
+                    const n = Number(e.target.value);
+                    editRow(r.id, { guests_count: n, companions: (r.companions || []).slice(0, Math.max(0, n - 1)) });
+                  }}>
                     {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} {n === 1 ? "מקום" : "מקומות"}</option>)}
                   </select>
                 </div>
+
+                {(r.guests_count || 1) > 1 && (
+                  <div className={styles.companions}>
+                    <span className={styles.companionsLabel}>שמות המלווים (רשות):</span>
+                    {Array.from({ length: (r.guests_count || 1) - 1 }, (_, i) => (
+                      <input
+                        key={i}
+                        className={[styles.input, styles.companionInput].join(" ")}
+                        value={(r.companions && r.companions[i]) || ""}
+                        placeholder={`מלווה ${i + 1}`}
+                        onChange={e => editCompanion(r, i, e.target.value)}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {complete
                   ? <div className={styles.rowOk}>✓ מלאה — מסונכרנת לרשימה</div>
