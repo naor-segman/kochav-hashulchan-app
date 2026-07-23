@@ -29,8 +29,19 @@ function fmtILS(n) {
   return n > 0 ? "₪" + n.toLocaleString("he-IL", { maximumFractionDigits: 0 }) : "—";
 }
 
+// Net can be negative (a deficit) — show a signed amount, not "—".
+function fmtNet(n) {
+  if (!n) return "₪0";
+  const abs = Math.abs(n).toLocaleString("he-IL", { maximumFractionDigits: 0 });
+  return (n < 0 ? "−₪" : "+₪") + abs;
+}
+
 export default function CostScreen({ activeEvent: ev, patchEvent }) {
   const [cats, setCats]    = useState(() => initCategories(ev));
+  const [giftPerGuest, setGiftPerGuest] = useState(() => {
+    const v = ev?.costs?.giftPerGuest;
+    return (v || v === 0) ? String(v) : "";
+  });
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
 
@@ -39,8 +50,8 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
   const firstRun = useRef(true);
   useEffect(() => {
     if (firstRun.current) { firstRun.current = false; return; }
-    patchEvent({ costs: { categories: cats } });
-  }, [cats, patchEvent]);
+    patchEvent({ costs: { categories: cats, giftPerGuest: parseAmt(giftPerGuest) } });
+  }, [cats, giftPerGuest, patchEvent]);
 
   const setField = (id, field, value) => {
     setCats(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
@@ -68,6 +79,17 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
 
   const totalGuests = useMemo(() =>
     (ev?.guests ?? []).reduce((s, g) => s + (g.count || 1), 0), [ev]);
+
+  // ── Income forecast: estimated gifts vs actual, and the net picture ──
+  // "Expected attendance" = everyone who hasn't declined (before all RSVPs).
+  const expectedSeats = useMemo(() =>
+    (ev?.guests ?? []).filter(g => g.rsvp !== "declined").reduce((s, g) => s + (g.count || 1), 0), [ev]);
+  const giftPer      = parseAmt(giftPerGuest);
+  const estIncome    = Math.round(giftPer * expectedSeats);
+  const actualIncome = useMemo(() =>
+    (ev?.guests ?? []).reduce((s, g) => s + (g.giftAmount || 0), 0), [ev]);
+  const netExpected  = estIncome - totalBudget;
+  const netActual    = actualIncome - totalActual;
 
   const costPerGuest = totalGuests > 0 && totalActual > 0
     ? Math.round(totalActual / totalGuests)
@@ -279,6 +301,44 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
 
         <div className={base.formActions}>
           <span className={styles.savedHint}>✓ נשמר אוטומטית</span>
+        </div>
+      </div>
+
+      {/* ── Income forecast + net picture ── */}
+      <div className={base.card}>
+        <SectionLabel>הכנסה צפויה ותמונת נטו</SectionLabel>
+        <p className={base.fieldHint}>
+          הערכה גסה כמה האורחים יביאו במתנות — כדי לראות את התמונה הכוללת מול ההוצאות.
+          "הכנסה בפועל" מתמלאת מהמתנות שנרשמות בצ׳ק-אין.
+        </p>
+        <div style={{ maxWidth: 260, margin: "8px 0 16px" }}>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>
+            מתנה משוערת לאורח (₪)
+          </label>
+          <input className={base.input} type="number" min="0" step="50" value={giftPerGuest}
+            placeholder="למשל 400" onChange={e => setGiftPerGuest(e.target.value)} />
+        </div>
+        <div className={styles.statsRow}>
+          <div className={styles.stat}>
+            <span className={styles.statNum}>{giftPer > 0 ? fmtILS(estIncome) : "—"}</span>
+            <span className={styles.statLabel}>הכנסה צפויה{giftPer > 0 ? ` · ${expectedSeats} מקומות` : ""}</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={styles.statNum}>{actualIncome > 0 ? fmtILS(actualIncome) : "—"}</span>
+            <span className={styles.statLabel}>הכנסה בפועל (מתנות)</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={[styles.statNum, netExpected < 0 ? styles.statOver : ""].join(" ")}>
+              {(giftPer > 0 || totalBudget > 0) ? fmtNet(netExpected) : "—"}
+            </span>
+            <span className={styles.statLabel}>צפי נטו (צפוי − מתוכנן)</span>
+          </div>
+          <div className={styles.stat}>
+            <span className={[styles.statNum, netActual < 0 ? styles.statOver : ""].join(" ")}>
+              {(actualIncome > 0 || totalActual > 0) ? fmtNet(netActual) : "—"}
+            </span>
+            <span className={styles.statLabel}>נטו בפועל</span>
+          </div>
         </div>
       </div>
     </div>
