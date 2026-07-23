@@ -385,7 +385,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       {/* Toolbar */}
       <div className={styles.toolbar}>
         <button className={styles.toolBtn} onClick={() => fileInputRef.current?.click()}>
-          החלף תמונה
+          החליפו תמונה
         </button>
         {ENABLE_AI_DETECT && (
           <button
@@ -417,9 +417,9 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
           </div>
           <div className={styles.detActions}>
             <button className={styles.toolBtnPrimary} onClick={handleConfirmDetection}>
-              ✓ הוסף {detResult.tables.length} שולחנות
+              ✓ הוסיפו {detResult.tables.length} שולחנות
             </button>
-            <button className={styles.toolBtn} onClick={() => setDetResult(null)}>בטל</button>
+            <button className={styles.toolBtn} onClick={() => setDetResult(null)}>בטלו</button>
           </div>
         </div>
       )}

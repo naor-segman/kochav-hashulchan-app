@@ -40,7 +40,7 @@ export default function AccessibilityScreen() {
           <h2 className={styles.sectionTitle}>הסתייגות</h2>
           <p className={styles.text}>
             אנו משפרים את הנגישות באופן שוטף. ייתכן שחלקים מסוימים טרם הונגשו
-            במלואם. אם נתקלת בבעיית נגישות, נשמח שתדווח לנו ונטפל בהקדם.
+            במלואם. אם נתקלתם בבעיית נגישות, נשמח שתדווחו לנו ונטפל בהקדם.
           </p>
         </section>
 

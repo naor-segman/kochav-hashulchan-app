@@ -192,14 +192,14 @@ export default function InviteScreen() {
           {/* Actions */}
           <div className={styles.actions}>
             <Link to={`/rsvp/${token}`} className={styles.btnPrimary}>
-              אשר הגעה ←
+              אשרו הגעה ←
             </Link>
             <button
               type="button"
               className={styles.btnOutline}
               onClick={handleShare}
             >
-              {copied ? "הועתק ✓" : "שתף הזמנה"}
+              {copied ? "הועתק ✓" : "שתפו הזמנה"}
             </button>
           </div>
 

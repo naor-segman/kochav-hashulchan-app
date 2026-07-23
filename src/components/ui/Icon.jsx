@@ -16,6 +16,7 @@ const P = {
   chart:      <><path d="M4 20h16" /><path d="M7 16V9M12 16V5M17 16v-4" /></>,
   print:      <><path d="M7 9V3h10v6" /><rect x="4" y="9" width="16" height="8" rx="2" /><path d="M7 14h10v6H7z" /></>,
   cards:      <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M8 3h13v13" /></>,
+  qr:         <><rect x="3.5" y="3.5" width="6" height="6" rx="1" /><rect x="14.5" y="3.5" width="6" height="6" rx="1" /><rect x="3.5" y="14.5" width="6" height="6" rx="1" /><path d="M14.5 14.5h3v3M20.5 14.5v6M14.5 20.5h3" /></>,
   phone:      <><rect x="6.5" y="2.5" width="11" height="19" rx="2.5" /><path d="M10.5 18.5h3" /></>,
   chat:       <><path d="M4 5h16v11H9l-4 4V5Z" /></>,
   send:       <><path d="M20 4 3 11l7 2 2 7 8-16Z" /></>,

@@ -90,7 +90,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
       <PageHeader
         title="תקציב ועלויות"
         icon={<Icon name="chart" />}
-        sub="עקוב אחר התקציב המתוכנן מול ההוצאה בפועל לאורך תכנון האירוע."
+        sub="עקבו אחר התקציב המתוכנן מול ההוצאה בפועל לאורך תכנון האירוע."
       />
 
       {/* ── Stats ── */}
@@ -203,8 +203,8 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
                       className={styles.delBtn}
                       onClick={() => removeRow(c.id)}
                       type="button"
-                      title="הסר שורה"
-                      aria-label="הסר"
+                      title="הסירו שורה"
+                      aria-label="הסירו"
                     >✕</button>
                   </div>
                 </div>
@@ -264,7 +264,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
                     if (e.key === "Escape") { setAdding(false); setNewName(""); }
                   }}
                 />
-                <button className={base.btnSm} onClick={addRow} type="button">הוסף</button>
+                <button className={base.btnSm} onClick={addRow} type="button">הוסיפו</button>
                 <button
                   className={[base.btnSm, styles.cancelBtn].join(" ")}
                   onClick={() => { setAdding(false); setNewName(""); }}
@@ -273,7 +273,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
               </div>
             ) : (
               <button className={styles.addBtn} onClick={() => setAdding(true)} type="button">
-                + הוסף קטגוריה
+                + הוסיפו קטגוריה
               </button>
             )}
           </div>
@@ -281,7 +281,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, go, showToast 
 
         <div className={base.formActions}>
           <button className={base.btnPrimary} onClick={save} disabled={!dirty}>
-            שמור תקציב
+            שמרו תקציב
           </button>
           {!dirty && (
             <span className={styles.savedHint}>כל השינויים שמורים</span>

@@ -78,7 +78,7 @@ export async function fetchRSVPResponses(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
   const { data, error } = await supabase
     .from("rsvp_responses")
-    .select("id, guest_name, phone, attending, guests_count, status, created_at")
+    .select("id, guest_name, phone, attending, guests_count, status, companions, created_at")
     .eq("event_id", eventCloudId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -94,6 +94,9 @@ export async function submitRSVP(eventCloudId, response) {
   const status = response.status || (response.attending ? "yes" : "no");
   // Keep the party size for "yes" and "maybe" (both collect it); "no" is 0.
   const rawCount = status === "no" ? 0 : (response.guestsCount ?? 1);
+  const companions = Array.isArray(response.companions)
+    ? response.companions.map(c => (c || "").trim()).filter(Boolean).slice(0, 50)
+    : [];
   const { error } = await supabase.from("rsvp_responses").insert({
     event_id:     eventCloudId,
     guest_name:   response.name,
@@ -101,6 +104,7 @@ export async function submitRSVP(eventCloudId, response) {
     attending:    status === "yes",
     guests_count: Math.max(0, Math.min(50, rawCount)),
     status,
+    companions,
   });
   if (error) throw error;
 }
@@ -136,4 +140,58 @@ export async function fetchGiftWall(token) {
   });
   if (error || !Array.isArray(data)) return [];
   return data;
+}
+
+// ── Collaborative guest list ──────────────────────────────────────────────────
+
+/** Minimal event info for the public collab form (name + side sources). */
+export async function fetchCollabEvent(token) {
+  if (!isSupabaseConfigured || !supabase || !token) return null;
+  const { data, error } = await supabase.rpc("collab_event_by_token", { token_value: token });
+  if (error || !data) return null;
+  return {
+    cloudId:    data.id,
+    name:       data.name       ?? "",
+    type:       data.type       ?? "חתונה",
+    brideName:  data.bride_name  ?? "",
+    groomName:  data.groom_name  ?? "",
+    coupleType: data.couple_type ?? "bride-groom",
+    sideLabels: (data.side_labels && typeof data.side_labels === "object") ? data.side_labels : null,
+  };
+}
+
+/** Anonymous submit of one guest to the collaborative list, keyed by the token. */
+export async function submitGuestEntry(token, guest) {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const { error } = await supabase.rpc("submit_guest_by_token", {
+    token_value: token,
+    guest: {
+      name:  guest.name,
+      phone: guest.phone || null,
+      side:  guest.side || null,
+      group: guest.group || null,
+      count: Number(guest.count) || 1,
+      submittedBy: guest.submittedBy || null,
+    },
+  });
+  if (error) throw error;
+}
+
+/** Host: read guest submissions for an owned event (RLS-guarded). */
+export async function fetchGuestSubmissions(eventCloudId) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
+  const { data, error } = await supabase
+    .from("guest_submissions")
+    .select("id, name, phone, side, guest_group, guests_count, submitted_by, imported, created_at")
+    .eq("event_id", eventCloudId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Host: mark a submission as imported so it isn't offered again. */
+export async function markSubmissionImported(id) {
+  if (!isSupabaseConfigured || !supabase || !id) return;
+  const { error } = await supabase.from("guest_submissions").update({ imported: true }).eq("id", id);
+  if (error) throw error;
 }

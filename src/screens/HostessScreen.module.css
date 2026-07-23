@@ -561,3 +561,5 @@
     font-size: 1.1rem;
   }
 }
+
+.guestComps { font-size: 0.9rem; color: var(--muted); margin-top: 2px; }

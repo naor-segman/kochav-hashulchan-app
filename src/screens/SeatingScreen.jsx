@@ -161,7 +161,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     const placed = Object.keys(newSeating).length;
     const missed = activeGuests.length - placed;
     if (missed > 0)
-      showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסף מקומות נוספים", "err");
+      showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");
     else
       showToast("כל " + placed + " הרשומות שובצו ✓");
     setExpandedTable(null);
@@ -171,7 +171,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     if (!confirm(
       "לנקות את כל ההושבה?\n\n" +
       "כל " + nAssigned + " הרשומות השובצות יחזרו לרשימת הממתינים.\n" +
-      "ניתן לשחזר בלחיצה על \"↩ בטל\" — אך לא לאחר יציאה מהמסך."
+      "ניתן לשחזר בלחיצה על \"↩ בטלו\" — אך לא לאחר יציאה מהמסך."
     )) return;
     pushHistory();
     patchEvent(e => Object.assign({}, e, { seating: {} }));
@@ -339,7 +339,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           <PageHeader
             title="סידור הושבה"
             icon={<Icon name="chair" />}
-            sub="חשב הושבה אוטומטית ואז ערוך ידנית לפי הצורך."
+            sub="חשבו הושבה אוטומטית ואז ערכו ידנית לפי הצורך."
             aside={
               <div className={base.pills}>
                 <StatPill n={nAssigned}           label="שובצו"   color={allSeated ? "var(--green)" : "var(--accent)"} />
@@ -360,19 +360,19 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           {noTables && (
             <Banner variant="warn">
               יש להגדיר שולחנות לפני סידור ההושבה.
-              <button className={base.btnSm} style={{ marginInlineEnd: 8 }} onClick={() => go("tables")}>עבור לשולחנות</button>
+              <button className={base.btnSm} style={{ marginInlineEnd: 8 }} onClick={() => go("tables")}>עברו לשולחנות</button>
             </Banner>
           )}
           {noGuests && (
             <Banner variant="warn">
               יש להוסיף אורחים לפני סידור ההושבה.
-              <button className={base.btnSm} style={{ marginInlineEnd: 8 }} onClick={() => go("guests")}>עבור לאורחים</button>
+              <button className={base.btnSm} style={{ marginInlineEnd: 8 }} onClick={() => go("guests")}>עברו לאורחים</button>
             </Banner>
           )}
 
           <div className={styles.runCard}>
             <div className={styles.runCardInfo}>
-              <div className={styles.runCardTitle}>✦ חשב הושבה אוטומטית</div>
+              <div className={styles.runCardTitle}>✦ חשבו הושבה אוטומטית</div>
               <div className={styles.runCardSub}>
                 {noTables ? "לפני ההרצה — הגדירו שולחנות בשלב 2."
                   : noGuests ? "לפני ההרצה — הוסיפו אורחים בשלב 3."
@@ -387,23 +387,23 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               {/* ── Primary: calculate / clear / undo ── */}
               <div className={styles.runActionsMain}>
                 <button className={styles.runBtn} onClick={runAuto} disabled={noTables || noGuests}>
-                  {nAssigned > 0 ? "חשב מחדש" : "חשב הושבה"}
+                  {nAssigned > 0 ? "חשבו מחדש" : "חשבו הושבה"}
                 </button>
                 {nAssigned > 0 && (
                   <button
                     className={[base.btnSm, base.btnDanger].join(" ")}
                     onClick={clearAll}
                   >
-                    נקה הכל
+                    נקו הכל
                   </button>
                 )}
                 <button
                   className={[base.btnSm, base.btnGhost, styles.undoBtn].join(" ")}
                   onClick={undo}
                   disabled={seatingHistory.length === 0}
-                  title={seatingHistory.length > 0 ? "בטל שינוי הושבה אחרון (" + seatingHistory.length + " זמינים)" : "אין שינויים לביטול"}
+                  title={seatingHistory.length > 0 ? "בטלו שינוי הושבה אחרון (" + seatingHistory.length + " זמינים)" : "אין שינויים לביטול"}
                 >
-                  ↩ בטל
+                  ↩ בטלו
                 </button>
               </div>
 
@@ -413,21 +413,21 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   <button
                     className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
                     onClick={() => handlePrint("full")}
-                    title="הדפס סידור הושבה המלא עם פרטי צד וקבוצה"
+                    title="הדפיסו סידור הושבה המלא עם פרטי צד וקבוצה"
                   >
-                    <Icon name="print" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />הדפס
+                    <Icon name="print" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />הדפיסו
                   </button>
                   <button
                     className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
                     onClick={() => handlePrint("compact")}
-                    title="הדפס גרסה קומפקטית לצוות האולם — שמות בלבד"
+                    title="הדפיסו גרסה קומפקטית לצוות האולם — שמות בלבד"
                   >
                     <Icon name="clipboard" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />לצוות האולם
                   </button>
                   <button
                     className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
                     onClick={() => handlePrint("cards")}
-                    title="הדפס כרטיסי שולחן — כרטיס אחד לכל שולחן למיקום על השולחן"
+                    title="הדפיסו כרטיסי שולחן — כרטיס אחד לכל שולחן למיקום על השולחן"
                   >
                     <Icon name="cards" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />כרטיסי שולחן
                   </button>
@@ -438,12 +438,12 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     onClick={() => { setCheckInMode(m => !m); setCheckInSearch(""); }}
                     title="מצב צ׳ק אין — רשימה אלפביתית לאנשי הכניסה"
                   >
-                    <Icon name="check" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />{checkInMode ? "סגור צ׳ק אין" : "צ׳ק אין"}
+                    <Icon name="check" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />{checkInMode ? "סגרו צ׳ק אין" : "צ׳ק אין"}
                   </button>
                   <button
                     className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => navigate("/events/" + ev.id + "/checkin")}
-                    title="פתח מסך צ׳ק אין מלא — לשימוש על טאבלט בכניסה לאירוע"
+                    title="פתחו מסך צ׳ק אין מלא — לשימוש על טאבלט בכניסה לאירוע"
                   >
                     <Icon name="phone" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />מסך כניסה
                   </button>
@@ -484,9 +484,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             <div className={styles.waNotifyCard}>
               <div className={styles.waNotifyIcon}><Icon name="chat" size={22} /></div>
               <div className={styles.waNotifyText}>
-                <div className={styles.waNotifyTitle}>שלח מספר שולחן בווטסאפ</div>
+                <div className={styles.waNotifyTitle}>שלחו מספר שולחן בווטסאפ</div>
                 <div className={styles.waNotifySub}>
-                  {whatsappBulkCount} אורחים משובצים עם מספר טלפון — שלח להם הודעה אישית עם מספר השולחן.
+                  {whatsappBulkCount} אורחים משובצים עם מספר טלפון — שלחו להם הודעה אישית עם מספר השולחן.
                 </div>
               </div>
               <div className={styles.waNotifyList}>
@@ -512,7 +512,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   })
                 }
                 {whatsappBulkCount > 5 && (
-                  <div className={styles.waNotifyMore}>ועוד {whatsappBulkCount - 5} אורחים נוספים — ייצא לאקסל לרשימה מלאה</div>
+                  <div className={styles.waNotifyMore}>ועוד {whatsappBulkCount - 5} אורחים נוספים — ייצאו לאקסל לרשימה מלאה</div>
                 )}
               </div>
             </div>
@@ -524,10 +524,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 <span className={styles.violTitle}>
                   ⚠ {violations.length} {violations.length === 1 ? "הפרה" : "הפרות"} בסידור הנוכחי
                 </span>
-                <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={runAuto}>חשב מחדש</button>
+                <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={runAuto}>חשבו מחדש</button>
               </div>
               <p className={styles.violExplain}>
-                האילוצים הבאים לא מתקיימים — ניתן לתקן אוטומטית באמצעות "חשב מחדש", או להעביר אורחים ידנית.
+                האילוצים הבאים לא מתקיימים — ניתן לתקן אוטומטית באמצעות "חשבו מחדש", או להעביר אורחים ידנית.
               </p>
               <div className={styles.violList}>
                 {violations.map((v, i) => (
@@ -563,7 +563,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 className={base.input}
                 value={daySearch}
                 onChange={e => setDaySearch(e.target.value)}
-                placeholder="חפש לפי שם או מספר טלפון..."
+                placeholder="חפשו לפי שם או מספר טלפון..."
               />
               {daySearchTrim.length >= 2 && daySearchResults.length === 0 && (
                 <div className={styles.daySearchEmpty}>אורח לא נמצא</div>
@@ -595,7 +595,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                         <button
                           className={[styles.dayCheckInBtn, g.arrived ? styles.dayCheckInBtnDone : ""].filter(Boolean).join(" ")}
                           onClick={() => toggleGuestArrived(g.id)}
-                          title={g.arrived ? "בטל צ׳ק אין" : "סמן כהגיע/ה"}
+                          title={g.arrived ? "בטלו צ׳ק אין" : "סמנו כהגיע/ה"}
                         >
                           {g.arrived ? "✓ הגיע/ה" : "צ׳ק אין"}
                         </button>
@@ -634,7 +634,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 className={base.input}
                 value={checkInSearch}
                 onChange={e => setCheckInSearch(e.target.value)}
-                placeholder="חפש אורח לצ׳ק אין..."
+                placeholder="חפשו אורח לצ׳ק אין..."
                 autoFocus
               />
               <div className={styles.checkInList}>
@@ -702,12 +702,12 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
                   {unassigned.length === 0 ? (
                     <div className={styles.unassignedEmptyDrop}>
-                      גרור לכאן להחזרת האורח לרשימת הממתינים
+                      גררו לכאן להחזרת האורח לרשימת הממתינים
                     </div>
                   ) : (
                     <>
                       <p className={styles.unassignedHint}>
-                        גררו אורח לשולחן, או בחרו שולחן מהרשימה. לסידור חדש — &quot;חשב מחדש&quot; למעלה.
+                        גררו אורח לשולחן, או בחרו שולחן מהרשימה. לסידור חדש — &quot;חשבו מחדש&quot; למעלה.
                       </p>
                       <div className={base.gList}>
                         {[...unassigned]
@@ -743,7 +743,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                     onPointerDown={e => e.stopPropagation()}
                                     onChange={e => { if (e.target.value) assignGuest(g.id, e.target.value); }}
                                   >
-                                    <option value="">שבץ לשולחן...</option>
+                                    <option value="">שבצו לשולחן...</option>
                                     {ev.tables.map(t => {
                                       const seats = tableSeats(t.id);
                                       const full  = seats + (g.count || 1) > t.capacity;
@@ -775,7 +775,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 onClick={() => { setExpandAll(v => !v); setExpandedTable(null); }}
               >
                 <Icon name={expandAll ? "check" : "users"} size={15} style={{ verticalAlign: "middle", marginInlineEnd: 5 }} />
-                {expandAll ? "הסתר שמות" : "הצג שמות בכל השולחנות"}
+                {expandAll ? "הסתירו שמות" : "הציגו שמות בכל השולחנות"}
               </button>
             </div>
           )}
@@ -876,20 +876,20 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   onPointerDown={e => e.stopPropagation()}
                                   onClick={e => { e.stopPropagation(); clearTable(t.id); }}
                                 >
-                                  ✕ פנה שולחן
+                                  ✕ פנו שולחן
                                 </button>
                                 <button
                                   className={[styles.tTableLockBtn, isLocked ? styles.tTableLockBtnActive : ""].filter(Boolean).join(" ")}
                                   onPointerDown={e => e.stopPropagation()}
                                   onClick={e => { e.stopPropagation(); toggleTableLock(t.id); }}
-                                  title={isLocked ? "בטל נעילת שולחן — יוכל לקבל הצעות מהעוזר החכם" : "נעל שולחן — לא יוצעו שינויים לשולחן זה"}
+                                  title={isLocked ? "בטלו נעילת שולחן — יוכל לקבל הצעות מהעוזר החכם" : "נעלו שולחן — לא יוצעו שינויים לשולחן זה"}
                                 >
-                                  {isLocked ? "🔒 שולחן נעול" : "🔓 נעל שולחן"}
+                                  {isLocked ? "🔒 שולחן נעול" : "🔓 נעלו שולחן"}
                                 </button>
                               </div>
                             )}
                             {tGuests.length === 0 && (
-                              <span className={styles.emptyInline}>שולחן ריק — גרור אורח לכאן, או בחר מהממתינים</span>
+                              <span className={styles.emptyInline}>שולחן ריק — גררו אורח לכאן, או בחרו מהממתינים</span>
                             )}
                             {tGuests.map(g => (
                               <DraggableGuestRow key={g.id} guestId={g.id} className={styles.tGuestRow}>
@@ -924,7 +924,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   className={[styles.tGuestLockBtn, isGuestLocked(g.id) ? styles.tGuestLockBtnActive : ""].filter(Boolean).join(" ")}
                                   onPointerDown={e => e.stopPropagation()}
                                   onClick={e => { e.stopPropagation(); toggleGuestLock(g.id); }}
-                                  title={isGuestLocked(g.id) ? "בטל נעילה — האורח יוכל לקבל הצעות" : "נעל אורח — לא יוצע להזזה על-ידי העוזר החכם"}
+                                  title={isGuestLocked(g.id) ? "בטלו נעילה — האורח יוכל לקבל הצעות" : "נעלו אורח — לא יוצע להזזה על-ידי העוזר החכם"}
                                 >
                                   {isGuestLocked(g.id) ? "🔒" : "🔓"}
                                 </button>
@@ -932,7 +932,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   className={styles.tGuestRemoveBtn}
                                   onPointerDown={e => e.stopPropagation()}
                                   onClick={e => { e.stopPropagation(); assignGuest(g.id, null); }}
-                                  title="החזר לרשימת הממתינים"
+                                  title="החזירו לרשימת הממתינים"
                                 >↩</button>
                                 <select
                                   className={base.select}
@@ -946,8 +946,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   }}
                                 >
                                   <option value={t.id}>{t.name} (כאן)</option>
-                                  <option value="__remove__">↩ הסר מהשולחן</option>
-                                  <optgroup label="העבר לשולחן אחר">
+                                  <option value="__remove__">↩ הסירו מהשולחן</option>
+                                  <optgroup label="העבירו לשולחן אחר">
                                     {ev.tables.filter(ot => ot.id !== t.id).map(ot => {
                                       const seats = tableSeats(ot.id);
                                       const full  = seats + (g.count || 1) > ot.capacity;
@@ -967,14 +967,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                 className={styles.tGuestRow}
                                 style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 10 }}
                               >
-                                <span className={base.gMeta} style={{ flex: 1, color: "var(--text2)" }}>הוסף אורח לשולחן זה:</span>
+                                <span className={base.gMeta} style={{ flex: 1, color: "var(--text2)" }}>הוסיפו אורח לשולחן זה:</span>
                                 <select
                                   className={base.select}
                                   style={{ minWidth: 180, fontSize: 13 }}
                                   value=""
                                   onChange={e => { if (e.target.value) assignGuest(e.target.value, t.id); }}
                                 >
-                                  <option value="">— בחר מהממתינים —</option>
+                                  <option value="">— בחרו מהממתינים —</option>
                                   {unassigned.map(g => (
                                     <option key={g.id} value={g.id}>{g.name} ({sideLabel(g.side)})</option>
                                   ))}
@@ -1036,7 +1036,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         <div className={styles.pvFullOnly}>
           {violations.length > 0 && (
             <div className={styles.pvViolWarn}>
-              ⚠ שים לב: {violations.length} {violations.length === 1 ? "הפרה" : "הפרות"} אילוצים בסידור הנוכחי
+              ⚠ שימו לב: {violations.length} {violations.length === 1 ? "הפרה" : "הפרות"} אילוצים בסידור הנוכחי
             </div>
           )}
 

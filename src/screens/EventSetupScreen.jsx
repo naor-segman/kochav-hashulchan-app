@@ -7,6 +7,7 @@ import Divider from "../components/ui/Divider.jsx";
 import Field from "../components/ui/Field.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
+import QrCode from "../components/ui/QrCode.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventSetupScreen.module.css";
@@ -16,6 +17,7 @@ const SHARE_LINKS = [
   { key: "invite",  label: "הזמנה דיגיטלית",   path: "/invite/",  icon: "💌" },
   { key: "gift",    label: "מתנה דיגיטלית",    path: "/gift/",    icon: "💛" },
   { key: "hostess", label: "מצב דיילות",        path: "/hostess/", icon: "🏷" },
+  { key: "collab",  label: "הוספת אורחים (למשפחה)", path: "/collab/", icon: "👥" },
 ];
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
@@ -49,7 +51,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(k => k === key ? null : k), 2000);
     } catch {
-      showToast("לא ניתן להעתיק — העתק ידנית", "err");
+      showToast("לא ניתן להעתיק — העתיקו ידנית", "err");
     }
   }, [showToast]);
 
@@ -130,7 +132,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           <button
             className={base.btnSm}
             onClick={save}
-          >שמור עכשיו</button>
+          >שמרו עכשיו</button>
         </Banner>
       )}
       {saved && !dirty && <Banner variant="ok">הפרטים נשמרו ✓</Banner>}
@@ -306,10 +308,10 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
 
         <div className={base.formActions}>
           <button className={base.btnPrimary} onClick={saveAndNext}>
-            שמור והמשך לשולחנות ←
+            שמרו והמשיכו לשולחנות ←
           </button>
           <button className={base.btnSecondary} onClick={save}>
-            {dirty ? "שמור בלבד" : (saved ? "נשמר ✓" : "שמור פרטים")}
+            {dirty ? "שמרו בלבד" : (saved ? "נשמר ✓" : "שמרו פרטים")}
           </button>
           {saved && !dirty && (
             <span className={styles.savedNote}>עודכן בהצלחה</span>
@@ -324,7 +326,8 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           לינקים ייחודיים לשיתוף עם האורחים
         </p>
         {SHARE_LINKS.map(sl => {
-          const url = BASE_URL + sl.path + (ev.tokens?.[sl.key] || "");
+          const token = ev.tokens?.[sl.key] || "";
+          const url = BASE_URL + sl.path + token;
           return (
             <div key={sl.key} className={styles.shareRow}>
               <span className={styles.shareLabel}>{sl.icon} {sl.label}</span>
@@ -339,12 +342,14 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
                   onClick={() => copyLink(sl.key, url)}
                   type="button"
                 >
-                  {copiedKey === sl.key ? "הועתק ✓" : "העתק"}
+                  {copiedKey === sl.key ? "הועתק ✓" : "העתיקו"}
                 </button>
+                {token && <QrCode url={url} label={sl.label} filename={"qr-" + sl.key} />}
               </div>
             </div>
           );
         })}
+        <p className={base.fieldHint}>קוד QR (▦) לכל קישור — להדפסה על שילוט בכניסה, בעמדת הדיילות או בהזמנה.</p>
 
         <Divider label="קבלת מתנות — ביט / PayBox" />
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
@@ -373,7 +378,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
       </div>
 
       <NextStep
-        label="המשך להגדרת שולחנות"
+        label="המשיכו להגדרת שולחנות"
         hint={ev.tables.length > 0 ? (ev.tables.length + " שולחנות מוגדרים") : "עדיין לא הוגדרו שולחנות"}
         onClick={goNext}
       />

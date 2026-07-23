@@ -22,7 +22,7 @@ export default function InfoTip({ text }) {
       {open && (
         <span className={styles.bubble} role="tooltip">
           {text}
-          <button className={styles.close} onClick={() => setOpen(false)} aria-label="סגור">✕</button>
+          <button className={styles.close} onClick={() => setOpen(false)} aria-label="סגרו">✕</button>
         </span>
       )}
     </span>

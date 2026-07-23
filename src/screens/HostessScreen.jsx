@@ -78,7 +78,9 @@ export default function HostessScreen() {
 
   // Search matches guest names AND table names/numbers.
   const guestResults = q.length >= 1
-    ? guests.filter(g => norm(g.name).includes(q))
+    ? guests.filter(g =>
+        norm(g.name).includes(q) ||
+        (Array.isArray(g.companions) && g.companions.some(c => norm(c).includes(q))))
     : [];
   const tableMatches = q.length >= 1
     ? tables.filter(t => norm(t.name).includes(q) && occupantsByTable[t.id]?.length)
@@ -119,7 +121,7 @@ export default function HostessScreen() {
       <div className={styles.root}>
         <div className={styles.loadingWrap}>
           <span className={styles.stateIcon} aria-hidden="true">⚠</span>
-          <span className={styles.loadingText}>שגיאת חיבור — נסה לרענן את הדף</span>
+          <span className={styles.loadingText}>שגיאת חיבור — נסו לרענן את הדף</span>
         </div>
       </div>
     );
@@ -128,6 +130,7 @@ export default function HostessScreen() {
   // A seated guest card with the big table number.
   const GuestCard = (g) => {
     const table = seating[g.id] ? tableMap[seating[g.id]] : null;
+    const comps = Array.isArray(g.companions) ? g.companions.filter(Boolean) : [];
     return (
       <li key={g.id} className={table ? styles.card : styles.cardUnseated}>
         {table ? (
@@ -135,12 +138,14 @@ export default function HostessScreen() {
             <div className={styles.tableLabel} aria-label={`שולחן: ${table.name}`}>{table.name}</div>
             <div className={styles.guestName}>{g.name}</div>
             <div className={styles.seatCount}>{seatLabel(g.count)}</div>
+            {comps.length > 0 && <div className={styles.guestComps}>עם: {comps.join(", ")}</div>}
           </>
         ) : (
           <>
             <div className={styles.unseatedBadge} aria-label="לא שובץ">⚠ לא שובץ</div>
             <div className={styles.guestName}>{g.name}</div>
             <div className={styles.seatCount}>{seatLabel(g.count)}</div>
+            {comps.length > 0 && <div className={styles.guestComps}>עם: {comps.join(", ")}</div>}
           </>
         )}
       </li>
@@ -210,26 +215,26 @@ export default function HostessScreen() {
               className={styles.searchInput}
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="חפש שם אורח או שולחן..."
+              placeholder="חפשו שם אורח או שולחן..."
               autoComplete="off" inputMode="text" type="search" aria-label="חיפוש אורח או שולחן"
             />
             {query.length > 0 && (
-              <button className={styles.clearBtn} onClick={() => { setQuery(""); searchRef.current?.focus(); }} type="button" aria-label="נקה חיפוש">✕</button>
+              <button className={styles.clearBtn} onClick={() => { setQuery(""); searchRef.current?.focus(); }} type="button" aria-label="נקו חיפוש">✕</button>
             )}
           </div>
 
           {q.length === 0 && (
             <div className={styles.emptyState}>
               <span className={styles.emptyIcon} aria-hidden="true">🔍</span>
-              <p className={styles.emptyTitle}>חפש שם אורח</p>
-              <p className={styles.emptyHint}>הקלד שם אורח או מספר שולחן</p>
+              <p className={styles.emptyTitle}>חפשו שם אורח</p>
+              <p className={styles.emptyHint}>הקלידו שם אורח או מספר שולחן</p>
             </div>
           )}
 
           {q.length >= 1 && guestResults.length === 0 && tableMatches.length === 0 && (
             <div className={styles.noResult}>
               <span className={styles.noResultIcon} aria-hidden="true">🤷</span>
-              <p className={styles.noResultText}>לא נמצא — נסה שם אחר</p>
+              <p className={styles.noResultText}>לא נמצא — נסו שם אחר</p>
             </div>
           )}
 
@@ -272,8 +277,8 @@ export default function HostessScreen() {
           {!openTable && (
             <div className={styles.emptyState}>
               <span className={styles.emptyIcon} aria-hidden="true">🍽</span>
-              <p className={styles.emptyTitle}>בחר שולחן</p>
-              <p className={styles.emptyHint}>הקש על שולחן כדי לראות מי יושב בו</p>
+              <p className={styles.emptyTitle}>בחרו שולחן</p>
+              <p className={styles.emptyHint}>הקישו על שולחן כדי לראות מי יושב בו</p>
             </div>
           )}
         </div>

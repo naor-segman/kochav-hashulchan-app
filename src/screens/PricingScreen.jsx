@@ -22,7 +22,7 @@ const PLANS = [
       { text: "סנכרון וגיבוי בענן", included: true },
       { text: "ייצוא PDF מפורט", included: false },
     ],
-    cta: "התחל חינם",
+    cta: "התחילו חינם",
     ctaTo: "/signup",
     highlight: false,
   },
@@ -46,7 +46,7 @@ const PLANS = [
       { text: "סנכרון וגיבוי בענן", included: true },
       { text: "ייצוא PDF מפורט", included: true },
     ],
-    cta: "שדרג עכשיו",
+    cta: "שדרגו עכשיו",
     ctaTo: "/signup",
     highlight: true,
   },
@@ -69,7 +69,7 @@ const PLANS = [
       { text: "הושבה חכמה מבוססת AI", included: true },
       { text: "שיתוף פעולה בצוות", included: true },
     ],
-    cta: "צור קשר",
+    cta: "צרו קשר",
     ctaHref: "mailto:contact@kochav-hashulchan.co.il",
     highlight: false,
     external: true,
@@ -91,7 +91,7 @@ const FAQ = [
   },
   {
     q: "מה קורה אם עברתי את מגבלת האורחים?",
-    a: "המערכת תודיע לך ותציע שדרוג. לא יימחקו לך נתונים — כל האורחים הקיימים ישמרו.",
+    a: "המערכת תודיע לכם ותציע שדרוג. לא יימחקו לכם נתונים — כל האורחים הקיימים ישמרו.",
   },
   {
     q: "האם ניתן לייבא נתונים מאקסל?",
@@ -120,7 +120,7 @@ export default function PricingScreen({ user }) {
             ) : (
               <>
                 <Link to="/login" className={styles.navLoginBtn}>כניסה</Link>
-                <Link to="/signup" className={styles.navCta}>התחל חינם</Link>
+                <Link to="/signup" className={styles.navCta}>התחילו חינם</Link>
               </>
             )}
           </div>
@@ -133,7 +133,7 @@ export default function PricingScreen({ user }) {
           <span className={styles.headerTag}>מחירים</span>
           <h1 className={styles.headerTitle}>שקוף, פשוט, הוגן</h1>
           <p className={styles.headerSub}>
-            התחל חינם — ללא כרטיס אשראי. שדרג רק כשאתה צריך יותר.
+            התחילו חינם — ללא כרטיס אשראי. שדרגו רק כשאתם צריכים יותר.
           </p>
         </div>
       </section>
@@ -190,7 +190,7 @@ export default function PricingScreen({ user }) {
         <div className={styles.faqInner}>
           <div className={styles.faqHeader}>
             <span className={styles.faqTag}>שאלות נפוצות</span>
-            <h2 className={styles.faqTitle}>יש לך שאלות? יש לנו תשובות</h2>
+            <h2 className={styles.faqTitle}>יש לכם שאלות? יש לנו תשובות</h2>
           </div>
           <div className={styles.faqGrid}>
             {FAQ.map(item => (
@@ -207,9 +207,9 @@ export default function PricingScreen({ user }) {
       <section className={styles.ctaBanner}>
         <div className={styles.ctaInner}>
           <span className={styles.ctaStar} aria-hidden="true">✦</span>
-          <h2 className={styles.ctaTitle}>מוכן להתחיל?</h2>
-          <p className={styles.ctaSub}>הצטרף חינם עוד היום — ללא כרטיס אשראי</p>
-          <Link to="/signup" className={styles.ctaBtn}>הצטרף חינם ←</Link>
+          <h2 className={styles.ctaTitle}>מוכנים להתחיל?</h2>
+          <p className={styles.ctaSub}>הצטרפו חינם עוד היום — ללא כרטיס אשראי</p>
+          <Link to="/signup" className={styles.ctaBtn}>הצטרפו חינם ←</Link>
         </div>
       </section>
 

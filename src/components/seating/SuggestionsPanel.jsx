@@ -149,9 +149,9 @@ export default function SuggestionsPanel({ suggestions = [], qualityScore = null
                           <button
                             className={styles.applyBtn}
                             onClick={() => onApply(s)}
-                            title="החל פעולה זו (תוצג בקשת אישור לפני הביצוע)"
+                            title="החילו פעולה זו (תוצג בקשת אישור לפני הביצוע)"
                           >
-                            החל
+                            החילו
                           </button>
                         )}
                       </li>
@@ -162,7 +162,7 @@ export default function SuggestionsPanel({ suggestions = [], qualityScore = null
             })
           )}
           <p className={styles.disclaimer}>
-            ההצעות הן מידע בלבד — כל החלה מצריכה אישורך.
+            ההצעות הן מידע בלבד — כל החלה מצריכה אישורכם.
           </p>
         </div>
       )}

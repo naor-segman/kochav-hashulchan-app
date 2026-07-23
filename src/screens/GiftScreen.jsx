@@ -64,7 +64,7 @@ export default function GiftScreen() {
         });
       } catch {
         setStep("form");
-        setErrors({ submit: "אירעה שגיאה בשמירת המתנה. אנא נסה שוב." });
+        setErrors({ submit: "אירעה שגיאה בשמירת המתנה. אנא נסו שוב." });
         return;
       }
     }
@@ -116,7 +116,7 @@ export default function GiftScreen() {
             <div className={styles.successCircle} aria-hidden="true">
               <span className={styles.successCheck}>✓</span>
             </div>
-            <h1 className={styles.successTitle}>ברכתך נשלחה! 💛</h1>
+            <h1 className={styles.successTitle}>ברכתכם נשלחה! 💛</h1>
             <div className={styles.successDetails}>
               <div className={styles.successRow}>
                 <span className={styles.successLabel}>שם</span>
@@ -155,7 +155,7 @@ export default function GiftScreen() {
                         } catch { /* manual copy */ }
                       }}
                     >
-                      {copied ? "הועתק ✓" : "העתק"}
+                      {copied ? "הועתק ✓" : "העתיקו"}
                     </button>
                   </div>
                 )}
@@ -187,8 +187,8 @@ export default function GiftScreen() {
   const btnLabel = step === "submitting"
     ? "שולח..."
     : finalAmount >= 50
-      ? `שלח מתנה ← ₪${finalAmount.toLocaleString()}`
-      : "שלח מתנה";
+      ? `שלחו מתנה ← ₪${finalAmount.toLocaleString()}`
+      : "שלחו מתנה";
 
   return (
     <div className={styles.root}>
@@ -215,7 +215,7 @@ export default function GiftScreen() {
           <div className={styles.cardTop}>
             <div className={styles.eventTag}>{ev.type || "חתונה"} · מתנה דיגיטלית</div>
             <h1 className={styles.eventName}>{ev.name || coupleLabel}</h1>
-            <p className={styles.eventSub}>שלח מתנה ל{coupleLabel}</p>
+            <p className={styles.eventSub}>שלחו מתנה ל{coupleLabel}</p>
           </div>
 
           {/* Ornamental gold divider */}
@@ -255,7 +255,7 @@ export default function GiftScreen() {
                 ].filter(Boolean).join(" ")}
                 type="number"
                 min="50"
-                placeholder="הזן סכום"
+                placeholder="הזינו סכום"
                 value={customAmt}
                 onChange={e => {
                   setCustomAmt(e.target.value);
@@ -273,18 +273,18 @@ export default function GiftScreen() {
               className={styles.textarea}
               rows={4}
               value={message}
-              placeholder="כתוב ברכה מהלב..."
+              placeholder="כתבו ברכה מהלב..."
               onChange={e => setMessage(e.target.value)}
             />
           </div>
 
           {/* Sender name */}
           <div className={styles.section}>
-            <div className={styles.sectionLabel}>שמך המלא *</div>
+            <div className={styles.sectionLabel}>שמכם המלא *</div>
             <input
               className={[styles.input, errors.name ? styles.inputError : ""].filter(Boolean).join(" ")}
               value={name}
-              placeholder="הזן שם מלא"
+              placeholder="הזינו שם מלא"
               onChange={e => {
                 setName(e.target.value);
                 if (errors.name) setErrors(p => { const n = { ...p }; delete n.name; return n; });
