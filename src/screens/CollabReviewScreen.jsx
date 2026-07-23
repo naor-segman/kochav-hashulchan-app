@@ -60,7 +60,7 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
       <PageHeader
         title="טבלה משותפת"
         icon={<Icon name="users" />}
-        sub="שתפו קישור אחד עם המשפחה — כולם ממלאים את אותה טבלה יחד, בזמן אמת. כל רשומה מלאה נכנסת אוטומטית לרשימת האורחים."
+        sub={`שתפו קישור אחד עם ${ev.type === "אירוע עסקי" ? "הצוות" : "המשפחה"} — כולם ממלאים את אותה טבלה יחד, בזמן אמת. כל רשומה מלאה נכנסת אוטומטית לרשימת האורחים.`}
       />
 
       {collabLink ? (

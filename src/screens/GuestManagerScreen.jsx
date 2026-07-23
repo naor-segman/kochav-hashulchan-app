@@ -39,6 +39,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     ...ev.guests.map(g => g.group).filter(g => g && g !== "אחר" && !GROUP_OPTIONS.includes(g)),
     "אחר",
   ]));
+
+  // Collab-table wording adapts to the event: "family" reads wrong for a
+  // corporate event, so business events talk about "the team" instead.
+  const isBusiness  = ev.type === "אירוע עסקי";
+  const collabWho   = isBusiness ? "הצוות" : "המשפחה";
+  const collabLabel = isBusiness ? "👥 טבלה שיתופית לצוות" : "👨‍👩‍👧 טבלה שיתופית למשפחה";
   const { plan, limits } = usePlan();
   const { maxGuests } = limits;
 
@@ -441,9 +447,9 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           {!editId && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
               <button className={base.btnSecondary} onClick={() => go("collab")}>
-                👨‍👩‍👧 טבלה שיתופית למשפחה
+                {collabLabel}
               </button>
-              <InfoTip text="שתפו קישור אחד עם המשפחה — כולם ממלאים את אותה טבלה יחד, בזמן אמת, בלי צורך במשתמש וסיסמה. כל רשומה מלאה נכנסת לכאן אוטומטית, ושינוי כאן מתעדכן אצלם. במקום לשלוח אקסל הלוך ושוב." />
+              <InfoTip text={`שתפו קישור אחד עם ${collabWho} — כולם ממלאים את אותה טבלה יחד, בזמן אמת, בלי צורך במשתמש וסיסמה. כל רשומה מלאה נכנסת לכאן אוטומטית, ושינוי כאן מתעדכן אצלם. במקום לשלוח אקסל הלוך ושוב.`} />
             </span>
           )}
           {!editId && <span className={base.fieldHint}>Enter = הוספה מהירה</span>}
