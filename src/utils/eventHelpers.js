@@ -82,8 +82,9 @@ export function normalizeEvent(ev) {
           invite:  ev.tokens.invite  ?? uid(),
           gift:    ev.tokens.gift    ?? uid(),
           hostess: ev.tokens.hostess ?? uid(),
+          collab:  ev.tokens.collab  ?? uid(),
         }
-      : { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid() },
+      : { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid(), collab: uid() },
     // Event cost planning — stored per event, updated via CostScreen.
     costs: (ev.costs && typeof ev.costs === "object") ? ev.costs : {},
     // Digital gift transfer details — shown to guests on the public gift page.
@@ -211,7 +212,7 @@ export function duplicateEvent(ev) {
     costs:       {},
     // Each duplicated event gets its own fresh public-URL tokens so that
     // the copy's RSVP/gift/invite/hostess links don't collide with the original.
-    tokens:      { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid() },
+    tokens:      { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid(), collab: uid() },
     cloudId:     null,
     createdAt:   now,
     updatedAt:   now,

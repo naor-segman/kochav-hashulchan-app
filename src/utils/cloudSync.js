@@ -44,6 +44,7 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
     invite_token:  localEvent.tokens?.invite  ?? null,
     gift_token:    localEvent.tokens?.gift    ?? null,
     hostess_token: localEvent.tokens?.hostess ?? null,
+    collab_token:  localEvent.tokens?.collab  ?? null,
     updated_at:  new Date(localEvent.updatedAt ?? Date.now()).toISOString(),
     payload: {
       localId:          localEvent.id,
@@ -119,6 +120,7 @@ export function mapCloudEventToLocalEvent(cloudRow) {
       invite:  cloudRow.invite_token  ?? null,
       gift:    cloudRow.gift_token    ?? null,
       hostess: cloudRow.hostess_token ?? null,
+      collab:  cloudRow.collab_token  ?? null,
     } : (p.tokens ?? null),
     costs: (p.costs && typeof p.costs === "object") ? p.costs : {},
     giftBitPhone:   p.giftBitPhone   ?? "",

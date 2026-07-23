@@ -16,6 +16,7 @@ const SHARE_LINKS = [
   { key: "invite",  label: "הזמנה דיגיטלית",   path: "/invite/",  icon: "💌" },
   { key: "gift",    label: "מתנה דיגיטלית",    path: "/gift/",    icon: "💛" },
   { key: "hostess", label: "מצב דיילות",        path: "/hostess/", icon: "🏷" },
+  { key: "collab",  label: "הוספת אורחים (למשפחה)", path: "/collab/", icon: "👥" },
 ];
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {

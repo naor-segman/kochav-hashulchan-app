@@ -38,11 +38,13 @@ const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
 const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
 const EventSiteScreen = lazy(() => import("./screens/EventSiteScreen.jsx"));
 const HostessScreen  = lazy(() => import("./screens/HostessScreen.jsx"));
+const CollabScreen   = lazy(() => import("./screens/CollabScreen.jsx"));
 const GiftScreen     = lazy(() => import("./screens/GiftScreen.jsx"));
 const GiftWallScreen = lazy(() => import("./screens/GiftWallScreen.jsx"));
 // App screens — lazy to keep initial bundle lean
 const CostScreen          = lazy(() => import("./screens/CostScreen.jsx"));
 const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
+const CollabReviewScreen  = lazy(() => import("./screens/CollabReviewScreen.jsx"));
 const EventSiteEditorScreen = lazy(() => import("./screens/EventSiteEditorScreen.jsx"));
 // Legal / policy pages — lazy, rarely visited
 const HelpScreen          = lazy(() => import("./screens/HelpScreen.jsx"));
@@ -97,6 +99,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
         <Route path="seating"     element={<SeatingScreen       {...sp} />} />
         <Route path="site"        element={<Suspense fallback={null}><EventSiteEditorScreen {...sp} /></Suspense>} />
         <Route path="rsvps"       element={<Suspense fallback={null}><RSVPResponsesScreen {...sp} /></Suspense>} />
+        <Route path="collab"      element={<Suspense fallback={null}><CollabReviewScreen {...sp} /></Suspense>} />
         <Route path="costs"       element={<Suspense fallback={null}><CostScreen activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
         <Route index              element={<Navigate to="setup" replace />} />
       </Routes>
@@ -242,6 +245,7 @@ export default function App() {
       <Route path="/rsvp/:token"      element={<Suspense fallback={null}><RSVPScreen /></Suspense>} />
       <Route path="/invite/:token"    element={<Suspense fallback={null}><EventSiteScreen /></Suspense>} />
       <Route path="/hostess/:token"   element={<Suspense fallback={null}><HostessScreen /></Suspense>} />
+      <Route path="/collab/:token"    element={<Suspense fallback={null}><CollabScreen /></Suspense>} />
       {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}
       <Route
         path="/events/:eventId/checkin"

@@ -848,6 +848,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               {showBulk ? "סגור ייבוא" : "📥 ייבוא מ-Excel"}
             </button>
           )}
+          {!editId && (
+            <button className={base.btnSecondary} onClick={() => go("collab")}>
+              👨‍👩‍👧 הוספות מהמשפחה
+            </button>
+          )}
           {!editId && <span className={base.fieldHint}>Enter = הוסף מהיר</span>}
         </div>
 
