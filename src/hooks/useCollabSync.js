@@ -15,7 +15,6 @@ import {
 
 const norm = (s) => (s || "").toString().trim();
 const sideOf = (s) => (s === "groom" ? "groom" : "bride");
-const normName = (s) => norm(s).replace(/\s+/g, " ").toLowerCase();
 const normPhone = (p) => {
   let d = (p || "").replace(/\D/g, "");
   if (d.startsWith("00")) d = d.slice(2);
@@ -51,7 +50,8 @@ function guestFromCollab(r, existing) {
 }
 const guestToCollab = (g) => ({
   id: g.id, name: norm(g.name), phone: norm(g.phone),
-  side: sideOf(g.side), guest_group: norm(g.group), guests_count: g.count || 1,
+  side: sideOf(g.side), guest_group: norm(g.group),
+  guests_count: Math.min(50, Math.max(1, g.count || 1)), // DB CHECK caps at 50
 });
 
 export function useCollabSync(activeEvent, patchEvent, showToast) {
@@ -84,9 +84,10 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // updates them instead of creating a duplicate.
         let existing = guests.find((g) => g.id === row.id);
         if (!existing) {
+          // Dedup on PHONE only — name-only matching would wrongly merge two
+          // different people who share a name.
           const p = normPhone(row.phone);
-          existing = (p && guests.find((g) => normPhone(g.phone) === p)) ||
-                     guests.find((g) => normName(g.name) === normName(row.name));
+          existing = p ? guests.find((g) => normPhone(g.phone) === p) : null;
         }
         if (existing) {
           const merged = { ...guestFromCollab(row, existing), id: existing.id };
@@ -104,7 +105,16 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       patchEvent((e) => {
         const g = (e.guests || []).find((x) => x.id === id);
         removedName = g?.name || "";
-        return { ...e, guests: (e.guests || []).filter((x) => x.id !== id) };
+        // Mirror the normal delete path: also strip the seating assignment and
+        // any constraints referencing this guest, so nothing is left orphaned.
+        const seating = { ...(e.seating || {}) };
+        delete seating[id];
+        return {
+          ...e,
+          guests: (e.guests || []).filter((x) => x.id !== id),
+          seating,
+          constraints: (e.constraints || []).filter((c) => c.guestA !== id && c.guestB !== id),
+        };
       });
       if (removedName && showToast) showToast(`"${removedName}" הוסר — סונכרן מהטבלה השיתופית`);
     };

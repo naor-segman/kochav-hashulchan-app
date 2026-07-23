@@ -142,16 +142,25 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   // Auto-sync: a link-RSVP that matches a guest (by phone/name) updates that
   // guest's status automatically — once. Unmatched responses stay for a manual
   // "+ הוסיפו לרשימה" (avoids duplicates); host manual overrides afterwards stick.
+  // Durable across remounts (localStorage) so navigating away and back doesn't
+  // re-apply a response and clobber a manual host override made afterwards.
+  const appliedKey = `rsvp_applied_${ev.cloudId || ev.id || "local"}`;
   const autoDone = useRef(new Set());
+  const hydrated = useRef(false);
   useEffect(() => {
+    if (!hydrated.current) {
+      hydrated.current = true;
+      try { JSON.parse(localStorage.getItem(appliedKey) || "[]").forEach(id => autoDone.current.add(id)); }
+      catch { /* ignore */ }
+    }
     if (loadState !== "ready" || responses.length === 0) return;
     const updates = new Map();
-    let n = 0;
+    let n = 0, changed = false;
     responses.forEach(r => {
       if (autoDone.current.has(r.id)) return;
       const guest = matchGuest(r);
       if (!guest) return;                       // unmatched → manual add
-      autoDone.current.add(r.id);
+      autoDone.current.add(r.id); changed = true;
       if (isApplied(r, guest)) return;          // already reflects it
       const status = respStatus(r), hasCount = status !== "no";
       const comps = Array.isArray(r.companions) ? r.companions.filter(Boolean) : [];
@@ -163,10 +172,11 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       });
       n++;
     });
+    if (changed) { try { localStorage.setItem(appliedKey, JSON.stringify([...autoDone.current])); } catch { /* ignore */ } }
     if (n === 0) return;
     patchEvent(e => ({ ...e, guests: e.guests.map(g => updates.has(g.id) ? { ...g, ...updates.get(g.id) } : g) }));
     showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
-  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast]);
+  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast, appliedKey]);
 
   const rsvpLink = ev.tokens?.rsvp
     ? window.location.origin + "/rsvp/" + ev.tokens.rsvp
