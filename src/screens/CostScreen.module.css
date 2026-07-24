@@ -316,3 +316,37 @@
     font-size: 12px;
   }
 }
+
+/* ── Budget charts (planned vs actual, income vs expenses) ───────────────────── */
+.chart { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
+.chartRow { display: grid; grid-template-columns: 88px 1fr auto; gap: 10px; align-items: center; }
+.chartName { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chartBars { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.barTrack { height: 9px; background: var(--bg); border-radius: 100px; overflow: hidden; }
+.barPlanned { height: 100%; background: rgba(var(--accent-rgb), 0.32); border-radius: 100px; transition: width var(--transition); }
+.barActual { height: 100%; background: var(--accent); border-radius: 100px; transition: width var(--transition); }
+.barOver { background: var(--red); }
+.chartVal { font-size: 12.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chartValOver { color: var(--red); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.swPlanned { background: rgba(var(--accent-rgb), 0.32); }
+.swActual { background: var(--accent); }
+.swOver { background: var(--red); }
+
+.bigChart { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.bigRow { display: grid; grid-template-columns: 96px 1fr auto; gap: 10px; align-items: center; }
+.bigLabel { font-size: 13px; font-weight: 600; color: var(--text2); white-space: nowrap; }
+.bigTrack { height: 14px; background: var(--bg); border-radius: 100px; overflow: hidden; }
+.bigFill { height: 100%; border-radius: 100px; transition: width var(--transition); }
+.barIncome { background: var(--green); }
+.barExpense { background: var(--accent); }
+.bigVal { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bigNote { margin: 10px 0 0; font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+@media (max-width: 600px) {
+  .chartRow, .bigRow { grid-template-columns: 72px 1fr auto; gap: 8px; }
+  .chartName, .bigLabel { font-size: 12px; }
+  .chartVal, .bigVal { font-size: 12px; }
+}
