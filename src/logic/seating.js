@@ -114,9 +114,36 @@ export function autoAssign(guests, tables, constraints, lockedSeating = {}) {
     return false;
   };
 
+  // A "together" cluster bigger than any single table physically can't all sit
+  // together. Rather than leave it unseated (the individual fallback below would
+  // then scatter its members across many tables), pack it into the FEWEST tables
+  // possible so it stays as grouped as it can — a minimal, not maximal, violation.
+  const seatClusterBestEffort = (ids) => {
+    let remaining = ids.filter(id => !seating[id]);
+    // Fill the emptiest tables first, each to capacity, before moving on — keeps
+    // the group dense (fewest tables) instead of one-per-table spread.
+    const byFree = [...tState].sort((a, b) =>
+      (b.capacity - seatedCount(b, guestMap)) - (a.capacity - seatedCount(a, guestMap))
+    );
+    for (const t of byFree) {
+      if (!remaining.length) break;
+      const still = [];
+      for (const id of remaining) {
+        if (seatedCount(t, guestMap) + guestSeats(guestMap[id]) <= t.capacity
+            && !apartConflict(apartSet, id, t.seated)) {
+          t.seated.push(id);
+          seating[id] = t.id;
+        } else {
+          still.push(id);
+        }
+      }
+      remaining = still;
+    }
+  };
+
   [...clusters].sort((a, b) => clusterSeats(b) - clusterSeats(a)).forEach(cluster => {
     if (cluster.every(id => seating[id])) return;
-    seatCluster(cluster);
+    if (!seatCluster(cluster)) seatClusterBestEffort(cluster);
   });
 
   const unseated = unlockedGuests.filter(g => !seating[g.id]);

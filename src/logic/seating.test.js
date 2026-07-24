@@ -81,6 +81,20 @@ describe("autoAssign", () => {
     expect(seating.new).toBe("t1");     // ghost's seats unknown → t1 looks empty
   });
 
+  it("packs an oversized 'together' group into the fewest tables instead of scattering it", () => {
+    // 12 people chained together (one cluster of 12) with only 10-seat tables:
+    // they physically can't all share a table, but should stay as grouped as
+    // possible — not spread one-per-table across the room.
+    const guests = Array.from({ length: 12 }, (_, i) => g(`p${i}`));
+    const constraints = Array.from({ length: 11 }, (_, i) => together(`p${i}`, `p${i + 1}`));
+    const tables = [t("t1", 10), t("t2", 10), t("t3", 10), t("t4", 10)];
+    const seating = autoAssign(guests, tables, constraints);
+    guests.forEach(gu => expect(seating[gu.id]).toBeDefined());           // everyone seated
+    tables.forEach(tb => expect(seatsAt(seating, guests, tb.id)).toBeLessThanOrEqual(10)); // no overbooking
+    const tablesUsed = new Set(guests.map(gu => seating[gu.id]));
+    expect(tablesUsed.size).toBeLessThanOrEqual(2);                       // 12 → 2 tables (10+2), not scattered
+  });
+
   it("seats an unlocked guest with a locked partner at the locked table", () => {
     const guests = [g("a"), g("b")];
     const tables = [t("t1", 10), t("t2", 10)];
