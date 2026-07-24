@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { loadState, persist } from "../utils/storage.js";
+import { loadState, persist, userStorageKey } from "../utils/storage.js";
 import { normalizeEvent, updateEventTimestamp } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import {
@@ -66,8 +66,11 @@ function mergeCloudWithLocal(localEvents, cloudEvents) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useEvents(user) {
+  // Initial (pre-auth) view = guest bucket, drafts only. A cloudId-bearing event
+  // in the shared bucket is stale data from a previous logged-in session (older
+  // builds used one global key) and must never surface to a guest.
   const [events, setEvents] = useState(() =>
-    (loadState().events || []).map(normalizeEvent).filter(Boolean)
+    (loadState().events || []).map(normalizeEvent).filter(Boolean).filter(e => !e.cloudId)
   );
   const [syncStatus, setSyncStatus] = useState(SYNC_STATUS.LOCAL_ONLY);
 
@@ -75,6 +78,10 @@ export function useEvents(user) {
   const eventsRef    = useRef(events);
   const userRef      = useRef(user);
   const loadedForRef = useRef(null);
+  // Which account the in-memory `events` belong to → the localStorage key to
+  // persist under. null = guest. Prevents writing one user's events under
+  // another's key (and vice-versa) as `user` changes.
+  const ownerRef     = useRef(null);
   const syncTimers   = useRef({});  // debounce timers keyed by event id
 
   useEffect(() => () => { Object.values(syncTimers.current).forEach(clearTimeout); }, []);
@@ -83,37 +90,67 @@ export function useEvents(user) {
   useEffect(() => { userRef.current = user; }, [user]);
 
   // ── PERSISTENCE ─────────────────────────────────────────────────────────────
-  // Always flush the full snapshot to localStorage after every mutation so the
-  // app works offline and localStorage stays current as an offline cache.
-  useEffect(() => { persist({ events }); }, [events]);
+  // Flush the full snapshot to localStorage under the CURRENT owner's key, so a
+  // logged-in user's events are never written to the shared guest bucket (where
+  // the next visitor could read them) and never leak into another account.
+  useEffect(() => { persist({ events }, userStorageKey(ownerRef.current)); }, [events]);
 
-  // ── CLOUD HYDRATION ──────────────────────────────────────────────────────────
+  // ── CLOUD HYDRATION + PER-USER STORAGE ───────────────────────────────────────
   // Runs once per logged-in user per session.
-  // On logout: reverts state to what's in localStorage.
+  // On logout: reverts state to the shared guest bucket.
   useEffect(() => {
+    const load = (key) => (loadState(key).events || []).map(normalizeEvent).filter(Boolean);
+
     if (!user) {
+      // LOGOUT → guest bucket, drafts only. The just-logged-out account's events
+      // live under their own key and are never shown to a guest.
       if (loadedForRef.current !== null) {
         loadedForRef.current = null;
-        setEvents((loadState().events || []).map(normalizeEvent).filter(Boolean));
+        ownerRef.current = null;
+        setEvents(load(userStorageKey(null)).filter(e => !e.cloudId));
         setSyncStatus(SYNC_STATUS.LOCAL_ONLY);
       }
       return;
     }
 
-    if (!isSupabaseConfigured)            return;
     if (loadedForRef.current === user.id) return;
     loadedForRef.current = user.id;
+    ownerRef.current = user.id;
 
-    setSyncStatus(SYNC_STATUS.SYNCING);
-    fetchCloudEvents(user.id)
-      .then(cloudEvents => {
+    // Start from THIS user's own bucket, plus a one-time migration of any
+    // unsynced guest-mode events (cloudId === null) created before logging in
+    // — honouring "continue without account, it'll sync later" without ever
+    // pulling in a different user's already-synced events.
+    const userLocal   = load(userStorageKey(user.id));
+    const guestState  = loadState(userStorageKey(null));
+    const guestEvents = (guestState.events || []).map(normalizeEvent).filter(Boolean);
+    const guestDrafts = guestEvents.filter(e => !e.cloudId);
+    const seenIds     = new Set(userLocal.map(e => e.id));
+    const seeded      = [...userLocal, ...guestDrafts.filter(e => !seenIds.has(e.id))];
+    // Remove the migrated drafts from the guest bucket so they can't later be
+    // adopted by a different account on the same browser.
+    if (guestDrafts.length) {
+      persist({ events: guestEvents.filter(e => e.cloudId) }, userStorageKey(null));
+    }
+    // Show THIS user's own data immediately (optimistic local-first) — never the
+    // pre-login view.
+    setEvents(seeded);
+
+    // No cloud configured → auth never yields a user, so this path is unreachable.
+    if (!isSupabaseConfigured) return;
+
+    // Reconcile with the cloud in an async flow (keeps setState out of the
+    // synchronous effect body). Merge base = the seeded per-user view.
+    (async () => {
+      setSyncStatus(SYNC_STATUS.SYNCING);
+      try {
+        const cloudEvents = await fetchCloudEvents(user.id);
         setEvents(prev => mergeCloudWithLocal(prev, cloudEvents));
         setSyncStatus(SYNC_STATUS.SYNCED);
-      })
-      .catch(() => {
-        setSyncStatus(SYNC_STATUS.ERROR);
-        // Keep existing localStorage data — do not wipe local events on failure.
-      });
+      } catch {
+        setSyncStatus(SYNC_STATUS.ERROR); // keep the seeded local view on failure
+      }
+    })();
   }, [user]);
 
   // ── MUTATIONS ────────────────────────────────────────────────────────────────
