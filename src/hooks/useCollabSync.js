@@ -26,6 +26,19 @@ const normPhone = (p) => {
 const collabComplete = (r) =>
   !!(norm(r.name) && norm(r.phone) && r.side && norm(r.guest_group));
 
+// Which existing guest a collab row should merge into: the same shared id, or
+// else a guest matching on BOTH phone and name. Requiring both prevents merging
+// two different people who share a phone (a household line, a reused number) or
+// who share a name. Returns null when it should become a brand-new guest.
+export function matchExistingGuest(guests, row) {
+  const byId = (guests || []).find((g) => g.id === row.id);
+  if (byId) return byId;
+  const p = normPhone(row.phone);
+  const n = norm(row.name);
+  if (!p) return null;
+  return (guests || []).find((g) => normPhone(g.phone) === p && norm(g.name) === n) || null;
+}
+
 // Companion names, clamped to the extra seats (count-1) and normalized, so a
 // row with count 3 keeps at most 2 companion names in stable positions.
 const clampComp = (arr, count) =>
@@ -92,20 +105,39 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       applied.current.set(row.id, sig);
       patchEvent((e) => {
         const guests = e.guests || [];
-        // Match by id first; else dedup against an existing guest by phone
-        // (strong) or name, so a family addition of someone already on the list
-        // updates them instead of creating a duplicate.
-        let existing = guests.find((g) => g.id === row.id);
-        if (!existing) {
-          // Dedup on PHONE only — name-only matching would wrongly merge two
-          // different people who share a name.
-          const p = normPhone(row.phone);
-          existing = p ? guests.find((g) => normPhone(g.phone) === p) : null;
+        // Match by shared id, else dedup a family addition of someone already on
+        // the list (phone + name) so it updates them instead of duplicating.
+        const existing = matchExistingGuest(guests, row);
+
+        // Same row → straightforward in-place update.
+        if (existing && existing.id === row.id) {
+          const merged = guestFromCollab(row, existing);
+          return { ...e, guests: guests.map((g) => (g.id === row.id ? merged : g)) };
         }
+
+        // Deduped a family submission (row.id) onto an existing guest
+        // (existing.id). Re-key the guest to the collab row id so
+        // collab-row-id === guest-id stays true: the family's row is never
+        // deleted-and-recreated (no flicker), and the two-way sync + removeRow
+        // keep working without special cases. Migrate seating / constraints /
+        // locks off the old guest id.
         if (existing) {
-          const merged = { ...guestFromCollab(row, existing), id: existing.id };
-          return { ...e, guests: guests.map((g) => (g.id === existing.id ? merged : g)) };
+          const remap = (id) => (id === existing.id ? row.id : id);
+          const merged = { ...guestFromCollab(row, existing), id: row.id };
+          const seating = { ...(e.seating || {}) };
+          if (seating[existing.id] !== undefined) {
+            seating[row.id] = seating[existing.id];
+            delete seating[existing.id];
+          }
+          return {
+            ...e,
+            guests: guests.map((g) => (g.id === existing.id ? merged : g)),
+            seating,
+            constraints: (e.constraints || []).map((c) => ({ ...c, guestA: remap(c.guestA), guestB: remap(c.guestB) })),
+            lockedGuests: (e.lockedGuests || []).map(remap),
+          };
         }
+
         return { ...e, guests: [...guests, guestFromCollab(row, null)] };
       });
     };
