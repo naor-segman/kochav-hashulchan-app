@@ -64,6 +64,16 @@ describe("computeQualityScore", () => {
     expect(score).toBeLessThanOrEqual(100);
   });
 
+  it("does not penalize declined guests who are left unseated", () => {
+    // a,b active + seated; c declined + unseated. Score should be full — c never needs a seat.
+    const guests = [g("a"), g("b"), g("c", { rsvp: "declined" })];
+    const tables = [t("t1", 10)];
+    const seating = { a: "t1", b: "t1" };
+    const violations = computeViolations(guests, tables, [], seating);
+    const score = computeQualityScore(guests, tables, [], seating, violations);
+    expect(score).toBeGreaterThanOrEqual(90);
+  });
+
   it("drops when guests are left unassigned", () => {
     const guests = [g("a"), g("b"), g("c")];
     const tables = [t("t1", 10)];

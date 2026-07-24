@@ -117,13 +117,17 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     cloudId:          cloudRow.id,
     lockedGuests:     Array.isArray(p.lockedGuests) ? p.lockedGuests : [],
     lockedTables:     Array.isArray(p.lockedTables) ? p.lockedTables : [],
-    tokens: cloudRow.rsvp_token ? {
-      rsvp:    cloudRow.rsvp_token    ?? null,
-      invite:  cloudRow.invite_token  ?? null,
-      gift:    cloudRow.gift_token    ?? null,
-      hostess: cloudRow.hostess_token ?? null,
-      collab:  cloudRow.collab_token  ?? null,
-    } : (p.tokens ?? null),
+    // Prefer the scalar token column, but fall back per-token to the payload's
+    // tokens object. A column that is NULL (e.g. added by a later migration)
+    // must not clobber an already-shared token still held in payload.tokens —
+    // otherwise normalizeEvent regenerates it and the distributed link breaks.
+    tokens: (cloudRow.rsvp_token || p.tokens) ? {
+      rsvp:    cloudRow.rsvp_token    ?? p.tokens?.rsvp    ?? null,
+      invite:  cloudRow.invite_token  ?? p.tokens?.invite  ?? null,
+      gift:    cloudRow.gift_token    ?? p.tokens?.gift    ?? null,
+      hostess: cloudRow.hostess_token ?? p.tokens?.hostess ?? null,
+      collab:  cloudRow.collab_token  ?? p.tokens?.collab  ?? null,
+    } : null,
     costs: (p.costs && typeof p.costs === "object") ? p.costs : {},
     giftBitPhone:   p.giftBitPhone   ?? "",
     giftPayboxLink: p.giftPayboxLink ?? "",

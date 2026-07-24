@@ -77,7 +77,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       lockedTableIds: ev.lockedTables || [],
       sideLabels:     getSideLabels(ev),
     }),
-    [ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore, ev.lockedGuests, ev.lockedTables, ev.type, ev.brideName, ev.groomName]
+    [ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore, ev.lockedGuests, ev.lockedTables, ev.type, ev.brideName, ev.groomName, ev.sideLabels, ev.coupleType]
   );
 
   const lockedGuestsSet = useMemo(() => new Set(ev.lockedGuests || []), [ev.lockedGuests]);
@@ -87,6 +87,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const declinedGuests = ev.guests.filter(g => g.rsvp === "declined");
   const unassigned     = activeGuests.filter(g => !ev.seating[g.id]);
   const nAssigned      = ev.guests.filter(g => ev.seating[g.id]).length;
+  // Active-only seated count — pairs with activeGuests.length so the UI can't
+  // show e.g. "6/5" when a declined guest is still seated.
+  const nActiveAssigned = activeGuests.filter(g => ev.seating[g.id]).length;
   const nAssignedSeats = ev.guests.filter(g => ev.seating[g.id]).reduce((s, g) => s + (g.count || 1), 0);
   const totalSeats     = activeGuests.reduce((s, g) => s + (g.count || 1), 0);
   const totalCap       = ev.tables.reduce((s, t) => s + t.capacity, 0);
@@ -356,7 +359,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             sub="חשבו הושבה אוטומטית ואז ערכו ידנית לפי הצורך."
             aside={
               <div className={base.pills}>
-                <StatPill n={nAssigned}           label="שובצו"   color={allSeated ? "var(--green)" : "var(--accent)"} />
+                <StatPill n={nActiveAssigned}     label="שובצו"   color={allSeated ? "var(--green)" : "var(--accent)"} />
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
                 {nArrived > 0 && <StatPill n={nArrived} label="הגיעו" color="var(--green)" />}
@@ -393,7 +396,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
               </div>
               <div className={styles.runCardStats}>
-                {nAssignedSeats} / {totalSeats} מקומות שובצו · {nAssigned}/{activeGuests.length} רשומות פעילות · {totalCap} קיבולת האולם
+                {nAssignedSeats} / {totalSeats} מקומות שובצו · {nActiveAssigned}/{activeGuests.length} רשומות פעילות · {totalCap} קיבולת האולם
                 {declinedGuests.length > 0 && ` · ${declinedGuests.length} סירבו (לא משובצים)`}
               </div>
             </div>
@@ -982,9 +985,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   onChange={e => { if (e.target.value) assignGuest(e.target.value, t.id); }}
                                 >
                                   <option value="">— בחרו מהממתינים —</option>
-                                  {unassigned.map(g => (
-                                    <option key={g.id} value={g.id}>{g.name} ({sideLabel(g.side)})</option>
-                                  ))}
+                                  {unassigned.map(g => {
+                                    const full = usedSeats + (g.count || 1) > t.capacity;
+                                    return (
+                                      <option key={g.id} value={g.id} disabled={full}>
+                                        {g.name} ({sideLabel(g.side)}{(g.count || 1) > 1 ? ` · ${g.count}` : ""}){full ? " — לא נכנס" : ""}
+                                      </option>
+                                    );
+                                  })}
                                 </select>
                               </div>
                             )}
