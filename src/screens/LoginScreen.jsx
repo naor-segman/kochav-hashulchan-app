@@ -55,7 +55,9 @@ export default function LoginScreen() {
     setForgotError("");
     setForgotBusy(true);
     try {
-      const { error: err } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim());
+      const { error: err } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: window.location.origin + "/reset-password",
+      });
       if (err) throw err;
       setForgotDone(true);
     } catch (err) {
