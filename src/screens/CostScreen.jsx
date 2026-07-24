@@ -116,6 +116,16 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
     ? Math.round(cateringActual / totalGuests)
     : 0;
 
+  // ── Chart data ──
+  const catsWithData = useMemo(
+    () => cats.filter(c => parseAmt(c.budget) > 0 || parseAmt(c.actual) > 0),
+    [cats]);
+  const maxCat = useMemo(
+    () => catsWithData.reduce((m, c) => Math.max(m, parseAmt(c.budget), parseAmt(c.actual)), 0),
+    [catsWithData]);
+  const maxBig = Math.max(estIncome, actualIncome, totalBudget, totalActual, 1);
+  const pct = (v, max) => (max > 0 ? Math.min(100, (v / max) * 100) : 0) + "%";
+
   return (
     <div className={base.page}>
       <PageHeader
@@ -315,6 +325,41 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
         </div>
       </div>
 
+      {/* ── Expenses chart: planned vs actual per category ── */}
+      {catsWithData.length > 0 && (
+        <div className={base.card}>
+          <SectionLabel>הוצאות — מתוכנן מול בפועל</SectionLabel>
+          <div className={styles.chart}>
+            {catsWithData.map(c => {
+              const b = parseAmt(c.budget), a = parseAmt(c.actual);
+              const over = a > b && b > 0;
+              return (
+                <div key={c.id} className={styles.chartRow}>
+                  <span className={styles.chartName} title={c.name}>{c.name}</span>
+                  <div className={styles.chartBars}>
+                    <div className={styles.barTrack}>
+                      <div className={styles.barPlanned} style={{ width: pct(b, maxCat) }} />
+                    </div>
+                    <div className={styles.barTrack}>
+                      <div className={[styles.barActual, over ? styles.barOver : ""].filter(Boolean).join(" ")}
+                        style={{ width: pct(a, maxCat) }} />
+                    </div>
+                  </div>
+                  <span className={[styles.chartVal, over ? styles.chartValOver : ""].filter(Boolean).join(" ")}>
+                    {a > 0 ? fmtILS(a) : fmtILS(b)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className={styles.legend}>
+            <span><i className={styles.swPlanned} /> מתוכנן</span>
+            <span><i className={styles.swActual} /> בפועל</span>
+            <span><i className={styles.swOver} /> חריגה מהתקציב</span>
+          </div>
+        </div>
+      )}
+
       {/* ── Income forecast + net picture ── */}
       <div className={base.card}>
         <SectionLabel>הכנסה צפויה ותמונת נטו</SectionLabel>
@@ -361,6 +406,33 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
             <span className={styles.statLabel}>נטו בפועל</span>
           </div>
         </div>
+
+        {/* Income vs expenses — visual coverage */}
+        {(estIncome > 0 || totalBudget > 0) && (
+          <div className={styles.bigChart}>
+            {[
+              { label: "הכנסה צפויה", val: estIncome,   cls: styles.barIncome, show: estIncome > 0 },
+              { label: "הוצאה מתוכננת", val: totalBudget, cls: styles.barExpense, show: totalBudget > 0 },
+              { label: "הכנסה בפועל", val: actualIncome, cls: styles.barIncome, show: actualIncome > 0 },
+              { label: "הוצאה בפועל", val: totalActual,  cls: styles.barExpense, show: totalActual > 0 },
+            ].filter(r => r.show).map((r, i) => (
+              <div key={i} className={styles.bigRow}>
+                <span className={styles.bigLabel}>{r.label}</span>
+                <div className={styles.bigTrack}>
+                  <div className={[styles.bigFill, r.cls].join(" ")} style={{ width: pct(r.val, maxBig) }} />
+                </div>
+                <span className={styles.bigVal}>{fmtILS(r.val)}</span>
+              </div>
+            ))}
+            <p className={styles.bigNote}>
+              {netExpected > 0
+                ? `לפי ההערכה, המתנות מכסות את ההוצאה המתוכננת ועוד ${fmtILS(netExpected)}.`
+                : netExpected < 0
+                ? `לפי ההערכה, חסרים ${fmtILS(Math.abs(netExpected))} כדי לכסות את ההוצאה המתוכננת.`
+                : `לפי ההערכה, המתנות מכסות בדיוק את ההוצאה המתוכננת.`}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
