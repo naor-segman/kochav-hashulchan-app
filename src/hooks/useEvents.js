@@ -83,6 +83,9 @@ export function useEvents(user) {
   // another's key (and vice-versa) as `user` changes.
   const ownerRef     = useRef(null);
   const syncTimers   = useRef({});  // debounce timers keyed by event id
+  // Event ids removed before their initial cloud-create resolved, so the create
+  // handler can delete the orphaned cloud row instead of letting it resurrect.
+  const pendingDeletes = useRef(new Set());
 
   useEffect(() => () => { Object.values(syncTimers.current).forEach(clearTimeout); }, []);
 
@@ -166,15 +169,26 @@ export function useEvents(user) {
     setSyncStatus(SYNC_STATUS.SYNCING);
     createCloudEvent(normalized, currentUser.id)
       .then(cloudId => {
+        // If the event was deleted while this create was in flight, the local
+        // copy is already gone — delete the just-created cloud row so it can't
+        // reappear on the next hydration, instead of adding it back.
+        const wasDeleted = pendingDeletes.current.delete(normalized.id);
         if (cloudId) {
-          setEvents(prev => prev.map(e => e.id === normalized.id ? { ...e, cloudId } : e));
-          // Push any edits that arrived during the round-trip so the cloud row stays current.
-          const latest = eventsRef.current.find(e => e.id === normalized.id);
-          if (latest) updateCloudEvent({ ...latest, cloudId }, currentUser.id).catch(() => {});
+          if (wasDeleted) {
+            deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
+          } else {
+            setEvents(prev => prev.map(e => e.id === normalized.id ? { ...e, cloudId } : e));
+            // Push any edits that arrived during the round-trip so the cloud row stays current.
+            const latest = eventsRef.current.find(e => e.id === normalized.id);
+            if (latest) updateCloudEvent({ ...latest, cloudId }, currentUser.id).catch(() => {});
+          }
         }
         setSyncStatus(SYNC_STATUS.SYNCED);
       })
-      .catch(() => setSyncStatus(SYNC_STATUS.ERROR));
+      .catch(() => {
+        pendingDeletes.current.delete(normalized.id); // create failed → no orphan to clean
+        setSyncStatus(SYNC_STATUS.ERROR);
+      });
   }, []);
 
   const removeEvent = useCallback((id) => {
@@ -188,8 +202,13 @@ export function useEvents(user) {
     setEvents(prev => prev.filter(e => e.id !== id));
 
     const currentUser = userRef.current;
-    if (ev?.cloudId && currentUser && isSupabaseConfigured) {
+    if (!currentUser || !isSupabaseConfigured) return;
+    if (ev?.cloudId) {
       deleteCloudEvent(ev.cloudId, currentUser.id).catch(() => {});
+    } else if (ev) {
+      // No cloudId yet — its initial create may still be in flight. Flag it so
+      // the create handler deletes the orphaned cloud row when it resolves.
+      pendingDeletes.current.add(id);
     }
   }, []);
 

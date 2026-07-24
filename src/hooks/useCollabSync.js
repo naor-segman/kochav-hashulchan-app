@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import {
   fetchCollabGuestsOwner, upsertCollabGuestOwner,
@@ -87,6 +87,11 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
   const applied = useRef(new Map()); // id -> signature we last reconciled
   const mirror  = useRef(new Map()); // id -> latest known collab row
   const ready   = useRef(false);
+  // Bumped when the initial pull finishes. `ready` is a ref (for synchronous
+  // checks), so a state tick is what actually re-runs the app→table push effect
+  // — otherwise existing guests aren't sent to a freshly-enabled table until the
+  // owner's next edit.
+  const [readyTick, setReadyTick] = useState(0);
 
   // ── table → app: initial pull + live subscription ──
   useEffect(() => {
@@ -172,6 +177,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       } catch { /* offline — retry on next mount */ }
       if (cancelled) return;
       ready.current = true;
+      setReadyTick((t) => t + 1); // re-run the push effect now that we're ready
       unsub = subscribeCollabGuests(cloudId, (payload) => {
         if (payload.eventType === "DELETE") removeRow(payload.old?.id);
         else if (payload.new) applyRow(payload.new);
@@ -207,5 +213,5 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       toDelete.forEach((id) => { applied.current.delete(id); mirror.current.delete(id); });
       deleteCollabGuestsOwner(cloudId, toDelete).catch(() => {});
     }
-  }, [guests, cloudId, collabOn]);
+  }, [guests, cloudId, collabOn, readyTick]);
 }
