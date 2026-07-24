@@ -421,4 +421,8 @@
   }
   .chipHandle { font-size: 10px; }
   .chipGuests { padding: 4px 6px; }
+  /* On a narrow screen a chip centered near the sketch edge would extend past
+     the viewport and scroll the whole page sideways. Clip to the sketch here
+     (desktop keeps overflow:visible — it has margin room to spare). */
+  .imageContainer { overflow: hidden; }
 }
