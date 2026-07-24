@@ -62,16 +62,23 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
   // Match responses to guest-list rows by phone (strong) then name.
   const guestIndex = useMemo(() => {
-    const byPhone = new Map(), byName = new Map();
+    const byPhone = new Map(), byName = new Map(), nameCount = new Map();
     (ev.guests || []).forEach(g => {
       const p = normPhone(g.phone); if (p) byPhone.set(p, g);
-      byName.set(normName(g.name), g);
+      const n = normName(g.name);
+      byName.set(n, g);
+      nameCount.set(n, (nameCount.get(n) || 0) + 1);
     });
-    return { byPhone, byName };
+    return { byPhone, byName, nameCount };
   }, [ev.guests]);
   const matchGuest = useCallback((r) => {
     const p = normPhone(r.phone);
-    return (p && guestIndex.byPhone.get(p)) || guestIndex.byName.get(normName(r.guest_name)) || null;
+    if (p && guestIndex.byPhone.get(p)) return guestIndex.byPhone.get(p);
+    // Name-only match: skip when the name is ambiguous (two guests share it) —
+    // auto-applying to the wrong one would corrupt the list. Leave for manual add.
+    const n = normName(r.guest_name);
+    if (n && guestIndex.nameCount.get(n) === 1) return guestIndex.byName.get(n) || null;
+    return null;
   }, [guestIndex]);
 
   const stats = useMemo(() => {
@@ -147,6 +154,12 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   const appliedKey = `rsvp_applied_${ev.cloudId || ev.id || "local"}`;
   const autoDone = useRef(new Set());
   const hydrated = useRef(false);
+  // Reset the applied-set when the event changes (the screen may be reused across
+  // events without remounting) so event B never carries event A's applied ids.
+  useEffect(() => {
+    hydrated.current = false;
+    autoDone.current = new Set();
+  }, [appliedKey]);
   useEffect(() => {
     if (!hydrated.current) {
       hydrated.current = true;
@@ -154,13 +167,24 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       catch { /* ignore */ }
     }
     if (loadState !== "ready" || responses.length === 0) return;
-    const updates = new Map();
-    let n = 0, changed = false;
+
+    // Pick the NEWEST not-yet-applied response per matched guest — a later "yes"
+    // must win over an earlier "maybe" regardless of the fetch order.
+    const chosen = new Map(); // guestId -> { r, guest, ts }
+    let changed = false;
     responses.forEach(r => {
       if (autoDone.current.has(r.id)) return;
       const guest = matchGuest(r);
       if (!guest) return;                       // unmatched → manual add
       autoDone.current.add(r.id); changed = true;
+      const ts = new Date(r.created_at).getTime() || 0;
+      const prev = chosen.get(guest.id);
+      if (!prev || ts >= prev.ts) chosen.set(guest.id, { r, guest, ts });
+    });
+
+    const updates = new Map();
+    let n = 0;
+    chosen.forEach(({ r, guest }) => {
       if (isApplied(r, guest)) return;          // already reflects it
       const status = respStatus(r), hasCount = status !== "no";
       const comps = Array.isArray(r.companions) ? r.companions.filter(Boolean) : [];
@@ -172,6 +196,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       });
       n++;
     });
+
     if (changed) { try { localStorage.setItem(appliedKey, JSON.stringify([...autoDone.current])); } catch { /* ignore */ } }
     if (n === 0) return;
     patchEvent(e => ({ ...e, guests: e.guests.map(g => updates.has(g.id) ? { ...g, ...updates.get(g.id) } : g) }));

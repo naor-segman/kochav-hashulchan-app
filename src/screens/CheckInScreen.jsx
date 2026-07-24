@@ -88,11 +88,14 @@ export default function CheckInScreen({ events, patchEventById }) {
   const totalGifts = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
   const pct = active.length > 0 ? Math.round(nArrived / active.length * 100) : 0;
 
-  const searchTrim = search.trim();
+  const searchTrim  = search.trim();
+  const searchDigits = searchTrim.replace(/\D/g, "");
   const results = searchTrim.length >= 1
     ? active.filter(g =>
         g.name.includes(searchTrim) ||
-        (g.phone && g.phone.replace(/\D/g, "").includes(searchTrim.replace(/\D/g, "")))
+        // Only match on phone when the query actually has digits — otherwise
+        // `"".includes("")` is always true and every phoned guest matches.
+        (searchDigits && g.phone && g.phone.replace(/\D/g, "").includes(searchDigits))
       ).sort((a, b) => a.name.localeCompare(b.name, "he"))
     : [];
 

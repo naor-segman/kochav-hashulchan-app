@@ -48,7 +48,11 @@ async function loadUsersData() {
 
   return (profilesRes.data || []).map((p) => {
     const subs = p.subscriptions || [];
-    const sub  = subs.find((s) => s.status === "active") ?? subs[0];
+    // Prefer a currently-effective plan (active, then trialing) over an arbitrary
+    // historical row PostgREST happened to return first.
+    const sub  = subs.find((s) => s.status === "active")
+              ?? subs.find((s) => s.status === "trialing")
+              ?? subs[0];
     return {
       id:          p.id,
       email:       p.email,

@@ -39,7 +39,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
   ev.tables.forEach(t => {
     const tGuests      = ev.guests.filter(g => ev.seating[g.id] === t.id);
     const typeHe       = TABLE_TYPE_HE[t.type] || t.type;
-    const seatedSeats  = tGuests.reduce((s, g) => s + (g.count != null ? g.count : 1), 0);
+    const seatedSeats  = tGuests.reduce((s, g) => s + (g.count || 1), 0);
     const occupied     = seatedSeats + " / " + t.capacity;
 
     if (tGuests.length === 0) {
@@ -54,7 +54,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
           g.name  || "",
           sideLabel(g.side),
           g.group || "",
-          g.count != null ? g.count : 1,
+          g.count || 1,
           rsvpHe(g.rsvp),
           mealHe(g.meal),
           g.phone || "",
@@ -85,7 +85,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
         g.name  || "",
         sideLabel(g.side),
         g.group || "",
-        g.count != null ? g.count : 1,
+        g.count || 1,
         rsvpHe(g.rsvp),
         mealHe(g.meal),
         g.phone || "",
@@ -111,7 +111,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
         const table = tableMap[ev.seating[g.id]]?.name || "";
         return guestSeatNames(g).map((seatName, idx) => ({
           name: seatName, table, side: sideLabel(g.side),
-          count: idx === 0 ? (g.count != null ? g.count : 1) : "",
+          count: idx === 0 ? (g.count || 1) : "",
           meal: mealHe(g.meal),
           phone: idx === 0 ? (g.phone || "") : "",
           notes: idx === 0 ? (g.notes || "") : "",
@@ -185,7 +185,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
           .map(g => [
             g.name || "",
             tableMap[ev.seating[g.id]]?.name || "",
-            g.count != null ? g.count : 1,
+            g.count || 1,
             g.arrived ? "✓" : "",
             giftAmt(g) > 0 ? giftAmt(g) : "",
           ]),

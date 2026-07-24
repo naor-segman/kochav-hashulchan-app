@@ -59,8 +59,9 @@ export function normalizeEvent(ev) {
     constraints: Array.isArray(ev.constraints) ? ev.constraints : [],
     // Metadata — fall back gracefully for events that predate these fields
     createdAt:   ev.createdAt                  ?? now,
-    // updatedAt defaults to createdAt so old events don't look newer than they are
-    updatedAt:   ev.updatedAt                  ?? ev.createdAt ?? 0,
+    // updatedAt defaults to the RESOLVED createdAt (not raw ev.createdAt) so an
+    // event missing both timestamps doesn't get updatedAt=0 (epoch 1970).
+    updatedAt:   ev.updatedAt                  ?? ev.createdAt ?? now,
     // version 1 = "exists but was never edited under the new schema"
     version:     ev.version                    ?? 1,
     // cloudId — UUID of the Supabase events row; null = never pushed to cloud.
@@ -213,6 +214,12 @@ export function duplicateEvent(ev) {
     lockedGuests: [],
     lockedTables: [],
     costs:       {},
+    // Deep-copy the remaining nested collections so editing the duplicate never
+    // mutates the original (Object.assign only shallow-copies these).
+    customGroups:     Array.isArray(ev.customGroups) ? [...ev.customGroups] : [],
+    customTableTypes: Array.isArray(ev.customTableTypes) ? [...ev.customTableTypes] : [],
+    sideLabels:       ev.sideLabels ? { ...ev.sideLabels } : (ev.sideLabels ?? null),
+    eventSite:        ev.eventSite ? JSON.parse(JSON.stringify(ev.eventSite)) : (ev.eventSite ?? null),
     // Each duplicated event gets its own fresh public-URL tokens so that
     // the copy's RSVP/gift/invite/hostess links don't collide with the original.
     tokens:      { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid(), collab: uid() },

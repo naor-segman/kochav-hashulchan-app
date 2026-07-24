@@ -4,6 +4,10 @@ const MONTHS = ["","ינואר","פברואר","מרץ","אפריל","מאי","�
 
 export const fmtDate = d => {
   if (!d) return null;
-  const parts = d.split("-");
-  return Number(parts[2]) + " ב" + MONTHS[Number(parts[1])] + " " + parts[0];
+  const [y, m, day] = String(d).split("-");
+  const month = MONTHS[Number(m)];
+  // Malformed input (missing/NaN parts) → return the raw string instead of
+  // "NaN בundefined ...".
+  if (!day || !month || Number.isNaN(Number(day))) return String(d);
+  return Number(day) + " ב" + month + " " + y;
 };
