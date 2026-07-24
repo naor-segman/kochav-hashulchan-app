@@ -49,7 +49,9 @@ export function computeQualityScore(guests, tables, constraints, seating, violat
     else if (v.type === "capacity") score -= 10;
   });
 
-  const unassigned = guests.filter(g => !seating[g.id]);
+  // Declined guests don't need a seat — leaving them unseated is not a defect,
+  // so they must not dock the quality score (matches generateSuggestions).
+  const unassigned = guests.filter(g => !seating[g.id] && g.rsvp !== "declined");
   if (unassigned.length > 0) {
     score -= Math.min(20, unassigned.reduce((s, g) => s + (g.count || 1), 0) * 3);
   }

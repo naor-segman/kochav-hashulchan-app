@@ -625,7 +625,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   )}
                   <button className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => {
-                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending", meal: g.meal || MEAL_DEFAULT, giftAmount: g.giftAmount || "", companions: Array.isArray(g.companions) ? g.companions : [] });
+                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending", meal: g.meal || MEAL_DEFAULT, giftAmount: g.giftAmount || "", estGift: g.estGift || "", companions: Array.isArray(g.companions) ? g.companions : [] });
                       setEditId(g.id);
                       window.scrollTo(0, 0);
                     }}>

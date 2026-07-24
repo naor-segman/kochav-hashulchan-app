@@ -25,7 +25,14 @@ function mergeCloudWithLocal(localEvents, cloudEvents) {
     );
     let result = normalized;
     if (localMatch?.floorPlan?.image && !result.floorPlan?.image) {
-      result = { ...result, floorPlan: { ...result.floorPlan, image: localMatch.floorPlan.image } };
+      // Cloud has no floor plan (positions never synced) but local does. Spread
+      // guards against result.floorPlan being null, and tablePositions falls back
+      // to the local ones so locally-placed tables aren't wiped on hydration.
+      result = { ...result, floorPlan: {
+        ...(result.floorPlan || {}),
+        image: localMatch.floorPlan.image,
+        tablePositions: result.floorPlan?.tablePositions ?? localMatch.floorPlan.tablePositions ?? {},
+      } };
     }
     // normalizeEvent always produces a tokens object, so check the raw cloud
     // record (ce) instead of the normalized result — if the DB row had no

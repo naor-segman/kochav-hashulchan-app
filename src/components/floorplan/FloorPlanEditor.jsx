@@ -328,6 +328,19 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         : over.id.startsWith("chip-")           ? over.id.slice(5)
         : null;
       if (toTableId === fromTableId) return;
+      // Capacity guard — mirror SeatingScreen so the map can't overbook a table.
+      if (toTableId) {
+        const table   = ev.tables.find(t => t.id === toTableId);
+        const dragged = ev.guests.find(g => g.id === guestId);
+        const draggedSeats = dragged?.count || 1;
+        const occupied = ev.guests
+          .filter(g => ev.seating[g.id] === toTableId && g.id !== guestId)
+          .reduce((s, g) => s + (g.count || 1), 0);
+        if (table && occupied + draggedSeats > table.capacity) {
+          showToast(`"${table.name}" מלא — ${occupied}/${table.capacity} מקומות תפוסים`, "err");
+          return;
+        }
+      }
       patchEvent(e => ({
         ...e,
         seating: toTableId

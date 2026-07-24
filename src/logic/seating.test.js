@@ -58,6 +58,29 @@ describe("autoAssign", () => {
     expect(seating.a).toBe("t2");
   });
 
+  // Regression for the "seatUnassigned" overbooking fix: when a guest's seat is
+  // preserved via the locked base AND that guest is in the guests list, its seats
+  // count toward capacity, so a new guest can't overbook the table.
+  it("counts a locked guest's seats toward capacity (no overbooking)", () => {
+    const guests = [g("big", { count: 8 }), g("new", { count: 4 })];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const seating = autoAssign(guests, tables, [], { big: "t1" });
+    expect(seating.big).toBe("t1");
+    // t1 has 8 of 10 used → 4 won't fit → new must go to t2, not overbook t1
+    expect(seatsAt(seating, guests, "t1")).toBeLessThanOrEqual(10);
+    expect(seating.new).toBe("t2");
+  });
+
+  // Documents the footgun the overbooking bug hit: a locked seat whose guest is
+  // absent from `guests` is NOT counted (autoAssign only knows guests it receives).
+  it("does not count a locked seat when its guest is absent from the guests list", () => {
+    const guests = [g("new", { count: 4 })]; // 'ghost' is locked at t1 but not passed in
+    const tables = [t("t1", 10)];
+    const seating = autoAssign(guests, tables, [], { ghost: "t1" });
+    expect(seating.ghost).toBe("t1");   // preserved
+    expect(seating.new).toBe("t1");     // ghost's seats unknown → t1 looks empty
+  });
+
   it("seats an unlocked guest with a locked partner at the locked table", () => {
     const guests = [g("a"), g("b")];
     const tables = [t("t1", 10), t("t2", 10)];
