@@ -210,6 +210,7 @@
   - **normalizeEvent** — `updatedAt` יכל להיות 0 (1970) · **duplicateEvent** — deep-copy ל-customGroups/eventSite/sideLabels · **fmtDate** — "NaN בundefined" על קלט שגוי · **AdminUsers** — תוכנית מוצגת נכונה (active→trialing).
   - 📝 המנהל, שערי-התוכנית, ומיפויי-הענן — **נבדקו ונקיים** (אין שיתוף cloudId/טוקנים בשכפול, אין מוטציות על שורה שגויה).
   - טסטים חדשים: dateFormat + eventHelpers. **45→53 טסטים.**
+- ✅ 🆕 **כיסוי טסטים מורחב (הגנת רגרסיה)** — `cloudSync.test.js` (round-trip local↔cloud — היה תופס את באג customTableTypes + fallback טוקן-NULL) + `featureGates.test.js` (גבולות תוכניות). **53→68 טסטים.**
 - 🔨 בקרה מתמשכת בכל סבב
 
 ---
