@@ -225,6 +225,45 @@
 
 .chipHandle:active { cursor: grabbing; }
 
+/* Remove-from-sketch button, tucked at the end of the header row (the capacity
+   pill's auto margin already pushes this group to the end). */
+.chipRemove {
+  margin-inline-start: 3px;
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--nav-text);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.chipRemove:hover { background: var(--red); color: #fff; }
+
+/* Resize grip — bottom (inline-end) corner, inside the chip so it isn't clipped. */
+.chipResize {
+  position: absolute;
+  bottom: 3px;
+  inset-inline-end: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px 4px 4px 0;
+  background: var(--accent);
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 5;
+  opacity: 0.75;
+}
+.chipResize:hover { opacity: 1; }
+
 .chipCap {
   font-size: 10px;
   font-weight: 600;

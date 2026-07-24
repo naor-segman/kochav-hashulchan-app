@@ -64,7 +64,7 @@ function DraggableGuestPill({ guest, tableId }) {
   );
 }
 
-function TableChipOnImage({ table, guests }) {
+function TableChipOnImage({ table, guests, size = 1, onRemove, onResize }) {
   const seated = guests.reduce((s, g) => s + (g.count || 1), 0);
   const pct    = table.capacity > 0 ? seated / table.capacity : 0;
 
@@ -82,6 +82,24 @@ function TableChipOnImage({ table, guests }) {
     setDropRef(node);
   }, [setDragRef, setDropRef]);
 
+  // Pointer-based resize (separate from dnd-kit) — drag the corner handle to
+  // match the chip to the physical table size. Live-updates the stored scale.
+  const startResize = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const x0 = e.clientX, y0 = e.clientY, s0 = size;
+    const move = (ev) => {
+      const d = ((ev.clientX - x0) + (ev.clientY - y0)) / 240; // down/out → bigger
+      onResize(Math.min(2, Math.max(0.6, +(s0 + d).toFixed(2))));
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
   return (
     <div
       ref={mergedRef}
@@ -90,9 +108,10 @@ function TableChipOnImage({ table, guests }) {
         isDragging ? styles.chipDragging : "",
         isOver     ? styles.chipOver     : "",
       ].filter(Boolean).join(" ")}
+      style={{ transform: `translate(-50%, -50%) scale(${size})` }}
       onClick={e => e.stopPropagation()}
     >
-      <div className={styles.chipHandle} {...dragAttrs} {...dragListeners}>
+      <div className={styles.chipHandle} {...dragAttrs} {...dragListeners} title="גררו כדי להזיז">
         ⠿ {table.name}
         <span className={[
           styles.chipCap,
@@ -101,6 +120,13 @@ function TableChipOnImage({ table, guests }) {
         ].filter(Boolean).join(" ")}>
           {seated}/{table.capacity}
         </span>
+        <button
+          className={styles.chipRemove}
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="הסירו מהסקיצה"
+          aria-label="הסירו מהסקיצה"
+        >✕</button>
       </div>
       <div className={styles.chipGuests}>
         {guests.length === 0
@@ -113,6 +139,13 @@ function TableChipOnImage({ table, guests }) {
           <span className={styles.chipEmpty}>+{guests.length - 6} עוד</span>
         )}
       </div>
+
+      <span
+        className={styles.chipResize}
+        onPointerDown={startResize}
+        title="גררו כדי לשנות גודל"
+        aria-label="שנו גודל"
+      />
     </div>
   );
 }
@@ -284,6 +317,33 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
     showToast("\"" + (t?.name ?? "שולחן") + "\" מוקם על הסקיצה ✓");
   };
 
+  // Remove a table from the sketch (unplace) — it returns to the "not placed"
+  // strip. The table itself stays in the event; only its position is dropped.
+  const removeFromSketch = (tableId) => {
+    patchEvent(e => {
+      const tp = { ...(e.floorPlan?.tablePositions ?? {}) };
+      delete tp[tableId];
+      return { ...e, floorPlan: { ...e.floorPlan, tablePositions: tp } };
+    });
+    const t = ev.tables.find(t => t.id === tableId);
+    showToast("\"" + (t?.name ?? "שולחן") + "\" הוסר מהסקיצה");
+  };
+
+  // Set a table chip's size (scale) so it can match the physical table.
+  const setTableSize = (tableId, size) => {
+    patchEvent(e => {
+      const cur = e.floorPlan?.tablePositions?.[tableId];
+      if (!cur) return e;
+      return {
+        ...e,
+        floorPlan: {
+          ...e.floorPlan,
+          tablePositions: { ...e.floorPlan.tablePositions, [tableId]: { ...cur, size } },
+        },
+      };
+    });
+  };
+
   // ── DnD ───────────────────────────────────────────────────────────────────
 
   const handleDragStart  = ({ active }) => setActiveId(active.id);
@@ -311,6 +371,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
             tablePositions: {
               ...e.floorPlan?.tablePositions,
               [tableId]: {
+                ...cur, // keep size
                 x: Math.min(0.94, Math.max(0.06, cur.x + delta.x / width)),
                 y: Math.min(0.94, Math.max(0.06, cur.y + delta.y / height)),
               },
@@ -460,7 +521,13 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
                 key={table.id}
                 style={{ position: "absolute", left: pos.x * 100 + "%", top: pos.y * 100 + "%" }}
               >
-                <TableChipOnImage table={table} guests={guests} />
+                <TableChipOnImage
+                  table={table}
+                  guests={guests}
+                  size={pos.size ?? 1}
+                  onRemove={() => removeFromSketch(table.id)}
+                  onResize={(s) => setTableSize(table.id, s)}
+                />
               </div>
             );
           })}
