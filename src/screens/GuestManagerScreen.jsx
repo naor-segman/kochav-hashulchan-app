@@ -531,18 +531,18 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             placeholder="🔍 חיפוש לפי שם..."
             onChange={e => setFilter(p => Object.assign({}, p, { search: e.target.value }))}
           />
-          <select className={base.select} style={{ minWidth: 130 }} value={filter.side}
+          <select className={base.select} aria-label="סינון לפי צד" style={{ minWidth: 130 }} value={filter.side}
             onChange={e => setFilter(p => Object.assign({}, p, { side: e.target.value }))}>
             <option value="all">כל הצדדים</option>
             <option value="bride">{sideLabel("bride")}</option>
             <option value="groom">{sideLabel("groom")}</option>
           </select>
-          <select className={base.select} style={{ minWidth: 140 }} value={filter.group}
+          <select className={base.select} aria-label="סינון לפי קבוצה" style={{ minWidth: 140 }} value={filter.group}
             onChange={e => setFilter(p => Object.assign({}, p, { group: e.target.value }))}>
             <option value="all">כל הקבוצות</option>
             {groups.map(g => <option key={g}>{g}</option>)}
           </select>
-          <select className={base.select} style={{ minWidth: 120 }} value={filter.rsvp}
+          <select className={base.select} aria-label="סינון לפי סטטוס הגעה" style={{ minWidth: 120 }} value={filter.rsvp}
             onChange={e => setFilter(p => Object.assign({}, p, { rsvp: e.target.value }))}>
             <option value="all">כל הסטטוסים</option>
             {RSVP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
