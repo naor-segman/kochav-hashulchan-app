@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeEvent, duplicateEvent } from "./eventHelpers.js";
+import { normalizeEvent, duplicateEvent, seatingTotals } from "./eventHelpers.js";
 
 describe("normalizeEvent — timestamps", () => {
   it("defaults updatedAt to createdAt (never epoch 0) when both are missing", () => {
@@ -47,5 +47,47 @@ describe("duplicateEvent", () => {
     dup.eventSite.schedule.push({ id: "s2", time: "20:00", title: "ריקודים" });
     expect(base.customGroups).toEqual(["חברים מהצבא"]);   // original unchanged
     expect(base.eventSite.schedule).toHaveLength(1);        // original unchanged
+  });
+});
+
+describe("seatingTotals — declined guests can't inflate the counters", () => {
+  const ev = {
+    guests: [
+      { id: "a", count: 4, rsvp: "confirmed" },
+      { id: "b", count: 6, rsvp: "pending" },
+      { id: "c", count: 7, rsvp: "confirmed" },
+      { id: "d", count: 2, rsvp: "declined" }, // declined but still seated
+    ],
+    seating: { a: "t1", b: "t1", d: "t2" },
+  };
+
+  it("counts seats active-only on both sides (the 19/17 bug)", () => {
+    const t = seatingTotals(ev.guests, ev.seating);
+    // a(4) + b(6) seated = 10 — the declined d(2) must NOT be added
+    expect(t.assignedSeats).toBe(10);
+    // a(4) + b(6) + c(7) = 17 — declined excluded here too
+    expect(t.totalSeats).toBe(17);
+    expect(t.assignedSeats).toBeLessThanOrEqual(t.totalSeats);
+  });
+
+  it("counts records active-only on both sides", () => {
+    const t = seatingTotals(ev.guests, ev.seating);
+    expect(t.assignedRecords).toBe(2);
+    expect(t.totalRecords).toBe(3);
+  });
+
+  it("treats a missing/zero/negative count as one seat", () => {
+    const t = seatingTotals(
+      [{ id: "x" }, { id: "y", count: 0 }, { id: "z", count: -3 }],
+      { x: "t1", y: "t1", z: "t1" }
+    );
+    expect(t.assignedSeats).toBe(3);
+    expect(t.totalSeats).toBe(3);
+  });
+
+  it("survives empty / missing input", () => {
+    expect(seatingTotals(undefined, undefined)).toEqual({
+      assignedRecords: 0, totalRecords: 0, assignedSeats: 0, totalSeats: 0,
+    });
   });
 });

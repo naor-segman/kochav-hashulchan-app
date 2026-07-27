@@ -11,7 +11,7 @@ import {
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
-import { getSideLabel, getSideLabels, guestSeatNames } from "../utils/eventHelpers.js";
+import { getSideLabel, getSideLabels, guestSeatNames, seatingTotals } from "../utils/eventHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import Banner from "../components/feedback/Banner.jsx";
 import CapBar from "../components/ui/CapBar.jsx";
@@ -86,12 +86,17 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const activeGuests   = ev.guests.filter(g => g.rsvp !== "declined");
   const declinedGuests = ev.guests.filter(g => g.rsvp === "declined");
   const unassigned     = activeGuests.filter(g => !ev.seating[g.id]);
+  // nAssigned counts every seated row (declined included) — it drives the
+  // "recompute / clear" confirmations, which really do act on all of them.
   const nAssigned      = ev.guests.filter(g => ev.seating[g.id]).length;
-  // Active-only seated count — pairs with activeGuests.length so the UI can't
-  // show e.g. "6/5" when a declined guest is still seated.
-  const nActiveAssigned = activeGuests.filter(g => ev.seating[g.id]).length;
-  const nAssignedSeats = ev.guests.filter(g => ev.seating[g.id]).reduce((s, g) => s + (g.count || 1), 0);
-  const totalSeats     = activeGuests.reduce((s, g) => s + (g.count || 1), 0);
+  // Displayed counters are active-only on BOTH sides, so a declined-but-seated
+  // guest can't inflate the numerator into "6/5" records or "19/17" seats.
+  const {
+    assignedRecords: nActiveAssigned,
+    totalRecords:    nActiveTotal,
+    assignedSeats:   nAssignedSeats,
+    totalSeats,
+  } = seatingTotals(ev.guests, ev.seating);
   const totalCap       = ev.tables.reduce((s, t) => s + t.capacity, 0);
   const allSeated      = activeGuests.length > 0 && activeGuests.every(g => ev.seating[g.id]);
   const noProblems     = violations.length === 0;
@@ -1038,7 +1043,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             </p>
           )}
           <p className={styles.pvStats}>
-            {nAssigned}/{ev.guests.length} רשומות שובצו ({nAssignedSeats}/{totalSeats} מקומות) · {ev.tables.length} שולחנות · {totalCap} קיבולת האולם
+            {nActiveAssigned}/{nActiveTotal} רשומות שובצו ({nAssignedSeats}/{totalSeats} מקומות) · {ev.tables.length} שולחנות · {totalCap} קיבולת האולם
           </p>
           <div className={styles.pvModeLabel}>
             {printMode === "compact" ? "גרסת צוות האולם — שמות בלבד" : "סידור הושבה מלא"}

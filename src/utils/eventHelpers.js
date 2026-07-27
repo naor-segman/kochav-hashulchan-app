@@ -299,6 +299,32 @@ export function getSideLabel(ev, side) {
  *
  * @returns {string[]} one label per seat, length === guest seat count.
  */
+/**
+ * Seat + record totals for the seating screens.
+ *
+ * Declined guests are excluded from BOTH the numerator and the denominator.
+ * Counting them on only one side is what produced "19 / 17 מקומות שובצו": a
+ * guest who declined but was still sitting at a table inflated the assigned
+ * seats while the total only summed active guests.
+ *
+ * @param {Array}  guests  event guest rows
+ * @param {Object} seating { [guestId]: tableId }
+ * @returns {{assignedRecords:number,totalRecords:number,assignedSeats:number,totalSeats:number}}
+ */
+export function seatingTotals(guests, seating) {
+  const list   = Array.isArray(guests) ? guests : [];
+  const map    = seating || {};
+  const active = list.filter(g => g && g.rsvp !== "declined");
+  const seats  = g => Math.max(1, g.count || 1);
+  const placed = active.filter(g => map[g.id]);
+  return {
+    assignedRecords: placed.length,
+    totalRecords:    active.length,
+    assignedSeats:   placed.reduce((s, g) => s + seats(g), 0),
+    totalSeats:      active.reduce((s, g) => s + seats(g), 0),
+  };
+}
+
 export function guestSeatNames(g) {
   if (!g) return [];
   const base  = (g.name || "").trim() || "אורח";
