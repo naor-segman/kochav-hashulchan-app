@@ -257,6 +257,9 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   const [placingId,  setPlacingId]  = useState(null);
   // Kind of venue fixture waiting to be dropped on the sketch (null = none).
   const [placingKind, setPlacingKind] = useState(null);
+  // "map" = the sketch, "cards" = a plain occupancy list. The sketch is the
+  // point of this editor, but it is useless for scanning capacity at a glance.
+  const [view, setView] = useState("map");
   const [detecting,  setDetecting]  = useState(false);
   const [detResult,  setDetResult]  = useState(null);
   const [activeId,   setActiveId]   = useState(null);
@@ -556,6 +559,17 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
 
       {/* Toolbar */}
       <div className={styles.toolbar}>
+        <div className={styles.viewToggle} role="group" aria-label="תצוגת מפת האולם">
+          {[["map", "מפה"], ["cards", "כרטיסים"]].map(([key, label]) => (
+            <button
+              key={key}
+              className={[styles.viewBtn, view === key ? styles.viewActive : ""].filter(Boolean).join(" ")}
+              onClick={() => setView(key)}
+              aria-pressed={view === key}
+              type="button"
+            >{label}</button>
+          ))}
+        </div>
         <button className={styles.toolBtn} onClick={() => fileInputRef.current?.click()}>
           החליפו תמונה
         </button>
@@ -596,8 +610,47 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         </div>
       )}
 
+      {/* Card view — every table with its occupancy, sketch or not */}
+      {view === "cards" && (
+        <div className={styles.cardGrid}>
+          {ev.tables.map(t => {
+            const tGuests = ev.guests.filter(g => ev.seating[g.id] === t.id);
+            const seats   = tGuests.reduce((n, g) => n + (g.count || 1), 0);
+            const pct     = t.capacity > 0 ? seats / t.capacity : 0;
+            return (
+              <div
+                key={t.id}
+                className={[
+                  styles.tableCard,
+                  pct > 1        ? styles.cardOver :
+                  pct > 0.85     ? styles.cardWarn : "",
+                ].filter(Boolean).join(" ")}
+              >
+                <div className={styles.cardHead}>
+                  <span aria-hidden="true" className={styles.chipShape}>{tableShape(t).glyph}</span>
+                  <span className={styles.cardName}>{t.name}</span>
+                  <span className={styles.cardCap}>{seats}/{t.capacity}</span>
+                </div>
+                <div className={styles.cardBody}>
+                  {tGuests.length === 0
+                    ? <span className={styles.chipEmpty}>ריק</span>
+                    : tGuests.map(g => (
+                        <span key={g.id} className={styles.guestPill}>
+                          {g.name}
+                          {(g.count || 1) > 1 && <span className={styles.pillCount}>×{g.count}</span>}
+                        </span>
+                      ))}
+                </div>
+                {!positions[t.id] && <span className={styles.cardUnplaced}>לא מוקם על הסקיצה</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Floor plan image with table chips */}
       <div
+        hidden={view !== "map"}
         className={[styles.imageContainer, (placingId || placingKind) ? styles.placingMode : ""].filter(Boolean).join(" ")}
         ref={containerRef}
         onClick={handleImageClick}

@@ -499,3 +499,88 @@
   .venueRemove { opacity: 1; }
   .venueMarker { font-size: 10px; padding: 3px 7px; }
 }
+
+/* ── View toggle (map / cards) ───────────────────────────────────────────── */
+.viewToggle {
+  display: inline-flex;
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-inline-end: 4px;
+}
+
+.viewBtn {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border: none;
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.viewBtn:hover { background: var(--accent-bg); color: var(--accent); }
+.viewActive { background: var(--accent); color: #fff; }
+.viewActive:hover { background: var(--accent); color: #fff; }
+
+/* ── Card view ───────────────────────────────────────────────────────────── */
+/* The sketch answers "where", this answers "how full" — the thing you cannot
+   read off a map without counting chairs. */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.tableCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cardWarn { border-color: var(--warn); }
+.cardOver { border-color: var(--red); background: rgba(var(--accent-rgb), 0.03); }
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.cardName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardCap {
+  margin-inline-start: auto;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cardOver .cardCap { color: var(--red); }
+.cardWarn .cardCap { color: var(--warn); }
+
+.cardBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cardUnplaced {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
