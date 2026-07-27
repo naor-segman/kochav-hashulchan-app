@@ -19,6 +19,7 @@ const NAV = [
   { id: "site",        label: "אתר האירוע",   tool: true },
   { id: "costs",       label: "תקציב",        tool: true },
   { id: "tasks",       label: "משימות",       tool: true },
+  { id: "announce",    label: "הזמנות",       tool: true },
 ];
 
 export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {

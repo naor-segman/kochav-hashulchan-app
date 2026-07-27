@@ -144,3 +144,21 @@ describe("cloud round-trip — tasks", () => {
     expect(back.tasks).toEqual([]);
   });
 });
+
+describe("cloud round-trip — announcements", () => {
+  it("carries Save-the-Date and the invitation to the cloud and back", () => {
+    const announcements = {
+      saveTheDate: { enabled: true,  themeKey: "sky", headline: "שמרו את התאריך" },
+      invitation:  { enabled: false, themeKey: "sky", headline: "מוזמנים" },
+    };
+    const local = {
+      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      guests: [], tables: [], seating: {}, constraints: [], announcements,
+    };
+    const back = mapCloudEventToLocalEvent({
+      id: "c1", user_id: "u1", name: local.name, event_date: local.date,
+      payload: mapLocalEventToCloudPayload(local, "u1").payload,
+    });
+    expect(back.announcements).toEqual(announcements);
+  });
+});

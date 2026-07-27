@@ -1,0 +1,211 @@
+/* Public Save-the-Date / invitation.
+   Scoped entirely to --a-* variables set inline from the chosen theme, so the
+   page never inherits the app's own palette. */
+
+.root {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--a-bg);
+  color: var(--a-ink);
+  font-family: "Heebo", system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Without a wash, light headline text over a bright photo is unreadable.
+   Kept subtle so the photo is still the thing you notice. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, .28) 0%,
+    rgba(0, 0, 0, .12) 40%,
+    rgba(0, 0, 0, .45) 100%
+  );
+}
+.root:not(:has(.photo)) .scrim { display: none; }
+
+.content {
+  position: relative;
+  flex: 1;
+  display: flex;
+  padding: 28px 20px;
+}
+
+.card {
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Layouts ─────────────────────────────────────────────────────────────── */
+.layout_center .content { align-items: center; }
+.layout_bottom .content { align-items: flex-end; }
+
+.layout_card .content { align-items: center; }
+.layout_card .card {
+  background: var(--a-surface);
+  border: 1px solid var(--a-line);
+  border-radius: 22px;
+  padding: 34px 26px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .18);
+}
+
+/* Over a photo without the card treatment, text needs its own contrast. */
+.layout_center:has(.photo) .card,
+.layout_bottom:has(.photo) .card {
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, .5);
+}
+.layout_center:has(.photo) .eyebrow,
+.layout_bottom:has(.photo) .eyebrow,
+.layout_center:has(.photo) .date,
+.layout_bottom:has(.photo) .date,
+.layout_center:has(.photo) .venue,
+.layout_bottom:has(.photo) .venue { color: rgba(255, 255, 255, .92); }
+
+/* ── Type ────────────────────────────────────────────────────────────────── */
+.eyebrow {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  color: var(--a-accent);
+  text-transform: uppercase;
+}
+
+.names {
+  margin: 2px 0 0;
+  font-family: var(--a-font);
+  font-size: clamp(30px, 9vw, 52px);
+  font-weight: 700;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.headline {
+  margin: 0;
+  font-family: var(--a-font);
+  font-size: clamp(19px, 5vw, 26px);
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.date {
+  margin: 8px 0 0;
+  font-size: clamp(16px, 4.4vw, 20px);
+  font-weight: 700;
+  color: var(--a-ink);
+}
+
+.venue {
+  margin: 0;
+  font-size: 15px;
+  color: var(--a-muted);
+}
+
+.countdown {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--a-muted);
+}
+.countdown b {
+  font-size: 22px;
+  color: var(--a-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.message {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--a-muted);
+  white-space: pre-line;
+}
+
+/* ── Actions ─────────────────────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.btnPrimary,
+.btnGhost {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: filter .15s ease, background .15s ease;
+}
+
+.btnPrimary {
+  background: var(--a-accent);
+  color: var(--a-on-accent);
+  border: none;
+}
+.btnPrimary:hover { filter: brightness(1.08); }
+
+.btnGhost {
+  background: transparent;
+  color: inherit;
+  border: 1.5px solid currentColor;
+  opacity: .9;
+}
+.btnGhost:hover { background: rgba(255, 255, 255, .14); opacity: 1; }
+
+.layout_card .btnGhost { color: var(--a-ink); border-color: var(--a-line); }
+.layout_card .btnGhost:hover { background: var(--a-accent-soft); }
+
+/* ── Footer / states ─────────────────────────────────────────────────────── */
+.footer {
+  position: relative;
+  padding: 14px;
+  text-align: center;
+}
+
+.brand {
+  font-size: 12px;
+  color: var(--a-muted);
+  text-decoration: none;
+  opacity: .8;
+}
+.layout_center:has(.photo) .brand,
+.layout_bottom:has(.photo) .brand { color: rgba(255, 255, 255, .8); }
+
+.state {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Heebo", system-ui, sans-serif;
+  text-align: center;
+  padding: 24px;
+}
+
+.star { font-size: 30px; color: var(--accent); }
+.stateSub { font-size: 13.5px; color: var(--muted); margin: 0; }

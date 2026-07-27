@@ -51,6 +51,8 @@ const GiftWallScreen = lazy(() => import("./screens/GiftWallScreen.jsx"));
 // App screens — lazy to keep initial bundle lean
 const CostScreen          = lazy(() => import("./screens/CostScreen.jsx"));
 const TasksScreen         = lazy(() => import("./screens/TasksScreen.jsx"));
+const AnnouncementsEditorScreen = lazy(() => import("./screens/AnnouncementsEditorScreen.jsx"));
+const AnnouncementScreen        = lazy(() => import("./screens/AnnouncementScreen.jsx"));
 const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
 const CollabReviewScreen  = lazy(() => import("./screens/CollabReviewScreen.jsx"));
 const EventSiteEditorScreen = lazy(() => import("./screens/EventSiteEditorScreen.jsx"));
@@ -114,6 +116,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
         <Route path="collab"      element={<Suspense fallback={null}><CollabReviewScreen {...sp} /></Suspense>} />
         <Route path="costs"       element={<Suspense fallback={null}><CostScreen activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
         <Route path="tasks"       element={<Suspense fallback={null}><TasksScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
+        <Route path="announce"    element={<Suspense fallback={null}><AnnouncementsEditorScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
         <Route index              element={<Navigate to="setup" replace />} />
       </Routes>
       {toast && <Toast msg={toast.msg} variant={toast.variant} />}
@@ -127,6 +130,17 @@ function EventSitePreview({ events }) {
   const ev = events.find(e => e.id === eventId);
   if (!ev) return <Navigate to="/app" replace />;
   return <Suspense fallback={null}><EventSiteScreen localEvent={ev} /></Suspense>;
+}
+
+// Host-only draft preview of a Save-the-Date / invitation. Renders from local
+// data so the host sees the page before publishing — and before the event has
+// ever been synced to the cloud, where the public route would find nothing.
+function AnnouncementPreview({ events }) {
+  const { eventId, kind } = useParams();
+  const ev = events.find(e => e.id === eventId);
+  if (!ev) return <Navigate to="/app" replace />;
+  const safeKind = kind === "saveTheDate" ? "saveTheDate" : "invitation";
+  return <Suspense fallback={null}><AnnouncementScreen kind={safeKind} localEvent={ev} /></Suspense>;
 }
 
 // ── Root app ──────────────────────────────────────────────────────────────────
@@ -258,6 +272,8 @@ export default function App() {
       <Route path="/rsvp/:token"      element={<Suspense fallback={null}><RSVPScreen /></Suspense>} />
       <Route path="/invite/:token"    element={<Suspense fallback={null}><EventSiteScreen /></Suspense>} />
       <Route path="/card/:token"      element={<Suspense fallback={null}><InviteScreen /></Suspense>} />
+      <Route path="/save-the-date/:token" element={<Suspense fallback={null}><AnnouncementScreen kind="saveTheDate" /></Suspense>} />
+      <Route path="/invitation/:token"    element={<Suspense fallback={null}><AnnouncementScreen kind="invitation" /></Suspense>} />
       <Route path="/hostess/:token"   element={<Suspense fallback={null}><HostessScreen /></Suspense>} />
       <Route path="/collab/:token"    element={<Suspense fallback={null}><CollabScreen /></Suspense>} />
       {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}
@@ -269,6 +285,10 @@ export default function App() {
       <Route
         path="/events/:eventId/preview-site"
         element={<EventSitePreview events={events} />}
+      />
+      <Route
+        path="/events/:eventId/preview-announce/:kind"
+        element={<AnnouncementPreview events={events} />}
       />
       <Route
         path="/events/:eventId/*"

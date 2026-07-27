@@ -1,5 +1,6 @@
 import { uid } from "./uid.js";
 import { defaultEventSite } from "../data/eventSiteTemplates.js";
+import { normalizeAnnouncements } from "../data/announcementTemplates.js";
 
 // ── Event schema helpers ──────────────────────────────────────────────────────
 //
@@ -75,6 +76,9 @@ export function normalizeEvent(ev) {
     // Planning checklist. Kept on the event (not a separate store) so it
     // duplicates, syncs and exports with everything else.
     tasks:        Array.isArray(ev.tasks) ? ev.tasks : [],
+    // Save-the-Date + designed invitation. Both ride on the invite token,
+    // so adding them needed no migration and no new public RPC.
+    announcements: normalizeAnnouncements(ev.announcements, ev.type),
     // Floor plan — optional venue sketch uploaded by the user.
     // image: base64 data URL (JPEG, compressed client-side).
     // tablePositions: { [tableId]: { x, y } } — fractional positions (0-1) on the image.

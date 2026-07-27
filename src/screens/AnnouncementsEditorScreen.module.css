@@ -1,0 +1,185 @@
+/* ── Which of the two pages we're editing ────────────────────────────────── */
+.kindTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.kindTab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), color var(--transition);
+}
+.kindTab:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.kindActive {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+/* Published state has to be visible without opening the tab, otherwise you
+   can't tell at a glance which of the two is live. */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border2);
+  flex-shrink: 0;
+}
+.dotOn { background: var(--green); }
+
+/* ── Publish + share ─────────────────────────────────────────────────────── */
+.publishRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.shareRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.shareInput {
+  flex: 1;
+  min-width: 200px;
+  font-size: 13px;
+}
+
+.previewStage {
+  margin-top: 14px;
+  margin-inline: auto;
+  max-width: 390px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.previewFrame {
+  display: block;
+  width: 100%;
+  height: 620px;
+  border: 0;
+  background: var(--surface);
+}
+
+/* ── Design pickers ──────────────────────────────────────────────────────── */
+.themeGrid,
+.fontGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.themeSwatch,
+.fontSwatch,
+.layoutBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 13px;
+  min-width: 78px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+.themeSwatch:hover,
+.fontSwatch:hover,
+.layoutBtn:hover { border-color: var(--accent-border); background: var(--accent-bg); }
+
+.themeActive {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  box-shadow: var(--shadow-accent);
+}
+
+.themeColors {
+  display: flex;
+  gap: 3px;
+}
+.themeColors span {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, .08);
+}
+
+.swatchName {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.fontSample {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.layoutBtn {
+  flex-direction: row;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  padding: 9px 18px;
+}
+
+/* ── Photo ───────────────────────────────────────────────────────────────── */
+.photoRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.photoThumb {
+  width: 60px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* ── Toggles ─────────────────────────────────────────────────────────────── */
+.toggles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+}
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+.toggle:hover { border-color: var(--accent-border); }

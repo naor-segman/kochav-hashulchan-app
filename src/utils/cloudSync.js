@@ -80,6 +80,7 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       floorPlanPositions: localEvent.floorPlan?.tablePositions ?? null,
       floorPlanElements:  localEvent.floorPlan?.elements ?? null,
       tasks:              Array.isArray(localEvent.tasks) ? localEvent.tasks : [],
+      announcements:      localEvent.announcements ?? null,
     },
   };
 }
@@ -120,6 +121,7 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     lockedGuests:     Array.isArray(p.lockedGuests) ? p.lockedGuests : [],
     lockedTables:     Array.isArray(p.lockedTables) ? p.lockedTables : [],
     tasks:            Array.isArray(p.tasks) ? p.tasks : [],
+    announcements:    p.announcements ?? null,
     // Prefer the scalar token column, but fall back per-token to the payload's
     // tokens object. A column that is NULL (e.g. added by a later migration)
     // must not clobber an already-shared token still held in payload.tokens —
