@@ -99,6 +99,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const lockedGuestsSet = useMemo(() => new Set(ev.lockedGuests || []), [ev.lockedGuests]);
   const isGuestLocked   = id => lockedGuestsSet.has(id);
+  const lockedTablesSet = useMemo(() => new Set(ev.lockedTables || []), [ev.lockedTables]);
+  const isTableLocked   = id => lockedTablesSet.has(id);
 
   const activeGuests   = ev.guests.filter(g => g.rsvp !== "declined");
   const declinedGuests = ev.guests.filter(g => g.rsvp === "declined");
@@ -177,9 +179,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       "ניתן לבטל עד 20 פעולות אחרי ההרצה."
     )) return;
     pushHistory();
+    // A locked TABLE has to pin its occupants too, otherwise "recompute" quietly
+    // scattered them — the lock only ever reached the suggestions engine.
     const lockedGuestIds = new Set(ev.lockedGuests || []);
     const lockedSeating  = Object.fromEntries(
-      Object.entries(ev.seating).filter(([id]) => lockedGuestIds.has(id))
+      Object.entries(ev.seating).filter(
+        ([id, tid]) => lockedGuestIds.has(id) || lockedTablesSet.has(tid)
+      )
     );
     const newSeating = autoAssign(activeGuests, ev.tables, ev.constraints, lockedSeating);
     patchEvent(e => Object.assign({}, e, { seating: newSeating }));
@@ -231,8 +237,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     });
   };
 
-  const lockedTablesSet = useMemo(() => new Set(ev.lockedTables || []), [ev.lockedTables]);
-  const isTableLocked   = id => lockedTablesSet.has(id);
 
   const toggleGuestArrived = (guestId) => {
     patchEvent(e => ({

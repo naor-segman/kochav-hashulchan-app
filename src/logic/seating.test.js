@@ -156,3 +156,47 @@ describe("computeViolations", () => {
     expect(v).toHaveLength(0);
   });
 });
+
+describe("autoAssign — locked tables pin their occupants", () => {
+  // The screen turns a locked TABLE into locked seating entries before calling
+  // autoAssign. This pins the contract that entry is honoured, so a recompute
+  // can never scatter a head table again.
+  it("keeps every guest sitting at a locked table exactly where they are", () => {
+    const guests = [
+      { id: "p1", name: "אמא",  side: "bride", group: "הורים", count: 1 },
+      { id: "p2", name: "אבא",  side: "bride", group: "הורים", count: 1 },
+      { id: "f1", name: "חבר1", side: "groom", group: "חברים", count: 1 },
+      { id: "f2", name: "חבר2", side: "groom", group: "חברים", count: 1 },
+    ];
+    const tables = [
+      { id: "head", name: "ראשי", capacity: 4 },
+      { id: "t2",   name: "2",    capacity: 4 },
+    ];
+    // "head" is locked, so its two occupants arrive as locked seating.
+    const lockedSeating = { p1: "head", p2: "head" };
+
+    const out = autoAssign(guests, tables, [], lockedSeating);
+
+    expect(out.p1).toBe("head");
+    expect(out.p2).toBe("head");
+    expect(Object.keys(out)).toHaveLength(4);
+  });
+
+  it("counts a locked table's occupants against its capacity", () => {
+    const guests = [
+      { id: "a", name: "a", side: "bride", group: "g", count: 3 },
+      { id: "b", name: "b", side: "bride", group: "g", count: 3 },
+      { id: "c", name: "c", side: "groom", group: "g", count: 3 },
+    ];
+    const tables = [
+      { id: "locked", name: "נעול", capacity: 4 },
+      { id: "free",   name: "פנוי", capacity: 10 },
+    ];
+    const out = autoAssign(guests, tables, [], { a: "locked" });
+
+    expect(out.a).toBe("locked");
+    // a takes 3 of the locked table's 4 seats — nobody else fits there.
+    const atLocked = Object.entries(out).filter(([, t]) => t === "locked").map(([id]) => id);
+    expect(atLocked).toEqual(["a"]);
+  });
+});
