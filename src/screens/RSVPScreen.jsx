@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP } from "../utils/publicTokens.js";
+import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
 
@@ -494,6 +495,25 @@ export default function RSVPScreen() {
 
             {site?.rsvpMessage && (
               <p className={styles.successPersonal}>"{site.rsvpMessage}"</p>
+            )}
+
+            {/* The moment a guest confirms is exactly when they want the date
+                in their calendar — not a screen later. */}
+            {answer !== "no" && event.date && (
+              <button
+                type="button"
+                className={styles.calendarBtn}
+                onClick={() => {
+                  const ics = buildEventIcs({
+                    name:  event.name,
+                    date:  event.date,
+                    venue: event.venue,
+                    startTime: (site?.schedule || [])[0]?.time,
+                    url:   event.inviteToken ? window.location.origin + "/invite/" + event.inviteToken : null,
+                  });
+                  if (ics) downloadIcs(ics, icsFileName(event.name));
+                }}
+              >📅 הוסיפו את התאריך ליומן</button>
             )}
 
             {(inviteUrl || giftUrl) && (

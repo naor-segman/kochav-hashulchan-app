@@ -216,3 +216,25 @@
 .shuttleContact { font-size: 13px; color: var(--s-muted); }
 .shuttleContact a { color: var(--s-accent); font-weight: 600; text-decoration: none; }
 .shuttleNote { display: block; font-size: 12px; color: var(--s-muted); margin-top: 2px; }
+
+/* Secondary action beside "ניווט ב-Waze" — same shape, quieter, so navigation
+   stays the primary call on the location card. */
+.locBtnGhost {
+  display: inline-block;
+  margin-top: 8px;
+  margin-inline-start: 8px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--s-line);
+  background: transparent;
+  color: var(--s-ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.locBtnGhost:hover {
+  background: var(--s-accent-soft);
+  border-color: var(--s-accent);
+}

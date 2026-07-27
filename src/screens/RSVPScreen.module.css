@@ -650,3 +650,25 @@
   color: var(--muted);
   line-height: 1.5;
 }
+
+/* Offered on the confirmation screen — the moment the guest has just said yes
+   is when the date is worth saving, not a screen later. */
+.calendarBtn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px 20px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.calendarBtn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}

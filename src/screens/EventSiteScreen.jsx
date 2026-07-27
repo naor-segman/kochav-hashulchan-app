@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
+import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
 import styles from "./EventSiteScreen.module.css";
 
 // Map a local (host-owned) event into the public-site shape, so the host can
@@ -243,6 +244,24 @@ export default function EventSiteScreen({ localEvent }) {
                 href={site.wazeUrl || `https://waze.com/ul?q=${encodeURIComponent(site.address)}`}
                 target="_blank" rel="noopener noreferrer"
               >ניווט ב-Waze ←</a>
+            )}
+            {/* .ics rather than a Google/Outlook link: opens in whatever
+                calendar the guest actually uses, with no account. */}
+            {ev?.date && (
+              <button
+                type="button"
+                className={styles.locBtnGhost}
+                onClick={() => {
+                  const ics = buildEventIcs({
+                    name:      ev.name,
+                    date:      ev.date,
+                    venue:     site.address || ev.venue,
+                    startTime: (site.schedule || [])[0]?.time,
+                    url:       window.location.href,
+                  });
+                  if (ics) downloadIcs(ics, icsFileName(ev.name));
+                }}
+              >📅 הוסיפו ליומן</button>
             )}
           </div>
         </section>
