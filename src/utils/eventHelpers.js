@@ -75,8 +75,14 @@ export function normalizeEvent(ev) {
     // Floor plan — optional venue sketch uploaded by the user.
     // image: base64 data URL (JPEG, compressed client-side).
     // tablePositions: { [tableId]: { x, y } } — fractional positions (0-1) on the image.
+    // elements: [{ id, kind, x, y, size }] — venue fixtures (chuppah, stage, bar…)
+    //   that sit on the sketch but never hold guests, so they are not tables.
     floorPlan: (ev.floorPlan && typeof ev.floorPlan === "object")
-      ? { image: ev.floorPlan.image ?? null, tablePositions: ev.floorPlan.tablePositions ?? {} }
+      ? {
+          image:          ev.floorPlan.image ?? null,
+          tablePositions: ev.floorPlan.tablePositions ?? {},
+          elements:       Array.isArray(ev.floorPlan.elements) ? ev.floorPlan.elements : [],
+        }
       : null,
     // Public-URL tokens — stable random UUIDs generated once, never changed.
     // Each token grants access to one public page (RSVP, invite, gift, hostess).
@@ -199,6 +205,9 @@ export function duplicateEvent(ev) {
         .filter(([oldId]) => tableIdMap[oldId])
         .map(([oldId, pos]) => [tableIdMap[oldId], pos])
     ),
+    // Venue fixtures carry no table references, but each still needs a fresh id
+    // so the copy never shares element identity with the original.
+    elements: (ev.floorPlan.elements ?? []).map(el => ({ ...el, id: uid() })),
   } : null;
 
   const now = Date.now();

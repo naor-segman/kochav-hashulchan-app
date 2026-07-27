@@ -91,3 +91,40 @@ describe("seatingTotals — declined guests can't inflate the counters", () => {
     });
   });
 });
+
+describe("floorPlan.elements — venue fixtures", () => {
+  it("normalizes to an empty array for plans that predate the field", () => {
+    const e = normalizeEvent({ id: "x", name: "t", floorPlan: { image: "img", tablePositions: { t1: { x: 0.5, y: 0.5 } } } });
+    expect(e.floorPlan.elements).toEqual([]);
+    expect(e.floorPlan.tablePositions).toEqual({ t1: { x: 0.5, y: 0.5 } });
+  });
+
+  it("keeps existing fixtures untouched", () => {
+    const els = [{ id: "el1", kind: "chuppah", x: 0.2, y: 0.3, size: 1 }];
+    const e = normalizeEvent({ id: "x", name: "t", floorPlan: { image: null, tablePositions: {}, elements: els } });
+    expect(e.floorPlan.elements).toEqual(els);
+  });
+
+  it("discards a non-array elements value rather than trusting it", () => {
+    const e = normalizeEvent({ id: "x", name: "t", floorPlan: { image: null, tablePositions: {}, elements: "nope" } });
+    expect(e.floorPlan.elements).toEqual([]);
+  });
+
+  it("gives duplicated events fresh fixture ids so the copy shares no identity", () => {
+    const src = normalizeEvent({
+      id: "x", name: "מקור",
+      tables: [{ id: "t1", name: "1", capacity: 10 }],
+      floorPlan: {
+        image: null,
+        tablePositions: { t1: { x: 0.1, y: 0.1 } },
+        elements: [{ id: "el1", kind: "stage", x: 0.4, y: 0.4, size: 1 }],
+      },
+    });
+    const copy = duplicateEvent(src);
+    expect(copy.floorPlan.elements).toHaveLength(1);
+    expect(copy.floorPlan.elements[0].kind).toBe("stage");
+    expect(copy.floorPlan.elements[0].id).not.toBe("el1");
+    // the table position was remapped to the copy's new table id
+    expect(Object.keys(copy.floorPlan.tablePositions)).not.toContain("t1");
+  });
+});

@@ -82,3 +82,37 @@ describe("cloudSync token-column NULL fallback", () => {
     expect(out.tokens.collab).toBe("c-SHARED"); // must not be null (would break the shared link)
   });
 });
+
+describe("cloud round-trip — floor plan fixtures", () => {
+  it("carries venue elements to the cloud and back", () => {
+    const local = {
+      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      guests: [], tables: [], seating: {}, constraints: [],
+      floorPlan: {
+        image: null,
+        tablePositions: { t1: { x: 0.3, y: 0.4 } },
+        elements: [{ id: "el1", kind: "chuppah", x: 0.5, y: 0.2, size: 1 }],
+      },
+    };
+    const back = mapCloudEventToLocalEvent({
+      id: "cloud-1", user_id: "u1", name: local.name, event_date: local.date,
+      payload: mapLocalEventToCloudPayload(local, "u1").payload,
+    });
+    expect(back.floorPlan.elements).toEqual(local.floorPlan.elements);
+    expect(back.floorPlan.tablePositions).toEqual(local.floorPlan.tablePositions);
+  });
+
+  it("still round-trips a plan that has positions but no fixtures", () => {
+    const local = {
+      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      guests: [], tables: [], seating: {}, constraints: [],
+      floorPlan: { image: null, tablePositions: { t1: { x: 0.1, y: 0.1 } }, elements: [] },
+    };
+    const back = mapCloudEventToLocalEvent({
+      id: "cloud-1", user_id: "u1", name: local.name, event_date: local.date,
+      payload: mapLocalEventToCloudPayload(local, "u1").payload,
+    });
+    expect(back.floorPlan.tablePositions).toEqual({ t1: { x: 0.1, y: 0.1 } });
+    expect(back.floorPlan.elements).toEqual([]);
+  });
+});

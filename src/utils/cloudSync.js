@@ -78,6 +78,7 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       // opens the event on a new device they will need to re-upload the image,
       // but the table positions will already be in place.
       floorPlanPositions: localEvent.floorPlan?.tablePositions ?? null,
+      floorPlanElements:  localEvent.floorPlan?.elements ?? null,
     },
   };
 }
@@ -135,8 +136,12 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     noShowPct:      Number.isFinite(p.noShowPct) ? p.noShowPct : 10,
     // Floor plan: positions are synced; image stays in localStorage (too large for cloud).
     // On a new device the user must re-upload the image, but positions are restored.
-    floorPlan: p.floorPlanPositions
-      ? { image: null, tablePositions: p.floorPlanPositions }
+    floorPlan: (p.floorPlanPositions || p.floorPlanElements)
+      ? {
+          image: null,
+          tablePositions: p.floorPlanPositions ?? {},
+          elements: Array.isArray(p.floorPlanElements) ? p.floorPlanElements : [],
+        }
       : null,
   };
 }
