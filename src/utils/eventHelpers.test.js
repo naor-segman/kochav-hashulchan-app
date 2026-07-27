@@ -140,3 +140,29 @@ describe("normalizeEventSite — heading font", () => {
     expect(e.eventSite.fontKey).toBe("display");
   });
 });
+
+describe("tasks", () => {
+  it("normalizes to an empty array for events that predate the board", () => {
+    expect(normalizeEvent({ id: "x", name: "t" }).tasks).toEqual([]);
+  });
+
+  it("rejects a non-array tasks value", () => {
+    expect(normalizeEvent({ id: "x", name: "t", tasks: "nope" }).tasks).toEqual([]);
+  });
+
+  it("carries tasks into a duplicate but resets them to a clean board", () => {
+    const src = normalizeEvent({
+      id: "x", name: "מקור",
+      tasks: [
+        { id: "t1", title: "לסגור אולם", status: "done",  doneAt: 123, priority: "high" },
+        { id: "t2", title: "לסגור DJ",   status: "doing", doneAt: null, priority: "normal" },
+      ],
+    });
+    const copy = duplicateEvent(src);
+    expect(copy.tasks).toHaveLength(2);
+    expect(copy.tasks.map(t => t.title)).toEqual(["לסגור אולם", "לסגור DJ"]);
+    expect(copy.tasks.every(t => t.status === "todo")).toBe(true);
+    expect(copy.tasks.every(t => t.doneAt === null)).toBe(true);
+    expect(copy.tasks.map(t => t.id)).not.toContain("t1");
+  });
+});

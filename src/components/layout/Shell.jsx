@@ -18,6 +18,7 @@ const NAV = [
   { id: "collab",      label: "טבלה שיתופית", tool: true },
   { id: "site",        label: "אתר האירוע",   tool: true },
   { id: "costs",       label: "תקציב",        tool: true },
+  { id: "tasks",       label: "משימות",       tool: true },
 ];
 
 export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {

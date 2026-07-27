@@ -72,6 +72,9 @@ export function normalizeEvent(ev) {
     // Must be preserved here so locks survive page reload (localStorage round-trip).
     lockedGuests: Array.isArray(ev.lockedGuests) ? ev.lockedGuests : [],
     lockedTables: Array.isArray(ev.lockedTables) ? ev.lockedTables : [],
+    // Planning checklist. Kept on the event (not a separate store) so it
+    // duplicates, syncs and exports with everything else.
+    tasks:        Array.isArray(ev.tasks) ? ev.tasks : [],
     // Floor plan — optional venue sketch uploaded by the user.
     // image: base64 data URL (JPEG, compressed client-side).
     // tablePositions: { [tableId]: { x, y } } — fractional positions (0-1) on the image.
@@ -224,6 +227,9 @@ export function duplicateEvent(ev) {
     lockedGuests: [],
     lockedTables: [],
     costs:       {},
+    // Tasks carry over — a second event usually needs the same checklist — but
+    // reset to "todo" with fresh ids so the copy starts from a clean board.
+    tasks: (ev.tasks ?? []).map(t => ({ ...t, id: uid(), status: "todo", doneAt: null })),
     // Deep-copy the remaining nested collections so editing the duplicate never
     // mutates the original (Object.assign only shallow-copies these).
     customGroups:     Array.isArray(ev.customGroups) ? [...ev.customGroups] : [],

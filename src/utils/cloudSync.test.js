@@ -116,3 +116,31 @@ describe("cloud round-trip — floor plan fixtures", () => {
     expect(back.floorPlan.elements).toEqual([]);
   });
 });
+
+describe("cloud round-trip — tasks", () => {
+  it("carries the task board to the cloud and back", () => {
+    const tasks = [
+      { id: "t1", title: "לסגור אולם", note: "", due: "2026-08-01", priority: "high", status: "doing", doneAt: null },
+    ];
+    const local = {
+      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      guests: [], tables: [], seating: {}, constraints: [], tasks,
+    };
+    const back = mapCloudEventToLocalEvent({
+      id: "cloud-1", user_id: "u1", name: local.name, event_date: local.date,
+      payload: mapLocalEventToCloudPayload(local, "u1").payload,
+    });
+    expect(back.tasks).toEqual(tasks);
+  });
+
+  it("defaults to an empty board when the payload has none", () => {
+    const back = mapCloudEventToLocalEvent({
+      id: "cloud-1", user_id: "u1", name: "אירוע", event_date: "2026-09-01",
+      payload: mapLocalEventToCloudPayload(
+        { id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01", guests: [], tables: [], seating: {}, constraints: [] },
+        "u1",
+      ).payload,
+    });
+    expect(back.tasks).toEqual([]);
+  });
+});
