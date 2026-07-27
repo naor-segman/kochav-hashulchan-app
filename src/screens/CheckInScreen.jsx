@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import styles from "./CheckInScreen.module.css";
+import QrScanner, { isScanSupported, parseScanPayload } from "../components/ui/QrScanner.jsx";
 
 export default function CheckInScreen({ events, patchEventById }) {
   const { eventId } = useParams();
@@ -15,6 +16,8 @@ export default function CheckInScreen({ events, patchEventById }) {
   const [walkInCount, setWalkInCount] = useState(1);
   const [walkInSide, setWalkInSide] = useState("bride");
   const [viewMode, setViewMode]     = useState("name"); // "name" | "table"
+  const [scanning, setScanning]     = useState(false);
+  const [scanMsg,  setScanMsg]      = useState("");
   const searchRef = useRef(null);
   const walkInRef = useRef(null);
 
@@ -39,6 +42,18 @@ export default function CheckInScreen({ events, patchEventById }) {
     }));
     if (!wasArrived) setLastChecked(guestId);
   };
+
+  // A scanned badge checks the guest in immediately — at a door with a queue,
+  // an extra confirmation tap is the thing that makes people stop using it.
+  const handleScan = useCallback((raw) => {
+    const id = parseScanPayload(raw);
+    if (!id) { setScanMsg("קוד לא מזוהה — נסו שוב או חפשו לפי שם"); return; }
+    const guest = ev.guests.find(g => g.id === id);
+    if (!guest) { setScanMsg("הקוד לא שייך לאירוע הזה"); return; }
+    if (guest.arrived) { setScanMsg(guest.name + " כבר סומן/ה כהגיע/ה ✓"); return; }
+    toggleArrived(guest.id, false);
+    setScanMsg(guest.name + " סומן/ה כהגיע/ה ✓");
+  }, [ev.guests]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addWalkIn = () => {
     const name = walkInName.trim();
@@ -147,6 +162,14 @@ export default function CheckInScreen({ events, patchEventById }) {
         </button>
       </div>
 
+      {/* ── Scan (name mode only) ── */}
+      {viewMode === "name" && scanning && (
+        <QrScanner onScan={handleScan} onClose={() => { setScanning(false); setScanMsg(""); }} />
+      )}
+      {viewMode === "name" && scanMsg && (
+        <p className={styles.scanMsg} role="status">{scanMsg}</p>
+      )}
+
       {/* ── Search (name mode only) ── */}
       {viewMode === "name" && (
         <div className={styles.searchWrap}>
@@ -165,6 +188,11 @@ export default function CheckInScreen({ events, patchEventById }) {
             </button>
           )}
         </div>
+      )}
+      {viewMode === "name" && !scanning && isScanSupported() && (
+        <button className={styles.scanBtn} onClick={() => { setScanning(true); setScanMsg(""); }}>
+          📷 סרקו קוד מההזמנה
+        </button>
       )}
 
       {/* ── Last checked-in highlight ── */}
