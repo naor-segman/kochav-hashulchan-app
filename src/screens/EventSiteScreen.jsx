@@ -342,7 +342,7 @@ export default function EventSiteScreen({ localEvent }) {
 
 function Countdown({ date, styles }) {
   const target = useMemo(() => new Date(date + "T18:00:00").getTime(), [date]);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);

@@ -5,7 +5,6 @@ import { computeViolations } from "./seating.js";
 // Concise fixtures.
 const g = (id, extra = {}) => ({ id, name: id, side: "bride", group: "משפחה", count: 1, rsvp: "pending", ...extra });
 const t = (id, capacity) => ({ id, name: id, capacity });
-const together = (a, b) => ({ id: `tog-${a}-${b}`, type: "together", guestA: a, guestB: b });
 const apart = (a, b) => ({ id: `apt-${a}-${b}`, type: "apart", guestA: a, guestB: b });
 
 const find = (arr, type) => arr.find(s => s.type === type);

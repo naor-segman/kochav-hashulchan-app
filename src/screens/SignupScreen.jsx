@@ -75,7 +75,7 @@ export default function SignupScreen() {
       const { error: err } = await supabase.auth.resend({ type: "signup", email: email.trim() });
       if (err) throw err;
       setResentDone(true);
-    } catch (err) {
+    } catch {
       setResentError("שגיאה בשליחה חוזרת. נסו שוב.");
     } finally {
       setResentBusy(false);

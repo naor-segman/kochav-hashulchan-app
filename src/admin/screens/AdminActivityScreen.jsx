@@ -5,7 +5,6 @@ import Icon from "../../components/ui/Icon.jsx";
 import {
   ACTION_META,
   ACTION_KEYS,
-  ENTITY_TYPE_LABELS,
   getActionLabel,
   getEntityLabel,
 } from "../lib/activityConfig.js";

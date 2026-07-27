@@ -108,6 +108,7 @@ chore(cleanup): remove unused CSS token system
 ---
 
 ## Known technical debt (do not reproduce)
-- `seating.js` is marked "V1 — copied from legacy". The algorithm works but has no tests. Do not refactor without adding tests first.
+- `seating.js` is marked "V1 — copied from legacy". ~~No tests.~~ **Covered since 27.7** — `seating.test.js` + `seatingStress.test.js` + `seatingAnalysis.test.js` pin capacity, together/apart constraints, locks and overbooking. Refactors are now safe to attempt against that suite.
+- **Lint:** `react-hooks/set-state-in-effect` is downgraded to `warn` in `eslint.config.js` (24 sites, all the same load-then-setState shape). Do not add new ones; see the comment there before "fixing" them mechanically.
 - Feature gates in `featureGates.js` are **soft (client-side only)**. Server-side RLS enforcement is planned but not implemented.
-- `setStorageAdapter()` in `storage.js`, and `isLocalNewer()` / `isSynced()` in `cloudSync.js` are dead code — implemented but never called. Do not wire them up without a clear plan.
+- ~~`setStorageAdapter()` in `storage.js`, and `isLocalNewer()` / `isSynced()` in `cloudSync.js` are dead code.~~ **Resolved (27.7)** — verified gone; `storage.js` now exports only `userStorageKey` / `loadState` / `persist`, and `cloudSync.js` only the mappers and the four cloud CRUD calls.
