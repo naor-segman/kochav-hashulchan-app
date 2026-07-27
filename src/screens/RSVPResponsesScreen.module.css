@@ -145,3 +145,45 @@
   vertical-align: middle;
   white-space: nowrap;
 }
+
+/* ── Shuttle registrations ───────────────────────────────────────────────── */
+.shuttleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.shuttleCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+}
+
+/* The seat count is the number the host acts on — it leads. */
+.shuttleSeats {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.shuttleName {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+/* Inline tag on a response row */
+.shuttleTag {
+  margin-inline-start: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}

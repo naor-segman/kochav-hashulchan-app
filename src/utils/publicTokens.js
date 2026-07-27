@@ -78,7 +78,7 @@ export async function fetchRSVPResponses(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
   const { data, error } = await supabase
     .from("rsvp_responses")
-    .select("id, guest_name, phone, attending, guests_count, status, companions, created_at")
+    .select("id, guest_name, phone, attending, guests_count, status, companions, shuttle_id, created_at")
     .eq("event_id", eventCloudId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -105,6 +105,8 @@ export async function submitRSVP(eventCloudId, response) {
     guests_count: Math.max(0, Math.min(50, rawCount)),
     status,
     companions,
+    // Only meaningful for guests who are coming; "no" never carries a shuttle.
+    shuttle_id:   status === "no" ? null : (response.shuttleId || null),
   });
   if (error) throw error;
 }

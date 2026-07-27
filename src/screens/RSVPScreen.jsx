@@ -18,7 +18,16 @@ const MOCK_EVENT = {
   type: "חתונה",
   inviteToken: "bbbbbbbb",
   giftToken: "cccccccc",
-  site: { rsvpMessage: "היי, כאן נועה וטל — כיף שאתם באים לחגוג איתנו! 💛", coverPhoto: null },
+  site: {
+    rsvpMessage: "היי, כאן נועה וטל — כיף שאתם באים לחגוג איתנו! 💛",
+    coverPhoto: null,
+    // Shuttles in the dev fixture so the pickup picker is exercisable locally.
+    sections: { shuttles: true },
+    shuttles: [
+      { id: "mock-s1", place: "תל אביב — רכבת סבידור", time: "19:00", direction: "הלוך" },
+      { id: "mock-s2", place: "חיפה — מרכזית המפרץ",   time: "18:15", direction: "הלוך" },
+    ],
+  },
 };
 
 function formatHebrewDate(isoDate) {
@@ -54,6 +63,7 @@ export default function RSVPScreen() {
   const [phone, setPhone] = useState("");
   const [guestsCount, setGuestsCount] = useState(1);
   const [companions, setCompanions] = useState([]);
+  const [shuttleId, setShuttleId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [answer, setAnswer] = useState(null); // "yes" | "maybe" | "no"
@@ -99,6 +109,7 @@ export default function RSVPScreen() {
           companions: answer === "yes"
             ? companions.slice(0, Math.max(0, guestsCount - 1)).map(c => (c || "").trim()).filter(Boolean)
             : [],
+          shuttleId,
         });
       } else if (isSupabaseConfigured) {
         // Production with no cloud target — don't fake success and lose the RSVP.
@@ -145,6 +156,12 @@ export default function RSVPScreen() {
   };
 
   // ── Loading ─────────────────────────────────────────────────────────────────
+  // Shuttles the host published, if the section is switched on. Available to
+  // the form (further down `site` is only bound inside the submitted branch).
+  const shuttles = (event?.site?.sections?.shuttles && Array.isArray(event?.site?.shuttles))
+    ? event.site.shuttles.filter(sh => sh && sh.id)
+    : [];
+
   if (loadState === "loading") {
     return (
       <div className={styles.page}>
@@ -324,6 +341,30 @@ export default function RSVPScreen() {
                       }}
                     />
                   ))}
+                </div>
+              )}
+
+              {/* Shuttle pick — only when the host actually published shuttles.
+                  Riding on the RSVP means the host gets head counts without the
+                  guest filling in a second form. */}
+              {shuttles.length > 0 && (
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel} htmlFor="rsvp-shuttle">מצטרפים להסעה?</label>
+                  <p className={styles.fieldHelp}>אופציונלי — כדי שנדע כמה מקומות להזמין.</p>
+                  <select
+                    id="rsvp-shuttle"
+                    className={styles.input}
+                    value={shuttleId}
+                    disabled={submitting}
+                    onChange={e => setShuttleId(e.target.value)}
+                  >
+                    <option value="">לא מצטרפים / נגיע עצמאית</option>
+                    {shuttles.map(sh => (
+                      <option key={sh.id} value={sh.id}>
+                        {[sh.place, sh.time, sh.direction].filter(Boolean).join(" · ")}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
