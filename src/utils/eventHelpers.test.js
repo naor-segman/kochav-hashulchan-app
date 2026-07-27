@@ -179,3 +179,14 @@ describe("vendors", () => {
     expect(normalizeEvent({ id: "x", name: "t", vendors }).vendors).toEqual(vendors);
   });
 });
+
+describe("customDomain", () => {
+  it("defaults to empty for sites that predate it", () => {
+    const e = normalizeEvent({ id: "x", name: "t", type: "wedding", eventSite: { enabled: true } });
+    expect(e.eventSite.customDomain).toBe("");
+  });
+  it("keeps and trims a configured domain", () => {
+    const e = normalizeEvent({ id: "x", name: "t", type: "wedding", eventSite: { customDomain: "  a.co.il " } });
+    expect(e.eventSite.customDomain).toBe("a.co.il");
+  });
+});

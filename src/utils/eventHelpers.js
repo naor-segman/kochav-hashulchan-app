@@ -135,6 +135,9 @@ export function normalizeEventSite(site, type) {
   return {
     enabled:      typeof site.enabled === "boolean" ? site.enabled : def.enabled,
     themeKey:     site.themeKey     ?? def.themeKey,
+    // Host-owned domain for the public event site. The app stores and uses it;
+    // pointing the DNS is the host's step, which the editor spells out.
+    customDomain: (site.customDomain ?? "").trim(),
     fontKey:      site.fontKey      ?? def.fontKey ?? "serif",
     heroEn:       site.heroEn       ?? def.heroEn,
     coverPhoto:   site.coverPhoto   ?? null,
