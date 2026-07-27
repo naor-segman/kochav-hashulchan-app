@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
 import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
+import { parseGuestList, countWithPhone } from "../utils/parseGuestList.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canAddGuest } from "../utils/featureGates.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -138,13 +139,17 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
 
+  // Parsed live so the button can say exactly what will be added — including
+  // how many phones were detected, which is the point of the paste.
+  const parsedList      = useMemo(() => parseGuestList(listText), [listText]);
+  const parsedWithPhone = countWithPhone(parsedList);
+
   const addFromList = () => {
-    const names = listText
-      .split(/\n/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-    if (names.length === 0) return;
-    if (maxGuests !== Infinity && ev.guests.length + names.length > maxGuests) {
+    // Reads a name AND a phone per line, so a WhatsApp/spreadsheet paste lands
+    // complete instead of leaving hundreds of numbers to type by hand.
+    const rows = parseGuestList(listText);
+    if (rows.length === 0) return;
+    if (maxGuests !== Infinity && ev.guests.length + rows.length > maxGuests) {
       const remaining = Math.max(0, maxGuests - ev.guests.length);
       showToast(
         remaining === 0
@@ -154,12 +159,16 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       );
       return;
     }
-    const newGuests = names.map(name => ({
-      id: uid(), name, count: 1, side: listSide, group: listGroup,
-      phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
+    const newGuests = rows.map(r => ({
+      id: uid(), name: r.name, count: 1, side: listSide, group: listGroup,
+      phone: r.phone, notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
     }));
     patchEvent(e => Object.assign({}, e, { guests: e.guests.concat(newGuests) }));
-    showToast("נוספו " + newGuests.length + " אורחים ✓");
+    const withPhone = countWithPhone(rows);
+    showToast(
+      "נוספו " + newGuests.length + " אורחים" +
+      (withPhone ? ` (${withPhone} עם טלפון)` : "") + " ✓"
+    );
     setListText("");
     setShowList(false);
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
@@ -476,12 +485,15 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         {showList && !editId && (
           <div className={styles.listAddPanel}>
             <div className={styles.listAddTitle}>הוסיפו אורחים לפי רשימה</div>
-            <p className={styles.listAddHint}>הכניסו שם אחד בכל שורה. כל האורחים יקבלו את אותו הצד והקבוצה.</p>
+            <p className={styles.listAddHint}>
+              שם אחד בכל שורה. אפשר להדביק גם רשימה מוואטסאפ או מגיליון —
+              אם יש טלפון בשורה, הוא ייקלט אוטומטית. כל האורחים יקבלו את אותו הצד והקבוצה.
+            </p>
             <textarea
               className={[base.input, styles.listAddTextarea].join(" ")}
               value={listText}
               onChange={e => setListText(e.target.value)}
-              placeholder={"דוד לוי\nשרה כהן\nמשפחת אברהם\n..."}
+              placeholder={"דוד לוי\nשרה כהן, 050-1234567\n~משפחת אברהם\t0521234567\n..."}
               rows={6}
               autoFocus
             />
@@ -510,9 +522,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               <button
                 className={base.btnPrimary}
                 onClick={addFromList}
-                disabled={!listText.trim()}
+                disabled={parsedList.length === 0}
               >
-                + הוסיפו {listText.trim() ? listText.split("\n").filter(s => s.trim()).length : 0} אורחים
+                + הוסיפו {parsedList.length} אורחים
+                {parsedWithPhone > 0 ? ` (${parsedWithPhone} עם טלפון)` : ""}
               </button>
               <button className={base.btnSecondary} onClick={() => setShowList(false)}>ביטול</button>
             </div>
