@@ -79,6 +79,10 @@ export function normalizeEvent(ev) {
     // Vendor tracking sits beside the budget, not inside it: the budget says
     // how much, this says who and whether they are actually booked.
     vendors:      Array.isArray(ev.vendors) ? ev.vendors : [],
+    // Per-stage record of who was already messaged, and any template the
+    // host edited. Both survive an automated-sending switch untouched.
+    messagesSent:     (ev.messagesSent && typeof ev.messagesSent === "object") ? ev.messagesSent : {},
+    messageTemplates: (ev.messageTemplates && typeof ev.messageTemplates === "object") ? ev.messageTemplates : {},
     // Save-the-Date + designed invitation. Both ride on the invite token,
     // so adding them needed no migration and no new public RPC.
     announcements: normalizeAnnouncements(ev.announcements, ev.type),
