@@ -14,6 +14,7 @@ import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalys
 import { exportToExcel } from "../utils/exportHelpers.js";
 import { getSideLabel, getSideLabels, guestSeatNames, seatingTotals } from "../utils/eventHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
+import { buildGuestCardUrl } from "../utils/guestCard.js";
 import Banner from "../components/feedback/Banner.jsx";
 import CapBar from "../components/ui/CapBar.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -138,7 +139,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     const table = ev.tables.find(t => t.id === tid);
     if (!table) return null;
     const eventName = ev.name || "האירוע";
-    const msg = `שלום ${g.name} 👋\n\nב${eventName} תשבו ב*שולחן ${table.name}*.\n\nנשמח לראותכם! 🎉` + messageSignature();
+    // Personal entry card — the QR on it is what the door scanner reads, so the
+    // message is also what makes check-in scanning usable at all.
+    const cardUrl = buildGuestCardUrl(window.location.origin, ev.tokens?.invite, g, table);
+    const cardLine = cardUrl
+      ? `\n\nכרטיס הכניסה האישי שלכם (הציגו בכניסה):\n${cardUrl}`
+      : "";
+    const msg = `שלום ${g.name} 👋\n\nב${eventName} תשבו ב*שולחן ${table.name}*.${cardLine}\n\nנשמח לראותכם! 🎉` + messageSignature();
     const digits = (g.phone || "").replace(/\D/g, "");
     if (!digits) return null;
     const intl = digits.startsWith("0") ? "972" + digits.slice(1) : digits;

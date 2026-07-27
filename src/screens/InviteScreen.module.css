@@ -421,3 +421,48 @@
     margin-bottom: 28px;
   }
 }
+
+/* ── Personal entry card (?g=…) ──────────────────────────────────────────── */
+/* Shown instead of the generic invitation body when a guest opens their own
+   link. Name and table lead; the QR below is what the door actually reads. */
+.personalBox {
+  margin: 18px auto 4px;
+  padding: 14px 20px;
+  max-width: 320px;
+  text-align: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--border);
+}
+
+.personalName {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-size: clamp(20px, 5.5vw, 26px);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.personalTable {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: var(--text2);
+}
+.personalTable b {
+  font-size: 20px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.personalTableNone {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* The entrance code has to survive a phone held at arm's length under bad
+   hall lighting, so it is deliberately larger than the RSVP one. */
+.qrBoxLarge {
+  padding: 14px;
+}

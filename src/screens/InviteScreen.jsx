@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import QRCode from "qrcode";
 import { fetchEventByToken } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
+import { readGuestCardParams, guestScanPayload } from "../utils/guestCard.js";
 import styles from "./InviteScreen.module.css";
 
 // Development fallback — displayed when Supabase is not configured locally
@@ -35,6 +36,9 @@ function formatHebrewDate(dateStr) {
 
 export default function InviteScreen() {
   const { token } = useParams();
+  const location  = useLocation();
+  // `?g=` turns the shared invitation into one guest's personal entry card.
+  const personal  = readGuestCardParams(location.search);
 
   const [event,    setEvent]    = useState(null);
   const [loading,  setLoading]  = useState(true);
@@ -42,16 +46,18 @@ export default function InviteScreen() {
   const [copied,   setCopied]   = useState(false);
   const [qrUrl,    setQrUrl]    = useState("");
 
-  // Generate a QR that opens the RSVP page — using the event's RSVP token, not
-  // the card/invite token (they differ; the /rsvp page matches on rsvp_token).
+  // Personal card → QR carries the guest id, which is what the entrance
+  // scanner reads. Plain invitation → QR opens the RSVP page (using the RSVP
+  // token, not the card token; the /rsvp page matches on rsvp_token).
   useEffect(() => {
-    const rsvpTok = event?.rsvpToken;
-    if (!rsvpTok) { setQrUrl(""); return; }
-    const rsvpUrl = window.location.origin + "/rsvp/" + rsvpTok;
-    QRCode.toDataURL(rsvpUrl, { width: 220, margin: 1 })
+    const payload = personal
+      ? guestScanPayload(personal.guestId)
+      : (event?.rsvpToken ? window.location.origin + "/rsvp/" + event.rsvpToken : null);
+    if (!payload) { setQrUrl(""); return; }
+    QRCode.toDataURL(payload, { width: 260, margin: 1 })
       .then(setQrUrl)
       .catch(() => setQrUrl(""));
-  }, [event]);
+  }, [event, personal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -205,19 +211,32 @@ export default function InviteScreen() {
             </button>
           </div>
 
-          {/* QR code — opens the RSVP page */}
+          {/* Personal entry card — name, table, and the QR the door scans */}
+          {personal && (
+            <div className={styles.personalBox}>
+              {personal.name && <p className={styles.personalName}>{personal.name}</p>}
+              {personal.table
+                ? <p className={styles.personalTable}>שולחן <b>{personal.table}</b></p>
+                : <p className={styles.personalTableNone}>מספר השולחן יעודכן בהמשך</p>}
+            </div>
+          )}
+
+          {/* QR — personal card: the guest id for the entrance scanner.
+              Plain invitation: a link to the RSVP page. */}
           {qrUrl && (
             <div className={styles.qrSection}>
-              <div className={styles.qrBox}>
+              <div className={[styles.qrBox, personal ? styles.qrBoxLarge : ""].filter(Boolean).join(" ")}>
                 <img
                   className={styles.qrImg}
                   src={qrUrl}
-                  alt="QR קוד לאישור הגעה"
-                  width="110"
-                  height="110"
+                  alt={personal ? "קוד כניסה אישי" : "QR קוד לאישור הגעה"}
+                  width={personal ? "170" : "110"}
+                  height={personal ? "170" : "110"}
                 />
               </div>
-              <p className={styles.qrCaption}>סרקו לאישור הגעה</p>
+              <p className={styles.qrCaption}>
+                {personal ? "הציגו את הקוד בכניסה לאירוע" : "סרקו לאישור הגעה"}
+              </p>
             </div>
           )}
         </article>
