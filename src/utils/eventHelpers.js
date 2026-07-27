@@ -76,6 +76,9 @@ export function normalizeEvent(ev) {
     // Planning checklist. Kept on the event (not a separate store) so it
     // duplicates, syncs and exports with everything else.
     tasks:        Array.isArray(ev.tasks) ? ev.tasks : [],
+    // Vendor tracking sits beside the budget, not inside it: the budget says
+    // how much, this says who and whether they are actually booked.
+    vendors:      Array.isArray(ev.vendors) ? ev.vendors : [],
     // Save-the-Date + designed invitation. Both ride on the invite token,
     // so adding them needed no migration and no new public RPC.
     announcements: normalizeAnnouncements(ev.announcements, ev.type),

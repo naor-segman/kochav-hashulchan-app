@@ -20,6 +20,7 @@ const NAV = [
   { id: "costs",       label: "תקציב",        tool: true },
   { id: "tasks",       label: "משימות",       tool: true },
   { id: "announce",    label: "הזמנות",       tool: true },
+  { id: "vendors",     label: "ספקים",        tool: true },
 ];
 
 export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {

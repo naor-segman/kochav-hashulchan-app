@@ -166,3 +166,16 @@ describe("tasks", () => {
     expect(copy.tasks.map(t => t.id)).not.toContain("t1");
   });
 });
+
+describe("vendors", () => {
+  it("normalizes to an empty list for events that predate the feature", () => {
+    expect(normalizeEvent({ id: "x", name: "t" }).vendors).toEqual([]);
+  });
+  it("rejects a non-array value", () => {
+    expect(normalizeEvent({ id: "x", name: "t", vendors: "nope" }).vendors).toEqual([]);
+  });
+  it("keeps an existing list untouched", () => {
+    const vendors = [{ id: "v1", name: "אולמי הגן", status: "booked" }];
+    expect(normalizeEvent({ id: "x", name: "t", vendors }).vendors).toEqual(vendors);
+  });
+});

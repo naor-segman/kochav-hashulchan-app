@@ -52,6 +52,7 @@ const GiftWallScreen = lazy(() => import("./screens/GiftWallScreen.jsx"));
 const CostScreen          = lazy(() => import("./screens/CostScreen.jsx"));
 const TasksScreen         = lazy(() => import("./screens/TasksScreen.jsx"));
 const AnnouncementsEditorScreen = lazy(() => import("./screens/AnnouncementsEditorScreen.jsx"));
+const VendorsScreen             = lazy(() => import("./screens/VendorsScreen.jsx"));
 const AnnouncementScreen        = lazy(() => import("./screens/AnnouncementScreen.jsx"));
 const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
 const CollabReviewScreen  = lazy(() => import("./screens/CollabReviewScreen.jsx"));
@@ -117,6 +118,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
         <Route path="costs"       element={<Suspense fallback={null}><CostScreen activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
         <Route path="tasks"       element={<Suspense fallback={null}><TasksScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
         <Route path="announce"    element={<Suspense fallback={null}><AnnouncementsEditorScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
+        <Route path="vendors"     element={<Suspense fallback={null}><VendorsScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
         <Route index              element={<Navigate to="setup" replace />} />
       </Routes>
       {toast && <Toast msg={toast.msg} variant={toast.variant} />}
