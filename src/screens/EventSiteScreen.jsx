@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
-import { getSiteTheme } from "../data/eventSiteTemplates.js";
+import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import styles from "./EventSiteScreen.module.css";
 
 // Map a local (host-owned) event into the public-site shape, so the host can
@@ -93,11 +93,14 @@ export default function EventSiteScreen({ localEvent }) {
   }, [ev?.giftToken, site?.sections?.blessings]);
 
   const theme = useMemo(() => getSiteTheme(site?.themeKey), [site?.themeKey]);
+  const font  = useMemo(() => getSiteFont(site?.fontKey), [site?.fontKey]);
   const themeVars = useMemo(() => ({
     "--s-bg": theme.bg, "--s-surface": theme.surface, "--s-ink": theme.ink,
     "--s-muted": theme.muted, "--s-accent": theme.accent, "--s-accent-soft": theme.accentSoft,
     "--s-line": theme.line, "--s-on-accent": theme.onAccent,
-  }), [theme]);
+    // Headings read from this; body text stays on the base family for legibility.
+    "--s-heading-font": font.stack,
+  }), [theme, font]);
 
   if (state === "loading") {
     return <div className={styles.stateWrap}><span className={styles.stateStar}>✦</span><p>טוען…</p></div>;

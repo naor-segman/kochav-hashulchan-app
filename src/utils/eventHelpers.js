@@ -121,6 +121,7 @@ export function normalizeEventSite(site, type) {
   return {
     enabled:      typeof site.enabled === "boolean" ? site.enabled : def.enabled,
     themeKey:     site.themeKey     ?? def.themeKey,
+    fontKey:      site.fontKey      ?? def.fontKey ?? "serif",
     heroEn:       site.heroEn       ?? def.heroEn,
     coverPhoto:   site.coverPhoto   ?? null,
     story:        site.story        ?? "",

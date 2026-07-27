@@ -86,3 +86,110 @@
   font-size: 12px; cursor: pointer; line-height: 1;
 }
 @media (max-width: 480px){ .galleryEdit { grid-template-columns: repeat(3, 1fr); } }
+
+/* ── Heading-font picker ─────────────────────────────────────────────────── */
+.fontGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fontSwatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 84px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--transition), background var(--transition);
+}
+.fontSwatch:hover { border-color: var(--accent-border); background: var(--accent-bg); }
+
+.fontActive {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  box-shadow: var(--shadow-accent);
+}
+
+/* The sample is the point of the control — it has to be big enough that the
+   difference between the three families is actually visible. */
+.fontSample {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+/* ── In-editor device preview ────────────────────────────────────────────── */
+.previewWrap {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.previewBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.deviceBtn {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+.deviceBtn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.deviceActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.previewHint {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-inline-start: auto;
+}
+
+.previewStage {
+  margin-inline: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: max-width var(--transition);
+}
+
+/* Widths approximate the real devices so line lengths and wrapping match what
+   a guest actually sees, rather than just scaling the same layout down. */
+.stageMobile  { max-width: 390px; }
+.stageDesktop { max-width: 100%; }
+
+.previewFrame {
+  display: block;
+  width: 100%;
+  height: 560px;
+  border: 0;
+  background: var(--surface);
+}
+
+@media (max-width: 600px) {
+  .previewFrame { height: 460px; }
+  .previewHint  { margin-inline-start: 0; width: 100%; }
+}

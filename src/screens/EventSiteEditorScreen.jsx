@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { uid } from "../utils/uid.js";
-import { SITE_THEME_LIST } from "../data/eventSiteTemplates.js";
+import { SITE_THEME_LIST, SITE_FONTS, DEFAULT_SITE_FONT } from "../data/eventSiteTemplates.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -34,6 +34,8 @@ async function compressImage(file, maxPx = 1200, quality = 0.72) {
 }
 
 export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, showToast }) {
+  // null = preview closed. Otherwise the device frame width to render in.
+  const [previewDevice, setPreviewDevice] = useState(null);
   const site = ev.eventSite;
   const fileRef = useRef(null);
   const [copied, setCopied] = useState(false);
@@ -111,8 +113,43 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         <div className={styles.shareRow}>
           <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" />
           <button className={base.btnSm} onClick={copyLink}>{copied ? "הועתק ✓" : "העתיקו"}</button>
-          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open("/events/" + ev.id + "/preview-site", "_blank")}>תצוגה מקדימה</button>
+          <button
+            className={[base.btnSm, previewDevice ? "" : base.btnGhost].filter(Boolean).join(" ")}
+            onClick={() => setPreviewDevice(previewDevice ? null : "mobile")}
+            aria-expanded={!!previewDevice}
+          >
+            {previewDevice ? "סגרו תצוגה" : "תצוגה מקדימה"}
+          </button>
+          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open("/events/" + ev.id + "/preview-site", "_blank")}>פתחו בלשונית</button>
         </div>
+
+        {previewDevice && (
+          <div className={styles.previewWrap}>
+            <div className={styles.previewBar}>
+              {[["mobile", "מובייל"], ["desktop", "דסקטופ"]].map(([key, label]) => (
+                <button
+                  key={key}
+                  className={[styles.deviceBtn, previewDevice === key ? styles.deviceActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setPreviewDevice(key)}
+                  aria-pressed={previewDevice === key}
+                  type="button"
+                >{label}</button>
+              ))}
+              <span className={styles.previewHint}>התצוגה מתעדכנת בכל שמירה</span>
+            </div>
+            {/* Rendered in an iframe rather than inline so the site's own theme
+                variables and layout can't leak into the editor's styles. */}
+            <div className={[styles.previewStage, previewDevice === "mobile" ? styles.stageMobile : styles.stageDesktop].join(" ")}>
+              <iframe
+                key={previewDevice}
+                className={styles.previewFrame}
+                src={"/events/" + ev.id + "/preview-site"}
+                title="תצוגה מקדימה של אתר האירוע"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Share with guests ── */}
@@ -169,6 +206,25 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
                 <span style={{ background: t.ink }} />
               </span>
               <span className={styles.themeName}>{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <p className={base.fieldHint} style={{ marginTop: 14 }}>גופן הכותרות באתר.</p>
+        <div className={styles.fontGrid}>
+          {SITE_FONTS.map(f => (
+            <button
+              key={f.key}
+              className={[
+                styles.fontSwatch,
+                (site.fontKey || DEFAULT_SITE_FONT) === f.key ? styles.fontActive : "",
+              ].filter(Boolean).join(" ")}
+              onClick={() => set({ fontKey: f.key })}
+              type="button"
+              aria-pressed={(site.fontKey || DEFAULT_SITE_FONT) === f.key}
+            >
+              <span className={styles.fontSample} style={{ fontFamily: f.stack }}>{f.sample}</span>
+              <span className={styles.themeName}>{f.label}</span>
             </button>
           ))}
         </div>

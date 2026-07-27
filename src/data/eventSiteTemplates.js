@@ -61,6 +61,19 @@ export const SITE_THEMES = {
 
 export const SITE_THEME_LIST = Object.values(SITE_THEMES);
 
+// Heading font for the event site. All three families are already self-hosted
+// for the app itself, so choosing one costs no extra network request — the
+// picker is purely a stylistic choice, not a new dependency.
+export const SITE_FONTS = [
+  { key: "serif",   label: "קלאסי",  sample: "אבגד", stack: 'var(--font-family-serif)' },
+  { key: "display", label: "מודרני", sample: "אבגד", stack: 'var(--font-family-display)' },
+  { key: "base",    label: "נקי",    sample: "אבגד", stack: 'var(--font-family-base)' },
+];
+export const DEFAULT_SITE_FONT = "serif";
+export const getSiteFont = key =>
+  SITE_FONTS.find(f => f.key === key) || SITE_FONTS.find(f => f.key === DEFAULT_SITE_FONT);
+
+
 export function getSiteTheme(key) {
   return SITE_THEMES[key] || SITE_THEMES.sky;
 }

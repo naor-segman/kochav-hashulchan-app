@@ -128,3 +128,15 @@ describe("floorPlan.elements — venue fixtures", () => {
     expect(Object.keys(copy.floorPlan.tablePositions)).not.toContain("t1");
   });
 });
+
+describe("normalizeEventSite — heading font", () => {
+  it("defaults to the serif family for sites that predate the field", () => {
+    const e = normalizeEvent({ id: "x", name: "t", type: "wedding", eventSite: { enabled: true } });
+    expect(e.eventSite.fontKey).toBe("serif");
+  });
+
+  it("keeps an explicit choice", () => {
+    const e = normalizeEvent({ id: "x", name: "t", type: "wedding", eventSite: { enabled: true, fontKey: "display" } });
+    expect(e.eventSite.fontKey).toBe("display");
+  });
+});
