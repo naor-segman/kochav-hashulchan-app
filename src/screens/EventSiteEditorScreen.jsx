@@ -211,6 +211,18 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         </div>
 
         <div className={styles.domainBox}>
+          <Field label="קישור לאלבום המשותף" hint="אורחים והצלם מעלים תמונות למקום אחד">
+            <input
+              className={base.input}
+              readOnly
+              dir="ltr"
+              value={ev.tokens?.album ? `${window.location.origin}/album/${ev.tokens.album}` : "ייווצר אחרי השמירה הראשונה"}
+              onFocus={e => e.target.select()}
+            />
+          </Field>
+        </div>
+
+        <div className={styles.domainBox}>
           <Field label="דומיין משלכם" hint="אופציונלי — למשל dana-and-yossi.co.il">
             <input
               className={base.input}

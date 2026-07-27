@@ -16,6 +16,8 @@ function mapPublicEvent(data) {
     giftBitPhone:     data.bit_phone         ?? "",
     giftPayboxLink:   data.paybox_link       ?? "",
     site: (data.site && typeof data.site === "object") ? data.site : null,
+    announcements: (data.announcements && typeof data.announcements === "object")
+      ? data.announcements : null,
     rsvpToken:        data.rsvp_token        ?? null,
     giftToken:        data.gift_token        ?? null,
     inviteToken:      data.invite_token      ?? null,
@@ -29,7 +31,7 @@ function mapPublicEvent(data) {
  * only minimal public fields — anonymous callers cannot read the events table
  * directly, so cross-event enumeration is impossible.
  *
- * @param {"rsvp"|"invite"|"gift"|"hostess"} tokenType
+ * @param {"rsvp"|"invite"|"gift"|"hostess"|"album"} tokenType
  * @param {string} token  — the UUID token from the URL
  * @returns {object|null} — local-shaped event object, or null if not found
  */
@@ -289,5 +291,65 @@ export async function upsertCollabGuestOwner(eventCloudId, row) {
 export async function deleteCollabGuestsOwner(eventCloudId, ids) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId || !ids?.length) return;
   const { error } = await supabase.from("collab_guests").delete().eq("event_id", eventCloudId).in("id", ids);
+  if (error) throw error;
+}
+
+// ── Shared event album ──────────────────────────────────────────────────────
+// Photos live in the `event-album` storage bucket; album_photos is the index
+// the gallery reads, so listing never depends on a storage LIST call.
+
+/** Photos for one event, newest first. */
+export async function fetchAlbumPhotos(eventCloudId) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
+  const { data, error } = await supabase
+    .from("album_photos")
+    .select("id, storage_path, uploader, created_at")
+    .eq("event_id", eventCloudId)
+    .order("created_at", { ascending: false })
+    .limit(3000);
+  if (error) throw error;
+  return (data ?? []).map(r => ({
+    ...r,
+    url: supabase.storage.from("event-album").getPublicUrl(r.storage_path).data.publicUrl,
+  }));
+}
+
+/**
+ * Upload one photo and index it.
+ *
+ * The path is prefixed with the event id so a bucket listing can never mix
+ * events, and suffixed with a random segment so two guests uploading
+ * "IMG_0001.jpg" at the same moment don't collide.
+ */
+export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader) {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const ext  = (file.name?.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
+  const path = `${eventCloudId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  const { error: upErr } = await supabase.storage
+    .from("event-album")
+    .upload(path, file, { cacheControl: "31536000", upsert: false });
+  if (upErr) throw upErr;
+
+  const { error: rowErr } = await supabase.from("album_photos").insert({
+    event_id:     eventCloudId,
+    album_token:  albumToken,
+    storage_path: path,
+    uploader:     (uploader || "").trim().slice(0, 60) || null,
+  });
+  // A row that fails to write would orphan the file, so clean it up rather
+  // than leaving storage holding something the gallery can never show.
+  if (rowErr) {
+    await supabase.storage.from("event-album").remove([path]).catch(() => {});
+    throw rowErr;
+  }
+  return path;
+}
+
+/** Owner-only removal — deletes the file and its index row. */
+export async function deleteAlbumPhoto(id, storagePath) {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  await supabase.storage.from("event-album").remove([storagePath]);
+  const { error } = await supabase.from("album_photos").delete().eq("id", id);
   if (error) throw error;
 }

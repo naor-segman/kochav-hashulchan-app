@@ -82,6 +82,9 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       tasks:              Array.isArray(localEvent.tasks) ? localEvent.tasks : [],
       announcements:      localEvent.announcements ?? null,
       vendors:            Array.isArray(localEvent.vendors) ? localEvent.vendors : [],
+      // Surfaced as a top-level payload key because the album's insert policy
+      // checks payload->>'albumToken' to authorise anonymous uploads.
+      albumToken:         localEvent.tokens?.album ?? null,
       messagesSent:       localEvent.messagesSent ?? {},
       messageTemplates:   localEvent.messageTemplates ?? {},
     },

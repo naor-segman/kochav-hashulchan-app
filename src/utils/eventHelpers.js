@@ -103,12 +103,13 @@ export function normalizeEvent(ev) {
     tokens: (ev.tokens && typeof ev.tokens === "object")
       ? {
           rsvp:    ev.tokens.rsvp    ?? uid(),
+          album:   ev.tokens.album   ?? uid(),
           invite:  ev.tokens.invite  ?? uid(),
           gift:    ev.tokens.gift    ?? uid(),
           hostess: ev.tokens.hostess ?? uid(),
           collab:  ev.tokens.collab  ?? uid(),
         }
-      : { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid(), collab: uid() },
+      : { rsvp: uid(), album: uid(), invite: uid(), gift: uid(), hostess: uid(), collab: uid() },
     // Event cost planning — stored per event, updated via CostScreen.
     costs: (ev.costs && typeof ev.costs === "object") ? ev.costs : {},
     // Digital gift transfer details — shown to guests on the public gift page.

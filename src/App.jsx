@@ -55,6 +55,7 @@ const AnnouncementsEditorScreen = lazy(() => import("./screens/AnnouncementsEdit
 const VendorsScreen             = lazy(() => import("./screens/VendorsScreen.jsx"));
 const MessagesScreen            = lazy(() => import("./screens/MessagesScreen.jsx"));
 const NameTagsScreen            = lazy(() => import("./screens/NameTagsScreen.jsx"));
+const AlbumScreen               = lazy(() => import("./screens/AlbumScreen.jsx"));
 const AnnouncementScreen        = lazy(() => import("./screens/AnnouncementScreen.jsx"));
 const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
 const CollabReviewScreen  = lazy(() => import("./screens/CollabReviewScreen.jsx"));
@@ -278,6 +279,7 @@ export default function App() {
       <Route path="/rsvp/:token"      element={<Suspense fallback={null}><RSVPScreen /></Suspense>} />
       <Route path="/invite/:token"    element={<Suspense fallback={null}><EventSiteScreen /></Suspense>} />
       <Route path="/card/:token"      element={<Suspense fallback={null}><InviteScreen /></Suspense>} />
+      <Route path="/album/:token"     element={<Suspense fallback={null}><AlbumScreen /></Suspense>} />
       <Route path="/save-the-date/:token" element={<Suspense fallback={null}><AnnouncementScreen kind="saveTheDate" /></Suspense>} />
       <Route path="/invitation/:token"    element={<Suspense fallback={null}><AnnouncementScreen kind="invitation" /></Suspense>} />
       <Route path="/hostess/:token"   element={<Suspense fallback={null}><HostessScreen /></Suspense>} />
