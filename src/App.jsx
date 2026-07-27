@@ -20,20 +20,24 @@ import Toast              from "./components/feedback/Toast.jsx";
 import MigrationBanner    from "./components/migration/MigrationBanner.jsx";
 import DashboardScreen    from "./screens/DashboardScreen.jsx";
 import EventSetupScreen   from "./screens/EventSetupScreen.jsx";
-import TableBuilderScreen from "./screens/TableBuilderScreen.jsx";
-import GuestManagerScreen from "./screens/GuestManagerScreen.jsx";
-import ConstraintsScreen  from "./screens/ConstraintsScreen.jsx";
-import SeatingScreen      from "./screens/SeatingScreen.jsx";
 import LoginScreen        from "./screens/LoginScreen.jsx";
 import SignupScreen       from "./screens/SignupScreen.jsx";
 import ResetPasswordScreen from "./screens/ResetPasswordScreen.jsx";
 import AccountScreen      from "./screens/AccountScreen.jsx";
 import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
 import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
-import CheckInScreen      from "./screens/CheckInScreen.jsx";
-import LandingScreen      from "./screens/LandingScreen.jsx";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
+// Heavy authenticated screens. SeatingScreen alone drags in @dnd-kit, and a
+// first-time visitor on the marketing page has no use for any of them — keeping
+// them eager meant downloading the whole app before signup.
+const TableBuilderScreen = lazy(() => import("./screens/TableBuilderScreen.jsx"));
+const GuestManagerScreen = lazy(() => import("./screens/GuestManagerScreen.jsx"));
+const ConstraintsScreen  = lazy(() => import("./screens/ConstraintsScreen.jsx"));
+const SeatingScreen      = lazy(() => import("./screens/SeatingScreen.jsx"));
+const CheckInScreen      = lazy(() => import("./screens/CheckInScreen.jsx"));
+const LandingScreen      = lazy(() => import("./screens/LandingScreen.jsx"));
+
 const AdminApp       = lazy(() => import("./admin/AdminApp.jsx"));
 const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
 // Public pages — standalone, no auth, token-based
@@ -100,10 +104,10 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
     <Shell screen={screen} activeEvent={activeEvent} go={go} syncStatus={syncStatus} showToast={showToast}>
       <Routes>
         <Route path="setup"       element={<EventSetupScreen   {...sp} />} />
-        <Route path="tables"      element={<TableBuilderScreen  {...sp} />} />
-        <Route path="guests"      element={<GuestManagerScreen  {...sp} />} />
-        <Route path="constraints" element={<ConstraintsScreen   {...sp} />} />
-        <Route path="seating"     element={<SeatingScreen       {...sp} />} />
+        <Route path="tables"      element={<Suspense fallback={null}><TableBuilderScreen {...sp} /></Suspense>} />
+        <Route path="guests"      element={<Suspense fallback={null}><GuestManagerScreen {...sp} /></Suspense>} />
+        <Route path="constraints" element={<Suspense fallback={null}><ConstraintsScreen {...sp} /></Suspense>} />
+        <Route path="seating"     element={<Suspense fallback={null}><SeatingScreen {...sp} /></Suspense>} />
         <Route path="site"        element={<Suspense fallback={null}><EventSiteEditorScreen {...sp} /></Suspense>} />
         <Route path="rsvps"       element={<Suspense fallback={null}><RSVPResponsesScreen {...sp} /></Suspense>} />
         <Route path="collab"      element={<Suspense fallback={null}><CollabReviewScreen {...sp} /></Suspense>} />
@@ -214,7 +218,7 @@ export default function App() {
       {/* Landing page — unauthenticated visitors */}
       <Route
         path="/"
-        element={authLoading ? <div /> : user ? <Navigate to="/app" replace /> : <LandingScreen />}
+        element={authLoading ? <div /> : user ? <Navigate to="/app" replace /> : <Suspense fallback={null}><LandingScreen /></Suspense>}
       />
       {/* Dashboard — authenticated app */}
       <Route
@@ -257,7 +261,7 @@ export default function App() {
       {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}
       <Route
         path="/events/:eventId/checkin"
-        element={<CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} />}
+        element={<Suspense fallback={null}><CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} /></Suspense>}
       />
       {/* Host-only draft preview of the event site — renders from local data */}
       <Route
