@@ -329,6 +329,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
                   className={[base.input, styles.shareInput].join(" ")}
                   readOnly
                   value={url}
+                  aria-label={`קישור ל${sl.label}`}
                 />
                 <button
                   className={[base.btnSm, styles.copyBtn].join(" ")}

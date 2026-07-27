@@ -349,7 +349,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
           </p>
           {rsvpLink && (
             <div className={styles.shareRow}>
-              <input className={base.input} readOnly value={rsvpLink} dir="ltr" />
+              <input className={base.input} readOnly value={rsvpLink} dir="ltr" aria-label="קישור לאישור הגעה" />
               <button
                 className={base.btnSm}
                 onClick={async () => {

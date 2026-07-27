@@ -67,7 +67,7 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
         <div className={base.card}>
           <p className={base.fieldHint}>הקישור לטבלה המשותפת (שם וטלפון בהקלדה, השאר מרשימה — בלי טעויות):</p>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input className={base.input} readOnly value={collabLink} dir="ltr" />
+            <input className={base.input} readOnly value={collabLink} dir="ltr" aria-label="קישור לטבלה השיתופית" />
             <button className={base.btnSm} onClick={async () => {
               try { await navigator.clipboard.writeText(collabLink); showToast("הקישור הועתק ✓"); }
               catch { showToast("העתיקו ידנית", "err"); }

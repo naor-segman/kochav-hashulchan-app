@@ -111,7 +111,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           </button>
         </div>
         <div className={styles.shareRow}>
-          <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" />
+          <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" aria-label="קישור לאתר האירוע" />
           <button className={base.btnSm} onClick={copyLink}>{copied ? "הועתק ✓" : "העתיקו"}</button>
           <button
             className={[base.btnSm, previewDevice ? "" : base.btnGhost].filter(Boolean).join(" ")}

@@ -785,6 +785,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                     className={base.select}
                                     style={{ minWidth: 160, fontSize: 13 }}
                                     value=""
+                                    aria-label={`שבצו את ${g.name} לשולחן`}
                                     onPointerDown={e => e.stopPropagation()}
                                     onChange={e => { if (e.target.value) assignGuest(g.id, e.target.value); }}
                                   >
