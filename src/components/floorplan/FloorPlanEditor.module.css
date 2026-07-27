@@ -211,6 +211,7 @@
 }
 
 .chipHandle {
+  touch-action: none;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -290,7 +291,10 @@
 }
 
 /* ── Guest pills (inside chips + unassigned panel) ───────────────────────── */
+/* touch-action:none is required by dnd-kit — without it the browser treats the
+   touch as a page scroll and the drag reads as "stuck". */
 .guestPill {
+  touch-action: none;
   display: inline-flex;
   align-items: center;
   gap: 3px;

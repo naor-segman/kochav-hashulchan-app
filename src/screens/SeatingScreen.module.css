@@ -549,6 +549,10 @@
   cursor: grab;
   user-select: none;
   transition: background 0.12s;
+  /* Without this the browser keeps handling the touch as a scroll once the
+     TouchSensor delay elapses, so the row fights the page and the drag reads
+     as "stuck". Required by dnd-kit for touch dragging. */
+  touch-action: none;
 }
 
 .draggableRow:active {

@@ -5,7 +5,17 @@ import {
   useDraggable, useDroppable,
   PointerSensor, TouchSensor,
   useSensor, useSensors,
+  pointerWithin, closestCenter, MeasuringStrategy,
 } from "@dnd-kit/core";
+
+// Same reasoning as SeatingScreen: prefer the target under the pointer, fall
+// back to the nearest one rather than dropping nothing, and re-measure the
+// droppables because chips move around the sketch mid-drag.
+const collisionStrategy = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length ? hits : closestCenter(args);
+};
+const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
 import styles from "./FloorPlanEditor.module.css";
@@ -444,6 +454,8 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={collisionStrategy}
+      measuring={measuringConfig}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}

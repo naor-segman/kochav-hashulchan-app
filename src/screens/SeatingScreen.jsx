@@ -7,6 +7,7 @@ import {
   useDraggable, useDroppable,
   PointerSensor, TouchSensor,
   useSensor, useSensors,
+  pointerWithin, closestCenter, MeasuringStrategy,
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
@@ -44,6 +45,22 @@ function DraggableGuestRow({ guestId, className, children }) {
 }
 
 const MAX_UNDO = 20;
+
+/**
+ * Drop targets here are large table cards and a long waiting list. The default
+ * rectIntersection needs the dragged rect to actually overlap a target, which
+ * fails often enough that a drag "sticks" and snaps back. Prefer whatever is
+ * under the pointer, and when the pointer is over no target at all (gaps
+ * between cards) fall back to the nearest one instead of dropping nothing.
+ */
+const collisionStrategy = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length ? hits : closestCenter(args);
+};
+
+// Table cards expand/collapse and the waiting list re-flows mid-drag, so
+// droppable rects measured once at drag start go stale — re-measure always.
+const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const navigate = useNavigate();
@@ -352,6 +369,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     <>
       <DndContext
         sensors={sensors}
+        collisionDetection={collisionStrategy}
+        measuring={measuringConfig}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
