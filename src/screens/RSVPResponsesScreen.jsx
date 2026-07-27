@@ -94,11 +94,6 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   // book the buses. A shuttle the host later deleted leaves stale ids behind,
   // which simply stop resolving to a name.
   const shuttleList = Array.isArray(ev?.eventSite?.shuttles) ? ev.eventSite.shuttles : [];
-  const shuttleLabel = (id) => {
-    if (!id) return "";
-    const sh = shuttleList.find(x => x.id === id);
-    return sh ? [sh.place, sh.time].filter(Boolean).join(" · ") : "";
-  };
   const shuttleCounts = useMemo(() => shuttleList
     .map(sh => ({
       id: sh.id,

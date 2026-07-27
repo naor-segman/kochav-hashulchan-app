@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { uid } from "../utils/uid.js";
 import { fmtDate } from "../utils/dateFormat.js";
-import { TASK_PRIORITIES, TASK_STATUSES, starterTasks, seedTaskDue } from "../data/taskTemplates.js";
+import { TASK_PRIORITIES, TASK_STATUSES, starterTasks, seedTaskDue, localISODate } from "../data/taskTemplates.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -12,7 +12,9 @@ import base from "../styles/screenBase.module.css";
 import styles from "./TasksScreen.module.css";
 
 const EMPTY = { title: "", note: "", due: "", priority: "normal" };
-const todayISO = () => new Date().toISOString().slice(0, 10);
+// toISOString() gives the UTC date, so between local midnight and 03:00 in
+// Israel a task due yesterday was neither counted as overdue nor flagged.
+const todayISO = () => localISODate();
 
 export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) {
   const [form,   setForm]   = useState(EMPTY);
@@ -64,6 +66,9 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
     const t = tasks.find(x => x.id === id);
     if (!confirm(`למחוק את "${t?.title ?? "המשימה"}"?`)) return;
     write(list => list.filter(x => x.id !== id));
+    // Same as vendors: clear the open editor, or "שמרו" writes nothing and
+    // still reports success.
+    if (editId === id) { setEditId(null); setAdding(false); setForm(EMPTY); }
     showToast("המשימה נמחקה");
   };
 

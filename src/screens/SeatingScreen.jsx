@@ -7,7 +7,7 @@ import {
   useDraggable, useDroppable,
   PointerSensor, TouchSensor,
   useSensor, useSensors,
-  pointerWithin, closestCenter, MeasuringStrategy,
+  pointerWithin, rectIntersection, MeasuringStrategy,
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
@@ -48,15 +48,20 @@ function DraggableGuestRow({ guestId, className, children }) {
 const MAX_UNDO = 20;
 
 /**
- * Drop targets here are large table cards and a long waiting list. The default
- * rectIntersection needs the dragged rect to actually overlap a target, which
- * fails often enough that a drag "sticks" and snaps back. Prefer whatever is
- * under the pointer, and when the pointer is over no target at all (gaps
- * between cards) fall back to the nearest one instead of dropping nothing.
+ * Drop targets here are large table cards and a long waiting list. Prefer
+ * whatever is under the pointer; when the pointer sits in a gap between cards,
+ * fall back to rectIntersection so a drag whose card clearly overlaps a table
+ * still lands.
+ *
+ * Deliberately NOT closestCenter as the fallback: closestCenter always returns
+ * something, so releasing over blank space seated the guest at whichever table
+ * happened to be nearest. Dropping on empty space has to keep meaning "never
+ * mind" — with a long list, an accidental drag is common and there is no undo
+ * prompt at that moment.
  */
 const collisionStrategy = (args) => {
   const hits = pointerWithin(args);
-  return hits.length ? hits : closestCenter(args);
+  return hits.length ? hits : rectIntersection(args);
 };
 
 // Table cards expand/collapse and the waiting list re-flows mid-drag, so
@@ -194,9 +199,18 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         ([id, tid]) => lockedGuestIds.has(id) || lockedTablesSet.has(tid)
       )
     );
-    const newSeating = autoAssign(activeGuests, ev.tables, ev.constraints, lockedSeating);
+    // A locked table can be holding a guest who has since declined. autoAssign
+    // only charges capacity for guests it is handed, so that occupied seat has
+    // to be passed in too — otherwise the table silently overbooks.
+    const seatedDeclined = declinedGuests.filter(g => lockedSeating[g.id]);
+    const newSeating = autoAssign(
+      [...activeGuests, ...seatedDeclined], ev.tables, ev.constraints, lockedSeating
+    );
     patchEvent(e => Object.assign({}, e, { seating: newSeating }));
-    const placed = Object.keys(newSeating).length;
+    // Count only active rows: the declined passengers above are in newSeating
+    // but were never candidates, and counting them reported "all seated" while
+    // a real guest was still standing.
+    const placed = activeGuests.filter(g => newSeating[g.id]).length;
     const missed = activeGuests.length - placed;
     if (missed > 0)
       showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");

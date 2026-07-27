@@ -93,16 +93,30 @@ export function reachable(guests) {
  * message a guest will read.
  */
 export function renderTemplate(body, { event, guest, table, link }) {
-  const map = {
+  // Null-prototype: a plain object resolves {{constructor}} and {{toString}}
+  // through Object.prototype, which would put "function Object() { [native
+  // code] }" into a message a guest reads. Templates are host-editable.
+  const map = Object.assign(Object.create(null), {
     "שם":     guest?.name || "",
     "אירוע":  event?.name || "האירוע",
     "תאריך":  event?.date || "",
     "מקום":   event?.venue || "",
     "שולחן":  table?.name ? `השולחן שלכם: ${table.name}` : "",
     "קישור":  link || "",
-  };
+  });
+  const get = key => (Object.hasOwn(map, key) ? map[key] : "");
+
   return String(body || "")
-    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => map[key] ?? "")
+    // In Hebrew an attached prefix letter absorbs the definite article, so
+    // "אתם מוזמנים ל" + "החתונה של דנה" has to read "לחתונה של דנה" — the
+    // template can't know whether the host named the event with a ה or not.
+    // Scoped to a lone prefix letter directly before the placeholder, so words
+    // that merely end in one ("של {{שם}}") are untouched.
+    .replace(/(?<=^|[\s(])([לבכ])\{\{\s*([^}]+?)\s*\}\}/gm, (_, prefix, key) => {
+      const v = get(key);
+      return prefix + (v.startsWith("ה") ? v.slice(1) : v);
+    })
+    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => get(key))
     // A removed placeholder can leave a stranded blank line.
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -110,9 +124,17 @@ export function renderTemplate(body, { event, guest, table, link }) {
 
 /** wa.me deep link, or null when the number is unusable. */
 export function whatsappLink(phone, text) {
-  const d = String(phone || "").replace(/\D/g, "");
+  let d = String(phone || "").replace(/\D/g, "");
   if (d.length < 9) return null;
-  const intl = d.startsWith("0") ? "972" + d.slice(1) : d.startsWith("972") ? d : "972" + d;
+  d = d.replace(/^00/, "");
+  let intl;
+  if (d.startsWith("972"))      intl = d;                       // already Israeli
+  else if (d.startsWith("0"))   intl = "972" + d.slice(1);       // local form
+  else if (d.length === 9)      intl = "972" + d;                // local, no zero
+  // Anything else already carries its own country code. Relatives abroad are
+  // normal at Israeli weddings, and forcing 972 onto a US number produced a
+  // link to an account that does not exist.
+  else                          intl = d;
   return "https://wa.me/" + intl + "?text=" + encodeURIComponent(text || "");
 }
 

@@ -30,6 +30,34 @@ function toTime(hhmm, fallback = "190000") {
   return `${h}${m[2]}00`;
 }
 
+/** YYYYMMDD + n days, so an end time past midnight lands on the next day. */
+function addDays(stamp, n) {
+  const d = new Date(
+    Number(stamp.slice(0, 4)),
+    Number(stamp.slice(4, 6)) - 1,
+    Number(stamp.slice(6, 8)) + n
+  );
+  const p = x => String(x).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+}
+
+/**
+ * Default end: four hours after the start — Israeli events run long, and one
+ * hour is never right.
+ *
+ * Clamping the hour at 23 while keeping the start minutes produced a
+ * ZERO-LENGTH entry for anything starting at 23:00 or later (23:30 → 23:30),
+ * which calendars draw as a bare marker with no block. Past midnight the end
+ * has to roll onto the next day instead.
+ *
+ * @returns {{ day: string, time: string }}
+ */
+function defaultEnd(day, start) {
+  const h = Number(start.slice(0, 2)) + 4;
+  const p = x => String(x).padStart(2, "0");
+  return { day: h > 23 ? addDays(day, 1) : day, time: `${p(h % 24)}${start.slice(2)}` };
+}
+
 /**
  * Build the .ics text for an event.
  *
@@ -45,8 +73,12 @@ export function buildEventIcs({ name, date, venue, startTime, endTime, url, desc
   if (!day) return null;
 
   const start = toTime(startTime, "190000");
-  // Israeli events run long; four hours is a truer default than one.
-  const end   = toTime(endTime, String(Math.min(23, Number(start.slice(0, 2)) + 4)).padStart(2, "0") + start.slice(2));
+  // A host who types an end time of 01:00 for a 21:00 wedding means the small
+  // hours of the NEXT day, not a negative-length event.
+  const explicitEnd = /^\d{1,2}:\d{2}$/.test((endTime || "").trim())
+    ? { day: toTime(endTime) <= start ? addDays(day, 1) : day, time: toTime(endTime) }
+    : null;
+  const end = explicitEnd || defaultEnd(day, start);
 
   const lines = [
     "BEGIN:VCALENDAR",
@@ -58,7 +90,7 @@ export function buildEventIcs({ name, date, venue, startTime, endTime, url, desc
     `UID:${day}-${Math.abs(hash(name + date))}@kochav-hashulchan`,
     `DTSTAMP:${day}T${start}`,
     `DTSTART:${day}T${start}`,
-    `DTEND:${day}T${end}`,
+    `DTEND:${end.day}T${end.time}`,
     `SUMMARY:${esc(name || "אירוע")}`,
     venue       ? `LOCATION:${esc(venue)}`           : null,
     description ? `DESCRIPTION:${esc(description)}`  : null,

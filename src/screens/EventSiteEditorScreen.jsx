@@ -243,7 +243,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
               </p>}
         </div>
 
-        <p className={base.fieldHint} style={{ marginTop: 14 }}>גופן הכותרות באתר.</p>
+        <p className={[base.fieldHint, styles.sectionHint].join(" ")}>גופן הכותרות באתר.</p>
         <div className={styles.fontGrid}>
           {SITE_FONTS.map(f => (
             <button
@@ -343,13 +343,17 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         </div>
         {site.schedule.map(item => (
           <div key={item.id} className={styles.scheduleRow}>
+            {/* A time input can't carry a placeholder, so without aria-label a
+                screen reader announces four identical unnamed fields. */}
             <input className={[base.input, styles.timeInput].join(" ")} type="time" value={item.time}
+              aria-label="שעת השלב"
               onChange={e => editSchedule(item.id, { time: e.target.value })} />
             <input className={[base.input, styles.iconInput].join(" ")} value={item.icon} placeholder="💍"
-              onChange={e => editSchedule(item.id, { icon: e.target.value })} />
+              aria-label="אייקון" onChange={e => editSchedule(item.id, { icon: e.target.value })} />
             <input className={base.input} value={item.title} placeholder="חופה"
-              onChange={e => editSchedule(item.id, { title: e.target.value })} />
-            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delSchedule(item.id)}>✕</button>
+              aria-label="שם השלב" onChange={e => editSchedule(item.id, { title: e.target.value })} />
+            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delSchedule(item.id)}
+              aria-label={`מחקו את השלב ${item.title || item.time || ""}`.trim()}>✕</button>
           </div>
         ))}
         <button className={base.btnSecondary} onClick={addSchedule}>+ הוסיפו שלב</button>
@@ -387,15 +391,18 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         {(site.shuttles || []).map(s => (
           <div key={s.id} className={styles.scheduleRow}>
             <input className={[base.input, styles.timeInput].join(" ")} type="time" value={s.time}
+              aria-label="שעת ההסעה"
               onChange={e => editShuttle(s.id, { time: e.target.value })} />
             <select className={[base.select, styles.dirSelect].join(" ")} value={s.direction}
+              aria-label="כיוון ההסעה"
               onChange={e => editShuttle(s.id, { direction: e.target.value })}>
               <option>הלוך</option>
               <option>חזור</option>
             </select>
             <input className={base.input} value={s.place} placeholder="נקודת איסוף — נס ציונה"
-              onChange={e => editShuttle(s.id, { place: e.target.value })} />
-            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delShuttle(s.id)}>✕</button>
+              aria-label="נקודת איסוף" onChange={e => editShuttle(s.id, { place: e.target.value })} />
+            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delShuttle(s.id)}
+              aria-label={`מחקו את ההסעה ${s.place || s.time || ""}`.trim()}>✕</button>
             <input className={base.input} value={s.contactName || ""} placeholder="איש קשר (אופציונלי)"
               onChange={e => editShuttle(s.id, { contactName: e.target.value })} />
             <input className={base.input} value={s.contactPhone || ""} placeholder="טלפון איש קשר" dir="ltr"

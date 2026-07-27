@@ -29,27 +29,36 @@ export const ANNOUNCEMENT_LAYOUTS = [
   { key: "card",    label: "כרטיס" },
 ];
 
+// Keyed by the Hebrew strings normalizeEvent actually stores (constants.js
+// EVENT_TYPES) — English keys never matched, so a brit opened with
+// "אתם מוזמנים לחתונה שלנו".
 const HE = {
-  wedding:  { a: "מתחתנים!",      b: "שמרו את התאריך" },
-  bar:      { a: "בר מצווה",      b: "שמרו את התאריך" },
-  bat:      { a: "בת מצווה",      b: "שמרו את התאריך" },
-  brit:     { a: "ברית",          b: "שמרו את התאריך" },
-  henna:    { a: "חינה",          b: "שמרו את התאריך" },
-  business: { a: "אירוע חברה",    b: "שמרו את התאריך" },
+  "חתונה":        { a: "מתחתנים!",       b: "שמרו את התאריך" },
+  "בר מצווה":     { a: "בר מצווה",       b: "שמרו את התאריך" },
+  "בת מצווה":     { a: "בת מצווה",       b: "שמרו את התאריך" },
+  "חינה":         { a: "חינה",           b: "שמרו את התאריך" },
+  "אירוס":        { a: "מתארסים!",       b: "שמרו את התאריך" },
+  "אירוע עסקי":   { a: "אירוע חברה",     b: "שמרו את התאריך" },
+  "יום הולדת":    { a: "יום הולדת",      b: "שמרו את התאריך" },
+  "אירוע משפחתי": { a: "אירוע משפחתי",   b: "שמרו את התאריך" },
+  "אחר":          { a: "",               b: "שמרו את התאריך" },
 };
 
 const INVITE_HE = {
-  wedding:  "אתם מוזמנים לחתונה שלנו",
-  bar:      "אתם מוזמנים לחגוג איתנו",
-  bat:      "אתם מוזמנים לחגוג איתנו",
-  brit:     "אתם מוזמנים לברית",
-  henna:    "אתם מוזמנים לחינה",
-  business: "אתם מוזמנים לאירוע",
+  "חתונה":        "אתם מוזמנים לחתונה שלנו",
+  "בר מצווה":     "אתם מוזמנים לחגוג איתנו",
+  "בת מצווה":     "אתם מוזמנים לחגוג איתנו",
+  "חינה":         "אתם מוזמנים לחינה",
+  "אירוס":        "אתם מוזמנים לאירוסין",
+  "אירוע עסקי":   "אתם מוזמנים לאירוע",
+  "יום הולדת":    "אתם מוזמנים לחגוג",
+  "אירוע משפחתי": "אתם מוזמנים לאירוע המשפחתי",
+  "אחר":          "אתם מוזמנים",
 };
 
 /** Blank-slate content for one announcement kind. */
 export function defaultAnnouncement(kind, type) {
-  const t = HE[type] || HE.wedding;
+  const t = HE[type] || HE["אחר"];
   const isSave = kind === "saveTheDate";
   return {
     enabled:     false,
@@ -58,7 +67,7 @@ export function defaultAnnouncement(kind, type) {
     layout:      isSave ? "center" : "card",
     photo:       null,
     // Kept short on purpose: these pages are read in two seconds on a phone.
-    headline:    isSave ? t.b : (INVITE_HE[type] || INVITE_HE.wedding),
+    headline:    isSave ? t.b : (INVITE_HE[type] || INVITE_HE["אחר"]),
     subheadline: isSave ? t.a : "",
     message:     "",
     showCountdown: isSave,
@@ -84,7 +93,7 @@ export function normalizeAnnouncement(a, kind, type) {
   const bool = (v, d) => (typeof v === "boolean" ? v : d);
   return {
     enabled:       bool(a.enabled, def.enabled),
-    themeKey:      SITE_THEMES[a.themeKey] ? a.themeKey : def.themeKey,
+    themeKey:      Object.hasOwn(SITE_THEMES, a.themeKey ?? "") ? a.themeKey : def.themeKey,
     fontKey:       a.fontKey ?? def.fontKey,
     layout:        ANNOUNCEMENT_LAYOUTS.some(l => l.key === a.layout) ? a.layout : def.layout,
     photo:         a.photo ?? null,

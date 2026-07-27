@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { isScanSupported } from "../../utils/scanPayload.js";
 import styles from "./QrScanner.module.css";
 
 /**
@@ -9,37 +10,23 @@ import styles from "./QrScanner.module.css";
  * feature used at one door for a few hours, unsupported browsers get an honest
  * message pointing back to name search — which already works everywhere.
  *
- * Payload contract: the code carries a guest id, either bare or inside a URL
- * as `?g=<id>`. onScan receives the extracted id; matching it to a guest is the
- * caller's job, so this component stays free of event knowledge.
+ * onScan receives the raw payload; parsing it (utils/scanPayload.js) and
+ * matching it to a guest are the caller's job, so this component stays free of
+ * event knowledge.
  */
-export function isScanSupported() {
-  return typeof window !== "undefined" && "BarcodeDetector" in window;
-}
-
-/** Pull a guest id out of a scanned payload — bare id, URL param, or kh1: prefix. */
-export function parseScanPayload(raw) {
-  const text = (raw || "").trim();
-  if (!text) return null;
-  if (text.startsWith("kh1:")) return text.slice(4) || null;
-  try {
-    const u = new URL(text);
-    const g = u.searchParams.get("g");
-    if (g) return g;
-  } catch {
-    // Not a URL — fall through and treat the whole string as the id.
-  }
-  // Ignore anything that looks like a link but carried no guest id, so a guest
-  // scanning the generic event invite doesn't check in a random person.
-  if (/^https?:/i.test(text)) return null;
-  return text;
-}
-
 export default function QrScanner({ onScan, onClose }) {
   const videoRef  = useRef(null);
   const streamRef = useRef(null);
   const [error, setError] = useState("");
   const lastRef = useRef({ value: "", at: 0 });
+
+  // The caller re-creates onScan whenever the guest list changes — i.e. after
+  // every successful check-in. Depending on it directly tore down the camera
+  // and re-ran getUserMedia per guest, which at a door with a queue is a black
+  // frame and a fresh hardware acquisition each time. Hold it in a ref so the
+  // effect runs exactly once.
+  const onScanRef = useRef(onScan);
+  useEffect(() => { onScanRef.current = onScan; }, [onScan]);
 
   useEffect(() => {
     if (!isScanSupported()) { setError("unsupported"); return; }
@@ -64,6 +51,10 @@ export default function QrScanner({ onScan, onClose }) {
           if (cancelled || !videoRef.current) return;
           try {
             const codes = await detector.detect(videoRef.current);
+            // Re-check after the await: the panel may have been closed while
+            // this frame was in flight, and firing onScan then would check a
+            // guest in after the scanner was dismissed.
+            if (cancelled) return;
             if (codes.length) {
               const value = codes[0].rawValue || "";
               const now = Date.now();
@@ -71,13 +62,13 @@ export default function QrScanner({ onScan, onClose }) {
               // repeat within two seconds so one badge checks in once.
               if (value && (value !== lastRef.current.value || now - lastRef.current.at > 2000)) {
                 lastRef.current = { value, at: now };
-                onScan(value);
+                onScanRef.current(value);
               }
             }
           } catch {
             // A single failed frame is not worth surfacing; keep scanning.
           }
-          rafId = requestAnimationFrame(tick);
+          if (!cancelled) rafId = requestAnimationFrame(tick);
         };
         rafId = requestAnimationFrame(tick);
       } catch (err) {
@@ -92,7 +83,7 @@ export default function QrScanner({ onScan, onClose }) {
       cancelAnimationFrame(rafId);
       streamRef.current?.getTracks().forEach(t => t.stop());
     };
-  }, [onScan]);
+  }, []);
 
   const message =
     error === "unsupported" ? "הדפדפן הזה לא תומך בסריקה. ב-Safari ובפיירפוקס השתמשו בחיפוש לפי שם — הוא עובד בכל מכשיר."

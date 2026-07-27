@@ -61,15 +61,15 @@ export default function AlbumScreen() {
       if (!ev) { setState(isSupabaseConfigured ? "error" : "nocloud"); return; }
       setEvent(ev);
       setState("ready");
-      try { setPhotos(await fetchAlbumPhotos(ev.cloudId)); } catch { /* gallery just stays empty */ }
+      try { setPhotos(await fetchAlbumPhotos(token)); } catch { /* gallery just stays empty */ }
     })();
     return () => { cancelled = true; };
   }, [token]);
 
   const reload = useCallback(async () => {
     if (!event?.cloudId) return;
-    try { setPhotos(await fetchAlbumPhotos(event.cloudId)); } catch { /* keep what we have */ }
-  }, [event]);
+    try { setPhotos(await fetchAlbumPhotos(token)); } catch { /* keep what we have */ }
+  }, [event, token]);
 
   const onFiles = async (files) => {
     const list = Array.from(files || []);

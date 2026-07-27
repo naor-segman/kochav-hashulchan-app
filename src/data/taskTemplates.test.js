@@ -4,25 +4,35 @@ import { starterTasks, seedTaskDue, TASK_STATUSES, TASK_PRIORITIES } from "./tas
 afterEach(() => vi.useRealTimers());
 
 describe("starterTasks", () => {
-  it("returns a wedding list by default and for unknown types", () => {
-    expect(starterTasks("wedding").length).toBeGreaterThan(5);
-    expect(starterTasks("nonsense")).toEqual(starterTasks("wedding"));
-    expect(starterTasks(undefined)).toEqual(starterTasks("wedding"));
+  // Types are the Hebrew strings from constants.js EVENT_TYPES — what
+  // normalizeEvent actually stores. English keys fell through to the wedding
+  // list, which is how a bar mitzvah board opened with "לבחור שמלה וחליפה".
+  it("returns a wedding list for a wedding", () => {
+    expect(starterTasks("חתונה").length).toBeGreaterThan(5);
+    expect(starterTasks("חתונה").some(t => t.title.includes("שמלה"))).toBe(true);
+  });
+
+  it("falls back to the generic social list, never the wedding one", () => {
+    const generic = starterTasks("אחר");
+    expect(starterTasks("nonsense")).toEqual(generic);
+    expect(starterTasks(undefined)).toEqual(generic);
+    expect(generic).not.toEqual(starterTasks("חתונה"));
   });
 
   it("gives business events their own list, not the wedding one", () => {
-    const biz = starterTasks("business");
-    expect(biz).not.toEqual(starterTasks("wedding"));
+    const biz = starterTasks("אירוע עסקי");
+    expect(biz).not.toEqual(starterTasks("חתונה"));
     expect(biz.some(t => t.title.includes("תקציב"))).toBe(true);
   });
 
   it("shares one list across the mitzvah-style events", () => {
-    expect(starterTasks("bar")).toEqual(starterTasks("bat"));
+    expect(starterTasks("בר מצווה")).toEqual(starterTasks("בת מצווה"));
+    expect(starterTasks("בר מצווה")).not.toEqual(starterTasks("חתונה"));
   });
 
   it("only uses known priorities and offsets that count down to the event", () => {
     const valid = new Set(TASK_PRIORITIES.map(p => p.value));
-    for (const type of ["wedding", "bar", "business"]) {
+    for (const type of ["חתונה", "בר מצווה", "אירוע עסקי", "יום הולדת"]) {
       for (const t of starterTasks(type)) {
         expect(valid.has(t.priority)).toBe(true);
         expect(t.offset).toBeGreaterThan(0);

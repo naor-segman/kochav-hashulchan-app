@@ -78,6 +78,18 @@ describe("renderTemplate", () => {
     expect(out).toContain("https://x.co/r");
   });
 
+  // A prefix letter attached to a placeholder absorbs the definite article:
+  // "מוזמנים ל" + "החתונה" is "לחתונה", never "להחתונה".
+  it("elides the definite article after an attached prefix letter", () => {
+    expect(renderTemplate("אתם מוזמנים ל{{אירוע}}!", ctx)).toBe("אתם מוזמנים לחתונה!");
+    expect(renderTemplate("נתראה ב{{מקום}}", ctx)).toBe("נתראה באולמי הגן");
+  });
+
+  it("leaves a word that merely ends in a prefix letter alone", () => {
+    // "של" ends in ל but is a separate word — the ה must survive.
+    expect(renderTemplate("השם של {{אירוע}}", ctx)).toBe("השם של החתונה");
+  });
+
   it("removes unknown placeholders rather than showing braces to a guest", () => {
     expect(renderTemplate("שלום {{נעלם}}", ctx)).toBe("שלום");
   });

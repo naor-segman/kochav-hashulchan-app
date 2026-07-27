@@ -141,6 +141,10 @@ export function mapCloudEventToLocalEvent(cloudRow) {
       gift:    cloudRow.gift_token    ?? p.tokens?.gift    ?? null,
       hostess: cloudRow.hostess_token ?? p.tokens?.hostess ?? null,
       collab:  cloudRow.collab_token  ?? p.tokens?.collab  ?? null,
+      // The album token has no dedicated column — it lives in the payload. Read
+      // it back or normalizeEvent mints a fresh one on every cloud pull, which
+      // would silently break an album link already printed on an invitation.
+      album:   p.tokens?.album ?? p.albumToken ?? null,
     } : null,
     costs: (p.costs && typeof p.costs === "object") ? p.costs : {},
     giftBitPhone:   p.giftBitPhone   ?? "",

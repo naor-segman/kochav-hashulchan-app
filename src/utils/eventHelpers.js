@@ -245,6 +245,9 @@ export function duplicateEvent(ev) {
     // Tasks carry over — a second event usually needs the same checklist — but
     // reset to "todo" with fresh ids so the copy starts from a clean board.
     tasks: (ev.tasks ?? []).map(t => ({ ...t, id: uid(), status: "todo", doneAt: null })),
+    // messagesSent is keyed by GUEST id, and the copy has new guest ids — a
+    // carried-over map would match nobody and never be pruned. Start clean.
+    messagesSent: {},
     // Deep-copy the remaining nested collections so editing the duplicate never
     // mutates the original (Object.assign only shallow-copies these).
     customGroups:     Array.isArray(ev.customGroups) ? [...ev.customGroups] : [],

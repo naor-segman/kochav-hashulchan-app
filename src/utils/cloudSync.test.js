@@ -20,7 +20,7 @@ const richEvent = {
   seating: { g1: "t1" },
   constraints: [{ id: "c1", type: "together", guestA: "g1", guestB: "g1" }],
   lockedGuests: ["g1"], lockedTables: ["t1"],
-  tokens: { rsvp: "r1", invite: "i1", gift: "gf1", hostess: "h1", collab: "c1" },
+  tokens: { rsvp: "r1", invite: "i1", gift: "gf1", hostess: "h1", collab: "c1", album: "al1" },
   costs: { categories: [{ id: "co1", name: "אולם", budget: "40000" }] },
   giftBitPhone: "0501234567", giftPayboxLink: "https://payboxapp.page.link/x",
   eventSite: { enabled: true, schedule: [{ id: "s1", time: "18:00", title: "קבלה" }], sections: {} },
@@ -37,7 +37,7 @@ describe("cloudSync round-trip (local → cloud → local)", () => {
     expect(out.customTableTypes).toEqual(["שולחן ילדים"]);
   });
 
-  it("preserves all five public tokens", () => {
+  it("preserves every public token", () => {
     expect(out.tokens).toEqual(richEvent.tokens);
   });
 

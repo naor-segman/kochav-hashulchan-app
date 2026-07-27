@@ -59,18 +59,39 @@ const BUSINESS = [
   { title: "לסגור סידורי הושבה",          offset:   7, priority: "normal" },
 ];
 
+// Keyed by the Hebrew strings normalizeEvent actually stores (constants.js
+// EVENT_TYPES). English keys silently fell through to WEDDING, so a bar
+// mitzvah board opened with "לבחור שמלה וחליפה".
+// Birthday / family / "other" had no list at all and silently got the wedding
+// one. These are the items those events genuinely share.
+const SOCIAL = [
+  { title: "לסגור מקום ותאריך",        offset: 90, priority: "high"   },
+  { title: "לבנות את רשימת המוזמנים",  offset: 60, priority: "high"   },
+  { title: "לסגור קייטרינג / אוכל",    offset: 45, priority: "normal" },
+  { title: "לשלוח הזמנות",             offset: 30, priority: "high"   },
+  { title: "לפתוח אישורי הגעה",        offset: 21, priority: "high"   },
+  { title: "לסגור מוזיקה / הגברה",     offset: 21, priority: "normal" },
+  { title: "לסגור מספר מנות",          offset: 10, priority: "high"   },
+  { title: "לסיים סידורי הושבה",       offset:  5, priority: "normal" },
+];
+
 const BY_TYPE = {
-  wedding:  WEDDING,
-  bar:      MITZVAH,
-  bat:      MITZVAH,
-  brit:     MITZVAH,
-  henna:    WEDDING,
-  business: BUSINESS,
+  "חתונה":         WEDDING,
+  "חינה":          WEDDING,
+  "אירוס":         WEDDING,
+  "בר מצווה":      MITZVAH,
+  "בת מצווה":      MITZVAH,
+  "אירוע עסקי":    BUSINESS,
+  "יום הולדת":     SOCIAL,
+  "אירוע משפחתי":  SOCIAL,
+  "אחר":           SOCIAL,
 };
 
 /** Seed rows for an event type — plain data, no ids or dates yet. */
 export function starterTasks(type) {
-  return BY_TYPE[type] || WEDDING;
+  // Unknown types get the generic social list, same as "אחר". Falling back to
+  // WEDDING meant any type we hadn't mapped opened with a dress fitting.
+  return BY_TYPE[type] || SOCIAL;
 }
 
 /**
@@ -82,7 +103,19 @@ export function seedTaskDue(eventDate, offsetDays) {
   if (!eventDate) return "";
   const ev = new Date(eventDate + "T00:00:00");
   if (Number.isNaN(ev.getTime())) return "";
-  const due = new Date(ev.getTime() - offsetDays * 86400000);
+  const days = Number(offsetDays);
+  if (!Number.isFinite(days)) return "";
+  const due = new Date(ev.getTime() - days * 86400000);
+  if (Number.isNaN(due.getTime())) return "";
   if (due.getTime() < Date.now() - 86400000) return "";
-  return due.toISOString().slice(0, 10);
+  // toISOString() re-reads a local-midnight Date in UTC, which lands on the
+  // PREVIOUS day everywhere east of Greenwich — i.e. every date in Israel was
+  // seeded one day early. Format from the local parts instead.
+  return localISODate(due);
+}
+
+/** YYYY-MM-DD from a Date's LOCAL parts, never shifted through UTC. */
+export function localISODate(d = new Date()) {
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }

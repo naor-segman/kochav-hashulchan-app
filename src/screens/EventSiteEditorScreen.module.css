@@ -88,6 +88,11 @@
 @media (max-width: 480px){ .galleryEdit { grid-template-columns: repeat(3, 1fr); } }
 
 /* ── Heading-font picker ─────────────────────────────────────────────────── */
+/* Separates the font picker from the colour swatches directly above it. */
+.sectionHint {
+  margin-block-start: 14px;
+}
+
 .fontGrid {
   display: flex;
   flex-wrap: wrap;

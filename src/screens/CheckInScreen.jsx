@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import styles from "./CheckInScreen.module.css";
-import QrScanner, { isScanSupported, parseScanPayload } from "../components/ui/QrScanner.jsx";
+import QrScanner from "../components/ui/QrScanner.jsx";
+import { isScanSupported, parseScanPayload } from "../utils/scanPayload.js";
 
 export default function CheckInScreen({ events, patchEventById }) {
   const { eventId } = useParams();
@@ -29,8 +30,6 @@ export default function CheckInScreen({ events, patchEventById }) {
     if (!ev) navigate("/", { replace: true });
   }, [ev, navigate]);
 
-  if (!ev) return null;
-
   const patchEvent = (patch) => patchEventById(eventId, patch);
 
   const toggleArrived = (guestId, wasArrived) => {
@@ -45,15 +44,21 @@ export default function CheckInScreen({ events, patchEventById }) {
 
   // A scanned badge checks the guest in immediately — at a door with a queue,
   // an extra confirmation tap is the thing that makes people stop using it.
+  //
+  // Declared BEFORE the `if (!ev)` bail-out: a hook after an early return runs
+  // on some renders and not others, and React matches hooks by call order — the
+  // deleted-event render would have shifted every later hook by one.
   const handleScan = useCallback((raw) => {
     const id = parseScanPayload(raw);
     if (!id) { setScanMsg("קוד לא מזוהה — נסו שוב או חפשו לפי שם"); return; }
-    const guest = ev.guests.find(g => g.id === id);
+    const guest = ev?.guests.find(g => g.id === id);
     if (!guest) { setScanMsg("הקוד לא שייך לאירוע הזה"); return; }
     if (guest.arrived) { setScanMsg(guest.name + " כבר סומן/ה כהגיע/ה ✓"); return; }
     toggleArrived(guest.id, false);
     setScanMsg(guest.name + " סומן/ה כהגיע/ה ✓");
-  }, [ev.guests]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ev?.guests]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!ev) return null;
 
   const addWalkIn = () => {
     const name = walkInName.trim();

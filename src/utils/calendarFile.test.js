@@ -36,9 +36,26 @@ describe("buildEventIcs", () => {
     expect(get(ics, "DTEND")).toBe("20260915T234500");
   });
 
-  it("never rolls the end hour past 23", () => {
-    const ics = buildEventIcs({ ...base, startTime: "21:00" });
-    expect(get(ics, "DTEND")).toBe("20260915T230000");
+  // Clamping at 23:00 instead of rolling over gave a 23:30 event a DTEND of
+  // 23:30 — a zero-length entry the calendar draws as a bare marker.
+  it("rolls an end time past midnight onto the next day", () => {
+    expect(get(buildEventIcs({ ...base, startTime: "21:00" }), "DTEND"))
+      .toBe("20260916T010000");
+    expect(get(buildEventIcs({ ...base, startTime: "23:30" }), "DTEND"))
+      .toBe("20260916T033000");
+  });
+
+  it("reads an explicit end time earlier than the start as the small hours", () => {
+    const ics = buildEventIcs({ ...base, startTime: "21:00", endTime: "01:30" });
+    expect(get(ics, "DTSTART")).toBe("20260915T210000");
+    expect(get(ics, "DTEND")).toBe("20260916T013000");
+  });
+
+  it("never emits a zero-length event", () => {
+    for (const startTime of ["19:00", "21:00", "23:00", "23:59"]) {
+      const ics = buildEventIcs({ ...base, startTime });
+      expect(get(ics, "DTEND")).not.toBe(get(ics, "DTSTART"));
+    }
   });
 
   it("escapes commas and semicolons per RFC 5545", () => {

@@ -62,6 +62,9 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
     const v = vendors.find(x => x.id === id);
     if (!confirm(`למחוק את "${v?.name ?? "הספק"}"?`)) return;
     write(l => l.filter(x => x.id !== id));
+    // Deleting the row that is open for editing left the form up; pressing
+    // "שמרו" then matched nothing yet still toasted success.
+    if (editId === id) { setEditId(null); setAdding(false); setForm(EMPTY); }
     showToast("הספק נמחק");
   };
 

@@ -17,12 +17,18 @@
  */
 
 // Israeli mobile/landline, with or without +972, spaces, dashes or brackets.
-const PHONE_RE = /(?:\+?972[-\s]?|0)(?:[23489]|5\d|7\d)[-\s]?\d{3}[-\s]?\d{4}/;
+// Israeli mobile/landline with any mix of spaces, dashes and brackets, plus
+// the 00972 / +972 international forms. Separators are allowed between every
+// group because real pasted lists use all of them ("050-123-45-67").
+const PHONE_RE = /(?:(?:\+|00)?972[-.\s]?|0)\(?(?:[23489]|5\d|7\d)\)?(?:[-.\s]?\d){7}/;
 
 /** Normalise to the local 0XXXXXXXXX form the rest of the app uses. */
 export function normalizePhone(raw) {
-  const digits = String(raw || "").replace(/\D/g, "");
+  let digits = String(raw || "").replace(/\D/g, "");
   if (!digits) return "";
+  // Strip the international dialling prefix FIRST — "00972…" starts with "0"
+  // and used to be returned untouched, producing wa.me/9720972…
+  digits = digits.replace(/^00/, "");
   if (digits.startsWith("972")) return "0" + digits.slice(3);
   if (digits.startsWith("0"))   return digits;
   // A bare 9-digit number is a local one missing its leading zero.
@@ -32,11 +38,18 @@ export function normalizePhone(raw) {
 /** Strip decoration the source added rather than the person's actual name. */
 function cleanName(s) {
   return String(s || "")
-    .replace(/^[~•\-–—*·\d.)\s]+/, "")   // WhatsApp "~", bullets, "1." numbering
+    // Strip WhatsApp's "~", bullets and "1." numbering — but only a SHORT run
+    // of digits, so an unmatched phone number is left visible in the name
+    // rather than silently deleted.
+    .replace(/^[~•*·\s]+/, "")
+    .replace(/^\d{1,2}[.)]\s*/, "")
+    .replace(/^[-–—\s]+/, "")
     // Removing the phone leaves its separator behind ("שרה כהן -"), so trailing
     // punctuation has to go too — otherwise it lands in the guest's name.
     .replace(/[\s\-–—:;,.|]+$/, "")
-    .replace(/["“”']/g, "")
+    // Only straight/curly double quotes. A geresh is part of the name in
+    // ג'ורג' and צ'רלי — stripping ' turned those into גורג and צרלי.
+    .replace(/["“”]/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
@@ -65,8 +78,10 @@ export function parseGuestList(text) {
     // A line that is only a phone number gives us nobody to seat.
     if (!/\p{L}/u.test(name)) continue;
 
-    // Same person pasted twice (common when merging two lists) collapses.
-    const key = (phone || name).toLowerCase();
+    // Same person pasted twice collapses — but the key is name+phone, not one
+    // or the other: spouses share a household line, and keying on phone alone
+    // silently dropped the second of them.
+    const key = `${name.toLowerCase()}|${phone}`;
     if (seen.has(key)) continue;
     seen.add(key);
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildGuestCardUrl, readGuestCardParams, guestScanPayload } from "./guestCard.js";
-import { parseScanPayload } from "../components/ui/QrScanner.jsx";
+import { parseScanPayload } from "./scanPayload.js";
 
 const ORIGIN = "https://kochav.app";
 

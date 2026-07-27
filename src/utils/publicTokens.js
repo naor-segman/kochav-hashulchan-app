@@ -298,15 +298,12 @@ export async function deleteCollabGuestsOwner(eventCloudId, ids) {
 // Photos live in the `event-album` storage bucket; album_photos is the index
 // the gallery reads, so listing never depends on a storage LIST call.
 
-/** Photos for one event, newest first. */
-export async function fetchAlbumPhotos(eventCloudId) {
-  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
-  const { data, error } = await supabase
-    .from("album_photos")
-    .select("id, storage_path, uploader, created_at")
-    .eq("event_id", eventCloudId)
-    .order("created_at", { ascending: false })
-    .limit(3000);
+/** Photos for one event, newest first. Keyed by album token, not event id. */
+export async function fetchAlbumPhotos(albumToken) {
+  if (!isSupabaseConfigured || !supabase || !albumToken) return [];
+  // Via RPC, not a table read: album_photos rows carry the album token, so a
+  // readable table would let anyone enumerate every event's token.
+  const { data, error } = await supabase.rpc("album_list_by_token", { token_value: albumToken });
   if (error) throw error;
   return (data ?? []).map(r => ({
     ...r,
@@ -324,6 +321,8 @@ export async function fetchAlbumPhotos(eventCloudId) {
 export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const ext  = (file.name?.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
+  // The event id prefix is enforced server-side too — album_add_photo rejects a
+  // path that doesn't belong to the token's event.
   const path = `${eventCloudId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
   const { error: upErr } = await supabase.storage
@@ -331,16 +330,19 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader)
     .upload(path, file, { cacheControl: "31536000", upsert: false });
   if (upErr) throw upErr;
 
-  const { error: rowErr } = await supabase.from("album_photos").insert({
-    event_id:     eventCloudId,
-    album_token:  albumToken,
-    storage_path: path,
-    uploader:     (uploader || "").trim().slice(0, 60) || null,
+  // Indexed through a definer function: an RLS policy here could not validate
+  // the token, because anon cannot read the events table it would need.
+  const { error: rowErr } = await supabase.rpc("album_add_photo", {
+    token_value:    albumToken,
+    path_value:     path,
+    uploader_value: (uploader || "").trim().slice(0, 60) || null,
   });
-  // A row that fails to write would orphan the file, so clean it up rather
-  // than leaving storage holding something the gallery can never show.
+  // A row that fails to write would orphan the file. remove() resolves with
+  // { error } instead of rejecting, so a plain .catch() would swallow a real
+  // failure — check the result and surface it with the original cause.
   if (rowErr) {
-    await supabase.storage.from("event-album").remove([path]).catch(() => {});
+    const { error: rmErr } = await supabase.storage.from("event-album").remove([path]);
+    if (rmErr) rowErr.message += " (הקובץ נשאר באחסון ולא נוקה)";
     throw rowErr;
   }
   return path;
@@ -349,7 +351,9 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader)
 /** Owner-only removal — deletes the file and its index row. */
 export async function deleteAlbumPhoto(id, storagePath) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  await supabase.storage.from("event-album").remove([storagePath]);
+  // Row first. Removing the file first means a denied or failed row delete
+  // leaves the gallery pointing at a missing image with no way to clear it.
   const { error } = await supabase.from("album_photos").delete().eq("id", id);
   if (error) throw error;
+  await supabase.storage.from("event-album").remove([storagePath]);
 }

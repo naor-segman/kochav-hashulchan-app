@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseScanPayload } from "./QrScanner.jsx";
+import { parseScanPayload } from "./scanPayload.js";
 
 describe("parseScanPayload", () => {
   it("accepts a bare guest id", () => {
