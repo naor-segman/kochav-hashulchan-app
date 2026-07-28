@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
-import { TABLE_TYPES, TABLE_SHAPES, DEFAULT_TABLE_SHAPE, tableShape } from "../data/constants.js";
+import { TABLE_TYPES, TABLE_SHAPES, DEFAULT_TABLE_SHAPE } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -11,6 +11,7 @@ import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
+import TableGlyph from "../components/ui/TableGlyph.jsx";
 import TypeTag from "../components/ui/TypeTag.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./TableBuilderScreen.module.css";
@@ -317,7 +318,13 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                         </>
                       ) : (
                         <>
-                          <span style={{ fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span aria-hidden="true" title={tableShape(t).label} style={{ color: "var(--muted)", marginInlineEnd: 5 }}>{tableShape(t).glyph}</span>{t.name}</span>
+                          <span className={styles.rowName}>
+                            {/* The ● that used to sit here said which shape the
+                                table is and nothing else. The glyph says the
+                                shape AND how full it is, in the same space. */}
+                            <TableGlyph shape={t.shape} capacity={t.capacity} taken={seated} size={26} />
+                            <span className={styles.rowNameText} title={t.name}>{t.name}</span>
+                          </span>
                           <span style={{ textAlign: "center" }}>{t.capacity}</span>
                           <span style={{ textAlign: "center" }}><TypeTag type={t.type} /></span>
                           <span style={{

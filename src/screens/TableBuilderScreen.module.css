@@ -114,3 +114,20 @@
   margin-bottom: 16px;
   line-height: 1.6;
 }
+
+/* Table name cell — glyph and name on one baseline, name truncating rather
+   than pushing the columns beside it out of alignment. */
+.rowName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.rowNameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

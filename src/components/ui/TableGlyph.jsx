@@ -41,7 +41,9 @@ function perimeterPoint(shape, t, rx, ry) {
 
 /** The small-size measure: a full track with the taken share drawn over it. */
 function CompactRing({ rect, rx, ry, c, square, share }) {
-  const common = { fill: "none", strokeWidth: 7, strokeLinecap: "butt" };
+  // Thin enough that a fully taken table still reads as a ring around a
+  // top rather than as a solid disc — at 7 the two collapsed together.
+  const common = { fill: "none", strokeWidth: 5.5, strokeLinecap: "butt" };
   if (rect) {
     const len = 2 * (rx * 2 + ry * 2);
     return (
