@@ -17,7 +17,7 @@
 }
 
 .totalNum {
-  font-size: 21px;
+  font-size: var(--step-2);
   font-weight: 800;
   line-height: 1.15;
   color: var(--text);
@@ -26,7 +26,7 @@
 .totalPaid { color: var(--green); }
 .totalDue  { color: var(--warn); }
 
-.totalLbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+.totalLbl { font-size: var(--step--1); font-weight: 600; color: var(--muted); }
 
 /* ── Toolbar ─────────────────────────────────────────────────────────────── */
 .toolbar {
@@ -41,18 +41,27 @@
 
 .filterBtn {
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--step--1);
   font-weight: 700;
-  padding: 5px 12px;
-  border-radius: 999px;
+  padding: 6px 13px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border2);
   background: var(--surface);
   color: var(--text2);
   cursor: pointer;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
-.filterBtn:hover { border-color: var(--accent-border); color: var(--accent-text); }
-.filterOn { background: var(--accent); border-color: var(--accent); color: #fff; }
+.filterBtn:hover { border-color: var(--text2); color: var(--text); background: var(--bg); }
+
+/* Was a saturated --accent fill with a white label: 3.8:1, which is below AA
+   for any text at any size. --blush is a GROUND — it carries near-black at
+   12.3:1, marks the selected filter just as clearly, and does not spend the
+   brand colour on a segmented control. */
+.filterOn {
+  background: var(--blush);
+  border-color: var(--blush-line);
+  color: var(--text);
+}
 
 .formCard {
   background: var(--bg);
@@ -83,33 +92,45 @@
 
 .rowTop { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 
-.name { font-size: 14.5px; font-weight: 800; color: var(--text); }
+.name { font-size: var(--step-0); font-weight: 800; color: var(--text); }
 
 .cat {
-  font-size: 11.5px;
+  font-size: var(--step--1);
   font-weight: 600;
   color: var(--muted);
 }
 
 .tag {
-  font-size: 11px;
+  font-size: var(--step--1);
   font-weight: 700;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   padding: 2px 9px;
   white-space: nowrap;
 }
-.tone_ok    { color: var(--green); background: rgba(30, 158, 106, .12); }
-.tone_warn  { color: var(--warn);  background: rgba(217, 147, 11, .14); }
-.tone_muted { color: var(--text2); background: var(--bg); }
-.tone_off   { color: var(--muted); background: var(--bg); }
+/* Semantic grounds from the token file, not one-off rgba() literals that no
+   brand change would ever have found. */
+.tone_ok    { color: var(--green);  background: var(--green-bg); }
+.tone_warn  { color: var(--warn);   background: var(--warn-bg); }
+.tone_muted { color: var(--text2);  background: var(--bg); }
+.tone_off   { color: var(--muted);  background: var(--bg); }
 
-.rowMeta { font-size: 12.5px; color: var(--muted); }
-.phone { color: var(--accent-text); text-decoration: none; }
-.phone:hover { text-decoration: underline; }
+.rowMeta { font-size: var(--step--1); color: var(--muted); }
+
+/* A phone number in a list of five vendors is five accent-coloured strings
+   for one affordance. Underline carries "this is a link" at rest; the accent
+   appears only under the cursor, where it is one moment instead of five. */
+.phone {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--border2);
+  text-underline-offset: 2px;
+  font-weight: 600;
+}
+.phone:hover { color: var(--accent-text); text-decoration-color: currentColor; }
 
 .note {
   margin: 2px 0 0;
-  font-size: 12.5px;
+  font-size: var(--step--1);
   color: var(--text2);
   line-height: 1.5;
   word-break: break-word;
@@ -124,22 +145,22 @@
 }
 
 .price {
-  font-size: 15px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
-.due { font-size: 11.5px; font-weight: 700; color: var(--warn); white-space: nowrap; }
+.due { font-size: var(--step--1); font-weight: 700; color: var(--warn); white-space: nowrap; }
 
 .rowActions { display: flex; align-items: center; gap: 5px; }
 
 .actBtn {
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: var(--step--1);
   font-weight: 700;
-  padding: 4px 11px;
-  border-radius: 20px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border2);
   background: var(--bg);
   color: var(--text2);
@@ -147,13 +168,13 @@
   white-space: nowrap;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
-.actBtn:hover { background: rgba(30, 158, 106, .12); color: var(--green); border-color: var(--green); }
+.actBtn:hover { background: var(--green-bg); color: var(--green); border-color: var(--green); }
 
 .iconBtn {
   font-family: inherit;
-  font-size: 11px;
-  width: 24px;
-  height: 24px;
+  font-size: var(--step--1);
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,10 +185,10 @@
   cursor: pointer;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
-.iconBtn:hover { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border); }
-.iconBtn:last-child:hover { background: var(--red); color: #fff; border-color: var(--red); }
+.iconBtn:hover { background: var(--bg); color: var(--text); border-color: var(--text2); }
+.iconBtn:last-child:hover { background: var(--red); color: var(--on-accent); border-color: var(--red); }
 
-.noMatch { margin: 0; padding: 12px 4px; font-size: 13px; color: var(--muted); }
+.noMatch { margin: 0; padding: 12px 4px; font-size: var(--step--1); color: var(--muted); }
 
 @media (max-width: 600px) {
   .filters { margin-inline-start: 0; width: 100%; }

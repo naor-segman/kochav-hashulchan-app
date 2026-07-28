@@ -1,56 +1,71 @@
 /* GuestManagerScreen-specific styles */
 
+/* This screen is a dense list a host scans for one name among hundreds, so
+   everything that is not a guest's state gives up its colour. What is left in
+   the row is the RSVP chip and the seated/unseated chip — and nothing else
+   competing with them. */
+
 /* Step guidance banner */
+/* Was a full-width accent-tinted panel sitting directly above the list. The
+   panel is now a plain hairline card; only the step number keeps a warm
+   ground, and it uses --blush (near-black at 12.3:1) rather than the brand
+   accent, so the accent stays spendable elsewhere. */
 .stepGuide {
   display: flex;
   align-items: baseline;
   gap: 10px;
   padding: 12px 16px;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
 .stepBadge {
-  font-size: 12px;
+  font-size: var(--step--1);
   font-weight: 800;
-  color: var(--accent-text);
+  color: var(--text);
+  background: var(--blush);
+  border-radius: var(--radius-pill);
+  padding: 3px 10px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .stepText {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--text2);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 /* Plan gate upgrade tip */
+/* An accent-tinted panel wearing a warning-coloured border read as neither.
+   It is a limit warning, so it gets the warning ground outright. */
 .upgradeTip {
   margin: 0 0 12px;
-  padding: 8px 12px;
-  font-size: 12px;
-  color: var(--text2);
-  background: var(--accent-bg);
+  padding: 10px 14px;
+  font-size: var(--step--1);
+  color: var(--text);
+  background: var(--warn-bg);
   border: 1px solid var(--warn-border);
+  border-inline-start: 3px solid var(--warn);
   border-radius: var(--radius);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .upgradeTipLink {
   color: var(--accent-text);
   text-decoration: underline;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Add-form hint (manual vs Excel) */
 .addHint {
-  font-size: 12px;
+  font-size: var(--step--1);
   color: var(--muted);
   margin-bottom: 12px;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 /* Custom group inline input (shown when "אחר" is selected) */
@@ -62,14 +77,14 @@
 }
 
 .customGroupHint {
-  font-size: 11px;
+  font-size: var(--step--1);
   color: var(--muted);
   line-height: 1.4;
 }
 
 /* Filter bar label */
 .filterLabel {
-  font-size: 12px;
+  font-size: var(--step--1);
   font-weight: 700;
   color: var(--text2);
   white-space: nowrap;
@@ -89,22 +104,22 @@
 }
 
 .listAddTitle {
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 700;
   color: var(--text);
 }
 
 .listAddHint {
-  font-size: 12px;
+  font-size: var(--step--1);
   color: var(--muted);
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .listAddTextarea {
   resize: vertical;
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--step-0);
   line-height: 1.8;
   min-height: 120px;
 }
@@ -117,20 +132,23 @@
 }
 
 /* ── Bulk RSVP action bar ── */
+/* This bar sits between the filter bar and the list. Tinted, it was a pink
+   band pointing at nothing; the buttons inside already carry the RSVP colours
+   that the bar is for. */
 .bulkBar {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 8px;
   flex-wrap: wrap;
 }
 
 .bulkLabel {
-  font-size: 12px;
+  font-size: var(--step--1);
   font-weight: 700;
   color: var(--text2);
   flex-shrink: 0;
@@ -138,14 +156,14 @@
 }
 
 .bulkRsvpBtn {
-  padding: 4px 12px;
+  padding: 5px 12px;
   border-radius: var(--radius);
   border: 1px solid currentColor;
   background: var(--surface);
-  font-size: 12px;
+  font-size: var(--step--1);
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition);
 }
 
 .bulkRsvpBtn:hover {
@@ -153,12 +171,23 @@
 }
 
 /* Per-guest WhatsApp invite button */
+/* A saturated #25D366 fill repeated on every row was the loudest thing in a
+   list whose whole job is scanning names — and it out-shouted the RSVP chips
+   that carry the actual state. Quiet outline instead: same green family, dark
+   enough to read (--green is 5.9:1 on white), same visual weight as the
+   "edit" and "delete" buttons beside it. */
 .waBtn {
-  background: var(--whatsapp);
-  /* white on #25D366 is 1.98:1 — the worst text in the product */
-  color: #0B3D1F;
+  background: var(--surface);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+  box-shadow: none;
 }
-.waBtn:hover { filter: brightness(0.93); }
+.waBtn:hover:not(:disabled) {
+  background: var(--green-bg);
+  border-color: var(--green);
+  box-shadow: none;
+  transform: none;
+}
 
 /* Companion-name inputs (multi-seat guest) */
 .companionsGrid {

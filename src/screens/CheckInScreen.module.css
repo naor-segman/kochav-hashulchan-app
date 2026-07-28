@@ -1,5 +1,14 @@
 /* CheckInScreen — premium mobile-optimized event-day check-in */
 
+/* Colour policy for this screen (it is used one-handed, at a door, in low
+   light, by an untrained greeter while a queue waits):
+   – ARRIVAL is the only story, so --green is the only hue in the list.
+   – The tap target is near-black ink (--text as a ground, 16.6:1) so it is
+     unmistakable before you have read a word of it.
+   – The brand accent is spent on exactly three things: the active view tab,
+     the search field's focus ring, and the one filled CTA in the walk-in
+     sheet (as --cta, which is the only accent value a white label clears). */
+
 .root {
   display: flex;
   flex-direction: column;
@@ -15,24 +24,22 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 50;
   flex-wrap: wrap;
-  box-shadow: 0 1px 6px rgba(0,0,0,.07);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .backBtn {
   background: none;
   border: 1px solid var(--border2);
   border-radius: var(--radius);
-  padding: 7px 13px;
-  font-size: 13px;
+  padding: 10px 14px;
+  min-height: 44px;
+  font-size: var(--step--1);
   font-weight: 600;
   color: var(--text2);
   cursor: pointer;
@@ -42,13 +49,13 @@
 }
 
 .backBtn:hover {
-  background: var(--accent-bg);
-  color: var(--accent-text);
-  border-color: var(--accent-border);
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border2);
 }
 
 .eventName {
-  font-size: 17px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--text);
   flex: 1;
@@ -66,43 +73,48 @@
   flex-shrink: 0;
 }
 
+/* The headline number is data, not brand. Near-black at 16.6:1 reads from
+   further away than any tinted text could. */
 .arrivedCount {
-  font-size: 20px;
+  font-size: var(--step-2);
   font-weight: 900;
-  color: var(--accent-text);
+  color: var(--text);
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .giftTotal {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   color: var(--green);
   background: var(--green-bg);
   border: 1px solid var(--green-border);
-  border-radius: 20px;
-  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
   white-space: nowrap;
 }
 
 /* ── Walk-in top button ── */
+/* Secondary at the door: adding an unexpected guest is rare, checking one in
+   is constant. It must not compete with the search field. */
 .walkInTopBtn {
-  padding: 7px 13px;
-  border: 1.5px solid var(--accent);
+  padding: 10px 14px;
+  min-height: 44px;
+  border: 1px solid var(--border2);
   border-radius: var(--radius);
-  background: var(--accent-bg);
-  color: var(--accent-text);
-  font-size: 13px;
+  background: var(--surface);
+  color: var(--text2);
+  font-size: var(--step--1);
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .walkInTopBtn:hover {
-  background: var(--accent);
-  color: #fff;
-  box-shadow: var(--shadow-accent);
+  background: var(--bg);
+  color: var(--text);
 }
 
 /* ── Progress bar ── */
@@ -117,22 +129,22 @@
 
 .progressBar {
   flex: 1;
-  height: 10px;
+  height: 12px;
   background: var(--border);
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
   background: linear-gradient(90deg, var(--green), var(--green-light));
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   animation: progressFill 0.5s ease;
 }
 
 .progressLabel {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 800;
   color: var(--green);
   white-space: nowrap;
@@ -148,11 +160,12 @@
 
 .viewTab {
   flex: 1;
-  padding: 11px;
+  padding: 13px 11px;
+  min-height: 48px;
   background: none;
   border: none;
   border-bottom: 3px solid transparent;
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
@@ -160,10 +173,11 @@
 }
 
 .viewTab:hover:not(.viewTabActive) {
-  background: var(--accent-bg);
+  background: var(--bg);
   color: var(--text2);
 }
 
+/* ACCENT MOMENT 1 of 3 — which of the two views you are in. */
 .viewTabActive {
   color: var(--accent-text);
   border-bottom-color: var(--accent);
@@ -171,26 +185,38 @@
 }
 
 /* ── Search ── */
+/* Together with .checkBtn this is one of the two largest targets on the
+   screen. It is deliberately oversized: it is the first thing a greeter
+   reaches for and it is being used with one thumb. */
 .searchWrap {
   position: relative;
-  padding: 12px 16px;
+  padding: 14px 16px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
 
 .searchInput {
   width: 100%;
-  padding: 14px 44px 14px 16px;
-  font-size: 18px;
-  border: 2px solid var(--border);
+  box-sizing: border-box;
+  min-height: 60px;
+  padding: 16px 52px 16px 16px;
+  font-size: var(--step-2);
+  font-weight: 600;
+  border: 2px solid var(--border2);
   border-radius: var(--radius-lg);
   background: var(--surface);
   color: var(--text);
   outline: none;
   transition: border-color var(--transition), box-shadow var(--transition);
-  box-shadow: var(--shadow);
 }
 
+.searchInput::placeholder {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ACCENT MOMENT 2 of 3 — the focused field. Transient, and the only place a
+   fill-only colour is allowed to draw the eye on this screen. */
 .searchInput:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-bg);
@@ -200,13 +226,17 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  inset-inline-start: 28px;
+  inset-inline-start: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: var(--step-1);
   color: var(--muted);
   cursor: pointer;
-  padding: 4px;
   line-height: 1;
   transition: color var(--transition);
 }
@@ -221,14 +251,14 @@
   margin: 12px 16px 0;
   padding: 12px 16px;
   background: var(--green-bg);
-  border: 2px solid var(--green);
+  border: 1px solid var(--green);
+  border-inline-start: 6px solid var(--green);
   border-radius: var(--radius-lg);
   animation: slideDown 0.2s ease;
-  box-shadow: 0 2px 10px rgba(0,0,0,.07);
 }
 
 .lastCheckedIcon {
-  font-size: 24px;
+  font-size: var(--step-3);
   color: var(--green);
   font-weight: 900;
   flex-shrink: 0;
@@ -243,24 +273,28 @@
 }
 
 .lastCheckedName {
-  font-size: 17px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--text);
 }
 
 .lastCheckedTable {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--green);
   font-weight: 600;
 }
 
 .lastCheckedDismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: var(--step-1);
   color: var(--muted);
   cursor: pointer;
-  padding: 4px;
   line-height: 1;
   flex-shrink: 0;
   transition: color var(--transition);
@@ -281,14 +315,14 @@
 .noResultIcon { font-size: 44px; }
 
 .noResultText {
-  font-size: 18px;
+  font-size: var(--step-1);
   font-weight: 700;
   color: var(--text);
   text-align: center;
 }
 
 .noResultSub {
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--muted);
   text-align: center;
 }
@@ -301,30 +335,31 @@
   gap: 8px;
 }
 
+/* Hairline, not a shadow: twelve lifted cards in a column is twelve reasons
+   for the eye to stop, and nothing here floats. */
 .row {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
+  border-inline-start: 6px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   overflow: hidden;
-  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
-  box-shadow: var(--shadow);
+  transition: border-color var(--transition), background var(--transition);
 }
 
-.row:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-
+/* The arm's-length signal. A pale tint alone is not readable across a lobby;
+   a 6px solid edge on the leading side is. */
 .rowArrived {
   background: var(--green-bg);
   border-color: var(--green-border);
+  border-inline-start-color: var(--green);
 }
 
 .rowLast {
   border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(var(--green-rgb),.15), var(--shadow-md);
+  border-inline-start-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), .18);
 }
 
 .rowMain {
@@ -333,6 +368,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
+  min-height: 76px;
   flex-wrap: wrap;
 }
 
@@ -345,7 +381,7 @@
 }
 
 .guestName {
-  font-size: 20px;
+  font-size: var(--step-2);
   font-weight: 800;
   color: var(--text);
   line-height: 1.2;
@@ -353,7 +389,7 @@
 }
 
 .guestMeta {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--muted);
   line-height: 1.4;
 }
@@ -366,55 +402,62 @@
   flex-shrink: 0;
 }
 
+/* The table number is the sentence the greeter says out loud. It was pink on
+   pink at 6.4:1; neutral near-black on the page grey is 16.6:1 and one size
+   larger, and it stops twelve identical pink chips from reading as a pattern
+   instead of as data. */
 .tableTag {
   display: inline-block;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--accent-text);
-  background: var(--accent-bg);
-  padding: 4px 12px;
+  font-size: var(--step-0);
+  font-weight: 800;
+  color: var(--text);
+  background: var(--bg);
+  padding: 6px 12px;
   border-radius: var(--radius);
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--border2);
 }
 
 .noTable {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--warn);
-  font-weight: 600;
+  font-weight: 700;
 }
 
+/* The single thing on the screen you are meant to hit. Near-black ink is a
+   legal ground (16.6:1 for its label), it needs no brand colour to be
+   obvious, and it leaves --green free to mean "already done". */
 .checkBtn {
-  padding: 11px 22px;
+  padding: 12px 22px;
+  min-height: 52px;
+  min-width: 132px;
   border-radius: var(--radius-lg);
-  border: 2px solid var(--border2);
-  background: var(--bg);
-  color: var(--text2);
-  font-size: 15px;
-  font-weight: 700;
+  border: 2px solid var(--text);
+  background: var(--text);
+  color: var(--nav-text);
+  font-size: var(--step-1);
+  font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
-  transition: all var(--transition);
-  min-width: 100px;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
   text-align: center;
 }
 
 .checkBtn:hover {
-  border-color: var(--green);
-  color: var(--green);
-  background: var(--green-bg);
+  background: var(--nav-bg2);
+  border-color: var(--nav-bg2);
+  color: var(--nav-text);
 }
 
 .checkBtnDone {
   background: var(--green);
   border-color: var(--green);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(var(--green-rgb),.30);
+  color: var(--on-accent);
 }
 
 .checkBtnDone:hover {
   background: var(--green);
   border-color: var(--green);
-  color: #fff;
+  color: var(--on-accent);
   opacity: 0.85;
 }
 
@@ -430,7 +473,7 @@
 }
 
 .giftLabel {
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 600;
   color: var(--text2);
   white-space: nowrap;
@@ -440,10 +483,11 @@
   flex: 1;
   min-width: 120px;
   max-width: 180px;
+  min-height: 44px;
   padding: 8px 12px;
-  border: 1.5px solid var(--green-border);
+  border: 1px solid var(--green-border);
   border-radius: var(--radius);
-  font-size: 16px;
+  font-size: var(--step-1);
   background: var(--surface);
   color: var(--text);
   text-align: center;
@@ -457,7 +501,7 @@
 }
 
 .giftRecorded {
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 700;
   color: var(--green);
   white-space: nowrap;
@@ -476,7 +520,7 @@
 .emptyIcon { font-size: 60px; }
 
 .emptyTitle {
-  font-size: 22px;
+  font-size: var(--step-2);
   font-weight: 800;
   color: var(--text);
   text-align: center;
@@ -484,7 +528,7 @@
 }
 
 .emptySub {
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--muted);
   text-align: center;
   line-height: 1.6;
@@ -492,31 +536,33 @@
 }
 
 /* ── Walk-in trigger button ── */
+/* ACCENT MOMENT 3 of 3 — the one filled brand button on the screen. --cta,
+   not --accent: a white label needs 4.7:1, and --accent only reaches 3.8:1. */
 .walkInTriggerBtn {
   margin-top: 8px;
-  padding: 13px 28px;
-  background: var(--accent);
-  color: #fff;
+  padding: 14px 28px;
+  min-height: 52px;
+  background: var(--cta);
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-lg);
-  font-size: 15px;
+  font-size: var(--step-1);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-accent);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  box-shadow: var(--shadow-cta);
+  transition: background var(--transition), box-shadow var(--transition);
 }
 
 .walkInTriggerBtn:hover {
-  background: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
-  transform: translateY(-1px);
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
 }
 
 /* ── Walk-in modal overlay ── */
 .walkInOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(var(--text-rgb), 0.55);
   z-index: 100;
   display: flex;
   align-items: flex-end;
@@ -542,7 +588,7 @@
 }
 
 .walkInTitle {
-  font-size: 20px;
+  font-size: var(--step-2);
   font-weight: 900;
   color: var(--text);
   text-align: center;
@@ -551,13 +597,15 @@
 
 .walkInInput {
   padding: 14px 16px;
-  font-size: 18px;
-  border: 2px solid var(--border);
+  min-height: 52px;
+  font-size: var(--step-1);
+  border: 2px solid var(--border2);
   border-radius: var(--radius-lg);
   background: var(--bg);
   color: var(--text);
   outline: none;
   width: 100%;
+  box-sizing: border-box;
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 
@@ -573,7 +621,7 @@
 }
 
 .walkInLabel {
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 600;
   color: var(--text2);
   white-space: nowrap;
@@ -583,12 +631,14 @@
 
 .walkInCountInput {
   padding: 9px 12px;
-  border: 1.5px solid var(--border);
+  min-height: 44px;
+  border: 1px solid var(--border2);
   border-radius: var(--radius);
-  font-size: 16px;
+  font-size: var(--step-1);
   background: var(--bg);
   color: var(--text);
-  width: 80px;
+  width: 84px;
+  box-sizing: border-box;
   text-align: center;
   transition: border-color var(--transition);
 }
@@ -604,27 +654,30 @@
 }
 
 .walkInSideBtn {
-  padding: 9px 18px;
-  border: 1.5px solid var(--border2);
+  padding: 10px 18px;
+  min-height: 44px;
+  border: 1px solid var(--border2);
   border-radius: var(--radius);
   background: var(--bg);
   color: var(--text2);
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .walkInSideBtn:hover {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-  color: var(--accent-text);
+  border-color: var(--blush-line);
+  background: var(--accent-light);
+  color: var(--text);
 }
 
+/* Blush is a GROUND, not an accent: it carries near-black at 12.3:1 and marks
+   the chosen side without spending the brand colour on a toggle. */
 .walkInSideBtnActive {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-  color: var(--accent-text);
+  border-color: var(--blush-line);
+  background: var(--blush);
+  color: var(--text);
   font-weight: 800;
 }
 
@@ -636,21 +689,21 @@
 .walkInSaveBtn {
   flex: 1;
   padding: 15px;
-  background: var(--accent);
-  color: #fff;
+  min-height: 54px;
+  background: var(--cta);
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-lg);
-  font-size: 16px;
+  font-size: var(--step-1);
   font-weight: 800;
   cursor: pointer;
-  box-shadow: var(--shadow-accent);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  box-shadow: var(--shadow-cta);
+  transition: background var(--transition), box-shadow var(--transition);
 }
 
 .walkInSaveBtn:hover:not(:disabled) {
-  background: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
-  transform: translateY(-1px);
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
 }
 
 .walkInSaveBtn:disabled {
@@ -661,11 +714,12 @@
 
 .walkInCancelBtn {
   padding: 15px 22px;
+  min-height: 54px;
   background: none;
   color: var(--text2);
-  border: 1.5px solid var(--border2);
+  border: 1px solid var(--border2);
   border-radius: var(--radius-lg);
-  font-size: 15px;
+  font-size: var(--step-0);
   font-weight: 600;
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
@@ -686,20 +740,17 @@
 
 .tableBlock {
   border: 1px solid var(--border);
+  border-inline-start: 6px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
   overflow: hidden;
-  box-shadow: var(--shadow);
-  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
-}
-
-.tableBlock:hover {
-  box-shadow: var(--shadow-md);
+  transition: border-color var(--transition), background var(--transition);
 }
 
 .tableBlockDone {
   background: var(--green-bg);
   border-color: var(--green-border);
+  border-inline-start-color: var(--green);
 }
 
 .tableBlockHead {
@@ -707,6 +758,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 13px 16px;
+  min-height: 60px;
   gap: 10px;
   border-bottom: 1px solid var(--border);
 }
@@ -716,7 +768,7 @@
 }
 
 .tableBlockName {
-  font-size: 18px;
+  font-size: var(--step-1);
   font-weight: 900;
   color: var(--text);
   display: flex;
@@ -726,9 +778,10 @@
 }
 
 .tableBlockCount {
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 600;
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .tableBlockActions {
@@ -736,31 +789,34 @@
   gap: 8px;
 }
 
+/* Ink means "do the thing", green means "done" — the same rule as .checkBtn.
+   This was a green fill, which made the action and the state it produces the
+   same colour on a screen whose only job is telling those two apart. */
 .tableMarkAllBtn {
-  padding: 8px 16px;
-  background: var(--green);
-  color: #fff;
+  padding: 10px 16px;
+  min-height: 44px;
+  background: var(--text);
+  color: var(--nav-text);
   border: none;
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(var(--green-rgb),.25);
-  transition: opacity var(--transition), transform var(--transition);
+  transition: opacity var(--transition);
 }
 
 .tableMarkAllBtn:hover {
   opacity: 0.85;
-  transform: translateY(-1px);
 }
 
 .tableUnmarkAllBtn {
-  padding: 8px 14px;
+  padding: 10px 14px;
+  min-height: 44px;
   background: none;
   color: var(--muted);
   border: 1px solid var(--border2);
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: var(--step--1);
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
 }
@@ -777,7 +833,7 @@
 
 .tableGuestEmpty {
   padding: 12px 16px;
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--muted);
 }
 
@@ -785,14 +841,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 12px 16px;
+  min-height: 56px;
   border-top: 1px solid var(--border);
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
 .tableGuestRow:hover {
-  background: var(--accent-bg);
+  background: var(--bg);
 }
 
 .tableGuestRowDone {
@@ -805,40 +863,55 @@
 }
 
 .tableGuestName {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--step-1);
+  font-weight: 700;
   color: var(--text);
 }
 
 .tableGuestStatus {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  padding: 3px 10px;
-  border-radius: 20px;
-  background: var(--border);
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--text2);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  white-space: nowrap;
 }
 
 .tableGuestStatusDone {
-  color: var(--green);
-  background: var(--green-bg);
-  border: 1px solid var(--green-border);
+  color: var(--on-accent);
+  background: var(--green);
+  border-color: var(--green);
 }
 
-/* ── Mobile optimizations ── */
-@media (max-width: 480px) {
-  .searchInput {
-    font-size: 16px;
-    padding: 12px 38px 12px 12px;
-  }
-  .guestName { font-size: 18px; }
-  .checkBtn {
-    font-size: 14px;
-    padding: 10px 14px;
-    min-width: 80px;
-  }
-  .tableTag { font-size: 13px; }
+/* ── Mobile ── */
+/* Note what is NOT here any more: the old rules SHRANK the search field, the
+   guest name and the check button below 480px. Mobile is not the edge case on
+   this screen, it is the entire use case. */
+@media (max-width: 560px) {
   .walkInPanel { padding: 24px 16px 32px; }
+
+  /* Stack instead of squeezing. Side-by-side, a 132px button and a table chip
+     left the name a ~150px column, so "משפחת כהן — יוסי ורונית" broke over
+     three lines. Full-width name, then one action row underneath — and the
+     button grows to half the row, which is the point. */
+  .rowMain {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px 14px;
+  }
+
+  .rowRight {
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .checkBtn { flex: 1; min-width: 0; }
+  .tableTag { flex-shrink: 0; }
 }
 
 /* ── QR scan ─────────────────────────────────────────────────────────────── */
@@ -847,27 +920,31 @@
 .scanBtn {
   display: block;
   width: 100%;
+  box-sizing: border-box;
   margin: 0 0 12px;
-  padding: 11px 16px;
+  padding: 13px 16px;
+  min-height: 48px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 700;
-  color: var(--accent-text);
-  background: var(--accent-bg);
-  border: 1.5px dashed var(--accent-border);
+  color: var(--text2);
+  background: var(--surface);
+  border: 1px dashed var(--border2);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
-.scanBtn:hover { background: var(--accent-light); border-color: var(--accent); }
+.scanBtn:hover { background: var(--bg); border-color: var(--text2); color: var(--text); }
 
+/* Blush ground carrying near-black (12.3:1) — a notice that is visible
+   without borrowing the accent. */
 .scanMsg {
   margin: 0 0 10px;
-  padding: 10px 14px;
-  font-size: 13.5px;
+  padding: 12px 14px;
+  font-size: var(--step-0);
   font-weight: 700;
   text-align: center;
   color: var(--text);
-  background: var(--accent-bg);
+  background: var(--blush);
   border-radius: var(--radius);
 }

@@ -57,7 +57,7 @@
   font-weight: 700;
   color: var(--muted);
   background: var(--surface);
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   padding: 1px 8px;
   font-variant-numeric: tabular-nums;
 }
@@ -76,7 +76,6 @@
   border-radius: var(--radius);
   padding: 10px 11px;
   margin-bottom: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
 }
 .task:last-child { margin-bottom: 0; }
 
@@ -98,15 +97,18 @@
 }
 
 /* A dot rather than a word: priority is scanned, not read. */
+/* A ramp, not three unrelated colours. "normal" was the brand accent, which
+   made a routine task the single most saturated pixel on the board; amber
+   sits between urgent-red and inert-grey where it belongs. */
 .prio {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
   margin-top: 5px;
 }
 .prio_high   { background: var(--red); }
-.prio_normal { background: var(--accent); }
+.prio_normal { background: var(--warn); }
 .prio_low    { background: var(--border2); }
 
 .taskNote {
@@ -124,13 +126,16 @@
   font-weight: 700;
   color: var(--text2);
   background: var(--bg);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 2px 8px;
 }
 
+/* Red text on a brand-tinted ground was a mismatch nobody could name. An
+   overdue task is a danger state; it gets the danger ground. */
 .dueLate {
   color: var(--red);
-  background: rgba(var(--accent-rgb), 0.06);
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
 }
 
 .taskActions {
@@ -147,7 +152,7 @@
   font-size: 11px;
   font-weight: 700;
   padding: 3px 9px;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border2);
   background: var(--bg);
   color: var(--text2);
@@ -155,9 +160,9 @@
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 .moveBtn:hover {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
-  color: var(--accent-text);
+  background: var(--bg);
+  border-color: var(--text2);
+  color: var(--text);
 }
 
 .iconBtn {
@@ -175,8 +180,8 @@
   cursor: pointer;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
-.iconBtn:hover { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border); }
-.iconBtn:last-child:hover { background: var(--red); color: #fff; border-color: var(--red); }
+.iconBtn:hover { background: var(--bg); color: var(--text); border-color: var(--text2); }
+.iconBtn:last-child:hover { background: var(--red); color: var(--on-accent); border-color: var(--red); }
 
 @media (max-width: 700px) {
   .board { grid-template-columns: 1fr; }

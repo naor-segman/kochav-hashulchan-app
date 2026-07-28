@@ -14,7 +14,6 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  box-shadow: var(--shadow);
 }
 
 .statNum {
@@ -44,7 +43,7 @@
   gap: 10px;
   padding: 10px 16px;
   background: var(--warn-bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--warn-border);
   border-inline-start: 3px solid var(--warn);
   border-radius: var(--radius);
   font-size: 13px;
@@ -101,7 +100,7 @@
 
 /* Data rows hover */
 .tableRow:not(.tableHead):not(.totalsRow):hover {
-  background: var(--accent-light);
+  background: var(--bg);
 }
 
 /* ── Totals row ── */
@@ -161,7 +160,7 @@
   direction: rtl;
   font-family: inherit;
   padding: 2px 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: background var(--transition-fast);
 }
 
@@ -179,7 +178,7 @@
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 6px 10px;
   font-size: 14px;
   color: var(--text);
@@ -206,7 +205,7 @@
   font-size: 12px;
   font-weight: 700;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 
@@ -222,10 +221,13 @@
   border: 1px solid var(--green-border);
 }
 
+/* Exactly on budget is neither good news nor bad — over is red, under is
+   green, and this one is simply "no variance". It had no business borrowing
+   the brand colour to say nothing. */
 .exact {
-  background: var(--accent-bg);
-  color: var(--accent-text);
-  border: 1px solid var(--accent-border);
+  background: var(--bg);
+  color: var(--text2);
+  border: 1px solid var(--border2);
 }
 
 .diffEmpty {
@@ -241,7 +243,7 @@
   font-size: 13px;
   cursor: pointer;
   padding: 4px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   line-height: 1;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
@@ -285,7 +287,7 @@
 }
 
 .addBtn:hover {
-  background: var(--accent-light);
+  background: var(--bg);
 }
 
 /* ── Save hint ── */
@@ -322,26 +324,35 @@
 .chartRow { display: grid; grid-template-columns: 88px 1fr auto; gap: 10px; align-items: center; }
 .chartName { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chartBars { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.barTrack { height: 9px; background: var(--bg); border-radius: 100px; overflow: hidden; }
-.barPlanned { height: 100%; background: rgba(var(--accent-rgb), 0.32); border-radius: 100px; transition: width var(--transition); }
-.barActual { height: 100%; background: var(--accent); border-radius: 100px; transition: width var(--transition); }
+/* Two series and one alert, and none of them is "the brand".
+   planned  = --blush, a GROUND: the soft target the actual bar is measured
+              against, so it recedes without disappearing;
+   actual   = near-black ink, the number you came to read;
+   over     = --red, the only semantic here that has an opinion.
+   Fourteen saturated magenta bars used to fill this card, which is precisely
+   how a colour stops meaning anything. */
+.barTrack { height: 9px; background: var(--bg); border-radius: var(--radius-pill); overflow: hidden; }
+.barPlanned { height: 100%; background: var(--blush); border-radius: var(--radius-pill); transition: width var(--transition); }
+.barActual { height: 100%; background: var(--text); border-radius: var(--radius-pill); transition: width var(--transition); }
 .barOver { background: var(--red); }
 .chartVal { font-size: 12.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chartValOver { color: var(--red); }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
-.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-.swPlanned { background: rgba(var(--accent-rgb), 0.32); }
-.swActual { background: var(--accent); }
+.legend i { width: 12px; height: 12px; border-radius: var(--radius-sm); display: inline-block; }
+.swPlanned { background: var(--blush); }
+.swActual { background: var(--text); }
 .swOver { background: var(--red); }
 
 .bigChart { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
 .bigRow { display: grid; grid-template-columns: 96px 1fr auto; gap: 10px; align-items: center; }
 .bigLabel { font-size: 13px; font-weight: 600; color: var(--text2); white-space: nowrap; }
-.bigTrack { height: 14px; background: var(--bg); border-radius: 100px; overflow: hidden; }
-.bigFill { height: 100%; border-radius: 100px; transition: width var(--transition); }
+/* Money in vs money out. Green already carries "in" semantically; "out" is the
+   neutral ink bar, not a second brand colour — the pair reads as one scale. */
+.bigTrack { height: 14px; background: var(--bg); border-radius: var(--radius-pill); overflow: hidden; }
+.bigFill { height: 100%; border-radius: var(--radius-pill); transition: width var(--transition); }
 .barIncome { background: var(--green); }
-.barExpense { background: var(--accent); }
+.barExpense { background: var(--text); }
 .bigVal { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bigNote { margin: 10px 0 0; font-size: 13px; color: var(--muted); line-height: 1.6; }
 
