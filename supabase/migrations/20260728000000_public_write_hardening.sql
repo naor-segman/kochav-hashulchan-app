@@ -161,8 +161,8 @@ begin
           nullif(left(trim(coalesce(message, '')), 1000), ''), false);
 end; $$;
 
-revoke all on function public.submit_gift_by_token(text, bigint, text) from public;
-grant execute on function public.submit_gift_by_token(text, bigint, text) to anon, authenticated;
+revoke all on function public.submit_gift_by_token(text, text, bigint, text) from public;
+grant execute on function public.submit_gift_by_token(text, text, bigint, text) to anon, authenticated;
 
 -- Now close the direct paths those functions replace.
 drop policy if exists "rsvp_public_insert"  on public.rsvp_responses;
@@ -274,5 +274,5 @@ grant execute on function public.public_event_by_token(text, text) to anon, auth
 
 comment on function public.submit_rsvp_by_token(text, text, text, text, int, text[], text) is
   'Token-validated RSVP write. Replaces the direct anon INSERT, which accepted any event_id.';
-comment on function public.submit_gift_by_token(text, bigint, text) is
+comment on function public.submit_gift_by_token(text, text, bigint, text) is
   'Token-validated gift write. Replaces the direct anon INSERT, which accepted any event_id.';
