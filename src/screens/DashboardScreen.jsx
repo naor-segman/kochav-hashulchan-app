@@ -145,7 +145,9 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
             <span className={styles.statValue}>{stats.totalGuests}</span>
             <span className={styles.statLabel}>מקומות</span>
           </div>
-          <div className={styles.statTile}>
+          {/* The seating figure is the number a host opens this screen for —
+              it carries the blush ground so the eye has somewhere to land. */}
+          <div className={[styles.statTile, styles.statPrimary].join(" ")}>
             <span className={[styles.statValue, stats.seatedPct === 100 ? styles.statValueGreen : ""].filter(Boolean).join(" ")}>
               {stats.seatedPct}%
             </span>
