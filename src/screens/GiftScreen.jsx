@@ -57,7 +57,7 @@ export default function GiftScreen() {
     setStep("submitting");
     if (event?.cloudId) {
       try {
-        await submitGift(event.cloudId, {
+        await submitGift(token, event.cloudId, {
           donorName: name,
           amountILS: finalAmount,
           message,

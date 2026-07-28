@@ -101,7 +101,7 @@ export default function RSVPScreen() {
     setSubmitting(true);
     try {
       if (event.cloudId) {
-        await submitRSVP(event.cloudId, {
+        await submitRSVP(token, event.cloudId, {
           name: name.trim(),
           phone: phone.trim() || null,
           status: answer,
@@ -131,7 +131,7 @@ export default function RSVPScreen() {
     setSubmitting(true);
     try {
       if (event.cloudId) {
-        await submitRSVP(event.cloudId, {
+        await submitRSVP(token, event.cloudId, {
           name: name.trim(),
           phone: null,
           status: "no",
@@ -276,6 +276,7 @@ export default function RSVPScreen() {
                 </label>
                 <input
                   id="rsvp-name"
+                  maxLength={200}
                   className={styles.input}
                   type="text"
                   value={name}
@@ -293,6 +294,7 @@ export default function RSVPScreen() {
                 </label>
                 <input
                   id="rsvp-phone"
+                  maxLength={40}
                   className={styles.input}
                   type="tel"
                   value={phone}
