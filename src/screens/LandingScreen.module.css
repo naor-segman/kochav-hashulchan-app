@@ -35,7 +35,10 @@
 }
 
 .navLogoMark {
-  color: var(--accent-text);
+  /* On the near-black nav, --accent-text (#B01253) is 2.66:1 — it disappeared.
+     --accent-text is calibrated for LIGHT grounds; on the dark chrome the
+     saturated --accent is the legible member of the family (4.84:1). */
+  color: var(--accent);
   font-size: 22px;
   line-height: 1;
 }
@@ -88,7 +91,9 @@
 }
 
 .navCta {
-  background: var(--accent);
+  /* --accent under a white label is 3.80:1 and fails AA. --cta is the same hue
+     deepened exactly for this job (4.70:1) — that is what it exists for. */
+  background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
   font-size: 14px;
@@ -101,8 +106,8 @@
 }
 
 .navCta:hover {
-  background: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
   transform: translateY(-1px);
 }
 
@@ -157,14 +162,14 @@
 .mobileMenuCta {
   margin-top: 8px;
   text-align: center;
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
   font-size: 16px;
   font-weight: 700;
   padding: 13px 22px;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-cta);
 }
 
 /* Sticky-nav offset so anchor jumps land below the bar, not under it. */
@@ -247,7 +252,10 @@
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  color: var(--accent-text);
+  /* Was --accent-text on the near-black hero: 2.66:1, a line nobody could
+     read. Blush is a GROUND colour and reads 12.5:1 here, which lets the
+     eyebrow be quiet without being invisible. */
+  color: var(--blush);
   font-size: 13px;
   font-weight: 600;
   padding: 0;
@@ -271,7 +279,7 @@
 
 .heroHeadline {
   font-family: var(--font-family-serif);
-  font-size: clamp(3rem, 8vw, 5.75rem);
+  font-size: clamp(3.25rem, 8.6vw, 6.25rem);
   font-weight: 700;
   color: var(--nav-text);
   line-height: 1.08;
@@ -279,6 +287,12 @@
   letter-spacing: -0.01em;
 }
 
+/* The one deliberate accent-as-type moment on the whole site. It survives the
+   "no accent on text" rule because that rule is written for light grounds: on
+   #14161A the saturated accent is 4.84:1, which clears AA even at body size,
+   and at ~100px it is the page's single loudest note. Everything else on this
+   hero is now white, blush or grey so that this line has nothing to compete
+   with. */
 .heroGold {
   color: var(--accent);
   display: block;
@@ -304,20 +318,20 @@
 
 .heroCta {
   display: inline-block;
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
   font-size: 1.05rem;
   font-weight: 700;
   padding: 15px 40px;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-accent-lg);
+  box-shadow: var(--shadow-cta-lg);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .heroCta:hover {
-  background: var(--accent-dark);
-  box-shadow: 0 8px 32px rgba(var(--accent-rgb),0.55);
+  background: var(--cta-dark);
+  box-shadow: 0 8px 32px rgba(var(--cta-rgb),0.55);
   transform: translateY(-2px);
 }
 
@@ -346,65 +360,28 @@
   margin: 0;
 }
 
-/* ── Stats bar ── */
-
-.statsBar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-
-.statsInner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.statItem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 28px 44px;
-  position: relative;
-}
-
-.statDivider {
-  width: 1px;
-  background: var(--border);
-  align-self: stretch;
-  margin: 16px 0;
-}
-
-.statNum {
-  font-size: 2.1rem;
-  font-weight: 800;
-  color: var(--accent);
-  line-height: 1;
-  margin-bottom: 6px;
-  letter-spacing: -0.02em;
-}
-
-.statLabel {
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 500;
-}
-
 /* ── Shared section scaffolding ── */
 
 .sectionInner {
   max-width: var(--container-max);
   margin: 0 auto;
-  padding: 88px 24px;
+  padding: 96px 24px;
+}
+
+/* The dark bands are the page's punctuation — they get more air than the light
+   ones so they read as deliberate rests rather than another block. */
+.howSection .sectionInner,
+.ctaBanner .ctaBannerInner {
+  padding-block: 120px;
 }
 
 .sectionHeader {
   text-align: center;
-  margin-bottom: 60px;
+  /* One big statement, then a gap. The header is the section's whole voice, so
+     it stands clear of the grid instead of hovering just above it. */
+  margin-bottom: 64px;
+  max-width: 680px;
+  margin-inline: auto;
 }
 
 .sectionTag {
@@ -416,9 +393,11 @@
   margin-bottom: 16px;
 }
 
+/* Same eyebrow, dark ground. --accent-text was 2.66:1 here and read as a
+   smudge; blush is 12.5:1 on #14161A. */
 .sectionTagLight {
   display: inline-block;
-  color: var(--accent-text);
+  color: var(--blush);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -427,30 +406,32 @@
 
 .sectionTitle {
   font-family: var(--font-family-serif);
-  font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+  font-size: clamp(2rem, 4.6vw, 3.2rem);
   font-weight: 700;
   color: var(--text);
-  line-height: 1.15;
-  margin: 0 0 16px;
+  line-height: 1.12;
+  margin: 0 0 18px;
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .sectionTitleLight {
   font-family: var(--font-family-serif);
-  font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+  font-size: clamp(2rem, 4.6vw, 3.2rem);
   font-weight: 700;
   color: var(--nav-text);
-  line-height: 1.15;
-  margin: 0 0 16px;
+  line-height: 1.12;
+  margin: 0 0 18px;
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .sectionSub {
-  font-size: 1rem;
+  font-size: var(--step-1);
   color: var(--muted);
-  max-width: 540px;
+  max-width: 46ch;
   margin: 0 auto;
-  line-height: 1.75;
+  line-height: 1.7;
 }
 
 /* ── Features ── */
@@ -546,9 +527,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
-  color: var(--accent-text);
+  /* The step numbers were --accent-text inside a 14%-accent disc on near-black:
+     around 2.5:1, effectively unreadable. Blush on the same disc is ~10:1 and
+     the disc still carries the brand tint. */
+  color: var(--blush);
   letter-spacing: 0.02em;
   margin-bottom: 18px;
   flex-shrink: 0;
@@ -641,8 +625,11 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
+  /* Three saturated discs plus three rows of stars made this section the
+     loudest on the page for no reason. Blush ground / near-black initial is the
+     same primitive as .trustChip, and it hands the emphasis back to the stars. */
+  background: var(--blush);
+  color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1102,20 +1089,6 @@
 
   .pricingCardPro {
     transform: none;
-  }
-}
-
-@media (max-width: 700px) {
-  .statItem {
-    padding: 20px 24px;
-  }
-
-  .statDivider {
-    display: none;
-  }
-
-  .statsInner {
-    justify-content: space-evenly;
   }
 }
 
