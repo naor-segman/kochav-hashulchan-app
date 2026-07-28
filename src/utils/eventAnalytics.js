@@ -45,11 +45,11 @@ export function eventHealth(ev) {
     indicators.push({ key: "not_seated", label: "הושבה לא בוצעה",  severity: "warn" });
     needsAttention = true;
   } else if (unassigned > 0) {
-    indicators.push({ key: "unassigned", label: unassigned + " מקומות ממתינים", severity: "warn" });
+    indicators.push({ key: "unassigned", label: unassigned + (unassigned === 1 ? " מקום ממתין" : " מקומות ממתינים"), severity: "warn" });
     needsAttention = true;
   }
   if (viols > 0) {
-    indicators.push({ key: "violations", label: viols + " הפרות",   severity: "warn" });
+    indicators.push({ key: "violations", label: viols + (viols === 1 ? " הפרה" : " הפרות"), severity: "warn" });
     needsAttention = true;
   }
   if (guests.length > 0 && unassigned === 0 && viols === 0) {

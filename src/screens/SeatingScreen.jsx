@@ -419,7 +419,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
                 {nArrived > 0 && <StatPill n={nArrived} label="הגיעו" color="var(--green)" />}
                 {totalGifts > 0 && <StatPill n={"₪" + totalGifts.toLocaleString("he-IL")} label="מתנות" color="var(--green)" />}
-                <StatPill n={violations.length}   label="הפרות"   color={violations.length > 0 ? "var(--red)" : undefined} />
+                <StatPill n={violations.length}   label={violations.length === 1 ? "הפרה" : "הפרות"}   color={violations.length > 0 ? "var(--red)" : undefined} />
               </div>
             }
           />

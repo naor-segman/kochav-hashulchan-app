@@ -157,7 +157,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
             <span className={[styles.statValue, stats.totalViols > 0 ? styles.statValueWarn : ""].filter(Boolean).join(" ")}>
               {stats.totalViols}
             </span>
-            <span className={styles.statLabel}>הפרות</span>
+            <span className={styles.statLabel}>{stats.totalViols === 1 ? "הפרה" : "הפרות"}</span>
           </div>
         </div>
       )}
