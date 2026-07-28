@@ -190,3 +190,23 @@ describe("customDomain", () => {
     expect(e.eventSite.customDomain).toBe("a.co.il");
   });
 });
+
+describe("duplicateEvent does not carry day-of state forward", () => {
+  it("clears arrived and giftAmount on the copy", () => {
+    // Duplicating last year's gala produced a copy where everyone was already
+    // checked in and the gift total was already banked.
+    const src = {
+      id: "e1", name: "גאלה", type: "אירוע עסקי", date: "2027-01-01",
+      guests: [
+        { id: "g1", name: "א", side: "bride", group: "עבודה", count: 2, arrived: true, giftAmount: 500 },
+        { id: "g2", name: "ב", side: "groom", group: "עבודה", count: 1, arrived: true },
+      ],
+      tables: [], seating: {}, constraints: [],
+    };
+    const copy = duplicateEvent(src);
+    expect(copy.guests.every(g => !g.arrived)).toBe(true);
+    expect(copy.guests.every(g => g.giftAmount === undefined)).toBe(true);
+    // The original is untouched.
+    expect(src.guests[0].arrived).toBe(true);
+  });
+});

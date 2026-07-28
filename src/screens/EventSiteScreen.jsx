@@ -375,7 +375,10 @@ function Countdown({ date, styles }) {
   const m = Math.floor((diff % 3600000) / 60000);
   const s = Math.floor((diff % 60000) / 1000);
   const pad = (n) => String(n).padStart(2, "0");
-  const units = [[d, "ימים"], [pad(h), "שעות"], [pad(m), "דקות"], [pad(s), "שניות"]];
+  // The day figure is the one a guest reads as a sentence ("עוד 1 ימים" the
+  // day before the wedding); the padded clock units always read as numerals.
+  const dayLabel = d === 1 ? "יום" : d === 2 ? "יומיים" : "ימים";
+  const units = [[d, dayLabel], [pad(h), "שעות"], [pad(m), "דקות"], [pad(s), "שניות"]];
   return (
     <section className={styles.section}>
       <h2 className={styles.secTitle}>הספירה לקראת האירוע</h2>

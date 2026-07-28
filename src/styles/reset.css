@@ -86,11 +86,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* V1 global interaction rules */
+/* No !important. This global rule fighting first-party CSS is what forced
+   ConstraintsScreen to answer with three !important declarations of its own —
+   there is no third party involved on either side of that argument. */
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--accent) !important;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-bg);
 }
 

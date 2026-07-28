@@ -19,7 +19,10 @@ function downscale(file) {
   return new Promise((resolve, reject) => {
     // Anything that isn't an image the canvas can read goes up untouched
     // rather than failing the upload.
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return resolve(file);
+    // HEIC is the iPhone default and the bucket allows it; without it here an
+    // 8MB original went up untouched. Browsers that can't decode it fall
+    // through to the original via the onerror path below anyway.
+    if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type)) return resolve(file);
     const reader = new FileReader();
     reader.onerror = reject;
     reader.onload = () => {
@@ -71,9 +74,17 @@ export default function AlbumScreen() {
     try { setPhotos(await fetchAlbumPhotos(token)); } catch { /* keep what we have */ }
   }, [event, token]);
 
+  const MAX_BATCH = 30;
+
   const onFiles = async (files) => {
-    const list = Array.from(files || []);
-    if (!list.length || !event?.cloudId) return;
+    const all = Array.from(files || []);
+    if (!all.length || !event?.cloudId) return;
+    // A phone's gallery picker happily hands over 500 files at once, and every
+    // one of them is a 10MB upload billed to the host. Take a batch at a time.
+    const list = all.slice(0, MAX_BATCH);
+    if (all.length > MAX_BATCH) {
+      setError(`נבחרו ${all.length} תמונות — מעלים ${MAX_BATCH} ראשונות. בחרו את השאר אחר כך.`);
+    }
     setError("");
     localStorage.setItem("kh_album_name", name.trim());
     setBusy(list.length);
@@ -86,7 +97,7 @@ export default function AlbumScreen() {
       }
       setBusy(n => n - 1);
     }
-    if (failed) setError(`${failed} תמונות לא הועלו. נסו שוב.`);
+    if (failed) setError(failed === 1 ? "תמונה אחת לא הועלתה. נסו שוב." : `${failed} תמונות לא הועלו. נסו שוב.`);
     reload();
   };
 
@@ -154,7 +165,7 @@ export default function AlbumScreen() {
         <p className={styles.empty}>עדיין אין תמונות — תהיו הראשונים 🎉</p>
       ) : (
         <>
-          <p className={styles.count}>{photos.length} תמונות</p>
+          <p className={styles.count}>{photos.length === 1 ? "תמונה אחת" : `${photos.length} תמונות`}</p>
           <div className={styles.grid}>
             {photos.map(p => (
               <button key={p.id} className={styles.thumb} onClick={() => setLightbox(p)}>

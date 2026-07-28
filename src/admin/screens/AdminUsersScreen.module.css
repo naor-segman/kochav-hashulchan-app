@@ -384,3 +384,9 @@
 .eventsLink:hover {
   text-decoration: underline;
 }
+
+/* Says out loud that the list is a window, not the whole table. */
+.truncNote {
+  color: #b45309;
+  font-weight: 600;
+}

@@ -273,8 +273,8 @@
   white-space: nowrap;
 }
 
-.capOver { color: #f87171 !important; }
-.capWarn { color: #fbbf24 !important; }
+.capOver { color: var(--red); }
+.capWarn { color: var(--warn); }
 
 .chipGuests {
   padding: 6px 8px;

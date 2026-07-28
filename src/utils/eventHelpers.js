@@ -207,7 +207,11 @@ export function duplicateEvent(ev) {
   const guests = ev.guests.map(g => {
     const newId = uid();
     guestIdMap[g.id] = newId;
-    return Object.assign({}, g, { id: newId });
+    // Day-of state belongs to the event that actually happened. Copying it
+    // meant duplicating last year's gala produced a copy where everyone was
+    // already checked in and the gift total was already banked.
+    const { arrived, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
+    return Object.assign({}, rest, { id: newId });
   });
 
   const constraints = ev.constraints.map(c => Object.assign({}, c, {

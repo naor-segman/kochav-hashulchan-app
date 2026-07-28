@@ -83,3 +83,44 @@ describe("computeQualityScore", () => {
     expect(scorePartial).toBeLessThan(scoreFull);
   });
 });
+
+describe("suggestions never trade one violation for another", () => {
+  const G = (id, count = 1, group = "חברים", side = "bride") =>
+    ({ id, name: id, count, group, side, rsvp: "confirmed" });
+
+  it("does not separate a together pair to fix an isolated guest", () => {
+    // dad is bound to mom at t1 but his own group sits at t2, so the panel
+    // offered "move dad to t2" — advertised as violation-free.
+    const guests  = [G("dad", 1, "חברים"), G("mom", 1, "משפחה"),
+                     G("f1"), G("f2"), G("f3")];
+    const tables  = [{ id: "t1", name: "שולחן 1", capacity: 10 },
+                     { id: "t2", name: "שולחן 2", capacity: 10 }];
+    const cons    = [{ id: "c1", type: "together", guestA: "dad", guestB: "mom" }];
+    const seating = { dad: "t1", mom: "t1", f1: "t2", f2: "t2", f3: "t2" };
+
+    expect(computeViolations(guests, tables, cons, seating)).toHaveLength(0);
+
+    for (const s of generateSuggestions(guests, tables, cons, seating, {})) {
+      if (!s.canApply || s.action?.type !== "moveGuest") continue;
+      const after = { ...seating, [s.action.guestId]: s.action.toTableId };
+      expect(computeViolations(guests, tables, cons, after)).toHaveLength(0);
+    }
+  });
+
+  it("does not seat an apart pair together while fixing a together pair", () => {
+    const guests  = [G("A"), G("B"), G("C")];
+    const tables  = [{ id: "t1", name: "שולחן 1", capacity: 10 },
+                     { id: "t2", name: "שולחן 2", capacity: 10 }];
+    const cons    = [{ id: "c1", type: "together", guestA: "A", guestB: "B" },
+                     { id: "c2", type: "apart",    guestA: "B", guestB: "C" }];
+    const seating = { A: "t1", C: "t1", B: "t2" };
+
+    for (const s of generateSuggestions(guests, tables, cons, seating, {})) {
+      if (!s.canApply || s.action?.type !== "moveGuest") continue;
+      const after = { ...seating, [s.action.guestId]: s.action.toTableId };
+      const apart = computeViolations(guests, tables, cons, after)
+        .filter(v => v.type === "apart");
+      expect(apart).toHaveLength(0);
+    }
+  });
+});

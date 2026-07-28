@@ -42,13 +42,28 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
 
+  // Which event `cats` was seeded from. The budget was snapshotted once on
+  // mount and never re-read, while every edit wrote the WHOLE array back — so
+  // a newer cloud-hydrated budget was silently overwritten by the stale
+  // snapshot the moment the host typed a digit, and navigating between two
+  // events' budget screens (no remount, the route has no key) wrote one
+  // event's categories onto the other.
+  const seededFor = useRef(ev.id);
+  useEffect(() => {
+    if (seededFor.current === ev.id) return;
+    seededFor.current = ev.id;
+    setCats(initCategories(ev));
+  }, [ev.id, ev]);
+
   // Auto-save like every other screen — no manual "save budget" button, no
   // silent data loss on navigation.
   const firstRun = useRef(true);
   useEffect(() => {
     if (firstRun.current) { firstRun.current = false; return; }
+    // Never write a snapshot that belongs to a different event.
+    if (seededFor.current !== ev.id) return;
     patchEvent({ costs: { categories: cats } });
-  }, [cats, patchEvent]);
+  }, [cats, patchEvent, ev.id]);
 
   const setField = (id, field, value) => {
     setCats(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));

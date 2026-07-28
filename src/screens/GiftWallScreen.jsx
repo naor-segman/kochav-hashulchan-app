@@ -15,15 +15,24 @@ const MOCK_GIFTS = [
 
 const POLL_MS = 30000;
 
+// Hebrew has a dual form and a distinct singular. "לפני 1 דקות" on a two-metre
+// screen in front of 300 Hebrew speakers is the kind of detail that reads as
+// unfinished.
+function agoLabel(n, one, two, many) {
+  if (n === 1) return `לפני ${one}`;
+  if (n === 2) return `לפני ${two}`;
+  return `לפני ${n} ${many}`;
+}
+
 function timeAgo(isoString) {
   const diffSec = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
   if (diffSec < 60) return "עכשיו";
   const minutes = Math.floor(diffSec / 60);
-  if (minutes < 60) return `לפני ${minutes} דקות`;
+  if (minutes < 60) return agoLabel(minutes, "דקה", "שתי דקות", "דקות");
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `לפני ${hours} שעות`;
+  if (hours < 24) return agoLabel(hours, "שעה", "שעתיים", "שעות");
   const days = Math.floor(hours / 24);
-  return `לפני ${days} ימים`;
+  return agoLabel(days, "יום", "יומיים", "ימים");
 }
 
 export default function GiftWallScreen() {

@@ -160,7 +160,7 @@ export default function HostessScreen() {
       <div key={t.id} className={styles.occCard}>
         <div className={styles.occHead}>
           <span className={styles.occTable}>{t.name}</span>
-          <span className={styles.occMeta}>{list.length} רשומות · {seats} מקומות</span>
+          <span className={styles.occMeta}>{list.length === 1 ? "רשומה אחת" : `${list.length} רשומות`} · {seats} מקומות</span>
         </div>
         <ul className={styles.occList} role="list">
           {list.map(g => (

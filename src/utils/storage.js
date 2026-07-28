@@ -35,7 +35,9 @@ export function persist(state, key = STORAGE_KEY) {
       err.name === "QuotaExceededError" ||
       err.name === "NS_ERROR_DOM_QUOTA_REACHED"
     )) {
-      console.error("[storage] localStorage quota exceeded — data not saved");
+      // No console here: CLAUDE.md forbids it, and no host reads a console
+      // anyway. The event below is the signal the app can actually surface —
+      // silent data loss is the one failure that must never be quiet.
       window.dispatchEvent(new CustomEvent("storage-quota-exceeded"));
     }
     return false;

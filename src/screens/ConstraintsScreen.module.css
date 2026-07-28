@@ -197,10 +197,13 @@
   background: var(--accent-bg);
 }
 
+/* The wrapper draws the field; this input sits inside it borderless. Needed
+   !important only to outshout the global focus rule in reset.css, which no
+   longer uses it. */
 .acInput {
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
+  border: none;
+  box-shadow: none;
+  background: transparent;
   padding-inline-start: 4px;
   flex: 1;
 }

@@ -43,7 +43,14 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
     const name = form.name.trim();
     if (!name) { showToast("שם הספק לא יכול להיות ריק", "err"); return; }
     if (editId) {
-      write(l => l.map(v => v.id === editId ? { ...v, ...form, name } : v));
+      // Only the fields this form actually renders. Spreading the whole `form`
+      // wrote back the status it snapshotted when the editor opened, so using
+      // the row's own "✓ סגור" button while editing was silently reverted on
+      // save — and the toast still said it had worked.
+      const { category, contact, phone, price, paid, payment, note } = form;
+      write(l => l.map(v => v.id === editId
+        ? { ...v, name, category, contact, phone, price, paid, payment, note }
+        : v));
       showToast("הספק עודכן ✓");
     } else {
       write(l => [...l, { id: uid(), ...form, name }]);

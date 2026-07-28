@@ -234,7 +234,11 @@ export default function AdminEventsScreen() {
                   <th>תאריך</th>
                   <th>אולם</th>
                   <th>בעלים</th>
-                  <th className={styles.numCol}>אורחים</th>
+                  {/* guest_count is the SEAT total (cloudSync sums g.count),
+                      not the number of guest rows — the detail screen shows
+                      rows under the same word, so the two disagreed by ~1.6x
+                      on a real event. Name it for what it holds. */}
+                  <th className={styles.numCol}>מקומות</th>
                   <th className={styles.numCol}>שולחנות</th>
                   <th className={styles.numCol}>ישיבה</th>
                   <th>עדכון</th>

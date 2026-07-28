@@ -85,3 +85,11 @@
 .byLine  { font-size: 11.5px; color: var(--muted); }
 
 .footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 24px; }
+
+/* A row whose last save failed. It stays held locally so the poll cannot
+   overwrite it, and this line explains why nothing seems to be happening. */
+.saveWarn {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--warn);
+}

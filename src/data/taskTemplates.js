@@ -91,7 +91,7 @@ const BY_TYPE = {
 export function starterTasks(type) {
   // Unknown types get the generic social list, same as "אחר". Falling back to
   // WEDDING meant any type we hadn't mapped opened with a dress fitting.
-  return BY_TYPE[type] || SOCIAL;
+  return Object.hasOwn(BY_TYPE, type) ? BY_TYPE[type] : SOCIAL;
 }
 
 /**

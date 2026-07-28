@@ -30,6 +30,8 @@ export default function CollabScreen() {
   const [ev, setEv] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | notfound
   const [rows, setRows] = useState([]);
+  // Rows whose last save failed — kept held so the poll can't revert them.
+  const [failed, setFailed] = useState(() => new Set());
   const [me, setMe] = useState(() => { try { return localStorage.getItem("collab_me") || ""; } catch { return ""; } });
 
   const editing   = useRef(new Set());  // row ids being edited locally right now
@@ -100,9 +102,17 @@ export default function CollabScreen() {
     if (!(row.name || "").trim() || !ev.cloudId) return;
     t.set(row.id, setTimeout(async () => {
       t.delete(row.id);
-      try { await upsertCollabGuest(token, { ...row, updated_by: me || null }); }
-      catch { /* transient — next edit retries */ }
-      editing.current.delete(row.id);
+      try {
+        await upsertCollabGuest(token, { ...row, updated_by: me || null });
+        editing.current.delete(row.id);
+        setFailed(prev => { const n = new Set(prev); n.delete(row.id); return n; });
+      } catch {
+        // Do NOT release the row. Clearing `editing` on failure let the 3s poll
+        // overwrite the user's typing with the stale server value — they'd
+        // watch a phone number they had just corrected snap back, with no error
+        // shown anywhere. Keep it held and say so.
+        setFailed(prev => new Set(prev).add(row.id));
+      }
     }, 600));
   };
 
@@ -199,6 +209,11 @@ export default function CollabScreen() {
                     onChange={e => editRow(r.id, { name: e.target.value })} />
                   <button className={styles.del} onClick={() => removeRow(r.id)} aria-label="מחיקת שורה" title="מחיקה">✕</button>
                 </div>
+                {failed.has(r.id) && (
+                  <p className={styles.saveWarn} role="status">
+                    לא נשמר — נסו לערוך שוב כשהחיבור יחזור. מה שהקלדתם נשמר כאן.
+                  </p>
+                )}
 
                 <input className={[styles.input, styles.phoneInput].join(" ")} value={r.phone || ""} placeholder="טלפון" dir="ltr" inputMode="tel"
                   onChange={e => editRow(r.id, { phone: e.target.value })} />
