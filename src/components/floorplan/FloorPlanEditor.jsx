@@ -18,7 +18,8 @@ const collisionStrategy = (args) => {
 const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
-import { tableShape, VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
+import { VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
+import TableGlyph from "../ui/TableGlyph.jsx";
 import styles from "./FloorPlanEditor.module.css";
 
 // AI table-detection needs the `detect-floor-plan` Edge Function deployed.
@@ -123,7 +124,18 @@ function TableChipOnImage({ table, guests, size = 1, onRemove, onResize }) {
       onClick={e => e.stopPropagation()}
     >
       <div className={styles.chipHandle} {...dragAttrs} {...dragListeners} title="גררו כדי להזיז">
-        ⠿ <span aria-hidden="true" title={tableShape(table).label} className={styles.chipShape}>{tableShape(table).glyph}</span> {table.name}
+        ⠿
+        {/* The chip sits ON a photograph of the real hall, so the one thing it
+            must do is look like the table it stands for. A ● said nothing about
+            shape or how full it is — this says both, at the size it has. */}
+        <TableGlyph
+          shape={table.shape}
+          capacity={table.capacity}
+          taken={seated}
+          size={22}
+          className={styles.chipGlyph}
+        />
+        {table.name}
         <span className={[
           styles.chipCap,
           pct > 1        ? styles.capOver  : "",
@@ -630,7 +642,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
                 ].filter(Boolean).join(" ")}
               >
                 <div className={styles.cardHead}>
-                  <span aria-hidden="true" className={styles.chipShape}>{tableShape(t).glyph}</span>
+                  <TableGlyph shape={t.shape} capacity={t.capacity} taken={seats} size={26} />
                   <span className={styles.cardName}>{t.name}</span>
                   <span className={styles.cardCap}>{seats}/{t.capacity}</span>
                 </div>

@@ -618,3 +618,9 @@
   color: var(--muted);
   font-weight: 600;
 }
+
+/* The glyph inside a chip that is dragged around a photo of the hall. */
+.chipGlyph {
+  flex-shrink: 0;
+  margin-inline: 1px 3px;
+}

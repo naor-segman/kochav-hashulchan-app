@@ -203,7 +203,10 @@
    meant a brand change silently missed every one of them. Values are
    unchanged from what shipped; this is a rename, not a redesign. */
 :root {
-  --adm-accent-dark:          #0a7488;
+  /* Same story as the focus ring: the panel's one branded moment was still the
+     retired teal. --cta-dark is the product's deepened brand hue and clears AA
+     under a white label, which is what these hovers carry. */
+  --adm-accent-dark:          #B01253;
   --adm-bg:                   #fafafa;
   --adm-bg-alt:               #f9fafb;
   --adm-bg-sunken:            #f4f4f5;
@@ -257,10 +260,14 @@
   --adm-shadow-mid:           rgba(0, 0, 0, 0.10);
   --adm-shadow-strong:        rgba(0, 0, 0, 0.22);
   --adm-overlay:              rgba(0, 0, 0, 0.45);
-  --adm-focus-ring:           rgba(14, 154, 184, 0.12);
-  --adm-focus-ring-mid:       rgba(14, 154, 184, 0.10);
-  --adm-focus-ring-strong:    rgba(14, 154, 184, 0.30);
-  --adm-focus-ring-stronger:  rgba(14, 154, 184, 0.35);
+  /* Was the pre-magenta brand teal, left on every focus ring in the panel long
+     after the brand moved. The panel's greys stay deliberately neutral — it is
+     an internal tool, not the product — but the one moment it says "this is
+     ours", the focus ring, should say the right thing. Same alphas, new hue. */
+  --adm-focus-ring:           rgba(var(--accent-rgb), 0.12);
+  --adm-focus-ring-mid:       rgba(var(--accent-rgb), 0.10);
+  --adm-focus-ring-strong:    rgba(var(--accent-rgb), 0.30);
+  --adm-focus-ring-stronger:  rgba(var(--accent-rgb), 0.35);
 
   /* Status badges. Each is a ground / ink / hairline trio, which is why they
      were three literals on one line in five different files. */
