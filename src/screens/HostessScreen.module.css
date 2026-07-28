@@ -1,4 +1,10 @@
-/* HostessScreen — public read-only venue staff page, dark tablet-optimized UI */
+/* HostessScreen — a hired greeter standing at a door with a queue behind them,
+   who has never seen this product and will not be trained on it.
+
+   The whole page is arranged around one sentence: type a name, read a table
+   number. So there is exactly one light surface above the fold — the search
+   box — and the table number on the result is the largest thing on the page.
+   The accent appears once, on that number. */
 
 /* ── Root ── */
 .root {
@@ -36,9 +42,13 @@
   to { transform: rotate(360deg); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 3s; }
+}
+
 .loadingText {
-  color: var(--nav-muted);
-  font-size: 1.1rem;
+  color: var(--nav-text);
+  font-size: var(--step-1);
   font-weight: 500;
 }
 
@@ -53,13 +63,14 @@
   gap: 16px;
   width: 100%;
   max-width: 600px;
-  margin-bottom: 36px;
+  margin-bottom: 28px;
 }
 
+/* --accent-text is 2.6:1 on this ground. Blush reads as the same warmth and
+   clears 12:1. */
 .headerLogo {
-  color: var(--accent-text);
-  font-size: 2rem;
-  opacity: 0.75;
+  color: var(--blush);
+  font-size: 1.75rem;
   flex-shrink: 0;
   line-height: 1;
 }
@@ -80,20 +91,21 @@
 }
 
 .headerSub {
-  font-size: 0.875rem;
+  font-size: var(--step-0);
   color: var(--nav-muted);
   margin: 0;
   font-weight: 500;
 }
 
 /* ── Live stats bar ── */
+/* Ambient context for the host, not for the greeter — quiet by design. */
 .statsBar {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   width: 100%;
   max-width: 600px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .stat {
@@ -101,13 +113,14 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  background: var(--nav-border);
+  background: var(--nav-bg2);
+  border: 1px solid var(--nav-border);
   border-radius: var(--radius);
   padding: 12px 6px;
 }
 
 .statNum {
-  font-size: 1.5rem;
+  font-size: var(--step-2);
   font-weight: 800;
   color: var(--nav-text);
   line-height: 1;
@@ -115,38 +128,52 @@
 }
 
 .statLabel {
-  font-size: 0.72rem;
+  font-size: var(--step--1);
   color: var(--nav-muted);
   font-weight: 500;
 }
 
 /* ── Mode toggle ── */
+/* Two modes, not two calls to action. The selected one is marked with the
+   blush ground rather than an accent outline, which keeps the accent free for
+   the table number. */
 .modeToggle {
   display: flex;
   gap: 8px;
   width: 100%;
   max-width: 600px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .modeBtn {
   flex: 1;
-  min-height: 48px;
-  background: var(--nav-border);
-  border: 2px solid transparent;
+  min-height: 52px;
+  background: var(--nav-bg2);
+  border: 2px solid var(--nav-border);
   border-radius: var(--radius);
-  color: var(--nav-muted);
+  color: var(--nav-text);
   font-family: inherit;
-  font-size: 1rem;
+  font-size: var(--step-1);
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 
-.modeBtnActive {
-  color: var(--nav-text);
-  border-color: var(--accent);
-  background: var(--nav-bg);
+.modeBtn:hover {
+  border-color: var(--nav-muted);
+}
+
+.modeBtnActive,
+.modeBtnActive:hover {
+  color: var(--text);
+  background: var(--blush);
+  border-color: var(--blush);
+  font-weight: 700;
+}
+
+.modeBtn:focus-visible {
+  outline: 2px solid var(--blush);
+  outline-offset: 2px;
 }
 
 /* ── Search ── */
@@ -166,7 +193,7 @@
 
 .sectionTitle {
   color: var(--nav-muted);
-  font-size: 0.9rem;
+  font-size: var(--step-0);
   font-weight: 600;
   margin: 20px 0 10px;
 }
@@ -175,32 +202,32 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
   overflow: hidden;
   margin-bottom: 14px;
 }
 
+/* Blush head, near-black table name: legible at a glance from standing
+   height, and it costs nothing from the accent budget. */
 .occHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 20px;
-  background: var(--accent-bg);
-  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  background: var(--blush);
 }
 
 .occTable {
-  font-size: 1.5rem;
+  font-size: var(--step-2);
   font-weight: 800;
-  color: var(--accent-text);
-  line-height: 1;
+  color: var(--text);
+  line-height: 1.1;
 }
 
 .occMeta {
-  font-size: 0.85rem;
-  color: var(--muted);
-  font-weight: 500;
+  font-size: var(--step-0);
+  color: var(--text2);
+  font-weight: 600;
 }
 
 .occList {
@@ -214,30 +241,32 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border);
 }
 
 .occRow:last-child { border-bottom: none; }
 
 .occName {
-  font-size: 1.05rem;
+  font-size: var(--step-1);
   font-weight: 600;
   color: var(--text);
 }
 
 .occCount {
-  font-size: 0.9rem;
+  font-size: var(--step-0);
   font-weight: 700;
-  color: var(--accent-text);
-  background: var(--accent-bg);
-  border-radius: 999px;
-  min-width: 28px;
-  height: 28px;
+  color: var(--text);
+  background: var(--blush);
+  border-radius: var(--radius-pill);
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
 }
 
 /* ── Browse-by-table chips ── */
@@ -248,7 +277,7 @@
 
 .tableChips {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
   gap: 10px;
 }
 
@@ -256,34 +285,51 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  background: var(--nav-border);
-  border: 2px solid transparent;
+  min-height: 64px;
+  background: var(--nav-bg2);
+  border: 2px solid var(--nav-border);
   border-radius: var(--radius);
   padding: 14px 8px;
   cursor: pointer;
   color: var(--nav-text);
   font-family: inherit;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--transition), background var(--transition), color var(--transition);
 }
 
-.tableChipActive {
-  border-color: var(--accent);
-  background: var(--nav-bg);
+.tableChip:hover {
+  border-color: var(--nav-muted);
+}
+
+.tableChipActive,
+.tableChipActive:hover {
+  background: var(--blush);
+  border-color: var(--blush);
+  color: var(--text);
+}
+
+.tableChip:focus-visible {
+  outline: 2px solid var(--blush);
+  outline-offset: 2px;
 }
 
 .tableChipName {
-  font-size: 1rem;
+  font-size: var(--step-1);
   font-weight: 700;
   line-height: 1.1;
   text-align: center;
 }
 
 .tableChipCount {
-  font-size: 0.75rem;
+  font-size: var(--step--1);
   color: var(--nav-muted);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.tableChipActive .tableChipCount {
+  color: var(--text2);
 }
 
 .searchIcon {
@@ -293,36 +339,39 @@
   transform: translateY(-50%);
   font-size: 1.3rem;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
+/* The one light surface on the page. A greeter who has never seen this looks
+   for somewhere to type; a white box on a near-black page is that, and no
+   instruction is needed. */
 .searchInput {
   width: 100%;
-  min-height: 64px;
-  background: var(--nav-border);
-  border: 2px solid var(--nav-border);
+  min-height: 72px;
+  background: var(--surface);
+  border: 2px solid var(--surface);
   border-radius: var(--radius);
-  padding: 0 56px 0 56px;
-  font-size: 1.3rem;
+  padding: 0 56px;
+  font-size: 1.4rem;
   font-family: inherit;
-  font-weight: 600;
-  color: var(--nav-text);
+  font-weight: 700;
+  color: var(--text);
   direction: rtl;
   box-sizing: border-box;
   appearance: none;
   -webkit-appearance: none;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .searchInput::placeholder {
-  color: var(--nav-muted);
-  font-weight: 400;
+  color: var(--muted);
+  font-weight: 500;
 }
 
 .searchInput:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-border);
+  border-color: var(--cta);
+  box-shadow: 0 0 0 4px rgba(var(--cta-rgb),0.35);
 }
 
 /* hide native search clear button */
@@ -337,21 +386,22 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--nav-muted);
-  font-size: 1.1rem;
+  color: var(--muted);
+  font-size: var(--step-2);
   cursor: pointer;
   padding: 8px;
   line-height: 1;
-  transition: color 0.15s;
+  transition: color var(--transition);
   min-width: 44px;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: var(--radius);
 }
 
 .clearBtn:hover {
-  color: var(--nav-text);
+  color: var(--text);
 }
 
 /* ── Empty state (before typing) ── */
@@ -360,29 +410,28 @@
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  padding: 56px 20px;
+  padding: 48px 20px;
   text-align: center;
 }
 
 .emptyIcon {
-  font-size: 4rem;
-  opacity: 0.35;
+  font-size: 3.5rem;
+  opacity: 0.5;
   display: block;
   line-height: 1;
 }
 
 .emptyTitle {
-  font-size: 1.5rem;
+  font-size: var(--step-3);
   font-weight: 700;
-  color: var(--nav-muted);
+  color: var(--nav-text);
   margin: 0;
 }
 
 .emptyHint {
-  font-size: 1rem;
+  font-size: var(--step-1);
   color: var(--nav-muted);
   margin: 0;
-  opacity: 0.6;
 }
 
 /* ── No results ── */
@@ -391,7 +440,7 @@
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  padding: 48px 20px;
+  padding: 40px 20px;
   text-align: center;
   width: 100%;
   max-width: 600px;
@@ -400,14 +449,14 @@
 .noResultIcon {
   font-size: 3rem;
   display: block;
-  opacity: 0.4;
+  opacity: 0.5;
   line-height: 1;
 }
 
 .noResultText {
-  font-size: 1.25rem;
+  font-size: var(--step-2);
   font-weight: 600;
-  color: var(--nav-muted);
+  color: var(--nav-text);
   margin: 0;
 }
 
@@ -424,54 +473,53 @@
 }
 
 /* ── Result card (seated) ── */
+/* This genuinely floats above a dark page, so it is the one place in the six
+   that earns --shadow-lg. */
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: 28px 32px;
   text-align: center;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  min-height: 180px;
+  min-height: 190px;
   justify-content: center;
-  transition: box-shadow 0.18s;
-}
-
-.card:hover {
-  box-shadow: var(--shadow-lg);
 }
 
 /* ── Result card (unseated) ── */
 .cardUnseated {
   background: var(--red-bg);
-  border: 1px solid var(--red-border);
-  border-radius: var(--radius);
+  border: 2px solid var(--red-border);
+  border-radius: var(--radius-lg);
   padding: 28px 32px;
   text-align: center;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  min-height: 160px;
+  min-height: 170px;
   justify-content: center;
 }
 
-/* ── Table label — the most prominent element ── */
+/* ── Table label — the one accent moment, and the largest thing on the page ── */
+/* --accent-text on white is 6.9:1, the only accent value allowed to carry
+   text. This is what the greeter reads out loud. */
 .tableLabel {
-  font-size: clamp(2.8rem, 9vw, 4.5rem);
+  font-size: clamp(3rem, 10vw, 5rem);
   font-weight: 800;
   color: var(--accent-text);
   line-height: 1;
   letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 
 /* ── Guest name ── */
 .guestName {
-  font-size: 1.35rem;
+  font-size: var(--step-2);
   font-weight: 700;
   color: var(--text);
   line-height: 1.3;
@@ -479,14 +527,14 @@
 
 /* ── Seat count ── */
 .seatCount {
-  font-size: 1rem;
-  color: var(--muted);
+  font-size: var(--step-1);
+  color: var(--text2);
   font-weight: 500;
 }
 
 /* ── Unseated badge ── */
 .unseatedBadge {
-  font-size: 1.5rem;
+  font-size: var(--step-3);
   font-weight: 800;
   color: var(--red);
   letter-spacing: -0.01em;
@@ -500,13 +548,12 @@
   align-items: center;
   gap: 8px;
   color: var(--nav-muted);
-  font-size: 0.8rem;
+  font-size: var(--step--1);
   font-weight: 500;
-  opacity: 0.5;
 }
 
 .footerStar {
-  color: var(--accent-text);
+  color: var(--blush);
 }
 
 /* ── Responsive ── */
@@ -516,26 +563,27 @@
   }
 
   .header {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
   .searchInput {
-    font-size: 1.1rem;
-    min-height: 60px;
+    font-size: 1.2rem;
+    min-height: 66px;
+    padding: 0 50px;
   }
 
   .tableLabel {
-    font-size: clamp(2.5rem, 14vw, 3.5rem);
+    font-size: clamp(2.75rem, 15vw, 4rem);
   }
 
   .guestName {
-    font-size: 1.15rem;
+    font-size: var(--step-1);
   }
 
   .card,
   .cardUnseated {
     padding: 24px 20px;
-    min-height: 150px;
+    min-height: 160px;
   }
 }
 
@@ -546,20 +594,16 @@
 
   .card,
   .cardUnseated {
-    padding: 36px 48px;
+    padding: 40px 48px;
   }
 
   .tableLabel {
-    font-size: 5rem;
+    font-size: 5.5rem;
   }
 
   .guestName {
-    font-size: 1.5rem;
-  }
-
-  .seatCount {
-    font-size: 1.1rem;
+    font-size: var(--step-3);
   }
 }
 
-.guestComps { font-size: 0.9rem; color: var(--muted); margin-top: 2px; }
+.guestComps { font-size: var(--step-0); color: var(--text2); margin-top: 2px; }

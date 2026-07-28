@@ -501,7 +501,10 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: var(--green);
+  /* An export is not a success state. Secondary chrome, like its neighbours. */
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text);
   color: var(--on-accent);
   display: flex;
   align-items: center;
@@ -548,9 +551,12 @@
 /* Drag handle icon — appears on hover */
 .dragHandle {
   font-size: 14px;
-  color: var(--border2);
+  /* --border2 at .3 renders ~#EFEFEF ≈ 1.15:1 — invisible. It was revealed on
+     :hover, which never fires on touch, on the one screen whose entire job is
+     dragging. Visible at rest now, stronger on hover. */
+  color: var(--muted);
   flex-shrink: 0;
-  opacity: 0.3;
+  opacity: 0.55;
   transition: opacity 0.12s, color 0.12s;
   user-select: none;
   line-height: 1;

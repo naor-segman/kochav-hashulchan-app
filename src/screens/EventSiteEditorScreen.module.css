@@ -27,8 +27,10 @@
   cursor: pointer; transition: border-color var(--transition), box-shadow var(--transition);
   font-family: inherit;
 }
-.themeSwatch:hover { border-color: var(--accent-border); }
-.themeActive { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.themeSwatch:hover { border-color: var(--border2); }
+/* The chosen palette — a ground, not an outline-plus-halo. The swatch strip
+   inside it is the content; the chip only has to say "this one". */
+.themeActive { border-color: var(--blush-line); background: var(--blush); }
 .themeColors { display: inline-flex; border-radius: 6px; overflow: hidden; flex-shrink: 0; border: 1px solid var(--border); }
 .themeColors span { width: 16px; height: 26px; }
 .themeName { font-size: 13px; font-weight: 600; color: var(--text); }
@@ -113,12 +115,11 @@
   font-family: inherit;
   transition: border-color var(--transition), background var(--transition);
 }
-.fontSwatch:hover { border-color: var(--accent-border); background: var(--accent-bg); }
+.fontSwatch:hover { border-color: var(--border2); background: var(--bg); }
 
 .fontActive {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-  box-shadow: var(--shadow-accent);
+  border-color: var(--blush-line);
+  background: var(--blush);
 }
 
 /* The sample is the point of the control — it has to be big enough that the
@@ -157,12 +158,16 @@
   cursor: pointer;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
-.deviceBtn:hover { border-color: var(--accent-border); color: var(--accent-text); }
+.deviceBtn:hover { border-color: var(--border2); color: var(--text); }
 
-.deviceActive {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+/* Mobile / desktop is a view switch sitting directly above the preview it
+   governs. White on --accent was 3.80:1; the segmented-active ground is
+   6.04:1 and lets the preview stay the brightest thing in the section. */
+.deviceActive,
+.deviceActive:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
 }
 
 .previewHint {

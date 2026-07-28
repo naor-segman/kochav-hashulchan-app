@@ -22,10 +22,12 @@
 
 /* Progress belongs in the header — the point of the screen is knowing who
    already got what without opening every stage. */
+/* "4/12" is a readout. Seven of them down the page, each in accent-text, made
+   the counts the loudest column on a screen whose subject is the message. */
 .stageCount {
   font-size: 13px;
   font-weight: 800;
-  color: var(--accent-text);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -39,11 +41,13 @@
 }
 
 /* ── Template ────────────────────────────────────────────────────────────── */
+/* The message IS the content of this screen — it gets the full-strength ink and
+   everything around it stays quiet. */
 .preview {
   white-space: pre-line;
   font-size: 13.5px;
   line-height: 1.65;
-  color: var(--text2);
+  color: var(--text);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -86,19 +90,23 @@
   white-space: nowrap;
 }
 
+/* One per guest — twelve, twenty, ninety of them in a scrolling list. Tinted,
+   they became a solid pink stripe down the edge of the page and the template
+   above them stopped being the thing you looked at. Neutral chip at rest; it
+   commits on hover, when the pointer is already on it. */
 .waBtn {
   font-size: 12px;
   font-weight: 700;
   padding: 5px 13px;
   border-radius: 20px;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
-  color: var(--accent-text);
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
   text-decoration: none;
   white-space: nowrap;
   transition: background var(--transition), border-color var(--transition);
 }
-.waBtn:hover { background: var(--accent-light); border-color: var(--accent); }
+.waBtn:hover { background: var(--blush); border-color: var(--blush-line); }
 
 .empty { margin: 14px 0 0; font-size: 13px; color: var(--muted); }
 

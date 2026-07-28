@@ -21,10 +21,13 @@
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition), color var(--transition);
 }
-.kindTab:hover { border-color: var(--accent-border); color: var(--accent-text); }
+.kindTab:hover { border-color: var(--border2); color: var(--text); }
 
+/* Which of the two pages you are editing — the one genuinely accent-worthy
+   state on the screen, in the app's standard segmented-active form: a pale
+   ground with the darker accent ink on it (6.04:1), never a saturated fill. */
 .kindActive {
-  border-color: var(--accent);
+  border-color: var(--accent-border);
   background: var(--accent-bg);
   color: var(--accent-text);
 }
@@ -105,13 +108,18 @@
 }
 .themeSwatch:hover,
 .fontSwatch:hover,
-.layoutBtn:hover { border-color: var(--accent-border); background: var(--accent-bg); }
+.layoutBtn:hover { border-color: var(--border2); background: var(--bg); }
 
+/* Three pickers (palette, font, layout) each show one chosen item, so this
+   class paints three chips at once. On the blush ground they read as "what is
+   set" and the previewed design keeps the room's attention. */
 .themeActive {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-  box-shadow: var(--shadow-accent);
+  border-color: var(--blush-line);
+  background: var(--blush);
 }
+/* --muted / --text2 on blush: 3.60 vs 5.60:1 — the swatch caption takes the
+   darker one whenever it lands on the chosen chip. */
+.themeActive .swatchName { color: var(--text2); }
 
 .themeColors {
   display: flex;
@@ -182,4 +190,4 @@
   cursor: pointer;
 }
 .toggle input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
-.toggle:hover { border-color: var(--accent-border); }
+.toggle:hover { border-color: var(--border2); }

@@ -1,12 +1,16 @@
 /* EventSetupScreen-specific styles */
 
+/* Orientation, not action. This screen is a form: one column of attention, and
+   the only tinted band on it is the NextStep rail at the very bottom. A pink
+   banner at the top competed with it for the same job. */
 .stepGuide {
   display: flex;
   align-items: baseline;
   gap: 10px;
   padding: 12px 16px;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--border2);
   border-radius: var(--radius);
   margin-bottom: 14px;
   flex-wrap: wrap;
@@ -15,7 +19,7 @@
 .stepBadge {
   font-size: 12px;
   font-weight: 800;
-  color: var(--accent-text);
+  color: var(--text);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -26,9 +30,12 @@
   line-height: 1.4;
 }
 
+/* The rule that governs whether the host can move on — it is not fine print.
+   --muted was the faintest ink in the product carrying the one instruction on
+   the card; --text2 is 7.57:1. */
 .requiredNote {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--text2);
   margin-bottom: 10px;
   line-height: 1.4;
 }
@@ -77,7 +84,21 @@
   flex: 1;
 }
 
-.copyBtn {
+/* Six of these stack down the sharing card. As filled --cta buttons they were
+   six primary actions on a screen whose primary action is "save and continue" —
+   copying a link is a utility, so it gets the quiet hairline skin. Doubled
+   class name so it wins over .btnSm's fill on specificity rather than on
+   whatever order the CSS modules happen to be bundled in. */
+.copyBtn.copyBtn {
   flex-shrink: 0;
   min-width: 60px;
+  background: var(--surface);
+  border-color: var(--border2);
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.copyBtn.copyBtn:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--text2);
 }

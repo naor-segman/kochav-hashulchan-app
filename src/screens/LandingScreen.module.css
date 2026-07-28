@@ -461,25 +461,9 @@
   transform: translateY(-4px);
 }
 
-.featureIconWrap {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 20px;
-  color: var(--accent-text);
-}
-
-.featureIcon {
-  color: var(--accent-text);
-  display: inline-flex;
-}
-
-.featureIcon svg {
-  width: 30px;
-  height: 30px;
-}
+/* .featureIconWrap / .featureIcon are defined once, in the GRAPHICS block at the
+   foot of this file — an earlier duplicate here was fully superseded by it and
+   only made the accent audit look worse than it was. */
 
 .featureTitle {
   font-size: 1.05rem;
@@ -674,10 +658,15 @@
   position: relative;
 }
 
+/* The recommended plan. Previously it stacked four signals — a near-black
+   ground, an accent border, an accent glow and accent type — and the type on
+   that ground was 2.66:1. Blush does the whole job with ONE move: it is a
+   ground, it carries near-black at 12.5:1, and against the grey section it is
+   unmistakable. The only saturated thing left on the card is its button. */
 .pricingCardPro {
-  background: var(--nav-bg);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-accent-lg);
+  background: var(--blush);
+  border-color: var(--blush-line);
+  box-shadow: var(--shadow-md);
   transform: scale(1.04);
 }
 
@@ -686,7 +675,7 @@
   top: -13px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
   font-size: 11px;
   font-weight: 700;
@@ -704,7 +693,7 @@
 }
 
 .pricingCardPro .planName {
-  color: var(--nav-text);
+  color: var(--text);
 }
 
 .planPriceRow {
@@ -722,8 +711,13 @@
   line-height: 1;
 }
 
+/* 4.71:1 on blush — the one accent-coloured thing inside the card. */
 .pricingCardPro .planNum {
   color: var(--accent-text);
+}
+
+.pricingCardPro .planPer {
+  color: var(--text2);
 }
 
 .planPer {
@@ -749,8 +743,9 @@
   line-height: 1.45;
 }
 
+/* --muted is only 3.60:1 on blush; --text2 is 5.60:1. */
 .pricingCardPro .planFeatures li {
-  color: var(--nav-muted);
+  color: var(--text2);
 }
 
 .planFeatures li::before {
@@ -787,17 +782,17 @@
 }
 
 .planCtaPro {
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-accent);
+  border-color: var(--cta);
+  box-shadow: var(--shadow-cta);
 }
 
 .planCtaPro:hover {
-  background: var(--accent-dark);
+  background: var(--cta-dark);
   color: var(--on-accent);
-  border-color: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
+  border-color: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
 }
 
 .pricingFooter {
@@ -837,8 +832,8 @@
 .ctaStar {
   display: block;
   font-size: 44px;
-  color: var(--accent);
-  opacity: 0.25;
+  color: var(--blush);
+  opacity: 0.42;
   margin-bottom: 24px;
   animation: landingSpin 20s linear infinite;
   line-height: 1;
@@ -861,21 +856,21 @@
 
 .ctaBtn {
   display: inline-block;
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
   font-size: 1.05rem;
   font-weight: 700;
   padding: 15px 44px;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-accent-lg);
+  box-shadow: var(--shadow-cta-lg);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
   margin-bottom: 20px;
 }
 
 .ctaBtn:hover {
-  background: var(--accent-dark);
-  box-shadow: 0 8px 32px rgba(var(--accent-rgb),0.55);
+  background: var(--cta-dark);
+  box-shadow: 0 8px 32px rgba(var(--cta-rgb),0.55);
   transform: translateY(-2px);
 }
 
@@ -1158,6 +1153,7 @@
   transition: transform var(--transition-slow) var(--ease-out),
               box-shadow var(--transition-slow) var(--ease-out);
 }
+.featureIcon { display: inline-flex; }
 .featureIcon,
 .featureIcon svg {
   /* Near-black, not white. The reference's chips carry a dark glyph, and it is
@@ -1204,8 +1200,18 @@
 .showcase {
   position: relative;
   overflow: hidden;
-  padding: 64px 0;
+  padding: 96px 0;
   background: var(--surface);
+}
+
+/* .showcase and .trust both wrap .sectionInner, which already carries 96px of
+   block padding — so every one of these bands was rendering ~160px of dead air
+   top and bottom and the ground rhythm read as a series of empty rooms rather
+   than a composition. The wrappers own the vertical rhythm; the inner element
+   owns only the gutter. */
+.showcase .sectionInner,
+.trust .sectionInner {
+  padding-block: 0;
 }
 
 /* The rhythm: white → grey → blush. Three grounds, so scrolling feels composed

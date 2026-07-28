@@ -2,8 +2,8 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .item {
@@ -11,7 +11,10 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  transition: border-color var(--transition);
 }
+
+.item:hover { border-color: var(--border2); }
 
 .q {
   width: 100%;
@@ -21,28 +24,45 @@
   gap: 12px;
   background: none;
   border: none;
-  padding: 16px 18px;
-  font-size: 15px;
+  padding: 17px 18px;
+  font-size: 15.5px;
   font-weight: 700;
   color: var(--text);
   cursor: pointer;
   text-align: start;
   font-family: inherit;
+  line-height: 1.4;
+  transition: background var(--transition);
 }
 
-.q:hover { background: var(--accent-light); }
+.q:hover { background: var(--bg); }
 
+.q:focus-visible {
+  outline: 2px solid var(--cta);
+  outline-offset: -2px;
+}
+
+/* An open/closed marker is a control, not a brand moment. Eight accent-coloured
+   plus-signs down one column made the accent stop meaning anything, on the page
+   that is supposed to be the quietest in the product. */
 .chevron {
-  color: var(--accent-text);
+  color: var(--muted);
   font-size: 20px;
   flex-shrink: 0;
   line-height: 1;
+  transition: color var(--transition);
 }
+
+.q:hover .chevron { color: var(--text); }
 
 .a {
   margin: 0;
-  padding: 0 18px 16px;
-  font-size: 14.5px;
-  line-height: 1.75;
+  padding: 0 18px 18px;
+  font-size: 15.5px;
+  line-height: 1.8;
   color: var(--text2);
+  /* Reading measure. The answer used to run the full 720px of the container —
+     about 95 Hebrew characters a line, well past the point where the eye
+     starts losing its place on the return sweep. */
+  max-width: 62ch;
 }

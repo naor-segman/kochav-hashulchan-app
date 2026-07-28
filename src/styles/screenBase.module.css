@@ -362,7 +362,10 @@
 /* Skins that override a size class's default fill. These MUST stay last. */
 .btnGhost {
   background: transparent;
-  border-color: transparent;
+  /* A hairline at rest. With no border these read as plain words
+     beside a bordered sibling — three row actions, two with no
+     affordance at all. Quiet, but still a control. */
+  border-color: var(--border);
   color: var(--text2);
   box-shadow: none;
 }
@@ -379,7 +382,10 @@
    already on it. */
 .btnDanger {
   background: transparent;
-  border-color: transparent;
+  /* A hairline at rest. With no border these read as plain words
+     beside a bordered sibling — three row actions, two with no
+     affordance at all. Quiet, but still a control. */
+  border-color: var(--border);
   color: var(--red);
   box-shadow: none;
 }
@@ -446,8 +452,11 @@
 }
 
 .segBride {
+  /* The side colour is the GROUND; near-black carries the label. Violet on its
+     own tint measured 4.47:1 at 13px bold — under AA on a form control. */
   background: var(--bride-bg);
-  color: var(--bride);
+  color: var(--text);
+  border-color: var(--bride);
 }
 
 .segGroom {

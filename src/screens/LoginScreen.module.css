@@ -9,25 +9,32 @@
 
 .loadingMark {
   font-size: 32px;
-  color: var(--accent-text);
+  /* --accent-text is 2.66:1 on the near-black page — the spinner was a dark
+     smudge on a dark ground. */
+  color: var(--accent);
   animation: spin 1.4s linear infinite;
 }
 
 .page {
   min-height: 100vh;
   background: var(--nav-bg);
-  background-image: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(var(--accent-rgb),.18) 0%, transparent 70%);
+  background-image: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(var(--accent-rgb),.14) 0%, transparent 70%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
 }
 
+/* Two fields and a button. The card used to arrive wearing a pink border and a
+   pink glow on top of a pink page-wash — three decorations around a form whose
+   whole job is to get out of the way. It is now a plain white sheet lifted off
+   a dark ground, and the only coloured things left are the button and the
+   focus ring. */
 .card {
   background: var(--surface);
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 80px rgba(0,0,0,.45), 0 6px 24px rgba(0,0,0,.20), var(--shadow-accent);
+  box-shadow: 0 24px 80px rgba(0,0,0,.45), 0 6px 24px rgba(0,0,0,.20);
   padding: 40px 36px 32px;
   width: 100%;
   max-width: 420px;
@@ -35,6 +42,11 @@
   flex-direction: column;
   gap: 20px;
   animation: popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { animation: none; }
+  .loadingMark { animation-duration: 3s; }
 }
 
 .brand {
@@ -47,7 +59,6 @@
 .brandMark {
   font-size: 26px;
   color: var(--accent-text);
-  filter: drop-shadow(0 0 10px rgba(var(--accent-rgb),.50));
 }
 .brandName {
   font-size: 20px;
@@ -94,20 +105,23 @@
 }
 
 .input {
-  border: 1px solid var(--border);
+  border: 1px solid var(--border2);
   border-radius: var(--radius);
-  padding: 11px 14px;
-  font-size: 14px;
+  padding: 13px 14px;
+  font-size: 15px;
   color: var(--text);
   background: var(--bg);
   outline: none;
   font-family: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
+/* The old ring was 3px of --accent-bg (#FDECF2) — a 1.03:1 halo against the
+   white card, i.e. no visible focus state at all. This one is a real ring you
+   can see from across the room, which is the whole point of the page. */
 .input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg);
+  border-color: var(--cta);
+  box-shadow: 0 0 0 3px rgba(var(--cta-rgb), .28);
   background: var(--surface);
 }
 
@@ -159,9 +173,10 @@
 }
 
 .submitBtn {
-  /* Starts at --cta: the gradient's lighter half was 3.8:1 under a white label. */
-  background: linear-gradient(135deg, var(--cta) 0%, var(--accent-dark) 100%);
-  color: #fff;
+  /* Flat, not a gradient. On a page this small a gradient is the loudest thing
+     on screen; --cta alone is 4.70:1 under the white label and reads faster. */
+  background: var(--cta);
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
   padding: 13px 0;
@@ -169,15 +184,15 @@
   font-weight: 800;
   cursor: pointer;
   font-family: inherit;
-  transition: opacity 0.12s, box-shadow 0.12s, transform 0.12s;
+  transition: background 0.12s, box-shadow 0.12s, transform 0.12s;
   margin-top: 2px;
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-cta);
   letter-spacing: 0.01em;
 }
 
 .submitBtn:hover:not(:disabled) {
-  opacity: 0.92;
-  box-shadow: var(--shadow-accent-lg);
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
   transform: translateY(-1px);
 }
 
@@ -272,7 +287,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
-  background: var(--accent-light);
+  /* A secondary panel inside the form is not a brand moment — a neutral sunken
+     ground says "aside" without adding a fourth pink to the card. */
+  background: var(--bg);
 }
 
 .forgotSuccess {
@@ -336,6 +353,19 @@
 }
 
 .resendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* One visible keyboard focus ring for every control on the page. The form had
+   none outside the inputs, so tabbing through it was invisible. */
+.submitBtn:focus-visible,
+.backLink:focus-visible,
+.switchLink:focus-visible,
+.eyeBtn:focus-visible,
+.forgotLink:focus-visible,
+.resendBtn:focus-visible {
+  outline: 2px solid var(--cta);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
 
 @media (max-width: 480px) {
   .card { padding: 30px 22px 26px; }

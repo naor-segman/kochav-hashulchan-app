@@ -1,11 +1,21 @@
+/* AlbumScreen — the photos are the content. Everything else on this page is
+   chrome and is meant to get out of the way, so the accent does not appear at
+   all here: the upload target uses the blush ground with near-black text, and
+   the rest is hairlines and neutrals. */
+
 .root {
   min-height: 100dvh;
+  /* #root is a flex column, so `margin-inline: auto` alone made this a
+     shrink-to-fit item — the gallery rendered as a ~440px column in the middle
+     of a 1280px screen on the one page whose entire purpose is showing photos
+     large. */
+  width: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: "Heebo", system-ui, sans-serif;
   padding: 24px 16px 60px;
-  max-width: 900px;
+  max-width: 960px;
   margin-inline: auto;
+  box-sizing: border-box;
 }
 
 .head { text-align: center; margin-bottom: 20px; }
@@ -16,25 +26,28 @@
   font-weight: 700;
   margin: 0 0 6px;
   text-wrap: balance;
+  line-height: 1.2;
 }
 
-.sub { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.6; }
+.sub { margin: 0; font-size: var(--step-0); color: var(--muted); line-height: 1.6; }
 
 /* ── Upload ──────────────────────────────────────────────────────────────── */
+/* Capped and centred: at full page width the upload block became a slab wider
+   than any photo on a page whose content is the photos. */
 .uploadCard {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 16px;
-  margin-bottom: 22px;
-  box-shadow: var(--shadow-md);
+  margin: 0 auto 22px;
+  max-width: 520px;
 }
 
 .nameLabel {
   display: block;
-  font-size: 13px;
+  font-size: var(--step-0);
   font-weight: 700;
-  color: var(--text2);
+  color: var(--text);
   margin-bottom: 12px;
 }
 .optional { font-weight: 500; color: var(--muted); }
@@ -42,51 +55,60 @@
 .nameInput {
   display: block;
   width: 100%;
-  margin-top: 5px;
-  padding: 10px 12px;
+  box-sizing: border-box;
+  margin-top: 6px;
+  min-height: 48px;
+  padding: 12px;
   font-family: inherit;
-  font-size: 15px;
-  border: 1px solid var(--border2);
+  font-size: var(--font-size-base);
+  border: 2px solid var(--border2);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
+.nameInput::placeholder { color: var(--muted); }
+.nameInput:focus { outline: none; border-color: var(--cta); box-shadow: 0 0 0 3px rgba(var(--cta-rgb),0.18); }
 
-/* Big target on purpose — this is used one-handed, at a party, in the dark. */
+/* Big target on purpose — this is used one-handed, at a party, in the dark.
+   The blush ground makes it findable without spending the accent, and the
+   label is near-black on it (12.3:1) instead of pink on pink. */
 .dropZone {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 28px 16px;
-  border: 2px dashed var(--accent-border);
+  padding: 32px 16px;
+  border: 2px dashed var(--blush-line);
   border-radius: var(--radius-lg);
-  background: var(--accent-bg);
+  background: var(--blush);
   cursor: pointer;
   text-align: center;
   transition: background var(--transition), border-color var(--transition);
 }
-.dropZone:hover { background: var(--accent-light); border-color: var(--accent); }
+.dropZone:hover { background: var(--blush-deep); border-color: var(--cta); }
 
 .fileInput { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
-.dropIcon  { font-size: 32px; }
-.dropTitle { font-size: 15px; font-weight: 800; color: var(--accent-text); }
-.dropHint  { font-size: 12.5px; color: var(--muted); }
+.dropIcon  { font-size: 34px; line-height: 1; }
+.dropTitle { font-size: var(--step-1); font-weight: 800; color: var(--text); }
+/* --muted is only 3.6:1 on blush; --text2 is 5.6:1. */
+.dropHint  { font-size: var(--step-0); color: var(--text2); }
 
 .error {
   margin: 10px 0 0;
-  font-size: 13px;
+  font-size: var(--step-0);
+  font-weight: 600;
   color: var(--red);
   text-align: center;
 }
 
 /* ── Gallery ─────────────────────────────────────────────────────────────── */
-.count { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+.count { font-size: var(--step--1); color: var(--muted); margin: 0 0 10px; }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 6px;
 }
 
@@ -99,12 +121,13 @@
   aspect-ratio: 1;
   cursor: pointer;
 }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: filter var(--transition); }
 .thumb:hover img { filter: brightness(1.06); }
+.thumb:focus-visible { outline: 2px solid var(--cta); outline-offset: 2px; }
 
 .empty {
   text-align: center;
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--muted);
   padding: 30px 0;
 }
@@ -114,7 +137,7 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, .92);
+  background: rgba(var(--text-rgb), .95);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -123,24 +146,25 @@
   padding: 20px;
 }
 
-.full { max-width: 100%; max-height: 84vh; object-fit: contain; border-radius: 6px; }
+.full { max-width: 100%; max-height: 84vh; object-fit: contain; border-radius: var(--radius); }
 
-.credit { color: rgba(255, 255, 255, .75); font-size: 13px; margin: 0; }
+.credit { color: var(--nav-text); font-size: var(--step-0); margin: 0; }
 
 .close {
   position: absolute;
   top: 14px;
   inset-inline-end: 14px;
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: none;
-  background: rgba(255, 255, 255, .16);
-  color: #fff;
-  font-size: 15px;
+  background: rgba(var(--nav-text-rgb), .18);
+  color: var(--nav-text);
+  font-size: var(--step-1);
   cursor: pointer;
+  transition: background var(--transition);
 }
-.close:hover { background: rgba(255, 255, 255, .3); }
+.close:hover { background: rgba(var(--nav-text-rgb), .32); }
 
 /* ── States ──────────────────────────────────────────────────────────────── */
 .state {
@@ -152,8 +176,14 @@
   gap: 6px;
   background: var(--bg);
   color: var(--text);
-  font-family: "Heebo", system-ui, sans-serif;
   text-align: center;
   padding: 24px;
+  font-size: var(--step-1);
 }
-.star { font-size: 30px; color: var(--accent-text); }
+.star { font-size: 30px; color: var(--accent); }
+
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  }
+}

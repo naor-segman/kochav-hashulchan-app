@@ -1,4 +1,15 @@
-/* ── Root — full-page dark canvas ────────────────────────────────────────── */
+/* InviteScreen — a formal invitation card. This is the most decorative of the
+   six public pages, but it is a CARD: what carries it is the serif, the
+   generous leading, and the double hairline frame, not colour.
+
+   The card used to be a dark pink-tinted panel with pink text on it. Almost
+   every string on it failed AA (--accent-text is 2.6:1 on the near-black
+   ground), and the glow made a printed object look like a login screen.
+   It is now what it says it is: a light card, printed in near-black, floating
+   on the dark ground. Accent budget: the RSVP button (--cta, 4.7:1) and the
+   small ✦ between the two names. */
+
+/* ── Root — dark ground the card sits on ─────────────────────────────────── */
 
 .root {
   min-height: 100vh;
@@ -11,19 +22,7 @@
   padding: 0 16px 80px;
 }
 
-/* Subtle radial gold glows at top and bottom edges */
-.root::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 70% 35% at 50% 0%,   rgba(var(--accent-rgb),0.11) 0%, transparent 68%),
-    radial-gradient(ellipse 50% 25% at 50% 100%,  rgba(var(--accent-rgb),0.07) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* ── Decorative background stars — absolute, large, very low opacity ──────── */
+/* ── Decorative background stars — blush, barely there ────────────────────── */
 
 .decor {
   position: absolute;
@@ -35,7 +34,7 @@
 
 .decorStar {
   position: absolute;
-  color: var(--accent);
+  color: var(--blush);
   line-height: 1;
 }
 
@@ -44,28 +43,28 @@
   top: 6%;
   inset-inline-end: 7%;
   font-size: 96px;
-  opacity: 0.07;
+  opacity: 0.055;
 }
 .ds2 {
   top: 52%;
   inset-inline-start: 4%;
   font-size: 148px;
-  opacity: 0.04;
+  opacity: 0.035;
 }
 .ds3 {
   bottom: 14%;
   inset-inline-end: 10%;
   font-size: 68px;
-  opacity: 0.06;
+  opacity: 0.05;
 }
 .ds4 {
   top: 36%;
   inset-inline-end: 42%;
   font-size: 38px;
-  opacity: 0.09;
+  opacity: 0.06;
 }
 
-/* ── Header — small gold logo ─────────────────────────────────────────────── */
+/* ── Header — small logo on the dark ground ──────────────────────────────── */
 
 .header {
   position: relative;
@@ -82,22 +81,21 @@
   align-items: center;
   gap: 7px;
   text-decoration: none;
-  opacity: 0.72;
   transition: opacity var(--transition);
 }
 
 .logo:hover {
-  opacity: 1;
+  opacity: 0.75;
 }
 
 .logoMark {
-  color: var(--accent-text);
+  color: var(--blush);
   font-size: 15px;
 }
 
 .logoName {
   color: var(--nav-muted);
-  font-size: 12px;
+  font-size: var(--step--1);
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -116,32 +114,28 @@
 }
 
 /* ── Invitation card ─────────────────────────────────────────────────────── */
+/* A card on a dark table: this is one of the few things in the product that
+   genuinely floats, so it is the one place --shadow-lg is earned. */
 
 .card {
   width: 100%;
-  background: rgba(var(--accent-rgb),0.04); /* faint gold tint over the dark page */
-  border: 1px solid var(--accent-border);
+  background: var(--surface);
   border-radius: var(--radius-lg);
   padding: 52px 44px 44px;
   text-align: center;
-  box-shadow:
-    0 0 0 1px rgba(var(--accent-rgb),0.06) inset,
-    0 8px 48px rgba(var(--accent-rgb),0.12),
-    var(--shadow-lg);
+  box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
-/* Inner top glow on the card */
+/* The inner rule — the classic double frame of a printed invitation. It does
+   all the decorative work the glow used to attempt. */
 .card::before {
   content: "";
   position: absolute;
-  inset-block-start: 0;
-  inset-inline: 0;
-  height: 160px;
-  background: radial-gradient(ellipse 90% 100% at 50% 0%, rgba(var(--accent-rgb),0.07) 0%, transparent 100%);
+  inset: 14px;
+  border: 1px solid var(--blush-line);
+  border-radius: calc(var(--radius-lg) - 6px);
   pointer-events: none;
 }
 
@@ -149,44 +143,44 @@
 
 .tag {
   display: inline-block;
-  background: rgba(var(--accent-rgb),0.10);
-  color: var(--accent-text);
-  border: 1px solid var(--accent-border);
-  border-radius: 999px;
+  background: var(--blush);
+  color: var(--text);
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.10em;
-  padding: 5px 18px;
-  margin-bottom: 32px;
+  padding: 6px 18px;
+  margin-bottom: 30px;
 }
 
-/* ── Couple names ────────────────────────────────────────────────────────── */
+/* ── Couple names — the typography that carries the card ─────────────────── */
 
 .names {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 20px;
-  margin-bottom: 28px;
+  margin-bottom: 26px;
   flex-wrap: wrap;
 }
 
 .coupleName {
-  color: var(--nav-text);
-  font-size: clamp(2rem, 6.5vw, 3rem);
-  font-weight: 300;
-  letter-spacing: 0.04em;
-  line-height: 1.1;
+  font-family: var(--font-family-serif);
+  color: var(--text);
+  font-size: clamp(2.1rem, 6.5vw, 3.1rem);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
 }
 
+/* Accent moment 1 of 2 — a decorative glyph, never text. */
 .nameSep {
-  color: var(--accent-text);
+  color: var(--accent);
   font-size: clamp(1rem, 2.5vw, 1.4rem);
   flex-shrink: 0;
-  opacity: 0.85;
 }
 
-/* ── Gold ornamental divider ─────────────────────────────────────────────── */
+/* ── Ornamental divider ──────────────────────────────────────────────────── */
 
 .divider {
   display: flex;
@@ -199,25 +193,24 @@
 .dividerLine {
   flex: 1;
   height: 1px;
-  background: rgba(var(--accent-rgb),0.35);
+  background: var(--blush-line);
   display: block;
 }
 
 .dividerStar {
-  color: var(--accent-text);
+  color: var(--blush-line);
   font-size: 12px;
   flex-shrink: 0;
-  opacity: 0.75;
 }
 
 /* ── Formal invitation text ──────────────────────────────────────────────── */
 
 .inviteText {
-  color: var(--nav-muted);
-  font-size: 15px;
+  font-family: var(--font-family-serif);
+  color: var(--text2);
+  font-size: var(--step-1);
   font-weight: 400;
-  line-height: 1.8;
-  font-style: italic;
+  line-height: 1.9;
   margin: 0 0 28px;
 }
 
@@ -232,22 +225,22 @@
 }
 
 .detailIcon {
-  font-size: 15px;
+  font-size: var(--step-0);
   flex-shrink: 0;
   line-height: 1;
 }
 
 .detailText {
-  color: var(--nav-text);
-  font-size: 15px;
-  font-weight: 500;
+  color: var(--text);
+  font-size: var(--step-1);
+  font-weight: 600;
   line-height: 1.4;
 }
 
 .detailMuted {
-  color: var(--nav-muted);
+  color: var(--muted);
   font-weight: 400;
-  font-size: 14px;
+  font-size: var(--step-0);
 }
 
 /* ── Action buttons ──────────────────────────────────────────────────────── */
@@ -260,34 +253,41 @@
   margin-bottom: 36px;
 }
 
+/* Accent moment 2 of 2 — the only thing on the card asking to be pressed.
+   --cta behind a white label is 4.7:1; --accent would have been 3.8:1. */
 .btnPrimary {
   display: block;
-  background: var(--accent);
-  color: var(--nav-bg);
+  background: var(--cta);
+  color: var(--on-accent);
   text-decoration: none;
-  font-size: 15px;
+  font-size: var(--step-1);
   font-weight: 700;
-  padding: 15px 32px;
+  padding: 17px 32px;
   border-radius: var(--radius);
   letter-spacing: 0.03em;
-  box-shadow: 0 4px 20px rgba(var(--accent-rgb),0.40);
+  box-shadow: var(--shadow-cta);
   transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
 }
 
 .btnPrimary:hover {
-  background: var(--accent-dark);
+  background: var(--cta-dark);
   transform: translateY(-1px);
-  box-shadow: 0 6px 28px rgba(var(--accent-rgb),0.55);
+  box-shadow: var(--shadow-cta-lg);
+}
+
+.btnPrimary:focus-visible {
+  outline: 2px solid var(--cta);
+  outline-offset: 3px;
 }
 
 .btnOutline {
   display: block;
-  background: transparent;
-  color: var(--accent-text);
-  border: 1px solid var(--accent-border);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border2);
   border-radius: var(--radius);
-  padding: 13px 32px;
-  font-size: 14px;
+  padding: 15px 32px;
+  font-size: var(--step-0);
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -296,11 +296,16 @@
 }
 
 .btnOutline:hover {
-  background: rgba(var(--accent-rgb),0.09);
-  border-color: var(--accent);
+  background: var(--bg);
+  border-color: var(--text2);
 }
 
-/* ── QR code placeholder (120 × 120) ────────────────────────────────────── */
+.btnOutline:focus-visible {
+  outline: 2px solid var(--cta);
+  outline-offset: 3px;
+}
+
+/* ── QR code ─────────────────────────────────────────────────────────────── */
 
 .qrSection {
   display: flex;
@@ -313,30 +318,31 @@
   width: 120px;
   height: 120px;
   /* QR codes require a light quiet zone for reliable scanning */
-  background: var(--on-accent);
-  border: 1px solid var(--accent-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 5px;
+  box-sizing: border-box;
 }
 
 .qrImg {
-  width: 110px;
-  height: 110px;
+  width: 100%;
+  height: 100%;
   display: block;
   border-radius: 4px;
 }
 
 .qrCaption {
-  color: var(--nav-muted);
-  font-size: 11px;
+  color: var(--muted);
+  font-size: var(--step--1);
   margin: 0;
   letter-spacing: 0.04em;
 }
 
-/* ── Loading / not-found state screens ───────────────────────────────────── */
+/* ── Loading / not-found state screens (on the dark ground) ──────────────── */
 
 .stateCenter {
   position: relative;
@@ -364,48 +370,56 @@
   to   { transform: rotate(360deg); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .loadingStar { animation: none; }
+}
+
 .notFoundStar {
   display: block;
   font-size: 32px;
   color: var(--nav-muted);
-  opacity: 0.45;
 }
 
 .stateText {
   color: var(--nav-text);
-  font-size: 18px;
+  font-size: var(--step-1);
   font-weight: 600;
   margin: 0;
 }
 
 .stateSub {
   color: var(--nav-muted);
-  font-size: 14px;
+  font-size: var(--step-0);
   margin: 0;
 }
 
 .stateLink {
   display: inline-block;
-  color: var(--accent-text);
+  color: var(--nav-text);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 600;
-  border: 1px solid var(--accent-border);
-  padding: 10px 26px;
+  border: 1px solid var(--nav-border);
+  padding: 12px 26px;
   border-radius: var(--radius);
   margin-top: 6px;
-  transition: background var(--transition);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .stateLink:hover {
-  background: rgba(var(--accent-rgb),0.09);
+  background: var(--nav-bg2);
+  border-color: var(--nav-muted);
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 540px) {
   .card {
-    padding: 36px 24px 32px;
+    padding: 40px 26px 34px;
+  }
+
+  .card::before {
+    inset: 10px;
   }
 
   .names {
@@ -413,7 +427,7 @@
   }
 
   .coupleName {
-    font-size: 1.8rem;
+    font-size: 1.9rem;
   }
 
   .actions {
@@ -424,15 +438,16 @@
 
 /* ── Personal entry card (?g=…) ──────────────────────────────────────────── */
 /* Shown instead of the generic invitation body when a guest opens their own
-   link. Name and table lead; the QR below is what the door actually reads. */
+   link. Name and table lead; the QR below is what the door actually reads.
+   The table number is read off a phone by a greeter at arm's length, so it is
+   near-black on blush (12.3:1) and set large. */
 .personalBox {
-  margin: 18px auto 4px;
-  padding: 14px 20px;
-  max-width: 320px;
+  margin: 22px auto 4px;
+  padding: 18px 20px;
+  max-width: 340px;
   text-align: center;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--blush);
 }
 
 .personalName {
@@ -445,24 +460,26 @@
 }
 
 .personalTable {
-  margin: 6px 0 0;
-  font-size: 15px;
+  margin: 8px 0 0;
+  font-size: var(--step-1);
   color: var(--text2);
 }
 .personalTable b {
-  font-size: 20px;
-  color: var(--accent-text);
+  font-size: var(--step-3);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
 .personalTableNone {
   margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--muted);
+  font-size: var(--step-0);
+  color: var(--text2);
 }
 
 /* The entrance code has to survive a phone held at arm's length under bad
    hall lighting, so it is deliberately larger than the RSVP one. */
 .qrBoxLarge {
-  padding: 14px;
+  width: 184px;
+  height: 184px;
+  padding: 12px;
 }

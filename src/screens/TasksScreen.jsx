@@ -94,7 +94,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
         sub="כל מה שצריך לסגור לפני האירוע, במקום אחד."
         aside={
           <div className={base.pills}>
-            <StatPill n={open} label="פתוחות" color={open > 0 ? "var(--accent)" : undefined} />
+            <StatPill n={open} label="פתוחות" color={open > 0 ? "var(--accent-text)" : undefined} />
             <StatPill n={done} label="הושלמו" color={done > 0 ? "var(--green)" : undefined} />
             {overdue > 0 && <StatPill n={overdue} label="באיחור" color="var(--red)" />}
           </div>

@@ -84,7 +84,7 @@
 
 .toggleChevron {
   font-size: 10px;
-  color: var(--muted);
+  color: var(--text2);
   flex-shrink: 0;
 }
 
@@ -132,14 +132,14 @@
 
 .groupHeader_critical      .groupLabel { color: var(--red); }
 .groupHeader_warning       .groupLabel { color: var(--warn); }
-.groupHeader_info          .groupLabel { color: var(--muted); }
+.groupHeader_info          .groupLabel { color: var(--text2); }
 .groupHeader_fixes         .groupLabel { color: var(--text2); }
-.groupHeader_opportunities .groupLabel { color: var(--muted); }
+.groupHeader_opportunities .groupLabel { color: var(--text2); }
 
 .groupCount {
   font-size: 10px;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--text2);
 }
 
 /* ── Suggestion list ───────────────────────────────────────────────────────── */
@@ -195,7 +195,7 @@
 
 .rowAction {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--text2);
   line-height: 1.4;
   font-style: italic;
 }
@@ -293,7 +293,7 @@
   margin: 0;
   padding: 8px 16px 10px;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--text2);
   font-style: italic;
   border-top: 1px solid var(--border);
 }

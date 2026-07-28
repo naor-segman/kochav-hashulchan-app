@@ -82,7 +82,11 @@
      bubbles and large decorative shapes. It is 3.8:1 and must never carry body
      text — use --accent-text for that. Target: 2–3 accent moments per screen. */
   --accent:        #E8437B;
-  --accent-text:   #B01253;   /* 6.9:1 — the ONLY accent value allowed on text */
+  --accent-text:   #B01253;   /* 6.9:1 — accent on text, on a LIGHT ground */
+  /* The same job on the near-black ground. --accent-text is tuned against white
+     and measures 2.64:1 on #14161A — invisible. Every dark band in the product
+     needs this instead: 9.3:1, and still unmistakably the brand hue. */
+  --accent-on-dark: #FA9FC0;
   --accent-bg:     #FDECF2;
   --accent-light:  #FEF6F9;
   --accent-border: #F7BED2;
