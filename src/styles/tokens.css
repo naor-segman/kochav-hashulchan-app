@@ -61,93 +61,119 @@
      Do not rename or remove.
      ───────────────────────────────────────────────────────────── */
 
-  /* Surfaces — cool light workspace: white cards lift off a barely-tinted bg */
-  --bg:           #F6F9FB;
+  /* Surfaces — white workspace on a neutral ground. Deliberately UNTINTED:
+     the old surfaces carried a teal bias, so every grey quietly whispered the
+     brand colour and left the accent no room to speak. */
+  --bg:           #F5F5F6;
   --surface:      #FFFFFF;
 
-  /* Borders — cool grey with a teal bias */
-  --border:       #D8E2E8;
-  --border2:      #B7C7D0;
+  /* Borders — neutral hairlines. Cards are delineated, not lifted. */
+  --border:       #E4E4E7;
+  --border2:      #C9C9CE;
 
-  /* Text — deep teal-charcoal, never pure black */
-  --text:         #0E2A33;
-  --text2:        #34505C;
-  --muted:        #5E7885;
+  /* Text — neutral near-black. 18.1:1 on white. The single biggest lever on
+     how serious the product reads. */
+  --text:         #14161A;
+  --text2:        #4A4F57;
+  --muted:        #666C74;
 
-  /* Brand accent — תכלת / teal. The brand spine: nav, links, active states. */
-  --accent:        #0E9AB8;
-  --accent-bg:     #DFF1F5;
-  --accent-light:  #EFF8FA;
-  --accent-border: #A9DBE6;
+  /* Brand accent — מג'נטה. ONE colour, reserved.
+     Rule (enforced, not aspirational): --accent is for FILLS, chips, icon
+     bubbles and large decorative shapes. It is 3.8:1 and must never carry body
+     text — use --accent-text for that. Target: 2–3 accent moments per screen. */
+  --accent:        #E8437B;
+  --accent-text:   #B01253;   /* 6.9:1 — the ONLY accent value allowed on text */
+  --accent-bg:     #FDECF2;
+  --accent-light:  #FEF6F9;
+  --accent-border: #F7BED2;
 
-  /* CTA — warm coral. The action/celebration color: primary buttons only. */
-  --cta:           #FF6B4A;
-  --cta-dark:      #E8552F;
-  --cta-bg:        #FFEDE8;
+  /* CTA — the same hue, deepened so white label text clears AA at button size.
+     Primary buttons only. One per screen. */
+  --cta:           #D62E6B;
+  --cta-dark:      #B01253;
+  --cta-bg:        #FDECF2;
 
-  /* Navigation bar — deep teal topbar */
-  --nav-bg:        #0A3A44;
-  --nav-bg2:       #0E4A56;
-  --nav-text:      #EAF6F8;
-  --nav-muted:     #7FA9B4;
-  --nav-border:    rgba(234,246,248,.10);
+  /* Navigation bar — near-black chrome, so the accent is the only colour on it */
+  --nav-bg:        #14161A;
+  --nav-bg2:       #21242A;
+  --nav-text:      #F5F5F6;
+  --nav-muted:     #9BA1A9;
+  --nav-border:    rgba(245,245,246,.12);
 
-  /* Side colors */
-  --bride:        #B55FA0;
-  --groom:        #3470BE;
+  /* Side colours — violet vs blue.
+     bride was #B55FA0 (magenta), which sat ΔE 28 from the new accent: the brand
+     colour and "the bride's side" would have read as one signal, in an app
+     whose whole job is telling the two sides apart. Moved to violet: ΔE 57
+     from the accent, ΔE 35 from groom. */
+  --bride:        #8A4FB5;
+  --groom:        #2F5FA8;
 
   /* Semantic state — green (success) */
-  --green:        #1F9D6B;
-  --green-light:  #35B383;
-  --green-bg:     #E4F5EE;
-  --green-border: #A9E0C9;
+  --green:        #12855C;
+  --green-light:  #2AA274;
+  --green-bg:     #E3F4ED;
+  --green-border: #A6DFC8;
 
   /* Semantic state — red (danger) */
-  --red:          #D14343;
-  --red-bg:       #FBE6E6;
-  --red-border:   #EFC0C0;
+  --red:          #C4342F;
+  --red-bg:       #FBE9E8;
+  --red-border:   #EFC2C0;
 
-  /* Semantic state — warning (amber, never the old alarm-yellow) */
-  --warn:         #C98A16;
+  /* Semantic state — warning (amber) */
+  --warn:         #96600A;
   --warn-bg:      #FBF1DA;
-  --warn-border:  #EAD08A;
+  --warn-border:  #E8CE8C;
 
-  /* Side color backgrounds */
-  --bride-bg:     #F6EAF4;
+  /* Side colour backgrounds */
+  --bride-bg:     #F3ECF9;
   --groom-bg:     #E8EFF8;
 
   /* Brand colors — third-party services */
   --whatsapp:     #25D366;
 
-  /* V1 radius + shadow shortcuts — crisp modern */
-  --radius:       10px;
-  --radius-lg:    14px;
-  --shadow:       0 1px 2px rgba(14,42,51,.04), 0 4px 16px rgba(14,42,51,.05);
-  --shadow-md:    0 2px 6px rgba(14,42,51,.06), 0 8px 28px rgba(14,42,51,.08);
-  --shadow-lg:    0 10px 40px rgba(14,42,51,.12), 0 4px 12px rgba(14,42,51,.08);
+  /* Radius + shadow. Flatter than before: cards get a hairline, not a lift.
+     The three-layer soft shadow is reserved for things that genuinely float. */
+  --radius:       12px;
+  --radius-lg:    18px;
+  --radius-pill:  999px;
+  --shadow:       0 1px 2px rgba(20,22,26,.04);
+  --shadow-md:    0 2px 8px rgba(20,22,26,.06), 0 1px 2px rgba(20,22,26,.04);
+  --shadow-lg:    0 12px 40px rgba(20,22,26,.14), 0 4px 12px rgba(20,22,26,.06);
 
   /* Alpha-channel RGB components — use as rgba(var(--accent-rgb), 0.12) */
-  --accent-rgb:   14, 154, 184;
-  --cta-rgb:      255, 107, 74;
-  --text-rgb:     14, 42, 51;
-  --nav-text-rgb: 234, 246, 248;
-  --green-rgb:    31, 157, 107;
-  --red-rgb:      209, 67, 67;
-  --warn-rgb:     201, 138, 22;
-  /* White text on colored (accent / cta / green / red) backgrounds */
+  --accent-rgb:   232, 67, 123;
+  --cta-rgb:      214, 46, 107;
+  --text-rgb:     20, 22, 26;
+  --nav-text-rgb: 245, 245, 246;
+  --green-rgb:    18, 133, 92;
+  --red-rgb:      196, 52, 47;
+  --warn-rgb:     150, 96, 10;
+  /* Label colour on filled accent / cta / green / red backgrounds */
   --on-accent:    #fff;
 
   /* Accent hover & shadows */
-  --accent-dark:       #0A7488;
-  --shadow-accent:     0 2px 12px rgba(var(--accent-rgb),.30);
-  --shadow-accent-lg:  0 6px 24px rgba(var(--accent-rgb),.42);
-  --shadow-cta:        0 4px 12px rgba(var(--cta-rgb),.30);
-  --shadow-cta-lg:     0 6px 20px rgba(var(--cta-rgb),.42);
+  --accent-dark:       #C42A64;
+  --shadow-accent:     0 2px 12px rgba(var(--accent-rgb),.24);
+  --shadow-accent-lg:  0 6px 24px rgba(var(--accent-rgb),.32);
+  --shadow-cta:        0 4px 14px rgba(var(--cta-rgb),.26);
+  --shadow-cta-lg:     0 8px 26px rgba(var(--cta-rgb),.34);
+
+  /* Type scale — a real ramp, so headlines can be confident.
+     The reference's authority is mostly SCALE: one big headline, everything
+     else quiet. */
+  --step--1:  0.8125rem;   /* 13px — metadata */
+  --step-0:   0.9375rem;   /* 15px — body */
+  --step-1:   1.0625rem;   /* 17px — lead */
+  --step-2:   1.375rem;    /* 22px — card title */
+  --step-3:   1.75rem;     /* 28px — section head */
+  --step-4:   clamp(2rem, 4.4vw, 2.75rem);    /* page title */
+  --step-5:   clamp(2.5rem, 7vw, 4.25rem);    /* hero */
 
   /* Transition presets */
   --transition:        0.15s ease;
   --transition-fast:   0.10s ease;
   --transition-slow:   0.25s ease;
+  --ease-out:          cubic-bezier(.22,1,.36,1);
 }
 
 /* ── Admin panel palette ─────────────────────────────────────────────────

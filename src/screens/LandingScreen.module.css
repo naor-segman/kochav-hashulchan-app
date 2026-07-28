@@ -943,8 +943,11 @@
 /* ── App mock preview card ── */
 
 .mockCard {
-  background: rgba(var(--nav-text-rgb), 0.05);
-  border: 1px solid rgba(var(--nav-text-rgb), 0.14);
+  /* A real card, not a 5%-white ghost. This is the product proof — the one
+     place a visitor sees what they are actually buying — and at 5% opacity on
+     a near-black hero it was invisible. */
+  background: rgba(var(--nav-text-rgb), 0.97);
+  border: 1px solid rgba(var(--text-rgb), 0.10);
   border-radius: var(--radius-lg);
   padding: 22px;
   width: 280px;
@@ -978,7 +981,7 @@
 .mockCardTitle {
   font-size: 10px;
   font-weight: 700;
-  color: var(--nav-text);
+  color: var(--text);
   flex: 1;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1038,7 +1041,7 @@
 .mockTableLabel {
   font-size: 7px;
   font-weight: 700;
-  color: var(--nav-muted);
+  color: var(--muted);
   text-align: center;
   white-space: nowrap;
   letter-spacing: 0.02em;
