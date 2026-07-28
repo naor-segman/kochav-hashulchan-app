@@ -69,6 +69,26 @@ const SHOWCASE = [
   },
 ];
 
+/**
+ * Full-bleed hero media.
+ *
+ * Both fields are null until there is real footage, and while they are null
+ * the hero renders exactly as it did before — a flat ink panel. Name a file
+ * here and the hero switches to the cinematic layout on its own: media behind,
+ * scrim over it, headline and one button on top.
+ *
+ * The poster is not optional once there is a video. It is what a phone, a slow
+ * connection, and anyone who asked their system for reduced motion actually
+ * see, and it is the first frame everyone else sees while the video loads.
+ *
+ * Keep the subject off-centre-right: the text sits over the start (right) edge
+ * in RTL, and a face directly behind the headline reads as a mistake.
+ */
+const HERO_MEDIA = {
+  video:  null,   // e.g. "/hero/hero.mp4"  — muted, looping, no audio track
+  poster: null,   // e.g. "/hero/hero.jpg"  — also the still for mobile
+};
+
 const FEATURES = [
   { icon: "seating", title: "הושבה אוטומטית",
     desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרתם" },
@@ -140,6 +160,18 @@ const PRICING_PLANS = [
 export default function LandingScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+
+  const hasHeroMedia = Boolean(HERO_MEDIA.video || HERO_MEDIA.poster);
+  // Decided once, in the initializer, rather than in an effect — an effect would
+  // paint the video first and swap it out, which is the opposite of what someone
+  // who asked for reduced motion wants. Phones get the still too: the hero is
+  // the first thing on the page and a video is a slow way to say hello on 4G.
+  const [stillOnly] = useState(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        || window.matchMedia("(max-width: 700px)").matches;
+  });
+
   return (
     <div className={styles.root}>
       {/* ── Nav ── */}
@@ -186,18 +218,34 @@ export default function LandingScreen() {
       </header>
 
       {/* ── Hero ── */}
-      <section className={styles.hero}>
-        <div className={styles.heroDecor} aria-hidden="true">
-          <span className={styles.decorOrb1} />
-          <span className={styles.decorOrb2} />
-          <span className={styles.decorStar1}>✦</span>
-          <span className={styles.decorStar2}>✦</span>
-        </div>
+      <section className={[styles.hero, hasHeroMedia ? styles.heroCinematic : ""].filter(Boolean).join(" ")}>
+        {hasHeroMedia ? (
+          <div className={styles.heroMedia} aria-hidden="true">
+            {HERO_MEDIA.video && !stillOnly ? (
+              <video
+                className={styles.heroMediaLayer}
+                src={HERO_MEDIA.video}
+                poster={HERO_MEDIA.poster || undefined}
+                autoPlay muted loop playsInline preload="metadata"
+              />
+            ) : (
+              <img className={styles.heroMediaLayer} src={HERO_MEDIA.poster} alt="" />
+            )}
+            <div className={styles.heroScrim} />
+          </div>
+        ) : (
+          <div className={styles.heroDecor} aria-hidden="true">
+            <span className={styles.decorOrb1} />
+            <span className={styles.decorOrb2} />
+            <span className={styles.decorStar1}>✦</span>
+            <span className={styles.decorStar2}>✦</span>
+          </div>
+        )}
         <div className={styles.heroLayout}>
           <div className={styles.heroInner}>
             <div className={styles.heroBadge}>
               <span className={styles.heroBadgeDot} />
-              הפלטפורמה המובילה לסידור הושבה בישראל
+              סידור הושבה אוטומטי לאירועים בישראל
             </div>
             <h1 className={styles.heroHeadline}>
               כל האורחים<br />
@@ -209,7 +257,11 @@ export default function LandingScreen() {
             </p>
             <div className={styles.heroActions}>
               <Link to="/signup" className={styles.heroCta}>התחילו חינם ←</Link>
-              <a href="#how" className={styles.heroSecondary}>ראו איך זה עובד</a>
+              {/* Over footage the page carries one button. The second route in
+                  stays available as a quiet link rather than competing. */}
+              <a href="#how" className={hasHeroMedia ? styles.heroQuietLink : styles.heroSecondary}>
+                ראו איך זה עובד
+              </a>
             </div>
             <p className={styles.heroNote}>ללא כרטיס אשראי · ניסיון חינם לכל החיים</p>
           </div>

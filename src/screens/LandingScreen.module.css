@@ -188,6 +188,83 @@
   text-align: center;
 }
 
+/* ── Cinematic hero ──
+   Applied only once HERO_MEDIA carries a file. Until then the hero above is
+   untouched, so the page never ships a black rectangle waiting for footage. */
+.heroCinematic {
+  min-height: 88svh;
+  display: grid;
+  align-items: center;
+  padding-block: 88px 96px;
+}
+
+/* .heroLayout carries `margin: 0 auto`, and an auto inline margin cancels a
+   grid item's stretch — the row collapsed to its content width (398px of a
+   1232px frame) and re-centred itself, which is why the copy would not stay on
+   the start edge. Restoring an explicit width lets max-width do the centring. */
+.heroCinematic .heroLayout {
+  width: 100%;
+}
+
+.heroMedia {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* object-fit is what keeps a 16:9 clip from letterboxing on a tall phone. The
+   frame is anchored to the end (left in RTL) because the copy sits over the
+   start edge, and a face behind the headline reads as a mistake. */
+.heroMediaLayer {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 25% center;
+  display: block;
+}
+
+/* The scrim has to hold white text at AA over ANY frame, including a bright
+   one — a photo of a white-lit hall is exactly the picture someone will pick.
+   So there are three layers: a flat floor that never lets the frame through
+   fully, a directional wash that is heaviest under the copy on the start edge,
+   and a bottom lift for the note under the button. Measured over the brightest
+   placeholder available rather than judged by eye. */
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(20, 22, 26, .34), rgba(20, 22, 26, .34)),
+    linear-gradient(to left, rgba(20, 22, 26, .82) 0%, rgba(20, 22, 26, .62) 45%, rgba(20, 22, 26, .28) 100%),
+    linear-gradient(to top,  rgba(20, 22, 26, .5) 0%, transparent 40%);
+}
+
+/* On a phone the copy spans the full width, so a wash that fades toward one
+   side leaves the end of every line on the open part of the frame. Measured
+   over the brightest placeholder the headline came out at 3.63:1 there against
+   5.35:1 on desktop. Narrow screens get an even floor instead of a direction. */
+@media (max-width: 899px) {
+  .heroScrim {
+    background:
+      linear-gradient(rgba(20, 22, 26, .7), rgba(20, 22, 26, .7)),
+      linear-gradient(to top, rgba(20, 22, 26, .45) 0%, transparent 55%);
+  }
+}
+
+/* The second route in, demoted from a button so the hero carries one. */
+.heroQuietLink {
+  color: var(--accent-on-dark);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  padding: 6px 2px;
+}
+
+.heroQuietLink:hover {
+  color: #fff;
+}
+
 .heroDecor {
   position: absolute;
   inset: 0;
@@ -841,6 +918,48 @@
   .heroVisual {
     display: block;
   }
+  /* With footage behind it, the mock card is a second picture competing with
+     the first. The copy takes the start edge alone and the frame stays open. */
+  .heroCinematic .heroVisual {
+    display: none;
+  }
+  /* Anchored to the start edge, which is where the scrim is darkest. Centred
+     copy would drift onto the open part of the frame and lose its ground. */
+  .heroCinematic .heroLayout {
+    justify-content: flex-start;
+  }
+  .heroCinematic .heroInner {
+    max-width: 620px;
+  }
+}
+
+/* Over footage the headline carries the page, so it grows and the sub-line
+   tightens to keep the block from covering the frame. */
+.heroCinematic .heroHeadline {
+  font-size: clamp(2.6rem, 7vw, 4.6rem);
+  text-wrap: balance;
+  text-shadow: 0 2px 24px rgba(20, 22, 26, .45);
+}
+
+/* The muted grey these two use was chosen against a flat ink panel, where it
+   has room to be quiet. Over a photograph it measured 2.24:1 — invisible. On
+   media they go near-white and let size, not colour, carry the hierarchy. */
+/* --accent is a fill, not a text colour. It survives on the flat ink panel at
+   4.69:1, but the scrim lifts the ground under it and the same pink measured
+   1.90:1 over media. --accent-on-dark is the token that exists for this. */
+.heroCinematic .heroGold {
+  color: var(--accent-on-dark);
+}
+
+.heroCinematic .heroSub {
+  max-width: 34ch;
+  color: #F2F3F5;
+  text-shadow: 0 1px 12px rgba(20, 22, 26, .5);
+}
+
+.heroCinematic .heroNote {
+  color: #E4E6E9;
+  text-shadow: 0 1px 10px rgba(20, 22, 26, .5);
 }
 
 /* ── App mock preview card ── */
