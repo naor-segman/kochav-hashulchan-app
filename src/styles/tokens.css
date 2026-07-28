@@ -149,3 +149,51 @@
   --transition-fast:   0.10s ease;
   --transition-slow:   0.25s ease;
 }
+
+/* ── Admin panel palette ─────────────────────────────────────────────────
+   The admin uses a neutral grey scale, deliberately distinct from the
+   teal-tinted customer palette above — it is an internal tool, not the
+   product. These were 637 hardcoded literals across ten stylesheets, which
+   meant a brand change silently missed every one of them. Values are
+   unchanged from what shipped; this is a rename, not a redesign. */
+:root {
+  --adm-accent-dark:          #0a7488;
+  --adm-bg:                   #fafafa;
+  --adm-bg-alt:               #f9fafb;
+  --adm-bg-sunken:            #f4f4f5;
+  --adm-danger:               #b91c1c;
+  --adm-danger-bg:            #fef2f2;
+  --adm-danger-bg-strong:     #fee2e2;
+  --adm-danger-border:        #fca5a5;
+  --adm-danger-border-soft:   #fecaca;
+  --adm-danger-soft:          #f87171;
+  --adm-info:                 #1e40af;
+  --adm-info-bg:              #eff6ff;
+  --adm-info-border:          #bfdbfe;
+  --adm-ink:                  #111;
+  --adm-ink-dark:             #333;
+  --adm-ink-darker:           #222;
+  --adm-ink-dim:              #999;
+  --adm-ink-faint:            #aaa;
+  --adm-ink-fainter:          #bbb;
+  --adm-ink-faintest:         #ccc;
+  --adm-ink-mid:              #555;
+  --adm-ink-muted:            #888;
+  --adm-ink-soft:             #666;
+  --adm-ink-strong:           #444;
+  --adm-line:                 #e5e7eb;
+  --adm-line-soft:            #f0f0f0;
+  --adm-line-strong:          #ddd;
+  --adm-ok:                   #166534;
+  --adm-ok-bg:                #f0fdf4;
+  --adm-ok-bg-soft:           #eaf6f0;
+  --adm-ok-border:            #bbf7d0;
+  --adm-ok-border-soft:       #b2dac5;
+  --adm-ok-mid:               #2a7a50;
+  --adm-surface:              #ffffff;
+  --adm-warn:                 #92400e;
+  --adm-warn-bg:              #fffbeb;
+  --adm-warn-bg-strong:       #fef3c7;
+  --adm-warn-border:          #fde68a;
+  --adm-warn-mid:             #f59e0b;
+}

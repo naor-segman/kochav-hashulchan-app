@@ -34,6 +34,12 @@ export function eventHealth(ev) {
   if (!allGuests.length) {
     indicators.push({ key: "no_guests", label: "אין אורחים",        severity: "muted" });
     needsAttention = true;
+  } else if (!guests.length) {
+    // The guest list is not empty — everyone on it declined. Without this the
+    // event produced no indicators at all and the dashboard counted it as
+    // "מוכן להדפסה", which is the opposite of true.
+    indicators.push({ key: "all_declined", label: "כל האורחים סירבו", severity: "warn" });
+    needsAttention = true;
   }
   if (guests.length > 0 && seatedSeats === 0) {
     indicators.push({ key: "not_seated", label: "הושבה לא בוצעה",  severity: "warn" });

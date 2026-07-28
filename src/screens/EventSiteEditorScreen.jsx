@@ -74,8 +74,20 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     if (!imgs.length) { showToast("יש לבחור קובצי תמונה", "err"); return; }
     try {
       const compressed = await Promise.all(imgs.map(f => compressImage(f, 1000, 0.7)));
-      set({ gallery: [...(site.gallery || []), ...compressed].slice(0, 12) });
-      showToast(`נוספו ${compressed.length} תמונות ✓`);
+      // Read the current gallery INSIDE the patch. `site` was captured before
+      // the await, so two overlapping batches lost one of them — and slicing a
+      // list whose head is the existing gallery drops the NEW photos while the
+      // toast counts what was compressed rather than what actually landed.
+      let added = 0;
+      patchEvent(e => {
+        const cur  = e.eventSite?.gallery || [];
+        const room = Math.max(0, 12 - cur.length);
+        added = Math.min(room, compressed.length);
+        return { ...e, eventSite: { ...e.eventSite, gallery: [...cur, ...compressed.slice(0, room)] } };
+      });
+      if (added === 0)      showToast("הגלריה מלאה (12 תמונות)", "err");
+      else if (added === 1) showToast("נוספה תמונה אחת ✓");
+      else                  showToast(`נוספו ${added} תמונות ✓`);
     } catch { showToast("שגיאה בעיבוד התמונות", "err"); }
   };
   const delGalleryPhoto = (i) => set({ gallery: (site.gallery || []).filter((_, idx) => idx !== i) });
@@ -140,8 +152,12 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
             {/* Rendered in an iframe rather than inline so the site's own theme
                 variables and layout can't leak into the editor's styles. */}
             <div className={[styles.previewStage, previewDevice === "mobile" ? styles.stageMobile : styles.stageDesktop].join(" ")}>
+              {/* Keyed on the event version too. With only previewDevice the
+                  frame never remounted, so it kept showing the state from the
+                  moment the preview opened while the hint beside it promised
+                  "מתעדכנת בכל שמירה". */}
               <iframe
-                key={previewDevice}
+                key={previewDevice + ":" + (ev.version ?? 0)}
                 className={styles.previewFrame}
                 src={"/events/" + ev.id + "/preview-site"}
                 title="תצוגה מקדימה של אתר האירוע"

@@ -15,6 +15,25 @@ export function isScanSupported() {
   return typeof window !== "undefined" && "BarcodeDetector" in window;
 }
 
+/**
+ * Whether QR specifically is decodable here.
+ *
+ * The object existing is not enough: the spec lets a platform expose
+ * BarcodeDetector without backing the qr_code format, in which case the
+ * constructor throws and every detect() call rejects. Testing only for the
+ * object gave the host a live camera feed, a reticle and an encouraging hint
+ * that would never scan anything.
+ */
+export async function isQrSupported() {
+  if (!isScanSupported()) return false;
+  try {
+    const formats = await window.BarcodeDetector.getSupportedFormats();
+    return Array.isArray(formats) && formats.includes("qr_code");
+  } catch {
+    return false;
+  }
+}
+
 /** Pull a guest id out of a scanned payload — bare id, URL param, or kh1: prefix. */
 export function parseScanPayload(raw) {
   const text = (raw || "").trim();

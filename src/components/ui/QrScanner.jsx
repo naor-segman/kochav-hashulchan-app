@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { isScanSupported } from "../../utils/scanPayload.js";
+import { isQrSupported } from "../../utils/scanPayload.js";
 import styles from "./QrScanner.module.css";
 
 /**
@@ -29,14 +29,22 @@ export default function QrScanner({ onScan, onClose }) {
   useEffect(() => { onScanRef.current = onScan; }, [onScan]);
 
   useEffect(() => {
-    if (!isScanSupported()) { setError("unsupported"); return; }
-
     let cancelled = false;
     let rafId = 0;
-    const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
 
     (async () => {
       try {
+        // Ask whether QR is actually decodable, not just whether the object
+        // exists. And construct INSIDE the try: the spec says the constructor
+        // throws when no requested format is supported, and thrown from the
+        // effect body that took down the whole app via the root error boundary
+        // — at the door, mid-queue.
+        if (!(await isQrSupported())) {
+          if (!cancelled) setError("unsupported");
+          return;
+        }
+        if (cancelled) return;
+        const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
         });

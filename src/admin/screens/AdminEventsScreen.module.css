@@ -2,7 +2,7 @@
 
 .page {
   min-height: 100vh;
-  background: #f4f4f5;
+  background: var(--adm-bg-sunken);
   font-family: inherit;
 }
 
@@ -11,8 +11,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--adm-surface);
+  border-bottom: 1px solid var(--adm-line);
   padding: 0 24px;
   height: 56px;
   gap: 12px;
@@ -27,7 +27,7 @@
 
 .backLink {
   font-size: 18px;
-  color: #888;
+  color: var(--adm-ink-muted);
   text-decoration: none;
   padding: 4px 6px;
   border-radius: 6px;
@@ -36,27 +36,27 @@
 }
 
 .backLink:hover {
-  background: #f4f4f5;
-  color: #333;
+  background: var(--adm-bg-sunken);
+  color: var(--adm-ink-dark);
 }
 
 .brandMark {
   font-size: 18px;
-  color: #0E9AB8;
+  color: var(--accent);
 }
 
 .brandName {
   font-size: 16px;
   font-weight: 800;
-  color: #111;
+  color: var(--adm-ink);
   letter-spacing: -0.01em;
 }
 
-.brandSep { color: #ccc; }
+.brandSep { color: var(--adm-ink-faintest); }
 
 .brandSub {
   font-size: 13px;
-  color: #888;
+  color: var(--adm-ink-muted);
 }
 
 .topbarRight {
@@ -67,27 +67,27 @@
 
 .adminEmail {
   font-size: 13px;
-  color: #666;
+  color: var(--adm-ink-soft);
   direction: ltr;
 }
 
 .logoutBtn {
   background: none;
-  border: 1px solid #ddd;
+  border: 1px solid var(--adm-line-strong);
   border-radius: 7px;
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
-  color: #555;
+  color: var(--adm-ink-mid);
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
   font-family: inherit;
 }
 
 .logoutBtn:hover {
-  background: #fef2f2;
-  border-color: #fca5a5;
-  color: #b91c1c;
+  background: var(--adm-danger-bg);
+  border-color: var(--adm-danger-border);
+  color: var(--adm-danger);
 }
 
 /* ── Main ── */
@@ -106,25 +106,25 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-inline-start: 4px solid #f87171;
+  background: var(--adm-danger-bg);
+  border: 1px solid var(--adm-danger-border-soft);
+  border-inline-start: 4px solid var(--adm-danger-soft);
   border-radius: 10px;
   padding: 12px 16px;
   font-size: 13px;
-  color: #b91c1c;
+  color: var(--adm-danger);
   direction: ltr;
   text-align: left;
 }
 
 .retryBtn {
   background: none;
-  border: 1px solid #fca5a5;
+  border: 1px solid var(--adm-danger-border);
   border-radius: 6px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #b91c1c;
+  color: var(--adm-danger);
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
@@ -132,7 +132,7 @@
   transition: background 0.12s;
 }
 
-.retryBtn:hover { background: #fee2e2; }
+.retryBtn:hover { background: var(--adm-danger-bg-strong); }
 
 /* ── Toolbar ── */
 .toolbar {
@@ -155,7 +155,7 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 16px;
-  color: #aaa;
+  color: var(--adm-ink-faint);
   pointer-events: none;
   line-height: 1;
 }
@@ -163,29 +163,29 @@
 .searchInput {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #ddd;
+  border: 1px solid var(--adm-line-strong);
   border-radius: 8px;
   padding: 8px 12px 8px 32px;
   font-size: 14px;
-  color: #111;
-  background: #fff;
+  color: var(--adm-ink);
+  background: var(--adm-surface);
   font-family: inherit;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .searchInput:focus {
-  border-color: #0E9AB8;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
 }
 
 .filterSelect {
-  border: 1px solid #ddd;
+  border: 1px solid var(--adm-line-strong);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--adm-ink-dark);
+  background: var(--adm-surface);
   font-family: inherit;
   cursor: pointer;
   outline: none;
@@ -194,25 +194,25 @@
 }
 
 .filterSelect:focus {
-  border-color: #0E9AB8;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
 }
 
 .filterSelect:disabled {
-  color: #bbb;
+  color: var(--adm-ink-fainter);
   cursor: default;
 }
 
 .resultCount {
   font-size: 13px;
-  color: #888;
+  color: var(--adm-ink-muted);
   white-space: nowrap;
 }
 
 /* ── State boxes ── */
 .stateBox {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line);
   border-radius: 12px;
   padding: 48px 24px;
   text-align: center;
@@ -220,7 +220,7 @@
 
 .loadingText {
   font-size: 14px;
-  color: #aaa;
+  color: var(--adm-ink-faint);
   animation: pulse 1.2s ease-in-out infinite;
 }
 
@@ -232,13 +232,13 @@
 .emptyTitle {
   font-size: 16px;
   font-weight: 700;
-  color: #333;
+  color: var(--adm-ink-dark);
   margin: 0 0 6px;
 }
 
 .emptyHint {
   font-size: 13px;
-  color: #999;
+  color: var(--adm-ink-dim);
   margin: 0;
 }
 
@@ -246,8 +246,8 @@
 .tableWrap {
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--adm-line);
+  background: var(--adm-surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
@@ -262,12 +262,12 @@
 }
 
 .table th {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--adm-bg-alt);
+  border-bottom: 1px solid var(--adm-line);
   padding: 10px 14px;
   font-size: 11px;
   font-weight: 700;
-  color: #666;
+  color: var(--adm-ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -275,29 +275,29 @@
 
 .table td {
   padding: 10px 14px;
-  border-bottom: 1px solid #f0f0f0;
-  color: #222;
+  border-bottom: 1px solid var(--adm-line-soft);
+  color: var(--adm-ink-darker);
   vertical-align: middle;
 }
 
 .table tbody tr:last-child td { border-bottom: none; }
-.table tbody tr:hover td { background: #fafafa; }
+.table tbody tr:hover td { background: var(--adm-bg); }
 
 /* ── Cell variants ── */
 .nameCell {
   font-weight: 600;
-  color: #111;
+  color: var(--adm-ink);
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.typeCell  { color: #555; white-space: nowrap; }
-.dateCell  { color: #666; white-space: nowrap; font-size: 12px; }
+.typeCell  { color: var(--adm-ink-mid); white-space: nowrap; }
+.dateCell  { color: var(--adm-ink-soft); white-space: nowrap; font-size: 12px; }
 
 .venueCell {
-  color: #444;
+  color: var(--adm-ink-strong);
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -305,7 +305,7 @@
 }
 
 .ownerCell {
-  color: #555;
+  color: var(--adm-ink-mid);
   font-size: 12px;
   max-width: 180px;
   overflow: hidden;
@@ -314,18 +314,18 @@
 }
 
 .numCol    { text-align: center; }
-.numCell   { text-align: center; font-variant-numeric: tabular-nums; color: #555; }
+.numCell   { text-align: center; font-variant-numeric: tabular-nums; color: var(--adm-ink-mid); }
 
-.relativeCell { color: #888; font-size: 12px; white-space: nowrap; }
+.relativeCell { color: var(--adm-ink-muted); font-size: 12px; white-space: nowrap; }
 
-.muted { color: #ccc; }
+.muted { color: var(--adm-ink-faintest); }
 
 .viewLink {
   display: inline-block;
   text-decoration: none;
-  color: #0E9AB8;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  color: var(--accent);
+  background: var(--adm-warn-bg);
+  border: 1px solid var(--adm-warn-border);
   border-radius: 5px;
   padding: 3px 10px;
   font-size: 12px;
@@ -335,7 +335,7 @@
 }
 
 .viewLink:hover {
-  background: #fef3c7;
+  background: var(--adm-warn-bg-strong);
   border-color: #fbbf24;
 }
 
@@ -356,23 +356,23 @@
 
 /* grey — no guests and no tables */
 .statusEmpty {
-  background: #f4f4f5;
-  color: #888;
-  border: 1px solid #e5e7eb;
+  background: var(--adm-bg-sunken);
+  color: var(--adm-ink-muted);
+  border: 1px solid var(--adm-line);
 }
 
 /* amber — missing guests or tables */
 .statusWarning {
-  background: #fffbeb;
-  color: #92400e;
-  border: 1px solid #fde68a;
+  background: var(--adm-warn-bg);
+  color: var(--adm-warn);
+  border: 1px solid var(--adm-warn-border);
 }
 
 /* blue — ready to seat but not started */
 .statusPending {
-  background: #eff6ff;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
+  background: var(--adm-info-bg);
+  color: var(--adm-info);
+  border: 1px solid var(--adm-info-border);
 }
 
 /* orange — seating in progress, >= 50% */
@@ -384,16 +384,16 @@
 
 /* red — seating started but < 50% (possible issues) */
 .statusIssues {
-  background: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+  background: var(--adm-danger-bg);
+  color: var(--adm-danger);
+  border: 1px solid var(--adm-danger-border-soft);
 }
 
 /* green — 90%+ seated */
 .statusReady {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
+  background: var(--adm-ok-bg);
+  color: var(--adm-ok);
+  border: 1px solid var(--adm-ok-border);
 }
 
 /* ── Mobile ── */
@@ -409,9 +409,9 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 700;
-  color: #2a7a50;
-  background: #eaf6f0;
-  border: 1px solid #b2dac5;
+  color: var(--adm-ok-mid);
+  background: var(--adm-ok-bg-soft);
+  border: 1px solid var(--adm-ok-border-soft);
   border-radius: 20px;
   padding: 2px 9px;
   white-space: nowrap;
@@ -423,13 +423,13 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #2a7a50;
+  background: var(--adm-ok-mid);
   flex-shrink: 0;
 }
 
 /* ── Owner link (email → filter events) ── */
 .ownerLink {
-  color: #0E9AB8;
+  color: var(--accent);
   text-decoration: none;
   font-size: 12px;
 }

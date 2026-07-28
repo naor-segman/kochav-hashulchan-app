@@ -21,7 +21,31 @@ describe("buildEventIcs", () => {
   it("writes local times with no Z, so 19:00 stays 19:00 on any phone", () => {
     const ics = buildEventIcs({ ...base, startTime: "19:00" });
     expect(get(ics, "DTSTART")).toBe("20260915T190000");
-    expect(ics).not.toContain("Z\r\n");
+    // The EVENT times are floating local. DTSTAMP is the exception — RFC 5545
+    // §3.8.7.2 requires it in UTC, and it is not an event time.
+    expect(get(ics, "DTSTART")).not.toMatch(/Z$/);
+    expect(get(ics, "DTEND")).not.toMatch(/Z$/);
+  });
+
+  it("writes DTSTAMP in UTC, as the spec requires", () => {
+    expect(get(buildEventIcs(base), "DTSTAMP")).toMatch(/^\d{8}T\d{6}Z$/);
+  });
+
+  it("folds content lines to 75 octets — Hebrew is 2 bytes per character", () => {
+    // Unfolded, an ordinary Hebrew venue name blew past the limit and strict
+    // parsers (Outlook) truncated it mid-word.
+    const ics = buildEventIcs({
+      ...base,
+      name:  "החתונה של דנה כהן ויוסי לוי",
+      venue: "אולמי הגן הקסום, רחוב הרצל 42, ראשון לציון",
+      description: "מתרגשים לחגוג איתכם! קבלת פנים בשעה 19:00, החופה בשעה 20:00.",
+    });
+    const enc = new TextEncoder();
+    for (const line of ics.split("\r\n")) {
+      expect(enc.encode(line).length).toBeLessThanOrEqual(75);
+    }
+    // And it actually folded rather than just fitting by luck.
+    expect(ics.split("\r\n").some(l => l.startsWith(" "))).toBe(true);
   });
 
   it("defaults to a four-hour evening event", () => {

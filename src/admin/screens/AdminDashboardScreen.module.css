@@ -2,7 +2,7 @@
 
 .page {
   min-height: 100vh;
-  background: #f4f4f5;
+  background: var(--adm-bg-sunken);
   font-family: inherit;
 }
 
@@ -11,8 +11,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--adm-surface);
+  border-bottom: 1px solid var(--adm-line);
   padding: 0 24px;
   height: 56px;
   gap: 12px;
@@ -27,23 +27,23 @@
 
 .brandMark {
   font-size: 18px;
-  color: #0E9AB8;
+  color: var(--accent);
 }
 
 .brandName {
   font-size: 16px;
   font-weight: 800;
-  color: #111;
+  color: var(--adm-ink);
   letter-spacing: -0.01em;
 }
 
 .brandSep {
-  color: #ccc;
+  color: var(--adm-ink-faintest);
 }
 
 .brandSub {
   font-size: 13px;
-  color: #888;
+  color: var(--adm-ink-muted);
 }
 
 .topbarRight {
@@ -54,27 +54,27 @@
 
 .adminEmail {
   font-size: 13px;
-  color: #666;
+  color: var(--adm-ink-soft);
   direction: ltr;
 }
 
 .logoutBtn {
   background: none;
-  border: 1px solid #ddd;
+  border: 1px solid var(--adm-line-strong);
   border-radius: 7px;
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
-  color: #555;
+  color: var(--adm-ink-mid);
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
   font-family: inherit;
 }
 
 .logoutBtn:hover {
-  background: #fef2f2;
-  border-color: #fca5a5;
-  color: #b91c1c;
+  background: var(--adm-danger-bg);
+  border-color: var(--adm-danger-border);
+  color: var(--adm-danger);
 }
 
 /* ── Main ── */
@@ -89,9 +89,9 @@
 
 /* ── Phase notice ── */
 .phaseNotice {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-inline-start: 4px solid #f59e0b;
+  background: var(--adm-warn-bg);
+  border: 1px solid var(--adm-warn-border);
+  border-inline-start: 4px solid var(--adm-warn-mid);
   border-radius: 10px;
   padding: 14px 16px;
   font-size: 13px;
@@ -105,7 +105,7 @@
 .sectionTitle {
   font-size: 12px;
   font-weight: 700;
-  color: #888;
+  color: var(--adm-ink-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin: 0 0 12px;
@@ -125,8 +125,8 @@
 }
 
 .statCard {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line);
   border-radius: 12px;
   padding: 18px 16px;
   display: flex;
@@ -146,14 +146,14 @@
 .statValue {
   font-size: 24px;
   font-weight: 800;
-  color: #111;
+  color: var(--adm-ink);
   line-height: 1;
 }
 
 .statValueLoading {
   font-size: 24px;
   font-weight: 800;
-  color: #ccc;
+  color: var(--adm-ink-faintest);
   line-height: 1;
   animation: pulse 1.2s ease-in-out infinite;
 }
@@ -166,14 +166,14 @@
 .statLabel {
   font-size: 12px;
   font-weight: 600;
-  color: #555;
+  color: var(--adm-ink-mid);
   margin-top: 2px;
 }
 
 .statPhase {
   font-size: 10px;
-  color: #bbb;
-  background: #f4f4f5;
+  color: var(--adm-ink-fainter);
+  background: var(--adm-bg-sunken);
   border-radius: 20px;
   padding: 1px 7px;
   margin-top: 4px;
@@ -185,25 +185,25 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-inline-start: 4px solid #f87171;
+  background: var(--adm-danger-bg);
+  border: 1px solid var(--adm-danger-border-soft);
+  border-inline-start: 4px solid var(--adm-danger-soft);
   border-radius: 10px;
   padding: 12px 16px;
   font-size: 13px;
-  color: #b91c1c;
+  color: var(--adm-danger);
   direction: ltr;
   text-align: left;
 }
 
 .retryBtn {
   background: none;
-  border: 1px solid #fca5a5;
+  border: 1px solid var(--adm-danger-border);
   border-radius: 6px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #b91c1c;
+  color: var(--adm-danger);
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
@@ -212,7 +212,7 @@
 }
 
 .retryBtn:hover {
-  background: #fee2e2;
+  background: var(--adm-danger-bg-strong);
 }
 
 /* ── Nav list ── */
@@ -229,8 +229,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line);
   border-radius: 10px;
   padding: 14px 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -245,14 +245,14 @@
 .navLabel {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--adm-ink-dark);
   flex: 1;
 }
 
 .navPhase {
   font-size: 11px;
-  color: #aaa;
-  background: #f4f4f5;
+  color: var(--adm-ink-faint);
+  background: var(--adm-bg-sunken);
   border-radius: 20px;
   padding: 2px 9px;
   white-space: nowrap;
@@ -263,8 +263,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line);
   border-radius: 10px;
   padding: 14px 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -281,7 +281,7 @@
 
 .navArrow {
   font-size: 16px;
-  color: #0E9AB8;
+  color: var(--accent);
   margin-inline-start: auto;
 }
 
@@ -292,9 +292,9 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 700;
-  color: #2a7a50;
-  background: #eaf6f0;
-  border: 1px solid #b2dac5;
+  color: var(--adm-ok-mid);
+  background: var(--adm-ok-bg-soft);
+  border: 1px solid var(--adm-ok-border-soft);
   border-radius: 20px;
   padding: 2px 9px;
   white-space: nowrap;
@@ -306,7 +306,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #2a7a50;
+  background: var(--adm-ok-mid);
   flex-shrink: 0;
 }
 
@@ -322,9 +322,9 @@
 .refreshBtn {
   font-size: 12px;
   font-weight: 700;
-  color: #555;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  color: var(--adm-ink-mid);
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line);
   border-radius: 6px;
   padding: 4px 10px;
   cursor: pointer;
@@ -333,13 +333,13 @@
 }
 
 .refreshBtn:hover {
-  background: #f9fafb;
-  border-color: #0E9AB8;
-  color: #0E9AB8;
+  background: var(--adm-bg-alt);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .lastRefreshed {
   font-size: 11px;
-  color: #999;
+  color: var(--adm-ink-dim);
   margin-inline-start: auto;
 }

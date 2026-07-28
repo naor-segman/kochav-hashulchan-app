@@ -67,7 +67,7 @@ src/
 
 ## CSS rules
 - Use **V1 CSS variables only**: `--accent`, `--bg`, `--surface`, `--border`, `--text`, `--muted`, `--warn`, `--red`, `--green`, etc.
-- Do **not** use the new semantic token system (`--color-gold-*`, `--font-size-*`, `--space-*`) — it exists in tokens.css but is unused dead code.
+- Do **not** introduce NEW usage of the semantic token system (`--font-size-*`, `--space-*`) in component CSS. It is *not* dead code — `reset.css` and `utilities.css` depend on `--font-size-base`, `--font-weight-*`, `--line-height-*` and `--space-*`, and `--container-max` is used by four screen modules. Deleting them breaks the app. (`--color-gold-*` no longer exists at all.) Only 15 of the semantic tokens are genuinely unused.
 - Use CSS Modules (`*.module.css`) for component-scoped styles.
 - RTL is enforced globally via `dir="rtl"` on `<html>`.
 - Use logical CSS properties (`margin-inline`, `padding-inline-start`, etc.) for RTL correctness.

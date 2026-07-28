@@ -135,8 +135,11 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
 
         {preview && (
           <div className={styles.previewStage}>
+            {/* Version in the key so an edit actually remounts the frame —
+                otherwise the preview froze at whatever the state was when it
+                was opened. */}
             <iframe
-              key={kind}
+              key={kind + ":" + (ev.version ?? 0)}
               className={styles.previewFrame}
               src={`/events/${ev.id}/preview-announce/${kind}`}
               title={`תצוגה מקדימה — ${meta.label}`}

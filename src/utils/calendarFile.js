@@ -16,6 +16,11 @@ function esc(text) {
     .replace(/\r?\n/g, "\\n");
 }
 
+/** The current instant as a UTC iCalendar timestamp. */
+function utcStamp() {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
 /** YYYYMMDD from an ISO date, or null when unusable. */
 function toStamp(isoDate) {
   if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return null;
@@ -88,7 +93,9 @@ export function buildEventIcs({ name, date, venue, startTime, endTime, url, desc
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
     `UID:${day}-${Math.abs(hash(name + date))}@kochav-hashulchan`,
-    `DTSTAMP:${day}T${start}`,
+    // DTSTAMP must be UTC (§3.8.7.2). DTSTART/DTEND stay floating local on
+    // purpose — a 19:00 wedding is 19:00 wherever the guest's phone is set.
+    `DTSTAMP:${utcStamp()}`,
     `DTSTART:${day}T${start}`,
     `DTEND:${end.day}T${end.time}`,
     `SUMMARY:${esc(name || "אירוע")}`,
@@ -106,7 +113,33 @@ export function buildEventIcs({ name, date, venue, startTime, endTime, url, desc
   ].filter(Boolean);
 
   // RFC 5545 wants CRLF line endings; some Windows clients are strict about it.
-  return lines.join("\r\n");
+  // Lines are also folded at 75 OCTETS — Hebrew is 2 bytes per character in
+  // UTF-8, so an ordinary venue name blew past the limit unfolded and strict
+  // parsers (Outlook in particular) truncated it mid-word.
+  return lines.map(foldLine).join("\r\n");
+}
+
+/**
+ * Fold a content line to 75 octets per RFC 5545 §3.1, never splitting a
+ * codepoint. Continuation lines start with a single space.
+ */
+function foldLine(line) {
+  const enc = new TextEncoder();
+  if (enc.encode(line).length <= 75) return line;
+  const out = [];
+  let cur = "", curBytes = 0, limit = 75;
+  for (const ch of line) {              // iterates by codepoint, not UTF-16 unit
+    const n = enc.encode(ch).length;
+    if (curBytes + n > limit) {
+      out.push(cur);
+      cur = ch; curBytes = n;
+      limit = 74;                       // continuation lines carry a leading space
+    } else {
+      cur += ch; curBytes += n;
+    }
+  }
+  if (cur) out.push(cur);
+  return out.join("\r\n ");
 }
 
 /** Small stable hash so the same event keeps the same UID across downloads. */

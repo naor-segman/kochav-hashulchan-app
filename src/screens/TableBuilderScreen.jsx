@@ -77,9 +77,26 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     if (!cap || cap < 1) { showToast("יש להזין מספר מקומות תקני", "err"); return; }
     if (!cnt || cnt < 1) { showToast("יש להזין כמות שולחנות תקנית", "err"); return; }
     patchEvent(e => {
-      const rows = Array.from({ length: cnt }, (_, i) => ({
+      // Continue from the highest number ALREADY used with this prefix, not
+      // from the table count. After deleting "שולחן 2", the count-based version
+      // produced a second "שולחן 3" — and the WhatsApp message and printed
+      // entry card both name the table, so two tables answered to one number.
+      const used = new Set((e.tables || []).map(t => (t.name || "").trim()));
+      const rx   = new RegExp("^" + previewPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+(\\d+)$");
+      let next = 0;
+      for (const t of e.tables || []) {
+        const m = rx.exec((t.name || "").trim());
+        if (m) next = Math.max(next, Number(m[1]));
+      }
+      const nextName = () => {
+        let n = ++next;
+        while (used.has(previewPrefix + " " + n)) n = ++next;
+        used.add(previewPrefix + " " + n);
+        return previewPrefix + " " + n;
+      };
+      const rows = Array.from({ length: cnt }, () => ({
         id:       uid(),
-        name:     previewPrefix + " " + (e.tables.length + i + 1),
+        name:     nextName(),
         capacity: cap,
         type:     batch.type,
         shape:    batch.shape,
