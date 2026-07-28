@@ -366,6 +366,15 @@
   color: var(--text2);
 }
 
+/* Sits between a label and its control, so it must read as secondary to both:
+   lighter than the label, and no top gap of its own — .field supplies it. */
+.fieldHelp {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .input {
   width: 100%;
   background: var(--bg);

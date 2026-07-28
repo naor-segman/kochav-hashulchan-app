@@ -45,7 +45,7 @@
 .navMenu {
   position: absolute; top: 100%; inset-inline-end: 12px; margin-top: 6px;
   background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,.12); overflow: hidden; display: flex; flex-direction: column; min-width: 140px;
+  box-shadow: 0 8px 30px var(--scrim-12); overflow: hidden; display: flex; flex-direction: column; min-width: 140px;
 }
 .navMenu button {
   background: none; border: none; text-align: start; padding: 11px 16px; font-size: 14px;
@@ -127,7 +127,7 @@
 /* ── Location / gift cards ── */
 .locCard, .giftCard {
   background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 16px;
-  padding: 22px; text-align: center; box-shadow: 0 3px 14px rgba(0,0,0,.04);
+  padding: 22px; text-align: center; box-shadow: 0 3px 14px var(--scrim-04);
 }
 .locAddr { font-size: 16px; font-weight: 700; color: var(--s-ink); }
 .locNote { font-size: 13.5px; color: var(--s-muted); margin: 10px 0 0; line-height: 1.6; }

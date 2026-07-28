@@ -7,7 +7,7 @@ import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import { parseGuestList, countWithPhone } from "../utils/parseGuestList.js";
 import { usePlan } from "../hooks/usePlan.js";
-import { canAddGuest } from "../utils/featureGates.js";
+import { canAddGuest, guestSlotsLeft } from "../utils/featureGates.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
@@ -66,7 +66,14 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
   const { plan, limits } = usePlan();
   const { maxGuests } = limits;
+  // Every cap question on this screen goes through here, so the screen cannot
+  // disagree with itself about whether a limit applies.
+  const slotsLeft = guestSlotsLeft(plan, ev.guests.length);
+  const atCap     = slotsLeft === 0;
 
+  // Focus the name field once, on mount. Depending on editId would yank focus
+  // back to the top of the form every time the host starts editing a row.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (!editId) nameRef.current && nameRef.current.focus(); }, []);
 
   const sideLabel = s => getSideLabel(ev, s);
@@ -147,18 +154,17 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const addFromList = () => {
     // Reads a name AND a phone per line, so a WhatsApp/spreadsheet paste lands
     // complete instead of leaving hundreds of numbers to type by hand.
-    const rows = parseGuestList(listText);
-    if (rows.length === 0) return;
-    if (maxGuests !== Infinity && ev.guests.length + rows.length > maxGuests) {
-      const remaining = Math.max(0, maxGuests - ev.guests.length);
-      showToast(
-        remaining === 0
-          ? `הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`
-          : `ניתן להוסיף עוד ${remaining} רשומות בלבד בתוכנית הנוכחית (${ev.guests.length}/${maxGuests})`,
-        "err"
-      );
+    const allRows = parseGuestList(listText);
+    if (allRows.length === 0) return;
+    if (atCap) {
+      showToast(`הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
       return;
     }
+    // Take what fits rather than rejecting the whole paste. Refusing 400 names
+    // because 80 fit left the host with nothing and no way to see which ones
+    // would have gone in.
+    const rows    = allRows.slice(0, slotsLeft);
+    const skipped = allRows.length - rows.length;
     const newGuests = rows.map(r => ({
       id: uid(), name: r.name, count: 1, side: listSide, group: listGroup,
       phone: r.phone, notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
@@ -167,7 +173,9 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const withPhone = countWithPhone(rows);
     showToast(
       "נוספו " + newGuests.length + " אורחים" +
-      (withPhone ? ` (${withPhone} עם טלפון)` : "") + " ✓"
+      (withPhone ? ` (${withPhone} עם טלפון)` : "") +
+      (skipped ? ` · ${skipped} לא נוספו — מגבלת ${maxGuests} רשומות בתוכנית` : "") + " ✓",
+      skipped ? "warn" : undefined
     );
     setListText("");
     setShowList(false);
@@ -300,11 +308,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
       <div className={styles.stepGuide}>
         <span className={styles.stepBadge}>שלב 3 מתוך 5 — אורחים</span>
-        <span className={styles.stepText}>הוסיפו אורחים ידנית אחד-אחד, או ייבאו רשימה שלמה מ-Excel. לאחר מכן המשיכו לאילוצים. כל שינוי נשמר אוטומטית.</span>
+        <span className={styles.stepText}>הוסיפו אורחים ידנית, הדביקו רשימה מוכנה, או שלחו קישור לטבלה שיתופית שהמשפחה תמלא. לאחר מכן המשיכו לאילוצים. כל שינוי נשמר אוטומטית.</span>
       </div>
 
       {/* ── Guest limit upgrade tip ── */}
-      {maxGuests !== Infinity && ev.guests.length >= maxGuests && (
+      {atCap && (
         <p className={styles.upgradeTip}>
           🔒 הגעתם למגבלת {maxGuests} הרשומות בתוכנית הנוכחית —{" "}
           <a href="/account" className={styles.upgradeTipLink}>שדרגו את התוכנית</a>{" "}
@@ -460,8 +468,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           <button
             className={base.btnPrimary}
             onClick={saveGuest}
-            disabled={!editId && maxGuests !== Infinity && ev.guests.length >= maxGuests}
-            title={!editId && maxGuests !== Infinity && ev.guests.length >= maxGuests
+            disabled={!editId && atCap}
+            title={!editId && atCap
               ? `הגעתם למגבלת ${maxGuests} האורחים — שדרגו את התוכנית`
               : undefined}
           >

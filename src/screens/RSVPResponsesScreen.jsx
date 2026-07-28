@@ -160,6 +160,8 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       rsvp: GUEST_RSVP[respStatus(r)],
       companions: Array.isArray(r.companions) ? r.companions.filter(Boolean) : [],
     };
+    // Same rule as the shared table: a guest who answered is data, not an
+    // action the plan gets to refuse. The cap applies to what the host adds.
     patchEvent(e => ({ ...e, guests: [...e.guests, newGuest] }));
     showToast(`"${newGuest.name}" נוסף לרשימת האורחים ✓`);
   }, [patchEvent, showToast]);

@@ -58,7 +58,11 @@ export function usePlan() {
     });
 
     return () => { cancelled = true; };
-  }, [user?.id]); // re-run only when user identity changes
+    // Keyed on identity, not on the user object: Supabase hands back a new
+    // object reference on every token refresh, and depending on it would
+    // re-query the plan roughly every hour for no reason.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   return {
     plan,

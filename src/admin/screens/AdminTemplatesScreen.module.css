@@ -94,7 +94,7 @@
 }
 .newBtn:hover:not(:disabled) {
   background: var(--adm-accent-dark);
-  box-shadow: 0 3px 10px rgba(14, 154, 184, 0.30);
+  box-shadow: 0 3px 10px var(--adm-focus-ring-strong);
 }
 .newBtn:disabled { opacity: 0.55; cursor: default; }
 
@@ -123,7 +123,7 @@
   border-radius: 12px;
   border: 1px solid var(--adm-line);
   background: var(--adm-surface);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px var(--adm-shadow);
 }
 
 .table {
@@ -211,7 +211,7 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--adm-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -226,7 +226,7 @@
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 12px 60px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 12px 60px var(--adm-shadow-strong);
 }
 
 .modalHeader {
@@ -283,7 +283,7 @@
 
 .input:focus, .select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
   background: var(--adm-surface);
 }
 
@@ -296,7 +296,7 @@
 }
 .textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
   background: var(--adm-surface);
 }
 
@@ -312,7 +312,7 @@
 }
 .iconInput:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
   background: var(--adm-surface);
 }
 
@@ -361,7 +361,7 @@
 }
 .saveBtn:hover:not(:disabled) {
   background: var(--adm-accent-dark);
-  box-shadow: 0 3px 10px rgba(14, 154, 184, 0.30);
+  box-shadow: 0 3px 10px var(--adm-focus-ring-strong);
 }
 .saveBtn:disabled { opacity: 0.55; cursor: default; }
 

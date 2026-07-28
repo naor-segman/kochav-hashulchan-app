@@ -176,7 +176,7 @@
 
 .searchInput:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
 }
 
 .resultCount {
@@ -224,7 +224,7 @@
   border-radius: 12px;
   border: 1px solid var(--adm-line);
   background: var(--adm-surface);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px var(--adm-shadow);
 }
 
 .table {
@@ -282,7 +282,7 @@
 .numCol { text-align: center; }
 .numCell { text-align: center; font-variant-numeric: tabular-nums; color: var(--adm-ink-mid); }
 
-.dateCell { color: #777; font-size: 13px; white-space: nowrap; }
+.dateCell { color: var(--adm-ink-quiet); font-size: 13px; white-space: nowrap; }
 
 .muted { color: var(--adm-ink-fainter); }
 
@@ -320,7 +320,7 @@
 .planPro {
   display: inline-block;
   background: var(--adm-info-bg);
-  color: #1d4ed8;
+  color: var(--adm-badge-blue-ink);
   border: 1px solid var(--adm-info-border);
   border-radius: 20px;
   padding: 2px 9px;
@@ -332,9 +332,9 @@
 
 .planEnterprise {
   display: inline-block;
-  background: #f5f3ff;
-  color: #6d28d9;
-  border: 1px solid #ddd6fe;
+  background: var(--adm-badge-purple-bg);
+  color: var(--adm-badge-purple-ink);
+  border: 1px solid var(--adm-badge-purple-border);
   border-radius: 20px;
   padding: 2px 9px;
   font-size: 11px;
@@ -387,6 +387,6 @@
 
 /* Says out loud that the list is a window, not the whole table. */
 .truncNote {
-  color: #b45309;
+  color: var(--adm-badge-amber-ink);
   font-weight: 600;
 }

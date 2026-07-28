@@ -156,11 +156,15 @@
   background: var(--warn-bg);
 }
 
-/* When drag is directly over this card */
-.unassignedDropActive {
-  border-color: var(--accent) !important;
-  border-inline-start-color: var(--accent) !important;
-  background: var(--accent-bg) !important;
+/* When drag is directly over this card.
+   Compound selector rather than !important: the element always carries
+   .unassignedCard too, so .unassignedCard.unassignedDropActive outranks every
+   single-class rule on its own. The inline style this used to fight is only
+   set when no drag is active. */
+.unassignedCard.unassignedDropActive {
+  border-color: var(--accent);
+  border-inline-start-color: var(--accent);
+  background: var(--accent-bg);
 }
 
 .unassignedHeader {
@@ -624,32 +628,37 @@
 
 /* ─── Drag-state table card modifiers ───────────────────────────────────── */
 
+/* Each of these is applied alongside .tCard, so a compound selector outranks
+   the base and every single-class variant without !important. The inline
+   border/background these used to fight is set only when no drag is running,
+   which is exactly when none of these classes are present. */
+
 /* Table can accept the dragged guest — glow amber */
-.tCardDragReady {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 2px var(--accent-border), var(--shadow) !important;
+.tCard.tCardDragReady {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-border), var(--shadow);
 }
 
 /* Table is full — mute it so it reads as invalid */
-.tCardDragBlocked {
+.tCard.tCardDragBlocked {
   opacity: 0.55;
-  border-color: var(--border) !important;
-  box-shadow: none !important;
+  border-color: var(--border);
+  box-shadow: none;
 }
 
 /* Guest is hovering over a valid table — strong green ring */
-.tCardDropOver {
-  border-color: var(--green) !important;
-  box-shadow: 0 0 0 3px var(--green-border), var(--shadow) !important;
-  background: var(--green-bg) !important;
+.tCard.tCardDropOver {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-border), var(--shadow);
+  background: var(--green-bg);
   transform: scale(1.01);
 }
 
 /* Guest is hovering over a full table — red ring */
-.tCardDropBlocked {
-  border-color: var(--red) !important;
-  box-shadow: 0 0 0 3px var(--red-border), var(--shadow) !important;
-  background: var(--red-bg) !important;
+.tCard.tCardDropBlocked {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-border), var(--shadow);
+  background: var(--red-bg);
 }
 
 /* Near-capacity badge inside tCardRight */
@@ -736,13 +745,17 @@
   opacity: 0.5;
 }
 
-.tGuestLockBtn:hover {
-  opacity: 1 !important;
+/* Both have to outrank `.tGuestRow:hover .tGuestLockBtn` (0,3,0), which is what
+   dims the button to .5 while the row is hovered. Matching that count and
+   relying on source order would leave a locked guest's button dimmed the
+   moment the row is hovered, so both carry an extra class instead. */
+.tGuestRow .tGuestLockBtn.tGuestLockBtn:hover {
+  opacity: 1;
   border-color: var(--warn-border);
 }
 
-.tGuestLockBtnActive {
-  opacity: 1 !important;
+.tGuestRow .tGuestLockBtn.tGuestLockBtnActive {
+  opacity: 1;
 }
 
 .tGuestLockedBadge {

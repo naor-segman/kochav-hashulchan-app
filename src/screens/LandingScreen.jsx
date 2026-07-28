@@ -69,11 +69,31 @@ const SHOWCASE = [
   },
 ];
 
+/**
+ * Full-bleed hero media.
+ *
+ * Both fields are null until there is real footage, and while they are null
+ * the hero renders exactly as it did before — a flat ink panel. Name a file
+ * here and the hero switches to the cinematic layout on its own: media behind,
+ * scrim over it, headline and one button on top.
+ *
+ * The poster is not optional once there is a video. It is what a phone, a slow
+ * connection, and anyone who asked their system for reduced motion actually
+ * see, and it is the first frame everyone else sees while the video loads.
+ *
+ * Keep the subject off-centre-right: the text sits over the start (right) edge
+ * in RTL, and a face directly behind the headline reads as a mistake.
+ */
+const HERO_MEDIA = {
+  video:  null,   // e.g. "/hero/hero.mp4"  — muted, looping, no audio track
+  poster: null,   // e.g. "/hero/hero.jpg"  — also the still for mobile
+};
+
 const FEATURES = [
   { icon: "seating", title: "הושבה אוטומטית",
     desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרתם" },
   { icon: "guests", title: "ניהול אורחים",
-    desc: "ייבוא מאקסל, הוספה ידנית, מעקב אישורי הגעה לפי קבוצות — הכל בממשק אחד נוח" },
+    desc: "טבלה שיתופית שהמשפחה ממלאת מהטלפון, הדבקת רשימה מוכנה, ומעקב אישורי הגעה לפי קבוצות" },
   { icon: "plan", title: "תכנית מגרש",
     desc: "גררו שולחנות על תמונת האולם ותקבלו תצוגה חזותית מושלמת של הסידור" },
   { icon: "checkin", title: "צ׳ק-אין ביום האירוע",
@@ -86,28 +106,10 @@ const FEATURES = [
 
 const HOW_IT_WORKS = [
   { num: "01", title: "צרו אירוע", desc: "בחרו סוג אירוע, הזינו תאריך ומקום" },
-  { num: "02", title: "הוסיפו אורחים", desc: "ייבאו מאקסל, הוסיפו ידנית, קבלו אישורי הגעה" },
+  { num: "02", title: "הוסיפו אורחים", desc: "שלחו קישור למשפחה שתמלא יחד, הדביקו רשימה, או הוסיפו ידנית" },
   { num: "03", title: "בנו שולחנות", desc: "הגדירו מספר מקומות וצורת ישיבה לכל שולחן" },
   { num: "04", title: "הגדירו אילוצים", desc: "מי ישב יחד, מי חייב להיות בנפרד" },
   { num: "05", title: "סדרו בלחיצה", desc: "קבלו תוכנית ישיבה מושלמת תוך שניות" },
-];
-
-const TESTIMONIALS = [
-  {
-    name: "שירה לוי",
-    role: "מארגנת אירועים",
-    text: "חסכתי 6 שעות עבודה על סידור השולחנות. הכלי הכי שימושי שיש לי היום.",
-  },
-  {
-    name: "דוד כהן",
-    role: "הורה לחתן",
-    text: "ניהלנו 350 אורחים בקלות מדהימה. כל הקידוד של משפחות ואורחים VIP עבד מצוין.",
-  },
-  {
-    name: "מיכל ברק",
-    role: "מנהלת אולם אירועים",
-    text: "אנחנו משתמשים בזה לכל אירוע. הלקוחות שלנו מתרשמים מהרמה המקצועית.",
-  },
 ];
 
 const PRICING_PLANS = [
@@ -158,6 +160,18 @@ const PRICING_PLANS = [
 export default function LandingScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+
+  const hasHeroMedia = Boolean(HERO_MEDIA.video || HERO_MEDIA.poster);
+  // Decided once, in the initializer, rather than in an effect — an effect would
+  // paint the video first and swap it out, which is the opposite of what someone
+  // who asked for reduced motion wants. Phones get the still too: the hero is
+  // the first thing on the page and a video is a slow way to say hello on 4G.
+  const [stillOnly] = useState(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        || window.matchMedia("(max-width: 700px)").matches;
+  });
+
   return (
     <div className={styles.root}>
       {/* ── Nav ── */}
@@ -204,18 +218,34 @@ export default function LandingScreen() {
       </header>
 
       {/* ── Hero ── */}
-      <section className={styles.hero}>
-        <div className={styles.heroDecor} aria-hidden="true">
-          <span className={styles.decorOrb1} />
-          <span className={styles.decorOrb2} />
-          <span className={styles.decorStar1}>✦</span>
-          <span className={styles.decorStar2}>✦</span>
-        </div>
+      <section className={[styles.hero, hasHeroMedia ? styles.heroCinematic : ""].filter(Boolean).join(" ")}>
+        {hasHeroMedia ? (
+          <div className={styles.heroMedia} aria-hidden="true">
+            {HERO_MEDIA.video && !stillOnly ? (
+              <video
+                className={styles.heroMediaLayer}
+                src={HERO_MEDIA.video}
+                poster={HERO_MEDIA.poster || undefined}
+                autoPlay muted loop playsInline preload="metadata"
+              />
+            ) : (
+              <img className={styles.heroMediaLayer} src={HERO_MEDIA.poster} alt="" />
+            )}
+            <div className={styles.heroScrim} />
+          </div>
+        ) : (
+          <div className={styles.heroDecor} aria-hidden="true">
+            <span className={styles.decorOrb1} />
+            <span className={styles.decorOrb2} />
+            <span className={styles.decorStar1}>✦</span>
+            <span className={styles.decorStar2}>✦</span>
+          </div>
+        )}
         <div className={styles.heroLayout}>
           <div className={styles.heroInner}>
             <div className={styles.heroBadge}>
               <span className={styles.heroBadgeDot} />
-              הפלטפורמה המובילה לסידור הושבה בישראל
+              סידור הושבה אוטומטי לאירועים בישראל
             </div>
             <h1 className={styles.heroHeadline}>
               כל האורחים<br />
@@ -227,7 +257,11 @@ export default function LandingScreen() {
             </p>
             <div className={styles.heroActions}>
               <Link to="/signup" className={styles.heroCta}>התחילו חינם ←</Link>
-              <a href="#how" className={styles.heroSecondary}>ראו איך זה עובד</a>
+              {/* Over footage the page carries one button. The second route in
+                  stays available as a quiet link rather than competing. */}
+              <a href="#how" className={hasHeroMedia ? styles.heroQuietLink : styles.heroSecondary}>
+                ראו איך זה עובד
+              </a>
             </div>
             <p className={styles.heroNote}>ללא כרטיס אשראי · ניסיון חינם לכל החיים</p>
           </div>
@@ -377,31 +411,6 @@ export default function LandingScreen() {
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
-      <section className={styles.testimonials}>
-        <div className={styles.sectionInner}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>מה הלקוחות אומרים</span>
-            <h2 className={styles.sectionTitle}>אלפי זוגות ומשפחות כבר בחרו בנו</h2>
-          </div>
-          <div className={styles.testGrid}>
-            {TESTIMONIALS.map(t => (
-              <div key={t.name} className={styles.testCard}>
-                <div className={styles.testStars}>★★★★★</div>
-                <p className={styles.testQuote}>&ldquo;{t.text}&rdquo;</p>
-                <div className={styles.testMeta}>
-                  <div className={styles.testAvatar}>{t.name[0]}</div>
-                  <div>
-                    <div className={styles.testName}>{t.name}</div>
-                    <div className={styles.testRole}>{t.role}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Pricing teaser ── */}
       <section className={styles.pricingSection}>
         <div className={styles.sectionInner}>
@@ -453,7 +462,7 @@ export default function LandingScreen() {
           <div className={styles.ctaStar} aria-hidden="true">✦</div>
           <h2 className={styles.ctaTitle}>מוכנים להתחיל?</h2>
           <p className={styles.ctaSub}>
-            הצטרפו לאלפי מארגנים שכבר חסכו שעות של עבודה
+            בלי התקנה ובלי כרטיס אשראי — נכנסים, מזינים אורחים, ומקבלים סידור.
           </p>
           <Link to="/signup" className={styles.ctaBtn}>הצטרפו חינם עכשיו ←</Link>
           <p className={styles.ctaNote}>ללא כרטיס אשראי · ביטול בכל עת</p>

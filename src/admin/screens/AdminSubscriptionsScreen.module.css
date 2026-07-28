@@ -118,7 +118,7 @@
   border-top-width: 3px;
   border-radius: 10px; padding: 16px 18px;
   display: flex; flex-direction: column; gap: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px var(--adm-shadow);
 }
 
 .planCardHeader {
@@ -156,7 +156,7 @@
 }
 .searchInput:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184,0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
 }
 
 .filterSelect {
@@ -193,7 +193,7 @@
   overflow-x: auto;
   border-radius: 12px; border: 1px solid var(--adm-line);
   background: var(--adm-surface);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 4px var(--adm-shadow);
 }
 
 .table {

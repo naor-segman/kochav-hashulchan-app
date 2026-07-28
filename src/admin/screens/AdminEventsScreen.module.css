@@ -176,7 +176,7 @@
 
 .searchInput:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
 }
 
 .filterSelect {
@@ -195,7 +195,7 @@
 
 .filterSelect:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
 }
 
 .filterSelect:disabled {
@@ -248,7 +248,7 @@
   border-radius: 12px;
   border: 1px solid var(--adm-line);
   background: var(--adm-surface);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px var(--adm-shadow);
 }
 
 .table {
@@ -336,7 +336,7 @@
 
 .viewLink:hover {
   background: var(--adm-warn-bg-strong);
-  border-color: #fbbf24;
+  border-color: var(--adm-badge-amber-mark);
 }
 
 /* ── Status badges ── */
@@ -377,9 +377,9 @@
 
 /* orange — seating in progress, >= 50% */
 .statusProgress {
-  background: #fff7ed;
-  color: #9a3412;
-  border: 1px solid #fed7aa;
+  background: var(--adm-badge-orange-bg);
+  color: var(--adm-badge-orange-ink);
+  border: 1px solid var(--adm-badge-orange-border);
 }
 
 /* red — seating started but < 50% (possible issues) */

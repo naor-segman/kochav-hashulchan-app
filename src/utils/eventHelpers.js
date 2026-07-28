@@ -13,6 +13,14 @@ import { normalizeAnnouncements } from "../data/announcementTemplates.js";
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Every public-page token an event carries. One list, used by both
+ * normalizeEvent and duplicateEvent — they drifted apart once (a duplicated
+ * event came back without an `album` token, leaving its album link dead) and a
+ * shared list is what stops that from happening again.
+ */
+export const TOKEN_KEYS = ["rsvp", "album", "invite", "gift", "hostess", "collab"];
+
+/**
  * Ensure an event has all required fields.
  * Safe to run on events loaded from localStorage that predate this schema.
  * Never overwrites existing valid values — only fills gaps.
@@ -99,17 +107,11 @@ export function normalizeEvent(ev) {
         }
       : null,
     // Public-URL tokens — stable random UUIDs generated once, never changed.
-    // Each token grants access to one public page (RSVP, invite, gift, hostess).
-    tokens: (ev.tokens && typeof ev.tokens === "object")
-      ? {
-          rsvp:    ev.tokens.rsvp    ?? uid(),
-          album:   ev.tokens.album   ?? uid(),
-          invite:  ev.tokens.invite  ?? uid(),
-          gift:    ev.tokens.gift    ?? uid(),
-          hostess: ev.tokens.hostess ?? uid(),
-          collab:  ev.tokens.collab  ?? uid(),
-        }
-      : { rsvp: uid(), album: uid(), invite: uid(), gift: uid(), hostess: uid(), collab: uid() },
+    // Each token grants access to one public page. Built from TOKEN_KEYS so a
+    // new page's token cannot be added here and forgotten in duplicateEvent.
+    tokens: Object.fromEntries(
+      TOKEN_KEYS.map(k => [k, (ev.tokens && typeof ev.tokens === "object" && ev.tokens[k]) || uid()])
+    ),
     // Event cost planning — stored per event, updated via CostScreen.
     costs: (ev.costs && typeof ev.costs === "object") ? ev.costs : {},
     // Digital gift transfer details — shown to guests on the public gift page.
@@ -259,8 +261,11 @@ export function duplicateEvent(ev) {
     sideLabels:       ev.sideLabels ? { ...ev.sideLabels } : (ev.sideLabels ?? null),
     eventSite:        ev.eventSite ? JSON.parse(JSON.stringify(ev.eventSite)) : (ev.eventSite ?? null),
     // Each duplicated event gets its own fresh public-URL tokens so that
-    // the copy's RSVP/gift/invite/hostess links don't collide with the original.
-    tokens:      { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid(), collab: uid() },
+    // the copy's public links don't collide with the original. Every key in
+    // TOKEN_KEYS must be minted here: a missing one is only re-filled if the
+    // caller happens to pass the copy back through normalizeEvent, and a caller
+    // that doesn't would ship an event with a dead public link.
+    tokens:      Object.fromEntries(TOKEN_KEYS.map(k => [k, uid()])),
     cloudId:     null,
     createdAt:   now,
     updatedAt:   now,

@@ -143,6 +143,11 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
           };
         }
 
+        // Deliberately not subject to the plan's guest cap. This row is a
+        // relative filling in the shared table; dropping it would delete data
+        // the host never saw, to enforce a limit the host is the one paying.
+        // If PLAN_GATES_ENFORCED is ever turned on, the answer here is to warn
+        // the host that the list has outgrown the plan — never to discard.
         return { ...e, guests: [...guests, guestFromCollab(row, null)] };
       });
     };

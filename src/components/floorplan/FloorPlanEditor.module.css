@@ -252,14 +252,14 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--white-glass);
   color: var(--nav-text);
   font-size: 10px;
   line-height: 1;
   cursor: pointer;
   transition: background var(--transition);
 }
-.chipRemove:hover { background: var(--red); color: #fff; }
+.chipRemove:hover { background: var(--red); color: var(--white); }
 
 /* Resize grip — bottom (inline-end) corner, inside the chip so it isn't clipped. */
 .chipResize {
@@ -270,7 +270,7 @@
   height: 14px;
   border-radius: 4px 4px 4px 0;
   background: var(--accent);
-  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  border: 1.5px solid var(--white-soft);
   cursor: nwse-resize;
   touch-action: none;
   z-index: 5;

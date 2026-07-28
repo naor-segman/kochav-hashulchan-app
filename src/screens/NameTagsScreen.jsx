@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { guestSeatNames } from "../utils/eventHelpers.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -30,7 +30,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
   const [scope, setScope]     = useState("seated");
   const [showTable, setShowTable] = useState(true);
 
-  const tableOf = id => ev.tables?.find(t => t.id === id);
+  const tableOf = useCallback(id => ev.tables?.find(t => t.id === id), [ev.tables]);
 
   const cards = useMemo(() => {
     const active = (ev.guests || []).filter(g => g.rsvp !== "declined");
@@ -49,7 +49,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
         table: table?.name || "",
       }));
     }).sort((a, b) => a.name.localeCompare(b.name, "he"));
-  }, [ev.guests, ev.seating, ev.tables, scope]);
+  }, [ev.guests, ev.seating, scope, tableOf]);
 
   const sizeMeta = SIZES.find(s => s.key === size);
 

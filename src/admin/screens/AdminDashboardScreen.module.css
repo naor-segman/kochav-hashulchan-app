@@ -95,7 +95,7 @@
   border-radius: 10px;
   padding: 14px 16px;
   font-size: 13px;
-  color: #78350f;
+  color: var(--adm-badge-amber-deep);
   line-height: 1.5;
   direction: ltr;
   text-align: left;
@@ -134,7 +134,7 @@
   align-items: center;
   gap: 4px;
   text-align: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px var(--adm-shadow);
 }
 
 .statIcon {
@@ -233,7 +233,7 @@
   border: 1px solid var(--adm-line);
   border-radius: 10px;
   padding: 14px 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px var(--adm-shadow);
 }
 
 .navIcon {
@@ -267,16 +267,16 @@
   border: 1px solid var(--adm-line);
   border-radius: 10px;
   padding: 14px 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px var(--adm-shadow);
   text-decoration: none;
   color: inherit;
   transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
 
 .navItemLink:hover {
-  background: #fffbf7;
-  border-color: #e4c49a;
-  box-shadow: 0 2px 8px rgba(14, 154, 184, 0.10);
+  background: var(--adm-bg-warm);
+  border-color: var(--adm-line-warm);
+  box-shadow: 0 2px 8px var(--adm-focus-ring-mid);
 }
 
 .navArrow {
