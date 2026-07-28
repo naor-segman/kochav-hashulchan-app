@@ -37,3 +37,6 @@ pnpm-debug.log*
 # but a dev server started after that directory is cleared writes it to the repo
 # root instead — 5.5MB of build artefact that then shows up as untracked.
 .vite/
+
+# QA screenshots — written by qa/shot.mjs and qa/palette.mjs, never committed.
+qa/shots/

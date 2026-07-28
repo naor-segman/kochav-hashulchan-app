@@ -263,3 +263,76 @@ describe("the individual-guest fallback obeys the same rules as clustering", () 
     if (seating.mum && seating.dad) expect(seating.mum).not.toBe(seating.dad);
   });
 });
+
+// A "together" cluster can contain two guests the host locked to DIFFERENT
+// tables. That is a contradiction the engine cannot resolve — it is not allowed
+// to move either of them — and the code picks one pinned table arbitrarily
+// (`pinned[0]`) with no reconciliation. Investigated after a review flagged the
+// branch as untested: across several shapes it behaves sensibly, so these pin
+// the guarantees that actually matter rather than "fixing" something that is
+// not demonstrably broken. What must never happen is the rest of the family
+// being scattered, or left standing, because two locks disagree.
+describe("a together-cluster whose locked members sit at different tables", () => {
+  const family = [
+    g("mom"), g("dad"),
+    g("k1"), g("k2"), g("k3"), g("k4"),
+  ];
+  const bound = [
+    together("mom", "k1"), together("dad", "k1"),
+    together("k1", "k2"), together("k2", "k3"), together("k3", "k4"),
+  ];
+
+  it("seats everyone even though the two locks contradict each other", () => {
+    const seating = autoAssign(family, [t("t1", 3), t("t2", 10)], bound, { mom: "t1", dad: "t2" });
+    for (const id of ["k1", "k2", "k3", "k4"]) expect(seating[id]).toBeTruthy();
+  });
+
+  it("keeps the unlocked members together instead of scattering them", () => {
+    const seating = autoAssign(family, [t("t1", 3), t("t2", 10)], bound, { mom: "t1", dad: "t2" });
+    const kidTables = new Set(["k1", "k2", "k3", "k4"].map(id => seating[id]));
+    expect(kidTables.size).toBe(1);
+  });
+
+  it("sends them to a table that can actually hold them all", () => {
+    // t1 has room for two more; the four siblings must not be squeezed in.
+    const seating = autoAssign(family, [t("t1", 3), t("t2", 10)], bound, { mom: "t1", dad: "t2" });
+    expect(seatsAt(seating, family, "t1")).toBeLessThanOrEqual(3);
+    expect(seatsAt(seating, family, "t2")).toBeLessThanOrEqual(10);
+  });
+
+  it("works the same way when the roomy table is the other one", () => {
+    const seating = autoAssign(family, [t("t1", 10), t("t2", 3)], bound, { mom: "t1", dad: "t2" });
+    for (const id of ["k1", "k2", "k3", "k4"]) expect(seating[id]).toBeTruthy();
+    expect(new Set(["k1", "k2", "k3", "k4"].map(id => seating[id])).size).toBe(1);
+    expect(seatsAt(seating, family, "t2")).toBeLessThanOrEqual(3);
+  });
+
+  // The one violation that IS unavoidable must be reported, not swallowed:
+  // the host needs to see that their own two locks cannot both be honoured.
+  it("still reports the contradiction between the two locked guests", () => {
+    const seating = autoAssign(family, [t("t1", 3), t("t2", 10)], bound, { mom: "t1", dad: "t2" });
+    const v = computeViolations(family, [t("t1", 3), t("t2", 10)], bound, seating);
+    expect(v.some(x => x.type === "together")).toBe(true);
+  });
+
+  // The regression this describe block was written for. Before the fix the
+  // engine added a violation of its own: with mom on the roomy table and dad on
+  // the tight one, k1 was pinned to dad (last constraint in the list wins), the
+  // siblings could not follow, and the family split one-and-three.
+  it("adds no violation of its own beyond the one the two locks force", () => {
+    for (const [c1, c2] of [[3, 10], [10, 3]]) {
+      const tables  = [t("t1", c1), t("t2", c2)];
+      const seating = autoAssign(family, tables, bound, { mom: "t1", dad: "t2" });
+      const broken  = computeViolations(family, tables, bound, seating)
+        .filter(v => v.type === "together");
+      expect(broken).toHaveLength(1);   // mom-vs-dad only, whichever side loses
+    }
+  });
+
+  it("does not break an apart constraint while resolving the contradiction", () => {
+    const guests = [...family, g("foe")];
+    const cons   = [...bound, apart("k1", "foe")];
+    const seating = autoAssign(guests, [t("t1", 3), t("t2", 10)], cons, { mom: "t1", dad: "t2", foe: "t2" });
+    if (seating.k1 && seating.foe) expect(seating.k1).not.toBe(seating.foe);
+  });
+});

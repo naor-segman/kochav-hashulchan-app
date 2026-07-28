@@ -420,6 +420,14 @@ export default function LandingScreen() {
             <p className={styles.sectionSub}>התחילו חינם, שדרגו כשצריך</p>
           </div>
 
+          {/* The numbers on the cards describe the planned model, not what the
+              app does today — nothing is capped while there is no way to pay.
+              Saying so here keeps the page from advertising a limit a visitor
+              will not actually meet. The pricing screen carries the same note. */}
+          <p className={styles.betaNote}>
+            🎉 בתקופת הבטא כל התוכניות פתוחות ללא תשלום — המגבלות שלמטה מתארות את המודל המתוכנן.
+          </p>
+
           <div className={styles.pricingGrid}>
             {PRICING_PLANS.map(plan => (
               <div
