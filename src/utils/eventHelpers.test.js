@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeEvent, duplicateEvent, seatingTotals } from "./eventHelpers.js";
+import { normalizeEvent, duplicateEvent, seatingTotals, TOKEN_KEYS } from "./eventHelpers.js";
 
 describe("normalizeEvent — timestamps", () => {
   it("defaults updatedAt to createdAt (never epoch 0) when both are missing", () => {
@@ -17,6 +17,123 @@ describe("normalizeEvent — timestamps", () => {
     const e = normalizeEvent({ id: "x", customGroups: ["חברים מהצבא"], customTableTypes: ["שולחן ילדים"] });
     expect(e.customGroups).toEqual(["חברים מהצבא"]);
     expect(e.customTableTypes).toEqual(["שולחן ילדים"]);
+  });
+});
+
+// A mutation run once showed 10 of 10 destructive edits to normalizeEvent
+// passing the whole suite: the defaults it hands out were never asserted, only
+// its timestamp handling was. These pin the actual contract — every field the
+// rest of the app reads without checking, and the guards that stop a corrupt
+// stored value from reaching a screen.
+describe("normalizeEvent — the defaults every screen relies on", () => {
+  it("returns null for anything that is not an object", () => {
+    expect(normalizeEvent(null)).toBeNull();
+    expect(normalizeEvent(undefined)).toBeNull();
+    expect(normalizeEvent("null")).toBeNull();   // valid JSON, wrong shape — froze an account once
+    expect(normalizeEvent(42)).toBeNull();
+    expect(normalizeEvent([])).not.toBeNull();   // arrays are objects; documented, not desired
+  });
+
+  it("fills identity and display fields for a bare event", () => {
+    const e = normalizeEvent({});
+    expect(e.id).toBeTruthy();
+    expect(e.name).toBe("");
+    expect(e.date).toBe("");
+    expect(e.venue).toBe("");
+    expect(e.brideName).toBe("");
+    expect(e.groomName).toBe("");
+    expect(e.celebrantName).toBe("");
+    expect(e.organizationName).toBe("");
+    expect(e.contactName).toBe("");
+    expect(e.ownerName).toBe("");
+    expect(e.giftBitPhone).toBe("");
+    expect(e.giftPayboxLink).toBe("");
+  });
+
+  // The Hebrew string is the value the whole app compares against. An English
+  // key here would silently match nothing and fall through to a default.
+  it("defaults type to the Hebrew 'חתונה' and coupleType to bride-groom", () => {
+    const e = normalizeEvent({});
+    expect(e.type).toBe("חתונה");
+    expect(e.coupleType).toBe("bride-groom");
+  });
+
+  it("defaults every collection to an empty array or object", () => {
+    const e = normalizeEvent({});
+    expect(e.tables).toEqual([]);
+    expect(e.guests).toEqual([]);
+    expect(e.constraints).toEqual([]);
+    expect(e.seating).toEqual({});
+    expect(e.lockedGuests).toEqual([]);
+    expect(e.lockedTables).toEqual([]);
+    expect(e.tasks).toEqual([]);
+    expect(e.vendors).toEqual([]);
+    expect(e.costs).toEqual({});
+    expect(e.messagesSent).toEqual({});
+    expect(e.messageTemplates).toEqual({});
+    expect(e.floorPlan).toBeNull();
+  });
+
+  // A stored value of the wrong type must not reach a screen that will call
+  // .map on it — that is a white screen, not a degraded one.
+  it("replaces corrupt stored values with the right empty type", () => {
+    const e = normalizeEvent({
+      tables: "not-an-array", guests: null, constraints: 7, seating: "x",
+      lockedGuests: {}, lockedTables: "y", tasks: 3, vendors: null,
+      costs: "z", messagesSent: [], messageTemplates: 5,
+    });
+    expect(e.tables).toEqual([]);
+    expect(e.guests).toEqual([]);
+    expect(e.constraints).toEqual([]);
+    expect(e.seating).toEqual({});
+    expect(e.lockedGuests).toEqual([]);
+    expect(e.lockedTables).toEqual([]);
+    expect(e.tasks).toEqual([]);
+    expect(e.vendors).toEqual([]);
+    expect(e.costs).toEqual({});
+    expect(e.messageTemplates).toEqual({});
+  });
+
+  it("defaults version to 1 and cloudId to null, and preserves both when set", () => {
+    const bare = normalizeEvent({});
+    expect(bare.version).toBe(1);
+    expect(bare.cloudId).toBeNull();
+    const kept = normalizeEvent({ version: 9, cloudId: "row-uuid" });
+    expect(kept.version).toBe(9);
+    expect(kept.cloudId).toBe("row-uuid");
+  });
+
+  it("trims side labels and drops a non-object to null", () => {
+    expect(normalizeEvent({ sideLabels: { bride: "  צד שלה  ", groom: "צד שלו " } }).sideLabels)
+      .toEqual({ bride: "צד שלה", groom: "צד שלו" });
+    expect(normalizeEvent({ sideLabels: { bride: "רק אחד" } }).sideLabels)
+      .toEqual({ bride: "רק אחד", groom: "" });
+    expect(normalizeEvent({ sideLabels: "לא אובייקט" }).sideLabels).toBeNull();
+    expect(normalizeEvent({}).sideLabels).toBeNull();
+  });
+
+  // noShowPct feeds the meal-count forecast the host gives the venue, so a
+  // corrupt value must not become NaN meals.
+  it("guards noShowPct against non-finite values but keeps a real 0", () => {
+    expect(normalizeEvent({}).noShowPct).toBe(10);
+    expect(normalizeEvent({ noShowPct: NaN }).noShowPct).toBe(10);
+    expect(normalizeEvent({ noShowPct: "12" }).noShowPct).toBe(10);
+    expect(normalizeEvent({ noShowPct: null }).noShowPct).toBe(10);
+    expect(normalizeEvent({ noShowPct: 0 }).noShowPct).toBe(0);
+    expect(normalizeEvent({ noShowPct: 15 }).noShowPct).toBe(15);
+  });
+
+  it("normalizes a partial floorPlan without losing positions or elements", () => {
+    const e = normalizeEvent({ floorPlan: { tablePositions: { t1: { x: 0.5, y: 0.5 } } } });
+    expect(e.floorPlan.image).toBeNull();
+    expect(e.floorPlan.tablePositions).toEqual({ t1: { x: 0.5, y: 0.5 } });
+    expect(e.floorPlan.elements).toEqual([]);
+  });
+
+  it("is idempotent — normalizing twice changes nothing", () => {
+    const once  = normalizeEvent({ name: "אירוע", guests: [{ id: "g1", name: "א" }] });
+    const twice = normalizeEvent(once);
+    expect(twice).toEqual(once);
   });
 });
 
@@ -39,6 +156,33 @@ describe("duplicateEvent", () => {
     expect(dup.tokens.collab).not.toBe(base.tokens.collab);
     expect(dup.seating).toEqual({});
     expect(dup.id).not.toBe(base.id);
+  });
+
+  // The copy used to come back without an `album` token. Nothing failed,
+  // because callers happened to pass it through normalizeEvent afterwards,
+  // which re-minted the missing key — so a dead album link was one refactor
+  // away. Both sides are pinned to the same list now.
+  it("mints every public token, not just the ones a caller happens to check", () => {
+    const dup = duplicateEvent(base);
+    expect(Object.keys(dup.tokens).sort()).toEqual([...TOKEN_KEYS].sort());
+    for (const k of TOKEN_KEYS) {
+      expect(typeof dup.tokens[k]).toBe("string");
+      expect(dup.tokens[k].length).toBeGreaterThan(7);
+      expect(dup.tokens[k]).not.toBe(base.tokens[k]);
+    }
+  });
+
+  it("normalizeEvent fills every token key when the event carries none", () => {
+    const e = normalizeEvent({ id: "x" });
+    expect(Object.keys(e.tokens).sort()).toEqual([...TOKEN_KEYS].sort());
+    expect(new Set(Object.values(e.tokens)).size).toBe(TOKEN_KEYS.length); // all distinct
+  });
+
+  it("normalizeEvent keeps existing tokens and only fills the gaps", () => {
+    const e = normalizeEvent({ id: "x", tokens: { rsvp: "keep-me-please" } });
+    expect(e.tokens.rsvp).toBe("keep-me-please");
+    expect(e.tokens.album).toBeTruthy();
+    expect(e.tokens.album).not.toBe("keep-me-please");
   });
 
   it("deep-copies nested collections so editing the copy never touches the original", () => {

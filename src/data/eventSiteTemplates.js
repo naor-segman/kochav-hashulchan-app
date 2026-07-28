@@ -134,6 +134,12 @@ export function defaultEventSite(type) {
   return {
     enabled: false,           // host publishes when ready
     themeKey: t.themeKey,
+    // The font picker and the custom domain were added after this template was
+    // written, and only to normalizeEventSite — so a brand-new site came back
+    // missing both keys until something normalized it a second time. Every key
+    // the normalizer knows about belongs here too.
+    fontKey: DEFAULT_SITE_FONT,
+    customDomain: "",
     heroEn: t.heroEn,
     coverPhoto: null,         // compressed data URL
     story: "",
