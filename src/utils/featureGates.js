@@ -7,8 +7,20 @@ import { getPlanLimits, getPlanLabel } from "../admin/lib/planConfig.js";
 //
 // Return shape: { allowed: boolean, ...contextual fields }
 //
-// Current behaviour: gates are SOFT — callers show messaging but never
-// hard-block core user actions. Hard enforcement is a future task.
+// ── Are the limits enforced at all? ──
+//
+// They were, and the result was incoherent: the account screen said "we are in
+// beta, everything is available at no charge", the upgrade button next to it
+// was disabled and read "coming soon", and meanwhile a free account was cut off
+// at one event and eighty guests with nowhere to go. Nobody could pay to get
+// past a wall that was already up.
+//
+// So the wall comes down until there is something to sell. The rules stay in
+// code, in one place, and flipping this to true turns them on everywhere at
+// once — this is a switch, not a decision about what free should include.
+//
+// The limits themselves live in admin/lib/planConfig.js and are untouched.
+export const PLAN_GATES_ENFORCED = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -18,11 +30,15 @@ import { getPlanLimits, getPlanLabel } from "../admin/lib/planConfig.js";
  */
 export function canCreateEvent(plan, currentCount) {
   const { maxEvents } = getPlanLimits(plan);
-  const allowed = currentCount < maxEvents;
+  // `withinPlan` is the rule; `allowed` is the rule after the switch above.
+  // Both are returned so the limits stay testable while enforcement is off.
+  const withinPlan = currentCount < maxEvents;
+  const allowed    = !PLAN_GATES_ENFORCED || withinPlan;
   return {
     allowed,
+    withinPlan,
     limit: maxEvents,
-    reason: allowed || maxEvents === Infinity
+    reason: withinPlan || maxEvents === Infinity
       ? null
       : `תוכנית ${getPlanLabel(plan)} מאפשרת עד ${maxEvents} ${maxEvents === 1 ? "אירוע" : "אירועים"}`,
   };
@@ -35,14 +51,40 @@ export function canCreateEvent(plan, currentCount) {
  */
 export function canAddGuest(plan, currentCount) {
   const { maxGuests } = getPlanLimits(plan);
-  const allowed = currentCount < maxGuests;
+  const withinPlan = currentCount < maxGuests;
+  const allowed    = !PLAN_GATES_ENFORCED || withinPlan;
   return {
     allowed,
+    withinPlan,
     limit: maxGuests,
-    reason: allowed || maxGuests === Infinity
+    reason: withinPlan || maxGuests === Infinity
       ? null
       : `תוכנית ${getPlanLabel(plan)} מאפשרת עד ${maxGuests} אורחים לאירוע`,
   };
+}
+
+/**
+ * How many more guest rows this plan allows — Infinity when unlimited or when
+ * the gates are off.
+ *
+ * Exists so a bulk paste has one answer to ask for. The paste path used to do
+ * its own `currentCount + rows.length > maxGuests` arithmetic and then refuse
+ * the whole paste, which meant someone pasting 400 names into an 80-row plan
+ * got nothing at all and no way to find out which 80 would have fitted.
+ *
+ * @param {string} plan
+ * @param {number} currentCount — guest rows already in the event
+ */
+export function guestSlotsLeft(plan, currentCount) {
+  if (!PLAN_GATES_ENFORCED) return Infinity;
+  return planGuestSlotsLeft(plan, currentCount);
+}
+
+/** The same count ignoring the switch — the plan rule on its own. */
+export function planGuestSlotsLeft(plan, currentCount) {
+  const { maxGuests } = getPlanLimits(plan);
+  if (maxGuests === Infinity) return Infinity;
+  return Math.max(0, maxGuests - currentCount);
 }
 
 /**
