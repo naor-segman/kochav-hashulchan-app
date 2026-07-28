@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import * as XLSX from "xlsx";
 import {
   fetchCollabEvent, fetchCollabGuests,
   upsertCollabGuest, deleteCollabGuest,
@@ -138,9 +137,13 @@ export default function CollabScreen() {
 
   const saveMe = (v) => { setMe(v); try { localStorage.setItem("collab_me", v); } catch { /* ignore */ } };
 
-  const downloadExcel = () => {
+  const downloadExcel = async () => {
     const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות"]];
     rows.forEach(r => aoa.push([r.name || "", r.phone || "", sides[r.side] || "", r.guest_group || "", r.guests_count || 1]));
+    // Loaded on demand: a static import made the 416KB xlsx chunk a hard
+    // dependency of this page, which relatives open on their phones to type in
+    // names — they were downloading a spreadsheet writer to do it.
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{ wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 }, { wch: 7 }];
     const wb = XLSX.utils.book_new();

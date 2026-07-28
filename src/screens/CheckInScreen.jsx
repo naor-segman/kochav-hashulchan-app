@@ -6,7 +6,7 @@ import styles from "./CheckInScreen.module.css";
 import QrScanner from "../components/ui/QrScanner.jsx";
 import { isScanSupported, parseScanPayload } from "../utils/scanPayload.js";
 
-export default function CheckInScreen({ events, patchEventById }) {
+export default function CheckInScreen({ events, patchEventById, loading = false }) {
   const { eventId } = useParams();
   const navigate    = useNavigate();
   const ev          = events.find(e => e.id === eventId);
@@ -26,9 +26,13 @@ export default function CheckInScreen({ events, patchEventById }) {
     searchRef.current?.focus();
   }, []);
 
+  // Only bounce once loading has actually settled. On a direct load the auth
+  // session and the cloud events are not there on the first render, so an
+  // unconditional redirect sent the door tablet to the marketing page every
+  // time someone refreshed it or relaunched the PWA — at the worst moment.
   useEffect(() => {
-    if (!ev) navigate("/", { replace: true });
-  }, [ev, navigate]);
+    if (!loading && !ev) navigate("/", { replace: true });
+  }, [loading, ev, navigate]);
 
   const patchEvent = (patch) => patchEventById(eventId, patch);
 
@@ -58,7 +62,9 @@ export default function CheckInScreen({ events, patchEventById }) {
     setScanMsg(guest.name + " סומן/ה כהגיע/ה ✓");
   }, [ev?.guests]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!ev) return null;
+  // Same reason as the redirect above: render nothing until we know, rather
+  // than flashing an empty screen and bouncing.
+  if (!ev) return loading ? <div aria-busy="true" /> : null;
 
   const addWalkIn = () => {
     const name = walkInName.trim();
@@ -96,17 +102,30 @@ export default function CheckInScreen({ events, patchEventById }) {
     patchEvent(e => ({
       ...e,
       guests: e.guests.map(g =>
-        e.seating?.[g.id] === tableId ? { ...g, arrived } : g
+        // The rsvp filter has to match the list this button sits above, which
+        // hides declined guests. Without it "כולם הגיעו" checked in people who
+        // had cancelled, and the door counter went past 100%.
+        e.seating?.[g.id] === tableId && g.rsvp !== "declined"
+          ? { ...g, arrived }
+          : g
       ),
     }));
   };
 
   const sideLabel = s => getSideLabel(ev, s);
 
-  const active = ev.guests.filter(g => g.rsvp !== "declined");
-  const nArrived = ev.guests.filter(g => g.arrived).length;
+  // Seats, not rows. A guest row is a group — משפחת כהן with count 8 is eight
+  // people through the door. Counting rows told the host 1/2 while eight of
+  // nine guests were already in the room, and that number is what they give
+  // the venue for meals.
+  const seatsOf   = g => g.count || 1;
+  const active    = ev.guests.filter(g => g.rsvp !== "declined");
+  const nActive   = active.reduce((s, g) => s + seatsOf(g), 0);
+  const nArrived  = ev.guests
+    .filter(g => g.arrived && g.rsvp !== "declined")
+    .reduce((s, g) => s + seatsOf(g), 0);
   const totalGifts = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
-  const pct = active.length > 0 ? Math.round(nArrived / active.length * 100) : 0;
+  const pct = nActive > 0 ? Math.min(100, Math.round(nArrived / nActive * 100)) : 0;
 
   const searchTrim  = search.trim();
   const searchDigits = searchTrim.replace(/\D/g, "");
@@ -136,7 +155,7 @@ export default function CheckInScreen({ events, patchEventById }) {
           ➕ אורח חדש
         </button>
         <div className={styles.topStats}>
-          <span className={styles.arrivedCount}>{nArrived}/{active.length}</span>
+          <span className={styles.arrivedCount}>{nArrived}/{nActive}</span>
           {totalGifts > 0 && (
             <span className={styles.giftTotal}>💰 ₪{totalGifts.toLocaleString("he-IL")}</span>
           )}

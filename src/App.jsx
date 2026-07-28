@@ -287,7 +287,7 @@ export default function App() {
       {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}
       <Route
         path="/events/:eventId/checkin"
-        element={<Suspense fallback={null}><CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} /></Suspense>}
+        element={<Suspense fallback={null}><CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
       />
       {/* Host-only draft preview of the event site — renders from local data */}
       <Route

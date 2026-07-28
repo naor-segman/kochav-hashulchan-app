@@ -11,7 +11,16 @@ export function userStorageKey(userId) {
 export function loadState(key = STORAGE_KEY) {
   try {
     const raw = localStorage.getItem(key);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      // Guarding only against a THROW wasn't enough: the string "null" parses
+      // fine, and `.events` on it threw inside a useState initializer — which
+      // the error boundary caught and offered to fix by reloading, which threw
+      // again. Nothing short of devtools got the user out.
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return { ...parsed, events: Array.isArray(parsed.events) ? parsed.events : [] };
+      }
+    }
   } catch { /* corrupt/blocked storage → fall back to empty */ }
   return { events: [] };
 }

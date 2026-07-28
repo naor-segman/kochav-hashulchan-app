@@ -99,10 +99,13 @@ export async function submitRSVP(eventCloudId, response) {
   const companions = Array.isArray(response.companions)
     ? response.companions.map(c => (c || "").trim()).filter(Boolean).slice(0, 50)
     : [];
+  // Bounded to match the column CHECK constraints. Without this a guest who
+  // typed a slightly long phone number got a generic "try again" that could
+  // never succeed, and simply stopped responding.
   const { error } = await supabase.from("rsvp_responses").insert({
     event_id:     eventCloudId,
-    guest_name:   response.name,
-    phone:        response.phone   || null,
+    guest_name:   String(response.name || "").slice(0, 200),
+    phone:        (response.phone || "").slice(0, 20) || null,
     attending:    status === "yes",
     guests_count: Math.max(0, Math.min(50, rawCount)),
     status,
@@ -118,15 +121,18 @@ export async function submitRSVP(eventCloudId, response) {
  */
 export async function submitGift(eventCloudId, gift) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.from("gifts").insert({
+  // No .select() here. An unpaid row is hidden from anon by RLS, so asking for
+  // it back returned zero rows and .single() threw — the gift was saved and the
+  // guest was still told "אירעה שגיאה בשמירת המתנה", so they submitted again.
+  // Nothing uses the id.
+  const { error } = await supabase.from("gifts").insert({
     event_id:   eventCloudId,
     donor_name: gift.donorName,
     amount:     Math.round(gift.amountILS * 100),
     message:    gift.message || null,
     paid:       false,
-  }).select("id").single();
+  });
   if (error) throw error;
-  return data.id;
 }
 
 /**

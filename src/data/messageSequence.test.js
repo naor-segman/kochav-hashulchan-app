@@ -85,6 +85,23 @@ describe("renderTemplate", () => {
     expect(renderTemplate("נתראה ב{{מקום}}", ctx)).toBe("נתראה באולמי הגן");
   });
 
+  // The first version of this rule tested `startsWith("ה")`, which stripped the
+  // ה from any name beginning with one — every guest of an event called
+  // "הילה ואור" was invited to "לילה ואור".
+  it("does NOT strip a ה that is part of the name itself", () => {
+    const at = name => renderTemplate("אתם מוזמנים ל{{אירוע}}!", { ...ctx, event: { name } });
+    expect(at("הילה ואור")).toBe("אתם מוזמנים להילה ואור!");
+    expect(at("הדר ויונתן")).toBe("אתם מוזמנים להדר ויונתן!");
+    expect(renderTemplate("נתראה ב{{מקום}}", { ...ctx, event: { venue: "היכל התרבות" } }))
+      .toBe("נתראה בהיכל התרבות");
+  });
+
+  it("still elides when the ה really is the article on an event noun", () => {
+    const at = name => renderTemplate("אתם מוזמנים ל{{אירוע}}!", { ...ctx, event: { name } });
+    expect(at("החתונה של דנה ויוסי")).toBe("אתם מוזמנים לחתונה של דנה ויוסי!");
+    expect(at("הבר מצווה של יונתן")).toBe("אתם מוזמנים לבר מצווה של יונתן!");
+  });
+
   it("leaves a word that merely ends in a prefix letter alone", () => {
     // "של" ends in ל but is a separate word — the ה must survive.
     expect(renderTemplate("השם של {{אירוע}}", ctx)).toBe("השם של החתונה");

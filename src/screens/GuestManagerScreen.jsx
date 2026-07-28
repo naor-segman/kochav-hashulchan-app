@@ -186,6 +186,13 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     patchEvent(e => Object.assign({}, e, {
       guests:  e.guests.filter(g => g.id !== id),
       seating: Object.fromEntries(Object.entries(e.seating).filter(([gid]) => gid !== id)),
+      // Constraints too. ConstraintsScreen hides rows whose guest is gone, but
+      // autoAssign still unions through them — so two guests stayed glued
+      // together by a rule the host could no longer see or delete, and a third
+      // guest could be left unseated by it. The collab delete path already did
+      // this; the two were out of step.
+      constraints:  (e.constraints  || []).filter(c => c.guestA !== id && c.guestB !== id),
+      lockedGuests: (e.lockedGuests || []).filter(g => g !== id),
     }));
     showToast(name + " הוסר/ה מהרשימה ✓");
   };

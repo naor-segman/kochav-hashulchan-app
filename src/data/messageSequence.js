@@ -92,6 +92,21 @@ export function reachable(guests) {
  * Unknown placeholders are removed rather than left as literal {{…}} in a
  * message a guest will read.
  */
+// The nouns the app itself renders with a definite article. A value starting
+// with one of these carries a real ה that an attached prefix letter absorbs;
+// anything else — "הילה", "הדר", "היכל התרבות" — keeps its ה.
+const ARTICLE_NOUNS = [
+  "חתונה", "חינה", "אירוסין", "אירוס", "בר מצווה", "בת מצווה",
+  "ברית", "בריתה", "יום הולדת", "אירוע", "מסיבה", "ערב", "טקס",
+];
+
+function hasDefiniteArticle(value) {
+  const v = String(value || "");
+  if (!v.startsWith("ה")) return false;
+  const rest = v.slice(1);
+  return ARTICLE_NOUNS.some(n => rest === n || rest.startsWith(n + " "));
+}
+
 export function renderTemplate(body, { event, guest, table, link }) {
   // Null-prototype: a plain object resolves {{constructor}} and {{toString}}
   // through Object.prototype, which would put "function Object() { [native
@@ -108,13 +123,16 @@ export function renderTemplate(body, { event, guest, table, link }) {
 
   return String(body || "")
     // In Hebrew an attached prefix letter absorbs the definite article, so
-    // "אתם מוזמנים ל" + "החתונה של דנה" has to read "לחתונה של דנה" — the
-    // template can't know whether the host named the event with a ה or not.
-    // Scoped to a lone prefix letter directly before the placeholder, so words
-    // that merely end in one ("של {{שם}}") are untouched.
+    // "אתם מוזמנים ל" + "החתונה של דנה" has to read "לחתונה של דנה".
+    //
+    // Only when the ה really IS the article, though. Testing `startsWith("ה")`
+    // stripped it from any name that merely begins with one: an event called
+    // "הילה ואור" went out to every guest as "מוזמנים לילה ואור", and
+    // "היכל התרבות" became "ביכל התרבות". The event name is free text, so the
+    // rule is anchored to the event-type nouns the app itself prefixes with ה.
     .replace(/(?<=^|[\s(])([לבכ])\{\{\s*([^}]+?)\s*\}\}/gm, (_, prefix, key) => {
       const v = get(key);
-      return prefix + (v.startsWith("ה") ? v.slice(1) : v);
+      return prefix + (hasDefiniteArticle(v) ? v.slice(1) : v);
     })
     .replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => get(key))
     // A removed placeholder can leave a stranded blank line.

@@ -94,21 +94,35 @@ export function autoAssign(guests, tables, constraints, lockedSeating = {}) {
   });
 
   const seatCluster = (ids) => {
-    const sorted = [...tState].sort((a, b) =>
-      affinityScore(guestMap[ids[0]], b.seated, guestMap) -
-      affinityScore(guestMap[ids[0]], a.seated, guestMap)
-    );
-    for (const t of sorted) {
+    // Some members may already be placed — a locked guest, or one pre-assigned
+    // above because they share a "together" with a locked guest. Seating those
+    // again both tore them off the table they were pinned to and pushed their
+    // id into `seated` twice, so the table read as full while real chairs were
+    // empty and a live guest was left standing.
+    const pending = ids.filter(id => !seating[id]);
+    if (!pending.length) return true;
+    const pinned = ids.filter(id => seating[id]);
+
+    // A pinned member fixes the whole cluster's destination: "together" means
+    // the rest join THEM, not that everyone relocates.
+    const candidates = pinned.length
+      ? tState.filter(t => t.id === seating[pinned[0]])
+      : [...tState].sort((a, b) =>
+          affinityScore(guestMap[pending[0]], b.seated, guestMap) -
+          affinityScore(guestMap[pending[0]], a.seated, guestMap)
+        );
+
+    for (const t of candidates) {
       const used = seatedCount(t, guestMap);
-      if (used + clusterSeats(ids) > t.capacity) continue;
+      if (used + clusterSeats(pending) > t.capacity) continue;
       let ok = true;
       const combined = [...t.seated];
-      for (const id of ids) {
+      for (const id of pending) {
         if (apartConflict(apartSet, id, combined)) { ok = false; break; }
         combined.push(id);
       }
       if (!ok) continue;
-      ids.forEach(id => { t.seated.push(id); seating[id] = t.id; });
+      pending.forEach(id => { t.seated.push(id); seating[id] = t.id; });
       return true;
     }
     return false;

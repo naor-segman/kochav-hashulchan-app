@@ -289,7 +289,10 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       const dataUrl = await compressImage(file);
       patchEvent(e => ({
         ...e,
-        floorPlan: { image: dataUrl, tablePositions: e.floorPlan?.tablePositions ?? {} },
+        // Spread the existing floorPlan: rebuilding it from scratch dropped
+        // `elements`, so re-uploading a corrected venue sketch silently deleted
+        // every חופה/במה/בר the host had placed.
+        floorPlan: { ...e.floorPlan, image: dataUrl, tablePositions: e.floorPlan?.tablePositions ?? {} },
       }));
       showToast("הסקיצה הועלתה בהצלחה ✓");
     } catch {

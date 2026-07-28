@@ -108,7 +108,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
           </button>
           {tasks.length === 0 && (
             <button className={base.btnSm} onClick={loadStarter}>
-              טענו רשימת התחלה ל{ev.type === "business" ? "אירוע עסקי" : "אירוע"}
+              טענו רשימת התחלה ל{ev.type && ev.type !== "אחר" ? ev.type : "אירוע"}
             </button>
           )}
           {done > 0 && (

@@ -58,12 +58,16 @@ export default function GiftWallScreen() {
     return () => { cancelled = true; clearInterval(tid); };
   }, [event?.cloudId, token]);
 
-  let eventName = "חתונת נועה וטל";
+  // No placeholder couple here. This page is projected on a screen at the
+  // venue: when the wifi dropped or the token was regenerated, `event` came
+  // back null and 300 guests read a different, fictional couple's name above
+  // their own blessing wall. An empty header is honest; a wrong one is not.
+  let eventName = "";
   if (event) {
     if (event.brideName && event.groomName) {
       eventName = `${event.brideName} ו${event.groomName}`;
-    } else if (event.name) {
-      eventName = event.name;
+    } else {
+      eventName = event.celebrantName || event.organizationName || event.name || "";
     }
   }
 
@@ -71,6 +75,25 @@ export default function GiftWallScreen() {
     return (
       <div className={styles.root}>
         <div className={styles.spinner} />
+      </div>
+    );
+  }
+
+  // Previously a failed lookup fell through to the normal wall with a
+  // placeholder couple's name on it. Say what happened instead.
+  if (!event && gifts.length === 0) {
+    return (
+      <div className={styles.root}>
+        <header className={styles.topBar}>
+          <span className={styles.logo} aria-label="כוכב השולחן">✦ כוכב השולחן</span>
+        </header>
+        <main className={styles.content}>
+          <div className={styles.empty}>
+            <span className={styles.emptyIcon} aria-hidden="true">🔌</span>
+            <p>לא הצלחנו לטעון את קיר הברכות.</p>
+            <p>בדקו את החיבור לאינטרנט ורעננו את הדף.</p>
+          </div>
+        </main>
       </div>
     );
   }
