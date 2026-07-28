@@ -1160,3 +1160,156 @@
     text-align: center;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GRAPHICS — the shape language.
+
+   Three primitives, used everywhere: a filled brand chip that carries an icon,
+   a flat geometric diamond, and a soft tint wash. Nothing here is a gradient
+   glow or a drop shadow pretending to be paper — flat blocks with real spacing
+   is what makes a page read as confident rather than decorated.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* The chip: a solid brand circle carrying a white icon. This is the single most
+   recognisable graphic element — it turns a plain list into a designed one. */
+.featureIconWrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  box-shadow: 0 6px 18px rgba(var(--accent-rgb), .28);
+  transition: transform var(--transition-slow) var(--ease-out),
+              box-shadow var(--transition-slow) var(--ease-out);
+}
+.featureIcon,
+.featureIcon svg { color: #fff; stroke: #fff; width: 24px; height: 24px; }
+
+.featureCard:hover .featureIconWrap {
+  transform: translateY(-3px) rotate(-6deg);
+  box-shadow: 0 10px 26px rgba(var(--accent-rgb), .38);
+}
+
+/* Every other chip alternates to the deeper fill, so a grid of six reads as a
+   composition rather than six identical dots. */
+.featureCard:nth-child(even) .featureIconWrap { background: var(--accent-text); }
+
+/* The diamond — a 45°-rotated square, the reference's core decorative form.
+   Purely presentational, so it is aria-hidden at the call site. */
+.gfxDiamond {
+  position: absolute;
+  border-radius: 22%;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+/* A soft tint wash behind a section, to break the run of white without
+   introducing another colour. */
+.gfxWash {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: .5;
+  pointer-events: none;
+}
+
+/* ── Product showcase — the real app, not an illustration of it ──────────── */
+.showcase {
+  position: relative;
+  overflow: hidden;
+  padding: 92px 0;
+  background: var(--surface);
+}
+
+.showcaseGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+.showcaseGrid + .showcaseGrid { margin-top: 96px; }
+.showcaseGrid:nth-child(even) .showcaseText { order: 2; }
+
+.showcaseEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--step--1);
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: var(--accent-text);
+  background: var(--accent-bg);
+  border-radius: var(--radius-pill);
+  padding: 5px 14px;
+  margin-bottom: 16px;
+}
+
+.showcaseTitle {
+  font-family: "Frank Ruhl Libre", Georgia, serif;
+  font-size: var(--step-3);
+  line-height: 1.2;
+  color: var(--text);
+  margin: 0 0 12px;
+  text-wrap: balance;
+}
+.showcaseBody { font-size: var(--step-1); color: var(--text2); margin: 0 0 20px; max-width: 46ch; }
+
+.showcaseList { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.showcaseList li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: var(--step-0); color: var(--text2);
+}
+.showcaseTick {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent-bg); color: var(--accent-text);
+  display: grid; place-items: center; font-size: 11px; font-weight: 900;
+  margin-top: 2px;
+}
+
+/* The screenshot sits on a tinted plinth with a diamond behind it, so it reads
+   as a composed object rather than a pasted rectangle. */
+.shotFrame { position: relative; }
+.shotPlinth {
+  position: absolute; inset: 12% -6% -8% -6%;
+  background: var(--accent-bg);
+  border-radius: var(--radius-lg);
+}
+.shotImg {
+  position: relative;
+  width: 100%;
+  display: block;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 860px) {
+  .showcaseGrid { grid-template-columns: 1fr; gap: 28px; }
+  .showcaseGrid:nth-child(even) .showcaseText { order: 0; }
+  .showcase { padding: 64px 0; }
+  .showcaseGrid + .showcaseGrid { margin-top: 56px; }
+}
+
+/* ── Trust band — replaces the invented statistics ───────────────────────── */
+.trust {
+  background: var(--bg);
+  border-block: 1px solid var(--border);
+  padding: 40px 0;
+}
+.trustGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 28px;
+}
+.trustItem { display: flex; gap: 14px; align-items: flex-start; }
+.trustChip {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px;
+  background: var(--accent-bg); color: var(--accent-text);
+  display: grid; place-items: center;
+}
+.trustChip svg { width: 20px; height: 20px; }
+.trustTitle { font-size: var(--step-0); font-weight: 800; color: var(--text); margin: 0 0 3px; }
+.trustDesc  { font-size: var(--step--1); color: var(--muted); margin: 0; line-height: 1.5; }

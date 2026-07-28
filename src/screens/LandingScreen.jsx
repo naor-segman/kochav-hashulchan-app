@@ -18,6 +18,53 @@ const ICONS = {
   cloud:   I(<><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.5 11 3.5 3.5 0 0 1 17 18Z" /></>),
 };
 
+// Four claims a visitor can check for themselves inside the product. They
+// replaced four invented statistics — a new product does not have real numbers
+// yet, and unverifiable ones cost more trust than they buy.
+const TRUST = [
+  { icon: "cloud",   title: "הנתונים שלכם, שלכם",
+    desc: "נשמר אצלכם בדפדפן ומסונכרן לענן. אפשר לייצא הכל לאקסל בכל רגע." },
+  { icon: "checkin", title: "עובד גם בלי רשת",
+    desc: "באולם עם קליטה גרועה האפליקציה ממשיכה לעבוד, ומסתנכרנת כשחוזרת." },
+  { icon: "pages",   title: "האורחים לא צריכים חשבון",
+    desc: "אישור הגעה, הזמנה ומתנה נפתחים מקישור אחד — בלי הרשמה ובלי אפליקציה." },
+  { icon: "guests",  title: "בלי כרטיס אשראי",
+    desc: "פותחים אירוע ובודקים אם זה מתאים לכם. אין תקופת ניסיון שנגמרת." },
+];
+
+const SHOWCASE = [
+  {
+    eyebrow: "הלב של המוצר",
+    title:   "ההושבה נעשית לבד",
+    body:    "מגדירים מי חייב לשבת יחד ומי בשום אופן לא — והאלגוריתם מסדר את כל האורחים תוך שניות, תוך כיבוד הקבוצות, הצדדים והקיבולת של כל שולחן.",
+    points:  ["אילוצי \"יחד\" ו\"בנפרד\" נשמרים תמיד",
+              "שולחן נעול נשאר בדיוק כפי שסידרתם",
+              "אם מישהו לא נכנס — נאמר לכם בדיוק מי ולמה"],
+    img: "/shots/seating.jpg",
+    alt: "מסך סידור ההושבה — 10 רשומות שובצו ל-4 שולחנות ללא הפרות",
+  },
+  {
+    eyebrow: "רשימת האורחים",
+    title:   "מדביקים רשימה, מקבלים אירוע",
+    body:    "הדביקו רשימה מוואטסאפ או מגיליון — השמות והטלפונים נקראים לבד, כפילויות מתמזגות, ואישורי ההגעה נכנסים לרשימה אוטומטית.",
+    points:  ["צד, קבוצה, כמות מקומות ומנה לכל שורה",
+              "טבלה שיתופית שההורים ממלאים בעצמם",
+              "מעקב אחרי מי אישר, מי סירב ומי עוד שותק"],
+    img: "/shots/guests.jpg",
+    alt: "מסך ניהול האורחים",
+  },
+  {
+    eyebrow: "ביום האירוע",
+    title:   "בכניסה, בלי דפים",
+    body:    "מחפשים אורח בשם או בטלפון, רואים את השולחן שלו ומסמנים הגעה. אפשר גם לסרוק את הקוד שעל ההזמנה.",
+    points:  ["מונה הגעה חי לפי מקומות, לא לפי שורות",
+              "קישור נפרד לדיילת — בלי גישה לשאר האירוע",
+              "רישום מתנות תוך כדי"],
+    img: "/shots/checkin.jpg",
+    alt: "מסך הצ׳ק-אין ביום האירוע",
+  },
+];
+
 const FEATURES = [
   { icon: "seating", title: "הושבה אוטומטית",
     desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרתם" },
@@ -217,23 +264,60 @@ export default function LandingScreen() {
         </div>
       </section>
 
-      {/* ── Stats ── */}
-      <div className={styles.statsBar}>
-        <div className={styles.statsInner}>
-          {[
-            { num: "10,000+", label: "אירועים מנוהלים" },
-            { num: "500,000+", label: "אורחים סודרו" },
-            { num: "4.9 ★", label: "דירוג ממוצע" },
-            { num: "6 שעות", label: "נחסכות לאירוע" },
-          ].map((s, i) => (
-            <div key={s.label} className={styles.statItem}>
-              {i > 0 && <div className={styles.statDivider} />}
-              <span className={styles.statNum}>{s.num}</span>
-              <span className={styles.statLabel}>{s.label}</span>
+      {/* ── Trust band ──
+          This replaced four invented statistics ("10,000+ אירועים", "4.9 ★").
+          Numbers nobody can verify are the fastest way to lose the trust they
+          are meant to buy — and a product this new does not have them yet.
+          These four claims are all checkable inside the app. */}
+      <div className={styles.trust}>
+        <div className={styles.sectionInner}>
+          <div className={styles.trustGrid}>
+            {TRUST.map(t => (
+              <div key={t.title} className={styles.trustItem}>
+                <span className={styles.trustChip} aria-hidden="true">{ICONS[t.icon]}</span>
+                <div>
+                  <p className={styles.trustTitle}>{t.title}</p>
+                  <p className={styles.trustDesc}>{t.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Product showcase — real screenshots of the running app ── */}
+      <section className={styles.showcase}>
+        <span className={styles.gfxWash} aria-hidden="true"
+              style={{ width: 420, height: 420, insetInlineEnd: -140, top: -80,
+                       background: "var(--accent-bg)" }} />
+        <span className={styles.gfxDiamond} aria-hidden="true"
+              style={{ width: 130, height: 130, insetInlineStart: -46, bottom: 90,
+                       background: "var(--accent-light)" }} />
+        <div className={styles.sectionInner}>
+          {SHOWCASE.map(sc => (
+            <div key={sc.title} className={styles.showcaseGrid}>
+              <div className={styles.showcaseText}>
+                <span className={styles.showcaseEyebrow}>{sc.eyebrow}</span>
+                <h2 className={styles.showcaseTitle}>{sc.title}</h2>
+                <p className={styles.showcaseBody}>{sc.body}</p>
+                <ul className={styles.showcaseList}>
+                  {sc.points.map(pt => (
+                    <li key={pt}>
+                      <span className={styles.showcaseTick} aria-hidden="true">✓</span>
+                      <span>{pt}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className={styles.shotFrame}>
+                <span className={styles.shotPlinth} aria-hidden="true" />
+                <img className={styles.shotImg} src={sc.img} alt={sc.alt}
+                     loading="lazy" width="1200" height="720" />
+              </div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* ── Features ── */}
       <section className={styles.features} id="features">
