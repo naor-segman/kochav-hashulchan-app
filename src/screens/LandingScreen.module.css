@@ -1186,7 +1186,15 @@
               box-shadow var(--transition-slow) var(--ease-out);
 }
 .featureIcon,
-.featureIcon svg { color: #fff; stroke: #fff; width: 24px; height: 24px; }
+.featureIcon svg {
+  /* Near-black, not white. The reference's chips carry a dark glyph, and it is
+     also the only one that passes on this fill: #14161A is 4.76:1 where white
+     is 3.80:1. The detail and the correctness happen to agree. */
+  color: var(--text);
+  stroke: var(--text);
+  width: 24px;
+  height: 24px;
+}
 
 .featureCard:hover .featureIconWrap {
   transform: translateY(-3px) rotate(-6deg);
@@ -1195,7 +1203,10 @@
 
 /* Every other chip alternates to the deeper fill, so a grid of six reads as a
    composition rather than six identical dots. */
-.featureCard:nth-child(even) .featureIconWrap { background: var(--accent-text); }
+.featureCard:nth-child(3n+2) .featureIconWrap { background: var(--blush); box-shadow: none; }
+.featureCard:nth-child(3n)   .featureIconWrap { background: var(--text); }
+.featureCard:nth-child(3n)   .featureIcon,
+.featureCard:nth-child(3n)   .featureIcon svg { color: var(--blush); stroke: var(--blush); }
 
 /* The diamond — a 45°-rotated square, the reference's core decorative form.
    Purely presentational, so it is aria-hidden at the call site. */
@@ -1220,17 +1231,27 @@
 .showcase {
   position: relative;
   overflow: hidden;
-  padding: 92px 0;
+  padding: 64px 0;
   background: var(--surface);
 }
+
+/* The rhythm: white → grey → blush. Three grounds, so scrolling feels composed
+   rather than like one long page with dividers. */
+.showcaseAlt   { background: var(--bg); }
+.showcaseBlush { background: var(--blush); }
+.showcaseBlush .showcaseBody,
+.showcaseBlush .showcaseList li { color: var(--text2); }
+.showcaseBlush .showcaseEyebrow { background: var(--surface); }
+.showcaseBlush .shotPlinth      { background: rgba(var(--text-rgb), .07); }
+.showcaseBlush .showcaseTick    { background: var(--surface); color: var(--accent-text); }
 
 .showcaseGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 56px;
+  gap: 48px;
   align-items: center;
 }
-.showcaseGrid + .showcaseGrid { margin-top: 96px; }
+.showcaseGrid + .showcaseGrid { margin-top: 56px; }
 .showcaseGrid:nth-child(even) .showcaseText { order: 2; }
 
 .showcaseEyebrow {
@@ -1240,10 +1261,12 @@
   font-size: var(--step--1);
   font-weight: 800;
   letter-spacing: .06em;
-  color: var(--accent-text);
-  background: var(--accent-bg);
+  /* Blush ground with near-black text, the way the reference sets its pills —
+     not tinted text on a tinted ground, which reads washed out. */
+  color: var(--text);
+  background: var(--blush);
   border-radius: var(--radius-pill);
-  padding: 5px 14px;
+  padding: 6px 16px;
   margin-bottom: 16px;
 }
 
@@ -1280,6 +1303,10 @@
 .shotImg {
   position: relative;
   width: 100%;
+  /* Without this the width/height attributes (there to reserve layout space and
+     avoid CLS) are applied as a LITERAL height, so a 1200x720 screenshot
+     rendered 542x720 and inflated every showcase section to 1064px. */
+  height: auto;
   display: block;
   border-radius: var(--radius);
   border: 1px solid var(--border);
@@ -1307,9 +1334,9 @@
 .trustItem { display: flex; gap: 14px; align-items: flex-start; }
 .trustChip {
   flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px;
-  background: var(--accent-bg); color: var(--accent-text);
+  background: var(--blush); color: var(--text);
   display: grid; place-items: center;
 }
-.trustChip svg { width: 20px; height: 20px; }
+.trustChip svg { width: 20px; height: 20px; stroke: var(--text); }
 .trustTitle { font-size: var(--step-0); font-weight: 800; color: var(--text); margin: 0 0 3px; }
 .trustDesc  { font-size: var(--step--1); color: var(--muted); margin: 0; line-height: 1.5; }

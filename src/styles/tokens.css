@@ -87,6 +87,15 @@
   --accent-light:  #FEF6F9;
   --accent-border: #F7BED2;
 
+  /* Blush — the SOFT pink, and the one the reference actually leans on. It is a
+     GROUND, not an accent: large flat areas that carry near-black text (12.3:1)
+     and let the saturated --accent stay rare. Together with white, the light
+     grey and the near-black ink these are the four grounds the whole page
+     alternates between — that alternation is the composition. */
+  --blush:         #F6C9D8;
+  --blush-deep:    #EFB4C8;
+  --blush-line:    #E7A9BF;
+
   /* CTA — the same hue, deepened so white label text clears AA at button size.
      Primary buttons only. One per screen. */
   --cta:           #D62E6B;

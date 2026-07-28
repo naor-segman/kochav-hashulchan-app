@@ -32,6 +32,10 @@ const TRUST = [
     desc: "פותחים אירוע ובודקים אם זה מתאים לכם. אין תקופת ניסיון שנגמרת." },
 ];
 
+// White → grey → blush. Three grounds in rotation, so scrolling reads as a
+// composition rather than one long white page with rules between the parts.
+const GROUND_KEYS = ["", "showcaseAlt", "showcaseBlush"];
+
 const SHOWCASE = [
   {
     eyebrow: "הלב של המוצר",
@@ -286,16 +290,22 @@ export default function LandingScreen() {
       </div>
 
       {/* ── Product showcase — real screenshots of the running app ── */}
-      <section className={styles.showcase}>
-        <span className={styles.gfxWash} aria-hidden="true"
-              style={{ width: 420, height: 420, insetInlineEnd: -140, top: -80,
-                       background: "var(--accent-bg)" }} />
-        <span className={styles.gfxDiamond} aria-hidden="true"
-              style={{ width: 130, height: 130, insetInlineStart: -46, bottom: 90,
-                       background: "var(--accent-light)" }} />
-        <div className={styles.sectionInner}>
-          {SHOWCASE.map(sc => (
-            <div key={sc.title} className={styles.showcaseGrid}>
+      {SHOWCASE.map((sc, i) => (
+        <section key={sc.title}
+                 className={[styles.showcase, styles[GROUND_KEYS[i % GROUND_KEYS.length]]]
+                   .filter(Boolean).join(" ")}>
+          {/* Decorative only — a flat diamond and a soft wash, alternating side
+              so consecutive sections don't mirror each other. */}
+          <span className={styles.gfxWash} aria-hidden="true"
+                style={{ width: 380, height: 380, top: -110,
+                         [i % 2 ? "insetInlineStart" : "insetInlineEnd"]: -130,
+                         background: i % 2 ? "var(--blush)" : "var(--accent-bg)" }} />
+          <span className={styles.gfxDiamond} aria-hidden="true"
+                style={{ width: 116, height: 116, bottom: 60,
+                         [i % 2 ? "insetInlineEnd" : "insetInlineStart"]: -40,
+                         background: "rgba(var(--text-rgb), .05)" }} />
+          <div className={styles.sectionInner}>
+            <div className={styles.showcaseGrid}>
               <div className={styles.showcaseText}>
                 <span className={styles.showcaseEyebrow}>{sc.eyebrow}</span>
                 <h2 className={styles.showcaseTitle}>{sc.title}</h2>
@@ -315,9 +325,9 @@ export default function LandingScreen() {
                      loading="lazy" width="1200" height="720" />
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      ))}
 
       {/* ── Features ── */}
       <section className={styles.features} id="features">
