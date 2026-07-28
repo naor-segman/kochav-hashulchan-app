@@ -76,9 +76,8 @@ describe("TASK_STATUSES", () => {
 // this test exists to forbid returns the identical answer. The bug only
 // reappears in a zone that actually shifts, so the test has to run in one.
 describe("seedTaskDue across a DST boundary", () => {
-  const realTZ = process.env.TZ;
-  beforeEach(() => { process.env.TZ = "Asia/Jerusalem"; });
-  afterEach(()  => { process.env.TZ = realTZ; });
+  beforeEach(() => vi.stubEnv("TZ", "Asia/Jerusalem"));
+  afterEach(()  => vi.unstubAllEnvs());
 
   it("is running somewhere that actually has DST, or it proves nothing", () => {
     const summer = -new Date(2027, 5, 15).getTimezoneOffset() / 60;
