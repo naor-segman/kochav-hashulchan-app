@@ -84,6 +84,249 @@ describe("computeQualityScore", () => {
   });
 });
 
+// Ten of the twelve suggestion categories had no direct test. This is the
+// module that once offered a fix advertised as violation-free and turned a
+// clean plan into a critical violation, so "it renders something" is not the
+// bar — each category is pinned to what it claims, and every applicable
+// action is replayed against computeViolations.
+describe("generateSuggestions — the categories that had no coverage", () => {
+  it("offers a concrete move for a single broken 'together' pair", () => {
+    const guests = [g("A"), g("B")];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const cons   = [{ id: "c", type: "together", guestA: "A", guestB: "B" }];
+    const s = find(generateSuggestions(guests, tables, cons, { A: "t1", B: "t2" }), "together_violated");
+    expect(s.severity).toBe("critical");
+    expect(s.canApply).toBe(true);
+    expect(s.applyAction).toMatchObject({ type: "moveGuest", guestId: "B", toTableId: "t1" });
+    expect(s.violationDelta).toBe(-1);
+  });
+
+  it("refuses to move a locked guest, and says so instead of offering a button", () => {
+    const guests = [g("A"), g("B")];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const cons   = [{ id: "c", type: "together", guestA: "A", guestB: "B" }];
+    const s = find(generateSuggestions(guests, tables, cons, { A: "t1", B: "t2" }, null,
+                                       { lockedGuestIds: ["B"] }), "together_violated");
+    expect(s.canApply).toBe(false);
+    expect(s.applyAction).toBeNull();
+  });
+
+  it("refuses to move when the destination table has no room", () => {
+    const guests = [g("A"), g("filler", { count: 9 }), g("B")];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const cons   = [{ id: "c", type: "together", guestA: "A", guestB: "B" }];
+    const s = find(generateSuggestions(guests, tables, cons, { A: "t1", filler: "t1", B: "t2" }), "together_violated");
+    expect(s.canApply).toBe(false);
+  });
+
+  it("collapses several broken 'together' pairs into one non-applicable summary", () => {
+    const guests = [g("A"), g("B"), g("C"), g("D")];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const cons   = [{ id: "c1", type: "together", guestA: "A", guestB: "B" },
+                    { id: "c2", type: "together", guestA: "C", guestB: "D" }];
+    const s = find(generateSuggestions(guests, tables, cons, { A: "t1", B: "t2", C: "t1", D: "t2" }),
+                   "together_violated");
+    expect(s.id).toBe("together_multi");
+    expect(s.canApply).toBe(false);
+    expect(s.violationDelta).toBe(-2);
+  });
+
+  it("collapses several broken 'apart' pairs the same way", () => {
+    const guests = [g("A"), g("B"), g("C"), g("D")];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const cons   = [{ id: "c1", type: "apart", guestA: "A", guestB: "B" },
+                    { id: "c2", type: "apart", guestA: "C", guestB: "D" }];
+    const s = find(generateSuggestions(guests, tables, cons, { A: "t1", B: "t1", C: "t2", D: "t2" }),
+                   "apart_violated");
+    expect(s.id).toBe("apart_multi");
+    expect(s.canApply).toBe(false);
+    expect(s.violationDelta).toBe(-2);
+  });
+
+  // Pulling a guest off a table to relieve it must not be the guest who is
+  // pinned there by a "together" constraint — that trades a capacity problem
+  // for a broken promise.
+  it("relieves an overloaded table without evicting a guest anchored by a constraint", () => {
+    const guests = [g("anch1"), g("anch2"), g("free")];
+    const tables = [t("t1", 2)];
+    const cons   = [{ id: "c", type: "together", guestA: "anch1", guestB: "anch2" }];
+    const s = find(generateSuggestions(guests, tables, cons, { anch1: "t1", anch2: "t1", free: "t1" }), "overloaded");
+    expect(s.canApply).toBe(true);
+    expect(s.applyAction.guestId).toBe("free");
+  });
+
+  it("offers no eviction at all when every guest on the overloaded table is anchored or locked", () => {
+    const guests = [g("anch1"), g("anch2")];
+    const tables = [t("t1", 1)];
+    const cons   = [{ id: "c", type: "together", guestA: "anch1", guestB: "anch2" }];
+    const s = find(generateSuggestions(guests, tables, cons, { anch1: "t1", anch2: "t1" }), "overloaded");
+    expect(s.canApply).toBe(false);
+    expect(s.applyAction).toBeNull();
+  });
+
+  it("spots a guest sitting alone while their group sits together elsewhere", () => {
+    const guests = [g("lonely", { group: "משפחה" }), g("m1", { group: "משפחה" }),
+                    g("m2", { group: "משפחה" }), g("x", { group: "עבודה" })];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const s = find(generateSuggestions(guests, tables, [], { lonely: "t1", x: "t1", m1: "t2", m2: "t2" }),
+                   "isolated_guest");
+    expect(s.applyAction).toMatchObject({ type: "moveGuest", guestId: "lonely", toTableId: "t2" });
+    expect(s.severity).toBe("warning");
+  });
+
+  it("does not call a guest isolated when nobody else shares their group", () => {
+    const guests = [g("solo", { group: "יחיד" }), g("a"), g("b")];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const s = generateSuggestions(guests, tables, [], { solo: "t1", a: "t2", b: "t2" });
+    expect(s.find(x => x.id === "isolated_solo")).toBeUndefined();
+  });
+
+  it("flags a barely-filled table once most guests are seated", () => {
+    const guests  = Array.from({ length: 10 }, (_, i) => g("g" + i));
+    const seating = Object.fromEntries(guests.map((x, i) => [x.id, i === 0 ? "t1" : "t2"]));
+    const s = generateSuggestions(guests, [t("t1", 10), t("t2", 10)], [], seating)
+      .filter(x => x.type === "underused");
+    expect(s).toHaveLength(1);
+    expect(s[0].explanation).toContain("10%");
+  });
+
+  it("stays quiet about empty tables early on, when most guests are still unseated", () => {
+    const guests = Array.from({ length: 10 }, (_, i) => g("g" + i));
+    const s = generateSuggestions(guests, [t("t1", 10), t("t2", 10)], [], { g0: "t1" });
+    expect(s.filter(x => x.type === "underused")).toHaveLength(0);
+  });
+
+  it("proposes merging two half-empty tables that would actually fit together", () => {
+    const guests = [g("a"), g("b"), g("c"), g("d")];
+    const s = find(generateSuggestions(guests, [t("t1", 10), t("t2", 10)], [],
+                                       { a: "t1", b: "t1", c: "t2", d: "t2" }), "merge_tables");
+    expect(s.canApply).toBe(false);           // structural change — never one-click
+    expect(s.explanation).toContain("לאחד");
+  });
+
+  it("does not propose a merge that would overflow the surviving table", () => {
+    const guests = [g("a", { count: 4 }), g("b", { count: 4 })];
+    const s = generateSuggestions(guests, [t("t1", 6), t("t2", 6)], [], { a: "t1", b: "t2" });
+    expect(s.filter(x => x.type === "merge_tables")).toHaveLength(0);
+  });
+
+  it("notices a group scattered across three tables", () => {
+    const guests = [g("a"), g("b"), g("c"), g("d")];
+    const s = find(generateSuggestions(guests, [t("t1", 10), t("t2", 10), t("t3", 10)], [],
+                                       { a: "t1", b: "t2", c: "t3", d: "t1" }), "split_group");
+    expect(s.explanation).toContain("3 שולחנות");
+  });
+
+  it("reports a table that is 80% one side", () => {
+    const guests = [g("b1"), g("b2"), g("b3"), g("b4"), g("b5"), g("g1", { side: "groom" })];
+    const seating = Object.fromEntries(guests.map(x => [x.id, "t1"]));
+    const s = find(generateSuggestions(guests, [t("t1", 10)], [], seating), "side_imbalance");
+    expect(s.explanation).toContain("83%");
+  });
+
+  it("says nothing about balance on a single-side table — that is not an imbalance", () => {
+    const guests  = Array.from({ length: 6 }, (_, i) => g("b" + i));
+    const seating = Object.fromEntries(guests.map(x => [x.id, "t1"]));
+    expect(generateSuggestions(guests, [t("t1", 10)], [], seating)
+      .filter(x => x.type === "side_imbalance")).toHaveLength(0);
+  });
+
+  it("proposes a side-balancing swap between a bride-heavy and a groom-heavy table", () => {
+    const guests = [g("b1"), g("b2"), g("b3"), g("b4"), g("gg1", { side: "groom" }),
+                    g("g1", { side: "groom" }), g("g2", { side: "groom" }), g("g3", { side: "groom" }), g("bb1")];
+    const seating = { b1: "t1", b2: "t1", b3: "t1", b4: "t1", gg1: "t1",
+                      g1: "t2", g2: "t2", g3: "t2", bb1: "t2" };
+    const s = generateSuggestions(guests, [t("t1", 10), t("t2", 10)], [], seating)
+      .find(x => x.id.startsWith("side_swap_"));
+    expect(s.applyAction.type).toBe("swapGuests");
+    expect(s.applyAction.tableAId).toBe("t1");
+    expect(s.applyAction.tableBId).toBe("t2");
+  });
+
+  it("proposes a cohesion swap that moves both guests toward their own group", () => {
+    const guests = [g("a1", { group: "עבודה" }), g("a2", { group: "עבודה" }), g("a3", { group: "עבודה" }),
+                    g("b1", { group: "צבא" }),   g("b2", { group: "צבא" }),   g("b3", { group: "צבא" })];
+    const seating = { a1: "t1", a2: "t2", a3: "t2", b1: "t2", b2: "t1", b3: "t1" };
+    const s = generateSuggestions(guests, [t("t1", 4), t("t2", 4)], [], seating)
+      .find(x => x.id.startsWith("swap_group_"));
+    expect(s.applyAction).toMatchObject({ type: "swapGuests", guestAId: "a1", guestBId: "b1" });
+  });
+
+  // The score is computed by the caller and passed in; the summary only appears
+  // below 80, so a decent plan is not nagged about.
+  it("summarizes a weak plan with a quality-score note, and stays silent on a good one", () => {
+    const guests  = [g("a"), g("b"), g("c"), g("d")];
+    const seating = { a: "t1", b: "t1", c: "t1", d: "t1" };
+    const weak = find(generateSuggestions(guests, [t("t1", 10)], [], seating, 55), "quality_score");
+    expect(weak).toBeDefined();
+    expect(weak.severity).toBe("warning");                        // below 60
+    expect(weak.explanation).toContain("55");
+
+    expect(find(generateSuggestions(guests, [t("t1", 10)], [], seating, 70), "quality_score").severity)
+      .toBe("info");                                              // 60–79
+    expect(find(generateSuggestions(guests, [t("t1", 10)], [], seating, 88), "quality_score"))
+      .toBeUndefined();                                           // 80+ — nothing to say
+  });
+
+  it("orders critical problems before fixes and opportunities", () => {
+    const guests = [g("A"), g("B"), g("C"), g("D"), g("E")];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const cons   = [{ id: "c", type: "together", guestA: "A", guestB: "B" }];
+    const s = generateSuggestions(guests, tables, cons, { A: "t1", B: "t2", C: "t2", D: "t2", E: "t2" });
+    const sections = s.map(x => x.section);
+    const rank = { critical: 0, fixes: 1, opportunities: 2 };
+    expect(sections.map(x => rank[x])).toEqual([...sections.map(x => rank[x])].sort((a, b) => a - b));
+  });
+});
+
+// The engine advertises `canApply` as "this is safe to press". Replay every
+// applicable action and check the plan is not worse afterwards.
+describe("every applicable suggestion is actually safe to apply", () => {
+  const apply = (seating, act) => {
+    if (act.type === "moveGuest")     return { ...seating, [act.guestId]: act.toTableId };
+    if (act.type === "unassignGuest") { const n = { ...seating }; delete n[act.guestId]; return n; }
+    if (act.type === "swapGuests")    return { ...seating, [act.guestAId]: act.tableBId, [act.guestBId]: act.tableAId };
+    return seating;
+  };
+
+  const scenarios = [
+    ["broken together pair", [g("A"), g("B"), g("C")], [t("t1", 10), t("t2", 10)],
+     [{ id: "c", type: "together", guestA: "A", guestB: "B" }], { A: "t1", B: "t2", C: "t2" }],
+    ["apart pair sharing a table", [g("A"), g("B"), g("C")], [t("t1", 10), t("t2", 10)],
+     [{ id: "c", type: "apart", guestA: "A", guestB: "B" }], { A: "t1", B: "t1", C: "t2" }],
+    ["overloaded table", [g("a"), g("b"), g("c")], [t("t1", 2), t("t2", 10)], [], { a: "t1", b: "t1", c: "t1" }],
+    ["isolated guest", [g("lonely", { group: "משפחה" }), g("m1", { group: "משפחה" }),
+                        g("m2", { group: "משפחה" }), g("x")],
+     [t("t1", 10), t("t2", 10)], [], { lonely: "t1", x: "t1", m1: "t2", m2: "t2" }],
+    ["side-heavy tables", [g("b1"), g("b2"), g("b3"), g("b4"), g("gg1", { side: "groom" }),
+                           g("g1", { side: "groom" }), g("g2", { side: "groom" }),
+                           g("g3", { side: "groom" }), g("bb1")],
+     [t("t1", 10), t("t2", 10)], [],
+     { b1: "t1", b2: "t1", b3: "t1", b4: "t1", gg1: "t1", g1: "t2", g2: "t2", g3: "t2", bb1: "t2" }],
+    ["cohesion swap", [g("a1", { group: "עבודה" }), g("a2", { group: "עבודה" }), g("a3", { group: "עבודה" }),
+                       g("b1", { group: "צבא" }), g("b2", { group: "צבא" }), g("b3", { group: "צבא" })],
+     [t("t1", 4), t("t2", 4)], [], { a1: "t1", a2: "t2", a3: "t2", b1: "t2", b2: "t1", b3: "t1" }],
+  ];
+
+  let applicableSeen = 0;
+
+  it.each(scenarios)("%s", (_label, guests, tables, cons, seating) => {
+    const before = computeViolations(guests, tables, cons, seating);
+    for (const s of generateSuggestions(guests, tables, cons, seating, {})) {
+      if (!s.canApply || !s.applyAction || s.applyAction.type === "seatUnassigned") continue;
+      applicableSeen++;
+      const after = computeViolations(guests, tables, cons, apply(seating, s.applyAction));
+      expect(after.length, `"${s.explanation}" made things worse`).toBeLessThanOrEqual(before.length);
+      // A fix that claims to remove a violation must actually remove one.
+      if (s.violationDelta < 0) expect(after.length).toBeLessThan(before.length);
+    }
+  });
+
+  it("actually exercised some applicable suggestions (guards against a vacuous pass)", () => {
+    expect(applicableSeen).toBeGreaterThan(3);
+  });
+});
+
 describe("suggestions never trade one violation for another", () => {
   const G = (id, count = 1, group = "חברים", side = "bride") =>
     ({ id, name: id, count, group, side, rsvp: "confirmed" });
@@ -100,11 +343,17 @@ describe("suggestions never trade one violation for another", () => {
 
     expect(computeViolations(guests, tables, cons, seating)).toHaveLength(0);
 
-    for (const s of generateSuggestions(guests, tables, cons, seating, {})) {
-      if (!s.canApply || s.action?.type !== "moveGuest") continue;
-      const after = { ...seating, [s.action.guestId]: s.action.toTableId };
+    // NOTE: this loop read `s.action`, which is not a field the engine emits —
+    // the real one is `applyAction`. Every iteration hit the guard and skipped,
+    // so the regression test for the bug it was written for asserted nothing.
+    const moves = generateSuggestions(guests, tables, cons, seating, {})
+      .filter(s => s.canApply && s.applyAction?.type === "moveGuest");
+    for (const s of moves) {
+      const after = { ...seating, [s.applyAction.guestId]: s.applyAction.toTableId };
       expect(computeViolations(guests, tables, cons, after)).toHaveLength(0);
     }
+    // dad is pinned to mom, so the only safe answer is to offer no move at all.
+    expect(moves.map(s => s.applyAction.guestId)).not.toContain("dad");
   });
 
   it("does not seat an apart pair together while fixing a together pair", () => {
@@ -115,12 +364,17 @@ describe("suggestions never trade one violation for another", () => {
                      { id: "c2", type: "apart",    guestA: "B", guestB: "C" }];
     const seating = { A: "t1", C: "t1", B: "t2" };
 
-    for (const s of generateSuggestions(guests, tables, cons, seating, {})) {
-      if (!s.canApply || s.action?.type !== "moveGuest") continue;
-      const after = { ...seating, [s.action.guestId]: s.action.toTableId };
+    const suggestions = generateSuggestions(guests, tables, cons, seating, {});
+    for (const s of suggestions) {
+      if (!s.canApply || s.applyAction?.type !== "moveGuest") continue;
+      const after = { ...seating, [s.applyAction.guestId]: s.applyAction.toTableId };
       const apart = computeViolations(guests, tables, cons, after)
         .filter(v => v.type === "apart");
       expect(apart).toHaveLength(0);
     }
+    // Moving B onto t1 would reunite the together pair and seat the apart pair
+    // together in the same stroke, so the only correct answer is to refuse.
+    const together = suggestions.find(s => s.type === "together_violated");
+    expect(together.canApply).toBe(false);
   });
 });
