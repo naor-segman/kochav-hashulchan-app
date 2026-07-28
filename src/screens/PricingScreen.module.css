@@ -568,3 +568,20 @@
     padding: 0 20px;
   }
 }
+
+/* Was an inline style object on the element. Blush ground with near-black text
+   is the primitive for "this needs to stand out" — it keeps the accent rare,
+   and --accent-text on --accent-bg was the brand colour doing a job a surface
+   already does. */
+.betaNote {
+  max-width: 620px;
+  margin: 0 auto 20px;
+  padding: 12px 16px;
+  background: var(--blush);
+  color: var(--text);
+  border-radius: var(--radius);
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

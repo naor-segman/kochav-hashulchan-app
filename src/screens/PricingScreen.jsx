@@ -141,9 +141,11 @@ export default function PricingScreen({ user }) {
       {/* ── Plans ── */}
       <section className={styles.plansSection}>
         <div className={styles.plansInner}>
-          <div style={{ maxWidth: 620, margin: "0 auto 20px", padding: "12px 16px", background: "var(--accent-bg)", color: "var(--accent-text)", borderRadius: "var(--radius)", textAlign: "center", fontWeight: 700, fontSize: 14 }}>
-            🎉 בתקופת הבטא — כל התוכניות פתוחות ללא תשלום. תיהנו!
-          </div>
+          {/* Same note as the landing page: the numbers below describe the
+              planned model, and nothing is capped while there is no way to pay. */}
+          <p className={styles.betaNote}>
+            🎉 בתקופת הבטא כל התוכניות פתוחות ללא תשלום — המגבלות שלמטה מתארות את המודל המתוכנן.
+          </p>
           <div className={styles.plansGrid}>
             {PLANS.map(plan => (
               <div

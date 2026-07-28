@@ -754,7 +754,7 @@
   border-color: var(--warn-border);
 }
 
-.tGuestRow .tGuestLockBtn.tGuestLockBtnActive {
+.tGuestRow .tGuestLockBtn.tGuestLockBtn.tGuestLockBtnActive {
   opacity: 1;
 }
 

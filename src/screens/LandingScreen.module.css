@@ -639,6 +639,21 @@
   background: var(--bg);
 }
 
+/* Blush ground with near-black text — the primitive used everywhere something
+   needs to stand out without spending the accent on it. */
+.betaNote {
+  max-width: 620px;
+  margin: 0 auto 24px;
+  padding: 12px 16px;
+  background: var(--blush);
+  color: var(--text);
+  border-radius: var(--radius);
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 .pricingGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
