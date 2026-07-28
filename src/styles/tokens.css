@@ -96,6 +96,10 @@
      and let the saturated --accent stay rare. Together with white, the light
      grey and the near-black ink these are the four grounds the whole page
      alternates between — that alternation is the composition. */
+  /* A fifth step below --blush, for the inside of a shape that must read as a
+     surface and not as an accent — the table glyph's top, mainly. Named rather
+     than hardcoded so the glyph moves with the palette. */
+  --blush-soft:    #FBEEF3;
   --blush:         #F6C9D8;
   --blush-deep:    #EFB4C8;
   --blush-line:    #E7A9BF;

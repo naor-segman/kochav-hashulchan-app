@@ -1,0 +1,68 @@
+/* The table glyph.
+   Colour carries meaning and nothing else: the top is always the neutral ink
+   hairline, a taken seat is the brand fill, a free seat is a hollow ring. That
+   keeps a wall of twenty glyphs readable — the pink IS the occupancy, so the
+   eye lands on the full tables without being told to. */
+
+.glyph {
+  display: block;
+  overflow: visible;
+}
+
+.top {
+  fill: var(--blush-soft);
+  stroke: var(--text);
+  vector-effect: non-scaling-stroke;
+}
+
+/* --accent is a fill token and this is a fill — the one job it is allowed. */
+.seatOn {
+  fill: var(--accent);
+}
+
+.seatOff {
+  fill: var(--surface);
+  stroke: var(--border2);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Over capacity is a real state, so it gets a semantic colour: the top turns
+   danger and every seat with it. Nothing else in the glyph is ever red. */
+.over .top {
+  stroke: var(--red);
+  fill: var(--red-bg);
+}
+
+.over .seatOn {
+  fill: var(--red);
+}
+
+.label {
+  fill: var(--text);
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+}
+
+.over .label {
+  fill: var(--red);
+}
+
+/* Compact mode — the ring IS the measure. Same two colours as the seats it
+   replaces, so a row of small glyphs and a wall of large ones read as one
+   system rather than two different charts. */
+.ringTrack {
+  stroke: var(--border2);
+  vector-effect: non-scaling-stroke;
+}
+
+.ringFill {
+  stroke: var(--accent);
+  vector-effect: non-scaling-stroke;
+}
+
+.over .ringFill {
+  stroke: var(--red);
+}

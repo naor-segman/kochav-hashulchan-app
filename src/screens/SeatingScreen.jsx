@@ -20,6 +20,7 @@ import CapBar from "../components/ui/CapBar.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
+import TableGlyph from "../components/ui/TableGlyph.jsx";
 import TypeTag from "../components/ui/TypeTag.jsx";
 import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
 import base from "../styles/screenBase.module.css";
@@ -880,7 +881,16 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       >
                         <button className={styles.tCardHead} onClick={() => setExpandedTable(isExpanded ? null : t.id)}>
                           <div className={styles.tCardLeft}>
-                            <span className={styles.tCardIcon} style={tGuests.length === 0 ? { opacity: 0.25 } : undefined}>⬡</span>
+                            {/* The table drawn as it is, with a seat per place
+                                and the taken ones filled — so the card answers
+                                "how full is this" before any number is read. */}
+                            <TableGlyph
+                              shape={t.shape}
+                              capacity={t.capacity}
+                              taken={usedSeats}
+                              size={46}
+                              className={styles.tCardGlyph}
+                            />
                             <div>
                               <div className={styles.tCardName}>
                                 {t.name}
