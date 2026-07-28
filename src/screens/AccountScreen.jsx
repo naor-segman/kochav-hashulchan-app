@@ -31,9 +31,9 @@ function planFeatures(key) {
       label:    l.maxGuests === Infinity ? "∞ אורחים"  : `עד ${l.maxGuests} אורחים`,
       included: true,
     },
-    { label: "ייצוא מתקדם",  included: l.advancedExports },
-    { label: "AI הושבה",     included: l.aiFeatures },
-    { label: "שיתוף צוות",   included: l.collaboration },
+    // Advanced export, AI seating and team collaboration are in planConfig and
+    // on nothing else — none of the three is built. They are off the customer
+    // screens until they exist; the plan document keeps them as candidates.
   ];
 }
 
