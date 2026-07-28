@@ -967,7 +967,7 @@
   align-items: center;
   gap: 8px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(var(--nav-text-rgb), 0.1);
+  border-bottom: 1px solid rgba(var(--text-rgb), 0.10);
   margin-bottom: 14px;
 }
 
@@ -1034,7 +1034,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: rgba(var(--nav-text-rgb), 0.18);
+  background: rgba(var(--text-rgb), 0.14);
   flex-shrink: 0;
 }
 
@@ -1048,7 +1048,7 @@
 }
 
 .mockCardFoot {
-  border-top: 1px solid rgba(var(--nav-text-rgb), 0.1);
+  border-top: 1px solid rgba(var(--text-rgb), 0.10);
   padding-top: 10px;
   text-align: center;
 }

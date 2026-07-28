@@ -53,7 +53,7 @@ export const PLAN_META = {
   enterprise: {
     label:       "ארגוני",
     labelEn:     "Enterprise",
-    color:       "#0E9AB8",
+    color:       "#E8437B",
     bgColor:     "#fef9f0",
     borderColor: "#f3d99e",
   },

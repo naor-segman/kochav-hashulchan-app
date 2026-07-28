@@ -11,7 +11,7 @@ export const ACTION_META = {
   event_deleted:         { label: "אירוע נמחק",          icon: "trash",     color: "#dc2626" },
   event_exported:        { label: "אירוע יוצא",          icon: "chart",     color: "#7c3aed" },
   template_created:      { label: "תבנית נוצרה",         icon: "clipboard", color: "#0369a1" },
-  subscription_changed:  { label: "מנוי שונה",           icon: "card",      color: "#0E9AB8" },
+  subscription_changed:  { label: "מנוי שונה",           icon: "card",      color: "#E8437B" },
   admin_login:           { label: "כניסת מנהל",          icon: "key",       color: "#374151" },
 };
 
