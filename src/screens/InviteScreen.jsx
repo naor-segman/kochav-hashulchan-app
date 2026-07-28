@@ -134,6 +134,26 @@ export default function InviteScreen() {
   const brideName     = event.brideName || "";
   const groomName     = event.groomName || "";
   const eventType     = event.type      || "חתונה";
+
+  // A couple is only one of nine event types. Without this, a bar mitzvah card
+  // rendered two empty name spans either side of a ✦ and then invited the guest
+  // to "שמחת חתונתנו" — the boy's name appeared nowhere on his own invitation.
+  const isCouple = Boolean(brideName && groomName);
+  const soloName = event.celebrantName || event.organizationName || event.ownerName || "";
+
+  // The formal line, in the possessive form each event actually uses.
+  const OCCASION = {
+    "חתונה":        "את שמחת חתונתנו",
+    "אירוס":        "את שמחת אירוסינו",
+    "חינה":         "את שמחת החינה שלנו",
+    "בר מצווה":     soloName ? `את שמחת בר המצווה של ${soloName}` : "את שמחת בר המצווה",
+    "בת מצווה":     soloName ? `את שמחת בת המצווה של ${soloName}` : "את שמחת בת המצווה",
+    "יום הולדת":    soloName ? `את יום ההולדת של ${soloName}`     : "את יום ההולדת",
+    "אירוע משפחתי": "את האירוע המשפחתי שלנו",
+    "אירוע עסקי":   "את האירוע שלנו",
+    "אחר":          "את השמחה שלנו",
+  };
+  const occasionLine = OCCASION[eventType] || OCCASION["אחר"];
   const formattedDate = formatHebrewDate(event.date);
 
   // ── Invitation ─────────────────────────────────────────────────────────────
@@ -161,12 +181,18 @@ export default function InviteScreen() {
           {/* Event type tag */}
           <div className={styles.tag}>הזמנה ל{eventType}</div>
 
-          {/* Couple names */}
-          <div className={styles.names}>
-            <span className={styles.coupleName}>{brideName}</span>
-            <span className={styles.nameSep} aria-hidden="true">✦</span>
-            <span className={styles.coupleName}>{groomName}</span>
-          </div>
+          {/* Hosts — a couple, a single celebrant, or nothing at all */}
+          {isCouple ? (
+            <div className={styles.names}>
+              <span className={styles.coupleName}>{brideName}</span>
+              <span className={styles.nameSep} aria-hidden="true">✦</span>
+              <span className={styles.coupleName}>{groomName}</span>
+            </div>
+          ) : soloName ? (
+            <div className={styles.names}>
+              <span className={styles.coupleName}>{soloName}</span>
+            </div>
+          ) : null}
 
           {/* Ornamental gold divider */}
           <div className={styles.divider} aria-hidden="true">
@@ -178,7 +204,7 @@ export default function InviteScreen() {
           {/* Formal Hebrew invitation text */}
           <p className={styles.inviteText}>
             מתכבדים להזמינכם לחגוג עמנו<br />
-            את שמחת חתונתנו
+            {occasionLine}
           </p>
 
           {/* Date */}

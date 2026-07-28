@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import {
   PLAN_META,
-  STATUS_META,
+  STATUS_META, displayStatus,
   getPlanLabel,
   getStatusLabel,
   getPlanLimits,
@@ -25,7 +25,7 @@ function formatDate(iso) {
 async function loadSubscriptionsData() {
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("id, plan, status, started_at, expires_at, created_at, updated_at, profiles!user_id(email)")
+    .select("id, plan, status, payment_past_due, started_at, expires_at, created_at, updated_at, profiles!user_id(email)")
     .order("created_at", { ascending: false })
     .limit(500);
 
@@ -123,7 +123,7 @@ export default function AdminSubscriptionsScreen() {
     try {
       setSubs(await loadSubscriptionsData());
     } catch (err) {
-      if (err.code === "42P01") {
+      if ((err.code === "42P01" || err.code === "PGRST205")) {
         setNotConfigured(true);
         setSubs([]);
       } else {
@@ -144,7 +144,7 @@ export default function AdminSubscriptionsScreen() {
 
   const filtered = (subs || []).filter(s => {
     if (filterPlan   !== "all" && s.plan   !== filterPlan)   return false;
-    if (filterStatus !== "all" && s.status !== filterStatus) return false;
+    if (filterStatus !== "all" && displayStatus(s) !== filterStatus) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!s.email.toLowerCase().includes(q)) return false;
@@ -229,7 +229,7 @@ export default function AdminSubscriptionsScreen() {
                       </li>
                     </ul>
                     <div className={styles.planCardCount}>
-                      {(subs || []).filter(s => s.plan === plan && s.status === "active").length} פעילים
+                      {(subs || []).filter(s => s.plan === plan && s.status === "active" && !s.payment_past_due).length} פעילים
                     </div>
                   </div>
                 );
@@ -321,7 +321,7 @@ export default function AdminSubscriptionsScreen() {
                         >
                           <td className={styles.emailCell}>{s.email}</td>
                           <td><PlanBadge plan={s.plan} /></td>
-                          <td><StatusBadge status={s.status} /></td>
+                          <td><StatusBadge status={displayStatus(s)} /></td>
                           <td className={styles.dateCell}>{formatDate(s.created_at)}</td>
                           <td className={styles.dateCell}>{formatDate(s.expires_at)}</td>
                           <td>

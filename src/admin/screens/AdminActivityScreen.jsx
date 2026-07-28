@@ -71,7 +71,7 @@ export default function AdminActivityScreen() {
     try {
       setLogs(await loadActivityData());
     } catch (err) {
-      if (err.code === "42P01") {
+      if ((err.code === "42P01" || err.code === "PGRST205")) {
         setNotConfigured(true);
         setLogs([]);
       } else {

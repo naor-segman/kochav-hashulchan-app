@@ -22,6 +22,12 @@
 // group because real pasted lists use all of them ("050-123-45-67").
 const PHONE_RE = /(?:(?:\+|00)?972[-.\s]?|0)\(?(?:[23489]|5\d|7\d)\)?(?:[-.\s]?\d){7}/;
 
+// Relatives abroad are normal at an Israeli wedding. The Israeli pattern above
+// never matched their numbers, so the digits stayed glued into the guest's NAME
+// — printed that way on the name tag and the entrance list, and unreachable
+// from the messages screen. normalizePhone already handles these correctly.
+const INTL_PHONE_RE = /(?:\+|00)\d{1,3}(?:[-.\s]?\d){6,12}/;
+
 /** Normalise to the local 0XXXXXXXXX form the rest of the app uses. */
 export function normalizePhone(raw) {
   let digits = String(raw || "").replace(/\D/g, "");
@@ -49,7 +55,10 @@ function cleanName(s) {
     .replace(/[\s\-–—:;,.|]+$/, "")
     // Only straight/curly double quotes. A geresh is part of the name in
     // ג'ורג' and צ'רלי — stripping ' turned those into גורג and צרלי.
-    .replace(/["“”]/g, "")
+    // Only a quote that is NOT sitting between two Hebrew letters. The blanket
+    // strip turned ד"ר into דר and עו"ד into עוד ("more"), which then printed
+    // on the name tag — the same mistake the geresh comment above describes.
+    .replace(/(?<![\u0590-\u05FF])["“”](?![\u0590-\u05FF])/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
@@ -66,7 +75,9 @@ export function parseGuestList(text) {
     const line = rawLine.replace(/\t/g, " , ").trim();
     if (!line) continue;
 
-    const m = line.match(PHONE_RE);
+    // Israeli form first — it is the common case and the more specific pattern.
+    // Only if that misses do we look for a foreign number.
+    const m = line.match(PHONE_RE) || line.match(INTL_PHONE_RE);
     const phone = m ? normalizePhone(m[0]) : "";
 
     // Whatever is left once the phone and its separator are removed is the name.

@@ -108,7 +108,7 @@ export default function AdminSettingsScreen() {
 
     if (err) {
       // 42P01 = relation does not exist (table not migrated yet)
-      if (err.code === "42P01") {
+      if ((err.code === "42P01" || err.code === "PGRST205")) {
         setNotConfigured(true);
       } else {
         setError(err.message || "טעינת ההגדרות נכשלה.");

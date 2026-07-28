@@ -35,7 +35,7 @@ async function fetchStats() {
       .select("*", { count: "exact", head: true }),
     supabase.from("subscriptions")
       .select("*", { count: "exact", head: true })
-      .eq("status", "active"),
+      .in("status", ["active", "trialing"]),
   ]);
 
   return {

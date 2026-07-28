@@ -105,7 +105,10 @@ export function seedTaskDue(eventDate, offsetDays) {
   if (Number.isNaN(ev.getTime())) return "";
   const days = Number(offsetDays);
   if (!Number.isFinite(days)) return "";
-  const due = new Date(ev.getTime() - days * 86400000);
+  // Calendar arithmetic, not fixed milliseconds. Subtracting days * 86400000
+  // crosses an Israeli DST transition an hour short, so 6 of the 15 wedding
+  // tasks were seeded a day early for a summer event.
+  const due = new Date(ev.getFullYear(), ev.getMonth(), ev.getDate() - days);
   if (Number.isNaN(due.getTime())) return "";
   if (due.getTime() < Date.now() - 86400000) return "";
   // toISOString() re-reads a local-midnight Date in UTC, which lands on the

@@ -1,19 +1,20 @@
 import { guestSeatNames } from "./eventHelpers.js";
+import { TABLE_TYPES } from "../data/constants.js";
+// Shared with the app rather than re-implemented. The local copy pushed the ISO
+// string through `new Date()`, which parses it as UTC — so west of Greenwich the
+// exported sheet showed a different date than the screen, and a New Year's Eve
+// event exported as the previous year.
+import { fmtDate } from "./dateFormat.js";
 
-const TABLE_TYPE_HE = { regular: "רגיל", vip: "VIP", head: "שולחן ראשי" };
+// Derived from the source of truth. The hand-written map covered 3 of the 5
+// real types and carried a 'head' key the UI can never produce, so 'knight',
+// 'bar' and 'small' printed as raw English in an otherwise Hebrew workbook.
+const TABLE_TYPE_HE = Object.fromEntries(TABLE_TYPES.map(t => [t.value, t.label]));
 const RSVP_HE = { confirmed: "אישר/ה", declined: "סירב/ה", maybe: "אולי", pending: "ממתין" };
 const rsvpHe = r => RSVP_HE[r] || "ממתין";
 const MEAL_HE = { regular: "רגיל", kosher: "כשר מהדרין", vegan: "טבעוני", vegetarian: "צמחוני", child: "ילדים", none: "לא אוכל" };
 const mealHe = m => MEAL_HE[m] || "רגיל";
 
-function fmtDate(dateStr) {
-  if (!dateStr) return "";
-  try {
-    return new Date(dateStr).toLocaleDateString("he-IL", {
-      year: "numeric", month: "long", day: "numeric",
-    });
-  } catch { return dateStr; }
-}
 
 function safeName(str) {
   return (str || "סידור הושבה").replace(/[/\\?%*:|"<>[\]]/g, "-");
@@ -106,7 +107,10 @@ export async function exportToExcel(ev, sideLabel, violations) {
     // One row per SEAT — every individual (incl. named companions "רונית (טל)"
     // and unnamed "+1/+2") appears, so the entrance team can find anyone by name.
     const seatRows = ev.guests
-      .filter(g => ev.seating[g.id])
+      // Declined guests are excluded from every on-screen list (check-in, name
+      // tags, analytics). The printed door list included them, with no RSVP
+      // column to tell them apart, so the count could never be reconciled.
+      .filter(g => ev.seating[g.id] && g.rsvp !== "declined")
       .flatMap(g => {
         const table = tableMap[ev.seating[g.id]]?.name || "";
         return guestSeatNames(g).map((seatName, idx) => ({

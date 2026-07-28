@@ -69,3 +69,20 @@ describe("TASK_STATUSES", () => {
     expect(TASK_STATUSES.map(s => s.value)).toEqual(["todo", "doing", "done"]);
   });
 });
+
+describe("seedTaskDue across a DST boundary", () => {
+  it("lands on the calendar day, not one short", () => {
+    // days * 86400000 crosses an Israeli DST transition an hour short, which
+    // seeded 6 of the 15 wedding tasks a day early for a summer event.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T09:00:00Z"));
+    const iso = (y, m, d) => {
+      const dt = new Date(y, m - 1, d);
+      const p = n => String(n).padStart(2, "0");
+      return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}`;
+    };
+    // 2027-06-15 minus 180 days spans the spring transition.
+    expect(seedTaskDue("2027-06-15", 180)).toBe(iso(2026, 12, 17));
+    expect(seedTaskDue("2027-06-15", 90)).toBe(iso(2027, 3, 17));
+  });
+});

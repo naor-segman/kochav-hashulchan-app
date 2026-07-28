@@ -252,11 +252,13 @@
 }
 
 .table {
+  /* No direction override here. These tables are Hebrew — headers and data
+     both — and forcing ltr reversed the column order, so the first column
+     rendered leftmost. The columns that genuinely hold LTR data (email,
+     ids, dates) carry their own `direction: ltr` per cell. */
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  direction: ltr;
-  text-align: left;
 }
 
 .table th {

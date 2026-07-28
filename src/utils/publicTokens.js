@@ -88,22 +88,6 @@ export async function fetchRSVPResponses(eventCloudId) {
 }
 
 /**
- * True when the error means "that RPC isn't in this database yet".
- *
- * The write path below prefers the token-validated function but keeps the old
- * direct insert as a fallback, so the code and the migration can be rolled out
- * in either order without a window where guests can't respond. PostgREST
- * answers an unknown function with PGRST202; Postgres itself with 42883.
- *
- * DELETE the fallback (and this helper) once 20260728000000 is live everywhere.
- */
-function isMissingRpc(error) {
-  return error?.code === "PGRST202"
-      || error?.code === "42883"
-      || /Could not find the function/i.test(error?.message || "");
-}
-
-/**
  * Submit an RSVP response.
  *
  * Goes through submit_rsvp_by_token, which validates the token server-side.
@@ -111,10 +95,9 @@ function isMissingRpc(error) {
  * check lived only in this file — anyone with an event id could write rows into
  * a stranger's guest list.
  *
- * @param {string} token   the rsvp token from the URL — the actual authorisation
- * @param {string} cloudId event id, used only by the legacy fallback
+ * @param {string} token the rsvp token from the URL — the actual authorisation
  */
-export async function submitRSVP(token, cloudId, response) {
+export async function submitRSVP(token, response) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   // status: "yes" | "no" | "maybe" — `attending` stays for backward compat.
   const status = response.status || (response.attending ? "yes" : "no");
@@ -141,45 +124,30 @@ export async function submitRSVP(token, cloudId, response) {
     companions,
     shuttle_id:   shuttleId,
   });
-  if (!error) return;
-  if (!isMissingRpc(error)) throw error;
-
-  const { error: legacyErr } = await supabase.from("rsvp_responses").insert({
-    event_id: cloudId, guest_name: name, phone,
-    attending: status === "yes", guests_count: count, status, companions,
-    shuttle_id: shuttleId,
-  });
-  if (legacyErr) throw legacyErr;
+  if (error) throw error;
 }
 
 /**
  * Submit a gift (pending payment).
  *
- * @param {string} token   the gift token from the URL — the actual authorisation
- * @param {string} cloudId event id, used only by the legacy fallback
+ * @param {string} token the gift token from the URL — the actual authorisation
  */
-export async function submitGift(token, cloudId, gift) {
+export async function submitGift(token, gift) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const donor  = String(gift.donorName || "").slice(0, 200);
   const amount = Math.round(gift.amountILS * 100);
   const msg    = (gift.message || "").slice(0, 1000) || null;
 
+  // The function returns void: an unpaid gift row is hidden from anon by RLS,
+  // so asking for it back with .select().single() returned zero rows and threw
+  // — the gift was saved and the guest was still told it had failed.
   const { error } = await supabase.rpc("submit_gift_by_token", {
     token_value: token,
     donor_name:  donor,
     amount,
     message:     msg,
   });
-  if (!error) return;
-  if (!isMissingRpc(error)) throw error;
-
-  // No .select() here. An unpaid row is hidden from anon by RLS, so asking for
-  // it back returned zero rows and .single() threw — the gift was saved and the
-  // guest was still told "אירעה שגיאה בשמירת המתנה", so they submitted again.
-  const { error: legacyErr } = await supabase.from("gifts").insert({
-    event_id: cloudId, donor_name: donor, amount, message: msg, paid: false,
-  });
-  if (legacyErr) throw legacyErr;
+  if (error) throw error;
 }
 
 /**

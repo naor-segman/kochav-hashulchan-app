@@ -71,3 +71,33 @@ describe("countWithPhone", () => {
     expect(countWithPhone(undefined)).toBe(0);
   });
 });
+
+// ── Regressions from the full-codebase audit (28.7) ──────────────────────────
+describe("Hebrew abbreviations and foreign numbers", () => {
+  it("keeps gershayim inside an honorific", () => {
+    // Stripping every double quote turned ד"ר into דר and עו"ד into עוד
+    // ("more") — and that is what printed on the name tag.
+    expect(parseGuestList('ד"ר כהן, 0501234567')[0].name).toBe('ד"ר כהן');
+    expect(parseGuestList('עו"ד שרה לוי, 0521234567')[0].name).toBe('עו"ד שרה לוי');
+  });
+
+  it("still keeps a geresh, which was the original fix", () => {
+    expect(parseGuestList("ג'ורג' לוי, 0501112222")[0].name).toBe("ג'ורג' לוי");
+  });
+
+  it("extracts a foreign number instead of leaving it in the name", () => {
+    // Relatives abroad are normal at an Israeli wedding. Their digits used to
+    // stay glued into the name, so they were unreachable from Messages.
+    const [a] = parseGuestList("Aunt Sarah +1 212 555 1234");
+    expect(a.name).toBe("Aunt Sarah");
+    expect(a.phone).toBe("12125551234");
+
+    const [b] = parseGuestList("Uncle Dave +44 20 7946 0958");
+    expect(b.name).toBe("Uncle Dave");
+    expect(b.phone).toBe("442079460958");
+  });
+
+  it("still prefers the Israeli form when both could match", () => {
+    expect(parseGuestList("דנה, +972-50-123-4567")[0].phone).toBe("0501234567");
+  });
+});

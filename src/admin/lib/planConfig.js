@@ -86,7 +86,22 @@ export const STATUS_META = {
     bgColor:     "#f9fafb",
     borderColor: "#e5e7eb",
   },
+  // Stripe keeps a failing card as `active` through the retry window, and the
+  // webhook only raises the separate `payment_past_due` flag. Without an entry
+  // here a customer whose card has been declining for three weeks rendered as a
+  // green "פעיל" everywhere, so there was no way to see it or act on it.
+  past_due: {
+    label:       "תשלום נכשל",
+    color:       "#b91c1c",
+    bgColor:     "#fef2f2",
+    borderColor: "#fecaca",
+  },
 };
+
+/** The status to DISPLAY — delinquency outranks the nominal status. */
+export function displayStatus(sub) {
+  return sub?.payment_past_due ? "past_due" : (sub?.status || "expired");
+}
 
 // ── Helper functions ──────────────────────────────────────────────────────────
 
@@ -137,4 +152,5 @@ export function hasFeature(plan, feature) {
 
 // ── Ordered plan list (for UI pickers, upgrade prompts, etc.) ─────────────────
 export const PLAN_KEYS   = ["free", "pro", "enterprise"];
-export const STATUS_KEYS = ["active", "trialing", "cancelled", "expired"];
+// past_due first: it is the only one that needs somebody to act on it.
+export const STATUS_KEYS = ["past_due", "active", "trialing", "cancelled", "expired"];

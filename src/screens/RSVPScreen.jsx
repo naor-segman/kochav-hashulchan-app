@@ -101,7 +101,7 @@ export default function RSVPScreen() {
     setSubmitting(true);
     try {
       if (event.cloudId) {
-        await submitRSVP(token, event.cloudId, {
+        await submitRSVP(token, {
           name: name.trim(),
           phone: phone.trim() || null,
           status: answer,
@@ -131,7 +131,7 @@ export default function RSVPScreen() {
     setSubmitting(true);
     try {
       if (event.cloudId) {
-        await submitRSVP(token, event.cloudId, {
+        await submitRSVP(token, {
           name: name.trim(),
           phone: null,
           status: "no",

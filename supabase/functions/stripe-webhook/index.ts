@@ -37,14 +37,35 @@ function mapStripeStatus(stripeStatus: string): string {
   switch (stripeStatus) {
     case "active":             return "active";
     case "trialing":           return "trialing";
-    case "past_due":           return "active";     // grace period — keep access
+    case "past_due":           return "active";     // grace period — keep access,
+                                                    // the payment_past_due flag
+                                                    // is what surfaces it
     case "canceled":           return "cancelled";
     case "unpaid":             return "cancelled";
-    case "incomplete":         return "active";     // initial payment processing
+    case "incomplete":         return "expired";    // first payment never landed
     case "incomplete_expired": return "expired";
     case "paused":             return "cancelled";
-    default:                   return "active";
+    // An unrecognised Stripe status must not hand out a paid plan by default.
+    default:                   return "expired";
   }
+}
+
+// The price the customer is actually billed on is the authority on their plan.
+// Reading it from subscription.metadata with a hardcoded `?? "pro"` fallback
+// meant any subscription created outside the checkout flow — a Stripe Dashboard
+// entry, a migrated or invoice-billed contract — silently became Pro, and every
+// later `customer.subscription.updated` rewrote it back to Pro even after a fix.
+function planFromPrice(priceId: string | null, metadataPlan?: string | null): string {
+  const map: Record<string, string> = {};
+  const pro  = Deno.env.get("STRIPE_PRO_PRICE_ID");
+  const ent  = Deno.env.get("STRIPE_ENTERPRISE_PRICE_ID");
+  if (pro) map[pro] = "pro";
+  if (ent) map[ent] = "enterprise";
+  if (priceId && map[priceId]) return map[priceId];
+  // Metadata is the fallback, not the source — and only when it names a plan we
+  // actually recognise.
+  if (metadataPlan === "pro" || metadataPlan === "enterprise") return metadataPlan;
+  return "free";
 }
 
 Deno.serve(async (req: Request) => {
@@ -111,7 +132,7 @@ Deno.serve(async (req: Request) => {
         );
 
         const priceId   = subscription.items.data[0]?.price?.id ?? null;
-        const plan      = session.metadata?.plan ?? "pro";
+        const plan      = planFromPrice(priceId, session.metadata?.plan);
         const status    = mapStripeStatus(subscription.status);
         const periodEnd = subscription.current_period_end
           ? new Date(subscription.current_period_end * 1000).toISOString()
@@ -166,7 +187,7 @@ Deno.serve(async (req: Request) => {
 
         const priceId   = subscription.items.data[0]?.price?.id ?? null;
         const userId    = subscription.metadata?.user_id ?? null;
-        const plan      = subscription.metadata?.plan ?? "pro";
+        const plan      = planFromPrice(priceId, subscription.metadata?.plan);
         const status    = mapStripeStatus(subscription.status);
         const periodEnd = subscription.current_period_end
           ? new Date(subscription.current_period_end * 1000).toISOString()
