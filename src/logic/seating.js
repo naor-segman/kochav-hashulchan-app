@@ -74,23 +74,43 @@ export function autoAssign(guests, tables, constraints, lockedSeating = {}) {
   // Pre-assign unlocked guests that have a "together" constraint with a locked guest.
   // buildClusters only receives unlockedGuests, so locked-side together constraints
   // are silently ignored otherwise — the unlocked guest would be placed by affinity alone.
+  // A guest can be bound to more than one locked guest, and those locked guests
+  // can sit at different tables. This map used to hold a single table per
+  // guest, so the LAST constraint in the list silently won — regardless of
+  // whether that table had room. With a parent locked to a roomy table and
+  // another to a nearly full one, the child was pinned to the full parent,
+  // their own siblings could no longer join them, and the engine split the
+  // family: one child with one parent, three with the other. Two violations
+  // where the host's own locks only made one unavoidable.
   const lockedTogetherMap = {};
   constraints.filter(c => c.type === "together").forEach(c => {
-    if (lockedIds.has(c.guestA) && !lockedIds.has(c.guestB))
-      lockedTogetherMap[c.guestB] = lockedSeating[c.guestA];
-    else if (lockedIds.has(c.guestB) && !lockedIds.has(c.guestA))
-      lockedTogetherMap[c.guestA] = lockedSeating[c.guestB];
+    const add = (unlockedId, lockedId) => {
+      const table = lockedSeating[lockedId];
+      if (!table) return;
+      (lockedTogetherMap[unlockedId] ||= []).push(table);
+    };
+    if (lockedIds.has(c.guestA) && !lockedIds.has(c.guestB))      add(c.guestB, c.guestA);
+    else if (lockedIds.has(c.guestB) && !lockedIds.has(c.guestA)) add(c.guestA, c.guestB);
   });
-  Object.entries(lockedTogetherMap).forEach(([unlockedId, tableId]) => {
-    if (seating[unlockedId] || !tableId) return;
-    const t = tState.find(t => t.id === tableId);
-    if (!t) return;
+  Object.entries(lockedTogetherMap).forEach(([unlockedId, tableIds]) => {
+    if (seating[unlockedId]) return;
     const g = guestMap[unlockedId];
     if (!g) return;
-    if (seatedCount(t, guestMap) + guestSeats(g) > t.capacity) return;
-    if (apartConflict(apartSet, unlockedId, t.seated)) return;
-    t.seated.push(unlockedId);
-    seating[unlockedId] = tableId;
+    // Whichever table is chosen, any other claim on this guest is broken — that
+    // contradiction is the host's, not ours. Prefer the one with the most room,
+    // because the rest of this guest's cluster has to follow them there.
+    const candidates = [...new Set(tableIds)]
+      .map(id => tState.find(t => t.id === id))
+      .filter(Boolean)
+      .sort((a, b) =>
+        (b.capacity - seatedCount(b, guestMap)) - (a.capacity - seatedCount(a, guestMap)));
+    for (const t of candidates) {
+      if (seatedCount(t, guestMap) + guestSeats(g) > t.capacity) continue;
+      if (apartConflict(apartSet, unlockedId, t.seated)) continue;
+      t.seated.push(unlockedId);
+      seating[unlockedId] = t.id;
+      break;
+    }
   });
 
   const seatCluster = (ids) => {
@@ -105,8 +125,28 @@ export function autoAssign(guests, tables, constraints, lockedSeating = {}) {
 
     // A pinned member fixes the whole cluster's destination: "together" means
     // the rest join THEM, not that everyone relocates.
-    const candidates = pinned.length
-      ? tState.filter(t => t.id === seating[pinned[0]])
+    //
+    // Members can be pinned to DIFFERENT tables — the host locked two people
+    // who are also bound together, which is a contradiction the engine may not
+    // resolve, because it is not allowed to move either of them. It used to
+    // take seating[pinned[0]] and give up if that table was full, which handed
+    // the rest of the family to the individual fallback and split them: with a
+    // parent locked to a roomy table and another to a full one, one child went
+    // to the full parent and three to the roomy one — a second violation the
+    // engine invented on top of the one the host created.
+    //
+    // So every pinned table is a candidate, best first: where most of the
+    // cluster already sits, then whichever has the most room. With a single
+    // pinned table — the ordinary case — this is exactly the old behaviour.
+    const pinnedTables = [...new Set(pinned.map(id => seating[id]))];
+    const candidates = pinnedTables.length
+      ? tState
+          .filter(t => pinnedTables.includes(t.id))
+          .sort((a, b) => {
+            const here = t => t.seated.filter(id => ids.includes(id)).length;
+            if (here(a) !== here(b)) return here(b) - here(a);
+            return (b.capacity - seatedCount(b, guestMap)) - (a.capacity - seatedCount(a, guestMap));
+          })
       : [...tState].sort((a, b) =>
           affinityScore(guestMap[pending[0]], b.seated, guestMap) -
           affinityScore(guestMap[pending[0]], a.seated, guestMap)
