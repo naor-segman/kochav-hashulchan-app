@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { starterTasks, seedTaskDue, TASK_STATUSES, TASK_PRIORITIES } from "./taskTemplates.js";
 
 afterEach(() => vi.useRealTimers());
@@ -70,19 +70,43 @@ describe("TASK_STATUSES", () => {
   });
 });
 
+// This suite pins the timezone to Israel on purpose. Read under UTC — the
+// default in CI and in the dev sandbox — a DST regression test cannot fail,
+// because UTC has no transition to cross: the fixed-millisecond arithmetic
+// this test exists to forbid returns the identical answer. The bug only
+// reappears in a zone that actually shifts, so the test has to run in one.
 describe("seedTaskDue across a DST boundary", () => {
+  const realTZ = process.env.TZ;
+  beforeEach(() => { process.env.TZ = "Asia/Jerusalem"; });
+  afterEach(()  => { process.env.TZ = realTZ; });
+
+  it("is running somewhere that actually has DST, or it proves nothing", () => {
+    const summer = -new Date(2027, 5, 15).getTimezoneOffset() / 60;
+    const winter = -new Date(2026, 11, 17).getTimezoneOffset() / 60;
+    expect(summer).not.toBe(winter);
+  });
+
   it("lands on the calendar day, not one short", () => {
     // days * 86400000 crosses an Israeli DST transition an hour short, which
     // seeded 6 of the 15 wedding tasks a day early for a summer event.
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T09:00:00Z"));
-    const iso = (y, m, d) => {
-      const dt = new Date(y, m - 1, d);
-      const p = n => String(n).padStart(2, "0");
-      return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}`;
-    };
     // 2027-06-15 minus 180 days spans the spring transition.
-    expect(seedTaskDue("2027-06-15", 180)).toBe(iso(2026, 12, 17));
-    expect(seedTaskDue("2027-06-15", 90)).toBe(iso(2027, 3, 17));
+    expect(seedTaskDue("2027-06-15", 180)).toBe("2026-12-17");
+    expect(seedTaskDue("2027-06-15", 90)).toBe("2027-03-17");
+  });
+
+  // The exact shape the comment in seedTaskDue forbids. Kept beside the real
+  // assertion so the difference between the two is visible, not asserted from
+  // memory: under Israeli time they disagree by a day.
+  it("disagrees with fixed-millisecond arithmetic, which is the whole point", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T09:00:00Z"));
+    const naive = (eventDate, days) => {
+      const d = new Date(new Date(eventDate + "T00:00:00").getTime() - days * 86400000);
+      const p = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    };
+    expect(naive("2027-06-15", 180)).not.toBe(seedTaskDue("2027-06-15", 180));
   });
 });
