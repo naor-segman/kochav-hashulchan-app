@@ -67,6 +67,9 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const { plan, limits } = usePlan();
   const { maxGuests } = limits;
 
+  // Focus the name field once, on mount. Depending on editId would yank focus
+  // back to the top of the form every time the host starts editing a row.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (!editId) nameRef.current && nameRef.current.focus(); }, []);
 
   const sideLabel = s => getSideLabel(ev, s);

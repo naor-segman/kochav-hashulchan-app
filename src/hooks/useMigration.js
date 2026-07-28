@@ -64,7 +64,10 @@ export function useMigration(events, patchEventById, user) {
       .catch(() => {
         // Cloud unavailable or table not yet created — silently skip
       });
-  }, [user]); // intentionally excludes `events` — check runs once per login
+    // `events` is deliberately excluded: this asks the cloud what is missing
+    // once per login, and depending on the list would re-ask on every edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const dismiss = useCallback(() => {
     if (user) localStorage.setItem(getDismissedKey(user.id), "1");

@@ -28,8 +28,11 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
   const [openStage, setOpenStage] = useState("invitation");
   const [editing, setEditing]     = useState(null);
 
-  const sent = ev.messagesSent || {};          // { [stageKey]: { [guestId]: ts } }
-  const custom = ev.messageTemplates || {};    // { [stageKey]: body }
+  // Memoized on the event fields themselves: `ev.messagesSent || {}` builds a
+  // fresh object on every render when the field is absent, which made the
+  // stages memo below recompute every time regardless of its dependencies.
+  const sent   = useMemo(() => ev.messagesSent     || {}, [ev.messagesSent]);      // { [stageKey]: { [guestId]: ts } }
+  const custom = useMemo(() => ev.messageTemplates || {}, [ev.messageTemplates]);  // { [stageKey]: body }
 
   const link = useMemo(() => {
     const t = ev.tokens || {};

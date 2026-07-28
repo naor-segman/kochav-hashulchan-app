@@ -100,6 +100,12 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       lockedTableIds: ev.lockedTables || [],
       sideLabels:     getSideLabels(ev),
     }),
+    // getSideLabels(ev) reads exactly five fields — sideLabels, type,
+    // coupleType, brideName, groomName — and all five are listed. Depending on
+    // `ev` itself, as the rule wants, would rerun this whole analysis on every
+    // unrelated edit to the event, which on a 400-guest plan is the difference
+    // between a responsive screen and a stuttering one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [ev.guests, ev.tables, ev.constraints, ev.seating, qualityScore, ev.lockedGuests, ev.lockedTables, ev.type, ev.brideName, ev.groomName, ev.sideLabels, ev.coupleType]
   );
 
