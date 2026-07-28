@@ -1,29 +1,30 @@
 /* ConstraintsScreen-specific styles */
 
-/* Step guidance banner */
+/* Step guidance banner — see SeatingScreen.module.css. Blush is the GROUND for
+   the wizard's spine; the accent stays on the one primary button per screen. */
 .stepGuide {
   display: flex;
   align-items: baseline;
   gap: 10px;
   padding: 12px 16px;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: var(--blush);
+  border: 1px solid var(--blush-line);
   border-radius: var(--radius);
   margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
 .stepBadge {
-  font-size: 12px;
+  font-size: var(--step--1);
   font-weight: 800;
-  color: var(--accent-text);
+  color: var(--text);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .stepText {
-  font-size: 13px;
-  color: var(--text2);
+  font-size: var(--step--1);
+  color: var(--text2);   /* 5.6:1 on blush */
   line-height: 1.4;
 }
 
@@ -73,7 +74,7 @@
   justify-content: space-between;
   padding: 10px 14px;
   background: var(--bg);
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-size: 14px;
   gap: 10px;
 }
@@ -127,15 +128,17 @@
   line-height: 1.4;
 }
 
+/* These three sat at opacity .6–.7 over --green-bg / --red-bg, which measured
+   2.5–3.1:1 — below AA. Weight and size already rank them; the ink stays at
+   full strength (--green 5.1:1, --red 4.9:1 on their own tints) and only the
+   rule is faded, via color-mix rather than element opacity. */
 .previewVerb {
   font-weight: 400;
-  margin: 0 8px;
-  opacity: 0.7;
+  margin-inline: 8px;
 }
 
 .previewMeta {
   font-size: 12px;
-  opacity: 0.7;
   margin-top: 3px;
 }
 
@@ -144,8 +147,7 @@
   font-weight: 700;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid currentColor;
-  opacity: 0.6;
+  border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent);
 }
 
 .constraintPreview {
@@ -154,7 +156,7 @@
   gap: 12px;
   margin-top: 12px;
   padding: 14px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -192,9 +194,11 @@
   box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
+/* A filled field reads as complete by becoming crisp white against the empty
+   fields' grey ground — it does not need the brand colour to say so. */
 .acInputSelected {
-  border-color: var(--accent);
-  background: var(--accent-bg);
+  border-color: var(--border2);
+  background: var(--surface);
 }
 
 /* The wrapper draws the field; this input sits inside it borderless. Needed
@@ -258,7 +262,7 @@
 
 .acItem:hover,
 .acItemHi {
-  background: var(--accent-bg);
+  background: var(--bg);
 }
 
 .acName {
@@ -276,9 +280,11 @@
   white-space: nowrap;
 }
 
+/* A search highlight is a classic ground-plus-dark-ink job: blush at 12.3:1
+   marks the matched run far more clearly than pale-on-pale magenta did. */
 .acMark {
-  background: var(--accent-bg);
-  color: var(--accent-text);
+  background: var(--blush);
+  color: var(--text);
   border-radius: 2px;
   font-weight: 800;
   font-style: normal;

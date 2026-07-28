@@ -1,29 +1,30 @@
 /* TableBuilderScreen-specific styles */
 
-/* Step guidance banner */
+/* Step guidance banner — see SeatingScreen.module.css. Blush is the GROUND for
+   the wizard's spine; the accent stays on the one primary button per screen. */
 .stepGuide {
   display: flex;
   align-items: baseline;
   gap: 10px;
   padding: 12px 16px;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: var(--blush);
+  border: 1px solid var(--blush-line);
   border-radius: var(--radius);
   margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
 .stepBadge {
-  font-size: 12px;
+  font-size: var(--step--1);
   font-weight: 800;
-  color: var(--accent-text);
+  color: var(--text);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .stepText {
-  font-size: 13px;
-  color: var(--text2);
+  font-size: var(--step--1);
+  color: var(--text2);   /* 5.6:1 on blush */
   line-height: 1.4;
 }
 
@@ -89,15 +90,16 @@
 }
 
 .tabBtn:hover:not(.tabActive) {
-  background: var(--accent-bg);
+  background: var(--bg);
   color: var(--text);
 }
 
+/* Near-black on white inside a hairline bar is contrast enough; the drop
+   shadow was doing nothing but softening the edge. */
 .tabActive {
   background: var(--nav-bg);
   color: var(--nav-text);
   font-weight: 800;
-  box-shadow: 0 2px 8px rgba(0,0,0,.20);
 }
 
 .tabIcon {
