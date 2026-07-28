@@ -300,7 +300,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
       <div className={styles.stepGuide}>
         <span className={styles.stepBadge}>שלב 3 מתוך 5 — אורחים</span>
-        <span className={styles.stepText}>הוסיפו אורחים ידנית אחד-אחד, או ייבאו רשימה שלמה מ-Excel. לאחר מכן המשיכו לאילוצים. כל שינוי נשמר אוטומטית.</span>
+        <span className={styles.stepText}>הוסיפו אורחים ידנית, הדביקו רשימה מוכנה, או שלחו קישור לטבלה שיתופית שהמשפחה תמלא. לאחר מכן המשיכו לאילוצים. כל שינוי נשמר אוטומטית.</span>
       </div>
 
       {/* ── Guest limit upgrade tip ── */}

@@ -556,85 +556,6 @@
   margin: 0;
 }
 
-/* ── Testimonials ── */
-
-.testimonials {
-  background: var(--surface);
-}
-
-.testGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-
-.testCard {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px 28px;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  transition: box-shadow var(--transition), border-color var(--transition);
-}
-
-.testCard:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--accent-border);
-}
-
-.testStars {
-  font-size: 14px;
-  color: var(--accent-text);
-  letter-spacing: 2px;
-}
-
-.testQuote {
-  font-size: 0.93rem;
-  color: var(--text2);
-  line-height: 1.75;
-  margin: 0;
-  flex: 1;
-}
-
-.testMeta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.testAvatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  /* Three saturated discs plus three rows of stars made this section the
-     loudest on the page for no reason. Blush ground / near-black initial is the
-     same primitive as .trustChip, and it hands the emphasis back to the stars. */
-  background: var(--blush);
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.testName {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.3;
-}
-
-.testRole {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-
 /* ── Pricing ── */
 
 .pricingSection {
@@ -1049,10 +970,6 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .testGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .howGrid {
     grid-template-columns: 1fr;
     gap: 32px;
@@ -1105,10 +1022,6 @@
   }
 
   .featuresGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .testGrid {
     grid-template-columns: 1fr;
   }
 

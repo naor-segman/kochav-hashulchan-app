@@ -73,7 +73,7 @@ const FEATURES = [
   { icon: "seating", title: "הושבה אוטומטית",
     desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרתם" },
   { icon: "guests", title: "ניהול אורחים",
-    desc: "ייבוא מאקסל, הוספה ידנית, מעקב אישורי הגעה לפי קבוצות — הכל בממשק אחד נוח" },
+    desc: "טבלה שיתופית שהמשפחה ממלאת מהטלפון, הדבקת רשימה מוכנה, ומעקב אישורי הגעה לפי קבוצות" },
   { icon: "plan", title: "תכנית מגרש",
     desc: "גררו שולחנות על תמונת האולם ותקבלו תצוגה חזותית מושלמת של הסידור" },
   { icon: "checkin", title: "צ׳ק-אין ביום האירוע",
@@ -86,28 +86,10 @@ const FEATURES = [
 
 const HOW_IT_WORKS = [
   { num: "01", title: "צרו אירוע", desc: "בחרו סוג אירוע, הזינו תאריך ומקום" },
-  { num: "02", title: "הוסיפו אורחים", desc: "ייבאו מאקסל, הוסיפו ידנית, קבלו אישורי הגעה" },
+  { num: "02", title: "הוסיפו אורחים", desc: "שלחו קישור למשפחה שתמלא יחד, הדביקו רשימה, או הוסיפו ידנית" },
   { num: "03", title: "בנו שולחנות", desc: "הגדירו מספר מקומות וצורת ישיבה לכל שולחן" },
   { num: "04", title: "הגדירו אילוצים", desc: "מי ישב יחד, מי חייב להיות בנפרד" },
   { num: "05", title: "סדרו בלחיצה", desc: "קבלו תוכנית ישיבה מושלמת תוך שניות" },
-];
-
-const TESTIMONIALS = [
-  {
-    name: "שירה לוי",
-    role: "מארגנת אירועים",
-    text: "חסכתי 6 שעות עבודה על סידור השולחנות. הכלי הכי שימושי שיש לי היום.",
-  },
-  {
-    name: "דוד כהן",
-    role: "הורה לחתן",
-    text: "ניהלנו 350 אורחים בקלות מדהימה. כל הקידוד של משפחות ואורחים VIP עבד מצוין.",
-  },
-  {
-    name: "מיכל ברק",
-    role: "מנהלת אולם אירועים",
-    text: "אנחנו משתמשים בזה לכל אירוע. הלקוחות שלנו מתרשמים מהרמה המקצועית.",
-  },
 ];
 
 const PRICING_PLANS = [
@@ -377,31 +359,6 @@ export default function LandingScreen() {
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
-      <section className={styles.testimonials}>
-        <div className={styles.sectionInner}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>מה הלקוחות אומרים</span>
-            <h2 className={styles.sectionTitle}>אלפי זוגות ומשפחות כבר בחרו בנו</h2>
-          </div>
-          <div className={styles.testGrid}>
-            {TESTIMONIALS.map(t => (
-              <div key={t.name} className={styles.testCard}>
-                <div className={styles.testStars}>★★★★★</div>
-                <p className={styles.testQuote}>&ldquo;{t.text}&rdquo;</p>
-                <div className={styles.testMeta}>
-                  <div className={styles.testAvatar}>{t.name[0]}</div>
-                  <div>
-                    <div className={styles.testName}>{t.name}</div>
-                    <div className={styles.testRole}>{t.role}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Pricing teaser ── */}
       <section className={styles.pricingSection}>
         <div className={styles.sectionInner}>
@@ -453,7 +410,7 @@ export default function LandingScreen() {
           <div className={styles.ctaStar} aria-hidden="true">✦</div>
           <h2 className={styles.ctaTitle}>מוכנים להתחיל?</h2>
           <p className={styles.ctaSub}>
-            הצטרפו לאלפי מארגנים שכבר חסכו שעות של עבודה
+            בלי התקנה ובלי כרטיס אשראי — נכנסים, מזינים אורחים, ומקבלים סידור.
           </p>
           <Link to="/signup" className={styles.ctaBtn}>הצטרפו חינם עכשיו ←</Link>
           <p className={styles.ctaNote}>ללא כרטיס אשראי · ביטול בכל עת</p>
