@@ -349,6 +349,9 @@
 .guestGroup { color: var(--adm-ink-mid); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .numCol     { text-align: center; }
 .numCell    { text-align: center; font-variant-numeric: tabular-nums; }
+/* Table names are free text, so this cell truncates like the other free-text
+   cells instead of stretching the row. */
+.guestSeated { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .sideBride {
   display: inline-block;
