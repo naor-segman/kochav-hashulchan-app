@@ -2,7 +2,7 @@
 
 .page {
   min-height: 100vh;
-  background: #f4f4f5;
+  background: var(--adm-bg-sunken);
   font-family: inherit;
 }
 
@@ -11,8 +11,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--adm-surface);
+  border-bottom: 1px solid var(--adm-line);
   padding: 0 24px;
   height: 56px;
   gap: 12px;
@@ -27,7 +27,7 @@
 
 .backLink {
   font-size: 18px;
-  color: #888;
+  color: var(--adm-ink-muted);
   text-decoration: none;
   padding: 4px 6px;
   border-radius: 6px;
@@ -36,27 +36,27 @@
 }
 
 .backLink:hover {
-  background: #f4f4f5;
-  color: #333;
+  background: var(--adm-bg-sunken);
+  color: var(--adm-ink-dark);
 }
 
 .brandMark {
   font-size: 18px;
-  color: #0E9AB8;
+  color: var(--accent);
 }
 
 .brandName {
   font-size: 16px;
   font-weight: 800;
-  color: #111;
+  color: var(--adm-ink);
   letter-spacing: -0.01em;
 }
 
-.brandSep { color: #ccc; }
+.brandSep { color: var(--adm-ink-faintest); }
 
 .brandSub {
   font-size: 13px;
-  color: #888;
+  color: var(--adm-ink-muted);
 }
 
 .topbarRight {
@@ -67,27 +67,27 @@
 
 .adminEmail {
   font-size: 13px;
-  color: #666;
+  color: var(--adm-ink-soft);
   direction: ltr;
 }
 
 .logoutBtn {
   background: none;
-  border: 1px solid #ddd;
+  border: 1px solid var(--adm-line-strong);
   border-radius: 7px;
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
-  color: #555;
+  color: var(--adm-ink-mid);
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
   font-family: inherit;
 }
 
 .logoutBtn:hover {
-  background: #fef2f2;
-  border-color: #fca5a5;
-  color: #b91c1c;
+  background: var(--adm-danger-bg);
+  border-color: var(--adm-danger-border);
+  color: var(--adm-danger);
 }
 
 /* ── Main ── */
@@ -106,25 +106,25 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-inline-start: 4px solid #f87171;
+  background: var(--adm-danger-bg);
+  border: 1px solid var(--adm-danger-border-soft);
+  border-inline-start: 4px solid var(--adm-danger-soft);
   border-radius: 10px;
   padding: 12px 16px;
   font-size: 13px;
-  color: #b91c1c;
+  color: var(--adm-danger);
   direction: ltr;
   text-align: left;
 }
 
 .retryBtn {
   background: none;
-  border: 1px solid #fca5a5;
+  border: 1px solid var(--adm-danger-border);
   border-radius: 6px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #b91c1c;
+  color: var(--adm-danger);
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
@@ -132,7 +132,7 @@
   transition: background 0.12s;
 }
 
-.retryBtn:hover { background: #fee2e2; }
+.retryBtn:hover { background: var(--adm-danger-bg-strong); }
 
 /* ── Toolbar ── */
 .toolbar {
@@ -155,7 +155,7 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 16px;
-  color: #aaa;
+  color: var(--adm-ink-faint);
   pointer-events: none;
   line-height: 1;
 }
@@ -163,32 +163,32 @@
 .searchInput {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #ddd;
+  border: 1px solid var(--adm-line-strong);
   border-radius: 8px;
   padding: 8px 12px 8px 32px;
   font-size: 14px;
-  color: #111;
-  background: #fff;
+  color: var(--adm-ink);
+  background: var(--adm-surface);
   font-family: inherit;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .searchInput:focus {
-  border-color: #0E9AB8;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
 }
 
 .resultCount {
   font-size: 13px;
-  color: #888;
+  color: var(--adm-ink-muted);
   white-space: nowrap;
 }
 
 /* ── State boxes (loading / empty) ── */
 .stateBox {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line);
   border-radius: 12px;
   padding: 48px 24px;
   text-align: center;
@@ -196,7 +196,7 @@
 
 .loadingText {
   font-size: 14px;
-  color: #aaa;
+  color: var(--adm-ink-faint);
   animation: pulse 1.2s ease-in-out infinite;
 }
 
@@ -208,13 +208,13 @@
 .emptyTitle {
   font-size: 16px;
   font-weight: 700;
-  color: #333;
+  color: var(--adm-ink-dark);
   margin: 0 0 6px;
 }
 
 .emptyHint {
   font-size: 13px;
-  color: #999;
+  color: var(--adm-ink-dim);
   margin: 0;
 }
 
@@ -222,26 +222,28 @@
 .tableWrap {
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--adm-line);
+  background: var(--adm-surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .table {
+  /* No direction override here. These tables are Hebrew — headers and data
+     both — and forcing ltr reversed the column order, so the first column
+     rendered leftmost. The columns that genuinely hold LTR data (email,
+     ids, dates) carry their own `direction: ltr` per cell. */
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
-  direction: ltr;
-  text-align: left;
 }
 
 .table th {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--adm-bg-alt);
+  border-bottom: 1px solid var(--adm-line);
   padding: 11px 16px;
   font-size: 11px;
   font-weight: 700;
-  color: #666;
+  color: var(--adm-ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -249,20 +251,20 @@
 
 .table td {
   padding: 11px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  color: #222;
+  border-bottom: 1px solid var(--adm-line-soft);
+  color: var(--adm-ink-darker);
   vertical-align: middle;
 }
 
 .table tbody tr:last-child td { border-bottom: none; }
 
-.table tbody tr:hover td { background: #fafafa; }
+.table tbody tr:hover td { background: var(--adm-bg); }
 
 /* ── Cell variants ── */
 .emailCell {
   font-size: 13px;
   font-weight: 500;
-  color: #111;
+  color: var(--adm-ink);
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -270,7 +272,7 @@
 }
 
 .nameCell {
-  color: #444;
+  color: var(--adm-ink-strong);
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -278,11 +280,11 @@
 }
 
 .numCol { text-align: center; }
-.numCell { text-align: center; font-variant-numeric: tabular-nums; color: #555; }
+.numCell { text-align: center; font-variant-numeric: tabular-nums; color: var(--adm-ink-mid); }
 
 .dateCell { color: #777; font-size: 13px; white-space: nowrap; }
 
-.muted { color: #bbb; }
+.muted { color: var(--adm-ink-fainter); }
 
 /* ── Role badges ── */
 .badgeAdmin,
@@ -298,28 +300,28 @@
 }
 
 .badgeAdmin {
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fde68a;
+  background: var(--adm-warn-bg-strong);
+  color: var(--adm-warn);
+  border: 1px solid var(--adm-warn-border);
 }
 
 .badgeUser {
-  background: #f4f4f5;
-  color: #555;
-  border: 1px solid #e5e7eb;
+  background: var(--adm-bg-sunken);
+  color: var(--adm-ink-mid);
+  border: 1px solid var(--adm-line);
 }
 
 /* ── Plan badges ── */
 .planFree {
   font-size: 13px;
-  color: #aaa;
+  color: var(--adm-ink-faint);
 }
 
 .planPro {
   display: inline-block;
-  background: #eff6ff;
+  background: var(--adm-info-bg);
   color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--adm-info-border);
   border-radius: 20px;
   padding: 2px 9px;
   font-size: 11px;
@@ -354,9 +356,9 @@
   gap: 4px;
   font-size: 11px;
   font-weight: 700;
-  color: #2a7a50;
-  background: #eaf6f0;
-  border: 1px solid #b2dac5;
+  color: var(--adm-ok-mid);
+  background: var(--adm-ok-bg-soft);
+  border: 1px solid var(--adm-ok-border-soft);
   border-radius: 20px;
   padding: 2px 9px;
   white-space: nowrap;
@@ -368,17 +370,23 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #2a7a50;
+  background: var(--adm-ok-mid);
   flex-shrink: 0;
 }
 
 /* ── Event count link ── */
 .eventsLink {
-  color: #0E9AB8;
+  color: var(--accent);
   text-decoration: none;
   font-weight: 700;
 }
 
 .eventsLink:hover {
   text-decoration: underline;
+}
+
+/* Says out loud that the list is a window, not the whole table. */
+.truncNote {
+  color: #b45309;
+  font-weight: 600;
 }

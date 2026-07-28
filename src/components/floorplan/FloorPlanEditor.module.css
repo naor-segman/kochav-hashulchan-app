@@ -55,29 +55,31 @@
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 .toolBtn:hover:not(:disabled) {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
-  color: var(--accent);
+  background: var(--bg);
+  border-color: var(--text2);
+  color: var(--text);
 }
 .toolBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* Filled = --cta. White on --accent is 3.80:1. No lift either: this toolbar
+   sits above a drag surface, and controls that move under the pointer on a
+   drag-driven screen are a hazard, not a flourish. */
 .toolBtnPrimary {
-  background: var(--accent);
+  background: var(--cta);
   border: none;
-  color: #fff;
+  color: var(--on-accent);
   border-radius: var(--radius);
   padding: 7px 16px;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
   font-family: inherit;
-  box-shadow: var(--shadow-accent);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  box-shadow: var(--shadow-cta);
+  transition: background var(--transition), box-shadow var(--transition);
 }
 .toolBtnPrimary:hover:not(:disabled) {
-  background: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
-  transform: translateY(-1px);
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
 }
 .toolBtnPrimary:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -102,9 +104,11 @@
 }
 
 /* ── Detection result card ───────────────────────────────────────────────── */
+/* A result the host has to accept or dismiss — it should stand out, which in
+   this system means the blush GROUND with near-black on it, not the accent. */
 .detectionCard {
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: var(--blush);
+  border: 1px solid var(--blush-line);
   border-radius: var(--radius-lg);
   padding: 16px 18px;
   margin-bottom: 12px;
@@ -121,6 +125,7 @@
 
 .detNote {
   font-size: 12px;
+  /* --muted is 3.60:1 on blush; --text2 is 5.60:1. */
   color: var(--text2);
   margin: 0;
   line-height: 1.5;
@@ -136,7 +141,7 @@
   font-size: 12px;
   font-weight: 600;
   background: var(--surface);
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--blush-line);
   border-radius: 20px;
   padding: 3px 10px;
   color: var(--text2);
@@ -179,24 +184,30 @@
 }
 
 /* ── Table chip overlaid on image ────────────────────────────────────────── */
+/* A marker sits on an arbitrary photograph, so it cannot rely on the pixels
+   underneath: it carries its OWN opaque ground (--surface) and its own hairline.
+   The old cream was a hardcoded literal at 92% opacity — the venue image bled
+   through every label, and the tint moved with whatever was behind it.
+   These genuinely float above the page, so --shadow-lg is legitimate here. */
 .tableChip {
   position: absolute;
   transform: translate(-50%, -50%);
   min-width: 120px;
   max-width: 180px;
-  background: rgba(251, 248, 243, 0.92);
-  backdrop-filter: blur(6px);
-  border: 1.5px solid var(--accent-border);
+  background: var(--surface);
+  border: 1px solid var(--border2);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
   z-index: 10;
   transition: box-shadow var(--transition), border-color var(--transition);
   user-select: none;
 }
 
+/* Raise it in the stack, do not move it: the chip is a drag target and a
+   marker that shifts out from under the pointer on hover is a dropped drag. */
 .tableChip:hover {
-  box-shadow: 0 6px 28px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.14);
+  border-color: var(--text2);
   z-index: 20;
 }
 
@@ -205,12 +216,15 @@
   box-shadow: none !important;
 }
 
+/* The live drop target. This is one of the two places on the canvas the accent
+   still earns its keep — it is the answer to "will it land here?". */
 .chipOver {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg), 0 4px 20px rgba(var(--accent-rgb),.25) !important;
+  box-shadow: 0 0 0 3px var(--accent-border), var(--shadow-lg);
 }
 
 .chipHandle {
+  touch-action: none;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -272,8 +286,18 @@
   white-space: nowrap;
 }
 
-.capOver { color: #f87171 !important; }
-.capWarn { color: #fbbf24 !important; }
+/* --red is 3.09:1 and --warn 3.00:1 against the near-black handle — both fail
+   as text. Filled instead: white on --red is 5.87:1, on --warn 5.28:1, and a
+   filled pill reads as a state at 10px in a way a tinted glyph never did. */
+.capOver,
+.capWarn {
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  color: var(--on-accent);
+  font-weight: 800;
+}
+.capOver { background: var(--red); }
+.capWarn { background: var(--warn); }
 
 .chipGuests {
   padding: 6px 8px;
@@ -290,24 +314,30 @@
 }
 
 /* ── Guest pills (inside chips + unassigned panel) ───────────────────────── */
+/* touch-action:none is required by dnd-kit — without it the browser treats the
+   touch as a page scroll and the drag reads as "stuck". */
+/* Up to a dozen of these stack inside every marker. Tinted pink they turned the
+   sketch into a pink cloud and buried the venue underneath; neutral, they read
+   as names on a card — which is all they are. */
 .guestPill {
+  touch-action: none;
   display: inline-flex;
   align-items: center;
   gap: 3px;
   font-size: 11px;
   font-weight: 600;
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 2px 8px;
   color: var(--text);
   cursor: grab;
   white-space: nowrap;
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  transition: background var(--transition), border-color var(--transition);
 }
 .guestPill:hover {
-  background: var(--accent-light);
-  box-shadow: var(--shadow-accent);
+  background: var(--surface);
+  border-color: var(--text2);
 }
 .guestPill:active { cursor: grabbing; }
 
@@ -317,13 +347,15 @@
 
 .pillCount {
   font-size: 10px;
-  color: var(--accent);
-  font-weight: 700;
+  color: var(--text2);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Drag overlay versions */
+/* A drag overlay genuinely floats — this is what --shadow-lg is for. */
 .overlayPill {
-  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  box-shadow: var(--shadow-lg);
   transform: scale(1.08);
   opacity: 0.95;
   cursor: grabbing;
@@ -375,15 +407,17 @@
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 .unplacedBtn:hover {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
-  color: var(--accent);
+  background: var(--surface);
+  border-color: var(--text2);
+  color: var(--text);
 }
-.unplacedBtnActive {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  box-shadow: var(--shadow-accent);
+/* "Armed — click the sketch to place it." A chosen state takes a GROUND with
+   near-black on it (12.30:1); white on --accent was 3.80:1. */
+.unplacedBtnActive,
+.unplacedBtnActive:hover {
+  background: var(--blush);
+  border-color: var(--blush-line);
+  color: var(--text);
 }
 
 /* ── Unassigned guests panel ─────────────────────────────────────────────── */
@@ -425,4 +459,162 @@
      the viewport and scroll the whole page sideways. Clip to the sketch here
      (desktop keeps overflow:visible — it has margin room to spare). */
   .imageContainer { overflow: hidden; }
+}
+
+/* ── Table shape glyph in the chip header ────────────────────────────────── */
+.chipShape {
+  opacity: 0.75;
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* ── Venue fixtures (chuppah, stage, bar…) ───────────────────────────────── */
+/* Deliberately flatter and quieter than a table chip: these are landmarks, not
+   things you interact with much, so they must not compete with the tables. */
+.venueMarker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  /* Opaque, for the same reason the table markers are: the label has to be
+     readable over whatever the photograph happens to put behind it. */
+  background: var(--surface);
+  border: 1.5px dashed var(--border2);
+  box-shadow: var(--shadow-md);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  white-space: nowrap;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  z-index: 8; /* under the table chips (z-index 10) — tables stay primary */
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+/* Landmarks are not the point of this canvas — they firm up, they do not glow,
+   and (drag surface) they do not move. */
+.venueMarker:hover {
+  border-color: var(--text2);
+}
+.venueMarker:active { cursor: grabbing; }
+
+.venueIcon  { font-size: 13px; line-height: 1; }
+.venueLabel { line-height: 1.3; }
+
+.venueRemove {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-inline-start: 2px;
+  border: none;
+  border-radius: 50%;
+  background: var(--border2);
+  color: var(--surface);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition), background var(--transition);
+}
+.venueMarker:hover .venueRemove { opacity: 1; }
+.venueRemove:hover { background: var(--red); }
+
+@media (max-width: 600px) {
+  /* No hover on touch — the remove button has to be permanently reachable. */
+  .venueRemove { opacity: 1; }
+  .venueMarker { font-size: 10px; padding: 3px 7px; }
+}
+
+/* ── View toggle (map / cards) ───────────────────────────────────────────── */
+.viewToggle {
+  display: inline-flex;
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-inline-end: 4px;
+}
+
+.viewBtn {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border: none;
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.viewBtn:hover { background: var(--bg); color: var(--text); }
+/* Same language as the segmented control everywhere else in the app: the
+   chosen segment takes a pale ground and darker ink, never a saturated fill. */
+.viewActive,
+.viewActive:hover { background: var(--accent-bg); color: var(--accent-text); }
+
+/* ── Card view ───────────────────────────────────────────────────────────── */
+/* The sketch answers "where", this answers "how full" — the thing you cannot
+   read off a map without counting chairs. */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.tableCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cardWarn { border-color: var(--warn); }
+.cardOver { border-color: var(--red); background: var(--red-bg); }
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.cardName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardCap {
+  margin-inline-start: auto;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cardOver .cardCap { color: var(--red); }
+.cardWarn .cardCap { color: var(--warn); }
+
+.cardBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cardUnplaced {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
 }

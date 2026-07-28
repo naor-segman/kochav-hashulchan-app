@@ -26,16 +26,29 @@ function planBadgeClass(plan, s) {
 // Subscriptions are embedded via FK relationship; we take the first active one,
 // falling back to any subscription, then to plan='free'.
 
+const USERS_PAGE = 500;
+
 async function loadUsersData() {
-  const [profilesRes, eventsRes] = await Promise.all([
+  const [profilesRes, eventsRes, totalRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, email, full_name, role, created_at, subscriptions(plan, status)")
+      // subscriptions ordered: without it PostgREST returns the embed in an
+      // arbitrary order, so a user with two active rows could show a stale plan
+      // here while the customer app showed the current one.
+      .select("id, email, full_name, role, created_at, subscriptions(plan, status, started_at)")
       .order("created_at", { ascending: false })
-      .limit(500),
+      .order("started_at", { referencedTable: "subscriptions", ascending: false })
+      .limit(USERS_PAGE),
+    // Ordered and explicitly ranged. An unbounded select is silently capped at
+    // PostgREST's max-rows (1000 by default), so past that the per-user counts
+    // were computed from an arbitrary subset — a customer with 8 events showed
+    // "3", with nothing indicating the number was wrong.
     supabase
       .from("events")
-      .select("user_id"),
+      .select("user_id")
+      .order("user_id", { ascending: true })
+      .range(0, 99999),
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
   ]);
 
   if (profilesRes.error) throw profilesRes.error;
@@ -46,12 +59,12 @@ async function loadUsersData() {
     eventCounts[user_id] = (eventCounts[user_id] || 0) + 1;
   });
 
-  return (profilesRes.data || []).map((p) => {
+  const rows = (profilesRes.data || []).map((p) => {
     const subs = p.subscriptions || [];
     // Prefer a currently-effective plan (active, then trialing) over an arbitrary
     // historical row PostgREST happened to return first.
-    const sub  = subs.find((s) => s.status === "active")
-              ?? subs.find((s) => s.status === "trialing")
+    // Same rule usePlan() applies, so support and the customer see one plan.
+    const sub  = subs.find((s) => s.status === "active" || s.status === "trialing")
               ?? subs[0];
     return {
       id:          p.id,
@@ -63,6 +76,12 @@ async function loadUsersData() {
       event_count: eventCounts[p.id] || 0,
     };
   });
+
+  // The true row count, so the screen can say "500 of 1,240" instead of
+  // presenting a truncated window as the whole customer base.
+  rows.total = totalRes.count ?? rows.length;
+  rows.truncated = rows.length >= USERS_PAGE;
+  return rows;
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -162,10 +181,16 @@ export default function AdminUsersScreen() {
           {!loading && !error && (
             <span className={styles.resultCount}>
               {filtered.length.toLocaleString()}
-              {users && filtered.length !== users.length
-                ? ` מתוך ${users.length.toLocaleString()}`
+              {/* Against the TRUE total, not the loaded window. Showing the
+                  window as the total made the 501st signup invisible, and made
+                  "not found" look like the customer's data was gone. */}
+              {users && filtered.length !== (users.total ?? users.length)
+                ? ` מתוך ${(users.total ?? users.length).toLocaleString()}`
                 : ""
               } משתמשים
+              {users?.truncated && (
+                <span className={styles.truncNote}> · מוצגים {USERS_PAGE} הראשונים</span>
+              )}
             </span>
           )}
         </div>

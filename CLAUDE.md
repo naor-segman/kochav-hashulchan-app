@@ -67,7 +67,7 @@ src/
 
 ## CSS rules
 - Use **V1 CSS variables only**: `--accent`, `--bg`, `--surface`, `--border`, `--text`, `--muted`, `--warn`, `--red`, `--green`, etc.
-- Do **not** use the new semantic token system (`--color-gold-*`, `--font-size-*`, `--space-*`) — it exists in tokens.css but is unused dead code.
+- Do **not** introduce NEW usage of the semantic token system (`--font-size-*`, `--space-*`) in component CSS. It is *not* dead code — `reset.css` and `utilities.css` depend on `--font-size-base`, `--font-weight-*`, `--line-height-*` and `--space-*`, and `--container-max` is used by four screen modules. Deleting them breaks the app. (`--color-gold-*` no longer exists at all.) Only 15 of the semantic tokens are genuinely unused.
 - Use CSS Modules (`*.module.css`) for component-scoped styles.
 - RTL is enforced globally via `dir="rtl"` on `<html>`.
 - Use logical CSS properties (`margin-inline`, `padding-inline-start`, etc.) for RTL correctness.
@@ -86,6 +86,97 @@ src/
 7. Never touch unrelated files.
 
 ---
+
+## How this project is worked on
+
+**One person builds this.** Address them in the singular in Hebrew. There is no
+team, no reviewer, no designer to hand something to — if it is wrong, it ships
+wrong. That is also why every finding below was worth the time it took to find.
+
+**Paste in the chat, don't send files.** Migrations, plans, code they need to
+copy — inline. They read on a phone.
+
+**Verify by execution, not assertion.** The standard on this project is that a
+claim is measured, not argued: run the function and show the output, drive the
+browser and read the result back out of `localStorage`, compute the contrast
+ratio instead of judging it by eye. Several times a confident-sounding analysis
+turned out to be wrong and only execution caught it — including a fuzz run that
+cleared the seating engine on capacity and locks while missing a broken
+"together" constraint entirely, because the check simply did not test for it.
+
+**Report honestly, including your own mistakes.** Multiple regressions in this
+history were introduced by the assistant and caught later by a review agent.
+Say so plainly in the commit and in the chat, correct it, move on. Do not
+describe partial work as finished — when a discipline pass covered 12 of 47
+files, the report says 12 of 47.
+
+**A verification agent's finding is not automatically true either.** Check it
+against the code before acting. Real examples from this repo: an agent called
+a colour pairing a defect in the reference design when the reference never uses
+that pairing; another reported four "failures" that were bugs in its own test
+selectors. Fix the check, not the code, when the check is what is wrong.
+
+**Never push to `main`.** Work on the designated branch.
+
+## Decisions already made — do not re-open without being asked
+
+- **Income before features (27.7).** Every feature is measured against "does
+  this bring a shekel closer?"
+- **The free/paid split is FROZEN** at the owner's explicit request. Do not
+  propose or implement it until they raise it.
+- **The palette is magenta**, chosen by the owner from an Isracard reference,
+  after analysis. The collisions it created were fixed rather than used as an
+  argument against it. Do not re-litigate the hue.
+- **A gold palette was proposed and rejected** — it measured ΔE 8.5 from the
+  warning colour, i.e. indistinguishable from it.
+- **Do not copy evenzza.** Learn the level of craft, build our own language. A
+  site that looks like a clone of a competitor is not impressive, it is
+  embarrassing.
+- **Invented statistics were removed from the landing page** and must not come
+  back. A product this new has not earned those numbers.
+- **Event-site themes stay independent of the app palette.** The host picks
+  what their guests see; forcing the brand onto it is a product regression.
+
+## Bug classes this codebase produces repeatedly
+
+Check for these first — each has bitten more than once:
+
+1. **English keys where Hebrew strings are stored.** Event types are the Hebrew
+   strings in `constants.js EVENT_TYPES`. `type === "wedding"` silently matches
+   nothing and falls through to a default. Three tests once encoded this bug as
+   if it were correct behaviour.
+2. **Dates shifted a day.** `toISOString()` on a local-midnight Date, and
+   `new Date("YYYY-MM-DD")` (parsed as UTC), both land on the previous day east
+   of Greenwich. Fixed-millisecond arithmetic (`days * 86400000`) breaks across
+   a DST transition. Use local parts and calendar arithmetic.
+3. **Fields that do not survive the cloud round-trip.** A value written locally
+   but missing from either mapper in `cloudSync.js` is silent data loss. This
+   has happened three times. A mutation run showed 11 of 12 destructive edits
+   to that file passed the whole test suite.
+4. **Accent used as text.** `--accent` is 3.8:1 and is for fills only. The token
+   for text is `--accent-text` on light grounds, `--accent-on-dark` on dark.
+5. **Contrast measured against the wrong ground.** A tint is a ground: `--muted`
+   is 5.3:1 on white and 4.4:1 on the warm danger tint. Always compute against
+   the element's actual background, not against white.
+6. **CSS Modules fail silently.** A renamed class leaves `styles.foo` undefined,
+   React renders `class="undefined"`, and the element loses all styling with no
+   error. `qa/cssmod.mjs` catches it.
+
+## Environment traps
+
+- **Chromium** is at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` and
+  must be launched with `args:['--no-proxy-server']`, or localhost is routed
+  through the agent proxy and every request fails. Resolve Playwright with
+  `createRequire('/home/user/kochav-hashulchan-app/')`.
+- **Never use `scrollWidth` to detect horizontal overflow.** An internally
+  scrollable child inflates it on every ancestor. Use `window.scrollTo(9999,0)`
+  and check whether `window.scrollX` actually moved. The old method once sent an
+  afternoon into "fixing" CSS that was already correct.
+- **Outbound HTTP is blocked** by the proxy for most hosts, including competitor
+  sites. Say so rather than inventing findings.
+- **`npm run lint` runs `eslint .` and reports 10 errors** — all pre-existing,
+  in `legacy/`, `netlify/` and `qa_test.js`. `npx eslint src` is the meaningful
+  one and is at 0 errors.
 
 ## Commit message format
 ```
@@ -108,6 +199,7 @@ chore(cleanup): remove unused CSS token system
 ---
 
 ## Known technical debt (do not reproduce)
-- `seating.js` is marked "V1 — copied from legacy". The algorithm works but has no tests. Do not refactor without adding tests first.
+- `seating.js` is marked "V1 — copied from legacy". ~~No tests.~~ **Covered since 27.7** — `seating.test.js` + `seatingStress.test.js` + `seatingAnalysis.test.js` pin capacity, together/apart constraints, locks and overbooking. Refactors are now safe to attempt against that suite.
+- **Lint:** `react-hooks/set-state-in-effect` is downgraded to `warn` in `eslint.config.js` (24 sites, all the same load-then-setState shape). Do not add new ones; see the comment there before "fixing" them mechanically.
 - Feature gates in `featureGates.js` are **soft (client-side only)**. Server-side RLS enforcement is planned but not implemented.
-- `setStorageAdapter()` in `storage.js`, and `isLocalNewer()` / `isSynced()` in `cloudSync.js` are dead code — implemented but never called. Do not wire them up without a clear plan.
+- ~~`setStorageAdapter()` in `storage.js`, and `isLocalNewer()` / `isSynced()` in `cloudSync.js` are dead code.~~ **Resolved (27.7)** — verified gone; `storage.js` now exports only `userStorageKey` / `loadState` / `persist`, and `cloudSync.js` only the mappers and the four cloud CRUD calls.

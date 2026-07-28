@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
 import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
+import { parseGuestList, countWithPhone } from "../utils/parseGuestList.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canAddGuest } from "../utils/featureGates.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -138,13 +139,17 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
 
+  // Parsed live so the button can say exactly what will be added — including
+  // how many phones were detected, which is the point of the paste.
+  const parsedList      = useMemo(() => parseGuestList(listText), [listText]);
+  const parsedWithPhone = countWithPhone(parsedList);
+
   const addFromList = () => {
-    const names = listText
-      .split(/\n/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-    if (names.length === 0) return;
-    if (maxGuests !== Infinity && ev.guests.length + names.length > maxGuests) {
+    // Reads a name AND a phone per line, so a WhatsApp/spreadsheet paste lands
+    // complete instead of leaving hundreds of numbers to type by hand.
+    const rows = parseGuestList(listText);
+    if (rows.length === 0) return;
+    if (maxGuests !== Infinity && ev.guests.length + rows.length > maxGuests) {
       const remaining = Math.max(0, maxGuests - ev.guests.length);
       showToast(
         remaining === 0
@@ -154,12 +159,16 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       );
       return;
     }
-    const newGuests = names.map(name => ({
-      id: uid(), name, count: 1, side: listSide, group: listGroup,
-      phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
+    const newGuests = rows.map(r => ({
+      id: uid(), name: r.name, count: 1, side: listSide, group: listGroup,
+      phone: r.phone, notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
     }));
     patchEvent(e => Object.assign({}, e, { guests: e.guests.concat(newGuests) }));
-    showToast("נוספו " + newGuests.length + " אורחים ✓");
+    const withPhone = countWithPhone(rows);
+    showToast(
+      "נוספו " + newGuests.length + " אורחים" +
+      (withPhone ? ` (${withPhone} עם טלפון)` : "") + " ✓"
+    );
     setListText("");
     setShowList(false);
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
@@ -177,6 +186,13 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     patchEvent(e => Object.assign({}, e, {
       guests:  e.guests.filter(g => g.id !== id),
       seating: Object.fromEntries(Object.entries(e.seating).filter(([gid]) => gid !== id)),
+      // Constraints too. ConstraintsScreen hides rows whose guest is gone, but
+      // autoAssign still unions through them — so two guests stayed glued
+      // together by a rule the host could no longer see or delete, and a third
+      // guest could be left unseated by it. The collab delete path already did
+      // this; the two were out of step.
+      constraints:  (e.constraints  || []).filter(c => c.guestA !== id && c.guestB !== id),
+      lockedGuests: (e.lockedGuests || []).filter(g => g !== id),
     }));
     showToast(name + " הוסר/ה מהרשימה ✓");
   };
@@ -476,12 +492,15 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         {showList && !editId && (
           <div className={styles.listAddPanel}>
             <div className={styles.listAddTitle}>הוסיפו אורחים לפי רשימה</div>
-            <p className={styles.listAddHint}>הכניסו שם אחד בכל שורה. כל האורחים יקבלו את אותו הצד והקבוצה.</p>
+            <p className={styles.listAddHint}>
+              שם אחד בכל שורה. אפשר להדביק גם רשימה מוואטסאפ או מגיליון —
+              אם יש טלפון בשורה, הוא ייקלט אוטומטית. כל האורחים יקבלו את אותו הצד והקבוצה.
+            </p>
             <textarea
               className={[base.input, styles.listAddTextarea].join(" ")}
               value={listText}
               onChange={e => setListText(e.target.value)}
-              placeholder={"דוד לוי\nשרה כהן\nמשפחת אברהם\n..."}
+              placeholder={"דוד לוי\nשרה כהן, 050-1234567\n~משפחת אברהם\t0521234567\n..."}
               rows={6}
               autoFocus
             />
@@ -510,9 +529,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               <button
                 className={base.btnPrimary}
                 onClick={addFromList}
-                disabled={!listText.trim()}
+                disabled={parsedList.length === 0}
               >
-                + הוסיפו {listText.trim() ? listText.split("\n").filter(s => s.trim()).length : 0} אורחים
+                + הוסיפו {parsedList.length} אורחים
+                {parsedWithPhone > 0 ? ` (${parsedWithPhone} עם טלפון)` : ""}
               </button>
               <button className={base.btnSecondary} onClick={() => setShowList(false)}>ביטול</button>
             </div>
@@ -531,18 +551,18 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             placeholder="🔍 חיפוש לפי שם..."
             onChange={e => setFilter(p => Object.assign({}, p, { search: e.target.value }))}
           />
-          <select className={base.select} style={{ minWidth: 130 }} value={filter.side}
+          <select className={base.select} aria-label="סינון לפי צד" style={{ minWidth: 130 }} value={filter.side}
             onChange={e => setFilter(p => Object.assign({}, p, { side: e.target.value }))}>
             <option value="all">כל הצדדים</option>
             <option value="bride">{sideLabel("bride")}</option>
             <option value="groom">{sideLabel("groom")}</option>
           </select>
-          <select className={base.select} style={{ minWidth: 140 }} value={filter.group}
+          <select className={base.select} aria-label="סינון לפי קבוצה" style={{ minWidth: 140 }} value={filter.group}
             onChange={e => setFilter(p => Object.assign({}, p, { group: e.target.value }))}>
             <option value="all">כל הקבוצות</option>
             {groups.map(g => <option key={g}>{g}</option>)}
           </select>
-          <select className={base.select} style={{ minWidth: 120 }} value={filter.rsvp}
+          <select className={base.select} aria-label="סינון לפי סטטוס הגעה" style={{ minWidth: 120 }} value={filter.rsvp}
             onChange={e => setFilter(p => Object.assign({}, p, { rsvp: e.target.value }))}>
             <option value="all">כל הסטטוסים</option>
             {RSVP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

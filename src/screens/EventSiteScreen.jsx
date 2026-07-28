@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
-import { getSiteTheme } from "../data/eventSiteTemplates.js";
+import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
+import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
 import styles from "./EventSiteScreen.module.css";
 
 // Map a local (host-owned) event into the public-site shape, so the host can
@@ -93,11 +94,14 @@ export default function EventSiteScreen({ localEvent }) {
   }, [ev?.giftToken, site?.sections?.blessings]);
 
   const theme = useMemo(() => getSiteTheme(site?.themeKey), [site?.themeKey]);
+  const font  = useMemo(() => getSiteFont(site?.fontKey), [site?.fontKey]);
   const themeVars = useMemo(() => ({
     "--s-bg": theme.bg, "--s-surface": theme.surface, "--s-ink": theme.ink,
     "--s-muted": theme.muted, "--s-accent": theme.accent, "--s-accent-soft": theme.accentSoft,
     "--s-line": theme.line, "--s-on-accent": theme.onAccent,
-  }), [theme]);
+    // Headings read from this; body text stays on the base family for legibility.
+    "--s-heading-font": font.stack,
+  }), [theme, font]);
 
   if (state === "loading") {
     return <div className={styles.stateWrap}><span className={styles.stateStar}>✦</span><p>טוען…</p></div>;
@@ -241,6 +245,24 @@ export default function EventSiteScreen({ localEvent }) {
                 target="_blank" rel="noopener noreferrer"
               >ניווט ב-Waze ←</a>
             )}
+            {/* .ics rather than a Google/Outlook link: opens in whatever
+                calendar the guest actually uses, with no account. */}
+            {ev?.date && (
+              <button
+                type="button"
+                className={styles.locBtnGhost}
+                onClick={() => {
+                  const ics = buildEventIcs({
+                    name:      ev.name,
+                    date:      ev.date,
+                    venue:     site.address || ev.venue,
+                    startTime: (site.schedule || [])[0]?.time,
+                    url:       window.location.href,
+                  });
+                  if (ics) downloadIcs(ics, icsFileName(ev.name));
+                }}
+              >📅 הוסיפו ליומן</button>
+            )}
           </div>
         </section>
       )}
@@ -342,7 +364,7 @@ export default function EventSiteScreen({ localEvent }) {
 
 function Countdown({ date, styles }) {
   const target = useMemo(() => new Date(date + "T18:00:00").getTime(), [date]);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
@@ -353,7 +375,10 @@ function Countdown({ date, styles }) {
   const m = Math.floor((diff % 3600000) / 60000);
   const s = Math.floor((diff % 60000) / 1000);
   const pad = (n) => String(n).padStart(2, "0");
-  const units = [[d, "ימים"], [pad(h), "שעות"], [pad(m), "דקות"], [pad(s), "שניות"]];
+  // The day figure is the one a guest reads as a sentence ("עוד 1 ימים" the
+  // day before the wedding); the padded clock units always read as numerals.
+  const dayLabel = d === 1 ? "יום" : d === 2 ? "יומיים" : "ימים";
+  const units = [[d, dayLabel], [pad(h), "שעות"], [pad(m), "דקות"], [pad(s), "שניות"]];
   return (
     <section className={styles.section}>
       <h2 className={styles.secTitle}>הספירה לקראת האירוע</h2>

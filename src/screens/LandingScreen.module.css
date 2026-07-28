@@ -35,6 +35,9 @@
 }
 
 .navLogoMark {
+  /* On the near-black nav, --accent-text (#B01253) is 2.66:1 — it disappeared.
+     --accent-text is calibrated for LIGHT grounds; on the dark chrome the
+     saturated --accent is the legible member of the family (4.84:1). */
   color: var(--accent);
   font-size: 22px;
   line-height: 1;
@@ -88,7 +91,9 @@
 }
 
 .navCta {
-  background: var(--accent);
+  /* --accent under a white label is 3.80:1 and fails AA. --cta is the same hue
+     deepened exactly for this job (4.70:1) — that is what it exists for. */
+  background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
   font-size: 14px;
@@ -101,8 +106,8 @@
 }
 
 .navCta:hover {
-  background: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
   transform: translateY(-1px);
 }
 
@@ -157,14 +162,14 @@
 .mobileMenuCta {
   margin-top: 8px;
   text-align: center;
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
   font-size: 16px;
   font-weight: 700;
   padding: 13px 22px;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-cta);
 }
 
 /* Sticky-nav offset so anchor jumps land below the bar, not under it. */
@@ -247,7 +252,10 @@
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  color: var(--accent);
+  /* Was --accent-text on the near-black hero: 2.66:1, a line nobody could
+     read. Blush is a GROUND colour and reads 12.5:1 here, which lets the
+     eyebrow be quiet without being invisible. */
+  color: var(--blush);
   font-size: 13px;
   font-weight: 600;
   padding: 0;
@@ -271,7 +279,7 @@
 
 .heroHeadline {
   font-family: var(--font-family-serif);
-  font-size: clamp(3rem, 8vw, 5.75rem);
+  font-size: clamp(3.25rem, 8.6vw, 6.25rem);
   font-weight: 700;
   color: var(--nav-text);
   line-height: 1.08;
@@ -279,6 +287,12 @@
   letter-spacing: -0.01em;
 }
 
+/* The one deliberate accent-as-type moment on the whole site. It survives the
+   "no accent on text" rule because that rule is written for light grounds: on
+   #14161A the saturated accent is 4.84:1, which clears AA even at body size,
+   and at ~100px it is the page's single loudest note. Everything else on this
+   hero is now white, blush or grey so that this line has nothing to compete
+   with. */
 .heroGold {
   color: var(--accent);
   display: block;
@@ -304,20 +318,20 @@
 
 .heroCta {
   display: inline-block;
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
   font-size: 1.05rem;
   font-weight: 700;
   padding: 15px 40px;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-accent-lg);
+  box-shadow: var(--shadow-cta-lg);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .heroCta:hover {
-  background: var(--accent-dark);
-  box-shadow: 0 8px 32px rgba(var(--accent-rgb),0.55);
+  background: var(--cta-dark);
+  box-shadow: 0 8px 32px rgba(var(--cta-rgb),0.55);
   transform: translateY(-2px);
 }
 
@@ -346,79 +360,44 @@
   margin: 0;
 }
 
-/* ── Stats bar ── */
-
-.statsBar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-
-.statsInner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.statItem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 28px 44px;
-  position: relative;
-}
-
-.statDivider {
-  width: 1px;
-  background: var(--border);
-  align-self: stretch;
-  margin: 16px 0;
-}
-
-.statNum {
-  font-size: 2.1rem;
-  font-weight: 800;
-  color: var(--accent);
-  line-height: 1;
-  margin-bottom: 6px;
-  letter-spacing: -0.02em;
-}
-
-.statLabel {
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 500;
-}
-
 /* ── Shared section scaffolding ── */
 
 .sectionInner {
   max-width: var(--container-max);
   margin: 0 auto;
-  padding: 88px 24px;
+  padding: 96px 24px;
+}
+
+/* The dark bands are the page's punctuation — they get more air than the light
+   ones so they read as deliberate rests rather than another block. */
+.howSection .sectionInner,
+.ctaBanner .ctaBannerInner {
+  padding-block: 120px;
 }
 
 .sectionHeader {
   text-align: center;
-  margin-bottom: 60px;
+  /* One big statement, then a gap. The header is the section's whole voice, so
+     it stands clear of the grid instead of hovering just above it. */
+  margin-bottom: 64px;
+  max-width: 680px;
+  margin-inline: auto;
 }
 
 .sectionTag {
   display: inline-block;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.22em;
   margin-bottom: 16px;
 }
 
+/* Same eyebrow, dark ground. --accent-text was 2.66:1 here and read as a
+   smudge; blush is 12.5:1 on #14161A. */
 .sectionTagLight {
   display: inline-block;
-  color: var(--accent);
+  color: var(--blush);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -427,30 +406,32 @@
 
 .sectionTitle {
   font-family: var(--font-family-serif);
-  font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+  font-size: clamp(2rem, 4.6vw, 3.2rem);
   font-weight: 700;
   color: var(--text);
-  line-height: 1.15;
-  margin: 0 0 16px;
+  line-height: 1.12;
+  margin: 0 0 18px;
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .sectionTitleLight {
   font-family: var(--font-family-serif);
-  font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+  font-size: clamp(2rem, 4.6vw, 3.2rem);
   font-weight: 700;
   color: var(--nav-text);
-  line-height: 1.15;
-  margin: 0 0 16px;
+  line-height: 1.12;
+  margin: 0 0 18px;
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .sectionSub {
-  font-size: 1rem;
+  font-size: var(--step-1);
   color: var(--muted);
-  max-width: 540px;
+  max-width: 46ch;
   margin: 0 auto;
-  line-height: 1.75;
+  line-height: 1.7;
 }
 
 /* ── Features ── */
@@ -480,25 +461,9 @@
   transform: translateY(-4px);
 }
 
-.featureIconWrap {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 20px;
-  color: var(--accent);
-}
-
-.featureIcon {
-  color: var(--accent);
-  display: inline-flex;
-}
-
-.featureIcon svg {
-  width: 30px;
-  height: 30px;
-}
+/* .featureIconWrap / .featureIcon are defined once, in the GRAPHICS block at the
+   foot of this file — an earlier duplicate here was fully superseded by it and
+   only made the accent audit look worse than it was. */
 
 .featureTitle {
   font-size: 1.05rem;
@@ -546,9 +511,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 800;
-  color: var(--accent);
+  /* The step numbers were --accent-text inside a 14%-accent disc on near-black:
+     around 2.5:1, effectively unreadable. Blush on the same disc is ~10:1 and
+     the disc still carries the brand tint. */
+  color: var(--blush);
   letter-spacing: 0.02em;
   margin-bottom: 18px;
   flex-shrink: 0;
@@ -619,7 +587,7 @@
 
 .testStars {
   font-size: 14px;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: 2px;
 }
 
@@ -641,8 +609,11 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
+  /* Three saturated discs plus three rows of stars made this section the
+     loudest on the page for no reason. Blush ground / near-black initial is the
+     same primitive as .trustChip, and it hands the emphasis back to the stars. */
+  background: var(--blush);
+  color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -687,10 +658,15 @@
   position: relative;
 }
 
+/* The recommended plan. Previously it stacked four signals — a near-black
+   ground, an accent border, an accent glow and accent type — and the type on
+   that ground was 2.66:1. Blush does the whole job with ONE move: it is a
+   ground, it carries near-black at 12.5:1, and against the grey section it is
+   unmistakable. The only saturated thing left on the card is its button. */
 .pricingCardPro {
-  background: var(--nav-bg);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-accent-lg);
+  background: var(--blush);
+  border-color: var(--blush-line);
+  box-shadow: var(--shadow-md);
   transform: scale(1.04);
 }
 
@@ -699,7 +675,7 @@
   top: -13px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
   font-size: 11px;
   font-weight: 700;
@@ -717,7 +693,7 @@
 }
 
 .pricingCardPro .planName {
-  color: var(--nav-text);
+  color: var(--text);
 }
 
 .planPriceRow {
@@ -735,8 +711,13 @@
   line-height: 1;
 }
 
+/* 4.71:1 on blush — the one accent-coloured thing inside the card. */
 .pricingCardPro .planNum {
-  color: var(--accent);
+  color: var(--accent-text);
+}
+
+.pricingCardPro .planPer {
+  color: var(--text2);
 }
 
 .planPer {
@@ -762,8 +743,9 @@
   line-height: 1.45;
 }
 
+/* --muted is only 3.60:1 on blush; --text2 is 5.60:1. */
 .pricingCardPro .planFeatures li {
-  color: var(--nav-muted);
+  color: var(--text2);
 }
 
 .planFeatures li::before {
@@ -776,7 +758,7 @@
 }
 
 .pricingCardPro .planFeatures li::before {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .planCta {
@@ -796,21 +778,21 @@
 .planCta:hover {
   background: var(--accent-bg);
   border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .planCtaPro {
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-accent);
+  border-color: var(--cta);
+  box-shadow: var(--shadow-cta);
 }
 
 .planCtaPro:hover {
-  background: var(--accent-dark);
+  background: var(--cta-dark);
   color: var(--on-accent);
-  border-color: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
+  border-color: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
 }
 
 .pricingFooter {
@@ -818,7 +800,7 @@
 }
 
 .pricingMoreLink {
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
@@ -850,8 +832,8 @@
 .ctaStar {
   display: block;
   font-size: 44px;
-  color: var(--accent);
-  opacity: 0.25;
+  color: var(--blush);
+  opacity: 0.42;
   margin-bottom: 24px;
   animation: landingSpin 20s linear infinite;
   line-height: 1;
@@ -874,21 +856,21 @@
 
 .ctaBtn {
   display: inline-block;
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
   font-size: 1.05rem;
   font-weight: 700;
   padding: 15px 44px;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-accent-lg);
+  box-shadow: var(--shadow-cta-lg);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
   margin-bottom: 20px;
 }
 
 .ctaBtn:hover {
-  background: var(--accent-dark);
-  box-shadow: 0 8px 32px rgba(var(--accent-rgb),0.55);
+  background: var(--cta-dark);
+  box-shadow: 0 8px 32px rgba(var(--cta-rgb),0.55);
   transform: translateY(-2px);
 }
 
@@ -943,8 +925,11 @@
 /* ── App mock preview card ── */
 
 .mockCard {
-  background: rgba(var(--nav-text-rgb), 0.05);
-  border: 1px solid rgba(var(--nav-text-rgb), 0.14);
+  /* A real card, not a 5%-white ghost. This is the product proof — the one
+     place a visitor sees what they are actually buying — and at 5% opacity on
+     a near-black hero it was invisible. */
+  background: rgba(var(--nav-text-rgb), 0.97);
+  border: 1px solid rgba(var(--text-rgb), 0.10);
   border-radius: var(--radius-lg);
   padding: 22px;
   width: 280px;
@@ -964,12 +949,12 @@
   align-items: center;
   gap: 8px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(var(--nav-text-rgb), 0.1);
+  border-bottom: 1px solid rgba(var(--text-rgb), 0.10);
   margin-bottom: 14px;
 }
 
 .mockCardMark {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 14px;
   line-height: 1;
   animation: landingSpin 20s linear infinite;
@@ -978,7 +963,7 @@
 .mockCardTitle {
   font-size: 10px;
   font-weight: 700;
-  color: var(--nav-text);
+  color: var(--text);
   flex: 1;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -987,7 +972,7 @@
 .mockCardStat {
   font-size: 9px;
   background: rgba(var(--accent-rgb), 0.14);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid rgba(var(--accent-rgb), 0.28);
   border-radius: 999px;
   padding: 2px 10px;
@@ -1031,21 +1016,21 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: rgba(var(--nav-text-rgb), 0.18);
+  background: rgba(var(--text-rgb), 0.14);
   flex-shrink: 0;
 }
 
 .mockTableLabel {
   font-size: 7px;
   font-weight: 700;
-  color: var(--nav-muted);
+  color: var(--muted);
   text-align: center;
   white-space: nowrap;
   letter-spacing: 0.02em;
 }
 
 .mockCardFoot {
-  border-top: 1px solid rgba(var(--nav-text-rgb), 0.1);
+  border-top: 1px solid rgba(var(--text-rgb), 0.10);
   padding-top: 10px;
   text-align: center;
 }
@@ -1053,7 +1038,7 @@
 .mockCardFootBadge {
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: 0.04em;
 }
 
@@ -1102,20 +1087,6 @@
   }
 }
 
-@media (max-width: 700px) {
-  .statItem {
-    padding: 20px 24px;
-  }
-
-  .statDivider {
-    display: none;
-  }
-
-  .statsInner {
-    justify-content: space-evenly;
-  }
-}
-
 @media (max-width: 600px) {
   .navLinks {
     display: none;
@@ -1157,3 +1128,194 @@
     text-align: center;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GRAPHICS — the shape language.
+
+   Three primitives, used everywhere: a filled brand chip that carries an icon,
+   a flat geometric diamond, and a soft tint wash. Nothing here is a gradient
+   glow or a drop shadow pretending to be paper — flat blocks with real spacing
+   is what makes a page read as confident rather than decorated.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* The chip: a solid brand circle carrying a white icon. This is the single most
+   recognisable graphic element — it turns a plain list into a designed one. */
+.featureIconWrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  box-shadow: 0 6px 18px rgba(var(--accent-rgb), .28);
+  transition: transform var(--transition-slow) var(--ease-out),
+              box-shadow var(--transition-slow) var(--ease-out);
+}
+.featureIcon { display: inline-flex; }
+.featureIcon,
+.featureIcon svg {
+  /* Near-black, not white. The reference's chips carry a dark glyph, and it is
+     also the only one that passes on this fill: #14161A is 4.76:1 where white
+     is 3.80:1. The detail and the correctness happen to agree. */
+  color: var(--text);
+  stroke: var(--text);
+  width: 24px;
+  height: 24px;
+}
+
+.featureCard:hover .featureIconWrap {
+  transform: translateY(-3px) rotate(-6deg);
+  box-shadow: 0 10px 26px rgba(var(--accent-rgb), .38);
+}
+
+/* Every other chip alternates to the deeper fill, so a grid of six reads as a
+   composition rather than six identical dots. */
+.featureCard:nth-child(3n+2) .featureIconWrap { background: var(--blush); box-shadow: none; }
+.featureCard:nth-child(3n)   .featureIconWrap { background: var(--text); }
+.featureCard:nth-child(3n)   .featureIcon,
+.featureCard:nth-child(3n)   .featureIcon svg { color: var(--blush); stroke: var(--blush); }
+
+/* The diamond — a 45°-rotated square, the reference's core decorative form.
+   Purely presentational, so it is aria-hidden at the call site. */
+.gfxDiamond {
+  position: absolute;
+  border-radius: 22%;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+/* A soft tint wash behind a section, to break the run of white without
+   introducing another colour. */
+.gfxWash {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: .5;
+  pointer-events: none;
+}
+
+/* ── Product showcase — the real app, not an illustration of it ──────────── */
+.showcase {
+  position: relative;
+  overflow: hidden;
+  padding: 96px 0;
+  background: var(--surface);
+}
+
+/* .showcase and .trust both wrap .sectionInner, which already carries 96px of
+   block padding — so every one of these bands was rendering ~160px of dead air
+   top and bottom and the ground rhythm read as a series of empty rooms rather
+   than a composition. The wrappers own the vertical rhythm; the inner element
+   owns only the gutter. */
+.showcase .sectionInner,
+.trust .sectionInner {
+  padding-block: 0;
+}
+
+/* The rhythm: white → grey → blush. Three grounds, so scrolling feels composed
+   rather than like one long page with dividers. */
+.showcaseAlt   { background: var(--bg); }
+.showcaseBlush { background: var(--blush); }
+.showcaseBlush .showcaseBody,
+.showcaseBlush .showcaseList li { color: var(--text2); }
+.showcaseBlush .showcaseEyebrow { background: var(--surface); }
+.showcaseBlush .shotPlinth      { background: rgba(var(--text-rgb), .07); }
+.showcaseBlush .showcaseTick    { background: var(--surface); color: var(--accent-text); }
+
+.showcaseGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+.showcaseGrid + .showcaseGrid { margin-top: 56px; }
+.showcaseGrid:nth-child(even) .showcaseText { order: 2; }
+
+.showcaseEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--step--1);
+  font-weight: 800;
+  letter-spacing: .06em;
+  /* Blush ground with near-black text, the way the reference sets its pills —
+     not tinted text on a tinted ground, which reads washed out. */
+  color: var(--text);
+  background: var(--blush);
+  border-radius: var(--radius-pill);
+  padding: 6px 16px;
+  margin-bottom: 16px;
+}
+
+.showcaseTitle {
+  font-family: "Frank Ruhl Libre", Georgia, serif;
+  font-size: var(--step-3);
+  line-height: 1.2;
+  color: var(--text);
+  margin: 0 0 12px;
+  text-wrap: balance;
+}
+.showcaseBody { font-size: var(--step-1); color: var(--text2); margin: 0 0 20px; max-width: 46ch; }
+
+.showcaseList { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.showcaseList li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: var(--step-0); color: var(--text2);
+}
+.showcaseTick {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent-bg); color: var(--accent-text);
+  display: grid; place-items: center; font-size: 11px; font-weight: 900;
+  margin-top: 2px;
+}
+
+/* The screenshot sits on a tinted plinth with a diamond behind it, so it reads
+   as a composed object rather than a pasted rectangle. */
+.shotFrame { position: relative; }
+.shotPlinth {
+  position: absolute; inset: 12% -6% -8% -6%;
+  background: var(--accent-bg);
+  border-radius: var(--radius-lg);
+}
+.shotImg {
+  position: relative;
+  width: 100%;
+  /* Without this the width/height attributes (there to reserve layout space and
+     avoid CLS) are applied as a LITERAL height, so a 1200x720 screenshot
+     rendered 542x720 and inflated every showcase section to 1064px. */
+  height: auto;
+  display: block;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 860px) {
+  .showcaseGrid { grid-template-columns: 1fr; gap: 28px; }
+  .showcaseGrid:nth-child(even) .showcaseText { order: 0; }
+  .showcase { padding: 64px 0; }
+  .showcaseGrid + .showcaseGrid { margin-top: 56px; }
+}
+
+/* ── Trust band — replaces the invented statistics ───────────────────────── */
+.trust {
+  background: var(--bg);
+  border-block: 1px solid var(--border);
+  padding: 40px 0;
+}
+.trustGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 28px;
+}
+.trustItem { display: flex; gap: 14px; align-items: flex-start; }
+.trustChip {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px;
+  background: var(--blush); color: var(--text);
+  display: grid; place-items: center;
+}
+.trustChip svg { width: 20px; height: 20px; stroke: var(--text); }
+.trustTitle { font-size: var(--step-0); font-weight: 800; color: var(--text); margin: 0 0 3px; }
+.trustDesc  { font-size: var(--step--1); color: var(--muted); margin: 0; line-height: 1.5; }

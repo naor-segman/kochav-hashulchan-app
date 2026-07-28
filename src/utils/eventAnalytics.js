@@ -1,11 +1,15 @@
 import { computeViolations } from "../logic/seating.js";
 
 export function eventHealth(ev) {
-  const guests      = ev.guests      || [];
+  const allGuests   = ev.guests      || [];
   const tables      = ev.tables      || [];
   const seating     = ev.seating     || {};
   const constraints = ev.constraints || [];
 
+  // Guests who declined are not waiting for a seat. Counting them left every
+  // event with a declined guest permanently stuck on "N מקומות ממתינים",
+  // so "הושבה מלאה ✓" could never appear.
+  const guests      = allGuests.filter(g => g.rsvp !== "declined");
   const totalSeats  = guests.reduce((s, g) => s + (g.count || 1), 0);
   const seatedSeats = guests
     .filter(g => seating[g.id])
@@ -27,8 +31,14 @@ export function eventHealth(ev) {
     indicators.push({ key: "no_tables", label: "אין שולחנות",       severity: "muted" });
     needsAttention = true;
   }
-  if (!guests.length) {
+  if (!allGuests.length) {
     indicators.push({ key: "no_guests", label: "אין אורחים",        severity: "muted" });
+    needsAttention = true;
+  } else if (!guests.length) {
+    // The guest list is not empty — everyone on it declined. Without this the
+    // event produced no indicators at all and the dashboard counted it as
+    // "מוכן להדפסה", which is the opposite of true.
+    indicators.push({ key: "all_declined", label: "כל האורחים סירבו", severity: "warn" });
     needsAttention = true;
   }
   if (guests.length > 0 && seatedSeats === 0) {

@@ -24,7 +24,8 @@
 }
 
 .logoMark {
-  color: var(--accent);
+  /* Dark ground: --accent-text is tuned for white and measures 2.64:1 here. */
+  color: var(--accent-on-dark);
   font-size: 18px;
 }
 

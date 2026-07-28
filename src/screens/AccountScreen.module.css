@@ -27,7 +27,7 @@
   gap: 8px;
 }
 
-.brandMark { font-size: 22px; color: var(--accent); }
+.brandMark { font-size: 22px; color: var(--accent-text); }
 .brandName { font-size: 18px; font-weight: 900; color: var(--text); letter-spacing: -0.02em; }
 
 .title {
@@ -115,7 +115,8 @@
   align-items: center;
 }
 
-.pwEyeBtn:hover { color: var(--accent); }
+/* A show-password eye is plumbing. It firms up; it does not take the accent. */
+.pwEyeBtn:hover { color: var(--text); }
 
 .loadingText {
   font-size: 13px;
@@ -189,7 +190,7 @@
 }
 
 .planCardCurrent {
-  border-color: var(--accent);
+  border-color: var(--accent-border);
   background: var(--accent-light);
 }
 
@@ -279,10 +280,13 @@
   transition: opacity 0.12s;
 }
 
+/* An inert "this is your plan" label, not a button — so it takes the blush
+   ground and near-black ink (12.30:1) rather than a saturated fill whose white
+   10px label was 3.80:1. The one live button in this grid is the upgrade. */
 .planCardBtnCurrent {
-  background: var(--accent);
-  color: #fff;
-  border: 1px solid transparent;
+  background: var(--blush);
+  color: var(--text);
+  border: 1px solid var(--blush-line);
   opacity: 1;
 }
 
@@ -296,14 +300,15 @@
 .planCardBtnUpgradeActive {
   background: none;
   border: 1px solid var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
   cursor: pointer;
   opacity: 1;
 }
 
 .planCardBtnUpgradeActive:hover:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
+  background: var(--cta);
+  border-color: var(--cta);
+  color: var(--on-accent);
 }
 
 /* ── Billing management button ── */
@@ -364,12 +369,14 @@
 }
 
 /* ── Inactive payments note ── */
+/* "Payments are not live yet" is a warning, and it was wearing a brand-pink
+   ground with a warn-coloured border — two different signals in one box. */
 .inactiveNote {
   display: flex;
   align-items: flex-start;
   gap: 7px;
   padding: 10px 12px;
-  background: var(--accent-bg);
+  background: var(--warn-bg);
   border: 1px solid var(--warn-border);
   border-radius: var(--radius);
   font-size: 12px;
@@ -380,15 +387,21 @@
 
 .inactiveNoteIcon {
   font-size: 13px;
-  color: var(--accent);
+  color: var(--warn);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 /* ── Actions ── */
+/* The terminal action on the page. It is separated by a rule and real air
+   rather than by colour — it is NOT pre-tinted red; it commits to red only on
+   hover, when the pointer is already on it. */
 .actions {
   display: flex;
   justify-content: center;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin-top: 6px;
 }
 
 .signOutBtn {
@@ -423,7 +436,7 @@
   transition: color 0.12s;
 }
 
-.feedbackLink:hover { color: var(--accent); text-decoration: underline; }
+.feedbackLink:hover { color: var(--text2); text-decoration: underline; }
 
 .versionLabel {
   font-size: 11px;
@@ -489,14 +502,16 @@
   line-height: 1.5;
 }
 
+/* A trial notice needs to stand out; standing out is what the blush ground is
+   for, and near-black on it is 12.30:1. */
 .trialBanner {
   padding: 10px 14px;
-  background: var(--accent-bg);
-  border: 1px solid var(--border);
+  background: var(--blush);
+  border: 1px solid var(--blush-line);
   border-radius: var(--radius);
   font-size: 13px;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--text);
 }
 
 @media (max-width: 480px) {
@@ -525,16 +540,21 @@
   box-sizing: border-box;
 }
 
+/* The same focus treatment the rest of the app uses: accent hairline, soft
+   accent ring, and the field turns white to say "this one is live". */
 .input:focus {
   outline: none;
+  background: var(--surface);
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-border);
 }
 
+/* Filled = --cta (4.71:1). White on --accent is 3.80:1. */
 .pwBtn {
   align-self: flex-start;
   padding: 8px 18px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--cta);
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
   font-size: 13px;

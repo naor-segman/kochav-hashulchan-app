@@ -7,12 +7,14 @@ import {
   useDraggable, useDroppable,
   PointerSensor, TouchSensor,
   useSensor, useSensors,
+  pointerWithin, rectIntersection, MeasuringStrategy,
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
-import { getSideLabel, getSideLabels, guestSeatNames } from "../utils/eventHelpers.js";
+import { getSideLabel, getSideLabels, guestSeatNames, seatingTotals } from "../utils/eventHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
+import { buildGuestCardUrl } from "../utils/guestCard.js";
 import Banner from "../components/feedback/Banner.jsx";
 import CapBar from "../components/ui/CapBar.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -44,6 +46,27 @@ function DraggableGuestRow({ guestId, className, children }) {
 }
 
 const MAX_UNDO = 20;
+
+/**
+ * Drop targets here are large table cards and a long waiting list. Prefer
+ * whatever is under the pointer; when the pointer sits in a gap between cards,
+ * fall back to rectIntersection so a drag whose card clearly overlaps a table
+ * still lands.
+ *
+ * Deliberately NOT closestCenter as the fallback: closestCenter always returns
+ * something, so releasing over blank space seated the guest at whichever table
+ * happened to be nearest. Dropping on empty space has to keep meaning "never
+ * mind" — with a long list, an accidental drag is common and there is no undo
+ * prompt at that moment.
+ */
+const collisionStrategy = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length ? hits : rectIntersection(args);
+};
+
+// Table cards expand/collapse and the waiting list re-flows mid-drag, so
+// droppable rects measured once at drag start go stale — re-measure always.
+const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const navigate = useNavigate();
@@ -82,16 +105,23 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const lockedGuestsSet = useMemo(() => new Set(ev.lockedGuests || []), [ev.lockedGuests]);
   const isGuestLocked   = id => lockedGuestsSet.has(id);
+  const lockedTablesSet = useMemo(() => new Set(ev.lockedTables || []), [ev.lockedTables]);
+  const isTableLocked   = id => lockedTablesSet.has(id);
 
   const activeGuests   = ev.guests.filter(g => g.rsvp !== "declined");
   const declinedGuests = ev.guests.filter(g => g.rsvp === "declined");
   const unassigned     = activeGuests.filter(g => !ev.seating[g.id]);
+  // nAssigned counts every seated row (declined included) — it drives the
+  // "recompute / clear" confirmations, which really do act on all of them.
   const nAssigned      = ev.guests.filter(g => ev.seating[g.id]).length;
-  // Active-only seated count — pairs with activeGuests.length so the UI can't
-  // show e.g. "6/5" when a declined guest is still seated.
-  const nActiveAssigned = activeGuests.filter(g => ev.seating[g.id]).length;
-  const nAssignedSeats = ev.guests.filter(g => ev.seating[g.id]).reduce((s, g) => s + (g.count || 1), 0);
-  const totalSeats     = activeGuests.reduce((s, g) => s + (g.count || 1), 0);
+  // Displayed counters are active-only on BOTH sides, so a declined-but-seated
+  // guest can't inflate the numerator into "6/5" records or "19/17" seats.
+  const {
+    assignedRecords: nActiveAssigned,
+    totalRecords:    nActiveTotal,
+    assignedSeats:   nAssignedSeats,
+    totalSeats,
+  } = seatingTotals(ev.guests, ev.seating);
   const totalCap       = ev.tables.reduce((s, t) => s + t.capacity, 0);
   const allSeated      = activeGuests.length > 0 && activeGuests.every(g => ev.seating[g.id]);
   const noProblems     = violations.length === 0;
@@ -114,7 +144,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     const table = ev.tables.find(t => t.id === tid);
     if (!table) return null;
     const eventName = ev.name || "האירוע";
-    const msg = `שלום ${g.name} 👋\n\nב${eventName} תשבו ב*שולחן ${table.name}*.\n\nנשמח לראותכם! 🎉` + messageSignature();
+    // Personal entry card — the QR on it is what the door scanner reads, so the
+    // message is also what makes check-in scanning usable at all.
+    const cardUrl = buildGuestCardUrl(window.location.origin, ev.tokens?.invite, g, table);
+    const cardLine = cardUrl
+      ? `\n\nכרטיס הכניסה האישי שלכם (הציגו בכניסה):\n${cardUrl}`
+      : "";
+    const msg = `שלום ${g.name} 👋\n\nב${eventName} תשבו ב*שולחן ${table.name}*.${cardLine}\n\nנשמח לראותכם! 🎉` + messageSignature();
     const digits = (g.phone || "").replace(/\D/g, "");
     if (!digits) return null;
     const intl = digits.startsWith("0") ? "972" + digits.slice(1) : digits;
@@ -155,13 +191,26 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       "ניתן לבטל עד 20 פעולות אחרי ההרצה."
     )) return;
     pushHistory();
+    // A locked TABLE has to pin its occupants too, otherwise "recompute" quietly
+    // scattered them — the lock only ever reached the suggestions engine.
     const lockedGuestIds = new Set(ev.lockedGuests || []);
     const lockedSeating  = Object.fromEntries(
-      Object.entries(ev.seating).filter(([id]) => lockedGuestIds.has(id))
+      Object.entries(ev.seating).filter(
+        ([id, tid]) => lockedGuestIds.has(id) || lockedTablesSet.has(tid)
+      )
     );
-    const newSeating = autoAssign(activeGuests, ev.tables, ev.constraints, lockedSeating);
+    // A locked table can be holding a guest who has since declined. autoAssign
+    // only charges capacity for guests it is handed, so that occupied seat has
+    // to be passed in too — otherwise the table silently overbooks.
+    const seatedDeclined = declinedGuests.filter(g => lockedSeating[g.id]);
+    const newSeating = autoAssign(
+      [...activeGuests, ...seatedDeclined], ev.tables, ev.constraints, lockedSeating
+    );
     patchEvent(e => Object.assign({}, e, { seating: newSeating }));
-    const placed = Object.keys(newSeating).length;
+    // Count only active rows: the declined passengers above are in newSeating
+    // but were never candidates, and counting them reported "all seated" while
+    // a real guest was still standing.
+    const placed = activeGuests.filter(g => newSeating[g.id]).length;
     const missed = activeGuests.length - placed;
     if (missed > 0)
       showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");
@@ -209,8 +258,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     });
   };
 
-  const lockedTablesSet = useMemo(() => new Set(ev.lockedTables || []), [ev.lockedTables]);
-  const isTableLocked   = id => lockedTablesSet.has(id);
 
   const toggleGuestArrived = (guestId) => {
     patchEvent(e => ({
@@ -347,6 +394,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     <>
       <DndContext
         sensors={sensors}
+        collisionDetection={collisionStrategy}
+        measuring={measuringConfig}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
@@ -359,7 +408,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             sub="חשבו הושבה אוטומטית ואז ערכו ידנית לפי הצורך."
             aside={
               <div className={base.pills}>
-                <StatPill n={nActiveAssigned}     label="שובצו"   color={allSeated ? "var(--green)" : "var(--accent)"} />
+                <StatPill n={nActiveAssigned}     label="שובצו"   color={allSeated ? "var(--green)" : "var(--accent-text)"} />
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
                 {nArrived > 0 && <StatPill n={nArrived} label="הגיעו" color="var(--green)" />}
@@ -750,6 +799,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                     className={base.select}
                                     style={{ minWidth: 160, fontSize: 13 }}
                                     value=""
+                                    aria-label={`שבצו את ${g.name} לשולחן`}
                                     onPointerDown={e => e.stopPropagation()}
                                     onChange={e => { if (e.target.value) assignGuest(g.id, e.target.value); }}
                                   >
@@ -1038,7 +1088,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             </p>
           )}
           <p className={styles.pvStats}>
-            {nAssigned}/{ev.guests.length} רשומות שובצו ({nAssignedSeats}/{totalSeats} מקומות) · {ev.tables.length} שולחנות · {totalCap} קיבולת האולם
+            {nActiveAssigned}/{nActiveTotal} רשומות שובצו ({nAssignedSeats}/{totalSeats} מקומות) · {ev.tables.length} שולחנות · {totalCap} קיבולת האולם
           </p>
           <div className={styles.pvModeLabel}>
             {printMode === "compact" ? "גרסת צוות האולם — שמות בלבד" : "סידור הושבה מלא"}

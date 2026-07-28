@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import * as XLSX from "xlsx";
 import {
   fetchCollabEvent, fetchCollabGuests,
   upsertCollabGuest, deleteCollabGuest,
@@ -31,6 +30,8 @@ export default function CollabScreen() {
   const [ev, setEv] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | notfound
   const [rows, setRows] = useState([]);
+  // Rows whose last save failed — kept held so the poll can't revert them.
+  const [failed, setFailed] = useState(() => new Set());
   const [me, setMe] = useState(() => { try { return localStorage.getItem("collab_me") || ""; } catch { return ""; } });
 
   const editing   = useRef(new Set());  // row ids being edited locally right now
@@ -101,9 +102,17 @@ export default function CollabScreen() {
     if (!(row.name || "").trim() || !ev.cloudId) return;
     t.set(row.id, setTimeout(async () => {
       t.delete(row.id);
-      try { await upsertCollabGuest(token, { ...row, updated_by: me || null }); }
-      catch { /* transient — next edit retries */ }
-      editing.current.delete(row.id);
+      try {
+        await upsertCollabGuest(token, { ...row, updated_by: me || null });
+        editing.current.delete(row.id);
+        setFailed(prev => { const n = new Set(prev); n.delete(row.id); return n; });
+      } catch {
+        // Do NOT release the row. Clearing `editing` on failure let the 3s poll
+        // overwrite the user's typing with the stale server value — they'd
+        // watch a phone number they had just corrected snap back, with no error
+        // shown anywhere. Keep it held and say so.
+        setFailed(prev => new Set(prev).add(row.id));
+      }
     }, 600));
   };
 
@@ -138,9 +147,13 @@ export default function CollabScreen() {
 
   const saveMe = (v) => { setMe(v); try { localStorage.setItem("collab_me", v); } catch { /* ignore */ } };
 
-  const downloadExcel = () => {
+  const downloadExcel = async () => {
     const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות"]];
     rows.forEach(r => aoa.push([r.name || "", r.phone || "", sides[r.side] || "", r.guest_group || "", r.guests_count || 1]));
+    // Loaded on demand: a static import made the 416KB xlsx chunk a hard
+    // dependency of this page, which relatives open on their phones to type in
+    // names — they were downloading a spreadsheet writer to do it.
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{ wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 }, { wch: 7 }];
     const wb = XLSX.utils.book_new();
@@ -196,6 +209,11 @@ export default function CollabScreen() {
                     onChange={e => editRow(r.id, { name: e.target.value })} />
                   <button className={styles.del} onClick={() => removeRow(r.id)} aria-label="מחיקת שורה" title="מחיקה">✕</button>
                 </div>
+                {failed.has(r.id) && (
+                  <p className={styles.saveWarn} role="status">
+                    לא נשמר — נסו לערוך שוב כשהחיבור יחזור. מה שהקלדתם נשמר כאן.
+                  </p>
+                )}
 
                 <input className={[styles.input, styles.phoneInput].join(" ")} value={r.phone || ""} placeholder="טלפון" dir="ltr" inputMode="tel"
                   onChange={e => editRow(r.id, { phone: e.target.value })} />

@@ -2,7 +2,7 @@
 
 .page {
   min-height: 100vh;
-  background: #f4f4f5;
+  background: var(--adm-bg-sunken);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11,7 +11,7 @@
 }
 
 .card {
-  background: #fff;
+  background: var(--adm-surface);
   border-radius: 14px;
   padding: 40px 36px 32px;
   width: 100%;
@@ -28,29 +28,29 @@
 .logo {
   display: block;
   font-size: 30px;
-  color: #0E9AB8;
+  color: var(--accent);
   margin-bottom: 10px;
 }
 
 .title {
   font-size: 24px;
   font-weight: 800;
-  color: #111;
+  color: var(--adm-ink);
   letter-spacing: -0.02em;
   margin: 0 0 4px;
 }
 
 .sub {
   font-size: 13px;
-  color: #888;
+  color: var(--adm-ink-muted);
   margin: 0;
 }
 
 /* ── Setup banner (shown when env vars are missing) ── */
 .setupBanner {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-inline-start: 4px solid #f59e0b;
+  background: var(--adm-warn-bg);
+  border: 1px solid var(--adm-warn-border);
+  border-inline-start: 4px solid var(--adm-warn-mid);
   border-radius: 8px;
   padding: 12px 14px;
   font-size: 13px;
@@ -62,7 +62,7 @@
 }
 
 .setupBanner code {
-  background: #fef3c7;
+  background: var(--adm-warn-bg-strong);
   border-radius: 4px;
   padding: 1px 5px;
   font-family: monospace;
@@ -85,32 +85,32 @@
 .label {
   font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: var(--adm-ink-dark);
 }
 
 .input {
-  border: 1px solid #ddd;
+  border: 1px solid var(--adm-line-strong);
   border-radius: 8px;
   padding: 11px 13px;
   font-size: 14px;
-  color: #111;
-  background: #fafafa;
+  color: var(--adm-ink);
+  background: var(--adm-bg);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
   font-family: inherit;
 }
 
 .input:focus {
-  border-color: #0E9AB8;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
-  background: #fff;
+  background: var(--adm-surface);
 }
 
 .error {
   font-size: 13px;
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  color: var(--adm-danger);
+  background: var(--adm-danger-bg);
+  border: 1px solid var(--adm-danger-border-soft);
   border-radius: 7px;
   padding: 9px 12px;
   margin: 0;
@@ -120,8 +120,8 @@
 }
 
 .btn {
-  background: #0E9AB8;
-  color: #fff;
+  background: var(--accent);
+  color: var(--adm-surface);
   border: none;
   border-radius: 8px;
   padding: 13px;
@@ -134,7 +134,7 @@
 }
 
 .btn:hover:not(:disabled) {
-  background: #0A7488;
+  background: var(--adm-accent-dark);
   box-shadow: 0 3px 12px rgba(14, 154, 184, 0.35);
 }
 
@@ -146,7 +146,7 @@
 /* ── Footer ── */
 .footer {
   font-size: 11px;
-  color: #bbb;
+  color: var(--adm-ink-fainter);
   text-align: center;
   margin: 20px 0 0;
 }

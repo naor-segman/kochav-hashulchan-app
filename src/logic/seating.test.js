@@ -156,3 +156,110 @@ describe("computeViolations", () => {
     expect(v).toHaveLength(0);
   });
 });
+
+describe("autoAssign — locked tables pin their occupants", () => {
+  // The screen turns a locked TABLE into locked seating entries before calling
+  // autoAssign. This pins the contract that entry is honoured, so a recompute
+  // can never scatter a head table again.
+  it("keeps every guest sitting at a locked table exactly where they are", () => {
+    const guests = [
+      { id: "p1", name: "אמא",  side: "bride", group: "הורים", count: 1 },
+      { id: "p2", name: "אבא",  side: "bride", group: "הורים", count: 1 },
+      { id: "f1", name: "חבר1", side: "groom", group: "חברים", count: 1 },
+      { id: "f2", name: "חבר2", side: "groom", group: "חברים", count: 1 },
+    ];
+    const tables = [
+      { id: "head", name: "ראשי", capacity: 4 },
+      { id: "t2",   name: "2",    capacity: 4 },
+    ];
+    // "head" is locked, so its two occupants arrive as locked seating.
+    const lockedSeating = { p1: "head", p2: "head" };
+
+    const out = autoAssign(guests, tables, [], lockedSeating);
+
+    expect(out.p1).toBe("head");
+    expect(out.p2).toBe("head");
+    expect(Object.keys(out)).toHaveLength(4);
+  });
+
+  it("counts a locked table's occupants against its capacity", () => {
+    const guests = [
+      { id: "a", name: "a", side: "bride", group: "g", count: 3 },
+      { id: "b", name: "b", side: "bride", group: "g", count: 3 },
+      { id: "c", name: "c", side: "groom", group: "g", count: 3 },
+    ];
+    const tables = [
+      { id: "locked", name: "נעול", capacity: 4 },
+      { id: "free",   name: "פנוי", capacity: 10 },
+    ];
+    const out = autoAssign(guests, tables, [], { a: "locked" });
+
+    expect(out.a).toBe("locked");
+    // a takes 3 of the locked table's 4 seats — nobody else fits there.
+    const atLocked = Object.entries(out).filter(([, t]) => t === "locked").map(([id]) => id);
+    expect(atLocked).toEqual(["a"]);
+  });
+});
+
+// ── Regressions found by the full-codebase audit (28.7) ──────────────────────
+// These pin paths that a mutation run showed were completely unconstrained:
+// deleting the capacity check or the apart check in the individual fallback
+// left all 206 tests green.
+
+describe("cluster members that are already pinned", () => {
+  it("joins the rest of the cluster TO the pinned guest, never the reverse", () => {
+    // A is locked to the head table; together(A,B) and together(B,C) chain C in.
+    // seatCluster used to re-seat the whole cluster — including the already
+    // pinned B — and tore B off the locked table it had just been pinned to.
+    const seating = autoAssign(
+      [g("A"), g("B"), g("C"), g("X1"), g("X2"), g("X3")],
+      [t("HEAD", 3), t("T2", 10)],
+      [
+        { id: "c1", type: "together", guestA: "A", guestB: "B" },
+        { id: "c2", type: "together", guestA: "B", guestB: "C" },
+      ],
+      { A: "HEAD" }
+    );
+    expect(seating.A).toBe("HEAD");
+    expect(seating.B).toBe("HEAD");
+    expect(seating.C).toBe("HEAD");
+  });
+
+  it("does not double-charge a pinned guest's seats against the table", () => {
+    // The double push made a 4-seat table read as full with 3 people on it, so
+    // D was reported unseated while a real chair stood empty.
+    const seating = autoAssign(
+      [g("A"), g("B"), g("C"), g("D")],
+      [t("t1", 4)],
+      [
+        { id: "c1", type: "together", guestA: "A", guestB: "B" },
+        { id: "c2", type: "together", guestA: "B", guestB: "C" },
+      ],
+      { A: "t1" }
+    );
+    expect(seating.D).toBe("t1");
+    expect(Object.keys(seating)).toHaveLength(4);
+  });
+});
+
+describe("the individual-guest fallback obeys the same rules as clustering", () => {
+  it("never exceeds capacity", () => {
+    // Three 5-seat rows, one 10-seat table: the third must NOT be seated.
+    const seating = autoAssign(
+      [g("a", { count: 5 }), g("b", { count: 5 }), g("c", { count: 5 })],
+      [t("t1", 10)], []
+    );
+    const used = ["a", "b", "c"].filter(id => seating[id] === "t1").length * 5;
+    expect(used).toBeLessThanOrEqual(10);
+  });
+
+  it("still honours an apart constraint when guests fall through to it", () => {
+    // Crowded room — exactly the case where the constraint matters most.
+    const seating = autoAssign(
+      [g("mum", { count: 2 }), g("dad", { count: 2 }), g("x", { count: 2 }), g("y", { count: 2 })],
+      [t("t1", 4), t("t2", 4)],
+      [{ id: "c1", type: "apart", guestA: "mum", guestB: "dad" }]
+    );
+    if (seating.mum && seating.dad) expect(seating.mum).not.toBe(seating.dad);
+  });
+});

@@ -78,6 +78,15 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       // opens the event on a new device they will need to re-upload the image,
       // but the table positions will already be in place.
       floorPlanPositions: localEvent.floorPlan?.tablePositions ?? null,
+      floorPlanElements:  localEvent.floorPlan?.elements ?? null,
+      tasks:              Array.isArray(localEvent.tasks) ? localEvent.tasks : [],
+      announcements:      localEvent.announcements ?? null,
+      vendors:            Array.isArray(localEvent.vendors) ? localEvent.vendors : [],
+      // Surfaced as a top-level payload key because the album's insert policy
+      // checks payload->>'albumToken' to authorise anonymous uploads.
+      albumToken:         localEvent.tokens?.album ?? null,
+      messagesSent:       localEvent.messagesSent ?? {},
+      messageTemplates:   localEvent.messageTemplates ?? {},
     },
   };
 }
@@ -117,6 +126,11 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     cloudId:          cloudRow.id,
     lockedGuests:     Array.isArray(p.lockedGuests) ? p.lockedGuests : [],
     lockedTables:     Array.isArray(p.lockedTables) ? p.lockedTables : [],
+    tasks:            Array.isArray(p.tasks) ? p.tasks : [],
+    announcements:    p.announcements ?? null,
+    vendors:          Array.isArray(p.vendors) ? p.vendors : [],
+    messagesSent:     p.messagesSent ?? {},
+    messageTemplates: p.messageTemplates ?? {},
     // Prefer the scalar token column, but fall back per-token to the payload's
     // tokens object. A column that is NULL (e.g. added by a later migration)
     // must not clobber an already-shared token still held in payload.tokens —
@@ -127,6 +141,10 @@ export function mapCloudEventToLocalEvent(cloudRow) {
       gift:    cloudRow.gift_token    ?? p.tokens?.gift    ?? null,
       hostess: cloudRow.hostess_token ?? p.tokens?.hostess ?? null,
       collab:  cloudRow.collab_token  ?? p.tokens?.collab  ?? null,
+      // The album token has no dedicated column — it lives in the payload. Read
+      // it back or normalizeEvent mints a fresh one on every cloud pull, which
+      // would silently break an album link already printed on an invitation.
+      album:   p.tokens?.album ?? p.albumToken ?? null,
     } : null,
     costs: (p.costs && typeof p.costs === "object") ? p.costs : {},
     giftBitPhone:   p.giftBitPhone   ?? "",
@@ -135,8 +153,12 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     noShowPct:      Number.isFinite(p.noShowPct) ? p.noShowPct : 10,
     // Floor plan: positions are synced; image stays in localStorage (too large for cloud).
     // On a new device the user must re-upload the image, but positions are restored.
-    floorPlan: p.floorPlanPositions
-      ? { image: null, tablePositions: p.floorPlanPositions }
+    floorPlan: (p.floorPlanPositions || p.floorPlanElements)
+      ? {
+          image: null,
+          tablePositions: p.floorPlanPositions ?? {},
+          elements: Array.isArray(p.floorPlanElements) ? p.floorPlanElements : [],
+        }
       : null,
   };
 }

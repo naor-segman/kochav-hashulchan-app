@@ -15,8 +15,8 @@
   align-items: center; justify-content: center; gap: 12px;
   background: var(--bg); color: var(--text); text-align: center; direction: rtl; padding: 24px;
 }
-.stateStar { font-size: 40px; color: var(--accent); }
-.stateLink { color: var(--accent); font-weight: 700; text-decoration: none; margin-top: 8px; }
+.stateStar { font-size: 40px; color: var(--accent-text); }
+.stateLink { color: var(--accent-text); font-weight: 700; text-decoration: none; margin-top: 8px; }
 
 /* ── Coming soon (unpublished, guest view) ── */
 .comingSoon {
@@ -69,7 +69,7 @@
   color: var(--s-accent); margin-bottom: 20px;
 }
 .heroNames {
-  font-family: var(--font-family-serif); font-weight: 700; font-size: clamp(32px, 9.5vw, 52px);
+  font-family: var(--s-heading-font, var(--font-family-serif)); font-weight: 700; font-size: clamp(32px, 9.5vw, 52px);
   line-height: 1.06; color: var(--s-ink); letter-spacing: -.005em;
 }
 .heroEn {
@@ -97,7 +97,7 @@
 /* ── Sections ── */
 .section { max-width: var(--maxw); margin: 0 auto; padding: 40px 22px; }
 .secTitle {
-  font-family: var(--font-family-serif); font-size: clamp(22px, 5vw, 28px); font-weight: 700; text-align: center;
+  font-family: var(--s-heading-font, var(--font-family-serif)); font-size: clamp(22px, 5vw, 28px); font-weight: 700; text-align: center;
   color: var(--s-ink); margin-bottom: 28px; letter-spacing: -.01em;
 }
 .secTitle::after {
@@ -205,7 +205,7 @@
   border-radius: 12px; padding: 16px 6px;
 }
 .cdNum {
-  font-family: var(--font-family-serif); font-size: clamp(24px, 7vw, 34px);
+  font-family: var(--s-heading-font, var(--font-family-serif)); font-size: clamp(24px, 7vw, 34px);
   font-weight: 700; color: var(--s-accent); line-height: 1; font-variant-numeric: tabular-nums;
 }
 .cdLabel { font-size: 12px; color: var(--s-muted); font-weight: 500; }
@@ -216,3 +216,25 @@
 .shuttleContact { font-size: 13px; color: var(--s-muted); }
 .shuttleContact a { color: var(--s-accent); font-weight: 600; text-decoration: none; }
 .shuttleNote { display: block; font-size: 12px; color: var(--s-muted); margin-top: 2px; }
+
+/* Secondary action beside "ניווט ב-Waze" — same shape, quieter, so navigation
+   stays the primary call on the location card. */
+.locBtnGhost {
+  display: inline-block;
+  margin-top: 8px;
+  margin-inline-start: 8px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--s-line);
+  background: transparent;
+  color: var(--s-ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.locBtnGhost:hover {
+  background: var(--s-accent-soft);
+  border-color: var(--s-accent);
+}

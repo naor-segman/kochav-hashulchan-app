@@ -4,6 +4,7 @@ import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
 } from "react-router-dom";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { uid } from "./utils/uid.js";
 import { duplicateEvent } from "./utils/eventHelpers.js";
 import { useAuth }          from "./hooks/useAuth.js";
@@ -20,20 +21,24 @@ import Toast              from "./components/feedback/Toast.jsx";
 import MigrationBanner    from "./components/migration/MigrationBanner.jsx";
 import DashboardScreen    from "./screens/DashboardScreen.jsx";
 import EventSetupScreen   from "./screens/EventSetupScreen.jsx";
-import TableBuilderScreen from "./screens/TableBuilderScreen.jsx";
-import GuestManagerScreen from "./screens/GuestManagerScreen.jsx";
-import ConstraintsScreen  from "./screens/ConstraintsScreen.jsx";
-import SeatingScreen      from "./screens/SeatingScreen.jsx";
 import LoginScreen        from "./screens/LoginScreen.jsx";
 import SignupScreen       from "./screens/SignupScreen.jsx";
 import ResetPasswordScreen from "./screens/ResetPasswordScreen.jsx";
 import AccountScreen      from "./screens/AccountScreen.jsx";
 import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
 import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
-import CheckInScreen      from "./screens/CheckInScreen.jsx";
-import LandingScreen      from "./screens/LandingScreen.jsx";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
+// Heavy authenticated screens. SeatingScreen alone drags in @dnd-kit, and a
+// first-time visitor on the marketing page has no use for any of them — keeping
+// them eager meant downloading the whole app before signup.
+const TableBuilderScreen = lazy(() => import("./screens/TableBuilderScreen.jsx"));
+const GuestManagerScreen = lazy(() => import("./screens/GuestManagerScreen.jsx"));
+const ConstraintsScreen  = lazy(() => import("./screens/ConstraintsScreen.jsx"));
+const SeatingScreen      = lazy(() => import("./screens/SeatingScreen.jsx"));
+const CheckInScreen      = lazy(() => import("./screens/CheckInScreen.jsx"));
+const LandingScreen      = lazy(() => import("./screens/LandingScreen.jsx"));
+
 const AdminApp       = lazy(() => import("./admin/AdminApp.jsx"));
 const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
 // Public pages — standalone, no auth, token-based
@@ -46,6 +51,13 @@ const GiftScreen     = lazy(() => import("./screens/GiftScreen.jsx"));
 const GiftWallScreen = lazy(() => import("./screens/GiftWallScreen.jsx"));
 // App screens — lazy to keep initial bundle lean
 const CostScreen          = lazy(() => import("./screens/CostScreen.jsx"));
+const TasksScreen         = lazy(() => import("./screens/TasksScreen.jsx"));
+const AnnouncementsEditorScreen = lazy(() => import("./screens/AnnouncementsEditorScreen.jsx"));
+const VendorsScreen             = lazy(() => import("./screens/VendorsScreen.jsx"));
+const MessagesScreen            = lazy(() => import("./screens/MessagesScreen.jsx"));
+const NameTagsScreen            = lazy(() => import("./screens/NameTagsScreen.jsx"));
+const AlbumScreen               = lazy(() => import("./screens/AlbumScreen.jsx"));
+const AnnouncementScreen        = lazy(() => import("./screens/AnnouncementScreen.jsx"));
 const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
 const CollabReviewScreen  = lazy(() => import("./screens/CollabReviewScreen.jsx"));
 const EventSiteEditorScreen = lazy(() => import("./screens/EventSiteEditorScreen.jsx"));
@@ -98,18 +110,29 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
 
   return (
     <Shell screen={screen} activeEvent={activeEvent} go={go} syncStatus={syncStatus} showToast={showToast}>
+      {/* Screen-level boundary. The root one in main.jsx swallows the WHOLE app
+          — nav, event, everything — when a single lazy chunk fails to load,
+          which is exactly what happens to an open tab after a deploy. Keyed on
+          the path so navigating away is itself the recovery. */}
+      <ErrorBoundary key={location.pathname}>
       <Routes>
         <Route path="setup"       element={<EventSetupScreen   {...sp} />} />
-        <Route path="tables"      element={<TableBuilderScreen  {...sp} />} />
-        <Route path="guests"      element={<GuestManagerScreen  {...sp} />} />
-        <Route path="constraints" element={<ConstraintsScreen   {...sp} />} />
-        <Route path="seating"     element={<SeatingScreen       {...sp} />} />
-        <Route path="site"        element={<Suspense fallback={null}><EventSiteEditorScreen {...sp} /></Suspense>} />
-        <Route path="rsvps"       element={<Suspense fallback={null}><RSVPResponsesScreen {...sp} /></Suspense>} />
-        <Route path="collab"      element={<Suspense fallback={null}><CollabReviewScreen {...sp} /></Suspense>} />
-        <Route path="costs"       element={<Suspense fallback={null}><CostScreen activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
+        <Route path="tables"      element={<Suspense fallback={<div aria-busy="true" />}><TableBuilderScreen {...sp} /></Suspense>} />
+        <Route path="guests"      element={<Suspense fallback={<div aria-busy="true" />}><GuestManagerScreen {...sp} /></Suspense>} />
+        <Route path="constraints" element={<Suspense fallback={<div aria-busy="true" />}><ConstraintsScreen {...sp} /></Suspense>} />
+        <Route path="seating"     element={<Suspense fallback={<div aria-busy="true" />}><SeatingScreen {...sp} /></Suspense>} />
+        <Route path="site"        element={<Suspense fallback={<div aria-busy="true" />}><EventSiteEditorScreen {...sp} /></Suspense>} />
+        <Route path="rsvps"       element={<Suspense fallback={<div aria-busy="true" />}><RSVPResponsesScreen {...sp} /></Suspense>} />
+        <Route path="collab"      element={<Suspense fallback={<div aria-busy="true" />}><CollabReviewScreen {...sp} /></Suspense>} />
+        <Route path="costs"       element={<Suspense fallback={<div aria-busy="true" />}><CostScreen key={activeEvent.id} activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
+        <Route path="tasks"       element={<Suspense fallback={<div aria-busy="true" />}><TasksScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
+        <Route path="announce"    element={<Suspense fallback={<div aria-busy="true" />}><AnnouncementsEditorScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
+        <Route path="vendors"     element={<Suspense fallback={<div aria-busy="true" />}><VendorsScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
+        <Route path="messages"    element={<Suspense fallback={<div aria-busy="true" />}><MessagesScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
+        <Route path="nametags"    element={<Suspense fallback={<div aria-busy="true" />}><NameTagsScreen activeEvent={activeEvent} /></Suspense>} />
         <Route index              element={<Navigate to="setup" replace />} />
       </Routes>
+      </ErrorBoundary>
       {toast && <Toast msg={toast.msg} variant={toast.variant} />}
     </Shell>
   );
@@ -120,7 +143,18 @@ function EventSitePreview({ events }) {
   const { eventId } = useParams();
   const ev = events.find(e => e.id === eventId);
   if (!ev) return <Navigate to="/app" replace />;
-  return <Suspense fallback={null}><EventSiteScreen localEvent={ev} /></Suspense>;
+  return <Suspense fallback={<div aria-busy="true" />}><EventSiteScreen localEvent={ev} /></Suspense>;
+}
+
+// Host-only draft preview of a Save-the-Date / invitation. Renders from local
+// data so the host sees the page before publishing — and before the event has
+// ever been synced to the cloud, where the public route would find nothing.
+function AnnouncementPreview({ events }) {
+  const { eventId, kind } = useParams();
+  const ev = events.find(e => e.id === eventId);
+  if (!ev) return <Navigate to="/app" replace />;
+  const safeKind = kind === "saveTheDate" ? "saveTheDate" : "invitation";
+  return <Suspense fallback={<div aria-busy="true" />}><AnnouncementScreen kind={safeKind} localEvent={ev} /></Suspense>;
 }
 
 // ── Root app ──────────────────────────────────────────────────────────────────
@@ -214,7 +248,7 @@ export default function App() {
       {/* Landing page — unauthenticated visitors */}
       <Route
         path="/"
-        element={authLoading ? <div /> : user ? <Navigate to="/app" replace /> : <LandingScreen />}
+        element={authLoading ? <div /> : user ? <Navigate to="/app" replace /> : <Suspense fallback={<div aria-busy="true" />}><LandingScreen /></Suspense>}
       />
       {/* Dashboard — authenticated app */}
       <Route
@@ -240,29 +274,36 @@ export default function App() {
       <Route
         path="/pricing"
         element={
-          <Suspense fallback={null}>
+          <Suspense fallback={<div aria-busy="true" />}>
             <PricingScreen user={user} />
           </Suspense>
         }
       />
       {/* ── Public token-based pages — no auth required ── */}
       {/* /gift/:token/wall MUST precede /gift/:token — React Router first-match */}
-      <Route path="/gift/:token/wall" element={<Suspense fallback={null}><GiftWallScreen /></Suspense>} />
-      <Route path="/gift/:token"      element={<Suspense fallback={null}><GiftScreen /></Suspense>} />
-      <Route path="/rsvp/:token"      element={<Suspense fallback={null}><RSVPScreen /></Suspense>} />
-      <Route path="/invite/:token"    element={<Suspense fallback={null}><EventSiteScreen /></Suspense>} />
-      <Route path="/card/:token"      element={<Suspense fallback={null}><InviteScreen /></Suspense>} />
-      <Route path="/hostess/:token"   element={<Suspense fallback={null}><HostessScreen /></Suspense>} />
-      <Route path="/collab/:token"    element={<Suspense fallback={null}><CollabScreen /></Suspense>} />
+      <Route path="/gift/:token/wall" element={<Suspense fallback={<div aria-busy="true" />}><GiftWallScreen /></Suspense>} />
+      <Route path="/gift/:token"      element={<Suspense fallback={<div aria-busy="true" />}><GiftScreen /></Suspense>} />
+      <Route path="/rsvp/:token"      element={<Suspense fallback={<div aria-busy="true" />}><RSVPScreen /></Suspense>} />
+      <Route path="/invite/:token"    element={<Suspense fallback={<div aria-busy="true" />}><EventSiteScreen /></Suspense>} />
+      <Route path="/card/:token"      element={<Suspense fallback={<div aria-busy="true" />}><InviteScreen /></Suspense>} />
+      <Route path="/album/:token"     element={<Suspense fallback={<div aria-busy="true" />}><AlbumScreen /></Suspense>} />
+      <Route path="/save-the-date/:token" element={<Suspense fallback={<div aria-busy="true" />}><AnnouncementScreen kind="saveTheDate" /></Suspense>} />
+      <Route path="/invitation/:token"    element={<Suspense fallback={<div aria-busy="true" />}><AnnouncementScreen kind="invitation" /></Suspense>} />
+      <Route path="/hostess/:token"   element={<Suspense fallback={<div aria-busy="true" />}><HostessScreen /></Suspense>} />
+      <Route path="/collab/:token"    element={<Suspense fallback={<div aria-busy="true" />}><CollabScreen /></Suspense>} />
       {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}
       <Route
         path="/events/:eventId/checkin"
-        element={<CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} />}
+        element={<Suspense fallback={<div aria-busy="true" />}><CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
       />
       {/* Host-only draft preview of the event site — renders from local data */}
       <Route
         path="/events/:eventId/preview-site"
         element={<EventSitePreview events={events} />}
+      />
+      <Route
+        path="/events/:eventId/preview-announce/:kind"
+        element={<AnnouncementPreview events={events} />}
       />
       <Route
         path="/events/:eventId/*"
@@ -284,16 +325,16 @@ export default function App() {
       <Route path="/auth/callback" element={<AuthCallbackScreen />} />
 
       {/* ── Legal / policy / help pages ── */}
-      <Route path="/help"          element={<Suspense fallback={null}><HelpScreen /></Suspense>} />
-      <Route path="/privacy"       element={<Suspense fallback={null}><PrivacyScreen /></Suspense>} />
-      <Route path="/terms"         element={<Suspense fallback={null}><TermsScreen /></Suspense>} />
-      <Route path="/accessibility" element={<Suspense fallback={null}><AccessibilityScreen /></Suspense>} />
+      <Route path="/help"          element={<Suspense fallback={<div aria-busy="true" />}><HelpScreen /></Suspense>} />
+      <Route path="/privacy"       element={<Suspense fallback={<div aria-busy="true" />}><PrivacyScreen /></Suspense>} />
+      <Route path="/terms"         element={<Suspense fallback={<div aria-busy="true" />}><TermsScreen /></Suspense>} />
+      <Route path="/accessibility" element={<Suspense fallback={<div aria-busy="true" />}><AccessibilityScreen /></Suspense>} />
 
       {/* ── Admin area — lazy-loaded, completely isolated from customer app ── */}
       <Route
         path="/admin/*"
         element={
-          <Suspense fallback={null}>
+          <Suspense fallback={<div aria-busy="true" />}>
             <AdminApp />
           </Suspense>
         }

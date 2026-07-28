@@ -4,6 +4,6 @@
   justify-content: center;
   height: 100vh;
   font-size: 14px;
-  color: #999;
+  color: var(--adm-ink-dim);
   background: #f8f8f8;
 }

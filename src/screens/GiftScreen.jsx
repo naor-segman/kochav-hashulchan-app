@@ -57,7 +57,7 @@ export default function GiftScreen() {
     setStep("submitting");
     if (event?.cloudId) {
       try {
-        await submitGift(event.cloudId, {
+        await submitGift(token, {
           donorName: name,
           amountILS: finalAmount,
           message,
@@ -227,8 +227,10 @@ export default function GiftScreen() {
 
           {/* Amount selector */}
           <div className={styles.section}>
-            <div className={styles.sectionLabel}>סכום המתנה</div>
-            {errors.amount && <span className={styles.fieldErr}>{errors.amount}</span>}
+            <label className={styles.sectionLabel} htmlFor="gift-amount">סכום המתנה</label>
+            {errors.amount && (
+              <span className={styles.fieldErr} id="gift-amount-err" role="alert">{errors.amount}</span>
+            )}
             <div className={styles.chips}>
               {AMOUNT_CHIPS.map(a => (
                 <button
@@ -253,9 +255,11 @@ export default function GiftScreen() {
                   styles.customInput,
                   amount === "custom" ? styles.inputActive : "",
                 ].filter(Boolean).join(" ")}
+                id="gift-amount"
                 type="number"
                 min="50"
                 placeholder="הזינו סכום"
+                aria-describedby={errors.amount ? "gift-amount-err" : undefined}
                 value={customAmt}
                 onChange={e => {
                   setCustomAmt(e.target.value);
@@ -268,8 +272,9 @@ export default function GiftScreen() {
 
           {/* Personal blessing */}
           <div className={styles.section}>
-            <div className={styles.sectionLabel}>ברכה אישית</div>
+            <label className={styles.sectionLabel} htmlFor="gift-message">ברכה אישית</label>
             <textarea
+              id="gift-message"
               className={styles.textarea}
               rows={4}
               value={message}
@@ -280,8 +285,11 @@ export default function GiftScreen() {
 
           {/* Sender name */}
           <div className={styles.section}>
-            <div className={styles.sectionLabel}>שמכם המלא *</div>
+            <label className={styles.sectionLabel} htmlFor="gift-name">שמכם המלא *</label>
             <input
+              id="gift-name"
+              maxLength={200}
+              aria-describedby={errors.name ? "gift-name-err" : undefined}
               className={[styles.input, errors.name ? styles.inputError : ""].filter(Boolean).join(" ")}
               value={name}
               placeholder="הזינו שם מלא"
@@ -290,7 +298,7 @@ export default function GiftScreen() {
                 if (errors.name) setErrors(p => { const n = { ...p }; delete n.name; return n; });
               }}
             />
-            {errors.name && <span className={styles.fieldErr}>{errors.name}</span>}
+            {errors.name && <span className={styles.fieldErr} id="gift-name-err" role="alert">{errors.name}</span>}
           </div>
 
           {/* How the money is transferred */}
@@ -308,7 +316,7 @@ export default function GiftScreen() {
           )}
 
           {/* Submit */}
-          {errors.submit && <p className={styles.fieldErr}>{errors.submit}</p>}
+          {errors.submit && <p className={styles.fieldErr} role="alert">{errors.submit}</p>}
           <button
             className={styles.submitBtn}
             onClick={handleSubmit}

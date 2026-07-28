@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import Icon from "../../components/ui/Icon.jsx";
+import { EVENT_TYPES } from "../../data/constants.js";
 import styles from "./AdminSettingsScreen.module.css";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -15,7 +16,10 @@ const FEATURE_FLAG_DEFS = [
   { key: "multi_user",        label: "ריבוי משתמשים"     },
 ];
 
-const EVENT_TYPE_OPTS = ["חתונה", "בר/בת מצווה", "ברית", "חינה", "אירועי חברה"];
+// From the source of truth. The hand-written list carried "בר/בת מצווה",
+// "ברית" and "אירועי חברה" — none of which are values the app can store, so a
+// default chosen here could never match a real event.
+const EVENT_TYPE_OPTS = EVENT_TYPES;
 
 const EMPTY_FORM = {
   product_name:   "כוכב השולחן",
@@ -108,7 +112,7 @@ export default function AdminSettingsScreen() {
 
     if (err) {
       // 42P01 = relation does not exist (table not migrated yet)
-      if (err.code === "42P01") {
+      if ((err.code === "42P01" || err.code === "PGRST205")) {
         setNotConfigured(true);
       } else {
         setError(err.message || "טעינת ההגדרות נכשלה.");
@@ -302,8 +306,14 @@ export default function AdminSettingsScreen() {
             <section className={styles.section}>
               <h2 className={styles.sectionTitle}>דגלי תכונות</h2>
               <div className={styles.card}>
+                {/* Honest copy. Nothing in the customer app reads app_settings
+                    yet — grep confirms this screen is its only consumer — so
+                    the previous line ("affects behaviour for all customers")
+                    would have had an admin toggle a flag during an incident and
+                    believe mitigation was applied. */}
                 <p className={styles.flagHint}>
-                  תכונות שאינן מופעלות עדיין. שינוי ערכים כאן משפיע על התנהגות האפליקציה עבור כל הלקוחות.
+                  תכונות שאינן מופעלות עדיין. הערכים נשמרים, אך <strong>עדיין אינם נקראים</strong> ע"י
+                  אפליקציית הלקוח — הם מיועדים לחיבור עתידי.
                 </p>
                 <div className={styles.flagGrid}>
                   {FEATURE_FLAG_DEFS.map(({ key, label }) => (

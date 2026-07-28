@@ -1,47 +1,61 @@
-/* PageHeader */
+/* PageHeader — the one big thing on the page.
+   The product's authority is mostly SCALE: a confident serif title, and
+   everything else quiet underneath it. */
 .pageHead {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 22px;
-  gap: 12px;
+  margin-bottom: 24px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
-@media (max-width: 480px) {
-  .pageHead {
-    margin-bottom: 16px;
-    gap: 8px;
-  }
-  .pageTitle {
-    font-size: 22px;
-  }
-}
-
+/* flex-basis, not `flex: 1`. With `flex: 1` the title column happily collapsed
+   to ~60px on a phone so that a row of four stat pills could stay on the same
+   line — the page title, the largest type on the screen, was wrapping one word
+   per line. A basis of 240px makes the aside wrap underneath instead. */
 .titleWrap {
-  flex: 1;
+  flex: 1 1 240px;
   min-width: 0;
 }
 
 .pageTitle {
   font-family: var(--font-family-serif);
-  font-size: 26px;
-  font-weight: 700;
+  font-size: var(--step-3);
+  font-weight: var(--font-weight-bold);
   letter-spacing: -0.005em;
-  margin-bottom: 3px;
+  line-height: 1.15;
+  margin-bottom: 5px;
 }
 
+/* An icon beside the title is a mark, not a word — but it sits at title size,
+   so it takes --accent-text (6.87:1) rather than the fill-only --accent. */
 .icon {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .pageSub {
-  font-size: 13px;
+  font-size: var(--step-0);
   color: var(--text2);
-  line-height: 1.5;
+  line-height: 1.55;
+  max-width: 62ch;
 }
 
 .aside {
   flex-shrink: 0;
   max-width: 100%;
+}
+
+@media (max-width: 560px) {
+  .pageHead {
+    margin-bottom: 18px;
+    gap: 12px;
+  }
+  .pageTitle {
+    font-size: var(--step-2);
+  }
+  /* Once the aside has wrapped it owns the line, so let it use it. */
+  .aside {
+    width: 100%;
+  }
 }

@@ -5,7 +5,6 @@ import Icon from "../../components/ui/Icon.jsx";
 import {
   ACTION_META,
   ACTION_KEYS,
-  ENTITY_TYPE_LABELS,
   getActionLabel,
   getEntityLabel,
 } from "../lib/activityConfig.js";
@@ -72,7 +71,7 @@ export default function AdminActivityScreen() {
     try {
       setLogs(await loadActivityData());
     } catch (err) {
-      if (err.code === "42P01") {
+      if ((err.code === "42P01" || err.code === "PGRST205")) {
         setNotConfigured(true);
         setLogs([]);
       } else {

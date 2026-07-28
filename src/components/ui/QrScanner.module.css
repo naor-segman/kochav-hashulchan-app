@@ -1,0 +1,102 @@
+/* QrScanner — the live camera panel used at check-in. */
+.wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px 16px;
+  margin-bottom: 12px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-size: var(--step-0);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text);
+}
+
+/* Neutral until hovered — a close button that is pre-tinted red reads as the
+   destructive action on the panel, which it is not. */
+.close {
+  margin-inline-start: auto;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text2);
+  font-size: var(--step--1);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.close:hover {
+  background: var(--bg);
+  border-color: var(--text2);
+  color: var(--text);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .close { width: 44px; height: 44px; }
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--text);
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* A framing guide so staff know where to hold the badge — the detector reads
+   the whole frame, this is purely to steady the hand. */
+.reticle {
+  position: absolute;
+  inset: 18% 22%;
+  border: 2px solid rgba(var(--nav-text-rgb), 0.85);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 100vmax rgba(var(--text-rgb), 0.4);
+}
+
+.hint {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--step-0);
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-inline-start: 3px solid var(--warn);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}

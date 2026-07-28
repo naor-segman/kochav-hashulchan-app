@@ -9,7 +9,9 @@
   position: sticky;
   top: 0;
   z-index: 200;
-  background: rgba(28, 18, 8, 0.95);
+  /* Was a hardcoded warm brown left over from the pre-magenta palette — it made
+     this nav visibly browner than the identical one on the landing page. */
+  background: rgba(var(--text-rgb), 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--nav-border);
@@ -34,6 +36,7 @@
 }
 
 .navLogoMark {
+  /* --accent-text is 2.66:1 on the near-black nav; --accent is 4.84:1. */
   color: var(--accent);
   font-size: 22px;
   line-height: 1;
@@ -65,8 +68,13 @@
   color: var(--nav-text);
 }
 
+/* "You are here" is a state, not a brand moment — and --accent-text was
+   unreadable on this ground. Full-strength nav text plus a rule under it says
+   it more clearly and costs no colour. */
 .navLinkActive {
-  color: var(--accent);
+  color: var(--nav-text);
+  box-shadow: inset 0 -2px 0 var(--accent);
+  padding-bottom: 3px;
 }
 
 .navActions {
@@ -91,8 +99,9 @@
 }
 
 .navCta {
-  background: var(--accent);
-  color: #fff;
+  /* white on --accent is 3.80:1; on --cta it is 4.70:1. */
+  background: var(--cta);
+  color: var(--on-accent);
   text-decoration: none;
   font-size: 14px;
   font-weight: 700;
@@ -104,8 +113,8 @@
 }
 
 .navCta:hover {
-  background: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
+  background: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
   transform: translateY(-1px);
 }
 
@@ -133,11 +142,13 @@
   margin: 0 auto;
 }
 
+/* Was --accent-text inside a 12%-accent pill on near-black: 2.66:1. Blush type
+   on the same tinted pill is ~10:1 and keeps the pill's brand tint. */
 .headerTag {
   display: inline-block;
-  background: rgba(var(--accent-rgb),0.12);
-  color: var(--accent);
-  border: 1px solid rgba(var(--accent-rgb),0.25);
+  background: rgba(var(--accent-rgb),0.14);
+  color: var(--blush);
+  border: 1px solid rgba(var(--accent-rgb),0.30);
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
@@ -148,11 +159,16 @@
 }
 
 .headerTitle {
-  font-size: clamp(2.2rem, 5vw, 3.4rem);
-  font-weight: 800;
+  /* This page is one decision, so its title carries the same editorial serif
+     and the same authority-by-scale as the landing hero. */
+  font-family: var(--font-family-serif);
+  font-size: clamp(2.4rem, 5.6vw, 3.9rem);
+  font-weight: 700;
   color: var(--nav-text);
-  margin: 0 0 16px;
-  letter-spacing: -0.025em;
+  line-height: 1.12;
+  margin: 0 0 18px;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .headerSub {
@@ -191,11 +207,17 @@
   position: relative;
 }
 
+/* THE decision on this page. It used to shout with four separate signals at
+   once — near-black ground, accent border, accent glow, accent type — and the
+   type on that ground measured 2.66:1, so the loudest card was also the least
+   readable. Blush is a GROUND: it carries near-black at 12.3:1, it is
+   unmistakable against the grey section, and it leaves exactly one saturated
+   element on the card (the button). */
 .planCardPro {
-  background: var(--nav-bg);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-accent-lg);
-  transform: scale(1.04);
+  background: var(--blush);
+  border-color: var(--blush-line);
+  box-shadow: var(--shadow-md);
+  transform: scale(1.045);
 }
 
 .planBadge {
@@ -203,8 +225,8 @@
   top: -13px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--accent);
-  color: #fff;
+  background: var(--cta);
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 700;
   padding: 4px 18px;
@@ -225,7 +247,7 @@
 }
 
 .planCardPro .planName {
-  color: var(--nav-text);
+  color: var(--text);
 }
 
 .planDesc {
@@ -235,9 +257,9 @@
   margin: 0;
 }
 
+/* --muted is 3.60:1 on blush and fails; --text2 is 5.60:1. */
 .planCardPro .planDesc {
-  color: var(--nav-muted);
-  opacity: 0.8;
+  color: var(--text2);
 }
 
 .planPrice {
@@ -255,8 +277,13 @@
   line-height: 1;
 }
 
+/* 4.71:1 on blush. The single accent-coloured piece of type on the page. */
 .planCardPro .planNum {
-  color: var(--accent);
+  color: var(--accent-text);
+}
+
+.planCardPro .planPer {
+  color: var(--text2);
 }
 
 .planPer {
@@ -277,24 +304,30 @@
 }
 
 .planCardPro .planFeatures {
-  border-color: rgba(var(--nav-text-rgb),0.1);
+  border-color: var(--blush-line);
 }
 
+/* The comparison rows are what a visitor actually scans, so they get a row
+   rhythm: an even baseline gap and a hairline between lines, which is what
+   makes three columns readable ACROSS as well as down. */
 .planFeature {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   color: var(--text2);
   line-height: 1.5;
+  padding-block: 5px;
 }
 
 .planCardPro .planFeature {
-  color: var(--nav-muted);
+  color: var(--text2);
 }
 
+/* An unavailable feature reads as absent, not as a 40%-opacity ghost of the
+   available one — opacity dragged the label to ~2.5:1. */
 .planFeatureNo {
-  opacity: 0.4;
+  color: var(--muted);
 }
 
 .planFeatureIcon {
@@ -306,12 +339,15 @@
   text-align: center;
 }
 
+/* --border2 put the "—" at 1.65:1; --muted is 5.30:1 on white. The marker has
+   to be readable — it is the only thing distinguishing an excluded row. */
 .planFeatureNo .planFeatureIcon {
   color: var(--muted);
 }
 
+/* --green is 3.97:1 on blush; --accent-text is 4.71:1. */
 .planCardPro .planFeatureIcon {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .planCta {
@@ -331,21 +367,21 @@
 .planCta:hover {
   background: var(--accent-bg);
   border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .planCtaPro {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-  box-shadow: var(--shadow-accent);
+  background: var(--cta);
+  color: var(--on-accent);
+  border-color: var(--cta);
+  box-shadow: var(--shadow-cta);
 }
 
 .planCtaPro:hover {
-  background: var(--accent-dark);
-  color: #fff;
-  border-color: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
+  background: var(--cta-dark);
+  color: var(--on-accent);
+  border-color: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
 }
 
 /* ── FAQ ── */
@@ -366,26 +402,29 @@
   margin-bottom: 56px;
 }
 
+/* Blush pill, near-black label — the same eyebrow primitive the landing page
+   uses, instead of a third pale-pink-on-pale-pink variant. */
 .faqTag {
   display: inline-block;
-  background: var(--accent-bg);
-  color: var(--accent);
-  border: 1px solid var(--accent-border);
+  background: var(--blush);
+  color: var(--text);
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
-  padding: 5px 18px;
+  font-weight: 800;
+  padding: 6px 18px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 18px;
 }
 
 .faqTitle {
-  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-  font-weight: 800;
+  font-family: var(--font-family-serif);
+  font-size: clamp(1.75rem, 3.8vw, 2.6rem);
+  font-weight: 700;
   color: var(--text);
   margin: 0;
-  letter-spacing: -0.02em;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 .faqGrid {
@@ -417,10 +456,11 @@
 }
 
 .faqA {
-  font-size: 0.88rem;
-  color: var(--muted);
+  font-size: 0.9rem;
+  color: var(--text2);
   line-height: 1.75;
   margin: 0;
+  max-width: 58ch;
 }
 
 /* ── CTA banner ── */
@@ -439,18 +479,20 @@
 .ctaStar {
   display: block;
   font-size: 40px;
-  color: var(--accent);
-  opacity: 0.25;
+  color: var(--blush);
+  opacity: 0.42;
   margin-bottom: 24px;
   line-height: 1;
 }
 
 .ctaTitle {
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
-  font-weight: 800;
+  font-family: var(--font-family-serif);
+  font-size: clamp(1.9rem, 4.4vw, 3rem);
+  font-weight: 700;
   color: var(--nav-text);
   margin: 0 0 16px;
-  letter-spacing: -0.025em;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 .ctaSub {
@@ -462,20 +504,20 @@
 
 .ctaBtn {
   display: inline-block;
-  background: var(--accent);
-  color: #fff;
+  background: var(--cta);
+  color: var(--on-accent);
   text-decoration: none;
   font-size: 1.05rem;
   font-weight: 700;
   padding: 15px 44px;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-accent-lg);
+  box-shadow: var(--shadow-cta-lg);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .ctaBtn:hover {
-  background: var(--accent-dark);
-  box-shadow: 0 8px 32px rgba(var(--accent-rgb),0.55);
+  background: var(--cta-dark);
+  box-shadow: 0 8px 32px rgba(var(--cta-rgb),0.55);
   transform: translateY(-2px);
 }
 

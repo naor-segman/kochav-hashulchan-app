@@ -5,7 +5,12 @@
   min-height: 100vh;
 }
 
-/* ── Topbar — dark premium navigation ── */
+/* ── Topbar — near-black chrome ───────────────────────────────────────────
+   Everything on this bar is measured against #14161A, not against white. The
+   palette's light-ground values do NOT transfer: --red is 3.09:1 here and
+   --accent is 4.76:1, so anything small or bold takes a light pink/red
+   (--accent-border 11.43:1, --red-border 11.07:1) instead. The accent is the
+   only colour allowed on the bar at all, and only as a fill or a mark. */
 .topbar {
   display: flex;
   align-items: center;
@@ -17,7 +22,16 @@
   position: sticky;
   top: 0;
   z-index: 200;
-  box-shadow: 0 2px 16px rgba(0,0,0,.28), 0 1px 4px rgba(0,0,0,.18);
+}
+
+/* One focus ring for everything on the dark bar. --nav-text is 16.62:1 here,
+   where the light-ground ring colour would all but vanish. */
+.logo:focus-visible,
+.bcBack:focus-visible,
+.accountBtn:focus-visible,
+.signupBtn:focus-visible {
+  outline: 2px solid var(--nav-text);
+  outline-offset: 2px;
 }
 
 .logo {
@@ -34,27 +48,30 @@
 
 .logo:hover { opacity: 0.8; }
 
+/* The one accent moment on the bar — a mark, not text. */
 .logoMark {
   font-size: 22px;
   color: var(--accent);
-  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb),.50));
 }
 
 .logoName {
-  font-size: 17px;
-  font-weight: 900;
+  font-size: var(--step-1);
+  font-weight: var(--font-weight-extrabold);
   color: var(--nav-text);
   letter-spacing: -0.02em;
 }
 
+/* 9px at weight 800 needs to be MORE legible than body text, not less.
+   --accent read 4.76:1 on the bar; --accent-border reads 10.38:1 on the same
+   tint and still says "brand pink". */
 .betaBadge {
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--accent);
-  background: rgba(var(--accent-rgb),.14);
-  border: 1px solid rgba(var(--accent-rgb),.30);
-  border-radius: 20px;
-  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: var(--font-weight-extrabold);
+  color: var(--accent-border);
+  background: rgba(var(--accent-rgb),.16);
+  border: 1px solid rgba(var(--accent-rgb),.34);
+  border-radius: var(--radius-full);
+  padding: 2px 7px;
   letter-spacing: 0.06em;
   flex-shrink: 0;
 }
@@ -67,21 +84,24 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--nav-muted);
   flex: 1;
   min-width: 0;
   overflow: hidden;
 }
 
+/* --accent is 4.76:1 on the bar, which passes for a 13px link, but it is also
+   the only saturated colour up here — so the back link keeps it and everything
+   else stays neutral. Hover goes lighter, never darker. */
 .bcBack {
   background: none;
   border: none;
   cursor: pointer;
   color: var(--accent);
-  font-weight: 700;
-  font-size: 13px;
-  padding: 4px 8px;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--step--1);
+  padding: 5px 8px;
   border-radius: var(--radius);
   white-space: nowrap;
   flex-shrink: 0;
@@ -107,30 +127,35 @@
   white-space: nowrap;
 }
 
+/* Save state — three variants of one chip. The tints are held at ~.14 because
+   a heavier green wash drags --green-light down to 4.40:1 at 11px/700; at .14
+   it reads 5.05:1. */
 .autoSave {
   font-size: 11px;
-  color: var(--green);
-  font-weight: 700;
+  color: var(--green-light);
+  font-weight: var(--font-weight-bold);
   white-space: nowrap;
   flex-shrink: 0;
-  background: rgba(var(--green-rgb),.18);
-  border: 1px solid rgba(var(--green-rgb),.30);
-  border-radius: 20px;
+  background: rgba(var(--green-rgb),.14);
+  border: 1px solid rgba(var(--green-rgb),.34);
+  border-radius: var(--radius-full);
   padding: 3px 10px;
   letter-spacing: 0.01em;
-  transition: all var(--transition);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
 .autoSaving {
   color: var(--accent-border);
   background: rgba(var(--accent-rgb),.14);
-  border-color: rgba(var(--accent-rgb),.28);
+  border-color: rgba(var(--accent-rgb),.34);
 }
 
+/* --red on the near-black bar is 3.09:1 — this was designed for a light card.
+   --red-border is the same family and reads 9.45:1 here. */
 .autoSaveErr {
-  color: var(--red);
-  background: rgba(var(--red-rgb),.14);
-  border-color: rgba(var(--red-rgb),.28);
+  color: var(--red-border);
+  background: rgba(var(--red-rgb),.22);
+  border-color: rgba(var(--red-rgb),.40);
 }
 
 /* ── Account button ── */
@@ -138,55 +163,64 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(var(--nav-text-rgb),.06);
+  border: 1px solid rgba(var(--nav-text-rgb),.14);
   border-radius: var(--radius-full);
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--nav-muted);
+  padding: 6px 12px;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-semibold);
+  color: var(--nav-text);
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
-  max-width: 140px;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  max-width: 160px;
   overflow: hidden;
   margin-inline-start: auto;
 }
 
 .accountBtn:hover {
-  background: rgba(var(--accent-rgb),.16);
-  border-color: rgba(var(--accent-rgb),.35);
-  color: var(--accent);
+  background: rgba(var(--nav-text-rgb),.12);
+  border-color: rgba(var(--nav-text-rgb),.28);
+  color: var(--nav-text);
 }
 
 .accountIcon { font-size: 13px; flex-shrink: 0; }
 
-/* ── Signup CTA ── */
+/* ── Signup CTA ──────────────────────────────────────────────────────────
+   The one filled button on the bar. --cta, not --accent: a white label on
+   --accent is 3.80:1 and this one is 12px at weight 800. On --cta it is
+   4.71:1. */
 .signupBtn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  background: var(--accent);
-  color: #fff;
-  border: none;
+  justify-content: center;
+  background: var(--cta);
+  color: var(--on-accent);
+  border: 1px solid var(--cta);
   border-radius: var(--radius-full);
-  padding: 7px 18px;
-  font-size: 12px;
-  font-weight: 800;
+  padding: 8px 18px;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-extrabold);
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  transition: background var(--transition), border-color var(--transition);
   margin-inline-start: auto;
-  box-shadow: var(--shadow-accent);
 }
 
 .signupBtn:hover {
-  background: var(--accent-dark);
-  box-shadow: var(--shadow-accent-lg);
-  transform: translateY(-1px);
+  background: var(--cta-dark);
+  border-color: var(--cta-dark);
+}
+
+@media (pointer: coarse) {
+  .accountBtn,
+  .signupBtn {
+    min-height: 40px;
+  }
 }
 
 .accountLabel {
@@ -201,6 +235,9 @@
 }
 
 /* ── Subnav ── */
+/* The hairline under the rail is the separation. The old brown-tinted drop
+   shadow (rgba(80,45,10,…)) was left over from the pre-magenta palette and was
+   quietly warming every page below it. */
 .subnav {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -208,7 +245,6 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
-  box-shadow: 0 2px 8px rgba(80,45,10,.06);
 }
 
 .subnav::-webkit-scrollbar {
@@ -238,8 +274,8 @@
   border: none;
   cursor: pointer;
   padding: 13px 12px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-medium);
   color: var(--text2);
   border-bottom: 2px solid transparent;
   white-space: nowrap;
@@ -247,19 +283,36 @@
   flex-shrink: 0;
 }
 
+/* Hovering the rail used to wash each item in --accent-bg, so running the
+   pointer along fourteen tabs painted the whole rail pink. A neutral wash. */
 .subnavBtn:not(.subnavActive):hover {
   color: var(--text);
-  background: var(--accent-bg);
+  background: var(--bg);
 }
 
+.subnavBtn:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -3px;
+  border-radius: var(--radius-sm);
+}
+
+/* The LABEL takes --accent-text (6.87:1); the 2px underline takes --accent,
+   because a rule is a shape and shapes may be the saturated colour. The label
+   was --accent, which is 3.80:1 — the active tab was the least legible tab. */
 .subnavActive {
-  color: var(--accent);
+  color: var(--accent-text);
   border-bottom-color: var(--accent);
-  font-weight: 800;
+  font-weight: var(--font-weight-extrabold);
 }
 
 .subnavLabel {
   display: inline;
+}
+
+@media (pointer: coarse) {
+  .subnavBtn {
+    min-height: 44px;
+  }
 }
 
 .stepDot {
@@ -270,9 +323,9 @@
   height: 18px;
   border-radius: 50%;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--font-weight-extrabold);
   background: var(--border);
-  color: var(--muted);
+  color: var(--text2);   /* --muted on --border was 4.18:1 at 10px/800 */
   flex-shrink: 0;
   transition: background var(--transition), color var(--transition);
 }
@@ -282,9 +335,10 @@
   color: var(--green);
 }
 
+/* Filled + white label, so --cta (4.71:1), not --accent (3.80:1). */
 .stepDotActive {
-  background: var(--accent);
-  color: #fff;
+  background: var(--cta);
+  color: var(--on-accent);
 }
 
 /* ── Main ── */
@@ -296,8 +350,8 @@
 @media (max-width: 480px) {
   .logoName { display: none; }
   .autoSave { display: none; }
-  .subnavBtn { padding: 11px 8px; font-size: 11px; }
-  .topbar { padding: 0 16px; }
+  .subnavBtn { padding: 11px 9px; font-size: 12px; }
+  .topbar { padding: 0 14px; }
 }
 
 /* ── Print: hide shell chrome ── */

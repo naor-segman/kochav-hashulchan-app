@@ -3,7 +3,10 @@ import styles from "./TypeTag.module.css";
 const TYPE_MAP = {
   regular: ["רגיל",  "var(--muted)"],
   knight:  ["אביר",  "var(--bride)"],
-  vip:     ["VIP",   "var(--accent)"],
+  // --accent-text, not --accent: this value lands on TEXT, and --accent is
+  // 3.80:1. The fill-only rule is enforced in CSS everywhere else; an inline
+  // style is the one place it could slip through.
+  vip:     ["VIP",   "var(--accent-text)"],
   bar:     ["בר",    "var(--warn)"],
   small:   ["קטן",   "var(--green)"],
   head:    ["ראשי",  "var(--groom)"], // legacy — kept so old events still render

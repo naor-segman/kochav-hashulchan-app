@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
-import { TABLE_TYPES } from "../data/constants.js";
+import { TABLE_TYPES, TABLE_SHAPES, DEFAULT_TABLE_SHAPE, tableShape } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -22,7 +22,7 @@ const TABS = [
 
 export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [tab,     setTab]     = useState("list");
-  const [batch,   setBatch]   = useState({ prefix: "", capacity: "10", count: "1", type: "regular" });
+  const [batch,   setBatch]   = useState({ prefix: "", capacity: "10", count: "1", type: "regular", shape: DEFAULT_TABLE_SHAPE });
   const [editId,  setEditId]  = useState(null);
   const [editVals,setEditVals]= useState({});
 
@@ -77,11 +77,29 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     if (!cap || cap < 1) { showToast("יש להזין מספר מקומות תקני", "err"); return; }
     if (!cnt || cnt < 1) { showToast("יש להזין כמות שולחנות תקנית", "err"); return; }
     patchEvent(e => {
-      const rows = Array.from({ length: cnt }, (_, i) => ({
+      // Continue from the highest number ALREADY used with this prefix, not
+      // from the table count. After deleting "שולחן 2", the count-based version
+      // produced a second "שולחן 3" — and the WhatsApp message and printed
+      // entry card both name the table, so two tables answered to one number.
+      const used = new Set((e.tables || []).map(t => (t.name || "").trim()));
+      const rx   = new RegExp("^" + previewPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+(\\d+)$");
+      let next = 0;
+      for (const t of e.tables || []) {
+        const m = rx.exec((t.name || "").trim());
+        if (m) next = Math.max(next, Number(m[1]));
+      }
+      const nextName = () => {
+        let n = ++next;
+        while (used.has(previewPrefix + " " + n)) n = ++next;
+        used.add(previewPrefix + " " + n);
+        return previewPrefix + " " + n;
+      };
+      const rows = Array.from({ length: cnt }, () => ({
         id:       uid(),
-        name:     previewPrefix + " " + (e.tables.length + i + 1),
+        name:     nextName(),
         capacity: cap,
         type:     batch.type,
+        shape:    batch.shape,
       }));
       return Object.assign({}, e, { tables: e.tables.concat(rows) });
     });
@@ -89,7 +107,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     setBatch(p => Object.assign({}, p, { prefix: "", count: "1" }));
   };
 
-  const startEdit  = t  => { setEditId(t.id); setEditVals({ name: t.name, capacity: String(t.capacity), type: t.type }); };
+  const startEdit  = t  => { setEditId(t.id); setEditVals({ name: t.name, capacity: String(t.capacity), type: t.type, shape: t.shape || DEFAULT_TABLE_SHAPE }); };
   const cancelEdit = () => setEditId(null);
   const saveEdit   = () => {
     const cap = parseInt(editVals.capacity);
@@ -97,7 +115,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     if (!cap || cap < 1)       { showToast("קיבולת לא תקנית", "err"); return; }
     patchEvent(e => Object.assign({}, e, {
       tables: e.tables.map(t => t.id === editId
-        ? Object.assign({}, t, { name: editVals.name.trim(), capacity: cap, type: editVals.type })
+        ? Object.assign({}, t, { name: editVals.name.trim(), capacity: cap, type: editVals.type, shape: editVals.shape || DEFAULT_TABLE_SHAPE })
         : t
       )
     }));
@@ -198,6 +216,12 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                   <option value="__add__">➕ סוג מותאם…</option>
                 </select>
               </Field>
+              <Field label={<>צורה <InfoTip text="הצורה הפיזית של השולחן. מופיעה במפת האולם כדי שתזהו את הפריסה האמיתית — ולא משפיעה על הקיבולת." /></>}>
+                <select className={base.select} value={batch.shape}
+                  onChange={e => setBatch(p => Object.assign({}, p, { shape: e.target.value }))}>
+                  {TABLE_SHAPES.map(sh => <option key={sh.value} value={sh.value}>{sh.glyph} {sh.label}</option>)}
+                </select>
+              </Field>
             </div>
 
             {batchTotal > 0 && (
@@ -278,7 +302,14 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                             {typeOptions.map(tp => <option key={tp.value} value={tp.value}>{tp.label}</option>)}
                             <option value="__add__">➕ סוג מותאם…</option>
                           </select>
-                          <span />
+                          <select
+                            className={base.select}
+                            aria-label="צורת השולחן"
+                            value={editVals.shape || DEFAULT_TABLE_SHAPE}
+                            onChange={e => setEditVals(p => Object.assign({}, p, { shape: e.target.value }))}
+                          >
+                            {TABLE_SHAPES.map(sh => <option key={sh.value} value={sh.value}>{sh.glyph} {sh.label}</option>)}
+                          </select>
                           <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                             <button className={base.btnSm} onClick={saveEdit}>שמרו</button>
                             <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={cancelEdit}>ביטול</button>
@@ -286,7 +317,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                         </>
                       ) : (
                         <>
-                          <span style={{ fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+                          <span style={{ fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><span aria-hidden="true" title={tableShape(t).label} style={{ color: "var(--muted)", marginInlineEnd: 5 }}>{tableShape(t).glyph}</span>{t.name}</span>
                           <span style={{ textAlign: "center" }}>{t.capacity}</span>
                           <span style={{ textAlign: "center" }}><TypeTag type={t.type} /></span>
                           <span style={{

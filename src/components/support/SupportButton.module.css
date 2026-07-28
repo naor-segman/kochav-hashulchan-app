@@ -6,7 +6,7 @@
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  background: #25D366;
+  background: var(--whatsapp);
   color: #fff;
   display: flex;
   align-items: center;

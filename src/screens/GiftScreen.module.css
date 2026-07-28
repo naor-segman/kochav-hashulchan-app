@@ -1,4 +1,12 @@
-/* ── Root — warm cream canvas ─────────────────────────────────────────────── */
+/* GiftScreen — a guest sending money, on a phone, at the venue, often late in
+   the evening. Two things must be unmissable: the amount chips and the send
+   button. Everything else is deliberately quiet.
+
+   Accent budget: the CTA button, the card's top rule, and (on the success
+   screen only) the confirmation bubble. Emphasis elsewhere is carried by the
+   --blush ground with near-black text (12.3:1), not by the accent. */
+
+/* ── Root ─────────────────────────────────────────────────────────────────── */
 
 .root {
   min-height: 100vh;
@@ -10,17 +18,7 @@
   overflow-x: hidden;
 }
 
-/* Faint radial glow at top edge — warmth without distraction */
-.root::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 80% 30% at 50% 0%, rgba(var(--accent-rgb),0.07) 0%, transparent 65%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* ── Decorative background stars — very low opacity ───────────────────────── */
+/* ── Decorative background stars — blush, not accent, and barely there ─────── */
 
 .decor {
   position: absolute;
@@ -32,7 +30,7 @@
 
 .decorStar {
   position: absolute;
-  color: var(--accent);
+  color: var(--blush);
   line-height: 1;
 }
 
@@ -40,21 +38,21 @@
   top: 8%;
   inset-inline-end: 5%;
   font-size: 96px;
-  opacity: 0.055;
+  opacity: 0.28;
 }
 
 .ds2 {
   top: 50%;
   inset-inline-start: 3%;
   font-size: 136px;
-  opacity: 0.038;
+  opacity: 0.18;
 }
 
 .ds3 {
   bottom: 12%;
   inset-inline-end: 8%;
   font-size: 64px;
-  opacity: 0.048;
+  opacity: 0.24;
 }
 
 /* ── Header — narrow dark strip at top ───────────────────────────────────── */
@@ -75,16 +73,17 @@
   align-items: center;
   gap: 7px;
   text-decoration: none;
-  opacity: 0.78;
   transition: opacity var(--transition);
 }
 
 .logo:hover {
-  opacity: 1;
+  opacity: 0.8;
 }
 
+/* --accent-text is 2.6:1 on the near-black bar; --accent-on-dark is the
+   same job calibrated for this ground, at 9.3:1. */
 .logoMark {
-  color: var(--accent);
+  color: var(--accent-on-dark);
   font-size: 14px;
 }
 
@@ -121,21 +120,14 @@
   overflow: hidden;
 }
 
-/* Gold top accent bar */
+/* Accent moment 1 of 3 — one flat rule across the head of the card. */
 .card::before {
   content: "";
   position: absolute;
   inset-block-start: 0;
   inset-inline: 0;
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--accent-border) 20%,
-    var(--accent) 50%,
-    var(--accent-border) 80%,
-    transparent 100%
-  );
+  height: 4px;
+  background: var(--accent);
 }
 
 /* ── Event identity (card top) ────────────────────────────────────────────── */
@@ -145,16 +137,16 @@
   margin-bottom: 28px;
 }
 
+/* Blush ground, near-black label — emphasis without spending the accent. */
 .eventTag {
   display: inline-block;
-  background: var(--accent-bg);
-  color: var(--accent);
-  border: 1px solid var(--accent-border);
-  border-radius: 999px;
+  background: var(--blush);
+  color: var(--text);
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.10em;
-  padding: 5px 18px;
+  padding: 6px 18px;
   margin-bottom: 16px;
 }
 
@@ -169,7 +161,7 @@
 }
 
 .eventSub {
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--muted);
   margin: 0;
 }
@@ -187,42 +179,44 @@
 .ornLine {
   flex: 1;
   height: 1px;
-  background: var(--accent-border);
-  opacity: 0.55;
+  background: var(--blush-line);
   display: block;
 }
 
 .ornStar {
-  color: var(--accent);
+  color: var(--blush-line);
   font-size: 12px;
   flex-shrink: 0;
-  opacity: 0.68;
 }
 
 /* ── Form sections ────────────────────────────────────────────────────────── */
 
 .section {
-  margin-bottom: 22px;
+  margin-bottom: 26px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .sectionLabel {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--text2);
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
 .fieldErr {
-  font-size: 12px;
+  font-size: var(--step-0);
+  font-weight: 600;
   color: var(--red);
   margin-top: -2px;
 }
 
-/* ── Amount chips — denomination-style buttons ────────────────────────────── */
+/* ── Amount chips ─────────────────────────────────────────────────────────── */
+/* The single most important control on the page. Big targets, near-black
+   numerals, and a selected state you can read at arm's length: a blush ground
+   with a --cta rule around it. No accent-on-text anywhere. */
 
 .chips {
   display: grid;
@@ -231,10 +225,11 @@
 }
 
 .chip {
-  background: var(--bg);
-  border: 1.5px solid var(--border2);
+  background: var(--surface);
+  border: 2px solid var(--border2);
   border-radius: var(--radius);
-  padding: 18px 6px;
+  min-height: 64px;
+  padding: 14px 6px;
   text-align: center;
   cursor: pointer;
   display: flex;
@@ -243,38 +238,35 @@
   transition:
     background var(--transition),
     border-color var(--transition),
-    box-shadow var(--transition),
     transform var(--transition);
 }
 
 .chip:hover {
   background: var(--accent-light);
-  border-color: var(--accent-border);
-  box-shadow: var(--shadow-accent);
-  transform: translateY(-1px);
+  border-color: var(--blush-line);
 }
 
 .chip:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--cta);
   outline-offset: 2px;
 }
 
-.chipActive {
-  background: var(--accent-bg);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-accent);
+.chipActive,
+.chipActive:hover {
+  background: var(--blush);
+  border-color: var(--cta);
 }
 
 .chipAmt {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text2);
+  font-size: var(--step-2);
+  font-weight: 800;
+  color: var(--text);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .chipActive .chipAmt {
-  color: var(--accent-dark);
+  color: var(--text);
 }
 
 /* ── Custom amount row ────────────────────────────────────────────────────── */
@@ -286,8 +278,8 @@
 }
 
 .customLabel {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: var(--step-0);
+  color: var(--text2);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -298,14 +290,17 @@
 }
 
 /* ── Text inputs ──────────────────────────────────────────────────────────── */
+/* 16px minimum: anything smaller makes iOS Safari zoom the page on focus, and
+   this form is filled in one-handed on a phone. */
 
 .input {
   width: 100%;
-  background: var(--bg);
-  border: 1.5px solid var(--border);
+  background: var(--surface);
+  border: 2px solid var(--border2);
   border-radius: var(--radius);
-  padding: 11px 14px;
-  font-size: 14px;
+  min-height: 52px;
+  padding: 12px 14px;
+  font-size: var(--font-size-base);
   color: var(--text);
   direction: rtl;
   box-sizing: border-box;
@@ -313,18 +308,22 @@
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 
+.input::placeholder {
+  color: var(--muted);
+}
+
 .input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12);
+  border-color: var(--cta);
+  box-shadow: 0 0 0 3px rgba(var(--cta-rgb),0.18);
 }
 
 .input:hover:not(:focus):not(:disabled) {
-  border-color: var(--border2);
+  border-color: var(--text2);
 }
 
 .inputActive {
-  border-color: var(--accent-border);
+  border-color: var(--cta);
 }
 
 .inputError {
@@ -336,11 +335,11 @@
 
 .textarea {
   width: 100%;
-  background: var(--bg);
-  border: 1.5px solid var(--border);
+  background: var(--surface);
+  border: 2px solid var(--border2);
   border-radius: var(--radius);
   padding: 12px 14px;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   color: var(--text);
   direction: rtl;
   resize: vertical;
@@ -350,17 +349,21 @@
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 
+.textarea::placeholder {
+  color: var(--muted);
+}
+
 .textarea:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12);
+  border-color: var(--cta);
+  box-shadow: 0 0 0 3px rgba(var(--cta-rgb),0.18);
 }
 
 /* ── Payment info note ────────────────────────────────────────────────────── */
 
 .payCard {
   background: var(--bg);
-  border: 1.5px dashed var(--border2);
+  border: 1px dashed var(--border2);
   border-radius: var(--radius);
   padding: 16px 20px;
   margin-bottom: 24px;
@@ -370,33 +373,34 @@
 }
 
 .payCardTitle {
-  font-size: 13px;
+  font-size: var(--step-0);
   font-weight: 700;
-  color: var(--text2);
+  color: var(--text);
 }
 
 .payComing {
-  font-size: 12px;
+  font-size: var(--step--1);
   color: var(--muted);
   margin: 0;
 }
 
 /* ── Transfer instructions (success screen) ───────────────────────────────── */
+/* This block holds the number the guest is about to type into Bit. It sits on
+   the blush ground so it is the loudest thing under the confirmation. */
 
 .transferBox {
-  background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  background: var(--blush);
   border-radius: var(--radius);
-  padding: 16px 18px;
+  padding: 18px;
   margin: 18px 0 6px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   text-align: start;
 }
 
 .transferTitle {
-  font-size: 13px;
+  font-size: var(--step-0);
   font-weight: 700;
   color: var(--text);
 }
@@ -409,53 +413,56 @@
 }
 
 .transferMethod {
-  font-size: 13px;
+  font-size: var(--step-0);
   color: var(--text2);
   font-weight: 600;
 }
 
 .transferValue {
-  font-size: 15px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--text);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.03em;
 }
 
+/* Outlined, so the PayBox link below stays the single filled action in the
+   block rather than two pink pills competing. */
 .transferCopy {
-  font-size: 12px;
+  font-size: var(--step--1);
   font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 7px;
-  border: none;
+  padding: 9px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--blush-line);
   cursor: pointer;
-  background: var(--accent);
-  color: #fff;
-  transition: background var(--transition);
+  background: var(--surface);
+  color: var(--text);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .transferCopy:hover {
-  background: var(--accent-dark);
+  background: var(--bg);
+  border-color: var(--text2);
 }
 
 .transferLink {
   display: inline-block;
-  background: var(--accent);
-  color: #fff;
+  background: var(--cta);
+  color: var(--on-accent);
   text-decoration: none;
-  padding: 9px 16px;
+  padding: 12px 16px;
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: var(--step-0);
   font-weight: 700;
   text-align: center;
   transition: background var(--transition);
 }
 
 .transferLink:hover {
-  background: var(--accent-dark);
+  background: var(--cta-dark);
 }
 
-/* ── Submit button ────────────────────────────────────────────────────────── */
+/* ── Submit button — accent moment 2 of 3 ─────────────────────────────────── */
 
 .submitBtn {
   width: 100%;
@@ -463,9 +470,10 @@
   color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
-  padding: 15px 24px;
-  font-size: 1rem;
-  font-weight: 700;
+  min-height: 60px;
+  padding: 18px 24px;
+  font-size: var(--step-1);
+  font-weight: 800;
   cursor: pointer;
   font-family: inherit;
   letter-spacing: 0.02em;
@@ -475,7 +483,7 @@
     transform var(--transition),
     box-shadow var(--transition),
     opacity var(--transition);
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -486,12 +494,15 @@
 }
 
 .submitBtn:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--cta);
   outline-offset: 3px;
 }
 
+/* 0.38 opacity put the label at 2.1:1. A disabled control still has to be
+   readable — it is the thing the guest is trying to work out how to enable. */
 .submitBtn:disabled {
-  opacity: 0.38;
+  background: var(--border2);
+  color: var(--text2);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -500,12 +511,11 @@
 /* ── Fine print ───────────────────────────────────────────────────────────── */
 
 .finePrint {
-  font-size: 11px;
+  font-size: var(--step--1);
   color: var(--muted);
   text-align: center;
   margin: 0;
   letter-spacing: 0.03em;
-  opacity: 0.78;
 }
 
 /* ── Loading state ────────────────────────────────────────────────────────── */
@@ -528,8 +538,8 @@
 }
 
 .loadingText {
-  color: var(--muted);
-  font-size: 14px;
+  color: var(--text2);
+  font-size: var(--step-1);
   margin: 0;
 }
 
@@ -561,25 +571,25 @@
   text-align: center;
 }
 
-/* Gold circle with spring entry */
+/* Accent moment 3 of 3 — an icon bubble, on the success screen only, so it
+   never co-occurs with the CTA on the form. Filled accent, white glyph: a
+   graphic, not text. */
 .successCircle {
-  width: 72px;
-  height: 72px;
-  background: var(--accent-bg);
-  border: 2px solid var(--accent-border);
+  width: 76px;
+  height: 76px;
+  background: var(--accent);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 24px;
-  box-shadow: var(--shadow-accent);
   animation: popIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .successCheck {
-  color: var(--accent);
-  font-size: 30px;
-  font-weight: 300;
+  color: var(--on-accent);
+  font-size: 34px;
+  font-weight: 400;
   line-height: 1;
 }
 
@@ -604,11 +614,13 @@
 }
 
 .successTitle {
-  font-size: 1.55rem;
+  font-family: var(--font-family-serif);
+  font-size: var(--step-3);
   font-weight: 700;
   color: var(--text);
   margin: 0 0 24px;
   text-wrap: balance;
+  line-height: 1.2;
 }
 
 /* Summary details block */
@@ -616,7 +628,7 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px 20px;
+  padding: 18px 20px;
   margin-bottom: 24px;
   display: flex;
   flex-direction: column;
@@ -638,36 +650,36 @@
 }
 
 .successLabel {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--text2);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   flex-shrink: 0;
 }
 
 .successValue {
-  font-size: 15px;
+  font-size: var(--step-0);
   color: var(--text);
   font-weight: 600;
 }
 
 .successAmount {
-  font-size: 1.25rem;
+  font-size: var(--step-2);
   font-weight: 800;
-  color: var(--accent);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 
 .successBlessing {
-  font-size: 13px;
+  font-size: var(--step-0);
   color: var(--text2);
   font-style: italic;
   line-height: 1.65;
 }
 
 .successClosing {
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--muted);
   font-style: italic;
   margin: 0;
@@ -686,11 +698,15 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .chip {
+    min-height: 68px;
+  }
+
   .successCard {
     padding: 36px 20px;
   }
 
   .successTitle {
-    font-size: 1.35rem;
+    font-size: var(--step-2);
   }
 }

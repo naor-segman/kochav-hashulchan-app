@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { uid } from "../utils/uid.js";
-import { SITE_THEME_LIST } from "../data/eventSiteTemplates.js";
+import { SITE_THEME_LIST, SITE_FONTS, DEFAULT_SITE_FONT } from "../data/eventSiteTemplates.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -34,6 +34,8 @@ async function compressImage(file, maxPx = 1200, quality = 0.72) {
 }
 
 export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, showToast }) {
+  // null = preview closed. Otherwise the device frame width to render in.
+  const [previewDevice, setPreviewDevice] = useState(null);
   const site = ev.eventSite;
   const fileRef = useRef(null);
   const [copied, setCopied] = useState(false);
@@ -72,8 +74,20 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     if (!imgs.length) { showToast("יש לבחור קובצי תמונה", "err"); return; }
     try {
       const compressed = await Promise.all(imgs.map(f => compressImage(f, 1000, 0.7)));
-      set({ gallery: [...(site.gallery || []), ...compressed].slice(0, 12) });
-      showToast(`נוספו ${compressed.length} תמונות ✓`);
+      // Read the current gallery INSIDE the patch. `site` was captured before
+      // the await, so two overlapping batches lost one of them — and slicing a
+      // list whose head is the existing gallery drops the NEW photos while the
+      // toast counts what was compressed rather than what actually landed.
+      let added = 0;
+      patchEvent(e => {
+        const cur  = e.eventSite?.gallery || [];
+        const room = Math.max(0, 12 - cur.length);
+        added = Math.min(room, compressed.length);
+        return { ...e, eventSite: { ...e.eventSite, gallery: [...cur, ...compressed.slice(0, room)] } };
+      });
+      if (added === 0)      showToast("הגלריה מלאה (12 תמונות)", "err");
+      else if (added === 1) showToast("נוספה תמונה אחת ✓");
+      else                  showToast(`נוספו ${added} תמונות ✓`);
     } catch { showToast("שגיאה בעיבוד התמונות", "err"); }
   };
   const delGalleryPhoto = (i) => set({ gallery: (site.gallery || []).filter((_, idx) => idx !== i) });
@@ -109,10 +123,49 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           </button>
         </div>
         <div className={styles.shareRow}>
-          <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" />
+          <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" aria-label="קישור לאתר האירוע" />
           <button className={base.btnSm} onClick={copyLink}>{copied ? "הועתק ✓" : "העתיקו"}</button>
-          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open("/events/" + ev.id + "/preview-site", "_blank")}>תצוגה מקדימה</button>
+          <button
+            className={[base.btnSm, previewDevice ? "" : base.btnGhost].filter(Boolean).join(" ")}
+            onClick={() => setPreviewDevice(previewDevice ? null : "mobile")}
+            aria-expanded={!!previewDevice}
+          >
+            {previewDevice ? "סגרו תצוגה" : "תצוגה מקדימה"}
+          </button>
+          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => window.open("/events/" + ev.id + "/preview-site", "_blank")}>פתחו בלשונית</button>
         </div>
+
+        {previewDevice && (
+          <div className={styles.previewWrap}>
+            <div className={styles.previewBar}>
+              {[["mobile", "מובייל"], ["desktop", "דסקטופ"]].map(([key, label]) => (
+                <button
+                  key={key}
+                  className={[styles.deviceBtn, previewDevice === key ? styles.deviceActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setPreviewDevice(key)}
+                  aria-pressed={previewDevice === key}
+                  type="button"
+                >{label}</button>
+              ))}
+              <span className={styles.previewHint}>התצוגה מתעדכנת בכל שמירה</span>
+            </div>
+            {/* Rendered in an iframe rather than inline so the site's own theme
+                variables and layout can't leak into the editor's styles. */}
+            <div className={[styles.previewStage, previewDevice === "mobile" ? styles.stageMobile : styles.stageDesktop].join(" ")}>
+              {/* Keyed on the event version too. With only previewDevice the
+                  frame never remounted, so it kept showing the state from the
+                  moment the preview opened while the hint beside it promised
+                  "מתעדכנת בכל שמירה". */}
+              <iframe
+                key={previewDevice + ":" + (ev.version ?? 0)}
+                className={styles.previewFrame}
+                src={"/events/" + ev.id + "/preview-site"}
+                title="תצוגה מקדימה של אתר האירוע"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Share with guests ── */}
@@ -169,6 +222,58 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
                 <span style={{ background: t.ink }} />
               </span>
               <span className={styles.themeName}>{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.domainBox}>
+          <Field label="קישור לאלבום המשותף" hint="אורחים והצלם מעלים תמונות למקום אחד">
+            <input
+              className={base.input}
+              readOnly
+              dir="ltr"
+              value={ev.tokens?.album ? `${window.location.origin}/album/${ev.tokens.album}` : "ייווצר אחרי השמירה הראשונה"}
+              onFocus={e => e.target.select()}
+            />
+          </Field>
+        </div>
+
+        <div className={styles.domainBox}>
+          <Field label="דומיין משלכם" hint="אופציונלי — למשל dana-and-yossi.co.il">
+            <input
+              className={base.input}
+              value={site.customDomain || ""}
+              dir="ltr"
+              placeholder="example.co.il"
+              onChange={e => set({ customDomain: e.target.value.trim().replace(/^https?:\/\//, "") })}
+            />
+          </Field>
+          {site.customDomain
+            ? <p className={base.fieldHint}>
+                כדי שזה יעבוד, הפנו את הדומיין לשרת שלנו אצל רשם הדומיינים:
+                רשומת <code>CNAME</code> בשם <code>www</code> אל <code>{window.location.hostname}</code>.
+                עד שההפניה תתפוס, הקישור הרגיל למעלה ממשיך לעבוד כרגיל.
+              </p>
+            : <p className={base.fieldHint}>
+                בלי דומיין משלכם האתר עובד מצוין בקישור שלמעלה — זו תוספת נוחות, לא דרישה.
+              </p>}
+        </div>
+
+        <p className={[base.fieldHint, styles.sectionHint].join(" ")}>גופן הכותרות באתר.</p>
+        <div className={styles.fontGrid}>
+          {SITE_FONTS.map(f => (
+            <button
+              key={f.key}
+              className={[
+                styles.fontSwatch,
+                (site.fontKey || DEFAULT_SITE_FONT) === f.key ? styles.fontActive : "",
+              ].filter(Boolean).join(" ")}
+              onClick={() => set({ fontKey: f.key })}
+              type="button"
+              aria-pressed={(site.fontKey || DEFAULT_SITE_FONT) === f.key}
+            >
+              <span className={styles.fontSample} style={{ fontFamily: f.stack }}>{f.sample}</span>
+              <span className={styles.themeName}>{f.label}</span>
             </button>
           ))}
         </div>
@@ -254,13 +359,17 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         </div>
         {site.schedule.map(item => (
           <div key={item.id} className={styles.scheduleRow}>
+            {/* A time input can't carry a placeholder, so without aria-label a
+                screen reader announces four identical unnamed fields. */}
             <input className={[base.input, styles.timeInput].join(" ")} type="time" value={item.time}
+              aria-label="שעת השלב"
               onChange={e => editSchedule(item.id, { time: e.target.value })} />
             <input className={[base.input, styles.iconInput].join(" ")} value={item.icon} placeholder="💍"
-              onChange={e => editSchedule(item.id, { icon: e.target.value })} />
+              aria-label="אייקון" onChange={e => editSchedule(item.id, { icon: e.target.value })} />
             <input className={base.input} value={item.title} placeholder="חופה"
-              onChange={e => editSchedule(item.id, { title: e.target.value })} />
-            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delSchedule(item.id)}>✕</button>
+              aria-label="שם השלב" onChange={e => editSchedule(item.id, { title: e.target.value })} />
+            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delSchedule(item.id)}
+              aria-label={`מחקו את השלב ${item.title || item.time || ""}`.trim()}>✕</button>
           </div>
         ))}
         <button className={base.btnSecondary} onClick={addSchedule}>+ הוסיפו שלב</button>
@@ -298,15 +407,18 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         {(site.shuttles || []).map(s => (
           <div key={s.id} className={styles.scheduleRow}>
             <input className={[base.input, styles.timeInput].join(" ")} type="time" value={s.time}
+              aria-label="שעת ההסעה"
               onChange={e => editShuttle(s.id, { time: e.target.value })} />
             <select className={[base.select, styles.dirSelect].join(" ")} value={s.direction}
+              aria-label="כיוון ההסעה"
               onChange={e => editShuttle(s.id, { direction: e.target.value })}>
               <option>הלוך</option>
               <option>חזור</option>
             </select>
             <input className={base.input} value={s.place} placeholder="נקודת איסוף — נס ציונה"
-              onChange={e => editShuttle(s.id, { place: e.target.value })} />
-            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delShuttle(s.id)}>✕</button>
+              aria-label="נקודת איסוף" onChange={e => editShuttle(s.id, { place: e.target.value })} />
+            <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delShuttle(s.id)}
+              aria-label={`מחקו את ההסעה ${s.place || s.time || ""}`.trim()}>✕</button>
             <input className={base.input} value={s.contactName || ""} placeholder="איש קשר (אופציונלי)"
               onChange={e => editShuttle(s.id, { contactName: e.target.value })} />
             <input className={base.input} value={s.contactPhone || ""} placeholder="טלפון איש קשר" dir="ltr"

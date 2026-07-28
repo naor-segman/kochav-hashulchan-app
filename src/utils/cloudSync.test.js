@@ -20,7 +20,7 @@ const richEvent = {
   seating: { g1: "t1" },
   constraints: [{ id: "c1", type: "together", guestA: "g1", guestB: "g1" }],
   lockedGuests: ["g1"], lockedTables: ["t1"],
-  tokens: { rsvp: "r1", invite: "i1", gift: "gf1", hostess: "h1", collab: "c1" },
+  tokens: { rsvp: "r1", invite: "i1", gift: "gf1", hostess: "h1", collab: "c1", album: "al1" },
   costs: { categories: [{ id: "co1", name: "אולם", budget: "40000" }] },
   giftBitPhone: "0501234567", giftPayboxLink: "https://payboxapp.page.link/x",
   eventSite: { enabled: true, schedule: [{ id: "s1", time: "18:00", title: "קבלה" }], sections: {} },
@@ -37,7 +37,7 @@ describe("cloudSync round-trip (local → cloud → local)", () => {
     expect(out.customTableTypes).toEqual(["שולחן ילדים"]);
   });
 
-  it("preserves all five public tokens", () => {
+  it("preserves every public token", () => {
     expect(out.tokens).toEqual(richEvent.tokens);
   });
 
@@ -80,5 +80,85 @@ describe("cloudSync token-column NULL fallback", () => {
     };
     const out = mapCloudEventToLocalEvent(cloudRow);
     expect(out.tokens.collab).toBe("c-SHARED"); // must not be null (would break the shared link)
+  });
+});
+
+describe("cloud round-trip — floor plan fixtures", () => {
+  it("carries venue elements to the cloud and back", () => {
+    const local = {
+      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      guests: [], tables: [], seating: {}, constraints: [],
+      floorPlan: {
+        image: null,
+        tablePositions: { t1: { x: 0.3, y: 0.4 } },
+        elements: [{ id: "el1", kind: "chuppah", x: 0.5, y: 0.2, size: 1 }],
+      },
+    };
+    const back = mapCloudEventToLocalEvent({
+      id: "cloud-1", user_id: "u1", name: local.name, event_date: local.date,
+      payload: mapLocalEventToCloudPayload(local, "u1").payload,
+    });
+    expect(back.floorPlan.elements).toEqual(local.floorPlan.elements);
+    expect(back.floorPlan.tablePositions).toEqual(local.floorPlan.tablePositions);
+  });
+
+  it("still round-trips a plan that has positions but no fixtures", () => {
+    const local = {
+      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      guests: [], tables: [], seating: {}, constraints: [],
+      floorPlan: { image: null, tablePositions: { t1: { x: 0.1, y: 0.1 } }, elements: [] },
+    };
+    const back = mapCloudEventToLocalEvent({
+      id: "cloud-1", user_id: "u1", name: local.name, event_date: local.date,
+      payload: mapLocalEventToCloudPayload(local, "u1").payload,
+    });
+    expect(back.floorPlan.tablePositions).toEqual({ t1: { x: 0.1, y: 0.1 } });
+    expect(back.floorPlan.elements).toEqual([]);
+  });
+});
+
+describe("cloud round-trip — tasks", () => {
+  it("carries the task board to the cloud and back", () => {
+    const tasks = [
+      { id: "t1", title: "לסגור אולם", note: "", due: "2026-08-01", priority: "high", status: "doing", doneAt: null },
+    ];
+    const local = {
+      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      guests: [], tables: [], seating: {}, constraints: [], tasks,
+    };
+    const back = mapCloudEventToLocalEvent({
+      id: "cloud-1", user_id: "u1", name: local.name, event_date: local.date,
+      payload: mapLocalEventToCloudPayload(local, "u1").payload,
+    });
+    expect(back.tasks).toEqual(tasks);
+  });
+
+  it("defaults to an empty board when the payload has none", () => {
+    const back = mapCloudEventToLocalEvent({
+      id: "cloud-1", user_id: "u1", name: "אירוע", event_date: "2026-09-01",
+      payload: mapLocalEventToCloudPayload(
+        { id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01", guests: [], tables: [], seating: {}, constraints: [] },
+        "u1",
+      ).payload,
+    });
+    expect(back.tasks).toEqual([]);
+  });
+});
+
+describe("cloud round-trip — announcements", () => {
+  it("carries Save-the-Date and the invitation to the cloud and back", () => {
+    const announcements = {
+      saveTheDate: { enabled: true,  themeKey: "sky", headline: "שמרו את התאריך" },
+      invitation:  { enabled: false, themeKey: "sky", headline: "מוזמנים" },
+    };
+    const local = {
+      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      guests: [], tables: [], seating: {}, constraints: [], announcements,
+    };
+    const back = mapCloudEventToLocalEvent({
+      id: "c1", user_id: "u1", name: local.name, event_date: local.date,
+      payload: mapLocalEventToCloudPayload(local, "u1").payload,
+    });
+    expect(back.announcements).toEqual(announcements);
   });
 });

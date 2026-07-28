@@ -89,6 +89,24 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     return { total: responses.length, confirmed: confirmed.length, maybe: maybe.length, declined: declined.length, coming };
   }, [responses]);
 
+  // ── Shuttle registrations ────────────────────────────────────────────────
+  // Guests pick a shuttle on the RSVP form; the host needs seats-per-pickup to
+  // book the buses. A shuttle the host later deleted leaves stale ids behind,
+  // which simply stop resolving to a name.
+  const shuttleList = Array.isArray(ev?.eventSite?.shuttles) ? ev.eventSite.shuttles : [];
+  const shuttleCounts = useMemo(() => shuttleList
+    .map(sh => ({
+      id: sh.id,
+      label: [sh.place, sh.time].filter(Boolean).join(" · ") || "הסעה",
+      // Whole party per responder — one RSVP can bring four people onto a bus.
+      seats: responses
+        .filter(r => r.shuttle_id === sh.id && respStatus(r) !== "no")
+        .reduce((n, r) => n + (r.guests_count || 1), 0),
+    }))
+    .filter(sh => sh.seats > 0),
+    [responses, ev?.eventSite?.shuttles], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   // Meal forecast — count confirmed seats across the guest list (manual +
   // synced RSVPs), then apply the no-show factor to recommend meals to order.
   const confirmedSeats = useMemo(
@@ -247,6 +265,24 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
           🍽 הציגו תחזית מנות (אופציונלי)
         </button>
       )}
+      {shuttleCounts.length > 0 && (
+        <div className={base.card}>
+          <SectionLabel>הרשמה להסעות</SectionLabel>
+          <p className={base.fieldHint}>
+            כמה מקומות להזמין בכל הסעה, לפי מה שהאורחים סימנו בטופס אישור ההגעה.
+            נספרת כל הרשומה — אורח שמגיע עם שלושה נוספים תופס ארבעה מקומות.
+          </p>
+          <div className={styles.shuttleGrid}>
+            {shuttleCounts.map(sh => (
+              <div key={sh.id} className={styles.shuttleCard}>
+                <span className={styles.shuttleSeats}>{sh.seats}</span>
+                <span className={styles.shuttleName}>{sh.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {confirmedSeats > 0 && showForecast && (
         <div className={base.card}>
           <SectionLabel>כמה מנות להזמין?</SectionLabel>
@@ -308,7 +344,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
           </p>
           {rsvpLink && (
             <div className={styles.shareRow}>
-              <input className={base.input} readOnly value={rsvpLink} dir="ltr" />
+              <input className={base.input} readOnly value={rsvpLink} dir="ltr" aria-label="קישור לאישור הגעה" />
               <button
                 className={base.btnSm}
                 onClick={async () => {

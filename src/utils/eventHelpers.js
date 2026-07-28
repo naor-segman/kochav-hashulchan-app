@@ -1,5 +1,6 @@
 import { uid } from "./uid.js";
 import { defaultEventSite } from "../data/eventSiteTemplates.js";
+import { normalizeAnnouncements } from "../data/announcementTemplates.js";
 
 // ── Event schema helpers ──────────────────────────────────────────────────────
 //
@@ -72,23 +73,43 @@ export function normalizeEvent(ev) {
     // Must be preserved here so locks survive page reload (localStorage round-trip).
     lockedGuests: Array.isArray(ev.lockedGuests) ? ev.lockedGuests : [],
     lockedTables: Array.isArray(ev.lockedTables) ? ev.lockedTables : [],
+    // Planning checklist. Kept on the event (not a separate store) so it
+    // duplicates, syncs and exports with everything else.
+    tasks:        Array.isArray(ev.tasks) ? ev.tasks : [],
+    // Vendor tracking sits beside the budget, not inside it: the budget says
+    // how much, this says who and whether they are actually booked.
+    vendors:      Array.isArray(ev.vendors) ? ev.vendors : [],
+    // Per-stage record of who was already messaged, and any template the
+    // host edited. Both survive an automated-sending switch untouched.
+    messagesSent:     (ev.messagesSent && typeof ev.messagesSent === "object") ? ev.messagesSent : {},
+    messageTemplates: (ev.messageTemplates && typeof ev.messageTemplates === "object") ? ev.messageTemplates : {},
+    // Save-the-Date + designed invitation. Both ride on the invite token,
+    // so adding them needed no migration and no new public RPC.
+    announcements: normalizeAnnouncements(ev.announcements, ev.type),
     // Floor plan — optional venue sketch uploaded by the user.
     // image: base64 data URL (JPEG, compressed client-side).
     // tablePositions: { [tableId]: { x, y } } — fractional positions (0-1) on the image.
+    // elements: [{ id, kind, x, y, size }] — venue fixtures (chuppah, stage, bar…)
+    //   that sit on the sketch but never hold guests, so they are not tables.
     floorPlan: (ev.floorPlan && typeof ev.floorPlan === "object")
-      ? { image: ev.floorPlan.image ?? null, tablePositions: ev.floorPlan.tablePositions ?? {} }
+      ? {
+          image:          ev.floorPlan.image ?? null,
+          tablePositions: ev.floorPlan.tablePositions ?? {},
+          elements:       Array.isArray(ev.floorPlan.elements) ? ev.floorPlan.elements : [],
+        }
       : null,
     // Public-URL tokens — stable random UUIDs generated once, never changed.
     // Each token grants access to one public page (RSVP, invite, gift, hostess).
     tokens: (ev.tokens && typeof ev.tokens === "object")
       ? {
           rsvp:    ev.tokens.rsvp    ?? uid(),
+          album:   ev.tokens.album   ?? uid(),
           invite:  ev.tokens.invite  ?? uid(),
           gift:    ev.tokens.gift    ?? uid(),
           hostess: ev.tokens.hostess ?? uid(),
           collab:  ev.tokens.collab  ?? uid(),
         }
-      : { rsvp: uid(), invite: uid(), gift: uid(), hostess: uid(), collab: uid() },
+      : { rsvp: uid(), album: uid(), invite: uid(), gift: uid(), hostess: uid(), collab: uid() },
     // Event cost planning — stored per event, updated via CostScreen.
     costs: (ev.costs && typeof ev.costs === "object") ? ev.costs : {},
     // Digital gift transfer details — shown to guests on the public gift page.
@@ -115,6 +136,10 @@ export function normalizeEventSite(site, type) {
   return {
     enabled:      typeof site.enabled === "boolean" ? site.enabled : def.enabled,
     themeKey:     site.themeKey     ?? def.themeKey,
+    // Host-owned domain for the public event site. The app stores and uses it;
+    // pointing the DNS is the host's step, which the editor spells out.
+    customDomain: (site.customDomain ?? "").trim(),
+    fontKey:      site.fontKey      ?? def.fontKey ?? "serif",
     heroEn:       site.heroEn       ?? def.heroEn,
     coverPhoto:   site.coverPhoto   ?? null,
     story:        site.story        ?? "",
@@ -182,7 +207,11 @@ export function duplicateEvent(ev) {
   const guests = ev.guests.map(g => {
     const newId = uid();
     guestIdMap[g.id] = newId;
-    return Object.assign({}, g, { id: newId });
+    // Day-of state belongs to the event that actually happened. Copying it
+    // meant duplicating last year's gala produced a copy where everyone was
+    // already checked in and the gift total was already banked.
+    const { arrived, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
+    return Object.assign({}, rest, { id: newId });
   });
 
   const constraints = ev.constraints.map(c => Object.assign({}, c, {
@@ -199,6 +228,9 @@ export function duplicateEvent(ev) {
         .filter(([oldId]) => tableIdMap[oldId])
         .map(([oldId, pos]) => [tableIdMap[oldId], pos])
     ),
+    // Venue fixtures carry no table references, but each still needs a fresh id
+    // so the copy never shares element identity with the original.
+    elements: (ev.floorPlan.elements ?? []).map(el => ({ ...el, id: uid() })),
   } : null;
 
   const now = Date.now();
@@ -214,6 +246,12 @@ export function duplicateEvent(ev) {
     lockedGuests: [],
     lockedTables: [],
     costs:       {},
+    // Tasks carry over — a second event usually needs the same checklist — but
+    // reset to "todo" with fresh ids so the copy starts from a clean board.
+    tasks: (ev.tasks ?? []).map(t => ({ ...t, id: uid(), status: "todo", doneAt: null })),
+    // messagesSent is keyed by GUEST id, and the copy has new guest ids — a
+    // carried-over map would match nobody and never be pruned. Start clean.
+    messagesSent: {},
     // Deep-copy the remaining nested collections so editing the duplicate never
     // mutates the original (Object.assign only shallow-copies these).
     customGroups:     Array.isArray(ev.customGroups) ? [...ev.customGroups] : [],
@@ -299,6 +337,32 @@ export function getSideLabel(ev, side) {
  *
  * @returns {string[]} one label per seat, length === guest seat count.
  */
+/**
+ * Seat + record totals for the seating screens.
+ *
+ * Declined guests are excluded from BOTH the numerator and the denominator.
+ * Counting them on only one side is what produced "19 / 17 מקומות שובצו": a
+ * guest who declined but was still sitting at a table inflated the assigned
+ * seats while the total only summed active guests.
+ *
+ * @param {Array}  guests  event guest rows
+ * @param {Object} seating { [guestId]: tableId }
+ * @returns {{assignedRecords:number,totalRecords:number,assignedSeats:number,totalSeats:number}}
+ */
+export function seatingTotals(guests, seating) {
+  const list   = Array.isArray(guests) ? guests : [];
+  const map    = seating || {};
+  const active = list.filter(g => g && g.rsvp !== "declined");
+  const seats  = g => Math.max(1, g.count || 1);
+  const placed = active.filter(g => map[g.id]);
+  return {
+    assignedRecords: placed.length,
+    totalRecords:    active.length,
+    assignedSeats:   placed.reduce((s, g) => s + seats(g), 0),
+    totalSeats:      active.reduce((s, g) => s + seats(g), 0),
+  };
+}
+
 export function guestSeatNames(g) {
   if (!g) return [];
   const base  = (g.name || "").trim() || "אורח";

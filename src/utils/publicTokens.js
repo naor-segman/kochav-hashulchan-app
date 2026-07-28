@@ -16,6 +16,8 @@ function mapPublicEvent(data) {
     giftBitPhone:     data.bit_phone         ?? "",
     giftPayboxLink:   data.paybox_link       ?? "",
     site: (data.site && typeof data.site === "object") ? data.site : null,
+    announcements: (data.announcements && typeof data.announcements === "object")
+      ? data.announcements : null,
     rsvpToken:        data.rsvp_token        ?? null,
     giftToken:        data.gift_token        ?? null,
     inviteToken:      data.invite_token      ?? null,
@@ -29,7 +31,7 @@ function mapPublicEvent(data) {
  * only minimal public fields — anonymous callers cannot read the events table
  * directly, so cross-event enumeration is impossible.
  *
- * @param {"rsvp"|"invite"|"gift"|"hostess"} tokenType
+ * @param {"rsvp"|"invite"|"gift"|"hostess"|"album"} tokenType
  * @param {string} token  — the UUID token from the URL
  * @returns {object|null} — local-shaped event object, or null if not found
  */
@@ -78,7 +80,7 @@ export async function fetchRSVPResponses(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
   const { data, error } = await supabase
     .from("rsvp_responses")
-    .select("id, guest_name, phone, attending, guests_count, status, companions, created_at")
+    .select("id, guest_name, phone, attending, guests_count, status, companions, shuttle_id, created_at")
     .eq("event_id", eventCloudId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -86,9 +88,16 @@ export async function fetchRSVPResponses(eventCloudId) {
 }
 
 /**
- * Submit an RSVP response to the rsvp_responses table.
+ * Submit an RSVP response.
+ *
+ * Goes through submit_rsvp_by_token, which validates the token server-side.
+ * The previous direct insert was governed by `WITH CHECK (true)`, so the token
+ * check lived only in this file — anyone with an event id could write rows into
+ * a stranger's guest list.
+ *
+ * @param {string} token the rsvp token from the URL — the actual authorisation
  */
-export async function submitRSVP(eventCloudId, response) {
+export async function submitRSVP(token, response) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   // status: "yes" | "no" | "maybe" — `attending` stays for backward compat.
   const status = response.status || (response.attending ? "yes" : "no");
@@ -97,32 +106,48 @@ export async function submitRSVP(eventCloudId, response) {
   const companions = Array.isArray(response.companions)
     ? response.companions.map(c => (c || "").trim()).filter(Boolean).slice(0, 50)
     : [];
-  const { error } = await supabase.from("rsvp_responses").insert({
-    event_id:     eventCloudId,
-    guest_name:   response.name,
-    phone:        response.phone   || null,
-    attending:    status === "yes",
-    guests_count: Math.max(0, Math.min(50, rawCount)),
+  // Bounded to match the column CHECK constraints. Without this a guest who
+  // typed a slightly long phone number got a generic "try again" that could
+  // never succeed, and simply stopped responding.
+  const name  = String(response.name || "").slice(0, 200);
+  const phone = (response.phone || "").slice(0, 40) || null;
+  const count = Math.max(0, Math.min(50, rawCount));
+  // Only meaningful for guests who are coming; "no" never carries a shuttle.
+  const shuttleId = status === "no" ? null : (response.shuttleId || null);
+
+  const { error } = await supabase.rpc("submit_rsvp_by_token", {
+    token_value:  token,
+    guest_name:   name,
+    phone,
     status,
+    guests_count: count,
     companions,
+    shuttle_id:   shuttleId,
   });
   if (error) throw error;
 }
 
 /**
- * Submit a gift to the gifts table (pending payment).
+ * Submit a gift (pending payment).
+ *
+ * @param {string} token the gift token from the URL — the actual authorisation
  */
-export async function submitGift(eventCloudId, gift) {
+export async function submitGift(token, gift) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { data, error } = await supabase.from("gifts").insert({
-    event_id:   eventCloudId,
-    donor_name: gift.donorName,
-    amount:     Math.round(gift.amountILS * 100),
-    message:    gift.message || null,
-    paid:       false,
-  }).select("id").single();
+  const donor  = String(gift.donorName || "").slice(0, 200);
+  const amount = Math.round(gift.amountILS * 100);
+  const msg    = (gift.message || "").slice(0, 1000) || null;
+
+  // The function returns void: an unpaid gift row is hidden from anon by RLS,
+  // so asking for it back with .select().single() returned zero rows and threw
+  // — the gift was saved and the guest was still told it had failed.
+  const { error } = await supabase.rpc("submit_gift_by_token", {
+    token_value: token,
+    donor_name:  donor,
+    amount,
+    message:     msg,
+  });
   if (error) throw error;
-  return data.id;
 }
 
 /**
@@ -288,4 +313,68 @@ export async function deleteCollabGuestsOwner(eventCloudId, ids) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId || !ids?.length) return;
   const { error } = await supabase.from("collab_guests").delete().eq("event_id", eventCloudId).in("id", ids);
   if (error) throw error;
+}
+
+// ── Shared event album ──────────────────────────────────────────────────────
+// Photos live in the `event-album` storage bucket; album_photos is the index
+// the gallery reads, so listing never depends on a storage LIST call.
+
+/** Photos for one event, newest first. Keyed by album token, not event id. */
+export async function fetchAlbumPhotos(albumToken) {
+  if (!isSupabaseConfigured || !supabase || !albumToken) return [];
+  // Via RPC, not a table read: album_photos rows carry the album token, so a
+  // readable table would let anyone enumerate every event's token.
+  const { data, error } = await supabase.rpc("album_list_by_token", { token_value: albumToken });
+  if (error) throw error;
+  return (data ?? []).map(r => ({
+    ...r,
+    url: supabase.storage.from("event-album").getPublicUrl(r.storage_path).data.publicUrl,
+  }));
+}
+
+/**
+ * Upload one photo and index it.
+ *
+ * The path is prefixed with the event id so a bucket listing can never mix
+ * events, and suffixed with a random segment so two guests uploading
+ * "IMG_0001.jpg" at the same moment don't collide.
+ */
+export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader) {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  const ext  = (file.name?.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
+  // The event id prefix is enforced server-side too — album_add_photo rejects a
+  // path that doesn't belong to the token's event.
+  const path = `${eventCloudId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  const { error: upErr } = await supabase.storage
+    .from("event-album")
+    .upload(path, file, { cacheControl: "31536000", upsert: false });
+  if (upErr) throw upErr;
+
+  // Indexed through a definer function: an RLS policy here could not validate
+  // the token, because anon cannot read the events table it would need.
+  const { error: rowErr } = await supabase.rpc("album_add_photo", {
+    token_value:    albumToken,
+    path_value:     path,
+    uploader_value: (uploader || "").trim().slice(0, 60) || null,
+  });
+  // A row that fails to write would orphan the file. remove() resolves with
+  // { error } instead of rejecting, so a plain .catch() would swallow a real
+  // failure — check the result and surface it with the original cause.
+  if (rowErr) {
+    const { error: rmErr } = await supabase.storage.from("event-album").remove([path]);
+    if (rmErr) rowErr.message += " (הקובץ נשאר באחסון ולא נוקה)";
+    throw rowErr;
+  }
+  return path;
+}
+
+/** Owner-only removal — deletes the file and its index row. */
+export async function deleteAlbumPhoto(id, storagePath) {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  // Row first. Removing the file first means a denied or failed row delete
+  // leaves the gallery pointing at a missing image with no way to clear it.
+  const { error } = await supabase.from("album_photos").delete().eq("id", id);
+  if (error) throw error;
+  await supabase.storage.from("event-album").remove([storagePath]);
 }

@@ -61,6 +61,19 @@ export const SITE_THEMES = {
 
 export const SITE_THEME_LIST = Object.values(SITE_THEMES);
 
+// Heading font for the event site. All three families are already self-hosted
+// for the app itself, so choosing one costs no extra network request — the
+// picker is purely a stylistic choice, not a new dependency.
+export const SITE_FONTS = [
+  { key: "serif",   label: "קלאסי",  sample: "אבגד", stack: 'var(--font-family-serif)' },
+  { key: "display", label: "מודרני", sample: "אבגד", stack: 'var(--font-family-display)' },
+  { key: "base",    label: "נקי",    sample: "אבגד", stack: 'var(--font-family-base)' },
+];
+export const DEFAULT_SITE_FONT = "serif";
+export const getSiteFont = key =>
+  SITE_FONTS.find(f => f.key === key) || SITE_FONTS.find(f => f.key === DEFAULT_SITE_FONT);
+
+
 export function getSiteTheme(key) {
   return SITE_THEMES[key] || SITE_THEMES.sky;
 }
@@ -73,20 +86,24 @@ function base(themeKey, heroEn, extra = {}) {
     themeKey,
     heroEn,
     schedule: extra.schedule || [],
+    // No ids here. These literals are evaluated ONCE at module load, so every
+    // event created from a template shared the same faq/schedule ids — and the
+    // uid() call ran during import, taking the whole app down on a non-secure
+    // origin. defaultEventSite mints fresh ids per event instead.
     faq: extra.faq || [
-      { id: uid(), q: "איך מגיעים לאירוע? יש חניה?", a: "" },
-      { id: uid(), q: "מתי צריך לאשר הגעה?", a: "מומלץ לאשר בהקדם, כדי שנוכל לתכנן את ההושבה." },
-      { id: uid(), q: "איך אפשר לשלוח מתנה?", a: "דרך כפתור \"מתנה\" באתר — בהעברה מאובטחת." },
+      { q: "איך מגיעים לאירוע? יש חניה?", a: "" },
+      { q: "מתי צריך לאשר הגעה?", a: "מומלץ לאשר בהקדם, כדי שנוכל לתכנן את ההושבה." },
+      { q: "איך אפשר לשלוח מתנה?", a: "דרך כפתור \"מתנה\" באתר — בהעברה מאובטחת." },
     ],
     ...extra,
   };
 }
 
 const WEDDING_SCHEDULE = () => [
-  { id: uid(), time: "18:00", title: "קבלת פנים", icon: "🥂" },
-  { id: uid(), time: "19:00", title: "חופה", icon: "💍" },
-  { id: uid(), time: "20:00", title: "ארוחת ערב", icon: "🍽️" },
-  { id: uid(), time: "21:00", title: "ריקודים", icon: "💃" },
+  { time: "18:00", title: "קבלת פנים", icon: "🥂" },
+  { time: "19:00", title: "חופה", icon: "💍" },
+  { time: "20:00", title: "ארוחת ערב", icon: "🍽️" },
+  { time: "21:00", title: "ריקודים", icon: "💃" },
 ];
 
 export const EVENT_TYPE_TEMPLATES = {
@@ -102,7 +119,13 @@ export const EVENT_TYPE_TEMPLATES = {
 };
 
 export function getEventTypeTemplate(type) {
-  return EVENT_TYPE_TEMPLATES[type] || EVENT_TYPE_TEMPLATES["אחר"];
+  // Object.hasOwn, not a truthiness check: a stored type of "constructor" or
+  // "toString" resolved through Object.prototype and returned a FUNCTION, which
+  // then threw inside normalizeEvent — the single migration gateway — so no
+  // event would load at all.
+  return Object.hasOwn(EVENT_TYPE_TEMPLATES, type)
+    ? EVENT_TYPE_TEMPLATES[type]
+    : EVENT_TYPE_TEMPLATES["אחר"];
 }
 
 // Build a fresh default eventSite object for a given event type.
@@ -117,12 +140,12 @@ export function defaultEventSite(type) {
     gallery: [],              // array of compressed data URLs (photo gallery)
     countdown: true,          // show a live countdown to the event date
     dressCode: "",            // dress-code note shown to guests
-    schedule: t.schedule.map(s => ({ ...s })),
+    schedule: t.schedule.map(s => ({ ...s, id: uid() })),
     address: "",
     wazeUrl: "",
     parkingNote: "",
     shuttles: [],
-    faq: t.faq.map(f => ({ ...f })),
+    faq: t.faq.map(f => ({ ...f, id: uid() })),
     contactPhone: "",
     rsvpMessage: "",    // personal note from the hosts, shown after RSVP
     sections: { countdown: true, gallery: true, schedule: true, location: true, shuttles: false, dressCode: false, gift: true, blessings: true, faq: true },

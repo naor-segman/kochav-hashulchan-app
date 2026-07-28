@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // =============================================================================
 // detect-floor-plan — Supabase Edge Function
 //
@@ -56,6 +57,21 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { headers: CORS_HEADERS });
   }
 
+  // Every call spends the project's Anthropic key, so it has to belong to a
+  // real signed-in user. Without this the endpoint was callable by anyone
+  // holding the anon key — which ships in the browser bundle — from any origin,
+  // in a loop, billed to us. The two billing functions already do exactly this.
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return json({ error: "Unauthorized" }, 401);
+
+  const supabaseUser = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+  if (authError || !user) return json({ error: "Unauthorized" }, 401);
+
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) {
     return json({ error: "ANTHROPIC_API_KEY is not configured for this environment." }, 503);
@@ -66,6 +82,11 @@ Deno.serve(async (req: Request) => {
 
     if (!imageBase64 || !mimeType) {
       return json({ error: "imageBase64 and mimeType are required" }, 400);
+    }
+    // ~8MB of base64 is a generous venue sketch and a hard stop on someone
+    // pushing arbitrarily large bodies through a paid vision model.
+    if (imageBase64.length > 8_000_000) {
+      return json({ error: "image too large" }, 413);
     }
     if (!ALLOWED_TYPES.has(mimeType)) {
       return json({ error: `Unsupported MIME type: ${mimeType}` }, 400);

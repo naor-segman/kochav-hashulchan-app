@@ -15,15 +15,24 @@ const MOCK_GIFTS = [
 
 const POLL_MS = 30000;
 
+// Hebrew has a dual form and a distinct singular. "לפני 1 דקות" on a two-metre
+// screen in front of 300 Hebrew speakers is the kind of detail that reads as
+// unfinished.
+function agoLabel(n, one, two, many) {
+  if (n === 1) return `לפני ${one}`;
+  if (n === 2) return `לפני ${two}`;
+  return `לפני ${n} ${many}`;
+}
+
 function timeAgo(isoString) {
   const diffSec = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
   if (diffSec < 60) return "עכשיו";
   const minutes = Math.floor(diffSec / 60);
-  if (minutes < 60) return `לפני ${minutes} דקות`;
+  if (minutes < 60) return agoLabel(minutes, "דקה", "שתי דקות", "דקות");
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `לפני ${hours} שעות`;
+  if (hours < 24) return agoLabel(hours, "שעה", "שעתיים", "שעות");
   const days = Math.floor(hours / 24);
-  return `לפני ${days} ימים`;
+  return agoLabel(days, "יום", "יומיים", "ימים");
 }
 
 export default function GiftWallScreen() {
@@ -58,12 +67,16 @@ export default function GiftWallScreen() {
     return () => { cancelled = true; clearInterval(tid); };
   }, [event?.cloudId, token]);
 
-  let eventName = "חתונת נועה וטל";
+  // No placeholder couple here. This page is projected on a screen at the
+  // venue: when the wifi dropped or the token was regenerated, `event` came
+  // back null and 300 guests read a different, fictional couple's name above
+  // their own blessing wall. An empty header is honest; a wrong one is not.
+  let eventName = "";
   if (event) {
     if (event.brideName && event.groomName) {
       eventName = `${event.brideName} ו${event.groomName}`;
-    } else if (event.name) {
-      eventName = event.name;
+    } else {
+      eventName = event.celebrantName || event.organizationName || event.name || "";
     }
   }
 
@@ -71,6 +84,25 @@ export default function GiftWallScreen() {
     return (
       <div className={styles.root}>
         <div className={styles.spinner} />
+      </div>
+    );
+  }
+
+  // Previously a failed lookup fell through to the normal wall with a
+  // placeholder couple's name on it. Say what happened instead.
+  if (!event && gifts.length === 0) {
+    return (
+      <div className={styles.root}>
+        <header className={styles.topBar}>
+          <span className={styles.logo} aria-label="כוכב השולחן">✦ כוכב השולחן</span>
+        </header>
+        <main className={styles.content}>
+          <div className={styles.empty}>
+            <span className={styles.emptyIcon} aria-hidden="true">🔌</span>
+            <p>לא הצלחנו לטעון את קיר הברכות.</p>
+            <p>בדקו את החיבור לאינטרנט ורעננו את הדף.</p>
+          </div>
+        </main>
       </div>
     );
   }

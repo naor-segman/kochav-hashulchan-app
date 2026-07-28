@@ -1,4 +1,6 @@
-/* EmptyState placeholder — guiding, not a dead-end */
+/* EmptyState placeholder — guiding, not a dead-end.
+   A dashed hairline says "nothing here yet" without a shadow pretending the
+   empty box is a real object. */
 .empty {
   text-align: center;
   padding: 48px 24px;
@@ -6,12 +8,13 @@
   background: var(--surface);
   border: 1px dashed var(--border2);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
+/* An icon bubble is a FILL with no text on it, which is exactly what --accent
+   is for — and it is the one accent moment an empty screen gets. */
 .emptyIcon {
   width: 64px;
   height: 64px;
@@ -20,47 +23,63 @@
   justify-content: center;
   font-size: 30px;
   border-radius: 50%;
-  background: var(--accent-bg);
-  color: var(--accent);
+  background: var(--blush);
+  color: var(--accent-text);
   margin-bottom: 16px;
 }
 
 .emptyTitle {
-  font-size: 17px;
-  font-weight: 800;
+  font-size: var(--step-1);
+  font-weight: var(--font-weight-extrabold);
   color: var(--text);
   margin-bottom: 6px;
 }
 
 .emptyText {
-  font-size: 14px;
+  font-size: var(--step-0);
   line-height: 1.65;
   max-width: 46ch;
   margin-inline: auto;
   color: var(--muted);
 }
 
+/* Matches .btnPrimary in screenBase — same fill, same radius, same ring.
+   If you change one, change both. */
 .emptyAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   margin-top: 18px;
   background: var(--cta);
   color: var(--on-accent);
-  border: none;
+  border: 1px solid var(--cta);
   cursor: pointer;
   padding: 11px 22px;
   border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--step-0);
+  font-weight: var(--font-weight-bold);
   font-family: inherit;
+  line-height: 1.25;
   box-shadow: var(--shadow-cta);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
 
 .emptyAction:hover {
   background: var(--cta-dark);
+  border-color: var(--cta-dark);
   box-shadow: var(--shadow-cta-lg);
-  transform: translateY(-1px);
+}
+
+.emptyAction:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .emptyAction { min-height: 44px; }
 }
 
 @media (max-width: 480px) {
-  .empty { padding: 36px 18px; }
+  .empty { padding: 36px 18px; border-radius: var(--radius); }
 }

@@ -12,7 +12,9 @@ import {
 
 // Cloud events take precedence over local events with the same ID.
 // Local-only events (no cloudId, not present in cloud) are kept as-is.
-function mergeCloudWithLocal(localEvents, cloudEvents) {
+// Exported for tests: this function decides which copy of an event survives,
+// so a silent regression here is unrecoverable customer data loss.
+export function mergeCloudWithLocal(localEvents, cloudEvents) {
   const cloudLocalIds = new Set(cloudEvents.map(e => e.id));
   const cloudIds      = new Set(cloudEvents.map(e => e.cloudId).filter(Boolean));
 
@@ -23,6 +25,23 @@ function mergeCloudWithLocal(localEvents, cloudEvents) {
     const localMatch = localEvents.find(le =>
       le.id === ce.id || (le.cloudId && le.cloudId === ce.cloudId)
     );
+
+    // The cloud row is NOT automatically the truth. A write can fail (venue
+    // wifi) or simply not have fired yet — the push is debounced 1500ms, so
+    // closing the tab right after an edit leaves the cloud a step behind.
+    // Taking the cloud copy wholesale in that state deleted the newer local
+    // work and then persisted the deletion, which is unrecoverable. Whichever
+    // side was written last wins; the cloud id always comes from the cloud.
+    if (localMatch && (localMatch.updatedAt ?? 0) > (ce.updatedAt ?? 0)) {
+      return normalizeEvent({
+        ...localMatch,
+        cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
+        // Tokens are minted server-side on first sync; never let a local copy
+        // that predates that push resurrect a null token.
+        tokens: ce.tokens ?? localMatch.tokens,
+      });
+    }
+
     let result = normalized;
     if (localMatch?.floorPlan?.image && !result.floorPlan?.image) {
       // Cloud has no floor plan (positions never synced) but local does. Spread
@@ -144,16 +163,25 @@ export function useEvents(user) {
 
     // Reconcile with the cloud in an async flow (keeps setState out of the
     // synchronous effect body). Merge base = the seeded per-user view.
+    // Cancellation is not optional here. On a shared machine, A logging out
+    // and B logging in inside the fetch window let A's response resolve into
+    // B's state — mergeCloudWithLocal keeps every cloud event, so A's guest
+    // lists and phone numbers landed in B's dashboard and were then persisted
+    // under B's storage key.
+    let cancelled = false;
     (async () => {
       setSyncStatus(SYNC_STATUS.SYNCING);
       try {
         const cloudEvents = await fetchCloudEvents(user.id);
+        if (cancelled || ownerRef.current !== user.id) return;
         setEvents(prev => mergeCloudWithLocal(prev, cloudEvents));
         setSyncStatus(SYNC_STATUS.SYNCED);
       } catch {
+        if (cancelled) return;
         setSyncStatus(SYNC_STATUS.ERROR); // keep the seeded local view on failure
       }
     })();
+    return () => { cancelled = true; };
   }, [user]);
 
   // ── MUTATIONS ────────────────────────────────────────────────────────────────
@@ -241,7 +269,23 @@ export function useEvents(user) {
     syncTimers.current[id] = setTimeout(() => {
       const ev          = eventsRef.current.find(e => e.id === id);
       const currentUser = userRef.current;
-      if (!ev?.cloudId || !currentUser || !isSupabaseConfigured) return;
+      if (!ev || !currentUser || !isSupabaseConfigured) return;
+
+      // No cloudId means the initial create failed — offline on the train, say.
+      // Without a retry the event stayed local-only for good: every later edit
+      // hit this early return, so an hour of guest entry existed on exactly one
+      // browser and vanished with its cache. Retry the create on the next edit.
+      if (!ev.cloudId) {
+        setSyncStatus(SYNC_STATUS.SYNCING);
+        createCloudEvent(ev, currentUser.id)
+          .then(cloudId => {
+            if (!cloudId) { setSyncStatus(SYNC_STATUS.ERROR); return; }
+            setEvents(prev => prev.map(e => e.id === id ? { ...e, cloudId } : e));
+            setSyncStatus(SYNC_STATUS.SYNCED);
+          })
+          .catch(() => setSyncStatus(SYNC_STATUS.ERROR));
+        return;
+      }
 
       setSyncStatus(SYNC_STATUS.SYNCING);
       updateCloudEvent(ev, currentUser.id)

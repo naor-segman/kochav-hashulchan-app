@@ -5,9 +5,20 @@ import {
   useDraggable, useDroppable,
   PointerSensor, TouchSensor,
   useSensor, useSensors,
+  pointerWithin, closestCenter, MeasuringStrategy,
 } from "@dnd-kit/core";
+
+// Same reasoning as SeatingScreen: prefer the target under the pointer, fall
+// back to the nearest one rather than dropping nothing, and re-measure the
+// droppables because chips move around the sketch mid-drag.
+const collisionStrategy = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length ? hits : closestCenter(args);
+};
+const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
+import { tableShape, VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
 import styles from "./FloorPlanEditor.module.css";
 
 // AI table-detection needs the `detect-floor-plan` Edge Function deployed.
@@ -112,7 +123,7 @@ function TableChipOnImage({ table, guests, size = 1, onRemove, onResize }) {
       onClick={e => e.stopPropagation()}
     >
       <div className={styles.chipHandle} {...dragAttrs} {...dragListeners} title="גררו כדי להזיז">
-        ⠿ {table.name}
+        ⠿ <span aria-hidden="true" title={tableShape(table).label} className={styles.chipShape}>{tableShape(table).glyph}</span> {table.name}
         <span className={[
           styles.chipCap,
           pct > 1        ? styles.capOver  : "",
@@ -193,8 +204,62 @@ function UnassignedPanel({ guests }) {
 
 // ── Main component ───────────────────────────────────────────────────────────
 
+/**
+ * A venue fixture on the sketch (chuppah, stage, bar…). It holds no guests and
+ * is not a drop target, so it deliberately does NOT use dnd-kit — a plain
+ * pointer drag keeps it out of the guest/table drag flow entirely.
+ */
+function VenueMarker({ element, containerRef, onMove, onRemove }) {
+  const meta = venueElement(element.kind);
+  if (!meta) return null;
+
+  const startDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const move = (evt) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      onMove(
+        Math.min(0.96, Math.max(0.04, (evt.clientX - rect.left) / rect.width)),
+        Math.min(0.96, Math.max(0.04, (evt.clientY - rect.top)  / rect.height)),
+      );
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  return (
+    <div
+      className={styles.venueMarker}
+      style={{ left: element.x * 100 + "%", top: element.y * 100 + "%" }}
+      onClick={e => e.stopPropagation()}
+      onPointerDown={startDrag}
+      title={meta.label + " — גררו כדי להזיז"}
+    >
+      <span className={styles.venueIcon} aria-hidden="true">{meta.icon}</span>
+      <span className={styles.venueLabel}>{meta.label}</span>
+      <button
+        className={styles.venueRemove}
+        onPointerDown={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); onRemove(); }}
+        title={"הסירו " + meta.label}
+        aria-label={"הסירו " + meta.label}
+      >✕</button>
+    </div>
+  );
+}
+
 export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   const [placingId,  setPlacingId]  = useState(null);
+  // Kind of venue fixture waiting to be dropped on the sketch (null = none).
+  const [placingKind, setPlacingKind] = useState(null);
+  // "map" = the sketch, "cards" = a plain occupancy list. The sketch is the
+  // point of this editor, but it is useless for scanning capacity at a glance.
+  const [view, setView] = useState("map");
   const [detecting,  setDetecting]  = useState(false);
   const [detResult,  setDetResult]  = useState(null);
   const [activeId,   setActiveId]   = useState(null);
@@ -224,7 +289,10 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       const dataUrl = await compressImage(file);
       patchEvent(e => ({
         ...e,
-        floorPlan: { image: dataUrl, tablePositions: e.floorPlan?.tablePositions ?? {} },
+        // Spread the existing floorPlan: rebuilding it from scratch dropped
+        // `elements`, so re-uploading a corrected venue sketch silently deleted
+        // every חופה/במה/בר the host had placed.
+        floorPlan: { ...e.floorPlan, image: dataUrl, tablePositions: e.floorPlan?.tablePositions ?? {} },
       }));
       showToast("הסקיצה הועלתה בהצלחה ✓");
     } catch {
@@ -295,20 +363,32 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   // ── Place table on image by clicking ─────────────────────────────────────
 
   const handleImageClick = (e) => {
-    if (!placingId) return;
+    if (!placingId && !placingKind) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top)  / rect.height;
+    const x = Math.min(0.94, Math.max(0.06, (e.clientX - rect.left) / rect.width));
+    const y = Math.min(0.94, Math.max(0.06, (e.clientY - rect.top)  / rect.height));
+
+    if (placingKind) {
+      const kind = placingKind;
+      patchEvent(ev => ({
+        ...ev,
+        floorPlan: {
+          ...ev.floorPlan,
+          elements: [...(ev.floorPlan?.elements ?? []), { id: uid(), kind, x, y, size: 1 }],
+        },
+      }));
+      setPlacingKind(null);
+      showToast("\"" + venueElement(kind).label + "\" נוסף למפה ✓");
+      return;
+    }
+
     patchEvent(ev => ({
       ...ev,
       floorPlan: {
         ...ev.floorPlan,
         tablePositions: {
           ...ev.floorPlan?.tablePositions,
-          [placingId]: {
-            x: Math.min(0.94, Math.max(0.06, x)),
-            y: Math.min(0.94, Math.max(0.06, y)),
-          },
+          [placingId]: { x, y },
         },
       },
     }));
@@ -327,6 +407,28 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
     });
     const t = ev.tables.find(t => t.id === tableId);
     showToast("\"" + (t?.name ?? "שולחן") + "\" הוסר מהסקיצה");
+  };
+
+  const moveElement = (id, x, y) => {
+    patchEvent(e => ({
+      ...e,
+      floorPlan: {
+        ...e.floorPlan,
+        elements: (e.floorPlan?.elements ?? []).map(el =>
+          el.id === id ? { ...el, x, y } : el
+        ),
+      },
+    }));
+  };
+
+  const removeElement = (id) => {
+    patchEvent(e => ({
+      ...e,
+      floorPlan: {
+        ...e.floorPlan,
+        elements: (e.floorPlan?.elements ?? []).filter(el => el.id !== id),
+      },
+    }));
   };
 
   // Set a table chip's size (scale) so it can match the physical table.
@@ -444,6 +546,8 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={collisionStrategy}
+      measuring={measuringConfig}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
@@ -458,6 +562,17 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
 
       {/* Toolbar */}
       <div className={styles.toolbar}>
+        <div className={styles.viewToggle} role="group" aria-label="תצוגת מפת האולם">
+          {[["map", "מפה"], ["cards", "כרטיסים"]].map(([key, label]) => (
+            <button
+              key={key}
+              className={[styles.viewBtn, view === key ? styles.viewActive : ""].filter(Boolean).join(" ")}
+              onClick={() => setView(key)}
+              aria-pressed={view === key}
+              type="button"
+            >{label}</button>
+          ))}
+        </div>
         <button className={styles.toolBtn} onClick={() => fileInputRef.current?.click()}>
           החליפו תמונה
         </button>
@@ -498,9 +613,48 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         </div>
       )}
 
+      {/* Card view — every table with its occupancy, sketch or not */}
+      {view === "cards" && (
+        <div className={styles.cardGrid}>
+          {ev.tables.map(t => {
+            const tGuests = ev.guests.filter(g => ev.seating[g.id] === t.id);
+            const seats   = tGuests.reduce((n, g) => n + (g.count || 1), 0);
+            const pct     = t.capacity > 0 ? seats / t.capacity : 0;
+            return (
+              <div
+                key={t.id}
+                className={[
+                  styles.tableCard,
+                  pct > 1        ? styles.cardOver :
+                  pct > 0.85     ? styles.cardWarn : "",
+                ].filter(Boolean).join(" ")}
+              >
+                <div className={styles.cardHead}>
+                  <span aria-hidden="true" className={styles.chipShape}>{tableShape(t).glyph}</span>
+                  <span className={styles.cardName}>{t.name}</span>
+                  <span className={styles.cardCap}>{seats}/{t.capacity}</span>
+                </div>
+                <div className={styles.cardBody}>
+                  {tGuests.length === 0
+                    ? <span className={styles.chipEmpty}>ריק</span>
+                    : tGuests.map(g => (
+                        <span key={g.id} className={styles.guestPill}>
+                          {g.name}
+                          {(g.count || 1) > 1 && <span className={styles.pillCount}>×{g.count}</span>}
+                        </span>
+                      ))}
+                </div>
+                {!positions[t.id] && <span className={styles.cardUnplaced}>לא מוקם על הסקיצה</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Floor plan image with table chips */}
       <div
-        className={[styles.imageContainer, placingId ? styles.placingMode : ""].filter(Boolean).join(" ")}
+        hidden={view !== "map"}
+        className={[styles.imageContainer, (placingId || placingKind) ? styles.placingMode : ""].filter(Boolean).join(" ")}
         ref={containerRef}
         onClick={handleImageClick}
       >
@@ -510,6 +664,16 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
           alt="מפת אולם"
           draggable={false}
         />
+
+        {(floorPlan.elements ?? []).map(el => (
+          <VenueMarker
+            key={el.id}
+            element={el}
+            containerRef={containerRef}
+            onMove={(x, y) => moveElement(el.id, x, y)}
+            onRemove={() => removeElement(el.id)}
+          />
+        ))}
 
         {ev.tables
           .filter(t => positions[t.id])
@@ -533,6 +697,29 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
           })}
       </div>
 
+      {/* Venue fixtures — chuppah, stage, bar… */}
+      <div className={styles.unplacedStrip}>
+        <div className={styles.unplacedLabel}>
+          {placingKind
+            ? "לחצו על הסקיצה כדי למקם: " + venueElement(placingKind).label
+            : "אלמנטים באולם — בחרו ולחצו על הסקיצה:"}
+        </div>
+        <div className={styles.unplacedList}>
+          {VENUE_ELEMENTS.map(el => (
+            <button
+              key={el.value}
+              className={[styles.unplacedBtn, placingKind === el.value ? styles.unplacedBtnActive : ""].filter(Boolean).join(" ")}
+              onClick={e => { e.stopPropagation(); setPlacingId(null); setPlacingKind(placingKind === el.value ? null : el.value); }}
+            >
+              <span aria-hidden="true">{el.icon}</span> {el.label}
+            </button>
+          ))}
+          {placingKind && (
+            <button className={styles.cancelPlace} onClick={() => setPlacingKind(null)}>ביטול</button>
+          )}
+        </div>
+      </div>
+
       {/* Unplaced tables strip */}
       {unplaced.length > 0 && (
         <div className={styles.unplacedStrip}>
@@ -546,7 +733,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
               <button
                 key={t.id}
                 className={[styles.unplacedBtn, placingId === t.id ? styles.unplacedBtnActive : ""].filter(Boolean).join(" ")}
-                onClick={e => { e.stopPropagation(); setPlacingId(placingId === t.id ? null : t.id); }}
+                onClick={e => { e.stopPropagation(); setPlacingKind(null); setPlacingId(placingId === t.id ? null : t.id); }}
               >
                 ⬡ {t.name}
               </button>

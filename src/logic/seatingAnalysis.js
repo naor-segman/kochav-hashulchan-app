@@ -79,6 +79,40 @@ function buildApartPairs(constraints) {
   );
 }
 
+function buildTogetherPairs(constraints) {
+  return new Set(
+    constraints
+      .filter(c => c.type === "together")
+      .map(c => [c.guestA, c.guestB].sort().join("___"))
+  );
+}
+
+/**
+ * Would moving `guestId` to `toTableId` separate them from a "together"
+ * partner they are currently sitting with?
+ *
+ * The move and swap suggestions all validated `apart` and none of them
+ * validated `together`, so applying a suggestion advertised as violation-free
+ * turned a clean arrangement into a critical violation.
+ */
+function moveBreaksTogether(guestId, toTableId, seating, togetherPairs) {
+  const from = seating[guestId];
+  if (!from || from === toTableId) return false;
+  for (const key of togetherPairs) {
+    const [a, b] = key.split("___");
+    if (a !== guestId && b !== guestId) continue;
+    const other = a === guestId ? b : a;
+    // Only a partner they are WITH right now can be separated by this move.
+    if (seating[other] === from) return true;
+  }
+  return false;
+}
+
+function swapBreaksTogether(gA, tidA, gB, tidB, seating, togetherPairs) {
+  return moveBreaksTogether(gA.id, tidB, seating, togetherPairs)
+      || moveBreaksTogether(gB.id, tidA, seating, togetherPairs);
+}
+
 function swapViolatesApart(gA, tableAId, gB, tableBId, tableGuestsFn, apartPairs) {
   const tableBRest = tableGuestsFn(tableBId).filter(g => g.id !== gB.id);
   const tableARest = tableGuestsFn(tableAId).filter(g => g.id !== gA.id);
@@ -151,7 +185,8 @@ export function generateSuggestions(
   const activeForSeating = guests.filter(g => g.rsvp !== "declined");
   const unassigned = activeForSeating.filter(g => !seating[g.id]);
 
-  const apartPairs = buildApartPairs(constraints);
+  const apartPairs    = buildApartPairs(constraints);
+  const togetherPairs = buildTogetherPairs(constraints);
 
   // ── 1. Unassigned guests ──────────────────────────────────────────────────
   if (unassigned.length > 0 && assigned.length > 0) {
@@ -189,7 +224,9 @@ export function generateSuggestions(
   if (togetherViol.length === 1) {
     const { ga, gb, ta, tb } = togetherViol[0];
     const remaining = tableSpace(ta);
-    const canMove   = remaining >= (gb.count || 1) && !isGuestLocked(gb.id) && !isTableLocked(ta);
+    // Also check apart: fixing one constraint by breaking another is not a fix.
+    const canMove   = remaining >= (gb.count || 1) && !isGuestLocked(gb.id) && !isTableLocked(ta)
+                      && !moveViolatesApart(gb.id, ta, tableGuests, apartPairs);
     suggestions.push({
       id:                `together_${ga.id}_${gb.id}`,
       type:              "together_violated",
@@ -367,7 +404,8 @@ export function generateSuggestions(
       const [bestTid, bestMembers] = bestEntry;
       const canMove = tableSpace(bestTid) >= (g.count || 1)
         && !isTableLocked(bestTid)
-        && !moveViolatesApart(g.id, bestTid, tableGuests, apartPairs);
+        && !moveViolatesApart(g.id, bestTid, tableGuests, apartPairs)
+        && !moveBreaksTogether(g.id, bestTid, seating, togetherPairs);
 
       isolatedCount++;
       coveredGuests.add(g.id);
@@ -563,6 +601,7 @@ export function generateSuggestions(
         if (spaceA < cntB || spaceB < cntA) continue;
 
         if (swapViolatesApart(gA, tidA, gB, tidB, tableGuests, apartPairs)) continue;
+        if (swapBreaksTogether(gA, tidA, gB, tidB, seating, togetherPairs)) continue;
 
         usedPairs.add(pairKey);
         swapCount++;
@@ -630,6 +669,7 @@ export function generateSuggestions(
             const spaceB = tableSpace(tGroom.id) + cntB;
             if (spaceA < cntB || spaceB < cntA) continue;
             if (swapViolatesApart(gA, tBride.id, gB, tGroom.id, tableGuests, apartPairs)) continue;
+            if (swapBreaksTogether(gA, tBride.id, gB, tGroom.id, seating, togetherPairs)) continue;
             foundPair = { gA, gB };
             break outer2;
           }

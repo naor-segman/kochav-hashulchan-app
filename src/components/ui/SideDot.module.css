@@ -1,4 +1,6 @@
-/* SideDot — bride / groom indicator */
+/* SideDot — bride / groom indicator. A pure mark: it carries no text, so it
+   may be a saturated colour. It is also the ONLY signal for the side in a
+   dense row, so it never shrinks below 10px. */
 .dot {
   width: 10px;
   height: 10px;

@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import styles from "./CheckInScreen.module.css";
+import QrScanner from "../components/ui/QrScanner.jsx";
+import { isScanSupported, parseScanPayload } from "../utils/scanPayload.js";
 
-export default function CheckInScreen({ events, patchEventById }) {
+export default function CheckInScreen({ events, patchEventById, loading = false }) {
   const { eventId } = useParams();
   const navigate    = useNavigate();
   const ev          = events.find(e => e.id === eventId);
@@ -15,6 +17,8 @@ export default function CheckInScreen({ events, patchEventById }) {
   const [walkInCount, setWalkInCount] = useState(1);
   const [walkInSide, setWalkInSide] = useState("bride");
   const [viewMode, setViewMode]     = useState("name"); // "name" | "table"
+  const [scanning, setScanning]     = useState(false);
+  const [scanMsg,  setScanMsg]      = useState("");
   const searchRef = useRef(null);
   const walkInRef = useRef(null);
 
@@ -22,11 +26,13 @@ export default function CheckInScreen({ events, patchEventById }) {
     searchRef.current?.focus();
   }, []);
 
+  // Only bounce once loading has actually settled. On a direct load the auth
+  // session and the cloud events are not there on the first render, so an
+  // unconditional redirect sent the door tablet to the marketing page every
+  // time someone refreshed it or relaunched the PWA — at the worst moment.
   useEffect(() => {
-    if (!ev) navigate("/", { replace: true });
-  }, [ev, navigate]);
-
-  if (!ev) return null;
+    if (!loading && !ev) navigate("/", { replace: true });
+  }, [loading, ev, navigate]);
 
   const patchEvent = (patch) => patchEventById(eventId, patch);
 
@@ -39,6 +45,26 @@ export default function CheckInScreen({ events, patchEventById }) {
     }));
     if (!wasArrived) setLastChecked(guestId);
   };
+
+  // A scanned badge checks the guest in immediately — at a door with a queue,
+  // an extra confirmation tap is the thing that makes people stop using it.
+  //
+  // Declared BEFORE the `if (!ev)` bail-out: a hook after an early return runs
+  // on some renders and not others, and React matches hooks by call order — the
+  // deleted-event render would have shifted every later hook by one.
+  const handleScan = useCallback((raw) => {
+    const id = parseScanPayload(raw);
+    if (!id) { setScanMsg("קוד לא מזוהה — נסו שוב או חפשו לפי שם"); return; }
+    const guest = ev?.guests.find(g => g.id === id);
+    if (!guest) { setScanMsg("הקוד לא שייך לאירוע הזה"); return; }
+    if (guest.arrived) { setScanMsg(guest.name + " כבר סומן/ה כהגיע/ה ✓"); return; }
+    toggleArrived(guest.id, false);
+    setScanMsg(guest.name + " סומן/ה כהגיע/ה ✓");
+  }, [ev?.guests]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Same reason as the redirect above: render nothing until we know, rather
+  // than flashing an empty screen and bouncing.
+  if (!ev) return loading ? <div aria-busy="true" /> : null;
 
   const addWalkIn = () => {
     const name = walkInName.trim();
@@ -76,17 +102,30 @@ export default function CheckInScreen({ events, patchEventById }) {
     patchEvent(e => ({
       ...e,
       guests: e.guests.map(g =>
-        e.seating?.[g.id] === tableId ? { ...g, arrived } : g
+        // The rsvp filter has to match the list this button sits above, which
+        // hides declined guests. Without it "כולם הגיעו" checked in people who
+        // had cancelled, and the door counter went past 100%.
+        e.seating?.[g.id] === tableId && g.rsvp !== "declined"
+          ? { ...g, arrived }
+          : g
       ),
     }));
   };
 
   const sideLabel = s => getSideLabel(ev, s);
 
-  const active = ev.guests.filter(g => g.rsvp !== "declined");
-  const nArrived = ev.guests.filter(g => g.arrived).length;
+  // Seats, not rows. A guest row is a group — משפחת כהן with count 8 is eight
+  // people through the door. Counting rows told the host 1/2 while eight of
+  // nine guests were already in the room, and that number is what they give
+  // the venue for meals.
+  const seatsOf   = g => g.count || 1;
+  const active    = ev.guests.filter(g => g.rsvp !== "declined");
+  const nActive   = active.reduce((s, g) => s + seatsOf(g), 0);
+  const nArrived  = ev.guests
+    .filter(g => g.arrived && g.rsvp !== "declined")
+    .reduce((s, g) => s + seatsOf(g), 0);
   const totalGifts = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
-  const pct = active.length > 0 ? Math.round(nArrived / active.length * 100) : 0;
+  const pct = nActive > 0 ? Math.min(100, Math.round(nArrived / nActive * 100)) : 0;
 
   const searchTrim  = search.trim();
   const searchDigits = searchTrim.replace(/\D/g, "");
@@ -116,7 +155,7 @@ export default function CheckInScreen({ events, patchEventById }) {
           ➕ אורח חדש
         </button>
         <div className={styles.topStats}>
-          <span className={styles.arrivedCount}>{nArrived}/{active.length}</span>
+          <span className={styles.arrivedCount}>{nArrived}/{nActive}</span>
           {totalGifts > 0 && (
             <span className={styles.giftTotal}>💰 ₪{totalGifts.toLocaleString("he-IL")}</span>
           )}
@@ -147,6 +186,14 @@ export default function CheckInScreen({ events, patchEventById }) {
         </button>
       </div>
 
+      {/* ── Scan (name mode only) ── */}
+      {viewMode === "name" && scanning && (
+        <QrScanner onScan={handleScan} onClose={() => { setScanning(false); setScanMsg(""); }} />
+      )}
+      {viewMode === "name" && scanMsg && (
+        <p className={styles.scanMsg} role="status">{scanMsg}</p>
+      )}
+
       {/* ── Search (name mode only) ── */}
       {viewMode === "name" && (
         <div className={styles.searchWrap}>
@@ -165,6 +212,11 @@ export default function CheckInScreen({ events, patchEventById }) {
             </button>
           )}
         </div>
+      )}
+      {viewMode === "name" && !scanning && isScanSupported() && (
+        <button className={styles.scanBtn} onClick={() => { setScanning(true); setScanMsg(""); }}>
+          📷 סרקו קוד מההזמנה
+        </button>
       )}
 
       {/* ── Last checked-in highlight ── */}

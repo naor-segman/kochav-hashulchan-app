@@ -27,8 +27,10 @@
   cursor: pointer; transition: border-color var(--transition), box-shadow var(--transition);
   font-family: inherit;
 }
-.themeSwatch:hover { border-color: var(--accent-border); }
-.themeActive { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.themeSwatch:hover { border-color: var(--border2); }
+/* The chosen palette — a ground, not an outline-plus-halo. The swatch strip
+   inside it is the content; the chip only has to say "this one". */
+.themeActive { border-color: var(--blush-line); background: var(--blush); }
 .themeColors { display: inline-flex; border-radius: 6px; overflow: hidden; flex-shrink: 0; border: 1px solid var(--border); }
 .themeColors span { width: 16px; height: 26px; }
 .themeName { font-size: 13px; font-weight: 600; color: var(--text); }
@@ -86,3 +88,152 @@
   font-size: 12px; cursor: pointer; line-height: 1;
 }
 @media (max-width: 480px){ .galleryEdit { grid-template-columns: repeat(3, 1fr); } }
+
+/* ── Heading-font picker ─────────────────────────────────────────────────── */
+/* Separates the font picker from the colour swatches directly above it. */
+.sectionHint {
+  margin-block-start: 14px;
+}
+
+.fontGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fontSwatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 84px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--transition), background var(--transition);
+}
+.fontSwatch:hover { border-color: var(--border2); background: var(--bg); }
+
+.fontActive {
+  border-color: var(--blush-line);
+  background: var(--blush);
+}
+
+/* The sample is the point of the control — it has to be big enough that the
+   difference between the three families is actually visible. */
+.fontSample {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+/* ── In-editor device preview ────────────────────────────────────────────── */
+.previewWrap {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.previewBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.deviceBtn {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+.deviceBtn:hover { border-color: var(--border2); color: var(--text); }
+
+/* Mobile / desktop is a view switch sitting directly above the preview it
+   governs. White on --accent was 3.80:1; the segmented-active ground is
+   6.04:1 and lets the preview stay the brightest thing in the section. */
+.deviceActive,
+.deviceActive:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+
+.previewHint {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-inline-start: auto;
+}
+
+.previewStage {
+  margin-inline: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: max-width var(--transition);
+}
+
+/* Widths approximate the real devices so line lengths and wrapping match what
+   a guest actually sees, rather than just scaling the same layout down. */
+.stageMobile  { max-width: 390px; }
+.stageDesktop { max-width: 100%; }
+
+.previewFrame {
+  display: block;
+  width: 100%;
+  height: 560px;
+  border: 0;
+  background: var(--surface);
+}
+
+@media (max-width: 600px) {
+  .previewFrame { height: 460px; }
+  .previewHint  { margin-inline-start: 0; width: 100%; }
+}
+
+/* Custom domain — the app side is trivial; the DNS step is the host's, so the
+   instructions sit right next to the field rather than in a help page. */
+.domainBox {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.domainBox code {
+  background: var(--bg);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: .9em;
+  direction: ltr;
+  display: inline-block;
+}
+
+/* The copy button beside a read-only URL. It arrives as a filled --cta from the
+   shared button family, which makes "copy a link" look like the primary action
+   on a screen whose primary action is publish. Adjacent-sibling selector so
+   only this one button is touched and the ghost buttons next to it are not. */
+.shareInput + button {
+  background: var(--surface);
+  border-color: var(--border2);
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: none;
+}
+
+.shareInput + button:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--text2);
+  color: var(--text);
+}

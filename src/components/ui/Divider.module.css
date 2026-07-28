@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 14px 0;
+  margin: 16px 0;
 }
 
 .line {
@@ -13,10 +13,9 @@
 }
 
 .label {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }
