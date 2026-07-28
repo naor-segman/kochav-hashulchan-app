@@ -1,8 +1,14 @@
 import { createRequire } from 'module';
+import { mkdirSync } from 'fs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 const phase = process.argv[2] || 'before';
-const DIR = '/tmp/claude-0/-home-user-kochav-hashulchan-app/b9163c96-99ea-5b5f-ad62-05c8598215b8/scratchpad/shots';
+// Writes inside the repo (gitignored) rather than a session scratchpad. The
+// old path was a /tmp directory belonging to the session that wrote this
+// script; every session since has been silently screenshotting into a folder
+// that no longer exists on disk and that nobody could open.
+const DIR = new URL('./shots/', import.meta.url).pathname;
+mkdirSync(DIR, { recursive: true });
 const routes = [['home','/'],['pricing','/pricing'],['login','/login'],['signup','/signup'],['help','/help'],['terms','/terms'],['privacy','/privacy'],['accessibility','/accessibility']];
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args:['--no-proxy-server'] });
 const results = [];

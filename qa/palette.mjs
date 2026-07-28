@@ -1,4 +1,5 @@
 import { createRequire } from 'module';
+import { mkdirSync } from 'fs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 const BASE = 'http://127.0.0.1:5188';
@@ -62,7 +63,9 @@ const SEED = () => {
 };
 
 const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args:['--no-proxy-server'] });
-const dir = '/tmp/claude-0/-home-user-kochav-hashulchan-app/b9163c96-99ea-5b5f-ad62-05c8598215b8/scratchpad/pal';
+// See the note in shot.mjs — same dead session path.
+const dir = new URL('./shots/palette/', import.meta.url).pathname;
+mkdirSync(dir, { recursive: true });
 require('fs').mkdirSync(dir, { recursive: true });
 
 for (const [name, vars] of Object.entries(OPTIONS)) {
