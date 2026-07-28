@@ -90,6 +90,11 @@
 
 /* ── Print ───────────────────────────────────────────────────────────────── */
 @media print {
+  /* The only literals left in the codebase, and deliberately so: this block
+     describes ink on paper, not the interface. Paper is white, a place card is
+     printed black, and a brand palette that follows the tokens here would cost
+     the host toner and legibility on a card read across a table. */
+
   /* Everything that is not the sheet is chrome — the page is the deliverable. */
   .screenOnly { display: none !important; }
 

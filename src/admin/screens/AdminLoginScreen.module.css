@@ -16,7 +16,7 @@
   padding: 40px 36px 32px;
   width: 100%;
   max-width: 380px;
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 32px var(--adm-shadow-mid), 0 1px 4px var(--adm-shadow-soft);
 }
 
 /* ── Header ── */
@@ -54,7 +54,7 @@
   border-radius: 8px;
   padding: 12px 14px;
   font-size: 13px;
-  color: #78350f;
+  color: var(--adm-badge-amber-deep);
   line-height: 1.5;
   margin-bottom: 20px;
   direction: ltr;
@@ -102,7 +102,7 @@
 
 .input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
   background: var(--adm-surface);
 }
 
@@ -135,7 +135,7 @@
 
 .btn:hover:not(:disabled) {
   background: var(--adm-accent-dark);
-  box-shadow: 0 3px 12px rgba(14, 154, 184, 0.35);
+  box-shadow: 0 3px 12px var(--adm-focus-ring-stronger);
 }
 
 .btn:disabled {

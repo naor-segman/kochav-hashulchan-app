@@ -474,7 +474,7 @@
 
 .paymentFailedBannerBtn {
   background: var(--red);
-  color: #fff;
+  color: var(--white);
   border: none;
   border-radius: 6px;
   padding: 5px 12px;

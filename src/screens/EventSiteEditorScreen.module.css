@@ -68,7 +68,7 @@
 .toggleOn { background: var(--green); }
 .toggleKnob {
   position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%;
-  background: var(--surface); transition: transform var(--transition); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  background: var(--surface); transition: transform var(--transition); box-shadow: 0 1px 3px var(--scrim-25);
 }
 .toggleOn .toggleKnob { transform: translateX(-18px); }
 
@@ -84,7 +84,7 @@
 }
 .galleryDel {
   position: absolute; top: 4px; inset-inline-end: 4px; width: 24px; height: 24px;
-  border-radius: 50%; border: none; background: rgba(0,0,0,.55); color: #fff;
+  border-radius: 50%; border: none; background: var(--scrim-55); color: var(--white);
   font-size: 12px; cursor: pointer; line-height: 1;
 }
 @media (max-width: 480px){ .galleryEdit { grid-template-columns: repeat(3, 1fr); } }

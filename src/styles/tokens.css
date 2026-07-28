@@ -238,4 +238,70 @@
   --adm-warn-bg-strong:       #fef3c7;
   --adm-warn-border:          #fde68a;
   --adm-warn-mid:             #f59e0b;
+
+  /* The 86 literals the first pass left behind. Same values, same rendering —
+     these are the ones that repeat across files, so a change to the panel's
+     elevation or focus ring had to be made in ten places and never was.
+
+     NOTE: --adm-focus-* is the pre-magenta brand teal, still sitting on every
+     focus ring in the panel. Left at its shipped value rather than quietly
+     restyled — the panel is deliberately not the customer palette, so whether
+     an internal tool should carry a retired brand colour is a decision, not a
+     cleanup. It is one line to change now that it has a name. */
+  --adm-shadow:               rgba(0, 0, 0, 0.04);
+  --adm-shadow-soft:          rgba(0, 0, 0, 0.06);
+  --adm-shadow-mid:           rgba(0, 0, 0, 0.10);
+  --adm-shadow-strong:        rgba(0, 0, 0, 0.22);
+  --adm-overlay:              rgba(0, 0, 0, 0.45);
+  --adm-focus-ring:           rgba(14, 154, 184, 0.12);
+  --adm-focus-ring-mid:       rgba(14, 154, 184, 0.10);
+  --adm-focus-ring-strong:    rgba(14, 154, 184, 0.30);
+  --adm-focus-ring-stronger:  rgba(14, 154, 184, 0.35);
+
+  /* Status badges. Each is a ground / ink / hairline trio, which is why they
+     were three literals on one line in five different files. */
+  --adm-badge-orange-bg:      #fff7ed;
+  --adm-badge-orange-ink:     #9a3412;
+  --adm-badge-orange-border:  #fed7aa;
+  --adm-badge-pink-bg:        #fdf2f8;
+  --adm-badge-pink-ink:       #9d174d;
+  --adm-badge-pink-border:    #f9a8d4;
+  --adm-badge-purple-bg:      #f5f3ff;
+  --adm-badge-purple-ink:     #6d28d9;
+  --adm-badge-purple-border:  #ddd6fe;
+  --adm-badge-blue-ink:       #1d4ed8;
+  --adm-badge-amber-ink:      #b45309;
+  --adm-badge-amber-deep:     #78350f;
+  --adm-badge-amber-mark:     #fbbf24;
+
+  --adm-bg-tint:              #f8f8f8;
+  --adm-bg-warm:              #fffbf7;
+  --adm-line-warm:            #e4c49a;
+  --adm-ink-quiet:            #777;
+}
+
+/* ── Neutral overlays ────────────────────────────────────────────────────
+   Pure black and pure white at fixed alphas — scrims over photographs, drop
+   shadows, and glass on a coloured ground. They are not brand colours and do
+   not move when the palette does, but they were 32 literals across a dozen
+   files, so "darken this overlay" was a dozen edits. Named, not restyled. */
+:root {
+  --white:            #ffffff;
+  --white-strong:     rgba(255, 255, 255, .92);
+  --white-soft:       rgba(255, 255, 255, .8);
+  --white-glass:      rgba(255, 255, 255, .18);
+  --white-glass-soft: rgba(255, 255, 255, .14);
+  --white-glass-dim:  rgba(255, 255, 255, .06);
+
+  --scrim-04:  rgba(0, 0, 0, .04);
+  --scrim-08:  rgba(0, 0, 0, .08);
+  --scrim-12:  rgba(0, 0, 0, .12);
+  --scrim-18:  rgba(0, 0, 0, .18);
+  --scrim-20:  rgba(0, 0, 0, .20);
+  --scrim-22:  rgba(0, 0, 0, .22);
+  --scrim-25:  rgba(0, 0, 0, .25);
+  --scrim-28:  rgba(0, 0, 0, .28);
+  --scrim-45:  rgba(0, 0, 0, .45);
+  --scrim-50:  rgba(0, 0, 0, .5);
+  --scrim-55:  rgba(0, 0, 0, .55);
 }

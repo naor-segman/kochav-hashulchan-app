@@ -7,18 +7,18 @@
   height: 54px;
   border-radius: 50%;
   background: var(--whatsapp);
-  color: #fff;
+  color: var(--white);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 14px var(--scrim-22);
   text-decoration: none;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .fab:hover {
   transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 6px 20px var(--scrim-28);
 }
 
 .fab:active {

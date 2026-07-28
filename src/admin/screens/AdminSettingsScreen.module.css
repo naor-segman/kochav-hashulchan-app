@@ -132,7 +132,7 @@
   background: var(--adm-surface); border: 1px solid var(--adm-line);
   border-radius: 12px; padding: 20px 22px;
   display: flex; flex-direction: column; gap: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px var(--adm-shadow);
 }
 
 /* ── Fields ── */
@@ -154,7 +154,7 @@
 
 .input:focus, .select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
   background: var(--adm-surface);
 }
 
@@ -167,7 +167,7 @@
 }
 .textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(14, 154, 184, 0.12);
+  box-shadow: 0 0 0 3px var(--adm-focus-ring);
   background: var(--adm-surface);
 }
 
@@ -228,7 +228,7 @@
 }
 .saveBtn:hover:not(:disabled) {
   background: var(--adm-accent-dark);
-  box-shadow: 0 3px 10px rgba(14, 154, 184, 0.30);
+  box-shadow: 0 3px 10px var(--adm-focus-ring-strong);
 }
 .saveBtn:disabled { opacity: 0.55; cursor: default; }
 

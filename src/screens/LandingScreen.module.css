@@ -234,9 +234,9 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(rgba(20, 22, 26, .34), rgba(20, 22, 26, .34)),
-    linear-gradient(to left, rgba(20, 22, 26, .82) 0%, rgba(20, 22, 26, .62) 45%, rgba(20, 22, 26, .28) 100%),
-    linear-gradient(to top,  rgba(20, 22, 26, .5) 0%, transparent 40%);
+    linear-gradient(rgba(var(--text-rgb), .34), rgba(var(--text-rgb), .34)),
+    linear-gradient(to left, rgba(var(--text-rgb), .82) 0%, rgba(var(--text-rgb), .62) 45%, rgba(var(--text-rgb), .28) 100%),
+    linear-gradient(to top,  rgba(var(--text-rgb), .5) 0%, transparent 40%);
 }
 
 /* On a phone the copy spans the full width, so a wash that fades toward one
@@ -246,8 +246,8 @@
 @media (max-width: 899px) {
   .heroScrim {
     background:
-      linear-gradient(rgba(20, 22, 26, .7), rgba(20, 22, 26, .7)),
-      linear-gradient(to top, rgba(20, 22, 26, .45) 0%, transparent 55%);
+      linear-gradient(rgba(var(--text-rgb), .7), rgba(var(--text-rgb), .7)),
+      linear-gradient(to top, rgba(var(--text-rgb), .45) 0%, transparent 55%);
   }
 }
 
@@ -262,7 +262,7 @@
 }
 
 .heroQuietLink:hover {
-  color: #fff;
+  color: var(--nav-text);
 }
 
 .heroDecor {
@@ -938,7 +938,7 @@
 .heroCinematic .heroHeadline {
   font-size: clamp(2.6rem, 7vw, 4.6rem);
   text-wrap: balance;
-  text-shadow: 0 2px 24px rgba(20, 22, 26, .45);
+  text-shadow: 0 2px 24px rgba(var(--text-rgb), .45);
 }
 
 /* The muted grey these two use was chosen against a flat ink panel, where it
@@ -953,13 +953,13 @@
 
 .heroCinematic .heroSub {
   max-width: 34ch;
-  color: #F2F3F5;
-  text-shadow: 0 1px 12px rgba(20, 22, 26, .5);
+  color: var(--nav-text);
+  text-shadow: 0 1px 12px rgba(var(--text-rgb), .5);
 }
 
 .heroCinematic .heroNote {
-  color: #E4E6E9;
-  text-shadow: 0 1px 10px rgba(20, 22, 26, .5);
+  color: rgba(var(--nav-text-rgb), .9);
+  text-shadow: 0 1px 10px rgba(var(--text-rgb), .5);
 }
 
 /* ── App mock preview card ── */

@@ -27,9 +27,9 @@
   inset: 0;
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, .28) 0%,
-    rgba(0, 0, 0, .12) 40%,
-    rgba(0, 0, 0, .45) 100%
+    var(--scrim-28) 0%,
+    var(--scrim-12) 40%,
+    var(--scrim-45) 100%
   );
 }
 .root:not(:has(.photo)) .scrim { display: none; }
@@ -61,21 +61,21 @@
   border: 1px solid var(--a-line);
   border-radius: 22px;
   padding: 34px 26px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .18);
+  box-shadow: 0 18px 50px var(--scrim-18);
 }
 
 /* Over a photo without the card treatment, text needs its own contrast. */
 .layout_center:has(.photo) .card,
 .layout_bottom:has(.photo) .card {
-  color: #fff;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, .5);
+  color: var(--white);
+  text-shadow: 0 2px 14px var(--scrim-50);
 }
 .layout_center:has(.photo) .eyebrow,
 .layout_bottom:has(.photo) .eyebrow,
 .layout_center:has(.photo) .date,
 .layout_bottom:has(.photo) .date,
 .layout_center:has(.photo) .venue,
-.layout_bottom:has(.photo) .venue { color: rgba(255, 255, 255, .92); }
+.layout_bottom:has(.photo) .venue { color: var(--white-strong); }
 
 /* ── Type ────────────────────────────────────────────────────────────────── */
 .eyebrow {
@@ -172,7 +172,7 @@
   border: 1.5px solid currentColor;
   opacity: .9;
 }
-.btnGhost:hover { background: rgba(255, 255, 255, .14); opacity: 1; }
+.btnGhost:hover { background: var(--white-glass-soft); opacity: 1; }
 
 .layout_card .btnGhost { color: var(--a-ink); border-color: var(--a-line); }
 .layout_card .btnGhost:hover { background: var(--a-accent-soft); }
@@ -191,7 +191,7 @@
   opacity: .8;
 }
 .layout_center:has(.photo) .brand,
-.layout_bottom:has(.photo) .brand { color: rgba(255, 255, 255, .8); }
+.layout_bottom:has(.photo) .brand { color: var(--white-soft); }
 
 .state {
   min-height: 100dvh;
