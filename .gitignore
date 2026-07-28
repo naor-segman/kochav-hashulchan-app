@@ -32,3 +32,8 @@ pnpm-debug.log*
 
 # Vite
 *.local
+
+# Vite's dependency pre-bundle cache. Normally it lands in node_modules/.vite,
+# but a dev server started after that directory is cleared writes it to the repo
+# root instead — 5.5MB of build artefact that then shows up as untracked.
+.vite/
