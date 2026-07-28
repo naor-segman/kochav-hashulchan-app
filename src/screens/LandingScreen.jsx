@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
+import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./LandingScreen.module.css";
 
 // Clean line icons (stroke = currentColor) — replaces emoji so the page reads
@@ -271,22 +272,19 @@ export default function LandingScreen() {
               </div>
               <div className={styles.mockTables}>
                 {[
-                  { name: "שולחן 1",   total: 10, filled: 10 },
-                  { name: "שולחן 2",   total: 8,  filled: 7  },
-                  { name: "שולחן 3",   total: 10, filled: 9  },
-                  { name: "שולחן 4",   total: 8,  filled: 8  },
-                  { name: "שולחן 5",   total: 10, filled: 6  },
-                  { name: "שולחן VIP", total: 8,  filled: 8  },
+                  { name: "שולחן 1",   total: 10, filled: 10, shape: "round"  },
+                  { name: "שולחן 2",   total: 8,  filled: 7,  shape: "square" },
+                  { name: "שולחן 3",   total: 10, filled: 9,  shape: "round"  },
+                  { name: "אביר",      total: 12, filled: 8,  shape: "rect"   },
+                  { name: "שולחן 5",   total: 10, filled: 6,  shape: "round"  },
+                  { name: "שולחן VIP", total: 8,  filled: 8,  shape: "oval"   },
+                  // The mock used a flat row of dots per table — a picture of
+                  // nothing in particular. These are the same glyphs the
+                  // product actually draws, so the landing page shows the real
+                  // thing rather than an illustration of it.
                 ].map(t => (
                   <div key={t.name} className={styles.mockTable}>
-                    <div className={styles.mockTableDots}>
-                      {Array.from({ length: t.total }).map((_, i) => (
-                        <span
-                          key={i}
-                          className={i < t.filled ? styles.mockDotFull : styles.mockDotEmpty}
-                        />
-                      ))}
-                    </div>
+                    <TableGlyph shape={t.shape} capacity={t.total} taken={t.filled} size={54} />
                     <span className={styles.mockTableLabel}>{t.name}</span>
                   </div>
                 ))}

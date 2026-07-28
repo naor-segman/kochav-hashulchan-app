@@ -1027,3 +1027,22 @@
 }
 .statPrimary .statValue { font-size: var(--step-3); }
 .statPrimary .statLabel { color: var(--text2); }
+
+/* The table strip. Wraps rather than scrolls — a hidden scroller on a card is
+   a row you never discover. Capped at fourteen with a count, because past that
+   the glyphs stop being individually readable and the strip's job is the
+   overall shape anyway. */
+.tableStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 4px 0 12px;
+}
+
+.tableStripMore {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

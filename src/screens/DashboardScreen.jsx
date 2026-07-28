@@ -6,6 +6,7 @@ import { canCreateEvent } from "../utils/featureGates.js";
 import { eventHealth, dashStats, summaryMessages } from "../utils/eventAnalytics.js";
 import Chip from "../components/ui/Chip.jsx";
 import Icon from "../components/ui/Icon.jsx";
+import TableGlyph from "../components/ui/TableGlyph.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./DashboardScreen.module.css";
 
@@ -239,6 +240,28 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
                       {ev.tables.length > 0 && <Chip icon={<Icon name="hexagon" size={13} />} label={ev.tables.length + " שולחנות"} />}
                       {cap > 0 && <Chip icon={<Icon name="chair" size={13} />} label={cap + " מקומות"} />}
                       {ev.guests.length > 0 && <Chip icon={<Icon name="users" size={13} />} label={ev.guests.length + " רשומות"} />}
+                    </div>
+                  )}
+
+                  {/* The event as a picture. A row of numbers tells you the
+                      totals; this tells you the SHAPE of the problem — which
+                      tables are full, which are still empty, which overflowed —
+                      in the half second before anyone reads a label. */}
+                  {ev.tables.length > 0 && (
+                    <div className={styles.tableStrip} aria-hidden="true">
+                      {ev.tables.slice(0, 14).map(t => (
+                        <TableGlyph
+                          key={t.id}
+                          shape={t.shape}
+                          capacity={t.capacity}
+                          taken={ev.guests.reduce(
+                            (n, g) => n + (ev.seating?.[g.id] === t.id ? (g.count || 1) : 0), 0)}
+                          size={26}
+                        />
+                      ))}
+                      {ev.tables.length > 14 && (
+                        <span className={styles.tableStripMore}>+{ev.tables.length - 14}</span>
+                      )}
                     </div>
                   )}
 
