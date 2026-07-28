@@ -74,10 +74,12 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  /* Cap the action column so it cannot starve the description beside it. With
+  /* Cap the action column so it cannot starve the description beside it: with
      flex-shrink:0 against a min-width:0 sibling, the copy collapsed to ~80px
-     and wrapped one word per line at 1280. */
-  flex: 0 1 auto;
+     and wrapped one word per line at 1280.
+     max-width is what actually holds this. A `flex: 0 1 auto` used to sit here
+     too and was silently overridden by the flex-shrink below it — removed, so
+     nobody later deletes the max-width trusting a line that never ran. */
   max-width: 52%;
   flex-shrink: 0;
 }

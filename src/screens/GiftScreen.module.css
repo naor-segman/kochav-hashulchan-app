@@ -80,9 +80,10 @@
   opacity: 0.8;
 }
 
-/* --accent-text is 2.6:1 on the near-black bar. --blush is 12.3:1. */
+/* --accent-text is 2.6:1 on the near-black bar; --accent-on-dark is the
+   same job calibrated for this ground, at 9.3:1. */
 .logoMark {
-  color: var(--blush);
+  color: var(--accent-on-dark);
   font-size: 14px;
 }
 
@@ -425,22 +426,23 @@
   letter-spacing: 0.03em;
 }
 
-/* Filled buttons carry a white label, so they use --cta (4.7:1), never
-   --accent (3.8:1). */
+/* Outlined, so the PayBox link below stays the single filled action in the
+   block rather than two pink pills competing. */
 .transferCopy {
   font-size: var(--step--1);
   font-weight: 700;
-  padding: 8px 14px;
+  padding: 9px 14px;
   border-radius: var(--radius);
-  border: none;
+  border: 1px solid var(--blush-line);
   cursor: pointer;
-  background: var(--cta);
-  color: var(--on-accent);
-  transition: background var(--transition);
+  background: var(--surface);
+  color: var(--text);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .transferCopy:hover {
-  background: var(--cta-dark);
+  background: var(--bg);
+  border-color: var(--text2);
 }
 
 .transferLink {

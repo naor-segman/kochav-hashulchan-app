@@ -97,6 +97,21 @@ textarea:focus {
   box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
+/* ── Focus baseline ───────────────────────────────────────────────────────
+   The shared button family in screenBase carries its own :focus-visible ring.
+   Roughly a dozen screen-local buttons are NOT in that family and were falling
+   back to Chromium's default outline — visible, but visibly not the same
+   system, which is the sort of inconsistency a reviewer notices immediately.
+   This is the floor: any focusable element without its own ring gets this one.
+   Anything with a ring of its own still wins on specificity.
+   --accent-text is >=4.67:1 on every light ground in the app; the dark chrome
+   overrides it with --nav-text in Shell.module.css. */
+:where(button, [role="button"], a[href], summary):focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
 button:not(:disabled):active {
   transform: scale(.97);
   transition: transform 0.07s ease;

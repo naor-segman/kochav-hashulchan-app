@@ -66,10 +66,10 @@
   margin-bottom: 28px;
 }
 
-/* --accent-text is 2.6:1 on this ground. Blush reads as the same warmth and
-   clears 12:1. */
+/* --accent-text is 2.6:1 on this ground; --accent-on-dark is the dark-ground
+   accent, 9.3:1. */
 .headerLogo {
-  color: var(--blush);
+  color: var(--accent-on-dark);
   font-size: 1.75rem;
   flex-shrink: 0;
   line-height: 1;
@@ -386,7 +386,9 @@
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--muted);
+  /* --muted put this glyph at 3.4:1 — over the non-text floor but low for the
+     control that undoes a mistyped name mid-queue. */
+  color: var(--text2);
   font-size: var(--step-2);
   cursor: pointer;
   padding: 8px;
@@ -553,7 +555,7 @@
 }
 
 .footerStar {
-  color: var(--blush);
+  color: var(--accent-on-dark);
 }
 
 /* ── Responsive ── */

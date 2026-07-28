@@ -219,3 +219,21 @@
   direction: ltr;
   display: inline-block;
 }
+
+/* The copy button beside a read-only URL. It arrives as a filled --cta from the
+   shared button family, which makes "copy a link" look like the primary action
+   on a screen whose primary action is publish. Adjacent-sibling selector so
+   only this one button is touched and the ghost buttons next to it are not. */
+.shareInput + button {
+  background: var(--surface);
+  border-color: var(--border2);
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: none;
+}
+
+.shareInput + button:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--text2);
+  color: var(--text);
+}
