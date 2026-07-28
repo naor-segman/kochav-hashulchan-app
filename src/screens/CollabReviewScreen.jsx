@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import * as XLSX from "xlsx";
 import { fetchCollabGuestsOwner, subscribeCollabGuests } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
@@ -45,7 +44,11 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
   const sides = getSideLabels(ev);
   const completeCount = rows.filter(complete).length;
 
-  const downloadExcel = () => {
+  // Loaded on demand. A static import made the 416KB xlsx chunk a hard
+  // dependency of this screen for everyone who opens it, when only the people
+  // who press the download button ever need it.
+  const downloadExcel = async () => {
+    const XLSX = await import("xlsx");
     const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות"]];
     (ev.guests || []).forEach((g) => aoa.push([g.name || "", g.phone || "", sides[g.side] || "", g.group || "", g.count || 1]));
     const ws = XLSX.utils.aoa_to_sheet(aoa);
