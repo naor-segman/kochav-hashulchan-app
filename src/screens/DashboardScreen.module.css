@@ -264,9 +264,15 @@
 }
 
 /* ── Event grid ── */
+/* A rigid 3-up grid meant that the most common dashboard there is — one event,
+   which is every couple who ever signs up — rendered a single card pinned to
+   the start edge with two thirds of the screen empty beside it. auto-fit with a
+   max keeps the row full at any count without letting one card stretch to
+   1200px and stop reading as a card. */
 .eventGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 380px));
+  justify-content: center;
   gap: 20px;
   margin-bottom: 20px;
 }

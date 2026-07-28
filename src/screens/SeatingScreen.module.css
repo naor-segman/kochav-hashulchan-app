@@ -863,16 +863,22 @@
   .runBtn { width: 100%; }
 }
 
+/* Was a filled --green button sitting among five outlined siblings, which made
+   the loudest thing in the row the least important action in it. Green is the
+   "done" colour in this system — it belongs on a state, not on an export. It
+   reads as a peer now; the elevation and the lift on hover are what separate it
+   from the ghost buttons beside it. */
 .xlsBtn {
-  background: var(--green);
-  color: var(--on-accent);
-  border: none;
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
-  box-shadow: var(--shadow-md);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  transition: background var(--transition), border-color var(--transition), transform var(--transition);
+  box-shadow: var(--shadow);
 }
 
 .xlsBtn:hover:not(:disabled) {
-  opacity: 0.85;
+  background: var(--bg);
+  border-color: var(--border2);
   transform: translateY(-1px);
 }
 
