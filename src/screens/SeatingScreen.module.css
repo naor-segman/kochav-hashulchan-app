@@ -74,6 +74,11 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+  /* Cap the action column so it cannot starve the description beside it. With
+     flex-shrink:0 against a min-width:0 sibling, the copy collapsed to ~80px
+     and wrapped one word per line at 1280. */
+  flex: 0 1 auto;
+  max-width: 52%;
   flex-shrink: 0;
 }
 

@@ -29,3 +29,11 @@
   border: 1px solid var(--green-border);
   border-inline-start: 3px solid var(--green);
 }
+
+/* Failure, not caution. The semantic colour is the edge and the hairline; the
+   sentence itself stays near-black so it reads at full contrast. */
+.err {
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  border-inline-start: 3px solid var(--red);
+}

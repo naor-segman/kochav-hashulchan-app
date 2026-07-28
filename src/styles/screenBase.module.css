@@ -275,10 +275,14 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* Size — sm. Bumped from 12px to 13px: 12px Hebrew in a dense row is the
-   smallest type in the product and it is on the buttons, of all things. */
+/* Size — sm. The type moves 12px → --step--1 (13px): 12px Hebrew in a dense
+   row was the smallest text in the product and it was on the buttons, of all
+   things. The horizontal padding drops to compensate, so the button's overall
+   footprint is within a few px of what it was — this class sizes ~50 buttons
+   across 15 screens and several of them sit in toolbars with no room to
+   spare. */
 .btnSm {
-  padding: 6px 12px;
+  padding: 5px 9px;
   font-size: var(--step--1);
   font-weight: var(--font-weight-bold);
 }
@@ -524,6 +528,20 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+}
+
+/* On a phone the row's chips and buttons are all flex-shrink:0, so the one
+   thing that CAN shrink is the guest's name — and it was ellipsing to two
+   characters to make room for three buttons. Give the name the whole first
+   line and let everything else wrap under it. */
+@media (max-width: 560px) {
+  .gRow {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .gInfo {
+    flex: 1 1 100%;
+  }
 }
 
 .gName {
