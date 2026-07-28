@@ -1,23 +1,30 @@
-/* Toast — fixed bottom notification */
+/* Toast — fixed bottom notification.
+   This one genuinely floats, so it is one of the few places --shadow-lg is
+   allowed. Near-black ground by default (18.11:1); the semantic variants both
+   clear AA with a white label (--red 5.87:1, --warn 5.28:1). */
 .toast {
   position: fixed;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--text);
-  color: #fff;
-  padding: 12px 22px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
+  color: var(--on-accent);
+  padding: 13px 22px;
+  border-radius: var(--radius);
+  font-size: var(--step-0);
+  font-weight: var(--font-weight-semibold);
   box-shadow: var(--shadow-lg);
   z-index: 9999;
-  animation: toastIn 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: toastIn 0.22s var(--ease-out);
   white-space: normal;
   max-width: min(380px, calc(100vw - 32px));
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.45;
   letter-spacing: 0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
 }
 
 .err {

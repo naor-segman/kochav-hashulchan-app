@@ -1,7 +1,8 @@
-/* CapBar — capacity fill bar */
+/* CapBar — capacity fill bar. A bar is a shape with no text on it, so the fill
+   may be the saturated --accent (set inline by CapBar.jsx). */
 .wrap {
   width: 52px;
-  height: 5px;
+  height: 6px;
   background: var(--border);
   border-radius: var(--radius-pill);
   overflow: hidden;
@@ -11,5 +12,9 @@
 .fill {
   height: 100%;
   border-radius: var(--radius-pill);
-  transition: width 0.3s;
+  transition: width var(--transition-slow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill { transition: none; }
 }

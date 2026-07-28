@@ -1,23 +1,32 @@
-/* Field form wrapper */
+/* Field — label + control, and whatever the screen appends under it (a hint,
+   a counter, a validation line).
+   The column is `align-items: stretch` with a fixed gap, so an error line
+   appearing below the control adds its own height and nothing else moves
+   sideways or resizes. `.grid2` in screenBase is `align-items: start` for the
+   matching reason: an error in one column must not stretch its neighbour. */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  min-width: 0;
 }
 
 .label {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-semibold);
   color: var(--text2);
+  /* Pinned so a label that wraps to two lines does not change the control's
+     vertical rhythm relative to its neighbour in a .grid2 pair. */
+  line-height: 1.4;
 }
 
 .required {
   color: var(--red);
-  margin-right: 2px;
+  margin-inline-start: 2px;
 }
 
 .labelHint {
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--step--1);
 }

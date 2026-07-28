@@ -1,12 +1,17 @@
-/* Chip — small info pill */
+/* Chip — the neutral member of the chip family defined in screenBase.
+   Neutral is the DEFAULT: --bg ground, --text2 label. Emphasis is --blush with
+   near-black on it; semantic tints are for genuine state only. A chip is never
+   the saturated --accent. */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
+  gap: 4px;
+  font-size: var(--step--1);
+  line-height: 1.4;
   color: var(--text2);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+  white-space: nowrap;
 }
