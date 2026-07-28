@@ -16,7 +16,7 @@
 .stepBadge {
   font-size: 12px;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -40,7 +40,7 @@
 }
 
 .upgradeTipLink {
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: underline;
   font-weight: 600;
 }
@@ -155,7 +155,8 @@
 /* Per-guest WhatsApp invite button */
 .waBtn {
   background: var(--whatsapp);
-  color: var(--on-accent);
+  /* white on #25D366 is 1.98:1 — the worst text in the product */
+  color: #0B3D1F;
 }
 .waBtn:hover { filter: brightness(0.93); }
 

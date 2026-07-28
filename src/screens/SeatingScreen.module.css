@@ -16,7 +16,7 @@
 .stepBadge {
   font-size: 12px;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -292,7 +292,7 @@
 
 /* Empty label becomes inviting during drag */
 .tableCardsDragging .tCard .tCardEmpty {
-  color: var(--accent);
+  color: var(--accent-text);
   font-style: normal;
 }
 
@@ -324,7 +324,7 @@
 
 .tCardIcon {
   font-size: 18px;
-  color: var(--accent);
+  color: var(--accent-text);
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -467,7 +467,7 @@
 
 /* During drag, empty table slots look more inviting */
 .tableCardsDragging .tCard .emptyInline {
-  color: var(--accent);
+  color: var(--accent-text);
   font-style: normal;
 }
 
@@ -596,7 +596,7 @@
 
 .dragOverlayMeta {
   font-size: 12px;
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -688,7 +688,7 @@
 
 .tTableLockBtnActive {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-bg);
 }
 
@@ -779,7 +779,7 @@
 /* Empty drop hint shown when all guests are assigned */
 .unassignedEmptyDrop {
   font-size: 13px;
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
   padding: 12px 0 4px;
   text-align: center;
@@ -927,7 +927,7 @@
 .pvBrand {
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 3px;
@@ -957,7 +957,7 @@
   display: inline-block;
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-bg);
   border: 1px solid var(--accent-border);
   border-radius: 4px;
@@ -1070,7 +1070,7 @@
 .pvGuestCount {
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .pvGuestMeta {
@@ -1408,7 +1408,7 @@
 .checkInTable {
   font-size: 12px;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   white-space: nowrap;
 }
 
@@ -1515,7 +1515,7 @@
 }
 
 .waNotifyTable {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 12px;
   font-weight: 600;
 }
@@ -1641,7 +1641,7 @@
 }
 .expandAllBtn {
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
   border-radius: var(--radius);
   padding: 8px 14px;
@@ -1657,7 +1657,7 @@
 .seatNames {
   display: block;
   font-size: 12px;
-  color: var(--accent);
+  color: var(--accent-text);
   margin-top: 3px;
   line-height: 1.5;
 }

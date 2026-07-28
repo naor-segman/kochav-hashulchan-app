@@ -51,7 +51,7 @@
   font-size: 9px;
   font-weight: 800;
   color: var(--accent);
-  background: rgba(var(--accent-rgb),.14);
+  background: rgba(var(--accent-rgb),.08);
   border: 1px solid rgba(var(--accent-rgb),.30);
   border-radius: 20px;
   padding: 1px 6px;
@@ -89,7 +89,7 @@
 }
 
 .bcBack:hover {
-  background: rgba(var(--accent-rgb),.14);
+  background: rgba(var(--accent-rgb),.08);
   color: var(--accent-border);
 }
 
@@ -109,11 +109,11 @@
 
 .autoSave {
   font-size: 11px;
-  color: var(--green);
+  color: var(--green-light);
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
-  background: rgba(var(--green-rgb),.18);
+  background: rgba(var(--green-rgb),.28);
   border: 1px solid rgba(var(--green-rgb),.30);
   border-radius: 20px;
   padding: 3px 10px;
@@ -123,7 +123,7 @@
 
 .autoSaving {
   color: var(--accent-border);
-  background: rgba(var(--accent-rgb),.14);
+  background: rgba(var(--accent-rgb),.08);
   border-color: rgba(var(--accent-rgb),.28);
 }
 

@@ -3,13 +3,13 @@
   min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 12px; background: var(--bg); color: var(--text); text-align: center; padding: 24px;
 }
-.star { font-size: 40px; color: var(--accent); }
+.star { font-size: 40px; color: var(--accent-text); }
 
 .header {
   background: var(--nav-bg); min-height: 56px; display: flex; align-items: center; justify-content: center;
   gap: 10px; flex-shrink: 0; border-bottom: 1px solid var(--nav-border); padding: 0 16px;
 }
-.headerMark { color: var(--accent); font-size: 18px; }
+.headerMark { color: var(--accent-text); font-size: 18px; }
 .headerName { font-size: 16px; font-weight: 700; color: var(--nav-text); }
 
 .wrapWide { flex: 1; width: 100%; max-width: 680px; margin: 0 auto; padding: 20px 16px 48px; }
@@ -43,7 +43,7 @@
 }
 .btn:hover:not(:disabled) { background: var(--accent-dark); }
 .btnGhost {
-  flex: 1; min-width: 140px; background: var(--surface); color: var(--accent); border: 1px solid var(--accent-border);
+  flex: 1; min-width: 140px; background: var(--surface); color: var(--accent-text); border: 1px solid var(--accent-border);
   border-radius: var(--radius); padding: 13px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
 }
 .btnGhost:disabled { opacity: .5; cursor: default; }

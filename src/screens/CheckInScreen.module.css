@@ -43,7 +43,7 @@
 
 .backBtn:hover {
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: var(--accent-border);
 }
 
@@ -69,7 +69,7 @@
 .arrivedCount {
   font-size: 20px;
   font-weight: 900;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: -0.02em;
 }
 
@@ -90,7 +90,7 @@
   border: 1.5px solid var(--accent);
   border-radius: var(--radius);
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -165,7 +165,7 @@
 }
 
 .viewTabActive {
-  color: var(--accent);
+  color: var(--accent-text);
   border-bottom-color: var(--accent);
   font-weight: 800;
 }
@@ -370,7 +370,7 @@
   display: inline-block;
   font-size: 14px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-bg);
   padding: 4px 12px;
   border-radius: var(--radius);
@@ -618,13 +618,13 @@
 .walkInSideBtn:hover {
   border-color: var(--accent);
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .walkInSideBtnActive {
   border-color: var(--accent);
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 800;
 }
 
@@ -852,7 +852,7 @@
   font-family: inherit;
   font-size: 14px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-bg);
   border: 1.5px dashed var(--accent-border);
   border-radius: var(--radius);

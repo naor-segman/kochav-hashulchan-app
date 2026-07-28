@@ -25,7 +25,7 @@
 .stageCount {
   font-size: 13px;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -93,7 +93,7 @@
   border-radius: 20px;
   background: var(--accent-bg);
   border: 1px solid var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: none;
   white-space: nowrap;
   transition: background var(--transition), border-color var(--transition);

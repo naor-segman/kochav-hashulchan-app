@@ -57,7 +57,7 @@
 .toolBtn:hover:not(:disabled) {
   background: var(--accent-bg);
   border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .toolBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -321,7 +321,7 @@
 
 .pillCount {
   font-size: 10px;
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 700;
 }
 
@@ -381,7 +381,7 @@
 .unplacedBtn:hover {
   background: var(--accent-bg);
   border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .unplacedBtnActive {
   background: var(--accent);
@@ -520,7 +520,7 @@
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
 }
-.viewBtn:hover { background: var(--accent-bg); color: var(--accent); }
+.viewBtn:hover { background: var(--accent-bg); color: var(--accent-text); }
 .viewActive { background: var(--accent); color: #fff; }
 .viewActive:hover { background: var(--accent); color: #fff; }
 

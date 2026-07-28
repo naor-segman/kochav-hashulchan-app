@@ -84,7 +84,7 @@
 }
 
 .logoMark {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 14px;
 }
 
@@ -148,7 +148,7 @@
 .eventTag {
   display: inline-block;
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
   border-radius: 999px;
   font-size: 11px;
@@ -193,7 +193,7 @@
 }
 
 .ornStar {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 12px;
   flex-shrink: 0;
   opacity: 0.68;
@@ -577,7 +577,7 @@
 }
 
 .successCheck {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 30px;
   font-weight: 300;
   line-height: 1;
@@ -655,7 +655,7 @@
 .successAmount {
   font-size: 1.25rem;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   font-variant-numeric: tabular-nums;
 }
 

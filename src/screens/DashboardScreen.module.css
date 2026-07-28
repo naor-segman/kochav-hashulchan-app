@@ -35,7 +35,7 @@
 
 .logoMark {
   font-size: 20px;
-  color: var(--accent);
+  color: var(--accent-text);
   filter: drop-shadow(0 0 8px rgba(var(--accent-rgb),.50));
 }
 
@@ -84,7 +84,7 @@
 }
 
 .upgradeTipLink {
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: underline;
   font-weight: 600;
 }
@@ -115,7 +115,7 @@
 
 .onboardingMark {
   font-size: 32px;
-  color: var(--accent);
+  color: var(--accent-text);
   line-height: 1;
 }
 
@@ -171,7 +171,7 @@
 .valueTileIcon {
   line-height: 1;
   margin-bottom: 6px;
-  color: var(--accent);
+  color: var(--accent-text);
   display: inline-flex;
 }
 
@@ -305,7 +305,7 @@
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .deleteBtn {
@@ -447,7 +447,7 @@
 .duplicateBtn:hover {
   background: var(--accent-bg);
   border-color: var(--accent-light);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ── Template chooser overlay ── */
@@ -733,7 +733,7 @@
 
 .progressPct {
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ── Health indicator pills ── */
@@ -876,7 +876,7 @@
   font-size: 11px;
   font-weight: 700;
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
   border-radius: 20px;
   padding: 1px 8px;

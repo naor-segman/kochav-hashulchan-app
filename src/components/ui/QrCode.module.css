@@ -19,7 +19,7 @@
 
 .btn:hover {
   border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .pop {

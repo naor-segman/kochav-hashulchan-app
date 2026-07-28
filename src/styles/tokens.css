@@ -109,15 +109,18 @@
   --groom:        #2F5FA8;
 
   /* Semantic state — green (success) */
-  --green:        #12855C;
-  --green-light:  #2AA274;
+  --green:        #0F7350;
+  --green-light:  #2AA274;   /* 5.6:1 on the near-black nav — the only green legible there */
   --green-bg:     #E3F4ED;
   --green-border: #A6DFC8;
 
   /* Semantic state — red (danger) */
-  --red:          #C4342F;
-  --red-bg:       #FBE9E8;
-  --red-border:   #EFC2C0;
+  --red:          #BC2F2A;
+  /* Warmed deliberately. At #FBE9E8 the danger tint sat ΔE 3.8 from the brand
+     tint — on the seating screen the "critical problems" band and the
+     "suggested fixes" band stacked and read as one pale pink. */
+  --red-bg:       #FCE6D6;
+  --red-border:   #F0C0AC;
 
   /* Semantic state — warning (amber) */
   --warn:         #96600A;
@@ -125,7 +128,7 @@
   --warn-border:  #E8CE8C;
 
   /* Side colour backgrounds */
-  --bride-bg:     #F3ECF9;
+  --bride-bg:     #ECE6FB;
   --groom-bg:     #E8EFF8;
 
   /* Brand colors — third-party services */
@@ -146,7 +149,7 @@
   --text-rgb:     20, 22, 26;
   --nav-text-rgb: 245, 245, 246;
   --green-rgb:    18, 133, 92;
-  --red-rgb:      196, 52, 47;
+  --red-rgb:      188, 47, 42;
   --warn-rgb:     150, 96, 10;
   /* Label colour on filled accent / cta / green / red backgrounds */
   --on-accent:    #fff;

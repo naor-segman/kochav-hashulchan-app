@@ -207,5 +207,5 @@
   padding: 24px;
 }
 
-.star { font-size: 30px; color: var(--accent); }
+.star { font-size: 30px; color: var(--accent-text); }
 .stateSub { font-size: 13.5px; color: var(--muted); margin: 0; }

@@ -9,7 +9,7 @@
 
 .loadingMark {
   font-size: 32px;
-  color: var(--accent);
+  color: var(--accent-text);
   animation: spin 1.4s linear infinite;
 }
 
@@ -46,7 +46,7 @@
 
 .brandMark {
   font-size: 26px;
-  color: var(--accent);
+  color: var(--accent-text);
   filter: drop-shadow(0 0 10px rgba(var(--accent-rgb),.50));
 }
 .brandName {
@@ -146,7 +146,7 @@
   justify-content: center;
 }
 
-.eyeBtn:hover { color: var(--accent); }
+.eyeBtn:hover { color: var(--accent-text); }
 
 .errorMsg {
   font-size: 13px;
@@ -159,7 +159,8 @@
 }
 
 .submitBtn {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  /* Starts at --cta: the gradient's lighter half was 3.8:1 under a white label. */
+  background: linear-gradient(135deg, var(--cta) 0%, var(--accent-dark) 100%);
   color: #fff;
   border: none;
   border-radius: var(--radius);
@@ -193,7 +194,7 @@
 }
 
 .switchLink {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 700;
   text-decoration: none;
 }
@@ -253,7 +254,7 @@
   transition: color 0.12s;
 }
 
-.forgotLink:hover:not(:disabled) { color: var(--accent); text-decoration: underline; }
+.forgotLink:hover:not(:disabled) { color: var(--accent-text); text-decoration: underline; }
 .forgotLink:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .forgotTitle {
@@ -326,7 +327,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 13px;
   font-weight: 700;
   font-family: inherit;

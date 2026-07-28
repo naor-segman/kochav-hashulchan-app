@@ -51,7 +51,7 @@
   cursor: pointer;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
-.filterBtn:hover { border-color: var(--accent-border); color: var(--accent); }
+.filterBtn:hover { border-color: var(--accent-border); color: var(--accent-text); }
 .filterOn { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .formCard {
@@ -104,7 +104,7 @@
 .tone_off   { color: var(--muted); background: var(--bg); }
 
 .rowMeta { font-size: 12.5px; color: var(--muted); }
-.phone { color: var(--accent); text-decoration: none; }
+.phone { color: var(--accent-text); text-decoration: none; }
 .phone:hover { text-decoration: underline; }
 
 .note {
@@ -164,7 +164,7 @@
   cursor: pointer;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
-.iconBtn:hover { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border); }
+.iconBtn:hover { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border); }
 .iconBtn:last-child:hover { background: var(--red); color: #fff; border-color: var(--red); }
 
 .noMatch { margin: 0; padding: 12px 4px; font-size: 13px; color: var(--muted); }

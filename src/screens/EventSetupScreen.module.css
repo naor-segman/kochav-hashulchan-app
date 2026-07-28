@@ -15,7 +15,7 @@
 .stepBadge {
   font-size: 12px;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   white-space: nowrap;
   flex-shrink: 0;
 }

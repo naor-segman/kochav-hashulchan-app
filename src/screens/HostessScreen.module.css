@@ -57,7 +57,7 @@
 }
 
 .headerLogo {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 2rem;
   opacity: 0.75;
   flex-shrink: 0;
@@ -193,7 +193,7 @@
 .occTable {
   font-size: 1.5rem;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   line-height: 1;
 }
 
@@ -229,7 +229,7 @@
 .occCount {
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-bg);
   border-radius: 999px;
   min-width: 28px;
@@ -464,7 +464,7 @@
 .tableLabel {
   font-size: clamp(2.8rem, 9vw, 4.5rem);
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   line-height: 1;
   letter-spacing: -0.03em;
 }
@@ -506,7 +506,7 @@
 }
 
 .footerStar {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ── Responsive ── */

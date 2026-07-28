@@ -20,7 +20,7 @@
 }
 
 .logoMark {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 18px;
 }
 
@@ -67,7 +67,7 @@
 }
 
 .text a {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -92,7 +92,7 @@
 }
 
 .backLink {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;

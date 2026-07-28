@@ -38,7 +38,7 @@
 
 .toggleIcon {
   font-size: 14px;
-  color: var(--accent);
+  color: var(--accent-text);
   flex-shrink: 0;
 }
 
@@ -61,7 +61,7 @@
 
 .toggleBadgeCrit { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-border);   }
 .toggleBadgeWarn { background: var(--warn-bg);  color: var(--warn);  border: 1px solid var(--warn-border);  }
-.toggleBadgeInfo { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+.toggleBadgeInfo { background: var(--accent-bg); color: var(--accent-text); border: 1px solid var(--accent-border); }
 .toggleBadgeOk   { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
 
 /* ── Quality score chip ────────────────────────────────────────────────────── */
@@ -127,7 +127,7 @@
 .groupHeader_critical      .groupLabel { color: var(--red); }
 .groupHeader_warning       .groupLabel { color: var(--warn); }
 .groupHeader_info          .groupLabel { color: var(--muted); }
-.groupHeader_fixes         .groupLabel { color: var(--accent); }
+.groupHeader_fixes         .groupLabel { color: var(--accent-text); }
 .groupHeader_opportunities .groupLabel { color: var(--muted); }
 
 .groupCount {
@@ -214,7 +214,7 @@
 .applyBtn:hover {
   background: var(--accent-bg);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ── Empty state ───────────────────────────────────────────────────────────── */
@@ -271,7 +271,7 @@
   font-size: 10px;
   font-weight: 600;
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--border);
   white-space: nowrap;
 }

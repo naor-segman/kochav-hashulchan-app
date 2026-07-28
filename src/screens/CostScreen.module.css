@@ -224,7 +224,7 @@
 
 .exact {
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
 }
 
@@ -273,7 +273,7 @@
   background: none;
   border: none;
   border-top: 1px dashed var(--border2);
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

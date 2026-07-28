@@ -45,7 +45,7 @@
 .logo {
   font-size: 1.25rem;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: 0.04em;
   flex-shrink: 0;
   white-space: nowrap;
@@ -126,7 +126,7 @@
 .giftAmount {
   font-size: 2rem;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: -0.04em;
   line-height: 1;
 }
@@ -209,7 +209,7 @@
 .totalAmount {
   font-size: 1.9rem;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   margin-inline-start: 6px;
 }
 

@@ -21,12 +21,12 @@
   cursor: pointer;
   transition: border-color var(--transition), background var(--transition), color var(--transition);
 }
-.kindTab:hover { border-color: var(--accent-border); color: var(--accent); }
+.kindTab:hover { border-color: var(--accent-border); color: var(--accent-text); }
 
 .kindActive {
   border-color: var(--accent);
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Published state has to be visible without opening the tab, otherwise you

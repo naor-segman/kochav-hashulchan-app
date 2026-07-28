@@ -167,7 +167,7 @@
 }
 
 /* ── Buttons ── */
-/* Primary = warm coral CTA (the one action color). */
+/* Primary = the deepened brand fill (--cta) (the one action color). */
 .btnPrimary {
   background: var(--cta);
   color: var(--on-accent);
@@ -211,7 +211,7 @@
 .btnSecondary:hover:not(:disabled) {
   background: var(--accent-bg);
   border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
   box-shadow: var(--shadow);
 }
 
@@ -222,7 +222,9 @@
   border-radius: 7px;
   border: none;
   cursor: pointer;
-  background: var(--accent);
+  /* --cta, not --accent: a white label needs the deeper fill to clear AA at
+     12px. This one declaration is the ground for dozens of buttons. */
+  background: var(--cta);
   color: #fff;
   flex-shrink: 0;
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
@@ -243,7 +245,7 @@
 
 .btnGhost:hover:not(:disabled) {
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: var(--accent-border);
 }
 
@@ -303,7 +305,7 @@
 
 .segActive {
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 700;
 }
 
@@ -400,7 +402,7 @@
   font-size: 10px;
   font-weight: 700;
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
   border-radius: 20px;
   padding: 0 6px;

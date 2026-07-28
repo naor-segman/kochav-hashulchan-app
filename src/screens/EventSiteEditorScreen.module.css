@@ -157,7 +157,7 @@
   cursor: pointer;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
-.deviceBtn:hover { border-color: var(--accent-border); color: var(--accent); }
+.deviceBtn:hover { border-color: var(--accent-border); color: var(--accent-text); }
 
 .deviceActive {
   background: var(--accent);

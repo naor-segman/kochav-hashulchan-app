@@ -35,7 +35,7 @@
 }
 
 .navLogoMark {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 22px;
   line-height: 1;
 }
@@ -247,7 +247,7 @@
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 13px;
   font-weight: 600;
   padding: 0;
@@ -409,7 +409,7 @@
 
 .sectionTag {
   display: inline-block;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -418,7 +418,7 @@
 
 .sectionTagLight {
   display: inline-block;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -487,11 +487,11 @@
   align-items: center;
   justify-content: flex-start;
   margin-bottom: 20px;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .featureIcon {
-  color: var(--accent);
+  color: var(--accent-text);
   display: inline-flex;
 }
 
@@ -548,7 +548,7 @@
   justify-content: center;
   font-size: 13px;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: 0.02em;
   margin-bottom: 18px;
   flex-shrink: 0;
@@ -619,7 +619,7 @@
 
 .testStars {
   font-size: 14px;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: 2px;
 }
 
@@ -736,7 +736,7 @@
 }
 
 .pricingCardPro .planNum {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .planPer {
@@ -776,7 +776,7 @@
 }
 
 .pricingCardPro .planFeatures li::before {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .planCta {
@@ -796,7 +796,7 @@
 .planCta:hover {
   background: var(--accent-bg);
   border-color: var(--accent-border);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .planCtaPro {
@@ -818,7 +818,7 @@
 }
 
 .pricingMoreLink {
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
@@ -972,7 +972,7 @@
 }
 
 .mockCardMark {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 14px;
   line-height: 1;
   animation: landingSpin 20s linear infinite;
@@ -990,7 +990,7 @@
 .mockCardStat {
   font-size: 9px;
   background: rgba(var(--accent-rgb), 0.14);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid rgba(var(--accent-rgb), 0.28);
   border-radius: 999px;
   padding: 2px 10px;
@@ -1056,7 +1056,7 @@
 .mockCardFootBadge {
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   letter-spacing: 0.04em;
 }
 

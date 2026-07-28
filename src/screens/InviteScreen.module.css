@@ -91,7 +91,7 @@
 }
 
 .logoMark {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 15px;
 }
 
@@ -150,7 +150,7 @@
 .tag {
   display: inline-block;
   background: rgba(var(--accent-rgb),0.10);
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
   border-radius: 999px;
   font-size: 11px;
@@ -180,7 +180,7 @@
 }
 
 .nameSep {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: clamp(1rem, 2.5vw, 1.4rem);
   flex-shrink: 0;
   opacity: 0.85;
@@ -204,7 +204,7 @@
 }
 
 .dividerStar {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 12px;
   flex-shrink: 0;
   opacity: 0.75;
@@ -283,7 +283,7 @@
 .btnOutline {
   display: block;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-text);
   border: 1px solid var(--accent-border);
   border-radius: var(--radius);
   padding: 13px 32px;
@@ -386,7 +386,7 @@
 
 .stateLink {
   display: inline-block;
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
@@ -451,7 +451,7 @@
 }
 .personalTable b {
   font-size: 20px;
-  color: var(--accent);
+  color: var(--accent-text);
   font-variant-numeric: tabular-nums;
 }
 

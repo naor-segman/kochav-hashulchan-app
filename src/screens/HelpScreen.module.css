@@ -33,7 +33,7 @@
 .q:hover { background: var(--accent-light); }
 
 .chevron {
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 20px;
   flex-shrink: 0;
   line-height: 1;
