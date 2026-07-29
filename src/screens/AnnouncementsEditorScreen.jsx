@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import Icon from "../components/ui/Icon.jsx";
 import { SITE_THEME_LIST, SITE_FONTS, DEFAULT_SITE_FONT } from "../data/eventSiteTemplates.js";
 import {
   ANNOUNCEMENT_KINDS, ANNOUNCEMENT_LAYOUTS,
@@ -80,7 +79,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
     <div className={base.page}>
       <PageHeader
         title="Save the Date והזמנה"
-        icon={<Icon name="mail" />}
+        mark="announcements"
         sub="שני דפים מעוצבים לאותו אירוע — אחד לשמירת התאריך, אחד להזמנה עצמה."
       />
 

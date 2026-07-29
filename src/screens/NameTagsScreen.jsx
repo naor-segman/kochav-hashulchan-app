@@ -58,7 +58,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
       <div className={styles.screenOnly}>
         <PageHeader
           title="כרטיסי שולחן ותגי שם"
-          icon={<Icon name="cards" />}
+          mark="nameTags"
           sub="הדפסה ישירה מהדפדפן — בלי תוכנה נוספת."
         />
 

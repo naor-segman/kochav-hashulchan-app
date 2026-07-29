@@ -416,7 +416,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         <div className={[base.page, styles.screenContent].join(" ")}>
           <PageHeader
             title="סידור הושבה"
-            icon={<Icon name="chair" />}
+            mark="seating"
             sub="חשבו הושבה אוטומטית ואז ערכו ידנית לפי הצורך."
             aside={
               <div className={base.pills}>

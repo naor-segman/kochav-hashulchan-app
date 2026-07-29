@@ -4,7 +4,6 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
-import Icon from "../components/ui/Icon.jsx";
 import QrCode from "../components/ui/QrCode.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
@@ -62,7 +61,7 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
     <div className={base.page}>
       <PageHeader
         title="טבלה משותפת"
-        icon={<Icon name="users" />}
+        mark="collab"
         sub={`שתפו קישור אחד עם ${ev.type === "אירוע עסקי" ? "הצוות" : "המשפחה"} — כולם ממלאים את אותה טבלה יחד, בזמן אמת. כל רשומה מלאה נכנסת אוטומטית לרשימת האורחים.`}
       />
 

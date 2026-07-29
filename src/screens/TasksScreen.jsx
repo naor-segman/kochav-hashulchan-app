@@ -90,7 +90,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
     <div className={base.page}>
       <PageHeader
         title="לוח משימות"
-        icon={<Icon name="check" />}
+        mark="tasks"
         sub="כל מה שצריך לסגור לפני האירוע, במקום אחד."
         aside={
           <div className={base.pills}>

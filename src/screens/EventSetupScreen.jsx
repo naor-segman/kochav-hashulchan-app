@@ -115,7 +115,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     <div className={base.page}>
       <PageHeader
         title={isNew ? "אירוע חדש" : "פרטי האירוע"}
-        icon="✦"
+        mark="setup"
         sub={isNew
           ? "הזינו שם לאירוע — שדה חובה לפני המשך. שאר הפרטים אפשר להשלים בכל עת."
           : "עדכנו את פרטי האירוע. תוכלו לשנות הכל בכל שלב."

@@ -288,7 +288,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     <div className={base.page}>
       <PageHeader
         title="אורחים"
-        icon={<Icon name="users" />}
+        mark="guests"
         sub="נהלו את רשימת האורחים. לחצו Enter להוספה מהירה."
         aside={
           <div className={base.pills}>

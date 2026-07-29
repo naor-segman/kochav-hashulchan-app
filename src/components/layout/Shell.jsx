@@ -4,25 +4,30 @@ import { computeViolations } from "../../logic/seating.js";
 import { useAuth } from "../../hooks/useAuth.js";
 import { SYNC_STATUS } from "../../utils/cloudSync.js";
 import NavBadge from "../navigation/NavBadge.jsx";
+import SectionMark from "../ui/SectionMark.jsx";
 import styles from "./Shell.module.css";
 
 // 5 numbered core steps (the build spine) + un-numbered tools, so the nav
 // matches the "שלב X מתוך 5" badges the screens show.
+// The five numbered steps keep their number — a number carries an order, and
+// the order is the whole point of the spine. The tools have no order, so their
+// dot said "•", which carried nothing at all; each now shows its own section
+// mark instead. Numbers where there is a sequence, drawings where there is not.
 const NAV = [
   { id: "setup",       label: "האירוע",       num: 1 },
   { id: "tables",      label: "שולחנות",      num: 2 },
   { id: "guests",      label: "אורחים",       num: 3 },
   { id: "constraints", label: "אילוצים",      num: 4 },
   { id: "seating",     label: "הושבה",        num: 5 },
-  { id: "rsvps",       label: "אישורים",      tool: true },
-  { id: "collab",      label: "טבלה שיתופית", tool: true },
-  { id: "site",        label: "אתר האירוע",   tool: true },
-  { id: "costs",       label: "תקציב",        tool: true },
-  { id: "tasks",       label: "משימות",       tool: true },
-  { id: "announce",    label: "הזמנות",       tool: true },
-  { id: "vendors",     label: "ספקים",        tool: true },
-  { id: "messages",    label: "הודעות",       tool: true },
-  { id: "nametags",    label: "כרטיסי שם",    tool: true },
+  { id: "rsvps",       label: "אישורים",      tool: true, mark: "rsvp" },
+  { id: "collab",      label: "טבלה שיתופית", tool: true, mark: "collab" },
+  { id: "site",        label: "אתר האירוע",   tool: true, mark: "site" },
+  { id: "costs",       label: "תקציב",        tool: true, mark: "budget" },
+  { id: "tasks",       label: "משימות",       tool: true, mark: "tasks" },
+  { id: "announce",    label: "הזמנות",       tool: true, mark: "announcements" },
+  { id: "vendors",     label: "ספקים",        tool: true, mark: "vendors" },
+  { id: "messages",    label: "הודעות",       tool: true, mark: "messages" },
+  { id: "nametags",    label: "כרטיסי שם",    tool: true, mark: "nameTags" },
 ];
 
 export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {
@@ -119,13 +124,17 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
                     go(n.id);
                   }}
                 >
-                  <span className={[
-                    styles.stepDot,
-                    done && !isActive && styles.stepDotDone,
-                    isActive && styles.stepDotActive,
-                  ].filter(Boolean).join(" ")}>
-                    {done && !isActive ? "✓" : (n.tool ? "•" : n.num)}
-                  </span>
+                  {n.mark ? (
+                    <SectionMark name={n.mark} size={17} className={styles.navMark} />
+                  ) : (
+                    <span className={[
+                      styles.stepDot,
+                      done && !isActive && styles.stepDotDone,
+                      isActive && styles.stepDotActive,
+                    ].filter(Boolean).join(" ")}>
+                      {done && !isActive ? "✓" : n.num}
+                    </span>
+                  )}
                   <span className={styles.subnavLabel}>{n.label}</span>
                   {n.id === "tables"      && activeEvent.tables.length > 0      && <NavBadge n={activeEvent.tables.length} />}
                   {n.id === "guests"      && activeEvent.guests.length > 0      && <NavBadge n={activeEvent.guests.length} />}

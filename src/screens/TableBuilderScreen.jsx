@@ -150,7 +150,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     <div className={base.page}>
       <PageHeader
         title="שולחנות"
-        icon={<Icon name="hexagon" />}
+        mark="tables"
         sub="הגדירו את השולחנות באולם לפי מבנה האירוע."
         aside={
           <div className={base.pills}>

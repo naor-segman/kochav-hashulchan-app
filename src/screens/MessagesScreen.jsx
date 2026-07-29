@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import Icon from "../components/ui/Icon.jsx";
 import { messageSignature } from "../data/company.js";
 import {
   MESSAGE_STAGES, audienceFor, audienceLabel, reachable,
@@ -99,7 +98,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
     <div className={base.page}>
       <PageHeader
         title="הודעות לאורחים"
-        icon={<Icon name="chat" />}
+        mark="messages"
         sub="רצף ההודעות מהשמירת-תאריך ועד התודה — עם מעקב מי כבר קיבל מה."
         aside={
           <div className={base.pills}>

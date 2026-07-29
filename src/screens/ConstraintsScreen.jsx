@@ -209,7 +209,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
     <div className={base.page}>
       <PageHeader
         title="אילוצים"
-        icon={<Icon name="scale" />}
+        mark="constraints"
         sub="הגדירו מי חייב לשבת יחד ומי לא יכול — המערכת תכבד זאת בסידור האוטומטי."
         aside={
           <div className={base.pills}>

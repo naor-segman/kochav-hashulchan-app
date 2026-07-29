@@ -87,7 +87,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
     <div className={base.page}>
       <PageHeader
         title="ספקים"
-        icon={<Icon name="users" />}
+        mark="vendors"
         sub="מי סגור, מי עוד באוויר, וכמה נשאר לשלם."
         aside={
           <div className={base.pills}>

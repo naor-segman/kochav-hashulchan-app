@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import Icon from "../components/ui/Icon.jsx";
 import { fetchRSVPResponses } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { uid } from "../utils/uid.js";
@@ -231,7 +230,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     <div className={base.page}>
       <PageHeader
         title="תשובות אישורי הגעה"
-        icon={<Icon name="clipboard" />}
+        mark="rsvp"
         sub="כל מי שמאשר דרך הקישור נכנס אוטומטית לרשימת האורחים. כאן רואים תמונת מצב ותחזית מנות."
       />
 
