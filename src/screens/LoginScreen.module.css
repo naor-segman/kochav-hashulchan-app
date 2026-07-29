@@ -370,3 +370,69 @@
 @media (max-width: 480px) {
   .card { padding: 28px 20px 24px; }
 }
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move. */
+@media (pointer: coarse) {
+  .forgotLink {
+    position: relative;
+  }
+
+  .forgotLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .switchLink {
+    position: relative;
+  }
+
+  .switchLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .backLink {
+    position: relative;
+  }
+
+  .backLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move. */
+@media (pointer: coarse) {
+  .eyeBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}

@@ -351,23 +351,7 @@
   display: none;
 }
 
-/* On a phone the two columns become two rows, and the panel loses its height
-   so the fold still reaches the event name. */
-@media (max-width: 700px) {
-  .eventCardFeatured {
-    flex-direction: column;
-  }
-  .featPanel {
-    flex: none;
-    border-inline-end: none;
-    border-bottom: 1px solid var(--blush-line);
-    padding: 18px;
-  }
-  .featGlyphs {
-    margin-top: 10px;
-    max-width: none;
-  }
-}
+
 @media (max-width: 900px) {
   .eventGrid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -464,6 +448,25 @@
   letter-spacing: -0.01em;
   line-height: 1.15;
 }
+
+/* On a phone the two columns become two rows, and the panel loses its height
+   so the fold still reaches the event name. */
+@media (max-width: 700px) {
+  .eventCardFeatured {
+    flex-direction: column;
+  }
+  .featPanel {
+    flex: none;
+    border-inline-end: none;
+    border-bottom: 1px solid var(--blush-line);
+    padding: 18px;
+  }
+  .featGlyphs {
+    margin-top: 10px;
+    max-width: none;
+  }
+}
+
 
 .eventNameEmpty {
   opacity: 0.4;
@@ -1161,4 +1164,40 @@
   font-weight: 700;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move, so dense rows keep their
+   density on a phone. */
+@media (pointer: coarse) {
+  .deleteBtn {
+    position: relative;
+  }
+
+  .deleteBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .duplicateBtn {
+    position: relative;
+  }
+
+  .duplicateBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
 }

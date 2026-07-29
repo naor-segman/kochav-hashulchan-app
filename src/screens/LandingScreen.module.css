@@ -1361,3 +1361,23 @@
 }
 .trustTitle { font-size: var(--step-0); font-weight: 800; color: var(--text); margin: 0 0 2px; }
 .trustDesc  { font-size: var(--step--1); color: var(--muted); margin: 0; line-height: 1.5; }
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move. */
+@media (pointer: coarse) {
+  .navLogo {
+    position: relative;
+  }
+
+  .navLogo::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}

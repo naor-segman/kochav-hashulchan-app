@@ -208,3 +208,39 @@
 @media (max-width: 700px) {
   .board { grid-template-columns: 1fr; }
 }
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move, so dense rows keep their
+   density on a phone. */
+@media (pointer: coarse) {
+  .moveBtn {
+    position: relative;
+  }
+
+  .moveBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .iconBtn {
+    position: relative;
+  }
+
+  .iconBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}

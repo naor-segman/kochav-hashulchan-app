@@ -589,3 +589,40 @@
   gap: 12px;
   margin-bottom: 6px;
 }
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move, so dense rows keep their
+   density on a phone. */
+@media (pointer: coarse) {
+  .brand {
+    position: relative;
+  }
+
+  .brand::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}
+
+/* Touch target — see qa/mobile.mjs. */
+@media (pointer: coarse) {
+
+  .pwEyeBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}

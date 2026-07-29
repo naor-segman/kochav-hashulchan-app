@@ -194,3 +194,83 @@
   .filters { margin-inline-start: 0; width: 100%; }
   .rowMoney { align-items: flex-start; }
 }
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move, so dense rows keep their
+   density on a phone. */
+@media (pointer: coarse) {
+  .filterBtn {
+    position: relative;
+  }
+
+  .filterBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .actBtn {
+    position: relative;
+  }
+
+  .actBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .iconBtn {
+    position: relative;
+  }
+
+  .iconBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move. */
+@media (pointer: coarse) {
+  .phone {
+    position: relative;
+  }
+
+  .phone::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}
+
+/* The 44px targets inside this row were being trimmed by the row itself —
+   it is only as tall as a 34px chip. It gets the height on touch. */
+@media (pointer: coarse) {
+  .filters {
+    min-height: 44px;
+    align-items: center;
+  }
+}
