@@ -189,6 +189,12 @@
   /* Type scale — a real ramp, so headlines can be confident.
      The reference's authority is mostly SCALE: one big headline, everything
      else quiet. */
+  /* The two bottom rungs did not exist, so every badge, chip, count and table
+     caption in the app had nowhere to land and was hardcoded instead: 10, 11,
+     11.5, 12 and 12.5px all appeared, 226 times between them. A ladder with a
+     hole in it is not a ladder. */
+  --step--3:  0.6875rem;   /* 11px — counts, badges, the smallest label */
+  --step--2:  0.75rem;     /* 12px — chips, table meta, dense rows */
   --step--1:  0.8125rem;   /* 13px — metadata */
   --step-0:   0.9375rem;   /* 15px — body */
   --step-1:   1.0625rem;   /* 17px — lead */

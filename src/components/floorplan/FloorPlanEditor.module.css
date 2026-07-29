@@ -22,13 +22,13 @@
 .uploadIcon { font-size: 44px; opacity: 0.7; }
 
 .uploadTitle {
-  font-size: 16px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--text);
 }
 
 .uploadHint {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--muted);
   line-height: 1.5;
 }
@@ -48,7 +48,7 @@
   color: var(--text2);
   border-radius: var(--radius);
   padding: 7px 14px;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -70,7 +70,7 @@
   color: var(--on-accent);
   border-radius: var(--radius);
   padding: 7px 16px;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 800;
   cursor: pointer;
   font-family: inherit;
@@ -84,7 +84,7 @@
 .toolBtnPrimary:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .toolHint {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -96,7 +96,7 @@
   border: none;
   cursor: pointer;
   color: var(--red);
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   padding: 0 4px;
   line-height: 1;
@@ -118,13 +118,13 @@
 }
 
 .detTitle {
-  font-size: 15px;
+  font-size: var(--step-0);
   font-weight: 800;
   color: var(--text);
 }
 
 .detNote {
-  font-size: 12px;
+  font-size: var(--step--2);
   /* --muted is 3.60:1 on blush; --text2 is 5.60:1. */
   color: var(--text2);
   margin: 0;
@@ -138,7 +138,7 @@
 }
 
 .detPill {
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 600;
   background: var(--surface);
   border: 1px solid var(--blush-line);
@@ -231,7 +231,7 @@
   padding: 6px 10px;
   background: var(--nav-bg);
   color: var(--nav-text);
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 800;
   cursor: grab;
   line-height: 1.3;
@@ -254,7 +254,7 @@
   border-radius: 50%;
   background: var(--white-glass);
   color: var(--nav-text);
-  font-size: 10px;
+  font-size: var(--step--3);
   line-height: 1;
   cursor: pointer;
   transition: background var(--transition);
@@ -279,7 +279,7 @@
 .chipResize:hover { opacity: 1; }
 
 .chipCap {
-  font-size: 10px;
+  font-size: var(--step--3);
   font-weight: 600;
   margin-inline-start: auto;
   color: var(--nav-muted);
@@ -308,7 +308,7 @@
 }
 
 .chipEmpty {
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--muted);
   padding: 2px 0;
 }
@@ -324,7 +324,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 600;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -346,7 +346,7 @@
 }
 
 .pillCount {
-  font-size: 10px;
+  font-size: var(--step--3);
   color: var(--text2);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -382,7 +382,7 @@
 }
 
 .unplacedLabel {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--text2);
   font-weight: 600;
   line-height: 1.4;
@@ -400,7 +400,7 @@
   color: var(--text2);
   border-radius: var(--radius-lg);
   padding: 5px 12px;
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -436,7 +436,7 @@
 }
 
 .panelLabel {
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
   color: var(--muted);
   margin-bottom: 8px;
@@ -453,7 +453,7 @@
     min-width: 100px;
     max-width: 150px;
   }
-  .chipHandle { font-size: 10px; }
+  .chipHandle { font-size: var(--step--3); }
   .chipGuests { padding: 4px 6px; }
   /* On a narrow screen a chip centered near the sketch edge would extend past
      the viewport and scroll the whole page sideways. Clip to the sketch here
@@ -464,7 +464,7 @@
 /* ── Table shape glyph in the chip header ────────────────────────────────── */
 .chipShape {
   opacity: 0.75;
-  font-size: 10px;
+  font-size: var(--step--3);
   line-height: 1;
 }
 
@@ -484,7 +484,7 @@
   background: var(--surface);
   border: 1.5px dashed var(--border2);
   box-shadow: var(--shadow-md);
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--text2);
   white-space: nowrap;
@@ -501,7 +501,7 @@
 }
 .venueMarker:active { cursor: grabbing; }
 
-.venueIcon  { font-size: 13px; line-height: 1; }
+.venueIcon  { font-size: var(--step--1); line-height: 1; }
 .venueLabel { line-height: 1.3; }
 
 .venueRemove {
@@ -529,7 +529,7 @@
 @media (max-width: 600px) {
   /* No hover on touch — the remove button has to be permanently reachable. */
   .venueRemove { opacity: 1; }
-  .venueMarker { font-size: 10px; padding: 3px 7px; }
+  .venueMarker { font-size: var(--step--3); padding: 3px 7px; }
 }
 
 /* ── View toggle (map / cards) ───────────────────────────────────────────── */
@@ -543,7 +543,7 @@
 
 .viewBtn {
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: var(--step--2);
   font-weight: 700;
   padding: 6px 14px;
   border: none;
@@ -584,7 +584,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 800;
   color: var(--text);
 }
@@ -598,7 +598,7 @@
 
 .cardCap {
   margin-inline-start: auto;
-  font-size: 11.5px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -614,7 +614,7 @@
 }
 
 .cardUnplaced {
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--muted);
   font-weight: 600;
 }

@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--adm-ink-dim);
   background: var(--adm-bg-tint);
 }

@@ -50,7 +50,7 @@
 
 /* The one accent moment on the bar — a mark, not text. */
 .logoMark {
-  font-size: 22px;
+  font-size: var(--step-2);
   color: var(--accent);
 }
 
@@ -65,7 +65,7 @@
    --accent read 4.76:1 on the bar; --accent-border reads 10.38:1 on the same
    tint and still says "brand pink". */
 .betaBadge {
-  font-size: 10px;
+  font-size: var(--step--3);
   font-weight: var(--font-weight-extrabold);
   color: var(--accent-border);
   background: rgba(var(--accent-rgb),.16);
@@ -131,7 +131,7 @@
    a heavier green wash drags --green-light down to 4.40:1 at 11px/700; at .14
    it reads 5.05:1. */
 .autoSave {
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--green-light);
   font-weight: var(--font-weight-bold);
   white-space: nowrap;
@@ -186,7 +186,7 @@
   color: var(--nav-text);
 }
 
-.accountIcon { font-size: 13px; flex-shrink: 0; }
+.accountIcon { font-size: var(--step--1); flex-shrink: 0; }
 
 /* ── Signup CTA ──────────────────────────────────────────────────────────
    The one filled button on the bar. --cta, not --accent: a white label on
@@ -322,7 +322,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: var(--step--3);
   font-weight: var(--font-weight-extrabold);
   background: var(--border);
   color: var(--text2);   /* --muted on --border was 4.18:1 at 10px/800 */
@@ -358,7 +358,7 @@
 @media (max-width: 480px) {
   .logoName { display: none; }
   .autoSave { display: none; }
-  .subnavBtn { padding: 11px 9px; font-size: 12px; }
+  .subnavBtn { padding: 11px 9px; font-size: var(--step--2); }
   .topbar { padding: 0 14px; }
 }
 

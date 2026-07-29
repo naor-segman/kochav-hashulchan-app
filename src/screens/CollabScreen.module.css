@@ -20,7 +20,7 @@
   gap: 10px; flex-shrink: 0; border-bottom: 1px solid var(--nav-border); padding: 0 16px;
 }
 /* --accent-text is 2.6:1 on the near-black bar; --accent-on-dark is 9.3:1. */
-.headerMark { color: var(--accent-on-dark); font-size: 18px; }
+.headerMark { color: var(--accent-on-dark); font-size: var(--step-1); }
 .headerName { font-size: var(--step-1); font-weight: 700; color: var(--nav-text); }
 
 .wrapWide { flex: 1; width: 100%; max-width: 680px; margin: 0 auto; padding: 20px 16px 48px; }

@@ -26,7 +26,7 @@
 }
 
 .backLink {
-  font-size: 18px;
+  font-size: var(--step-1);
   color: var(--adm-ink-muted);
   text-decoration: none;
   padding: 4px 6px;
@@ -45,7 +45,7 @@
 }
 
 .brandName {
-  font-size: 16px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--adm-ink);
   letter-spacing: -0.01em;
@@ -54,7 +54,7 @@
 .brandSep { color: var(--adm-ink-faintest); }
 
 .brandSub {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-ink-muted);
 }
 
@@ -65,7 +65,7 @@
 }
 
 .adminEmail {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-ink-soft);
   direction: ltr;
 }
@@ -75,7 +75,7 @@
   border: 1px solid var(--adm-line-strong);
   border-radius: var(--radius-md);
   padding: 6px 14px;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   color: var(--adm-ink-mid);
   cursor: pointer;
@@ -110,7 +110,7 @@
   border-inline-start: 4px solid var(--adm-danger-soft);
   border-radius: var(--radius-md);
   padding: 12px 16px;
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-danger);
   direction: ltr;
   text-align: left;
@@ -121,7 +121,7 @@
   border: 1px solid var(--adm-danger-border);
   border-radius: var(--radius-md);
   padding: 4px 12px;
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 600;
   color: var(--adm-danger);
   cursor: pointer;
@@ -153,7 +153,7 @@
   left: 11px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 16px;
+  font-size: var(--step-1);
   color: var(--adm-ink-faint);
   pointer-events: none;
   line-height: 1;
@@ -165,7 +165,7 @@
   border: 1px solid var(--adm-line-strong);
   border-radius: var(--radius-md);
   padding: 8px 12px 8px 32px;
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--adm-ink);
   background: var(--adm-surface);
   font-family: inherit;
@@ -179,7 +179,7 @@
 }
 
 .resultCount {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-ink-muted);
   white-space: nowrap;
 }
@@ -194,7 +194,7 @@
 }
 
 .loadingText {
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--adm-ink-faint);
   animation: pulse 1.2s ease-in-out infinite;
 }
@@ -205,14 +205,14 @@
 }
 
 .emptyTitle {
-  font-size: 16px;
+  font-size: var(--step-1);
   font-weight: 700;
   color: var(--adm-ink-dark);
   margin: 0 0 6px;
 }
 
 .emptyHint {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-ink-dim);
   margin: 0;
 }
@@ -233,14 +233,14 @@
      ids, dates) carry their own `direction: ltr` per cell. */
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: var(--step-0);
 }
 
 .table th {
   background: var(--adm-bg-alt);
   border-bottom: 1px solid var(--adm-line);
   padding: 11px 16px;
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--adm-ink-soft);
   text-transform: uppercase;
@@ -261,7 +261,7 @@
 
 /* ── Cell variants ── */
 .emailCell {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 500;
   color: var(--adm-ink);
   max-width: 220px;
@@ -281,7 +281,7 @@
 .numCol { text-align: center; }
 .numCell { text-align: center; font-variant-numeric: tabular-nums; color: var(--adm-ink-mid); }
 
-.dateCell { color: var(--adm-ink-quiet); font-size: 13px; white-space: nowrap; }
+.dateCell { color: var(--adm-ink-quiet); font-size: var(--step--1); white-space: nowrap; }
 
 .muted { color: var(--adm-ink-fainter); }
 
@@ -291,7 +291,7 @@
   display: inline-block;
   border-radius: var(--radius-lg);
   padding: 2px 10px;
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -312,7 +312,7 @@
 
 /* ── Plan badges ── */
 .planFree {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-ink-faint);
 }
 
@@ -323,7 +323,7 @@
   border: 1px solid var(--adm-info-border);
   border-radius: var(--radius-lg);
   padding: 2px 9px;
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -336,7 +336,7 @@
   border: 1px solid var(--adm-badge-purple-border);
   border-radius: var(--radius-lg);
   padding: 2px 9px;
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -353,7 +353,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--adm-ok-mid);
   background: var(--adm-ok-bg-soft);

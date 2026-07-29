@@ -26,17 +26,17 @@
 .logoMark {
   /* Dark ground: --accent-text is tuned for white and measures 2.64:1 here. */
   color: var(--accent-on-dark);
-  font-size: 18px;
+  font-size: var(--step-1);
 }
 
 .logoName {
   color: var(--nav-text);
-  font-size: 16px;
+  font-size: var(--step-1);
   font-weight: 700;
 }
 
 .tagline {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--nav-muted);
   line-height: 1.6;
   max-width: 280px;
@@ -55,7 +55,7 @@
 }
 
 .colTitle {
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--nav-muted);
   letter-spacing: 0.08em;
@@ -64,7 +64,7 @@
 }
 
 .colLink {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--nav-muted);
   text-decoration: none;
   transition: color var(--transition);
@@ -85,7 +85,7 @@
 }
 
 .copy {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--nav-muted);
   opacity: 0.6;
 }

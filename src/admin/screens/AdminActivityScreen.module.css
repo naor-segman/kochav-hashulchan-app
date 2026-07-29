@@ -22,7 +22,7 @@
 .brand { display: flex; align-items: center; gap: 8px; }
 
 .backLink {
-  font-size: 18px; color: var(--adm-ink-muted); text-decoration: none;
+  font-size: var(--step-1); color: var(--adm-ink-muted); text-decoration: none;
   padding: 4px 6px; border-radius: var(--radius-md); line-height: 1;
   transition: background 0.12s, color 0.12s;
 }
@@ -31,16 +31,16 @@
 .brandMark {
   flex-shrink: 0;
 }
-.brandName { font-size: 16px; font-weight: 800; color: var(--adm-ink); letter-spacing: -0.01em; }
+.brandName { font-size: var(--step-1); font-weight: 800; color: var(--adm-ink); letter-spacing: -0.01em; }
 .brandSep  { color: var(--adm-ink-faintest); }
-.brandSub  { font-size: 13px; color: var(--adm-ink-muted); }
+.brandSub  { font-size: var(--step--1); color: var(--adm-ink-muted); }
 
 .topbarRight { display: flex; align-items: center; gap: 12px; }
-.adminEmail  { font-size: 13px; color: var(--adm-ink-soft); direction: ltr; }
+.adminEmail  { font-size: var(--step--1); color: var(--adm-ink-soft); direction: ltr; }
 
 .logoutBtn {
   background: none; border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
-  padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--adm-ink-mid);
+  padding: 6px 14px; font-size: var(--step--1); font-weight: 600; color: var(--adm-ink-mid);
   cursor: pointer; transition: background 0.12s, border-color 0.12s;
   font-family: inherit;
 }
@@ -62,12 +62,12 @@
   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft);
   border-inline-start: 4px solid var(--adm-danger-soft);
   border-radius: var(--radius-md); padding: 12px 16px;
-  font-size: 13px; color: var(--adm-danger); direction: ltr; text-align: left;
+  font-size: var(--step--1); color: var(--adm-danger); direction: ltr; text-align: left;
 }
 
 .retryInlineBtn {
   background: none; border: 1px solid var(--adm-danger-border); border-radius: var(--radius-md);
-  padding: 4px 12px; font-size: 12px; font-weight: 600; color: var(--adm-danger);
+  padding: 4px 12px; font-size: var(--step--2); font-weight: 600; color: var(--adm-danger);
   cursor: pointer; white-space: nowrap; font-family: inherit; flex-shrink: 0;
   transition: background 0.12s;
 }
@@ -82,14 +82,14 @@
 }
 
 .setupIcon  { font-size: 40px; line-height: 1; }
-.setupTitle { font-size: 18px; font-weight: 800; color: var(--adm-ink); margin: 0; }
-.setupText  { font-size: 14px; color: var(--adm-ink-mid); margin: 0; max-width: 440px; }
-.setupHint  { font-size: 13px; color: var(--adm-ink-dim); margin: 0; max-width: 420px; }
+.setupTitle { font-size: var(--step-1); font-weight: 800; color: var(--adm-ink); margin: 0; }
+.setupText  { font-size: var(--step-0); color: var(--adm-ink-mid); margin: 0; max-width: 440px; }
+.setupHint  { font-size: var(--step--1); color: var(--adm-ink-dim); margin: 0; max-width: 420px; }
 
 .inlineCode {
   background: var(--adm-bg-sunken); border: 1px solid var(--adm-line);
   border-radius: var(--radius-xs); padding: 1px 6px;
-  font-family: monospace; font-size: 12px; color: var(--adm-ink-dark);
+  font-family: monospace; font-size: var(--step--2); color: var(--adm-ink-dark);
 }
 
 /* Action type pill grid */
@@ -102,16 +102,16 @@
   display: flex; align-items: center; gap: 5px;
   background: var(--adm-bg-alt); border: 1px solid var(--adm-line);
   border-radius: var(--radius-lg); padding: 4px 12px;
-  font-size: 12px; color: var(--adm-ink-mid);
+  font-size: var(--step--2); color: var(--adm-ink-mid);
 }
 
-.actionTypeIcon  { font-size: 14px; }
+.actionTypeIcon  { font-size: var(--step-0); }
 .actionTypeLabel { font-weight: 600; }
 
 .retryBtn {
   background: var(--accent); color: var(--adm-surface); border: none;
   border-radius: var(--radius-md); padding: 10px 22px;
-  font-size: 14px; font-weight: 700; cursor: pointer;
+  font-size: var(--step-0); font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s;
 }
 .retryBtn:hover { background: var(--adm-accent-dark); }
@@ -126,7 +126,7 @@
 
 .searchInput {
   border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
-  padding: 8px 12px; font-size: 13px; color: var(--adm-ink);
+  padding: 8px 12px; font-size: var(--step--1); color: var(--adm-ink);
   background: var(--adm-surface); outline: none; font-family: inherit;
   width: 220px; transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -137,13 +137,13 @@
 
 .filterSelect {
   border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
-  padding: 8px 10px; font-size: 13px; color: var(--adm-ink-dark);
+  padding: 8px 10px; font-size: var(--step--1); color: var(--adm-ink-dark);
   background: var(--adm-surface); outline: none; font-family: inherit;
   transition: border-color 0.15s; cursor: pointer;
 }
 .filterSelect:focus { border-color: var(--accent); }
 
-.resultCount { font-size: 13px; color: var(--adm-ink-muted); white-space: nowrap; }
+.resultCount { font-size: var(--step--1); color: var(--adm-ink-muted); white-space: nowrap; }
 
 /* ── State boxes ── */
 .stateBox {
@@ -153,11 +153,11 @@
 }
 
 .emptyIcon  { font-size: 32px; line-height: 1; }
-.emptyTitle { font-size: 16px; font-weight: 700; color: var(--adm-ink-dark); margin: 0; }
-.emptyHint  { font-size: 13px; color: var(--adm-ink-dim); margin: 0; max-width: 360px; }
+.emptyTitle { font-size: var(--step-1); font-weight: 700; color: var(--adm-ink-dark); margin: 0; }
+.emptyHint  { font-size: var(--step--1); color: var(--adm-ink-dim); margin: 0; max-width: 360px; }
 
 .loadingText {
-  font-size: 14px; color: var(--adm-ink-faint);
+  font-size: var(--step-0); color: var(--adm-ink-faint);
   animation: pulse 1.2s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -178,12 +178,12 @@
      both — and forcing ltr reversed the column order. The columns that
      genuinely hold LTR data carry their own `direction: ltr` per cell. */
   width: 100%; border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--step--1);
 }
 
 .table th {
   background: var(--adm-bg-alt); border-bottom: 1px solid var(--adm-line);
-  padding: 10px 14px; font-size: 11px; font-weight: 700; color: var(--adm-ink-soft);
+  padding: 10px 14px; font-size: var(--step--3); font-weight: 700; color: var(--adm-ink-soft);
   text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;
 }
 
@@ -196,18 +196,18 @@
 .dataRow:hover td              { background: var(--adm-bg); }
 
 /* Cell variants */
-.dateCell   { color: var(--adm-ink-muted); font-size: 12px; white-space: nowrap; }
-.emailCell  { color: var(--adm-ink-strong); font-size: 12px; direction: ltr; }
+.dateCell   { color: var(--adm-ink-muted); font-size: var(--step--2); white-space: nowrap; }
+.emailCell  { color: var(--adm-ink-strong); font-size: var(--step--2); direction: ltr; }
 .entityCell { color: var(--adm-ink-soft); }
-.nameCell   { color: var(--adm-ink-darker); font-size: 12px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.metaCell   { color: var(--adm-ink-muted); font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
+.nameCell   { color: var(--adm-ink-darker); font-size: var(--step--2); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.metaCell   { color: var(--adm-ink-muted); font-size: var(--step--3); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
 
 .muted { color: var(--adm-ink-faintest); }
 
 /* ── Action badge ── */
 .actionBadge {
   display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 700;
+  font-size: var(--step--2); font-weight: 700;
 }
 
 /* ── Mobile ── */
