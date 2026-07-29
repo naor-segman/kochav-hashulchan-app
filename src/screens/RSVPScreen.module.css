@@ -200,6 +200,14 @@
   width: 100%;
 }
 
+/* THE screen a guest sees. Three fully saturated fills stacked in a column —
+   green, mustard, red — is the loudest thing in the whole product, and it is
+   pointed at the person we most want to feel welcome. It reads as an alarm
+   panel, not as an invitation.
+   These are three CHOICES, so they are quiet cards that carry their colour in
+   the hairline and the label, and commit to the fill on hover — the moment the
+   pointer is already on one. "Yes" is the only one that keeps a little weight,
+   because it is the answer the host is hoping for. */
 .btnYes,
 .btnMaybe,
 .btnNo {
@@ -209,50 +217,56 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: none;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   border-radius: var(--radius);
   padding: 16px 12px;
   font-size: var(--step-0);
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+  box-shadow: none;
+  transition: background var(--transition), border-color var(--transition),
+              color var(--transition), transform var(--transition);
   line-height: 1.25;
 }
 
 .btnYes {
-  background: var(--green);
-  color: var(--on-accent);
-  box-shadow: 0 2px 12px rgba(var(--green-rgb), 0.30);
+  border-color: var(--green-border);
+  background: var(--green-bg);
+  color: var(--green);
 }
 
 .btnYes:hover {
-  opacity: 0.88;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 18px rgba(var(--green-rgb), 0.38);
-}
-
-.btnNo {
-  background: var(--red);
+  background: var(--green);
+  border-color: var(--green);
   color: var(--on-accent);
-  box-shadow: 0 2px 12px rgba(var(--red-rgb), 0.28);
-}
-
-.btnNo:hover {
-  opacity: 0.88;
   transform: translateY(-1px);
-  box-shadow: 0 4px 18px rgba(var(--red-rgb), 0.36);
 }
 
 .btnMaybe {
-  background: var(--warn);
-  color: var(--on-accent);
-  box-shadow: 0 2px 12px rgba(var(--warn-rgb), 0.28);
+  border-color: var(--border2);
+  color: var(--text2);
 }
+
 .btnMaybe:hover {
-  opacity: 0.88;
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+  color: var(--warn);
   transform: translateY(-1px);
-  box-shadow: 0 4px 18px rgba(var(--warn-rgb), 0.36);
+}
+
+.btnNo {
+  border-color: var(--border2);
+  color: var(--text2);
+}
+
+.btnNo:hover {
+  background: var(--red-bg);
+  border-color: var(--red-border);
+  color: var(--red);
+  transform: translateY(-1px);
 }
 
 .choiceBtnIcon {

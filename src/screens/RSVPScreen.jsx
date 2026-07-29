@@ -235,7 +235,7 @@ export default function RSVPScreen() {
                   כן, אגיע בשמחה
                 </button>
                 <button className={styles.btnMaybe} onClick={handleMaybeClick}>
-                  <span className={styles.choiceBtnIcon} aria-hidden="true">🤔</span>
+                  <span className={styles.choiceBtnIcon} aria-hidden="true">?</span>
                   עדיין לא בטוח/ה
                 </button>
                 <button className={styles.btnNo} onClick={handleNoClick}>
@@ -418,7 +418,7 @@ export default function RSVPScreen() {
                 role="img"
                 aria-label="עצוב"
               >
-                😔
+                <Icon name="alert" size={30} />
               </span>
               <h2 className={styles.noConfirmTitle}>חבל שלא תוכל/י להגיע</h2>
               <p className={styles.noConfirmBody}>נשמח אם תשאיר/י שם, כדי שנדע לעדכן את הרשימה.</p>
@@ -469,7 +469,7 @@ export default function RSVPScreen() {
   const site = event.site;
   const titleByAnswer = {
     yes:   "תודה! אישור ההגעה נשלח 🎉",
-    maybe: "קיבלנו — תודה שהודעתם 🤔",
+    maybe: "קיבלנו — תודה שהודעתם",
     no:    "תודה שהודעתם 💛",
   };
   const bodyByAnswer = {
@@ -490,7 +490,7 @@ export default function RSVPScreen() {
               <div className={styles.successPhoto} style={{ backgroundImage: `url(${site.coverPhoto})` }} aria-hidden="true" />
             )}
             <div className={styles.checkCircle} aria-hidden="true">
-              <span className={styles.checkMark}>{answer === "no" ? "💛" : "✓"}</span>
+              <span className={styles.checkMark}>{answer === "no" ? <Icon name="heart" size={26} /> : "✓"}</span>
             </div>
             <h2 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h2>
             <p className={styles.successBody}>{bodyByAnswer[answer]}</p>
@@ -515,7 +515,7 @@ export default function RSVPScreen() {
                   });
                   if (ics) downloadIcs(ics, icsFileName(event.name));
                 }}
-              >📅 הוסיפו את התאריך ליומן</button>
+              ><Icon name="calendar" /> הוסיפו את התאריך ליומן</button>
             )}
 
             {(inviteUrl || giftUrl) && (
@@ -524,7 +524,7 @@ export default function RSVPScreen() {
                   <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>
                 )}
                 {giftUrl && answer !== "no" && (
-                  <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה 💝</Link>
+                  <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה</Link>
                 )}
                 {giftUrl && answer === "no" && (
                   <Link to={giftUrl} className={styles.successBtnGhost}>גם אם לא מגיעים — אפשר לשמח במתנה 💝</Link>

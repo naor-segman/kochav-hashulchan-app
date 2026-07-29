@@ -124,3 +124,12 @@
   outline-offset: 3px;
   border-radius: var(--radius-xs);
 }
+
+
+/* The page's own mark beside its title, the same tile every screen head uses. */
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 /**
  * Public shared album — guests and the photographer upload here.
@@ -151,7 +152,7 @@ export default function AlbumScreen() {
             onChange={e => { onFiles(e.target.files); e.target.value = ""; }}
             disabled={busy > 0}
           />
-          <span className={styles.dropIcon} aria-hidden="true">📷</span>
+          <span className={styles.dropIcon} aria-hidden="true"><Icon name="camera" size={28} /></span>
           <span className={styles.dropTitle}>
             {busy > 0 ? `מעלה… (${busy} נותרו)` : "בחרו תמונות להעלאה"}
           </span>

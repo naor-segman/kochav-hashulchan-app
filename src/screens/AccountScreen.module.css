@@ -579,3 +579,13 @@
   color: var(--red);
   margin: 0;
 }
+
+
+/* The page's own mark beside its title, the same tile every screen head uses —
+   these two were the last screens opening with nothing but a word. */
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
