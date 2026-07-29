@@ -654,11 +654,15 @@
   line-height: 1.5;
 }
 
+/* `align-items: start` let three cards with different amounts of copy end at
+   three different heights, so the row read as ragged and the buttons — the one
+   thing the section exists for — sat on three different lines. They stretch,
+   and the CTA is pushed to the bottom of each. */
 .pricingGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 32px;
 }
 
@@ -669,6 +673,12 @@
   padding: 32px 28px;
   box-shadow: var(--shadow);
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.pricingCard .planCta {
+  margin-top: auto;
 }
 
 /* The recommended plan. Previously it stacked four signals — a near-black
@@ -761,11 +771,13 @@
   color: var(--text2);
 }
 
+/* Green means "done" everywhere else in this product. These are list bullets
+   on a marketing page — nothing has been completed. Neutral. */
 .planFeatures li::before {
   content: "✓";
   position: absolute;
   inset-inline-start: 0;
-  color: var(--green);
+  color: var(--text2);
   font-weight: 700;
   font-size: var(--step--1);
 }

@@ -16,6 +16,7 @@ import SectionLabel from "../components/ui/SectionLabel.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
+import Divider from "../components/ui/Divider.jsx";
 import styles from "./GuestManagerScreen.module.css";
 
 
@@ -375,6 +376,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           </Field>
         )}
 
+        <Divider label="שיוך לסידור" />
+
         <div className={base.grid2}>
           <Field label="צד" hint="מי מזמין את האורח">
             <div className={base.seg}>
@@ -417,6 +420,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             )}
           </Field>
         </div>
+
+        <Divider label="הגעה ומנה" />
 
         <div className={base.grid2}>
           <Field label={<>סטטוס הגעה <InfoTip text="לעדכון ידני של תשובות שקיבלתם בעצמכם (בטלפון או פנים־אל־פנים). אורחים שמאשרים דרך הקישור הדיגיטלי מתעדכנים אוטומטית — אין צורך לעדכן אותם כאן." /></>}>
