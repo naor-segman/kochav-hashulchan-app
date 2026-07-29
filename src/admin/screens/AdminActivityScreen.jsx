@@ -9,6 +9,7 @@ import {
   getEntityLabel,
 } from "../lib/activityConfig.js";
 import styles from "./AdminActivityScreen.module.css";
+import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -256,9 +257,7 @@ export default function AdminActivityScreen() {
 
         {/* ── Loading ── */}
         {loading && (
-          <div className={styles.stateBox}>
-            <span className={styles.loadingText}>טוען יומן פעילות…</span>
-          </div>
+          <Loading rows={5} label="טוען יומן פעילות…" />
         )}
 
       </main>

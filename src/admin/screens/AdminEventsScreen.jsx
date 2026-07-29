@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventsScreen.module.css";
+import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -209,9 +210,7 @@ export default function AdminEventsScreen() {
 
         {/* ── Loading ── */}
         {loading && (
-          <div className={styles.stateBox}>
-            <span className={styles.loadingText}>טוען אירועים…</span>
-          </div>
+          <Loading rows={5} label="טוען אירועים…" />
         )}
 
         {/* ── Empty state ── */}

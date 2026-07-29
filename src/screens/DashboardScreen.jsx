@@ -8,6 +8,7 @@ import Chip from "../components/ui/Chip.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import base from "../styles/screenBase.module.css";
+import Loading from "../components/feedback/Loading.jsx";
 import styles from "./DashboardScreen.module.css";
 
 const WORKFLOW_STEPS = ["פרטי האירוע", "שולחנות", "אורחים", "אילוצים", "הושבה"];
@@ -438,7 +439,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
             </div>
 
             {templateLoading
-              ? <div className={styles.tmplLoadingArea}>טוען תבניות…</div>
+              ? <Loading rows={3} label="טוען תבניות…" />
               : (
                 <div className={styles.tmplGrid}>
                   {mainTemplates.map(tpl => (

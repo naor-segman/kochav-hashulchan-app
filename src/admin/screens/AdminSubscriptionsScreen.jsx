@@ -12,6 +12,7 @@ import {
 } from "../lib/planConfig.js";
 import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSubscriptionsScreen.module.css";
+import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -356,9 +357,7 @@ export default function AdminSubscriptionsScreen() {
 
         {/* ── Loading ── */}
         {loading && (
-          <div className={styles.stateBox}>
-            <span className={styles.loadingText}>טוען מנויים…</span>
-          </div>
+          <Loading rows={4} label="טוען מנויים…" />
         )}
 
       </main>
