@@ -28,7 +28,9 @@
 }
 .backLink:hover { background: var(--adm-bg-sunken); color: var(--adm-ink-dark); }
 
-.brandMark { font-size: 18px; color: var(--accent); }
+.brandMark {
+  flex-shrink: 0;
+}
 .brandName { font-size: 16px; font-weight: 800; color: var(--adm-ink); letter-spacing: -0.01em; }
 .brandSep  { color: var(--adm-ink-faintest); }
 .brandSub  { font-size: 13px; color: var(--adm-ink-muted); }

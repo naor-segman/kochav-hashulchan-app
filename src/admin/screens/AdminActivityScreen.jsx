@@ -9,6 +9,7 @@ import {
   getEntityLabel,
 } from "../lib/activityConfig.js";
 import styles from "./AdminActivityScreen.module.css";
+import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -112,7 +113,7 @@ export default function AdminActivityScreen() {
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
-          <span className={styles.brandMark}>✦</span>
+          <SectionMark name="adminActivity" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>יומן פעילות</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>

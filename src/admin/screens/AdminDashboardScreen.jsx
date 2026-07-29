@@ -1,26 +1,30 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
-import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminDashboardScreen.module.css";
+import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // Stat tile definitions — key maps to the stats object returned by fetchStats().
+// `mark` is a key into components/ui/SectionMark — the same drawings the
+// customer app uses, rendered in the panel's neutral tone. Six identical
+// magenta outlines used to sit in a column here; the panel is an internal tool
+// and does not get to spend the brand accent six times on one screen.
 const STAT_DEFS = [
-  { icon: "users",     label: "משתמשים",       key: "users" },
-  { icon: "calendar",  label: "אירועים",       key: "events" },
-  { icon: "clipboard", label: "תבניות",        key: "templates" },
-  { icon: "card",      label: "מנויים פעילים", key: "subscriptions" },
+  { mark: "adminUsers",         label: "משתמשים",       key: "users" },
+  { mark: "adminEvents",        label: "אירועים",       key: "events" },
+  { mark: "adminTemplates",     label: "תבניות",        key: "templates" },
+  { mark: "adminSubscriptions", label: "מנויים פעילים", key: "subscriptions" },
 ];
 
 // live: true  → rendered as a real Link (route exists)
 // phase: "N"  → rendered as a static item with a phase badge (not built yet)
 const NAV_ITEMS = [
-  { icon: "users",     label: "ניהול משתמשים",   path: "/admin/users",         live: true },
-  { icon: "calendar",  label: "כל האירועים",     path: "/admin/events",        live: true  },
-  { icon: "clipboard", label: "ניהול תבניות",    path: "/admin/templates",     live: true  },
-  { icon: "card",      label: "מנויים ותשלומים", path: "/admin/subscriptions", live: true },
-  { icon: "bell",      label: "יומן פעילות",     path: "/admin/activity",      live: true },
-  { icon: "settings",  label: "הגדרות מערכת",   path: "/admin/settings",      live: true },
+  { mark: "adminUsers",         label: "ניהול משתמשים",   path: "/admin/users",         live: true },
+  { mark: "adminEvents",        label: "כל האירועים",     path: "/admin/events",        live: true },
+  { mark: "adminTemplates",     label: "ניהול תבניות",    path: "/admin/templates",     live: true },
+  { mark: "adminSubscriptions", label: "מנויים ותשלומים", path: "/admin/subscriptions", live: true },
+  { mark: "adminActivity",      label: "יומן פעילות",     path: "/admin/activity",      live: true },
+  { mark: "adminSettings",      label: "הגדרות מערכת",   path: "/admin/settings",      live: true },
 ];
 
 // Run all four count queries in parallel.
@@ -96,7 +100,7 @@ export default function AdminDashboardScreen() {
       {/* ── Top bar ── */}
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <SectionMark name="adminOverview" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>לוח בקרה</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>
@@ -136,11 +140,11 @@ export default function AdminDashboardScreen() {
             )}
           </div>
           <div className={styles.statsGrid}>
-            {STAT_DEFS.map(({ icon, label, key }) => {
+            {STAT_DEFS.map(({ mark, label, key }) => {
               const value = stats?.[key];
               return (
                 <div key={key} className={styles.statCard}>
-                  <span className={styles.statIcon}><Icon name={icon} size={22} /></span>
+                  <span className={styles.statIcon}><SectionMark name={mark} tone="admin" size={24} /></span>
                   <span className={loading ? styles.statValueLoading : styles.statValue}>
                     {loading ? "…" : (value === null ? "—" : value.toLocaleString())}
                   </span>
@@ -159,14 +163,14 @@ export default function AdminDashboardScreen() {
               item.live ? (
                 <li key={item.path}>
                   <Link to={item.path} className={styles.navItemLink}>
-                    <span className={styles.navIcon}><Icon name={item.icon} size={20} /></span>
+                    <span className={styles.navIcon}><SectionMark name={item.mark} tone="admin" size={22} /></span>
                     <span className={styles.navLabel}>{item.label}</span>
-                    <span className={styles.navArrow}>→</span>
+                    <span className={styles.navArrow}>←</span>
                   </Link>
                 </li>
               ) : (
                 <li key={item.path} className={styles.navItem}>
-                  <span className={styles.navIcon}><Icon name={item.icon} size={20} /></span>
+                  <span className={styles.navIcon}><SectionMark name={item.mark} tone="admin" size={22} /></span>
                   <span className={styles.navLabel}>{item.label}</span>
                   <span className={styles.navPhase}>Phase {item.phase}</span>
                 </li>

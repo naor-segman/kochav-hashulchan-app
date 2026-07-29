@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventsScreen.module.css";
+import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -144,7 +145,7 @@ export default function AdminEventsScreen() {
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
-          <span className={styles.brandMark}>✦</span>
+          <SectionMark name="adminEvents" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>כל האירועים</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>

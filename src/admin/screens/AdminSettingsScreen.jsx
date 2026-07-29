@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase.js";
 import Icon from "../../components/ui/Icon.jsx";
 import { EVENT_TYPES } from "../../data/constants.js";
 import styles from "./AdminSettingsScreen.module.css";
+import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -171,7 +172,7 @@ export default function AdminSettingsScreen() {
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
-          <span className={styles.brandMark}>✦</span>
+          <SectionMark name="adminSettings" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>הגדרות מערכת</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>

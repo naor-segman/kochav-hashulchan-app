@@ -339,11 +339,11 @@ const MARKS = {
 
   adminSettings: (s) => (
     <>
-      <rect x="2.6" y="3.8" width="18.8" height="16.4" rx="2.6" className={s.plate} />
-      <path d="M5.8 8.6h12.4M5.8 12h12.4M5.8 15.4h12.4" className={s.line} />
-      <circle cx="14.6" cy="8.6" r="2.1" className={s.knob} />
-      <circle cx="9"    cy="12"  r="2.1" className={s.knob} />
-      <circle cx="16.2" cy="15.4" r="2.1" className={s.knob} />
+      {/* Two sliders, not three: at 20px in a topbar the third row turned the
+          whole mark into a solid block. */}
+      <path d="M3.4 8.4h17.2M3.4 15.6h17.2" className={s.line} />
+      <circle cx="15.4" cy="8.4"  r="3.1" className={s.knob} />
+      <circle cx="8.6"  cy="15.6" r="3.1" className={s.knob} />
     </>
   ),
 };
