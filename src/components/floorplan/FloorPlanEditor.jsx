@@ -20,6 +20,7 @@ import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
 import { VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
 import TableGlyph from "../ui/TableGlyph.jsx";
+import VenueCanvas from "./VenueCanvas.jsx";
 import styles from "./FloorPlanEditor.module.css";
 
 // AI table-detection needs the `detect-floor-plan` Edge Function deployed.
@@ -543,6 +544,12 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
           style={{ display: "none" }}
           onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ""; }}
         />
+        {/* The map used to be an upload zone and nothing else, so a host who
+            does not have a floor plan of their hall — which is most of them —
+            saw an empty feature. The tables, their shapes and their occupancy
+            are already known; the room can be drawn from them. Uploading a real
+            sketch still replaces this with the real thing. */}
+        <VenueCanvas tables={ev.tables} guests={ev.guests} seating={ev.seating} />
         <UploadZone
           onClick={() => fileInputRef.current?.click()}
           onDrop={handleFile}
