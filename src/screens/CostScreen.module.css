@@ -29,7 +29,7 @@
 .statUnder { color: var(--green); }
 
 .statLabel {
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--muted);
   letter-spacing: 0.05em;
@@ -46,7 +46,7 @@
   border: 1px solid var(--warn-border);
   border-inline-start: 3px solid var(--warn);
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   color: var(--warn);
   margin-bottom: 16px;
@@ -54,7 +54,7 @@
 }
 
 .cateringHintIcon {
-  font-size: 18px;
+  font-size: var(--step-1);
   flex-shrink: 0;
 }
 
@@ -91,7 +91,7 @@
 /* Header row */
 .tableHead {
   background: var(--bg);
-  font-size: 10px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -111,7 +111,7 @@
 }
 
 .totalsLabel {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 800;
   color: var(--text);
   letter-spacing: 0.02em;
@@ -119,7 +119,7 @@
 }
 
 .totalsNum {
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 800;
   color: var(--text);
 }
@@ -155,12 +155,12 @@
   min-width: 0;
   background: transparent;
   border: none;
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--text);
   direction: rtl;
   font-family: inherit;
   padding: 2px 4px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   transition: background var(--transition-fast);
 }
 
@@ -180,7 +180,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 6px 10px;
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--text);
   direction: ltr;
   text-align: end;
@@ -202,7 +202,7 @@
 /* ── Diff badges ── */
 .diffBadge {
   display: inline-block;
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
   padding: 3px 8px;
   border-radius: var(--radius-pill);
@@ -232,7 +232,7 @@
 
 .diffEmpty {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--step--1);
 }
 
 /* ── Delete button ── */
@@ -240,10 +240,10 @@
   background: none;
   border: none;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--step--1);
   cursor: pointer;
   padding: 4px 6px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   line-height: 1;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
@@ -276,7 +276,7 @@
   border: none;
   border-top: 1px dashed var(--border2);
   color: var(--accent-text);
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   cursor: pointer;
   text-align: end;
@@ -292,7 +292,7 @@
 
 /* ── Save hint ── */
 .savedHint {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--muted);
 }
 
@@ -315,14 +315,14 @@
   }
 
   .cateringHint {
-    font-size: 12px;
+    font-size: var(--step--2);
   }
 }
 
 /* ── Budget charts (planned vs actual, income vs expenses) ───────────────────── */
 .chart { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
 .chartRow { display: grid; grid-template-columns: 88px 1fr auto; gap: 10px; align-items: center; }
-.chartName { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chartName { font-size: var(--step--1); font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chartBars { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 /* Two series and one alert, and none of them is "the brand".
    planned  = --blush, a GROUND: the soft target the actual bar is measured
@@ -335,29 +335,29 @@
 .barPlanned { height: 100%; background: var(--blush); border-radius: var(--radius-pill); transition: width var(--transition); }
 .barActual { height: 100%; background: var(--text); border-radius: var(--radius-pill); transition: width var(--transition); }
 .barOver { background: var(--red); }
-.chartVal { font-size: 12.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chartVal { font-size: var(--step--2); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chartValOver { color: var(--red); }
-.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--muted); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: var(--step--2); color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
-.legend i { width: 12px; height: 12px; border-radius: var(--radius-sm); display: inline-block; }
+.legend i { width: 12px; height: 12px; border-radius: var(--radius-xs); display: inline-block; }
 .swPlanned { background: var(--blush); }
 .swActual { background: var(--text); }
 .swOver { background: var(--red); }
 
 .bigChart { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
 .bigRow { display: grid; grid-template-columns: 96px 1fr auto; gap: 10px; align-items: center; }
-.bigLabel { font-size: 13px; font-weight: 600; color: var(--text2); white-space: nowrap; }
+.bigLabel { font-size: var(--step--1); font-weight: 600; color: var(--text2); white-space: nowrap; }
 /* Money in vs money out. Green already carries "in" semantically; "out" is the
    neutral ink bar, not a second brand colour — the pair reads as one scale. */
 .bigTrack { height: 14px; background: var(--bg); border-radius: var(--radius-pill); overflow: hidden; }
 .bigFill { height: 100%; border-radius: var(--radius-pill); transition: width var(--transition); }
 .barIncome { background: var(--green); }
 .barExpense { background: var(--text); }
-.bigVal { font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.bigNote { margin: 10px 0 0; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.bigVal { font-size: var(--step--1); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bigNote { margin: 10px 0 0; font-size: var(--step--1); color: var(--muted); line-height: 1.6; }
 
 @media (max-width: 600px) {
   .chartRow, .bigRow { grid-template-columns: 72px 1fr auto; gap: 8px; }
-  .chartName, .bigLabel { font-size: 12px; }
-  .chartVal, .bigVal { font-size: 12px; }
+  .chartName, .bigLabel { font-size: var(--step--2); }
+  .chartVal, .bigVal { font-size: var(--step--2); }
 }

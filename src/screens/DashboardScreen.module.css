@@ -37,19 +37,19 @@
    read as a smudge; --accent is 4.76:1 on --nav-bg and this is a decorative
    shape, which is exactly what --accent is for. No glow: the mark carries. */
 .logoMark {
-  font-size: 20px;
+  font-size: var(--step-2);
   color: var(--accent);
 }
 
 .logoName {
-  font-size: 20px;
+  font-size: var(--step-2);
   font-weight: 900;
   color: var(--nav-text);
   letter-spacing: -0.02em;
 }
 
 .heroBarSub {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--nav-muted);
 }
 
@@ -62,7 +62,7 @@
   cursor: pointer;
   padding: 11px 24px;
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 700;
   box-shadow: var(--shadow-cta);
   display: inline-block;
@@ -80,7 +80,7 @@
 .upgradeTip {
   margin: 6px 0 10px;
   padding: 8px 12px;
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--text2);
   background: var(--bg);
   border: 1px solid var(--border);
@@ -137,7 +137,7 @@
 }
 
 .onboardingTagline {
-  font-size: 15px;
+  font-size: var(--step-0);
   color: var(--text2);
   line-height: 1.6;
   max-width: 48ch;
@@ -191,14 +191,14 @@
 }
 
 .valueTileTitle {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 800;
   color: var(--text);
   line-height: 1.2;
 }
 
 .valueTileSub {
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--text2);
   line-height: 1.4;
 }
@@ -234,13 +234,13 @@
      near-black on it is 12.30:1 and reads as a step marker, not a button. */
   background: var(--blush);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 800;
   flex-shrink: 0;
 }
 
 .workflowLabel {
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 600;
   color: var(--text);
 }
@@ -248,14 +248,14 @@
 /* --text2, not --muted: this note can land on the blush band of the hero
    gradient, where --muted is 3.60:1. --text2 is 5.60:1 there. */
 .onboardingNote {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--text2);
   margin-top: 14px;
 }
 
 /* ── Section heading ── */
 .sectionHead {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   color: var(--text2);
   text-transform: uppercase;
@@ -315,7 +315,7 @@
 /* "חתונה" / "בר מצווה" is a category label — metadata, not a brand moment.
    Three of them coloured meant every card opened with an accent. */
 .eventType {
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -327,8 +327,8 @@
   border: none;
   cursor: pointer;
   color: var(--muted);
-  font-size: 12px;
-  border-radius: 6px;
+  font-size: var(--step--2);
+  border-radius: var(--radius-md);
   width: 24px;
   height: 24px;
   display: flex;
@@ -343,7 +343,7 @@
 }
 
 .eventName {
-  font-size: 18px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--text);
   line-height: 1.2;
@@ -356,7 +356,7 @@
 }
 
 .eventMeta {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--text2);
   display: flex;
   flex-wrap: wrap;
@@ -383,25 +383,25 @@
 }
 
 .eventStatusLabel {
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
 }
 
 .eventProgress {
   height: 4px;
   background: var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 
 .eventProgressFill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   transition: width 0.5s;
 }
 
 .eventNextStep {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--text2);
   border-inline-start: 2px solid var(--border);
   padding-inline-start: 8px;
@@ -436,7 +436,7 @@
   border: 1px solid var(--blush-line);
   border-radius: var(--radius);
   padding: 10px 16px;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   cursor: pointer;
   text-align: center;
@@ -455,7 +455,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 8px 16px;
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 600;
   cursor: pointer;
   text-align: center;
@@ -504,7 +504,7 @@
 }
 
 .tmplPanelTitle {
-  font-size: 17px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--text);
 }
@@ -514,10 +514,10 @@
   border: none;
   cursor: pointer;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--step-0);
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,7 +533,7 @@
   padding: 28px 0;
   text-align: center;
   color: var(--text2);
-  font-size: 14px;
+  font-size: var(--step-0);
 }
 
 .tmplGrid {
@@ -564,19 +564,19 @@
 }
 
 .tmplIcon {
-  font-size: 22px;
+  font-size: var(--step-2);
   line-height: 1;
   margin-bottom: 2px;
 }
 
 .tmplLabel {
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 800;
   color: var(--text);
 }
 
 .tmplDesc {
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--text2);
   line-height: 1.4;
 }
@@ -596,7 +596,7 @@
   border-radius: var(--radius);
   padding: 10px 14px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   color: var(--text2);
   text-align: start;
@@ -609,7 +609,7 @@
 }
 
 .tmplEmptyDesc {
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 400;
   color: var(--muted);
 }
@@ -645,7 +645,7 @@
 }
 
 .statValue {
-  font-size: 26px;
+  font-size: var(--step-3);
   font-weight: 900;
   color: var(--text);
   line-height: 1;
@@ -662,7 +662,7 @@
 }
 
 .statLabel {
-  font-size: 10px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -681,9 +681,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 5px 13px;
   line-height: 1;
 }
@@ -733,7 +733,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--text2);
   font-weight: 600;
 }
@@ -755,9 +755,9 @@
 }
 
 .healthPill {
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 3px 9px;
   line-height: 1.3;
 }
@@ -788,11 +788,11 @@
   }
 
   .onboardingTitle {
-    font-size: 28px;
+    font-size: var(--step-3);
   }
 
   .onboardingTagline {
-    font-size: 14px;
+    font-size: var(--step-0);
   }
 
   .heroCta {
@@ -809,13 +809,13 @@
   }
 
   .valueTileIcon {
-    font-size: 20px;
+    font-size: var(--step-2);
     flex-shrink: 0;
     margin-bottom: 0;
   }
 
   .valueTileTitle {
-    font-size: 13px;
+    font-size: var(--step--1);
   }
 
   .workflowStrip {
@@ -872,13 +872,13 @@
 }
 
 .demoIcon {
-  font-size: 16px;
+  font-size: var(--step-1);
   line-height: 1;
   flex-shrink: 0;
 }
 
 .demoTitle {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   color: var(--text2);
 }
@@ -886,29 +886,29 @@
 /* A step counter — emphasis, so it takes the blush ground and near-black ink
    (12.30:1) rather than a third pink tint on the page. */
 .demoBadge {
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   background: var(--blush);
   color: var(--text);
   border: 1px solid var(--blush-line);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1px 8px;
   line-height: 1.6;
 }
 
 .demoBadgeDone {
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   background: var(--green-bg);
   color: var(--green);
   border: 1px solid var(--green-border);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1px 8px;
   line-height: 1.6;
 }
 
 .demoChevron {
-  font-size: 10px;
+  font-size: var(--step--3);
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -919,7 +919,7 @@
 }
 
 .demoSubtitle {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--muted);
   margin: 12px 0 14px;
   line-height: 1.5;
@@ -964,7 +964,7 @@
   height: 22px;
   border-radius: 50%;
   border: 1.5px solid var(--border2);
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 800;
   color: var(--muted);
   background: var(--bg);
@@ -986,7 +986,7 @@
 }
 
 .demoStepLabel {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   color: var(--text);
   line-height: 1.3;
@@ -998,14 +998,14 @@
 }
 
 .demoStepHint {
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--text2);
   line-height: 1.4;
 }
 
 .demoComplete {
   margin-top: 14px;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   color: var(--green);
   background: var(--green-bg);

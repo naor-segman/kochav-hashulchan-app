@@ -39,13 +39,13 @@
      --accent-text is calibrated for LIGHT grounds; on the dark chrome the
      saturated --accent is the legible member of the family (4.84:1). */
   color: var(--accent);
-  font-size: 22px;
+  font-size: var(--step-2);
   line-height: 1;
 }
 
 .navLogoName {
   color: var(--nav-text);
-  font-size: 18px;
+  font-size: var(--step-1);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -60,7 +60,7 @@
 .navLink {
   color: var(--nav-muted);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 500;
   transition: color var(--transition);
 }
@@ -79,7 +79,7 @@
 .navLoginBtn {
   color: var(--nav-muted);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 500;
   padding: 7px 16px;
   border-radius: var(--radius);
@@ -96,7 +96,7 @@
   background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 700;
   padding: 9px 22px;
   border-radius: var(--radius);
@@ -130,7 +130,7 @@
   display: block;
   width: 22px;
   height: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--nav-text);
   transition: transform var(--transition), opacity var(--transition);
 }
@@ -152,7 +152,7 @@
 .mobileLink {
   color: var(--nav-muted);
   text-decoration: none;
-  font-size: 16px;
+  font-size: var(--step-1);
   font-weight: 600;
   padding: 12px 8px;
   border-radius: var(--radius);
@@ -165,7 +165,7 @@
   background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
-  font-size: 16px;
+  font-size: var(--step-1);
   font-weight: 700;
   padding: 13px 22px;
   border-radius: var(--radius);
@@ -333,7 +333,7 @@
      read. Blush is a GROUND colour and reads 12.5:1 here, which lets the
      eyebrow be quiet without being invisible. */
   color: var(--blush);
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   padding: 0;
   margin-bottom: 30px;
@@ -431,7 +431,7 @@
 }
 
 .heroNote {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--nav-muted);
   opacity: 0.65;
   margin: 0;
@@ -464,7 +464,7 @@
 .sectionTag {
   display: inline-block;
   color: var(--accent-text);
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
   letter-spacing: 0.22em;
   margin-bottom: 16px;
@@ -475,7 +475,7 @@
 .sectionTagLight {
   display: inline-block;
   color: var(--blush);
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
   letter-spacing: 0.22em;
   margin-bottom: 16px;
@@ -588,7 +588,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: var(--step-0);
   font-weight: 800;
   /* The step numbers were --accent-text inside a 14%-accent disc on near-black:
      around 2.5:1, effectively unreadable. Blush on the same disc is ~10:1 and
@@ -690,10 +690,10 @@
   transform: translateX(-50%);
   background: var(--cta);
   color: var(--on-accent);
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   padding: 4px 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
@@ -767,7 +767,7 @@
   inset-inline-start: 0;
   color: var(--green);
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--step--1);
 }
 
 .pricingCardPro .planFeatures li::before {
@@ -780,7 +780,7 @@
   background: var(--bg);
   color: var(--text2);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 700;
   padding: 12px 20px;
   border-radius: var(--radius);
@@ -815,7 +815,7 @@
 .pricingMoreLink {
   color: var(--accent-text);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 600;
   transition: color var(--transition);
 }
@@ -888,7 +888,7 @@
 }
 
 .ctaNote {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--nav-muted);
   opacity: 0.65;
   margin: 0;
@@ -1010,13 +1010,13 @@
 
 .mockCardMark {
   color: var(--accent-text);
-  font-size: 14px;
+  font-size: var(--step-0);
   line-height: 1;
   animation: landingSpin 20s linear infinite;
 }
 
 .mockCardTitle {
-  font-size: 10px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--text);
   flex: 1;
@@ -1029,7 +1029,7 @@
   background: rgba(var(--accent-rgb), 0.14);
   color: var(--accent-text);
   border: 1px solid rgba(var(--accent-rgb), 0.28);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 2px 10px;
   font-weight: 700;
   white-space: nowrap;
@@ -1069,7 +1069,7 @@
 }
 
 .mockCardFootBadge {
-  font-size: 10px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--accent-text);
   letter-spacing: 0.04em;
@@ -1174,7 +1174,7 @@
 .featureIconWrap {
   width: 54px;
   height: 54px;
-  border-radius: 17px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--blush-line);
   display: grid;
@@ -1301,7 +1301,7 @@
 .showcaseTick {
   flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
   background: var(--accent-bg); color: var(--accent-text);
-  display: grid; place-items: center; font-size: 11px; font-weight: 900;
+  display: grid; place-items: center; font-size: var(--step--3); font-weight: 900;
   margin-top: 2px;
 }
 
@@ -1352,7 +1352,7 @@
   flex-shrink: 0;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--blush);
   display: grid;
   place-items: center;

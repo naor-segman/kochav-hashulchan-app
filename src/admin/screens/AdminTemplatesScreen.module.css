@@ -22,8 +22,8 @@
 .brand { display: flex; align-items: center; gap: 8px; }
 
 .backLink {
-  font-size: 18px; color: var(--adm-ink-muted); text-decoration: none;
-  padding: 4px 6px; border-radius: 6px; line-height: 1;
+  font-size: var(--step-1); color: var(--adm-ink-muted); text-decoration: none;
+  padding: 4px 6px; border-radius: var(--radius-md); line-height: 1;
   transition: background 0.12s, color 0.12s;
 }
 .backLink:hover { background: var(--adm-bg-sunken); color: var(--adm-ink-dark); }
@@ -33,18 +33,18 @@
 }
 
 .brandName {
-  font-size: 16px; font-weight: 800; color: var(--adm-ink); letter-spacing: -0.01em;
+  font-size: var(--step-1); font-weight: 800; color: var(--adm-ink); letter-spacing: -0.01em;
 }
 
 .brandSep { color: var(--adm-ink-faintest); }
-.brandSub { font-size: 13px; color: var(--adm-ink-muted); }
+.brandSub { font-size: var(--step--1); color: var(--adm-ink-muted); }
 
 .topbarRight { display: flex; align-items: center; gap: 12px; }
-.adminEmail  { font-size: 13px; color: var(--adm-ink-soft); direction: ltr; }
+.adminEmail  { font-size: var(--step--1); color: var(--adm-ink-soft); direction: ltr; }
 
 .logoutBtn {
-  background: none; border: 1px solid var(--adm-line-strong); border-radius: 7px;
-  padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--adm-ink-mid);
+  background: none; border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
+  padding: 6px 14px; font-size: var(--step--1); font-weight: 600; color: var(--adm-ink-mid);
   cursor: pointer; transition: background 0.12s, border-color 0.12s;
   font-family: inherit;
 }
@@ -65,13 +65,13 @@
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft);
   border-inline-start: 4px solid var(--adm-danger-soft);
-  border-radius: 10px; padding: 12px 16px;
-  font-size: 13px; color: var(--adm-danger); direction: ltr; text-align: left;
+  border-radius: var(--radius-md); padding: 12px 16px;
+  font-size: var(--step--1); color: var(--adm-danger); direction: ltr; text-align: left;
 }
 
 .retryBtn {
-  background: none; border: 1px solid var(--adm-danger-border); border-radius: 6px;
-  padding: 4px 12px; font-size: 12px; font-weight: 600; color: var(--adm-danger);
+  background: none; border: 1px solid var(--adm-danger-border); border-radius: var(--radius-md);
+  padding: 4px 12px; font-size: var(--step--2); font-weight: 600; color: var(--adm-danger);
   cursor: pointer; white-space: nowrap; font-family: inherit; flex-shrink: 0;
   transition: background 0.12s;
 }
@@ -85,12 +85,12 @@
   gap: 12px;
 }
 
-.resultCount { font-size: 13px; color: var(--adm-ink-muted); }
+.resultCount { font-size: var(--step--1); color: var(--adm-ink-muted); }
 
 .newBtn {
   background: var(--accent); color: var(--adm-surface); border: none;
-  border-radius: 8px; padding: 9px 18px;
-  font-size: 14px; font-weight: 700; cursor: pointer;
+  border-radius: var(--radius-md); padding: 9px 18px;
+  font-size: var(--step-0); font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s, box-shadow 0.12s;
   white-space: nowrap;
 }
@@ -103,11 +103,11 @@
 /* ── State boxes ── */
 .stateBox {
   background: var(--adm-surface); border: 1px solid var(--adm-line);
-  border-radius: 12px; padding: 48px 24px; text-align: center;
+  border-radius: var(--radius); padding: 48px 24px; text-align: center;
 }
 
 .loadingText {
-  font-size: 14px; color: var(--adm-ink-faint);
+  font-size: var(--step-0); color: var(--adm-ink-faint);
   animation: pulse 1.2s ease-in-out infinite;
 }
 
@@ -116,13 +116,13 @@
   50%       { opacity: 0.4; }
 }
 
-.emptyTitle { font-size: 16px; font-weight: 700; color: var(--adm-ink-dark); margin: 0 0 6px; }
-.emptyHint  { font-size: 13px; color: var(--adm-ink-dim); margin: 0; }
+.emptyTitle { font-size: var(--step-1); font-weight: 700; color: var(--adm-ink-dark); margin: 0 0 6px; }
+.emptyHint  { font-size: var(--step--1); color: var(--adm-ink-dim); margin: 0; }
 
 /* ── Table ── */
 .tableWrap {
   overflow-x: auto;
-  border-radius: 12px;
+  border-radius: var(--radius);
   border: 1px solid var(--adm-line);
   background: var(--adm-surface);
   box-shadow: 0 1px 4px var(--adm-shadow);
@@ -135,14 +135,14 @@
      ids, dates) carry their own `direction: ltr` per cell. */
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: var(--step-0);
 }
 
 .table th {
   background: var(--adm-bg-alt);
   border-bottom: 1px solid var(--adm-line);
   padding: 10px 14px;
-  font-size: 11px; font-weight: 700; color: var(--adm-ink-soft);
+  font-size: var(--step--3); font-weight: 700; color: var(--adm-ink-soft);
   text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;
 }
 
@@ -160,20 +160,20 @@
 
 /* Cell variants */
 .iconCol  { width: 44px; }
-.iconCell { font-size: 20px; text-align: center; }
+.iconCell { font-size: var(--step-2); text-align: center; }
 
 .nameCell { font-weight: 600; color: var(--adm-ink); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .typeCell { color: var(--adm-ink-mid); white-space: nowrap; }
-.descCell { color: var(--adm-ink-soft); max-width: 240px; font-size: 13px; }
+.descCell { color: var(--adm-ink-soft); max-width: 240px; font-size: var(--step--1); }
 .numCol   { text-align: center; width: 60px; }
 .numCell  { text-align: center; font-variant-numeric: tabular-nums; color: var(--adm-ink-mid); }
-.dateCell { color: var(--adm-ink-muted); font-size: 12px; white-space: nowrap; }
+.dateCell { color: var(--adm-ink-muted); font-size: var(--step--2); white-space: nowrap; }
 .muted    { color: var(--adm-ink-faintest); }
 
 /* ── Status badges ── */
 .badgeActive, .badgeInactive {
-  display: inline-block; border-radius: 20px;
-  padding: 2px 10px; font-size: 11px; font-weight: 700;
+  display: inline-block; border-radius: var(--radius-lg);
+  padding: 2px 10px; font-size: var(--step--3); font-weight: 700;
   white-space: nowrap;
 }
 
@@ -184,16 +184,16 @@
 .actions { display: flex; gap: 6px; align-items: center; }
 
 .editBtn {
-  background: none; border: 1px solid var(--adm-line); border-radius: 6px;
-  padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--adm-ink-strong);
+  background: none; border: 1px solid var(--adm-line); border-radius: var(--radius-md);
+  padding: 4px 10px; font-size: var(--step--2); font-weight: 600; color: var(--adm-ink-strong);
   cursor: pointer; font-family: inherit; transition: background 0.12s, border-color 0.12s;
   white-space: nowrap;
 }
 .editBtn:hover { background: var(--adm-bg-sunken); border-color: var(--adm-ink-faintest); }
 
 .activateBtn {
-  background: none; border: 1px solid var(--adm-ok-border); border-radius: 6px;
-  padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--adm-ok);
+  background: none; border: 1px solid var(--adm-ok-border); border-radius: var(--radius-md);
+  padding: 4px 10px; font-size: var(--step--2); font-weight: 600; color: var(--adm-ok);
   cursor: pointer; font-family: inherit; transition: background 0.12s;
   white-space: nowrap;
 }
@@ -201,8 +201,8 @@
 .activateBtn:disabled { opacity: 0.5; cursor: default; }
 
 .deactivateBtn {
-  background: none; border: 1px solid var(--adm-danger-border-soft); border-radius: 6px;
-  padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--adm-danger);
+  background: none; border: 1px solid var(--adm-danger-border-soft); border-radius: var(--radius-md);
+  padding: 4px 10px; font-size: var(--step--2); font-weight: 600; color: var(--adm-danger);
   cursor: pointer; font-family: inherit; transition: background 0.12s;
   white-space: nowrap;
 }
@@ -223,7 +223,7 @@
 
 .modalCard {
   background: var(--adm-surface);
-  border-radius: 14px;
+  border-radius: var(--radius);
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
@@ -240,7 +240,7 @@
 }
 
 .modalTitle {
-  font-size: 18px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--adm-ink);
   margin: 0;
@@ -248,8 +248,8 @@
 }
 
 .closeBtn {
-  background: none; border: none; font-size: 16px; color: var(--adm-ink-faint);
-  cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  background: none; border: none; font-size: var(--step-1); color: var(--adm-ink-faint);
+  cursor: pointer; padding: 4px 8px; border-radius: var(--radius-md);
   line-height: 1; transition: background 0.12s, color 0.12s;
 }
 .closeBtn:hover { background: var(--adm-bg-sunken); color: var(--adm-ink-dark); }
@@ -273,12 +273,12 @@
 .fieldCheck  { display: flex; align-items: flex-end; padding-bottom: 6px; }
 
 .label {
-  font-size: 13px; font-weight: 600; color: var(--adm-ink-dark);
+  font-size: var(--step--1); font-weight: 600; color: var(--adm-ink-dark);
 }
 
 .input, .select {
-  border: 1px solid var(--adm-line-strong); border-radius: 8px;
-  padding: 9px 12px; font-size: 14px; color: var(--adm-ink);
+  border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
+  padding: 9px 12px; font-size: var(--step-0); color: var(--adm-ink);
   background: var(--adm-bg); outline: none; font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -290,8 +290,8 @@
 }
 
 .textarea {
-  border: 1px solid var(--adm-line-strong); border-radius: 8px;
-  padding: 9px 12px; font-size: 14px; color: var(--adm-ink);
+  border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
+  padding: 9px 12px; font-size: var(--step-0); color: var(--adm-ink);
   background: var(--adm-bg); outline: none; font-family: inherit;
   resize: vertical; min-height: 72px;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -306,8 +306,8 @@
 .iconWrap { display: flex; gap: 8px; align-items: center; }
 
 .iconInput {
-  border: 1px solid var(--adm-line-strong); border-radius: 8px;
-  padding: 9px 10px; font-size: 18px; color: var(--adm-ink);
+  border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
+  padding: 9px 10px; font-size: var(--step-1); color: var(--adm-ink);
   background: var(--adm-bg); outline: none; font-family: inherit;
   width: 56px; text-align: center;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -319,7 +319,7 @@
 }
 
 .iconPreview {
-  font-size: 24px;
+  font-size: var(--step-2);
   width: 36px;
   text-align: center;
   color: var(--adm-ink-mid);
@@ -328,16 +328,16 @@
 /* Active checkbox */
 .checkLabel {
   display: flex; align-items: center; gap: 8px;
-  font-size: 14px; font-weight: 600; color: var(--adm-ink-dark);
+  font-size: var(--step-0); font-weight: 600; color: var(--adm-ink-dark);
   cursor: pointer;
 }
 .checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
 
 /* Form error */
 .formError {
-  font-size: 13px; color: var(--adm-danger);
+  font-size: var(--step--1); color: var(--adm-danger);
   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft);
-  border-radius: 7px; padding: 9px 12px; margin: 0;
+  border-radius: var(--radius-md); padding: 9px 12px; margin: 0;
   direction: ltr; text-align: left;
 }
 
@@ -348,8 +348,8 @@
 }
 
 .cancelBtn {
-  background: none; border: 1px solid var(--adm-line-strong); border-radius: 8px;
-  padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--adm-ink-mid);
+  background: none; border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
+  padding: 10px 20px; font-size: var(--step-0); font-weight: 600; color: var(--adm-ink-mid);
   cursor: pointer; font-family: inherit; transition: background 0.12s;
 }
 .cancelBtn:hover:not(:disabled) { background: var(--adm-bg-sunken); }
@@ -357,8 +357,8 @@
 
 .saveBtn {
   background: var(--accent); color: var(--adm-surface); border: none;
-  border-radius: 8px; padding: 10px 24px;
-  font-size: 14px; font-weight: 700; cursor: pointer;
+  border-radius: var(--radius-md); padding: 10px 24px;
+  font-size: var(--step-0); font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s, box-shadow 0.12s;
 }
 .saveBtn:hover:not(:disabled) {

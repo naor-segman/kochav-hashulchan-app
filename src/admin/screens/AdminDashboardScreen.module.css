@@ -30,7 +30,7 @@
 }
 
 .brandName {
-  font-size: 16px;
+  font-size: var(--step-1);
   font-weight: 800;
   color: var(--adm-ink);
   letter-spacing: -0.01em;
@@ -41,7 +41,7 @@
 }
 
 .brandSub {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-ink-muted);
 }
 
@@ -52,7 +52,7 @@
 }
 
 .adminEmail {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-ink-soft);
   direction: ltr;
 }
@@ -60,9 +60,9 @@
 .logoutBtn {
   background: none;
   border: 1px solid var(--adm-line-strong);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   padding: 6px 14px;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   color: var(--adm-ink-mid);
   cursor: pointer;
@@ -91,9 +91,9 @@
   background: var(--adm-warn-bg);
   border: 1px solid var(--adm-warn-border);
   border-inline-start: 4px solid var(--adm-warn-mid);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 14px 16px;
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-badge-amber-deep);
   line-height: 1.5;
   direction: ltr;
@@ -102,7 +102,7 @@
 
 /* ── Section title ── */
 .sectionTitle {
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
   color: var(--adm-ink-muted);
   text-transform: uppercase;
@@ -126,7 +126,7 @@
 .statCard {
   background: var(--adm-surface);
   border: 1px solid var(--adm-line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 18px 16px;
   display: flex;
   flex-direction: column;
@@ -144,14 +144,14 @@
 }
 
 .statValue {
-  font-size: 24px;
+  font-size: var(--step-2);
   font-weight: 800;
   color: var(--adm-ink);
   line-height: 1;
 }
 
 .statValueLoading {
-  font-size: 24px;
+  font-size: var(--step-2);
   font-weight: 800;
   color: var(--adm-ink-faintest);
   line-height: 1;
@@ -164,17 +164,17 @@
 }
 
 .statLabel {
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 600;
   color: var(--adm-ink-mid);
   margin-top: 2px;
 }
 
 .statPhase {
-  font-size: 10px;
+  font-size: var(--step--3);
   color: var(--adm-ink-fainter);
   background: var(--adm-bg-sunken);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1px 7px;
   margin-top: 4px;
 }
@@ -188,9 +188,9 @@
   background: var(--adm-danger-bg);
   border: 1px solid var(--adm-danger-border-soft);
   border-inline-start: 4px solid var(--adm-danger-soft);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 12px 16px;
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--adm-danger);
   direction: ltr;
   text-align: left;
@@ -199,9 +199,9 @@
 .retryBtn {
   background: none;
   border: 1px solid var(--adm-danger-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 4px 12px;
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 600;
   color: var(--adm-danger);
   cursor: pointer;
@@ -231,7 +231,7 @@
   gap: 12px;
   background: var(--adm-surface);
   border: 1px solid var(--adm-line);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 14px 16px;
   box-shadow: 0 1px 3px var(--adm-shadow);
 }
@@ -242,17 +242,17 @@
 }
 
 .navLabel {
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 600;
   color: var(--adm-ink-dark);
   flex: 1;
 }
 
 .navPhase {
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--adm-ink-faint);
   background: var(--adm-bg-sunken);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 2px 9px;
   white-space: nowrap;
 }
@@ -264,7 +264,7 @@
   gap: 12px;
   background: var(--adm-surface);
   border: 1px solid var(--adm-line);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 14px 16px;
   box-shadow: 0 1px 3px var(--adm-shadow);
   text-decoration: none;
@@ -282,7 +282,7 @@
    accent the loudest thing on a page whose job is to be quiet; it earns its
    colour on hover, where it means "this is the row you are on". */
 .navArrow {
-  font-size: 16px;
+  font-size: var(--step-1);
   color: var(--adm-ink-faint);
   margin-inline-start: auto;
   transition: color 0.15s ease, transform 0.15s ease;
@@ -298,12 +298,12 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--adm-ok-mid);
   background: var(--adm-ok-bg-soft);
   border: 1px solid var(--adm-ok-border-soft);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 2px 9px;
   white-space: nowrap;
   flex-shrink: 0;
@@ -328,12 +328,12 @@
 }
 
 .refreshBtn {
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
   color: var(--adm-ink-mid);
   background: var(--adm-surface);
   border: 1px solid var(--adm-line);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 4px 10px;
   cursor: pointer;
   font-family: inherit;
@@ -347,7 +347,7 @@
 }
 
 .lastRefreshed {
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--adm-ink-dim);
   margin-inline-start: auto;
 }

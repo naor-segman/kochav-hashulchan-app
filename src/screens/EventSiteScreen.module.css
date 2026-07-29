@@ -23,7 +23,7 @@
   max-width: var(--maxw); margin: 0 auto; padding: 60px 24px 80px; text-align: center;
 }
 .comingSoonStar { display: block; font-size: 34px; color: var(--s-accent); margin-bottom: 14px; }
-.comingSoon p { font-size: 16px; line-height: 1.8; color: var(--s-muted); margin: 0; }
+.comingSoon p { font-size: var(--step-1); line-height: 1.8; color: var(--s-muted); margin: 0; }
 
 /* ── Sticky nav ── */
 .nav {
@@ -33,22 +33,22 @@
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--s-line);
 }
-.navBrand { font-weight: 800; font-size: 14px; color: var(--s-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navBrand { font-weight: 800; font-size: var(--step-0); color: var(--s-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .navRight { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .navRsvp {
   background: var(--s-accent); color: var(--s-on-accent); text-decoration: none;
-  font-size: 12.5px; font-weight: 800; padding: 7px 14px; border-radius: 100px;
+  font-size: var(--step--2); font-weight: 800; padding: 7px 14px; border-radius: var(--radius-pill);
 }
 .navBurger {
-  background: none; border: none; font-size: 18px; color: var(--s-ink); cursor: pointer; padding: 2px 6px;
+  background: none; border: none; font-size: var(--step-1); color: var(--s-ink); cursor: pointer; padding: 2px 6px;
 }
 .navMenu {
   position: absolute; top: 100%; inset-inline-end: 12px; margin-top: 6px;
-  background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 12px;
+  background: var(--s-surface); border: 1px solid var(--s-line); border-radius: var(--radius);
   box-shadow: 0 8px 30px var(--scrim-12); overflow: hidden; display: flex; flex-direction: column; min-width: 140px;
 }
 .navMenu button {
-  background: none; border: none; text-align: start; padding: 11px 16px; font-size: 14px;
+  background: none; border: none; text-align: start; padding: 11px 16px; font-size: var(--step-0);
   color: var(--s-ink); cursor: pointer; font-family: inherit;
 }
 .navMenu button:hover { background: var(--s-accent-soft); }
@@ -65,7 +65,7 @@
 }
 .heroInner { position: relative; max-width: var(--maxw); margin: 0 auto; }
 .heroTag {
-  display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .26em;
+  display: inline-block; font-size: var(--step--2); font-weight: 700; letter-spacing: .26em;
   color: var(--s-accent); margin-bottom: 20px;
 }
 .heroNames {
@@ -73,24 +73,24 @@
   line-height: 1.06; color: var(--s-ink); letter-spacing: -.005em;
 }
 .heroEn {
-  font-family: "Rubik", sans-serif; font-size: 15px; letter-spacing: .28em;
+  font-family: "Rubik", sans-serif; font-size: var(--step-0); letter-spacing: .28em;
   color: var(--s-muted); margin-top: 12px; text-transform: uppercase;
 }
 .heroDivider { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 22px auto; max-width: 220px; }
 .heroDivider span:first-child, .heroDivider span:last-child { height: 1px; flex: 1; background: var(--s-line); }
-.heroStar { color: var(--s-accent); font-size: 15px; }
+.heroStar { color: var(--s-accent); font-size: var(--step-0); }
 .heroDate { font-size: clamp(17px, 4.5vw, 20px); font-weight: 700; color: var(--s-ink); letter-spacing: -.01em; }
-.heroVenue { font-size: 14px; color: var(--s-muted); margin-top: 8px; }
+.heroVenue { font-size: var(--step-0); color: var(--s-muted); margin-top: 8px; }
 .heroCta {
   display: inline-block; margin-top: 26px; background: var(--s-accent); color: var(--s-on-accent);
-  text-decoration: none; font-size: 15px; font-weight: 800; padding: 13px 30px; border-radius: 100px;
+  text-decoration: none; font-size: var(--step-0); font-weight: 800; padding: 13px 30px; border-radius: var(--radius-pill);
   box-shadow: 0 6px 18px color-mix(in srgb, var(--s-accent) 35%, transparent);
   transition: transform .15s ease;
 }
 .heroCta:hover { transform: translateY(-2px); }
 
 .draftNote {
-  text-align: center; font-size: 13px; color: var(--s-muted);
+  text-align: center; font-size: var(--step--1); color: var(--s-muted);
   background: var(--s-accent-soft); padding: 10px; margin: 0;
 }
 
@@ -101,13 +101,13 @@
   color: var(--s-ink); margin-bottom: 28px; letter-spacing: -.01em;
 }
 .secTitle::after {
-  content: ""; display: block; width: 34px; height: 2px; border-radius: 2px;
+  content: ""; display: block; width: 34px; height: 2px; border-radius: var(--radius-xs);
   margin: 12px auto 0; background: var(--s-accent);
 }
 .story {
   max-width: var(--maxw); margin: 0 auto; padding: 34px 26px; text-align: center;
 }
-.story p { font-size: 16px; line-height: 1.8; color: var(--s-muted); margin: 0; }
+.story p { font-size: var(--step-1); line-height: 1.8; color: var(--s-muted); margin: 0; }
 
 /* ── Timeline ── */
 .timeline { list-style: none; margin: 0; padding: 0; position: relative; }
@@ -120,18 +120,18 @@
   padding: 12px 0;
 }
 /* Time on the (RTL) right, content on the left. */
-.tlTitle { text-align: end; font-size: 15px; font-weight: 600; color: var(--s-ink); }
+.tlTitle { text-align: end; font-size: var(--step-0); font-weight: 600; color: var(--s-ink); }
 .tlDot { width: 12px; height: 12px; border-radius: 50%; background: var(--s-accent); border: 3px solid var(--s-bg); position: relative; z-index: 1; }
-.tlTime { text-align: start; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; color: var(--s-accent); }
+.tlTime { text-align: start; font-variant-numeric: tabular-nums; font-weight: 700; font-size: var(--step-0); color: var(--s-accent); }
 
 /* ── Location / gift cards ── */
 .locCard, .giftCard {
   background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 16px;
   padding: 22px; text-align: center; box-shadow: 0 3px 14px var(--scrim-04);
 }
-.locAddr { font-size: 16px; font-weight: 700; color: var(--s-ink); }
-.locNote { font-size: 13.5px; color: var(--s-muted); margin: 10px 0 0; line-height: 1.6; }
-.giftCard p { font-size: 15px; color: var(--s-muted); margin: 0 0 16px; line-height: 1.7; }
+.locAddr { font-size: var(--step-1); font-weight: 700; color: var(--s-ink); }
+.locNote { font-size: var(--step--1); color: var(--s-muted); margin: 10px 0 0; line-height: 1.6; }
+.giftCard p { font-size: var(--step-0); color: var(--s-muted); margin: 0 0 16px; line-height: 1.7; }
 
 /* Shuttles */
 .shuttleRow {
@@ -140,46 +140,46 @@
 }
 .shuttleRow:last-child { border-bottom: none; }
 .shuttleTime { font-weight: 700; color: var(--s-accent); font-variant-numeric: tabular-nums; }
-.shuttleDir { font-size: 12px; font-weight: 700; background: var(--s-accent-soft); color: var(--s-ink); border-radius: 100px; padding: 2px 10px; white-space: nowrap; }
-.shuttlePlace { font-size: 14px; color: var(--s-ink); }
+.shuttleDir { font-size: var(--step--2); font-weight: 700; background: var(--s-accent-soft); color: var(--s-ink); border-radius: var(--radius-pill); padding: 2px 10px; white-space: nowrap; }
+.shuttlePlace { font-size: var(--step-0); color: var(--s-ink); }
 .locBtn {
   display: inline-block; margin-top: 16px; background: var(--s-accent); color: var(--s-on-accent);
-  text-decoration: none; font-size: 14px; font-weight: 800; padding: 11px 24px; border-radius: 100px;
+  text-decoration: none; font-size: var(--step-0); font-weight: 800; padding: 11px 24px; border-radius: var(--radius-pill);
 }
 
 /* ── Wishes ── */
-.wishEmpty { text-align: center; color: var(--s-muted); font-size: 14.5px; padding: 20px; }
+.wishEmpty { text-align: center; color: var(--s-muted); font-size: var(--step-0); padding: 20px; }
 .wishLink { color: var(--s-accent); font-weight: 700; }
 .wishGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.wishCard { background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 14px; padding: 14px; }
-.wishMsg { font-size: 13.5px; line-height: 1.6; color: var(--s-ink); margin: 0 0 8px; }
-.wishName { font-size: 12px; font-weight: 700; color: var(--s-accent); }
+.wishCard { background: var(--s-surface); border: 1px solid var(--s-line); border-radius: var(--radius); padding: 14px; }
+.wishMsg { font-size: var(--step--1); line-height: 1.6; color: var(--s-ink); margin: 0 0 8px; }
+.wishName { font-size: var(--step--2); font-weight: 700; color: var(--s-accent); }
 
 /* ── FAQ ── */
 .faqList { display: flex; flex-direction: column; gap: 10px; }
-.faqItem { background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 12px; overflow: hidden; }
+.faqItem { background: var(--s-surface); border: 1px solid var(--s-line); border-radius: var(--radius); overflow: hidden; }
 .faqQ {
   width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  background: none; border: none; padding: 15px 18px; font-size: 14.5px; font-weight: 700;
+  background: none; border: none; padding: 15px 18px; font-size: var(--step-0); font-weight: 700;
   color: var(--s-ink); cursor: pointer; text-align: start; font-family: inherit;
 }
-.faqChevron { color: var(--s-accent); font-size: 18px; flex-shrink: 0; }
-.faqA { margin: 0; padding: 0 18px 15px; font-size: 14px; line-height: 1.7; color: var(--s-muted); }
+.faqChevron { color: var(--s-accent); font-size: var(--step-1); flex-shrink: 0; }
+.faqA { margin: 0; padding: 0 18px 15px; font-size: var(--step-0); line-height: 1.7; color: var(--s-muted); }
 
 /* ── Footer ── */
 .footer { text-align: center; padding: 40px 22px 50px; border-top: 1px solid var(--s-line); margin-top: 20px; }
-.footContact { display: inline-block; color: var(--s-accent); font-weight: 700; font-size: 14px; text-decoration: none; margin-bottom: 18px; }
-.footBrand { font-size: 12px; color: var(--s-muted); text-decoration: none; display: inline-block; }
+.footContact { display: inline-block; color: var(--s-accent); font-weight: 700; font-size: var(--step-0); text-decoration: none; margin-bottom: 18px; }
+.footBrand { font-size: var(--step--2); color: var(--s-muted); text-decoration: none; display: inline-block; }
 .footPromo {
   display: inline-block;
   margin-top: 10px;
-  font-size: 12.5px;
+  font-size: var(--step--2);
   font-weight: 600;
   color: var(--s-accent);
   text-decoration: none;
   padding: 7px 16px;
   border: 1px solid var(--s-line);
-  border-radius: 100px;
+  border-radius: var(--radius-pill);
   transition: background .15s;
 }
 .footPromo:hover { background: var(--s-accent-soft); }
@@ -192,7 +192,7 @@
 .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .galleryItem {
   aspect-ratio: 1; background-size: cover; background-position: center;
-  border-radius: 10px; background-color: var(--s-accent-soft);
+  border-radius: var(--radius-md); background-color: var(--s-accent-soft);
 }
 .gallery .galleryItem:first-child { grid-column: span 2; grid-row: span 2; }
 @media (max-width: 480px){ .gallery { grid-template-columns: repeat(2, 1fr); } }
@@ -202,20 +202,20 @@
 .cdUnit {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: var(--s-surface); border: 1px solid var(--s-line);
-  border-radius: 12px; padding: 16px 6px;
+  border-radius: var(--radius); padding: 16px 6px;
 }
 .cdNum {
   font-family: var(--s-heading-font, var(--font-family-serif)); font-size: clamp(24px, 7vw, 34px);
   font-weight: 700; color: var(--s-accent); line-height: 1; font-variant-numeric: tabular-nums;
 }
-.cdLabel { font-size: 12px; color: var(--s-muted); font-weight: 500; }
+.cdLabel { font-size: var(--step--2); color: var(--s-muted); font-weight: 500; }
 
 /* ── Dress code ── */
-.dressText { font-size: 15px; line-height: 1.7; color: var(--s-ink); margin: 0; text-align: center; }
+.dressText { font-size: var(--step-0); line-height: 1.7; color: var(--s-ink); margin: 0; text-align: center; }
 
-.shuttleContact { font-size: 13px; color: var(--s-muted); }
+.shuttleContact { font-size: var(--step--1); color: var(--s-muted); }
 .shuttleContact a { color: var(--s-accent); font-weight: 600; text-decoration: none; }
-.shuttleNote { display: block; font-size: 12px; color: var(--s-muted); margin-top: 2px; }
+.shuttleNote { display: block; font-size: var(--step--2); color: var(--s-muted); margin-top: 2px; }
 
 /* Secondary action beside "ניווט ב-Waze" — same shape, quieter, so navigation
    stays the primary call on the location card. */
@@ -224,12 +224,12 @@
   margin-top: 8px;
   margin-inline-start: 8px;
   padding: 9px 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--s-line);
   background: transparent;
   color: var(--s-ink);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 700;
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease;

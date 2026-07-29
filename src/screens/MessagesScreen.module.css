@@ -23,23 +23,23 @@
 
 .stageMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 
-.stageTitle { font-size: 15px; font-weight: 800; color: var(--text); }
+.stageTitle { font-size: var(--step-0); font-weight: 800; color: var(--text); }
 
-.stageWhen { font-size: 12px; color: var(--muted); }
+.stageWhen { font-size: var(--step--2); color: var(--muted); }
 
 /* Progress belongs in the header — the point of the screen is knowing who
    already got what without opening every stage. */
 /* "4/12" is a readout. Seven of them down the page, each in accent-text, made
    the counts the loudest column on a screen whose subject is the message. */
 .stageCount {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 800;
   color: var(--text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.chev { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+.chev { font-size: var(--step--3); color: var(--muted); flex-shrink: 0; }
 
 .stageBody {
   margin-top: 14px;
@@ -52,7 +52,7 @@
    everything around it stays quiet. */
 .preview {
   white-space: pre-line;
-  font-size: 13.5px;
+  font-size: var(--step--1);
   line-height: 1.65;
   color: var(--text);
   background: var(--bg);
@@ -66,7 +66,7 @@
 .stageActions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
 /* ── Guests ──────────────────────────────────────────────────────────────── */
-.summary { margin: 14px 0 8px; font-size: 12.5px; color: var(--muted); }
+.summary { margin: 14px 0 8px; font-size: var(--step--2); color: var(--muted); }
 .warn    { color: var(--warn); font-weight: 700; }
 
 .guestList {
@@ -88,10 +88,10 @@
 }
 .guestDone { opacity: .6; }
 
-.guestName { flex: 1; font-size: 13.5px; font-weight: 600; color: var(--text); min-width: 0; }
+.guestName { flex: 1; font-size: var(--step--1); font-weight: 600; color: var(--text); min-width: 0; }
 
 .sentTag {
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--green);
   white-space: nowrap;
@@ -102,10 +102,10 @@
    above them stopped being the thing you looked at. Neutral chip at rest; it
    commits on hover, when the pointer is already on it. */
 .waBtn {
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
   padding: 5px 13px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--bg);
   border: 1px solid var(--border2);
   color: var(--text);
@@ -115,11 +115,11 @@
 }
 .waBtn:hover { background: var(--blush); border-color: var(--blush-line); }
 
-.empty { margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+.empty { margin: 14px 0 0; font-size: var(--step--1); color: var(--muted); }
 
 .hint {
   margin: 12px 0 0;
-  font-size: 12px;
+  font-size: var(--step--2);
   line-height: 1.6;
   color: var(--muted);
   background: var(--bg);

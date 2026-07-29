@@ -59,7 +59,7 @@
 .layout_card .card {
   background: var(--a-surface);
   border: 1px solid var(--a-line);
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   padding: 34px 26px;
   box-shadow: 0 18px 50px var(--scrim-18);
 }
@@ -80,7 +80,7 @@
 /* ── Type ────────────────────────────────────────────────────────────────── */
 .eyebrow {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   letter-spacing: .22em;
   color: var(--a-accent);
@@ -114,24 +114,24 @@
 
 .venue {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--step-0);
   color: var(--a-muted);
 }
 
 .countdown {
   margin: 6px 0 0;
-  font-size: 14px;
+  font-size: var(--step-0);
   color: var(--a-muted);
 }
 .countdown b {
-  font-size: 22px;
+  font-size: var(--step-2);
   color: var(--a-accent);
   font-variant-numeric: tabular-nums;
 }
 
 .message {
   margin: 10px 0 0;
-  font-size: 15px;
+  font-size: var(--step-0);
   line-height: 1.7;
   color: var(--a-muted);
   white-space: pre-line;
@@ -150,9 +150,9 @@
 .btnGhost {
   display: inline-block;
   padding: 12px 24px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--step-0);
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
@@ -185,7 +185,7 @@
 }
 
 .brand {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--a-muted);
   text-decoration: none;
   opacity: .8;
@@ -208,4 +208,4 @@
 }
 
 .star { font-size: 30px; color: var(--accent-text); }
-.stateSub { font-size: 13.5px; color: var(--muted); margin: 0; }
+.stateSub { font-size: var(--step--1); color: var(--muted); margin: 0; }

@@ -84,12 +84,12 @@
    same job calibrated for this ground, at 9.3:1. */
 .logoMark {
   color: var(--accent-on-dark);
-  font-size: 14px;
+  font-size: var(--step-0);
 }
 
 .logoName {
   color: var(--nav-muted);
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
   letter-spacing: 0.05em;
 }
@@ -143,7 +143,7 @@
   background: var(--blush);
   color: var(--text);
   border-radius: var(--radius-pill);
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   letter-spacing: 0.10em;
   padding: 6px 18px;
@@ -185,7 +185,7 @@
 
 .ornStar {
   color: var(--blush-line);
-  font-size: 12px;
+  font-size: var(--step--2);
   flex-shrink: 0;
 }
 
@@ -199,7 +199,7 @@
 }
 
 .sectionLabel {
-  font-size: 12px;
+  font-size: var(--step--2);
   font-weight: 700;
   color: var(--text2);
   letter-spacing: 0.09em;
@@ -650,7 +650,7 @@
 }
 
 .successLabel {
-  font-size: 11px;
+  font-size: var(--step--3);
   font-weight: 700;
   color: var(--text2);
   letter-spacing: 0.09em;

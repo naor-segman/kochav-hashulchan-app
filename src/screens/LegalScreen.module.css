@@ -22,12 +22,12 @@
 .logoMark {
   /* --accent-text is 2.66:1 on the near-black header bar; --accent is 4.84:1. */
   color: var(--accent);
-  font-size: 18px;
+  font-size: var(--step-1);
 }
 
 .logoName {
   color: var(--nav-text);
-  font-size: 15px;
+  font-size: var(--step-0);
   font-weight: 700;
 }
 
@@ -49,7 +49,7 @@
 }
 
 .updated {
-  font-size: 12.5px;
+  font-size: var(--step--2);
   color: var(--muted);
   margin-bottom: 44px;
 }
@@ -62,7 +62,7 @@
 }
 
 .sectionTitle {
-  font-size: 18px;
+  font-size: var(--step-1);
   font-weight: 800;
   line-height: 1.35;
   margin-bottom: 12px;
@@ -70,7 +70,7 @@
 }
 
 .text {
-  font-size: 16px;
+  font-size: var(--step-1);
   line-height: 1.85;
   color: var(--text2);
   margin-bottom: 12px;
@@ -97,7 +97,7 @@
 }
 
 .list li {
-  font-size: 16px;
+  font-size: var(--step-1);
   line-height: 1.75;
   color: var(--text2);
 }
@@ -111,7 +111,7 @@
 
 .backLink {
   color: var(--accent-text);
-  font-size: 14px;
+  font-size: var(--step-0);
   font-weight: 700;
   text-decoration: none;
 }
@@ -122,5 +122,5 @@
 .text a:focus-visible {
   outline: 2px solid var(--cta);
   outline-offset: 3px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
 }

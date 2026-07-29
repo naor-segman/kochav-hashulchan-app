@@ -57,18 +57,18 @@
 }
 
 .brandMark {
-  font-size: 26px;
+  font-size: var(--step-3);
   color: var(--accent-text);
 }
 .brandName {
-  font-size: 20px;
+  font-size: var(--step-2);
   font-weight: 900;
   color: var(--text);
   letter-spacing: -0.03em;
 }
 
 .title {
-  font-size: 22px;
+  font-size: var(--step-2);
   font-weight: 800;
   color: var(--text);
   margin: 0;
@@ -81,7 +81,7 @@
   border: 1px solid var(--warn-border);
   border-radius: var(--radius);
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--warn);
   text-align: center;
 }
@@ -99,7 +99,7 @@
 }
 
 .label {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   color: var(--text2);
 }
@@ -108,7 +108,7 @@
   border: 1px solid var(--border2);
   border-radius: var(--radius);
   padding: 13px 14px;
-  font-size: 15px;
+  font-size: var(--step-0);
   color: var(--text);
   background: var(--bg);
   outline: none;
@@ -152,7 +152,7 @@
   cursor: pointer;
   padding: 4px;
   color: var(--muted);
-  font-size: 16px;
+  font-size: var(--step-1);
   line-height: 1;
   transition: color 0.12s;
   display: flex;
@@ -163,7 +163,7 @@
 .eyeBtn:hover { color: var(--accent-text); }
 
 .errorMsg {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--red);
   background: var(--red-bg);
   border: 1px solid var(--red-border);
@@ -180,7 +180,7 @@
   border: none;
   border-radius: var(--radius);
   padding: 13px 0;
-  font-size: 15px;
+  font-size: var(--step-0);
   font-weight: 800;
   cursor: pointer;
   font-family: inherit;
@@ -202,7 +202,7 @@
 }
 
 .switchLine {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--text2);
   text-align: center;
   margin: 0;
@@ -220,7 +220,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   color: var(--text2);
   text-decoration: none;
@@ -249,7 +249,7 @@
 }
 
 .guestNote {
-  font-size: 11px;
+  font-size: var(--step--3);
   color: var(--muted);
   text-align: center;
   margin: 0;
@@ -261,7 +261,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--muted);
   text-align: center;
   font-family: inherit;
@@ -273,7 +273,7 @@
 .forgotLink:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .forgotTitle {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   color: var(--text);
   margin: 0 0 6px;
@@ -293,7 +293,7 @@
 }
 
 .forgotSuccess {
-  font-size: 13px;
+  font-size: var(--step--1);
   color: var(--green);
   background: var(--green-bg);
   border: 1px solid var(--green-border);
@@ -307,13 +307,13 @@
 .confirmBody {
   text-align: center;
   color: var(--text2);
-  font-size: 14px;
+  font-size: var(--step-0);
   margin: 0;
   line-height: 1.6;
 }
 
 .confirmSuccess {
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 600;
   color: var(--green);
   text-align: center;
@@ -329,13 +329,13 @@
 }
 
 .resendNote {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--muted);
   margin: 0;
 }
 
 .resendError {
-  font-size: 12px;
+  font-size: var(--step--2);
   color: var(--red);
   margin: 0;
 }
@@ -345,7 +345,7 @@
   border: none;
   cursor: pointer;
   color: var(--accent-text);
-  font-size: 13px;
+  font-size: var(--step--1);
   font-weight: 700;
   font-family: inherit;
   text-decoration: underline;
@@ -364,7 +364,7 @@
 .resendBtn:focus-visible {
   outline: 2px solid var(--cta);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
 }
 
 @media (max-width: 480px) {
