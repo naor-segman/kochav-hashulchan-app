@@ -438,13 +438,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           {noTables && (
             <Banner variant="warn">
               יש להגדיר שולחנות לפני סידור ההושבה.
-              <button className={base.btnSm} style={{ marginInlineEnd: 8 }} onClick={() => go("tables")}>עברו לשולחנות</button>
+              <button className={[base.btnSm, base.btnGhost].join(" ")} style={{ marginInlineEnd: 8 }} onClick={() => go("tables")}>עברו לשולחנות</button>
             </Banner>
           )}
           {noGuests && (
             <Banner variant="warn">
               יש להוסיף אורחים לפני סידור ההושבה.
-              <button className={base.btnSm} style={{ marginInlineEnd: 8 }} onClick={() => go("guests")}>עברו לאורחים</button>
+              <button className={[base.btnSm, base.btnGhost].join(" ")} style={{ marginInlineEnd: 8 }} onClick={() => go("guests")}>עברו לאורחים</button>
             </Banner>
           )}
 

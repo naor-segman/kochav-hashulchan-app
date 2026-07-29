@@ -1,5 +1,13 @@
 /* ── Controls (screen only) ──────────────────────────────────────────────── */
-.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Was a wrapping flex row: three 150px chips huddled at the start of a
+   full-width card, leaving 40% of it empty at desktop. These are a closed
+   choice-set — one of three — so they get an even grid that owns the width and
+   reads as a set rather than as three things that happened to fit. */
+.opts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
 
 .opt {
   display: flex;
@@ -7,7 +15,7 @@
   gap: 2px;
   align-items: flex-start;
   padding: 10px 14px;
-  min-width: 150px;
+  min-width: 0;
   border-radius: var(--radius);
   border: 1.5px solid var(--border);
   background: var(--surface);
