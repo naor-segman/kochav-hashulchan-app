@@ -41,7 +41,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 26px 28px;
+  padding: 24px 28px;
   margin-bottom: 20px;
   transition: border-color var(--transition);
 }
@@ -282,7 +282,7 @@
    across 15 screens and several of them sit in toolbars with no room to
    spare. */
 .btnSm {
-  padding: 5px 9px;
+  padding: 4px 8px;
   font-size: var(--step--1);
   font-weight: var(--font-weight-bold);
 }
@@ -352,7 +352,7 @@
   .btnPrimary,
   .btnSecondary {
     min-height: 44px;
-    padding-inline: 22px;
+    padding-inline: 20px;
   }
   .btnSm {
     min-height: 34px;
@@ -590,7 +590,7 @@
   line-height: 1.4;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  padding: 1px 9px;
+  padding: 1px 8px;
   white-space: nowrap;
   flex-shrink: 0;
 }

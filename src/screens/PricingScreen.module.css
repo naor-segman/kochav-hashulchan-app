@@ -74,7 +74,7 @@
 .navLinkActive {
   color: var(--nav-text);
   box-shadow: inset 0 -2px 0 var(--accent);
-  padding-bottom: 3px;
+  padding-bottom: 2px;
 }
 
 .navActions {
@@ -89,7 +89,7 @@
   text-decoration: none;
   font-size: var(--step-0);
   font-weight: 500;
-  padding: 7px 16px;
+  padding: 6px 16px;
   border-radius: var(--radius);
   transition: color var(--transition);
 }
@@ -105,7 +105,7 @@
   text-decoration: none;
   font-size: var(--step-0);
   font-weight: 700;
-  padding: 9px 22px;
+  padding: 8px 20px;
   border-radius: var(--radius);
   box-shadow: var(--shadow-accent);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
@@ -152,7 +152,7 @@
   border-radius: var(--radius-pill);
   font-size: var(--step--3);
   font-weight: 700;
-  padding: 5px 18px;
+  padding: 4px 18px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 20px;
@@ -317,7 +317,7 @@
   font-size: 0.9rem;
   color: var(--text2);
   line-height: 1.5;
-  padding-block: 5px;
+  padding-block: 4px;
 }
 
 .planCardPro .planFeature {
@@ -358,7 +358,7 @@
   text-decoration: none;
   font-size: var(--step-0);
   font-weight: 700;
-  padding: 13px 20px;
+  padding: 12px 20px;
   border-radius: var(--radius);
   border: 1px solid var(--border2);
   transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
@@ -399,7 +399,7 @@
 
 .faqHeader {
   text-align: center;
-  margin-bottom: 56px;
+  margin-bottom: 48px;
 }
 
 /* Blush pill, near-black label — the same eyebrow primitive the landing page
@@ -499,7 +499,7 @@
   font-size: 1rem;
   color: var(--nav-muted);
   line-height: 1.7;
-  margin: 0 0 36px;
+  margin: 0 0 32px;
 }
 
 .ctaBtn {
@@ -509,7 +509,7 @@
   text-decoration: none;
   font-size: 1.05rem;
   font-weight: 700;
-  padding: 15px 44px;
+  padding: 14px 40px;
   border-radius: var(--radius);
   box-shadow: var(--shadow-cta-lg);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
@@ -549,7 +549,7 @@
   }
 
   .pageHeader {
-    padding: 56px 20px 64px;
+    padding: 48px 20px 64px;
   }
 
   .plansSection {
@@ -561,7 +561,7 @@
   }
 
   .faqSection {
-    padding: 56px 0;
+    padding: 48px 0;
   }
 
   .faqInner {

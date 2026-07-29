@@ -10,6 +10,7 @@ import { isPaidPlan, isStripeConfigured } from "../admin/lib/stripeConfig.js";
 import { useBilling } from "../hooks/useBilling.js";
 import { useSubscription } from "../hooks/useSubscription.js";
 import styles from "./AccountScreen.module.css";
+import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 
 function formatDate(iso) {
@@ -144,7 +145,10 @@ export default function AccountScreen({ eventCount = 0 }) {
           <span className={styles.brandName}>כוכב השולחן</span>
         </div>
 
-        <h1 className={styles.title}>החשבון שלי</h1>
+        <div className={styles.titleRow}>
+          <SectionMark name="account" size={26} tile />
+          <h1 className={styles.title}>החשבון שלי</h1>
+        </div>
 
         {/* ── User info ── */}
         <section className={styles.section}>

@@ -92,7 +92,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
         aside={
           <div className={base.pills}>
             <StatPill n={totals.booked} label="סגורים" color={totals.booked > 0 ? "var(--green)" : undefined} />
-            <StatPill n={totals.open}   label="פתוחים" color={totals.open > 0 ? "var(--warn)" : undefined} />
+            <StatPill n={totals.open}   label="פתוחים" primary />
           </div>
         }
       />

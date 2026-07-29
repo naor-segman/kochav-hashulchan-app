@@ -7,6 +7,7 @@ import { normalizeAnnouncement } from "../data/announcementTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import styles from "./AnnouncementScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 /**
  * Public Save-the-Date / designed invitation.
@@ -162,7 +163,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
           <div className={styles.actions}>
             {event.date && (
               <button type="button" className={styles.btnGhost} onClick={addToCalendar}>
-                📅 הוסיפו ליומן
+                <Icon name="calendar" /> הוסיפו ליומן
               </button>
             )}
             {ann.showRsvp && event.rsvpToken && (

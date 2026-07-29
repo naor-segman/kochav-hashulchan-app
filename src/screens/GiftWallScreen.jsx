@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
 import styles from "./GiftWallScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 // DEV-only preview blessings — shown only when no live event resolves in dev.
 const MOCK_GIFTS = [
@@ -98,7 +99,7 @@ export default function GiftWallScreen() {
         </header>
         <main className={styles.content}>
           <div className={styles.empty}>
-            <span className={styles.emptyIcon} aria-hidden="true">🔌</span>
+            <span className={styles.emptyIcon} aria-hidden="true"><Icon name="alert" size={30} /></span>
             <p>לא הצלחנו לטעון את קיר הברכות.</p>
             <p>בדקו את החיבור לאינטרנט ורעננו את הדף.</p>
           </div>
@@ -120,7 +121,7 @@ export default function GiftWallScreen() {
       <main className={styles.content}>
         {gifts.length === 0 ? (
           <div className={styles.empty}>
-            <span className={styles.emptyIcon} aria-hidden="true">💌</span>
+            <span className={styles.emptyIcon} aria-hidden="true"><Icon name="mail" size={30} /></span>
             <p className={styles.emptyText}>ממתין לברכות…</p>
           </div>
         ) : (

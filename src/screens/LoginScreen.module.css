@@ -35,7 +35,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: 0 24px 80px var(--scrim-45), 0 6px 24px var(--scrim-20);
-  padding: 40px 36px 32px;
+  padding: 40px 32px 32px;
   width: 100%;
   max-width: 420px;
   display: flex;
@@ -107,7 +107,7 @@
 .input {
   border: 1px solid var(--border2);
   border-radius: var(--radius);
-  padding: 13px 14px;
+  padding: 12px 14px;
   font-size: var(--step-0);
   color: var(--text);
   background: var(--bg);
@@ -139,7 +139,7 @@
 
 .passwordWrap .input {
   width: 100%;
-  padding-inline-end: 44px;
+  padding-inline-end: 40px;
 }
 
 .eyeBtn {
@@ -168,7 +168,7 @@
   background: var(--red-bg);
   border: 1px solid var(--red-border);
   border-radius: var(--radius);
-  padding: 9px 12px;
+  padding: 8px 12px;
   margin: 0;
 }
 
@@ -179,7 +179,7 @@
   color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
-  padding: 13px 0;
+  padding: 12px 0;
   font-size: var(--step-0);
   font-weight: 800;
   cursor: pointer;
@@ -219,7 +219,7 @@
 .backLink {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-size: var(--step--1);
   font-weight: 600;
   color: var(--text2);
@@ -368,5 +368,5 @@
 }
 
 @media (max-width: 480px) {
-  .card { padding: 30px 22px 26px; }
+  .card { padding: 28px 20px 24px; }
 }

@@ -5,6 +5,7 @@ import { fetchEventByToken } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { readGuestCardParams, guestScanPayload } from "../utils/guestCard.js";
 import styles from "./InviteScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 // Development fallback — displayed when Supabase is not configured locally
 const MOCK_EVENT = {
@@ -210,7 +211,7 @@ export default function InviteScreen() {
           {/* Date */}
           {formattedDate && (
             <div className={styles.detailRow}>
-              <span className={styles.detailIcon} aria-hidden="true">📅</span>
+              <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={17} /></span>
               <span className={styles.detailText}>{formattedDate}</span>
             </div>
           )}
@@ -218,7 +219,7 @@ export default function InviteScreen() {
           {/* Venue */}
           {event.venue && (
             <div className={styles.detailRow}>
-              <span className={styles.detailIcon} aria-hidden="true">📍</span>
+              <span className={styles.detailIcon} aria-hidden="true"><Icon name="pin" size={17} /></span>
               <span className={`${styles.detailText} ${styles.detailMuted}`}>{event.venue}</span>
             </div>
           )}

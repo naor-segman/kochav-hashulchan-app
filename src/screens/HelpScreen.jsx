@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
+import SectionMark from "../components/ui/SectionMark.jsx";
 import help from "./HelpScreen.module.css";
 
 const FAQ = [
@@ -50,7 +51,10 @@ export default function HelpScreen() {
       </header>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>מרכז עזרה</h1>
+        <div className={styles.titleRow}>
+          <SectionMark name="help" size={26} tile />
+          <h1 className={styles.title}>מרכז עזרה</h1>
+        </div>
         <p className={styles.updated}>כל מה שצריך כדי להתחיל — ולהפיק את המרב מהמערכת.</p>
 
         <div className={help.list}>

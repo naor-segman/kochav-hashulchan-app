@@ -28,7 +28,7 @@
   color: var(--text);
   background: var(--blush);
   border-radius: var(--radius-pill);
-  padding: 3px 10px;
+  padding: 2px 10px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -156,7 +156,7 @@
 }
 
 .bulkRsvpBtn {
-  padding: 5px 12px;
+  padding: 4px 12px;
   border-radius: var(--radius);
   border: 1px solid currentColor;
   background: var(--surface);

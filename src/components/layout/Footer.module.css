@@ -6,7 +6,7 @@
 .inner {
   max-width: var(--container-max);
   margin: 0 auto;
-  padding: 56px 24px 40px;
+  padding: 48px 24px 40px;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 40px;

@@ -93,7 +93,7 @@
 .main {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: 28px 20px 64px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -326,7 +326,7 @@
   background: var(--adm-warn-bg);
   border: 1px solid var(--adm-warn-border);
   border-radius: var(--radius-xs);
-  padding: 3px 10px;
+  padding: 2px 10px;
   font-size: var(--step--2);
   font-weight: 600;
   white-space: nowrap;
@@ -347,7 +347,7 @@
 .statusPending {
   display: inline-block;
   border-radius: var(--radius-lg);
-  padding: 3px 10px;
+  padding: 2px 10px;
   font-size: var(--step--3);
   font-weight: 700;
   white-space: nowrap;
@@ -412,7 +412,7 @@
   background: var(--adm-ok-bg-soft);
   border: 1px solid var(--adm-ok-border-soft);
   border-radius: var(--radius-lg);
-  padding: 2px 9px;
+  padding: 2px 8px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -427,12 +427,37 @@
 }
 
 /* ── Owner link (email → filter events) ── */
+/* One column of eight saturated brand-pink strings was the loudest thing in a
+   panel that is meant to be quiet, and the colour was carrying "this is a
+   link" — a job the underline already does. Same fix the vendor list got. */
 .ownerLink {
-  color: var(--accent);
-  text-decoration: none;
+  color: var(--adm-ink-darker);
+  text-decoration: underline;
+  text-decoration-color: var(--adm-line-strong);
+  text-underline-offset: 2px;
   font-size: var(--step--2);
 }
 
 .ownerLink:hover {
-  text-decoration: underline;
+  color: var(--adm-accent-dark);
+  text-decoration-color: currentColor;
+}
+
+/* The status is the column an operator scans, and it sits last — so on a
+   narrow window it was the first thing to slide out of view. It stays put
+   while the rest of the row scrolls under it. */
+.table td:last-child,
+.table th:last-child {
+  position: sticky;
+  inset-inline-start: 0;
+  background: var(--adm-surface);
+  box-shadow: 1px 0 0 var(--adm-line-soft);
+}
+
+.table th:last-child {
+  background: var(--adm-bg-alt);
+}
+
+.table tbody tr:hover td:last-child {
+  background: var(--adm-bg);
 }

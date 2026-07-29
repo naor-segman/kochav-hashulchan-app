@@ -213,7 +213,6 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   ];
   const rsvpLabel = v => RSVP_OPTIONS.find(o => o.value === v)?.label || "ממתין";
   const mealLabel = v => MEAL_OPTIONS.find(o => o.value === v)?.label || "";
-  const mealEmoji = v => MEAL_OPTIONS.find(o => o.value === v)?.emoji || "";
 
   // Excel is a report, not a workspace: one button that always downloads the
   // full, current guest list as a spreadsheet.
@@ -292,14 +291,14 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         sub="נהלו את רשימת האורחים. לחצו Enter להוספה מהירה."
         aside={
           <div className={base.pills}>
-            <StatPill n={ev.guests.length} label="סה״כ" />
+            <StatPill n={ev.guests.length} label="סה״כ" primary />
             <StatPill n={nBride} label={sideLabel("bride")} color="var(--bride)" />
             <StatPill n={nGroom} label={sideLabel("groom")} color="var(--groom)" />
             {nConfirmed > 0 && <StatPill n={nConfirmed} label="אישרו" color="var(--green)" />}
             {nDeclined > 0 && <StatPill n={nDeclined} label="סירבו" color="var(--red)" />}
             {nSeated > 0 && <StatPill n={nSeated} label="משובצים" color="var(--green)" />}
             {mealCounts.map(m => (
-              <StatPill key={m.value} n={m.n} label={m.emoji + " " + m.label} />
+              <StatPill key={m.value} n={m.n} label={m.label} />
             ))}
             {totalGifts > 0 && <StatPill n={"₪" + totalGifts.toLocaleString("he-IL")} label={"מתנות (" + nGiftsLogged + ")"} color="var(--green)" />}
           </div>
@@ -427,7 +426,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           </Field>
           <Field label="מנה">
             <select className={base.select} value={form.meal || MEAL_DEFAULT} onChange={e => setF("meal", e.target.value)}>
-              {MEAL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.emoji} {o.label}</option>)}
+              {MEAL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
         </div>
@@ -621,7 +620,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   <span className={base.gMeta}>
                     {sideLabel(g.side)} · {g.group}
                     {(g.count || 1) > 1 ? " · " + (g.count) + " מקומות" : ""}
-                    {g.meal && g.meal !== MEAL_DEFAULT ? " · " + mealEmoji(g.meal) + " " + mealLabel(g.meal) : ""}
+                    {g.meal && g.meal !== MEAL_DEFAULT ? " · " + mealLabel(g.meal) : ""}
                     {g.phone ? " · " + g.phone : ""}
                     {g.notes ? " · " + g.notes : ""}
                     {g.giftAmount > 0 ? " · ₪" + g.giftAmount.toLocaleString("he-IL") : ""}

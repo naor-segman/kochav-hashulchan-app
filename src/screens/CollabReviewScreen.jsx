@@ -97,7 +97,7 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
       {loadState === "ready" && (
         <div className={base.card}>
           <div className={base.pills}>
-            <StatPill n={rows.length} label="רשומות בטבלה" />
+            <StatPill n={rows.length} label="רשומות בטבלה" primary />
             <StatPill n={completeCount} label="מלאות ומסונכרנות" color="var(--green)" />
             {rows.length - completeCount > 0 && (
               <StatPill n={rows.length - completeCount} label="ממתינות להשלמה" color="var(--warn)" />

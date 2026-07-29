@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
 import styles from "./EventSiteScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 // Map a local (host-owned) event into the public-site shape, so the host can
 // preview drafts securely from inside the authenticated app.
@@ -149,7 +150,7 @@ export default function EventSiteScreen({ localEvent }) {
           {showRsvp && <Link to={rsvpUrl} className={styles.navRsvp}>אישור הגעה</Link>}
           {navItems.length > 0 && (
             <button className={styles.navBurger} onClick={() => setMenuOpen(o => !o)} aria-label="תפריט">
-              {menuOpen ? "✕" : "☰"}
+              {menuOpen ? "✕" : <Icon name="list" size={20} />}
             </button>
           )}
         </div>
@@ -174,7 +175,7 @@ export default function EventSiteScreen({ localEvent }) {
             {site?.heroEn && <div className={styles.heroEn}>{site.heroEn}</div>}
             <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
             {dateStr && <div className={styles.heroDate}>{dateStr}</div>}
-            {ev.venue && <div className={styles.heroVenue}>📍 {ev.venue}</div>}
+            {ev.venue && <div className={styles.heroVenue}><Icon name="pin" size={15} /> {ev.venue}</div>}
             {showRsvp && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
           </div>
         </header>
@@ -236,8 +237,8 @@ export default function EventSiteScreen({ localEvent }) {
         <section ref={locationRef} className={styles.section}>
           <h2 className={styles.secTitle}>מיקום והגעה</h2>
           <div className={styles.locCard}>
-            <div className={styles.locAddr}>📍 {site.address}</div>
-            {site.parkingNote && <p className={styles.locNote}>🅿️ {site.parkingNote}</p>}
+            <div className={styles.locAddr}><Icon name="pin" size={15} /> {site.address}</div>
+            {site.parkingNote && <p className={styles.locNote}><Icon name="car" size={15} /> {site.parkingNote}</p>}
             {(site.wazeUrl || site.address) && (
               <a
                 className={styles.locBtn}
@@ -261,7 +262,7 @@ export default function EventSiteScreen({ localEvent }) {
                   });
                   if (ics) downloadIcs(ics, icsFileName(ev.name));
                 }}
-              >📅 הוסיפו ליומן</button>
+              ><Icon name="calendar" /> הוסיפו ליומן</button>
             )}
           </div>
         </section>
@@ -321,7 +322,7 @@ export default function EventSiteScreen({ localEvent }) {
           <h2 className={styles.secTitle}>קיר ברכות</h2>
           {wishes.length === 0 ? (
             <div className={styles.wishEmpty}>
-              💌 היו הראשונים לברך {giftUrl && <>— <Link to={giftUrl} className={styles.wishLink}>השאירו ברכה</Link></>}
+              <Icon name="mail" /> היו הראשונים לברך {giftUrl && <>— <Link to={giftUrl} className={styles.wishLink}>השאירו ברכה</Link></>}
             </div>
           ) : (
             <div className={styles.wishGrid}>

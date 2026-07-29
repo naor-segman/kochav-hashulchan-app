@@ -93,7 +93,7 @@
 .main {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: 28px 20px 64px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -239,7 +239,7 @@
 .table th {
   background: var(--adm-bg-alt);
   border-bottom: 1px solid var(--adm-line);
-  padding: 11px 16px;
+  padding: 10px 16px;
   font-size: var(--step--3);
   font-weight: 700;
   color: var(--adm-ink-soft);
@@ -249,7 +249,7 @@
 }
 
 .table td {
-  padding: 11px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--adm-line-soft);
   color: var(--adm-ink-darker);
   vertical-align: middle;
@@ -322,7 +322,7 @@
   color: var(--adm-badge-blue-ink);
   border: 1px solid var(--adm-info-border);
   border-radius: var(--radius-lg);
-  padding: 2px 9px;
+  padding: 2px 8px;
   font-size: var(--step--3);
   font-weight: 700;
   text-transform: uppercase;
@@ -335,7 +335,7 @@
   color: var(--adm-badge-purple-ink);
   border: 1px solid var(--adm-badge-purple-border);
   border-radius: var(--radius-lg);
-  padding: 2px 9px;
+  padding: 2px 8px;
   font-size: var(--step--3);
   font-weight: 700;
   text-transform: uppercase;
@@ -359,7 +359,7 @@
   background: var(--adm-ok-bg-soft);
   border: 1px solid var(--adm-ok-border-soft);
   border-radius: var(--radius-lg);
-  padding: 2px 9px;
+  padding: 2px 8px;
   white-space: nowrap;
   flex-shrink: 0;
 }

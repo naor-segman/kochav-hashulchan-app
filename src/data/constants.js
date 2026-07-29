@@ -58,13 +58,19 @@ export const venueElement = v => VENUE_ELEMENTS.find(e => e.value === v) || null
 
 export const STORAGE_KEY = "kochav_hashulchan_v1";
 
+/* No `emoji` field. It existed so a native <option> could carry a glyph, and
+   that is a real constraint — an SVG cannot go inside one. But the same field
+   was then reused in the guest row and in the stat pills, where a drawn icon
+   fits perfectly, and six emoji from six drawing styles is exactly the tell
+   the rest of the product spent a day removing. Inside the select the label
+   carries it alone, which is what a native select is for. */
 export const MEAL_OPTIONS = [
-  { value: "regular",    label: "רגיל",          emoji: "🍽️" },
-  { value: "kosher",     label: "כשר מהדרין",    emoji: "✡️" },
-  { value: "vegan",      label: "טבעוני",         emoji: "🌱" },
-  { value: "vegetarian", label: "צמחוני",         emoji: "🥗" },
-  { value: "child",      label: "ילדים",          emoji: "🧒" },
-  { value: "none",       label: "לא אוכל",        emoji: "❌" },
+  { value: "regular",    label: "רגיל" },
+  { value: "kosher",     label: "כשר מהדרין" },
+  { value: "vegan",      label: "טבעוני" },
+  { value: "vegetarian", label: "צמחוני" },
+  { value: "child",      label: "ילדים" },
+  { value: "none",       label: "לא אוכל" },
 ];
 
 export const MEAL_DEFAULT = "regular";

@@ -15,7 +15,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 16px;
+  padding: 12px 16px;
   background: none;
   border: none;
   cursor: pointer;
@@ -109,8 +109,8 @@
 .groupHeader {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 16px 6px;
+  gap: 6px;
+  padding: 6px 16px 6px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -243,9 +243,9 @@
 .rowChips {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   flex-wrap: wrap;
-  margin-top: 3px;
+  margin-top: 2px;
 }
 
 .scoreImpactChip {
@@ -301,9 +301,9 @@
 /* ── Mobile ────────────────────────────────────────────────────────────────── */
 
 @media (max-width: 480px) {
-  .toggle       { padding: 11px 12px; }
+  .toggle       { padding: 10px 12px; }
   .groupHeader  { padding: 6px 12px; }
-  .row          { padding: 9px 12px; }
+  .row          { padding: 8px 12px; }
   .rowText      { font-size: var(--step--2); }
   .rowWhy       { font-size: var(--step--3); }
   .rowAction    { font-size: var(--step--3); }

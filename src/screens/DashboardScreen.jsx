@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { fmtDate } from "../utils/dateFormat.js";
+import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import { useTemplates } from "../hooks/useTemplates.js";
 import { canCreateEvent } from "../utils/featureGates.js";
 import { eventHealth, dashStats, summaryMessages } from "../utils/eventAnalytics.js";
@@ -46,6 +46,21 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
   const hasEvents     = events.length > 0;
   const stats         = useMemo(() => dashStats(events), [events]);
   const summaries     = useMemo(() => summaryMessages(stats), [stats]);
+
+  // The event closest to happening is the one the host came here about, so it
+  // is the one that gets the size. Past and undated events fall to the back —
+  // an event with no date cannot be "soon".
+  const featuredId = useMemo(() => {
+    if (events.length === 0) return null;
+    const ranked = events
+      .map(e => ({ id: e.id, d: daysUntil(e.date) }))
+      .sort((a, b) => {
+        const av = a.d == null || a.d < 0 ? Infinity : a.d;
+        const bv = b.d == null || b.d < 0 ? Infinity : b.d;
+        return av - bv;
+      });
+    return ranked[0].id;
+  }, [events]);
   const { mainTemplates, emptyTemplate, loading: templateLoading } = useTemplates();
   const eventGate     = canCreateEvent(plan, events.length);
 
@@ -186,16 +201,57 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
           <h2 className={styles.sectionHead}>האירועים שלי ({events.length})</h2>
           <div className={styles.eventGrid}>
             {events.map(ev => {
-              const h   = eventHealth(ev);
-              const cap = ev.tables.reduce((s, t) => s + t.capacity, 0);
+              const h    = eventHealth(ev);
+              const cap  = ev.tables.reduce((s, t) => s + t.capacity, 0);
+              const feat = ev.id === featuredId && events.length > 0;
+              const days = daysUntil(ev.date);
               return (
                 <div
                   key={ev.id}
                   className={[
                     styles.eventCard,
+                    feat ? styles.eventCardFeatured : "",
                     h.needsAttention ? styles.eventCardAttention : "",
                   ].filter(Boolean).join(" ")}
                 >
+                {/* The featured card is the one thing on this page with any
+                    size to it. Everything else on a dashboard is a list; this
+                    is the event, drawn — a number that means something and the
+                    tables underneath it, on the blush ground the system uses
+                    when something has to be looked at without spending the
+                    accent. */}
+                {feat && (
+                  <div className={styles.featPanel} aria-hidden="true">
+                    {days != null && days >= 0 ? (
+                      <>
+                        <span className={styles.featBig}>{days}</span>
+                        <span className={styles.featCaption}>
+                          {days === 0 ? "האירוע היום" : days === 1 ? "יום לאירוע" : "ימים לאירוע"}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className={styles.featBig}>{Math.round(h.pct * 100)}<span className={styles.featPct}>%</span></span>
+                        <span className={styles.featCaption}>מהמקומות שובצו</span>
+                      </>
+                    )}
+                    {ev.tables.length > 0 && (
+                      <div className={styles.featGlyphs}>
+                        {ev.tables.slice(0, 8).map(t => (
+                          <TableGlyph
+                            key={t.id}
+                            shape={t.shape}
+                            capacity={t.capacity}
+                            taken={ev.guests.reduce(
+                              (n, g) => n + (ev.seating?.[g.id] === t.id ? (g.count || 1) : 0), 0)}
+                            size={38}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className={styles.eventCardBody}>
 
                   <div className={styles.eventCardTop}>
                     <span className={styles.eventType}>{ev.type}</span>
@@ -313,6 +369,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
                       שכפלו אירוע
                     </button>
                   </div>
+                </div>
 
                 </div>
               );

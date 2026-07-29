@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitGift } from "../utils/publicTokens.js";
 import styles from "./GiftScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 const MOCK_EVENT = {
   name: "חתונת נועה וטל",
@@ -304,7 +305,7 @@ export default function GiftScreen() {
           {/* How the money is transferred */}
           {(ev.giftBitPhone || ev.giftPayboxLink) && (
             <div className={styles.payCard}>
-              <div className={styles.payCardTitle}>💛 איך מעבירים את המתנה?</div>
+              <div className={styles.payCardTitle}><Icon name="heart" size={16} /> איך מעבירים את המתנה?</div>
               <p className={styles.payComing}>
                 אחרי שליחת הברכה יוצגו פרטי ההעברה
                 {ev.giftBitPhone && " בביט"}

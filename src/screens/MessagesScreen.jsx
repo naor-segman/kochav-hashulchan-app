@@ -104,7 +104,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
         aside={
           <div className={base.pills}>
             <StatPill n={stages.reduce((n, s) => n + s.done, 0)} label="נשלחו" color="var(--green)" />
-            <StatPill n={totalPlanned} label="מתוכננות" />
+            <StatPill n={totalPlanned} label="מתוכננות" primary />
           </div>
         }
       />

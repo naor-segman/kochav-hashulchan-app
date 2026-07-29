@@ -54,7 +54,7 @@
 .main {
   max-width: 680px;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: 28px 20px 64px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -98,7 +98,7 @@
 .retryBtn {
   margin-top: 8px;
   background: var(--accent); color: var(--adm-surface); border: none;
-  border-radius: var(--radius-md); padding: 10px 22px;
+  border-radius: var(--radius-md); padding: 10px 20px;
   font-size: var(--step-0); font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s;
 }
@@ -132,7 +132,7 @@
 
 .card {
   background: var(--adm-surface); border: 1px solid var(--adm-line);
-  border-radius: var(--radius); padding: 20px 22px;
+  border-radius: var(--radius); padding: 20px 20px;
   display: flex; flex-direction: column; gap: 16px;
   box-shadow: 0 1px 3px var(--adm-shadow);
 }
@@ -149,7 +149,7 @@
 
 .input, .select {
   border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
-  padding: 9px 12px; font-size: var(--step-0); color: var(--adm-ink);
+  padding: 8px 12px; font-size: var(--step-0); color: var(--adm-ink);
   background: var(--adm-bg); outline: none; font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -162,7 +162,7 @@
 
 .textarea {
   border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
-  padding: 9px 12px; font-size: var(--step-0); color: var(--adm-ink);
+  padding: 8px 12px; font-size: var(--step-0); color: var(--adm-ink);
   background: var(--adm-bg); outline: none; font-family: inherit;
   resize: vertical; min-height: 80px;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -196,7 +196,7 @@
 
 .flagBadge {
   font-size: var(--step--3); font-weight: 700;
-  padding: 2px 9px; border-radius: var(--radius-lg);
+  padding: 2px 8px; border-radius: var(--radius-lg);
   white-space: nowrap;
   background: var(--adm-bg-sunken); color: var(--adm-ink-muted); border: 1px solid var(--adm-line);
 }
@@ -208,14 +208,14 @@
 .saveError {
   font-size: var(--step--1); color: var(--adm-danger);
   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft);
-  border-radius: var(--radius-md); padding: 9px 12px; margin: 0;
+  border-radius: var(--radius-md); padding: 8px 12px; margin: 0;
   direction: ltr; text-align: left;
 }
 
 .saveSuccess {
   font-size: var(--step--1); color: var(--adm-ok);
   background: var(--adm-ok-bg); border: 1px solid var(--adm-ok-border);
-  border-radius: var(--radius-md); padding: 9px 12px; margin: 0;
+  border-radius: var(--radius-md); padding: 8px 12px; margin: 0;
 }
 
 .formActions {
@@ -224,7 +224,7 @@
 
 .saveBtn {
   background: var(--accent); color: var(--adm-surface); border: none;
-  border-radius: var(--radius-md); padding: 11px 28px;
+  border-radius: var(--radius-md); padding: 10px 28px;
   font-size: var(--step-0); font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s, box-shadow 0.12s;
 }
