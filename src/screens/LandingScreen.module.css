@@ -1166,41 +1166,50 @@
 
 /* The chip: a solid brand circle carrying a white icon. This is the single most
    recognisable graphic element — it turns a plain list into a designed one. */
+/* The badge was a solid --accent disc with a line glyph on it. Six saturated
+   discs is a lot of brand on one page, and — worse — the glyph inside was from
+   a THIRD icon set, so the six things the home page promises were drawn one way
+   here and a different way once you were inside the product.
+   It is the same tile the in-app page heads use, holding the same mark. */
 .featureIconWrap {
   width: 54px;
   height: 54px;
-  border-radius: 50%;
-  background: var(--accent);
+  border-radius: 17px;
+  background: var(--surface);
+  border: 1px solid var(--blush-line);
   display: grid;
   place-items: center;
   margin-bottom: 18px;
-  box-shadow: 0 6px 18px rgba(var(--accent-rgb), .28);
+  box-shadow: 0 4px 14px rgba(var(--text-rgb), .06);
   transition: transform var(--transition-slow) var(--ease-out),
               box-shadow var(--transition-slow) var(--ease-out);
 }
-.featureIcon { display: inline-flex; }
-.featureIcon,
-.featureIcon svg {
-  /* Near-black, not white. The reference's chips carry a dark glyph, and it is
-     also the only one that passes on this fill: #14161A is 4.76:1 where white
-     is 3.80:1. The detail and the correctness happen to agree. */
-  color: var(--text);
-  stroke: var(--text);
-  width: 24px;
-  height: 24px;
+/* The mark brings its own colours — see SectionMark.module.css. */
+.featureIcon {
+  display: block;
 }
 
 .featureCard:hover .featureIconWrap {
   transform: translateY(-3px) rotate(-6deg);
-  box-shadow: 0 10px 26px rgba(var(--accent-rgb), .38);
+  box-shadow: 0 10px 26px rgba(var(--text-rgb), .12);
 }
 
 /* Every other chip alternates to the deeper fill, so a grid of six reads as a
    composition rather than six identical dots. */
-.featureCard:nth-child(3n+2) .featureIconWrap { background: var(--blush); box-shadow: none; }
-.featureCard:nth-child(3n)   .featureIconWrap { background: var(--text); }
-.featureCard:nth-child(3n)   .featureIcon,
-.featureCard:nth-child(3n)   .featureIcon svg { color: var(--blush); stroke: var(--blush); }
+/* White → blush → ink, the same three grounds the page rotates through. The
+   mark's tone is switched in the JSX to match, since an ink hairline on the
+   ink badge would be invisible. */
+.featureCard:nth-child(3n+2) .featureIconWrap {
+  background: var(--blush);
+  border-color: var(--blush-deep);
+  box-shadow: none;
+}
+
+.featureCard:nth-child(3n) .featureIconWrap {
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow: none;
+}
 
 /* The diamond — a 45°-rotated square, the reference's core decorative form.
    Purely presentational, so it is aria-hidden at the call site. */
@@ -1336,11 +1345,19 @@
   gap: 28px;
 }
 .trustItem { display: flex; gap: 14px; align-items: flex-start; }
+/* The blush ground here is deliberate: it is the surface the system uses when
+   something needs to stand out without spending the accent. The mark sits on
+   it as a drawing, not as a coloured glyph. */
 .trustChip {
-  flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px;
-  background: var(--blush); color: var(--text);
-  display: grid; place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--blush);
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  box-sizing: border-box;
 }
-.trustChip svg { width: 20px; height: 20px; stroke: var(--text); }
 .trustTitle { font-size: var(--step-0); font-weight: 800; color: var(--text); margin: 0 0 3px; }
 .trustDesc  { font-size: var(--step--1); color: var(--muted); margin: 0; line-height: 1.5; }

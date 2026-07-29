@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import styles from "./SuggestionsPanel.module.css";
+import Icon from "../ui/Icon.jsx";
 
-const SEVERITY_ICON = { critical: "🔴", warning: "⚡", info: "💡" };
+const SEVERITY_ICON = { critical: "alert", warning: "bolt", info: "bulb" };
 
 const SECTION_META = {
-  critical:      { label: "בעיות קריטיות",       icon: "🔴", style: "critical" },
-  fixes:         { label: "תיקונים מוצעים",       icon: "⚡", style: "fixes"    },
-  opportunities: { label: "הזדמנויות לשיפור",    icon: "💡", style: "opportunities" },
+  critical:      { label: "בעיות קריטיות",       icon: "alert", style: "critical" },
+  fixes:         { label: "תיקונים מוצעים",       icon: "bolt", style: "fixes"    },
+  opportunities: { label: "הזדמנויות לשיפור",    icon: "bulb", style: "opportunities" },
 };
 
 // Derive section for suggestions that predate V2 (no section field)
@@ -103,7 +104,7 @@ export default function SuggestionsPanel({ suggestions = [], qualityScore = null
                 <div key={sec} className={styles.group}>
                   {/* Section header */}
                   <div className={[styles.groupHeader, styles["groupHeader_" + meta.style]].join(" ")}>
-                    <span className={styles.groupIcon} aria-hidden="true">{meta.icon}</span>
+                    <span className={styles.groupIcon} aria-hidden="true"><Icon name={meta.icon} size={15} /></span>
                     <span className={styles.groupLabel}>{meta.label}</span>
                     <span className={styles.groupCount}>{items.length}</span>
                   </div>
@@ -116,7 +117,7 @@ export default function SuggestionsPanel({ suggestions = [], qualityScore = null
                         className={[styles.row, styles["row_" + s.severity]].join(" ")}
                       >
                         <span className={styles.rowIcon} aria-hidden="true">
-                          {SEVERITY_ICON[s.severity]}
+                          <Icon name={SEVERITY_ICON[s.severity]} size={14} />
                         </span>
                         <div className={styles.rowContent}>
                           <span className={styles.rowText}>{s.explanation}</span>

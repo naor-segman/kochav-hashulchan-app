@@ -10,6 +10,7 @@ import { isPaidPlan, isStripeConfigured } from "../admin/lib/stripeConfig.js";
 import { useBilling } from "../hooks/useBilling.js";
 import { useSubscription } from "../hooks/useSubscription.js";
 import styles from "./AccountScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -182,7 +183,7 @@ export default function AccountScreen({ eventCount = 0 }) {
                   <button type="button" className={styles.pwEyeBtn}
                     onClick={() => setShowPw(v => !v)} tabIndex={-1}
                     aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}>
-                    {showPw ? "🙈" : "👁"}
+                    <Icon name={showPw ? "eyeOff" : "eye"} size={18} />
                   </button>
                 </div>
                 <input
@@ -300,7 +301,7 @@ export default function AccountScreen({ eventCount = 0 }) {
         {/* ── Subscription status notices ── */}
         {sub && isPaymentFailed && (
           <div className={styles.paymentFailedBanner}>
-            <span>⚠ תשלום נכשל — אנא עדכנו את אמצעי התשלום שלכם.</span>
+            <span><Icon name="alert" /> תשלום נכשל — אנא עדכנו את אמצעי התשלום שלכם.</span>
             {isPaidPlan(planKey) && isStripeConfigured && (
               <button
                 className={styles.paymentFailedBannerBtn}
@@ -388,7 +389,7 @@ export default function AccountScreen({ eventCount = 0 }) {
                         className={styles.planCardIcon}
                         style={{ color: meta?.color || "#888" }}
                       >
-                        {key === "free" ? "✦" : key === "pro" ? "★" : "◆"}
+                        <Icon name={key === "free" ? "sparkle" : key === "pro" ? "star" : "diamond"} size={16} />
                       </span>
                       <span className={styles.planCardName}>
                         {getPlanLabel(key)}
@@ -502,7 +503,7 @@ export default function AccountScreen({ eventCount = 0 }) {
           target="_blank"
           rel="noreferrer"
         >
-          ✉ שלחו משוב / דווחו על בעיה
+          <Icon name="mail" /> שלחו משוב / דווחו על בעיה
         </a>
 
         <p className={styles.versionLabel}>גרסה 0.1 · בטא מוקדמת</p>

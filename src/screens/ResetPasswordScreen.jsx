@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 // Landing page for the password-reset link. Supabase establishes a short-lived
 // recovery session from the link; here the user picks a new password.
@@ -93,7 +94,7 @@ export default function ResetPasswordScreen() {
                   aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
                   tabIndex={-1}
                 >
-                  {showPw ? "🙈" : "👁"}
+                  <Icon name={showPw ? "eyeOff" : "eye"} size={18} />
                 </button>
               </div>
             </div>

@@ -26,8 +26,7 @@
 }
 
 .brandMark {
-  font-size: 18px;
-  color: var(--accent);
+  flex-shrink: 0;
 }
 
 .brandName {
@@ -137,9 +136,10 @@
   box-shadow: 0 1px 4px var(--adm-shadow);
 }
 
+/* The marks bring their own colour (the panel's neutral tone), so the wrapper
+   no longer paints them. */
 .statIcon {
   margin-bottom: 6px;
-  color: var(--accent);
   display: inline-flex;
 }
 
@@ -238,7 +238,6 @@
 
 .navIcon {
   flex-shrink: 0;
-  color: var(--accent);
   display: inline-flex;
 }
 
@@ -279,10 +278,19 @@
   box-shadow: 0 2px 8px var(--adm-focus-ring-mid);
 }
 
+/* An affordance, not a state. Six magenta arrows down one column made the
+   accent the loudest thing on a page whose job is to be quiet; it earns its
+   colour on hover, where it means "this is the row you are on". */
 .navArrow {
   font-size: 16px;
-  color: var(--accent);
+  color: var(--adm-ink-faint);
   margin-inline-start: auto;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.navItemLink:hover .navArrow {
+  color: var(--adm-accent-dark);
+  transform: translateX(-3px);
 }
 
 /* ── Live badge ── */

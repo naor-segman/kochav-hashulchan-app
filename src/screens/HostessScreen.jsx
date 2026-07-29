@@ -3,6 +3,8 @@ import TableGlyph from "../components/ui/TableGlyph.jsx";
 import { useParams } from "react-router-dom";
 import { fetchHostessData } from "../utils/publicTokens.js";
 import styles from "./HostessScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
+import SectionMark from "../components/ui/SectionMark.jsx";
 
 // Normalize for search: trim, collapse whitespace, strip Hebrew niqqud, lowercase.
 function norm(s) {
@@ -111,7 +113,7 @@ export default function HostessScreen() {
     return (
       <div className={styles.root}>
         <div className={styles.loadingWrap}>
-          <span className={styles.stateIcon} aria-hidden="true">⚠</span>
+          <span className={styles.stateIcon} aria-hidden="true"><Icon name="alert" size={30} /></span>
           <span className={styles.loadingText}>הקישור אינו תקין או שהאירוע הוסר</span>
         </div>
       </div>
@@ -121,7 +123,7 @@ export default function HostessScreen() {
     return (
       <div className={styles.root}>
         <div className={styles.loadingWrap}>
-          <span className={styles.stateIcon} aria-hidden="true">⚠</span>
+          <span className={styles.stateIcon} aria-hidden="true"><Icon name="alert" size={30} /></span>
           <span className={styles.loadingText}>שגיאת חיבור — נסו לרענן את הדף</span>
         </div>
       </div>
@@ -143,7 +145,7 @@ export default function HostessScreen() {
           </>
         ) : (
           <>
-            <div className={styles.unseatedBadge} aria-label="לא שובץ">⚠ לא שובץ</div>
+            <div className={styles.unseatedBadge} aria-label="לא שובץ"><Icon name="alert" /> לא שובץ</div>
             <div className={styles.guestName}>{g.name}</div>
             <div className={styles.seatCount}>{seatLabel(g.count)}</div>
             {comps.length > 0 && <div className={styles.guestComps}>עם: {comps.join(", ")}</div>}
@@ -199,18 +201,18 @@ export default function HostessScreen() {
         <button
           className={[styles.modeBtn, mode === "search" ? styles.modeBtnActive : ""].filter(Boolean).join(" ")}
           onClick={() => setMode("search")} role="tab" aria-selected={mode === "search"}
-        >🔍 חיפוש אורח</button>
+        ><Icon name="search" /> חיפוש אורח</button>
         <button
           className={[styles.modeBtn, mode === "browse" ? styles.modeBtnActive : ""].filter(Boolean).join(" ")}
           onClick={() => setMode("browse")} role="tab" aria-selected={mode === "browse"}
-        >🍽 עיון לפי שולחן</button>
+        ><Icon name="hexagon" /> עיון לפי שולחן</button>
       </div>
 
       {/* ═══ SEARCH MODE ═══ */}
       {mode === "search" && (
         <>
           <div className={styles.searchWrap}>
-            <span className={styles.searchIcon} aria-hidden="true">🔍</span>
+            <span className={styles.searchIcon} aria-hidden="true"><Icon name="search" size={20} /></span>
             <input
               ref={searchRef}
               className={styles.searchInput}
@@ -226,7 +228,7 @@ export default function HostessScreen() {
 
           {q.length === 0 && (
             <div className={styles.emptyState}>
-              <span className={styles.emptyIcon} aria-hidden="true">🔍</span>
+              <span className={styles.emptyIcon} aria-hidden="true"><Icon name="search" size={38} /></span>
               <p className={styles.emptyTitle}>חפשו שם אורח</p>
               <p className={styles.emptyHint}>הקלידו שם אורח או מספר שולחן</p>
             </div>
@@ -234,7 +236,7 @@ export default function HostessScreen() {
 
           {q.length >= 1 && guestResults.length === 0 && tableMatches.length === 0 && (
             <div className={styles.noResult}>
-              <span className={styles.noResultIcon} aria-hidden="true">🤷</span>
+              <span className={styles.noResultIcon} aria-hidden="true"><Icon name="search" size={34} /></span>
               <p className={styles.noResultText}>לא נמצא — נסו שם אחר</p>
             </div>
           )}
@@ -281,7 +283,7 @@ export default function HostessScreen() {
           )}
           {!openTable && (
             <div className={styles.emptyState}>
-              <span className={styles.emptyIcon} aria-hidden="true">🍽</span>
+              <span className={styles.emptyIcon} aria-hidden="true"><SectionMark name="hostess" tone="ondark" size={40} /></span>
               <p className={styles.emptyTitle}>בחרו שולחן</p>
               <p className={styles.emptyHint}>הקישו על שולחן כדי לראות מי יושב בו</p>
             </div>

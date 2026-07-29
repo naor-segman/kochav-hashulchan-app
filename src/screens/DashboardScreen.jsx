@@ -77,7 +77,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
       {/* ── Event limit upgrade tip ── */}
       {!eventGate.allowed && hasEvents && (
         <p className={styles.upgradeTip}>
-          🔒 {eventGate.reason} —{" "}
+          <Icon name="lock" /> {eventGate.reason} —{" "}
           <Link to="/account" className={styles.upgradeTipLink}>שדרגו את התוכנית</Link>
         </p>
       )}
@@ -229,9 +229,9 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
 
                   {(ev.date || ev.venue) && (
                     <div className={styles.eventMeta}>
-                      {ev.date && <span>📅 {fmtDate(ev.date)}</span>}
+                      {ev.date && <span><Icon name="calendar" size={13} /> {fmtDate(ev.date)}</span>}
                       {ev.date && ev.venue && <span className={styles.metaSep}>·</span>}
-                      {ev.venue && <span>📍 {ev.venue}</span>}
+                      {ev.venue && <span><Icon name="pin" size={13} /> {ev.venue}</span>}
                     </div>
                   )}
 
@@ -325,7 +325,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
       <div className={styles.demoCard}>
         <button className={styles.demoToggle} onClick={() => setShowDemo(v => !v)}>
           <span className={styles.demoToggleStart}>
-            <span className={styles.demoIcon}>🧭</span>
+            <span className={styles.demoIcon}><Icon name="compass" size={22} /></span>
             <span className={styles.demoTitle}>מדריך התחלה</span>
             {doneSteps.size > 0 && (
               <span className={doneSteps.size === DEMO_STEPS.length ? styles.demoBadgeDone : styles.demoBadge}>
@@ -386,7 +386,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
                 <div className={styles.tmplGrid}>
                   {mainTemplates.map(tpl => (
                     <button key={tpl.id} className={styles.tmplCard} onClick={() => openTemplate(tpl)}>
-                      <span className={styles.tmplIcon}>{tpl.icon}</span>
+                      <span className={styles.tmplIcon}><Icon name={tpl.icon} size={22} /></span>
                       <span className={styles.tmplLabel}>{tpl.label}</span>
                       <span className={styles.tmplDesc}>{tpl.desc}</span>
                     </button>
@@ -398,7 +398,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
             <div className={styles.tmplSep} />
 
             <button className={styles.tmplEmptyBtn} onClick={() => openTemplate(emptyTemplate)}>
-              <span>{emptyTemplate.icon} {emptyTemplate.label}</span>
+              <span><Icon name={emptyTemplate.icon} size={16} /> {emptyTemplate.label}</span>
               <span className={styles.tmplEmptyDesc}>{emptyTemplate.desc}</span>
             </button>
           </div>

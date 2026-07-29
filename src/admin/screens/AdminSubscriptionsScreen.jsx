@@ -12,6 +12,7 @@ import {
 } from "../lib/planConfig.js";
 import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSubscriptionsScreen.module.css";
+import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -161,7 +162,7 @@ export default function AdminSubscriptionsScreen() {
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
-          <span className={styles.brandMark}>✦</span>
+          <SectionMark name="adminSubscriptions" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>מנויים ותשלומים</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>

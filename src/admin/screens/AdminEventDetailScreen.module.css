@@ -40,7 +40,7 @@
   color: var(--adm-ink-dark);
 }
 
-.brandMark   { font-size: 18px; color: var(--accent); }
+.brandMark   { flex-shrink: 0; }
 
 .brandName {
   font-size: 16px;

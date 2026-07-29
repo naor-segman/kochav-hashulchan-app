@@ -1,0 +1,219 @@
+/* The section marks.
+
+   One vocabulary across every mark, so twenty screens read as one hand:
+
+     plate    a blush surface with an ink hairline — the subject of the section
+     line     ink hairline — structure drawn on the plate
+     line2    a softer hairline for a secondary object
+     dim      border grey — what is not there yet
+     live     accent FILL — and only ever the part carrying live data
+
+   `live` is the whole reason the set is legible at 22px: the eye finds the pink
+   first, and the pink is always the answer, the reply, the taken seat, the done
+   task. That is the same contract TableGlyph makes, which is why the two sit
+   next to each other without arguing.
+
+   --accent appears here as a fill and nothing else. Text and hairlines that
+   need to carry the brand use --accent-text; see tokens.css. */
+
+.mark {
+  display: block;
+  overflow: visible;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── brand tone — the customer-facing product ─────────────────────────────── */
+
+.brand .plate {
+  fill: var(--blush-soft);
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.brand .line {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.brand .line2 {
+  stroke: var(--text2);
+  stroke-width: 1.4;
+}
+
+.brand .dim {
+  stroke: var(--border2);
+  stroke-width: 1.4;
+}
+
+.brand .dimFill {
+  fill: var(--surface);
+  stroke: var(--border2);
+  stroke-width: 1.4;
+}
+
+.brand .live {
+  fill: var(--accent);
+}
+
+.brand .liveLine {
+  stroke: var(--accent);
+  stroke-width: 1.9;
+}
+
+/* A filled disc that carries a glyph on top of it — the ring is the page
+   surface, so the disc lifts off whatever it overlaps. */
+.brand .liveDisc {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 1.6;
+}
+
+.brand .onLive {
+  stroke: var(--on-accent);
+  stroke-width: 1.8;
+}
+
+.brand .knob {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1.8;
+}
+
+/* ── admin tone — the panel is an internal tool and stays monochrome ───────── */
+/* Same drawings, no brand colour. The live/dim distinction survives on value
+   alone, which is what a dense grey table needs anyway. */
+
+.admin .plate {
+  fill: var(--adm-bg-sunken);
+  stroke: var(--adm-ink-dark);
+  stroke-width: 1.5;
+}
+
+.admin .line {
+  stroke: var(--adm-ink-dark);
+  stroke-width: 1.5;
+}
+
+.admin .line2 {
+  stroke: var(--adm-ink-soft);
+  stroke-width: 1.4;
+}
+
+.admin .dim {
+  stroke: var(--adm-line-strong);
+  stroke-width: 1.4;
+}
+
+.admin .dimFill {
+  fill: var(--adm-surface);
+  stroke: var(--adm-line-strong);
+  stroke-width: 1.4;
+}
+
+.admin .live {
+  fill: var(--adm-ink-darker);
+}
+
+.admin .liveLine {
+  stroke: var(--adm-ink-darker);
+  stroke-width: 1.9;
+}
+
+.admin .liveDisc {
+  fill: var(--adm-ink-darker);
+  stroke: var(--adm-surface);
+  stroke-width: 1.6;
+}
+
+.admin .onLive {
+  stroke: var(--adm-surface);
+  stroke-width: 1.8;
+}
+
+.admin .knob {
+  fill: var(--adm-surface);
+  stroke: var(--adm-ink-darker);
+  stroke-width: 1.8;
+}
+
+/* ── on the near-black chrome ─────────────────────────────────────────────── */
+/* Same mistake class as the glyph's onDark variant: a near-black hairline is
+   invisible here and a blush plate glares. Measured against #21242A —
+   --nav-muted 5.97:1, --accent-on-dark 7.99:1, --nav-text 14.27:1. */
+
+.ondark .plate {
+  fill: none;
+  stroke: var(--nav-text);
+  stroke-width: 1.5;
+}
+
+.ondark .line,
+.ondark .line2 {
+  stroke: var(--nav-muted);
+  stroke-width: 1.4;
+}
+
+.ondark .dim,
+.ondark .dimFill {
+  fill: none;
+  stroke: var(--nav-muted);
+  stroke-width: 1.4;
+}
+
+.ondark .live {
+  fill: var(--accent-on-dark);
+}
+
+.ondark .liveLine {
+  stroke: var(--accent-on-dark);
+  stroke-width: 1.9;
+}
+
+.ondark .liveDisc {
+  fill: var(--accent-on-dark);
+  stroke: var(--nav-bg2);
+  stroke-width: 1.6;
+}
+
+.ondark .onLive {
+  stroke: var(--nav-bg);
+  stroke-width: 1.8;
+}
+
+.ondark .knob {
+  fill: var(--nav-bg2);
+  stroke: var(--accent-on-dark);
+  stroke-width: 1.8;
+}
+
+/* ── the tile ─────────────────────────────────────────────────────────────── */
+/* A page head needs mass before it needs colour. The tile is a white surface
+   with a blush ring: the ring carries the brand, the white keeps the plate
+   inside legible, and the same component still works untiled in a sidebar. */
+
+.tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: calc(var(--mark-size) * 1.9);
+  height: calc(var(--mark-size) * 1.9);
+  border-radius: calc(var(--mark-size) * 0.5);
+  background: var(--surface);
+  border: 1px solid var(--blush-line);
+  box-shadow: 0 1px 2px rgba(var(--text-rgb), .05);
+}
+
+.tile.admin {
+  background: var(--adm-surface);
+  border-color: var(--adm-line-strong);
+  box-shadow: none;
+}
+
+.tile.ondark {
+  background: var(--nav-bg2);
+  border-color: var(--nav-border);
+  box-shadow: none;
+}

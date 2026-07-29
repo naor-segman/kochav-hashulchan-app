@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from "react";
-import Icon from "../components/ui/Icon.jsx";
 import { uid } from "../utils/uid.js";
 import { SITE_THEME_LIST, SITE_FONTS, DEFAULT_SITE_FONT } from "../data/eventSiteTemplates.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -102,7 +101,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     <div className={base.page}>
       <PageHeader
         title="אתר האירוע"
-        icon={<Icon name="globe" />}
+        mark="site"
         sub="בנו את אתר האירוע שלכם — הוא נבנה אוטומטית ונשלח לאורחים. מלאו פרטים, בחרו עיצוב, ופרסמו."
       />
 
@@ -435,11 +434,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         <SectionLabel>מקטעים נוספים</SectionLabel>
         <div className={styles.toggleList}>
           <div className={styles.toggleRow}>
-            <span>מתנה 💝 — קישור למסך המתנה</span>
+            <span>מתנה — קישור למסך המתנה</span>
             <Toggle on={site.sections.gift} onChange={v => setSection("gift", v)} />
           </div>
           <div className={styles.toggleRow}>
-            <span>קיר ברכות 💌 — ברכות מהאורחים</span>
+            <span>קיר ברכות — ברכות מהאורחים</span>
             <Toggle on={site.sections.blessings} onChange={v => setSection("blessings", v)} />
           </div>
         </div>

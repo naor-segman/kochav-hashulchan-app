@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import Icon from "../components/ui/Icon.jsx";
 import { SITE_THEME_LIST, SITE_FONTS, DEFAULT_SITE_FONT } from "../data/eventSiteTemplates.js";
 import {
   ANNOUNCEMENT_KINDS, ANNOUNCEMENT_LAYOUTS,
@@ -10,6 +9,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import QrCode from "../components/ui/QrCode.jsx";
 import base from "../styles/screenBase.module.css";
+import Icon from "../components/ui/Icon.jsx";
 import styles from "./AnnouncementsEditorScreen.module.css";
 
 /** Downscale + compress in the browser — a 5MB phone photo would otherwise be
@@ -80,7 +80,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
     <div className={base.page}>
       <PageHeader
         title="Save the Date והזמנה"
-        icon={<Icon name="mail" />}
+        mark="announcements"
         sub="שני דפים מעוצבים לאותו אירוע — אחד לשמירת התאריך, אחד להזמנה עצמה."
       />
 
@@ -96,7 +96,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
               aria-pressed={kind === k.key}
               type="button"
             >
-              <span aria-hidden="true">{k.icon}</span> {k.label}
+              <Icon name={k.icon} size={15} /> {k.label}
               <span className={[styles.dot, on ? styles.dotOn : ""].filter(Boolean).join(" ")} title={on ? "מפורסם" : "לא מפורסם"} />
             </button>
           );
@@ -260,7 +260,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
         </div>
         {kind === "saveTheDate" && ann.showRsvp && (
           <p className={base.fieldHint}>
-            💡 Save the Date נשלח בדרך כלל חודשים מראש — שקלו אם אישורי ההגעה כבר פתוחים.
+            <Icon name="bulb" /> Save the Date נשלח בדרך כלל חודשים מראש — שקלו אם אישורי ההגעה כבר פתוחים.
           </p>
         )}
       </div>

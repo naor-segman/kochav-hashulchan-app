@@ -9,6 +9,7 @@ import { GROUP_OPTIONS } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
 import styles from "./CollabScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 // DEV mock so the page can be designed without a live token.
 const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתונה", brideName: "נועה", groomName: "טל", coupleType: "bride-groom", sideLabels: null };
@@ -90,7 +91,7 @@ export default function CollabScreen() {
   }, [token, mergePolled]);
 
   if (state === "loading")  return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
-  if (state === "notfound") return <div className={styles.state}><span className={styles.star}>⚠</span><p>הקישור אינו תקין או שפג תוקפו</p></div>;
+  if (state === "notfound") return <div className={styles.state}><span className={styles.star}><Icon name="alert" size={26} /></span><p>הקישור אינו תקין או שפג תוקפו</p></div>;
 
   const sides = getSideLabels(ev);
 
@@ -186,7 +187,7 @@ export default function CollabScreen() {
 
           <div className={styles.toolbar}>
             <button className={styles.btn} onClick={addRow}>+ הוסיפו שורה</button>
-            <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}>⬇ הורדה לאקסל</button>
+            <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}><Icon name="download" /> הורדה לאקסל</button>
           </div>
           <div className={styles.counts}>
             {rows.length} רשומות · <span className={styles.ok}>{completeCount} מלאות ומסונכרנות</span>
@@ -253,7 +254,7 @@ export default function CollabScreen() {
 
                 {complete
                   ? <div className={styles.rowOk}>✓ מלאה — מסונכרנת לרשימה</div>
-                  : <div className={styles.rowWarn}>⚠ חסר: {miss.join(", ")} — לא תסתנכרן עד שיושלם</div>}
+                  : <div className={styles.rowWarn}><Icon name="alert" size={13} /> חסר: {miss.join(", ")} — לא תסתנכרן עד שיושלם</div>}
                 {r.updated_by && <div className={styles.byLine}>עודכן ע"י {r.updated_by}</div>}
               </div>
             );

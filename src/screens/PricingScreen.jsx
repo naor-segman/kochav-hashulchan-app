@@ -139,7 +139,7 @@ export default function PricingScreen({ user }) {
           {/* Same note as the landing page: the numbers below describe the
               planned model, and nothing is capped while there is no way to pay. */}
           <p className={styles.betaNote}>
-            🎉 בתקופת הבטא כל התוכניות פתוחות ללא תשלום — המגבלות שלמטה מתארות את המודל המתוכנן.
+            בתקופת הבטא כל התוכניות פתוחות ללא תשלום — המגבלות שלמטה מתארות את המודל המתוכנן.
           </p>
           <div className={styles.plansGrid}>
             {PLANS.map(plan => (

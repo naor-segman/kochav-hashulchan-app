@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import Icon from "../components/ui/Icon.jsx";
 import base from "../styles/screenBase.module.css";
+import Icon from "../components/ui/Icon.jsx";
 import styles from "./CostScreen.module.css";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -145,7 +145,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
     <div className={base.page}>
       <PageHeader
         title="תכנון תקציב"
-        icon={<Icon name="chart" />}
+        mark="budget"
         sub="נהלו את תקציב האירוע — מתוכנן מול בפועל — לאורך כל הדרך. כל שינוי נשמר אוטומטית."
       />
 
@@ -183,7 +183,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
       {/* ── Catering hint ── */}
       {totalGuests > 0 && cateringPerGuest > 0 && (
         <div className={styles.cateringHint}>
-          <span className={styles.cateringHintIcon} aria-hidden="true">🍽</span>
+          <span className={styles.cateringHintIcon} aria-hidden="true"><Icon name="food" size={16} /></span>
           <span>
             קייטרינג = {totalGuests.toLocaleString("he-IL")} אורחים × ₪{cateringPerGuest.toLocaleString("he-IL")}/אורח
           </span>

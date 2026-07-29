@@ -6,7 +6,7 @@ export default function NavBadge({ n, color }) {
     : undefined;
   return (
     <span className={styles.badge} style={overrides}>
-      {color ? ("⚠ " + n) : n}
+      {n}
     </span>
   );
 }

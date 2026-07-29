@@ -58,7 +58,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
       <div className={styles.screenOnly}>
         <PageHeader
           title="כרטיסי שולחן ותגי שם"
-          icon={<Icon name="cards" />}
+          mark="nameTags"
           sub="הדפסה ישירה מהדפדפן — בלי תוכנה נוספת."
         />
 
@@ -105,7 +105,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
 
           <div className={styles.actions}>
             <button className={base.btnPrimary} onClick={() => window.print()} disabled={cards.length === 0}>
-              🖨 הדפיסו {cards.length} כרטיסים
+              <Icon name="print" /> הדפיסו {cards.length} כרטיסים
             </button>
             <span className={styles.count}>
               {sizeMeta.perRow} בשורה · {Math.ceil(cards.length / (sizeMeta.perRow * 4)) || 0} דפים בערך

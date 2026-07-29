@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase.js";
 import { invalidateTemplateCache } from "../../utils/templateHelpers.js";
 import { EVENT_TYPES } from "../../data/constants.js";
 import styles from "./AdminTemplatesScreen.module.css";
+import SectionMark from "../../components/ui/SectionMark.jsx";
 
 const FORM_DEFAULTS = {
   name:        "",
@@ -301,7 +302,7 @@ export default function AdminTemplatesScreen() {
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
-          <span className={styles.brandMark}>✦</span>
+          <SectionMark name="adminTemplates" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>ניהול תבניות</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>

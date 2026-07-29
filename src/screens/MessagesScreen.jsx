@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import Icon from "../components/ui/Icon.jsx";
 import { messageSignature } from "../data/company.js";
 import {
   MESSAGE_STAGES, audienceFor, audienceLabel, reachable,
@@ -11,6 +10,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
+import Icon from "../components/ui/Icon.jsx";
 import styles from "./MessagesScreen.module.css";
 
 /**
@@ -99,7 +99,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
     <div className={base.page}>
       <PageHeader
         title="הודעות לאורחים"
-        icon={<Icon name="chat" />}
+        mark="messages"
         sub="רצף ההודעות מהשמירת-תאריך ועד התודה — עם מעקב מי כבר קיבל מה."
         aside={
           <div className={base.pills}>
@@ -203,7 +203,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
 
                     {pending.length > 0 && (
                       <p className={styles.hint}>
-                        💡 לחיצה על "שלחו" פותחת את וואטסאפ עם הטקסט מוכן ומסמנת את האורח כנשלח.
+                        <Icon name="bulb" /> לחיצה על "שלחו" פותחת את וואטסאפ עם הטקסט מוכן ומסמנת את האורח כנשלח.
                         עדיין צריך ללחוץ "שלח" בוואטסאפ עצמו.
                       </p>
                     )}

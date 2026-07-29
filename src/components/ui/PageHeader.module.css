@@ -10,6 +10,13 @@
   flex-wrap: wrap;
 }
 
+/* The section mark sits on the title's first line, not centred on the whole
+   block — a long sub-line would otherwise drag it down past the title it
+   belongs to. */
+.mark {
+  margin-top: 2px;
+}
+
 /* flex-basis, not `flex: 1`. With `flex: 1` the title column happily collapsed
    to ~60px on a phone so that a row of four stat pills could stay on the same
    line — the page title, the largest type on the screen, was wrapping one word

@@ -176,15 +176,21 @@
    that carry the actual state. Quiet outline instead: same green family, dark
    enough to read (--green is 5.9:1 on white), same visual weight as the
    "edit" and "delete" buttons beside it. */
+/* Sending an invitation is an ACTION. Green in this system means "done" — and
+   this button sat in the same row as .tagSeated, which is green because being
+   seated is a real state. Two meanings, one colour, one line of the list. The
+   button is quiet at rest and takes the blush ground on hover, the same as
+   every other secondary action. */
 .waBtn {
   background: var(--surface);
-  color: var(--green);
-  border: 1px solid var(--green-border);
+  color: var(--text2);
+  border: 1px solid var(--border);
   box-shadow: none;
 }
 .waBtn:hover:not(:disabled) {
-  background: var(--green-bg);
-  border-color: var(--green);
+  background: var(--blush-soft);
+  border-color: var(--blush-line);
+  color: var(--text);
   box-shadow: none;
   transform: none;
 }

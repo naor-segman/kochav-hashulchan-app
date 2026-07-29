@@ -1,5 +1,6 @@
 import { MIGRATION_STATUS } from "../../hooks/useMigration.js";
 import styles from "./MigrationBanner.module.css";
+import Icon from "../ui/Icon.jsx";
 
 export default function MigrationBanner({ migration }) {
   const { status, progress, error, migrate, dismiss, unsyncedCount } = migration;
@@ -11,7 +12,7 @@ export default function MigrationBanner({ migration }) {
     return (
       <div className={styles.banner} role="status">
         <div className={styles.row}>
-          <span className={styles.icon} aria-hidden="true">☁</span>
+          <span className={styles.icon} aria-hidden="true"><Icon name="cloud" size={17} /></span>
           <div className={styles.body}>
             <span className={styles.title}>מייבא אירועים לחשבון…</span>
             <span className={styles.sub}>{progress.done} מתוך {progress.total}</span>
@@ -42,7 +43,7 @@ export default function MigrationBanner({ migration }) {
     return (
       <div className={[styles.banner, styles.bannerError].join(" ")} role="alert">
         <div className={styles.row}>
-          <span className={styles.iconError} aria-hidden="true">⚠</span>
+          <span className={styles.iconError} aria-hidden="true"><Icon name="alert" size={17} /></span>
           <div className={styles.body}>
             <span className={styles.title}>הייבוא נכשל</span>
             {error && <span className={styles.sub}>{error}</span>}
@@ -64,7 +65,7 @@ export default function MigrationBanner({ migration }) {
   return (
     <div className={styles.banner} role="region" aria-label="ייבוא אירועים מקומיים">
       <div className={styles.row}>
-        <span className={styles.icon} aria-hidden="true">☁</span>
+        <span className={styles.icon} aria-hidden="true"><Icon name="cloud" size={17} /></span>
         <div className={styles.body}>
           <span className={styles.title}>נמצאו אירועים מקומיים במכשיר הזה</span>
           <span className={styles.sub}>

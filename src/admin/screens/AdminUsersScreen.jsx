@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import { getPlanLabel } from "../lib/planConfig.js";
 import styles from "./AdminUsersScreen.module.css";
+import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export default function AdminUsersScreen() {
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
-          <span className={styles.brandMark}>✦</span>
+          <SectionMark name="adminUsers" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>ניהול משתמשים</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>

@@ -49,7 +49,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   // Collab-table wording adapts to the event: "family" reads wrong for a
   // corporate event, so business events talk about "the team" instead.
   const collabWho   = isBusiness ? "הצוות" : "המשפחה";
-  const collabLabel = isBusiness ? "👥 טבלה שיתופית לצוות" : "👨‍👩‍👧 טבלה שיתופית למשפחה";
+  const collabLabel = isBusiness ? "טבלה שיתופית לצוות" : "טבלה שיתופית למשפחה";
 
   // Add a brand-new custom group to this event from anywhere a group is picked.
   // Saved to customGroups so it appears in every group list + the filter.
@@ -288,7 +288,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     <div className={base.page}>
       <PageHeader
         title="אורחים"
-        icon={<Icon name="users" />}
+        mark="guests"
         sub="נהלו את רשימת האורחים. לחצו Enter להוספה מהירה."
         aside={
           <div className={base.pills}>
@@ -314,7 +314,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       {/* ── Guest limit upgrade tip ── */}
       {atCap && (
         <p className={styles.upgradeTip}>
-          🔒 הגעתם למגבלת {maxGuests} הרשומות בתוכנית הנוכחית —{" "}
+          <Icon name="lock" /> הגעתם למגבלת {maxGuests} הרשומות בתוכנית הנוכחית —{" "}
           <a href="/account" className={styles.upgradeTipLink}>שדרגו את התוכנית</a>{" "}
           להוספת אורחים נוספים.
         </p>
@@ -323,7 +323,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")}>
         <SectionLabel>
           {editId
-            ? ("✏ עריכת אורח — " + (ev.guests.find(g => g.id === editId)?.name ?? ""))
+            ? ("עריכת אורח — " + (ev.guests.find(g => g.id === editId)?.name ?? ""))
             : "הוספת אורח ידנית"}
         </SectionLabel>
         {!editId && (
@@ -478,12 +478,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           {editId && <button className={base.btnSecondary} onClick={cancelEdit}>ביטול</button>}
           {!editId && (
             <button className={base.btnSecondary} onClick={() => setShowList(p => !p)}>
-              {showList ? "סגרו רשימה" : "📝 הוסיפו לפי רשימה"}
+              {showList ? "סגרו רשימה" : <><Icon name="clipboard" /> הוסיפו לפי רשימה</>}
             </button>
           )}
           {!editId && ev.guests.length > 0 && (
             <button className={base.btnSecondary} onClick={exportGuestsExcel}>
-              ⬇ הורדה לאקסל
+              <Icon name="download" /> הורדה לאקסל
             </button>
           )}
           {!editId && (
@@ -530,7 +530,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                 onChange={e => chooseListGroup(e.target.value)}
               >
                 {allGroupOptions.filter(g => g !== "אחר").map(g => <option key={g} value={g}>{g}</option>)}
-                <option value="__addgroup__">➕ קבוצה חדשה…</option>
+                <option value="__addgroup__">+ קבוצה חדשה…</option>
               </select>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
@@ -556,7 +556,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             className={base.input}
             style={{ flex: 1, minWidth: 120 }}
             value={filter.search}
-            placeholder="🔍 חיפוש לפי שם..."
+            placeholder="חיפוש לפי שם..."
             onChange={e => setFilter(p => Object.assign({}, p, { search: e.target.value }))}
           />
           <select className={base.select} aria-label="סינון לפי צד" style={{ minWidth: 130 }} value={filter.side}
@@ -624,7 +624,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                     {g.meal && g.meal !== MEAL_DEFAULT ? " · " + mealEmoji(g.meal) + " " + mealLabel(g.meal) : ""}
                     {g.phone ? " · " + g.phone : ""}
                     {g.notes ? " · " + g.notes : ""}
-                    {g.giftAmount > 0 ? " · 💰 ₪" + g.giftAmount.toLocaleString("he-IL") : ""}
+                    {g.giftAmount > 0 ? " · ₪" + g.giftAmount.toLocaleString("he-IL") : ""}
                   </span>
                 </div>
                 {(g.rsvp === "confirmed" || g.rsvp === "declined" || g.rsvp === "maybe") && (
@@ -638,7 +638,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   </span>
                 )}
                 {t
-                  ? <span className={base.tagSeated}>⬡ {t.name}</span>
+                  ? <span className={base.tagSeated}><Icon name="hexagon" size={12} /> {t.name}</span>
                   : <span className={base.tagUnseated}>לא שובץ</span>
                 }
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>

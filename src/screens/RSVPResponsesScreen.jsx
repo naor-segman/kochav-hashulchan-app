@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import Icon from "../components/ui/Icon.jsx";
 import { fetchRSVPResponses } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { uid } from "../utils/uid.js";
@@ -7,6 +6,7 @@ import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
+import Icon from "../components/ui/Icon.jsx";
 import styles from "./RSVPResponsesScreen.module.css";
 
 // Normalize a display name for fuzzy matching between an RSVP response and a
@@ -231,7 +231,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     <div className={base.page}>
       <PageHeader
         title="תשובות אישורי הגעה"
-        icon={<Icon name="clipboard" />}
+        mark="rsvp"
         sub="כל מי שמאשר דרך הקישור נכנס אוטומטית לרשימת האורחים. כאן רואים תמונת מצב ותחזית מנות."
       />
 
@@ -264,7 +264,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       {/* ── Meal forecast (optional — collapsed by default) ── */}
       {confirmedSeats > 0 && !showForecast && (
         <button className={base.btnSecondary} style={{ marginBottom: 14 }} onClick={() => setShowForecast(true)}>
-          🍽 הציגו תחזית מנות (אופציונלי)
+          <Icon name="food" /> הציגו תחזית מנות (אופציונלי)
         </button>
       )}
       {shuttleCounts.length > 0 && (

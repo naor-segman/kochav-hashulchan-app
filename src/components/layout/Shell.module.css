@@ -330,6 +330,14 @@
   transition: background var(--transition), color var(--transition);
 }
 
+/* A tool's mark stands in for the step dot, so it has to occupy the same
+   optical width — otherwise the two halves of the nav no longer line up. */
+.navMark {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
 .stepDotDone {
   background: var(--green-bg);
   color: var(--green);

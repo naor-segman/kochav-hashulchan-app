@@ -41,8 +41,7 @@
 }
 
 .brandMark {
-  font-size: 18px;
-  color: var(--accent);
+  flex-shrink: 0;
 }
 
 .brandName {

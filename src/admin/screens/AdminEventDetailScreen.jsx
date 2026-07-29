@@ -3,6 +3,7 @@ import TableGlyph from "../../components/ui/TableGlyph.jsx";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventDetailScreen.module.css";
+import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -161,7 +162,7 @@ export default function AdminEventDetailScreen() {
     <header className={styles.topbar}>
       <div className={styles.brand}>
         <Link to="/admin/events" className={styles.backLink}>←</Link>
-        <span className={styles.brandMark}>✦</span>
+        <SectionMark name="adminEvents" tone="admin" size={20} className={styles.brandMark} />
         <span className={styles.brandName}>פרטי אירוע</span>
         <span className={styles.brandSep}>·</span>
         <span className={styles.brandSub}>כוכב השולחן</span>

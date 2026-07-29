@@ -90,7 +90,7 @@ export default function SignupScreen() {
             <span className={styles.brandMark}>✦</span>
             <span className={styles.brandName}>כוכב השולחן</span>
           </div>
-          <h1 className={styles.title}>בדקו את האימייל שלכם ✉</h1>
+          <h1 className={styles.title}>בדקו את האימייל שלכם</h1>
           <p className={styles.confirmBody}>
             שלחנו קישור אישור לכתובת <strong>{email}</strong>.
             לחצו על הקישור לאישור החשבון.
