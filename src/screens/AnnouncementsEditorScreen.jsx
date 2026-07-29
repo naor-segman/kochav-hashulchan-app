@@ -118,7 +118,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
           >
             {ann.enabled ? "בטלו פרסום" : `פרסמו ${meta.label} ←`}
           </button>
-          <button className={base.btnSm} onClick={() => setPreview(p => !p)} aria-expanded={preview}>
+          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => setPreview(p => !p)} aria-expanded={preview}>
             {preview ? "סגרו תצוגה" : "תצוגה מקדימה"}
           </button>
         </div>
@@ -228,7 +228,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
         <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
           onChange={e => { pickPhoto(e.target.files[0]); e.target.value = ""; }} />
         <div className={styles.photoRow}>
-          <button className={base.btnSm} onClick={() => fileRef.current?.click()}>
+          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => fileRef.current?.click()}>
             {ann.photo ? "החליפו תמונה" : "העלו תמונה"}
           </button>
           {ann.photo && (

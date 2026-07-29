@@ -390,7 +390,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                   {applied ? (
                     <span className={base.tagSeated}>מעודכן ברשימה ✓</span>
                   ) : guest ? (
-                    <button className={base.btnSm} onClick={() => applyToGuest(r, guest)}>
+                    <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => applyToGuest(r, guest)}>
                       עדכנו אורח קיים
                     </button>
                   ) : (

@@ -186,7 +186,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
               </div>
               <div className={styles.msgActions}>
                 <button
-                  className={base.btnSm}
+                  className={[base.btnSm, base.btnGhost].join(" ")}
                   onClick={async () => {
                     try { await navigator.clipboard.writeText(m.text); showToast("ההודעה הועתקה ✓"); }
                     catch { showToast("לא ניתן להעתיק", "err"); }

@@ -83,10 +83,15 @@
 }
 
 /* ── Design pickers ──────────────────────────────────────────────────────── */
+/* Was a wrapping flex row, so eleven palette chips huddled against the start
+   edge of a full-width card and left roughly 40% of it blank at desktop —
+   which reads as an unfinished panel, not as a choice-set. These ARE closed
+   sets, so they get an even grid that owns the width and wraps into equal
+   rows. */
 .themeGrid,
 .fontGrid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: 8px;
 }
 

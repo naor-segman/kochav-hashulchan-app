@@ -74,6 +74,7 @@ const P = {
   // Event types on the dashboard — the first drawing a new host ever sees.
   rings:      <><circle cx="8.6" cy="14" r="6" /><circle cx="15.4" cy="14" r="6" /><path d="m13 4.4 2.4-2 2.4 2-2.4 2.6z" /></>,
   star6:      <><path d="m12 2.8 8 13.9H4z" /><path d="m12 21.2 8-13.9H4z" /></>,
+  clock:      <><circle cx="12" cy="12" r="8.8" /><path d="M12 6.8V12l3.4 2" /></>,
   leaf:       <><path d="M20 4C10 4.6 4.5 8.5 4.5 14.5A5.5 5.5 0 0 0 10 20c6 0 9.6-6 10-16Z" /><path d="M6.5 21c1.5-5 5-9 11-13" /></>,
 };
 
