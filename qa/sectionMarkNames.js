@@ -6,6 +6,7 @@ export const SECTION_MARK_NAMES = [
   "guests", "tables", "seating", "constraints", "rsvp", "tasks", "budget",
   "vendors", "messages", "announcements", "checkin", "album", "gifts", "site",
   "nameTags", "collab", "hostess", "account", "help", "setup", "events", "invite",
+  "cloud",
   "adminOverview", "adminUsers", "adminEvents", "adminTemplates",
   "adminSubscriptions", "adminActivity", "adminSettings",
 ];

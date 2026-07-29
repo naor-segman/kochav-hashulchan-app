@@ -288,6 +288,17 @@ const MARKS = {
     </>
   ),
 
+  /* Cloud sync — not a section of its own, but the landing page promises it
+     beside five things that are, and one stray line icon in that row would
+     break the set. */
+  cloud: (s) => (
+    <>
+      <path d="M7.2 18.4a4.4 4.4 0 0 1-.5-8.75A5.9 5.9 0 0 1 18 10.4a3.9 3.9 0 0 1-.6 8z" className={s.plate} />
+      <circle cx="12" cy="13.6" r="1.7" className={s.live} />
+      <path d="M12 20.8v-2.6" className={s.liveLine} />
+    </>
+  ),
+
   // ── Admin panel ─────────────────────────────────────────────────────────────
 
   adminOverview: (s) => (
