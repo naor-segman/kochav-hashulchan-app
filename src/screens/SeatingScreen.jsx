@@ -79,6 +79,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const [daySearch, setDaySearch]           = useState("");
   const [checkInMode, setCheckInMode]       = useState(false);
   const [checkInSearch, setCheckInSearch]   = useState("");
+  // Bumped every time the plan is computed. Used as a React key on the table
+  // glyphs so they remount and replay their fill — the one moment in this
+  // product where something genuinely happens, and until now it just appeared.
+  const [runKey, setRunKey]                 = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -224,6 +228,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     else
       showToast("כל " + placed + " הרשומות שובצו ✓");
     setExpandedTable(null);
+    setRunKey(k => k + 1);
   };
 
   const clearAll = () => {
@@ -885,10 +890,12 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                 and the taken ones filled — so the card answers
                                 "how full is this" before any number is read. */}
                             <TableGlyph
+                              key={runKey}
                               shape={t.shape}
                               capacity={t.capacity}
                               taken={usedSeats}
                               size={46}
+                              animate={runKey > 0}
                               className={styles.tCardGlyph}
                             />
                             <div>

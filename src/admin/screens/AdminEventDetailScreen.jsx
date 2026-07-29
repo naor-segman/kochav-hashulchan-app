@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import TableGlyph from "../../components/ui/TableGlyph.jsx";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventDetailScreen.module.css";
@@ -330,6 +331,11 @@ export default function AdminEventDetailScreen() {
               );
               return (
                 <div key={t.id} className={styles.tableCard}>
+                  {/* The panel is deliberately neutral grey, but this is the
+                      customer's table and the support person is looking at it
+                      to answer a question about their event — it should look
+                      like what the customer sees. */}
+                  <TableGlyph shape={t.shape} capacity={t.capacity ?? 0} taken={seatedHere} size={26} />
                   <span className={styles.tableName}>{t.name || "—"}</span>
                   <span className={styles.tableCapacity}>
                     {seatedHere > 0

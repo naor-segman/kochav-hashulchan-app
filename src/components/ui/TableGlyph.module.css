@@ -66,3 +66,75 @@
 .over .ringFill {
   stroke: var(--red);
 }
+
+/* The seating moment. Pressing "compute" is the one time this product does
+   something the host could not do themselves, and it used to be indis-
+   tinguishable from a re-render. Seats now land in place, staggered around the
+   table, so the plan reads as having been BUILT rather than swapped in.
+   Scale only — no colour change, so the animation cannot be mistaken for a
+   state, and an interrupted run leaves the correct picture behind. */
+@keyframes seatArrive {
+  from { transform: scale(0.1); opacity: 0; }
+  60%  { transform: scale(1.22); }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.seatArriving {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: seatArrive 340ms cubic-bezier(.2, .8, .3, 1.2) backwards;
+}
+
+/* Someone who asked their system for less motion gets the finished plan, which
+   is the information; the flourish is the part that was optional. */
+@media (prefers-reduced-motion: reduce) {
+  .seatArriving {
+    animation: none;
+  }
+}
+
+/* On the near-black chrome — the hostess screen's table chips.
+   A near-black stroke on a dark ground is invisible and the blush top glares,
+   which is the "contrast measured against the wrong ground" mistake this
+   codebase has made before. Every value here is picked against #21242A:
+   the top becomes a light hairline over a transparent floor, a free seat is a
+   dim ring, and a taken seat uses --accent-on-dark, the token that exists
+   precisely because --accent is not legible here. */
+.onDark .top {
+  fill: none;
+  stroke: var(--nav-muted);
+}
+
+.onDark .seatOn {
+  fill: var(--accent-on-dark);
+}
+
+.onDark .seatOff {
+  fill: none;
+  stroke: var(--nav-muted);
+}
+
+.onDark .ringTrack {
+  stroke: var(--nav-muted);
+}
+
+.onDark .ringFill {
+  stroke: var(--accent-on-dark);
+}
+
+.onDark .label {
+  fill: var(--nav-text);
+}
+
+/* Over capacity still has to shout, and --red is 3.0:1 on this ground. The
+   danger tint is the legible member of that family here. */
+.onDark.over .top,
+.onDark.over .seatOff {
+  stroke: var(--red-border);
+}
+
+.onDark.over .seatOn,
+.onDark.over .ringFill {
+  fill: var(--red-border);
+  stroke: var(--red-border);
+}
