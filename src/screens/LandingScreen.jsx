@@ -72,8 +72,13 @@ const SHOWCASE = [
  * in RTL, and a face directly behind the headline reads as a mistake.
  */
 const HERO_MEDIA = {
-  video:  null,   // e.g. "/hero/hero.mp4"  — muted, looping, no audio track
-  poster: null,   // e.g. "/hero/hero.jpg"  — also the still for mobile
+  video:        "/hero/hero.mp4",
+  poster:       "/hero/hero.jpg",
+  // A phone's hero is TALL. Covering it from the landscape frame crops to a
+  // narrow vertical slice of the middle, which throws away the chuppah and the
+  // horizon — the two things that make the shot. The portrait crop of the same
+  // moment is a separate file for that reason.
+  posterMobile: "/hero/hero-portrait.jpg",
 };
 
 const FEATURES = [
@@ -213,7 +218,13 @@ export default function LandingScreen() {
                 autoPlay muted loop playsInline preload="metadata"
               />
             ) : (
-              <img className={styles.heroMediaLayer} src={HERO_MEDIA.poster} alt="" />
+              <img
+                className={styles.heroMediaLayer}
+                src={stillOnly && HERO_MEDIA.posterMobile
+                  ? HERO_MEDIA.posterMobile
+                  : HERO_MEDIA.poster}
+                alt=""
+              />
             )}
             <div className={styles.heroScrim} />
           </div>

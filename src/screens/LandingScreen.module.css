@@ -243,10 +243,15 @@
    side leaves the end of every line on the open part of the frame. Measured
    over the brightest placeholder the headline came out at 3.63:1 there against
    5.35:1 on desktop. Narrow screens get an even floor instead of a direction. */
+/* Re-measured against the real footage (qa/heroContrast.mjs), not the
+   placeholder this was first tuned on. A sunset beach is the brightest ground
+   a hero can carry — pale sky, white drapery, white chairs — and at .7 the
+   accent line came out 4.38:1 on a phone, just under the bar the rest of the
+   product holds. .78 puts every element over it on every sampled frame. */
 @media (max-width: 899px) {
   .heroScrim {
     background:
-      linear-gradient(rgba(var(--text-rgb), .7), rgba(var(--text-rgb), .7)),
+      linear-gradient(rgba(var(--text-rgb), .78), rgba(var(--text-rgb), .78)),
       linear-gradient(to top, rgba(var(--text-rgb), .45) 0%, transparent 55%);
   }
 }
@@ -1392,4 +1397,24 @@
     height: 44px;
   }
 
+}
+
+/* Touch target — see qa/mobile.mjs. The hero's second route in appears only
+   once the cinematic layout is on, which is why it showed up in the audit only
+   after the footage landed. */
+@media (pointer: coarse) {
+  .heroQuietLink {
+    position: relative;
+  }
+
+  .heroQuietLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
 }
