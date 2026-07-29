@@ -289,14 +289,23 @@
   padding: 16px;
 }
 
+/* The glyph sits on the start edge with the text stacked beside it, so a grid
+   of these reads as a row of tables rather than a row of paragraphs. */
 .tableCard {
   background: var(--adm-bg-alt);
   border: 1px solid var(--adm-line);
   border-radius: 8px;
   padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+}
+
+.tableCard > svg {
+  grid-row: 1 / span 2;
 }
 
 .tableName     { font-size: 14px; font-weight: 700; color: var(--adm-ink); }
