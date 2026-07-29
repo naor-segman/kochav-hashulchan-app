@@ -71,7 +71,7 @@
   background: rgba(var(--accent-rgb),.16);
   border: 1px solid rgba(var(--accent-rgb),.34);
   border-radius: var(--radius-pill);
-  padding: 2px 7px;
+  padding: 2px 6px;
   letter-spacing: 0.06em;
   flex-shrink: 0;
 }
@@ -101,7 +101,7 @@
   color: var(--accent);
   font-weight: var(--font-weight-bold);
   font-size: var(--step--1);
-  padding: 5px 8px;
+  padding: 4px 8px;
   border-radius: var(--radius);
   white-space: nowrap;
   flex-shrink: 0;
@@ -139,7 +139,7 @@
   background: rgba(var(--green-rgb),.14);
   border: 1px solid rgba(var(--green-rgb),.34);
   border-radius: var(--radius-pill);
-  padding: 3px 10px;
+  padding: 2px 10px;
   letter-spacing: 0.01em;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
@@ -162,7 +162,7 @@
 .accountBtn {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   background: rgba(var(--nav-text-rgb),.06);
   border: 1px solid rgba(var(--nav-text-rgb),.14);
   border-radius: var(--radius-pill);
@@ -231,7 +231,7 @@
 
 @media (max-width: 480px) {
   .accountLabel { display: none; }
-  .accountBtn { padding: 5px 8px; }
+  .accountBtn { padding: 4px 8px; }
 }
 
 /* ── Subnav ── */
@@ -264,7 +264,7 @@
 
 .subnavBtn[data-firsttool="1"] {
   border-inline-start: 1px solid var(--border);
-  margin-inline-start: 5px;
+  margin-inline-start: 4px;
 }
 .subnavBtn {
   display: flex;
@@ -273,7 +273,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 13px 12px;
+  padding: 12px 12px;
   font-size: var(--step--1);
   font-weight: var(--font-weight-medium);
   color: var(--text2);
@@ -358,7 +358,7 @@
 @media (max-width: 480px) {
   .logoName { display: none; }
   .autoSave { display: none; }
-  .subnavBtn { padding: 11px 9px; font-size: var(--step--2); }
+  .subnavBtn { padding: 10px 8px; font-size: var(--step--2); }
   .topbar { padding: 0 14px; }
 }
 

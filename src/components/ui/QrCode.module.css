@@ -9,7 +9,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 9px 10px;
+  padding: 8px 10px;
   border: 1px solid var(--border2);
   border-radius: var(--radius);
   background: var(--surface);
@@ -59,7 +59,7 @@
 .msg {
   font-size: var(--step--1);
   color: var(--muted);
-  padding: 60px 0;
+  padding: 64px 0;
 }
 
 .label {

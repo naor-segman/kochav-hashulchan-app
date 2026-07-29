@@ -3,7 +3,7 @@
   position: relative;
   display: inline-flex;
   vertical-align: middle;
-  margin-inline-start: 5px;
+  margin-inline-start: 4px;
 }
 
 .btn {
@@ -43,7 +43,7 @@
   font-weight: var(--font-weight-medium);
   line-height: 1.55;
   padding-block: 10px;
-  padding-inline: 13px 30px;
+  padding-inline: 12px 28px;
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
   text-align: start;

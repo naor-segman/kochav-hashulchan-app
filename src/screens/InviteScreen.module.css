@@ -73,13 +73,13 @@
   max-width: 560px;
   display: flex;
   justify-content: center;
-  padding-top: 36px;
+  padding-top: 32px;
 }
 
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   text-decoration: none;
   transition: opacity var(--transition);
 }
@@ -121,7 +121,7 @@
   width: 100%;
   background: var(--surface);
   border-radius: var(--radius-lg);
-  padding: 52px 44px 44px;
+  padding: 48px 40px 40px;
   text-align: center;
   box-shadow: var(--shadow-lg);
   position: relative;
@@ -150,7 +150,7 @@
   font-weight: 700;
   letter-spacing: 0.10em;
   padding: 6px 18px;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 /* ── Couple names — the typography that carries the card ─────────────────── */
@@ -160,7 +160,7 @@
   align-items: center;
   justify-content: center;
   gap: 20px;
-  margin-bottom: 26px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
 
@@ -220,7 +220,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
@@ -249,8 +249,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 36px;
-  margin-bottom: 36px;
+  margin-top: 32px;
+  margin-bottom: 32px;
 }
 
 /* Accent moment 2 of 2 — the only thing on the card asking to be pressed.
@@ -262,7 +262,7 @@
   text-decoration: none;
   font-size: var(--step-1);
   font-weight: 700;
-  padding: 17px 32px;
+  padding: 16px 32px;
   border-radius: var(--radius);
   letter-spacing: 0.03em;
   box-shadow: var(--shadow-cta);
@@ -286,7 +286,7 @@
   color: var(--text);
   border: 1px solid var(--border2);
   border-radius: var(--radius);
-  padding: 15px 32px;
+  padding: 14px 32px;
   font-size: var(--step-0);
   font-weight: 600;
   cursor: pointer;
@@ -324,7 +324,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
+  padding: 4px;
   box-sizing: border-box;
 }
 
@@ -400,7 +400,7 @@
   font-size: var(--step-0);
   font-weight: 600;
   border: 1px solid var(--nav-border);
-  padding: 12px 26px;
+  padding: 12px 24px;
   border-radius: var(--radius);
   margin-top: 6px;
   transition: background var(--transition), border-color var(--transition);
@@ -415,7 +415,7 @@
 
 @media (max-width: 540px) {
   .card {
-    padding: 40px 26px 34px;
+    padding: 40px 24px 32px;
   }
 
   .card::before {
@@ -442,7 +442,7 @@
    The table number is read off a phone by a greeter at arm's length, so it is
    near-black on blush (12.3:1) and set large. */
 .personalBox {
-  margin: 22px auto 4px;
+  margin: 20px auto 4px;
   padding: 18px 20px;
   max-width: 340px;
   text-align: center;

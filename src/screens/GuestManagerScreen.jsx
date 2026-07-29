@@ -291,7 +291,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         sub="נהלו את רשימת האורחים. לחצו Enter להוספה מהירה."
         aside={
           <div className={base.pills}>
-            <StatPill n={ev.guests.length} label="סה״כ" />
+            <StatPill n={ev.guests.length} label="סה״כ" primary />
             <StatPill n={nBride} label={sideLabel("bride")} color="var(--bride)" />
             <StatPill n={nGroom} label={sideLabel("groom")} color="var(--groom)" />
             {nConfirmed > 0 && <StatPill n={nConfirmed} label="אישרו" color="var(--green)" />}

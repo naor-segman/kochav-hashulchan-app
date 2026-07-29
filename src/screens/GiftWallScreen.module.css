@@ -27,7 +27,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 24px 52px;
+  padding: 24px 48px;
   border-bottom: 3px solid var(--accent);
   flex-shrink: 0;
   background: var(--nav-bg);
@@ -74,13 +74,13 @@
   overflow-y: auto;
   position: relative;
   z-index: 1;
-  padding: 40px 52px;
+  padding: 40px 48px;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 22px;
+  gap: 20px;
   align-content: start;
 }
 
@@ -93,7 +93,7 @@
   background: var(--nav-bg2);
   border: 1px solid var(--nav-border);
   border-radius: var(--radius-lg);
-  padding: 30px 26px 24px;
+  padding: 28px 24px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -193,7 +193,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 22px 52px;
+  padding: 20px 48px;
   flex-shrink: 0;
   background: var(--blush);
 }
@@ -290,7 +290,7 @@
   }
 
   .giftCard {
-    padding: 22px 20px 18px;
+    padding: 20px 20px 18px;
   }
 
   .giftName {

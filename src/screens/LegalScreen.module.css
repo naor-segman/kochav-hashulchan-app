@@ -34,7 +34,7 @@
 .main {
   max-width: 720px;
   margin: 0 auto;
-  padding: 56px 24px 96px;
+  padding: 48px 24px 96px;
 }
 
 /* These are the quietest pages in the product: one column, one type ramp, no
@@ -51,7 +51,7 @@
 .updated {
   font-size: var(--step--2);
   color: var(--muted);
-  margin-bottom: 44px;
+  margin-bottom: 40px;
 }
 
 /* Section spacing does the hierarchy work that a bigger heading would otherwise
@@ -88,7 +88,7 @@
 .text a:hover { text-decoration-thickness: 2px; }
 
 .list {
-  padding-inline-start: 22px;
+  padding-inline-start: 20px;
   margin: 10px 0;
   display: flex;
   flex-direction: column;
@@ -103,7 +103,7 @@
 }
 
 .backRow {
-  margin-top: 56px;
+  margin-top: 48px;
   padding-top: 24px;
   border-top: 1px solid var(--border);
   max-width: 62ch;

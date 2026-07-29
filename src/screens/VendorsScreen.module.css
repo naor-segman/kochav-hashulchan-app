@@ -37,13 +37,13 @@
   margin-bottom: 14px;
 }
 
-.filters { display: flex; flex-wrap: wrap; gap: 5px; margin-inline-start: auto; }
+.filters { display: flex; flex-wrap: wrap; gap: 4px; margin-inline-start: auto; }
 
 .filterBtn {
   font-family: inherit;
   font-size: var(--step--1);
   font-weight: 700;
-  padding: 6px 13px;
+  padding: 6px 12px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border2);
   background: var(--surface);
@@ -90,7 +90,7 @@
 
 .rowMain { flex: 1; min-width: 190px; display: flex; flex-direction: column; gap: 4px; }
 
-.rowTop { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.rowTop { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 .name { font-size: var(--step-0); font-weight: 800; color: var(--text); }
 
@@ -104,7 +104,7 @@
   font-size: var(--step--1);
   font-weight: 700;
   border-radius: var(--radius-pill);
-  padding: 2px 9px;
+  padding: 2px 8px;
   white-space: nowrap;
 }
 /* Semantic grounds from the token file, not one-off rgba() literals that no
@@ -140,7 +140,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 3px;
+  gap: 2px;
   min-width: 92px;
 }
 
@@ -153,13 +153,13 @@
 
 .due { font-size: var(--step--1); font-weight: 700; color: var(--warn); white-space: nowrap; }
 
-.rowActions { display: flex; align-items: center; gap: 5px; }
+.rowActions { display: flex; align-items: center; gap: 4px; }
 
 .actBtn {
   font-family: inherit;
   font-size: var(--step--1);
   font-weight: 700;
-  padding: 5px 12px;
+  padding: 4px 12px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border2);
   background: var(--bg);

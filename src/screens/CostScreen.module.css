@@ -204,7 +204,7 @@
   display: inline-block;
   font-size: var(--step--2);
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 2px 8px;
   border-radius: var(--radius-pill);
   white-space: nowrap;
 }
@@ -271,7 +271,7 @@
 .addBtn {
   display: block;
   width: 100%;
-  padding: 11px 14px;
+  padding: 10px 14px;
   background: none;
   border: none;
   border-top: 1px dashed var(--border2);
@@ -338,7 +338,7 @@
 .chartVal { font-size: var(--step--2); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chartValOver { color: var(--red); }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: var(--step--2); color: var(--muted); }
-.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
 .legend i { width: 12px; height: 12px; border-radius: var(--radius-xs); display: inline-block; }
 .swPlanned { background: var(--blush); }
 .swActual { background: var(--text); }

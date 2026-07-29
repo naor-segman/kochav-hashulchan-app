@@ -11,13 +11,25 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 9px 14px;
+  padding: 8px 14px;
   min-width: 58px;
   transition: border-color var(--transition);
 }
 
 .pill:hover {
   border-color: var(--border2);
+}
+
+/* The one that answers the question the host came with. Blush ground, ink
+   number — 12.3:1 — so it leads without becoming a second accent moment.
+   One per screen; a second one is two, which is none. */
+.pillPrimary {
+  background: var(--blush);
+  border-color: var(--blush-line);
+}
+
+.pillPrimary .pillL {
+  color: var(--text2);
 }
 
 .pillN {
@@ -38,6 +50,6 @@
 }
 
 @media (max-width: 480px) {
-  .pill { padding: 7px 10px; min-width: 48px; }
+  .pill { padding: 6px 10px; min-width: 48px; }
   .pillN { font-size: var(--step-1); }
 }

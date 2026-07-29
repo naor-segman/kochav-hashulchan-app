@@ -50,7 +50,7 @@
 .main {
   max-width: 1060px;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: 28px 20px 64px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -99,7 +99,7 @@
 }
 
 .actionTypePill {
-  display: flex; align-items: center; gap: 5px;
+  display: flex; align-items: center; gap: 4px;
   background: var(--adm-bg-alt); border: 1px solid var(--adm-line);
   border-radius: var(--radius-lg); padding: 4px 12px;
   font-size: var(--step--2); color: var(--adm-ink-mid);
@@ -110,7 +110,7 @@
 
 .retryBtn {
   background: var(--accent); color: var(--adm-surface); border: none;
-  border-radius: var(--radius-md); padding: 10px 22px;
+  border-radius: var(--radius-md); padding: 10px 20px;
   font-size: var(--step-0); font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s;
 }
@@ -206,7 +206,7 @@
 
 /* ── Action badge ── */
 .actionBadge {
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: 4px;
   font-size: var(--step--2); font-weight: 700;
 }
 

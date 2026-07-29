@@ -80,7 +80,7 @@
 .main {
   max-width: 900px;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: 28px 20px 64px;
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -175,7 +175,7 @@
   color: var(--adm-ink-fainter);
   background: var(--adm-bg-sunken);
   border-radius: var(--radius-lg);
-  padding: 1px 7px;
+  padding: 1px 6px;
   margin-top: 4px;
 }
 
@@ -253,7 +253,7 @@
   color: var(--adm-ink-faint);
   background: var(--adm-bg-sunken);
   border-radius: var(--radius-lg);
-  padding: 2px 9px;
+  padding: 2px 8px;
   white-space: nowrap;
 }
 
@@ -304,7 +304,7 @@
   background: var(--adm-ok-bg-soft);
   border: 1px solid var(--adm-ok-border-soft);
   border-radius: var(--radius-lg);
-  padding: 2px 9px;
+  padding: 2px 8px;
   white-space: nowrap;
   flex-shrink: 0;
 }

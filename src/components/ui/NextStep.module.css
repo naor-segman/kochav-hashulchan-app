@@ -10,7 +10,7 @@
   background: var(--blush);
   border: 1px solid var(--blush-line);
   border-radius: var(--radius-lg);
-  padding: 18px 22px;
+  padding: 18px 20px;
   margin-top: 20px;
   gap: 16px;
   flex-wrap: wrap;
@@ -21,7 +21,7 @@
   font-weight: var(--font-weight-bold);
   color: var(--text);
   letter-spacing: 0.07em;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .nextHint {
@@ -37,7 +37,7 @@
   color: var(--on-accent);
   border: 1px solid var(--cta);
   cursor: pointer;
-  padding: 11px 22px;
+  padding: 10px 20px;
   border-radius: var(--radius);
   font-family: inherit;
   font-size: var(--step-0);

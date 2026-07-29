@@ -420,7 +420,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             sub="חשבו הושבה אוטומטית ואז ערכו ידנית לפי הצורך."
             aside={
               <div className={base.pills}>
-                <StatPill n={nActiveAssigned}     label="שובצו"   color={allSeated ? "var(--green)" : "var(--accent-text)"} />
+                <StatPill n={nActiveAssigned}     label="שובצו"   primary color={allSeated ? "var(--green)" : undefined} />
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
                 {nArrived > 0 && <StatPill n={nArrived} label="הגיעו" color="var(--green)" />}

@@ -13,6 +13,6 @@
   letter-spacing: 0.02em;
   border: 1px solid;
   border-radius: var(--radius-pill);
-  padding: 1px 9px;
+  padding: 1px 8px;
   white-space: nowrap;
 }
