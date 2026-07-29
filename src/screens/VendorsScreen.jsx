@@ -198,7 +198,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
 
         {vendors.length === 0 && !adding && (
           <EmptyState
-            icon={<Icon name="users" />}
+            mark="vendors"
             title="עדיין לא נוספו ספקים"
             text="הוסיפו את האולם, הצלם, הדיג'יי — וכל מי שאתם עוד בבירור מולו. תוכלו לעקוב מי סגור וכמה נשאר לשלם."
           />

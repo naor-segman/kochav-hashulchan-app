@@ -398,7 +398,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       )}
 
       {ev.constraints.length === 0 && (
-        <EmptyState icon={<Icon name="scale" />} title="טרם הוגדרו אילוצים"
+        <EmptyState mark="constraints" title="טרם הוגדרו אילוצים"
           text="שלב זה אופציונלי לחלוטין. אם יש אורחים שחייבים לשבת יחד (כמו הורים עם ילדים קטנים) או שאסור שיישבו יחד — הגדירו זאת כאן לפני הרצת הסידור." />
       )}
 

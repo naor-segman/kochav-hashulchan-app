@@ -670,7 +670,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {ev.guests.length === 0 && (
-        <EmptyState icon={<Icon name="users" />} title="טרם נוספו אורחים"
+        <EmptyState mark="guests" title="טרם נוספו אורחים"
           text='הוסיפו אורחים ידנית דרך הטופס למעלה, "הוסיפו לפי רשימה" להוספה מהירה, או שתפו "טבלה שיתופית למשפחה".' />
       )}
       {visible.length === 0 && ev.guests.length > 0 && (

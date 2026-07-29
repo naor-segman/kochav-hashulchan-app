@@ -348,7 +348,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
           )}
 
           {ev.tables.length === 0 && (
-            <EmptyState icon={<Icon name="hexagon" />} title="טרם הוגדרו שולחנות"
+            <EmptyState mark="tables" title="טרם הוגדרו שולחנות"
               text='השתמשו בטופס למעלה כדי להוסיף שולחנות. לדוגמה: 15 שולחנות עגולים עם 10 מקומות כל אחד — הכניסו 15 בשדה "כמות" ו-10 בשדה "מקומות".' />
           )}
         </>

@@ -114,7 +114,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
 
           {cards.length === 0 && (
             <EmptyState
-              icon={<Icon name="cards" />}
+              mark="nameTags"
               title="אין כרטיסים להדפסה"
               text="בחרו קהל אחר, או שבצו אורחים לשולחנות תחילה."
             />
