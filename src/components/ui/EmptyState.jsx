@@ -1,17 +1,25 @@
+import SectionMark from "./SectionMark.jsx";
 import styles from "./EmptyState.module.css";
 
 /**
  * Polished empty-state placeholder.
  *
- * @param {string} icon   — emoji/glyph shown in a soft accent circle
+ * @param {string} mark   — SectionMark key. An empty screen is the ONE place a
+ *                          section is nothing but its own identity, so it gets
+ *                          the section's own drawing at size, on the same tile
+ *                          the page head uses.
+ * @param {string} icon   — line icon, for states that are not a whole section
+ *                          ("no results for this filter" is not a section)
  * @param {string} title  — short heading
  * @param {string} text   — guiding sentence
  * @param {{label:string,onClick:Function}} [action] — optional primary CTA
  */
-export default function EmptyState({ icon, title, text, action }) {
+export default function EmptyState({ mark, icon, title, text, action }) {
   return (
     <div className={styles.empty}>
-      <div className={styles.emptyIcon} aria-hidden="true">{icon}</div>
+      {mark
+        ? <SectionMark name={mark} size={34} tile className={styles.emptyMark} />
+        : <div className={styles.emptyIcon} aria-hidden="true">{icon}</div>}
       {title && <h3 className={styles.emptyTitle}>{title}</h3>}
       {text && <p className={styles.emptyText}>{text}</p>}
       {action && (

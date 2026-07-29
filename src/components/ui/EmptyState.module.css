@@ -28,6 +28,12 @@
   margin-bottom: 16px;
 }
 
+/* The section's own mark, on the same tile the page heads use — so an empty
+   screen still says which screen it is. */
+.emptyMark {
+  margin-bottom: 16px;
+}
+
 .emptyTitle {
   font-size: var(--step-1);
   font-weight: var(--font-weight-extrabold);
