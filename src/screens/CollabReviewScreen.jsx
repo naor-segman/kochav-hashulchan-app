@@ -7,6 +7,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import QrCode from "../components/ui/QrCode.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 const norm = (s) => (s || "").toString().trim();
 const complete = (r) => !!(norm(r.name) && norm(r.phone) && r.side && norm(r.guest_group));
@@ -78,7 +79,7 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
           </div>
           <div className={base.actionBar} style={{ marginTop: 14 }}>
             <a className={base.btnPrimary} href={collabLink} target="_blank" rel="noopener noreferrer">פתחו את הטבלה ←</a>
-            <button className={base.btnSecondary} onClick={downloadExcel} disabled={!(ev.guests || []).length}>⬇ הורדה לאקסל</button>
+            <button className={base.btnSecondary} onClick={downloadExcel} disabled={!(ev.guests || []).length}><Icon name="download" /> הורדה לאקסל</button>
           </div>
         </div>
       ) : (

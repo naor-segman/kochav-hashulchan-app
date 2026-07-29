@@ -253,7 +253,7 @@ function VenueMarker({ element, containerRef, onMove, onRemove }) {
       onPointerDown={startDrag}
       title={meta.label + " — גררו כדי להזיז"}
     >
-      <span className={styles.venueIcon} aria-hidden="true">{meta.icon}</span>
+      <span className={styles.venueIcon} aria-hidden="true"><Icon name={meta.icon} size={18} /></span>
       <span className={styles.venueLabel}>{meta.label}</span>
       <button
         className={styles.venueRemove}
@@ -730,7 +730,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
               className={[styles.unplacedBtn, placingKind === el.value ? styles.unplacedBtnActive : ""].filter(Boolean).join(" ")}
               onClick={e => { e.stopPropagation(); setPlacingId(null); setPlacingKind(placingKind === el.value ? null : el.value); }}
             >
-              <span aria-hidden="true">{el.icon}</span> {el.label}
+              <Icon name={el.icon} size={15} /> {el.label}
             </button>
           ))}
           {placingKind && (
@@ -754,7 +754,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
                 className={[styles.unplacedBtn, placingId === t.id ? styles.unplacedBtnActive : ""].filter(Boolean).join(" ")}
                 onClick={e => { e.stopPropagation(); setPlacingKind(null); setPlacingId(placingId === t.id ? null : t.id); }}
               >
-                ⬡ {t.name}
+                <Icon name="hexagon" size={13} /> {t.name}
               </button>
             ))}
           </div>

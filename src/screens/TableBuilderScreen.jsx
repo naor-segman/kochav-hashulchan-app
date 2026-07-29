@@ -214,7 +214,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
               <Field label="סוג">
                 <select className={base.select} value={batch.type} onChange={e => chooseType(e.target.value, v => setBatch(p => Object.assign({}, p, { type: v })))}>
                   {typeOptions.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  <option value="__add__">➕ סוג מותאם…</option>
+                  <option value="__add__">+ סוג מותאם…</option>
                 </select>
               </Field>
               <Field label={<>צורה <InfoTip text="הצורה הפיזית של השולחן. מופיעה במפת האולם כדי שתזהו את הפריסה האמיתית — ולא משפיעה על הקיבולת." /></>}>
@@ -301,7 +301,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                             onChange={e => chooseType(e.target.value, v => setEditVals(p => Object.assign({}, p, { type: v })))}
                           >
                             {typeOptions.map(tp => <option key={tp.value} value={tp.value}>{tp.label}</option>)}
-                            <option value="__add__">➕ סוג מותאם…</option>
+                            <option value="__add__">+ סוג מותאם…</option>
                           </select>
                           <select
                             className={base.select}

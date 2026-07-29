@@ -206,7 +206,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
                             {s.value === "done" ? "✓ הושלם" : "→ " + s.label}
                           </button>
                         ))}
-                        <button className={styles.iconBtn} onClick={() => startEdit(t)} aria-label="עריכה">✎</button>
+                        <button className={styles.iconBtn} onClick={() => startEdit(t)} aria-label="עריכה"><Icon name="edit" size={15} /></button>
                         <button className={styles.iconBtn} onClick={() => remove(t.id)} aria-label="מחיקה">✕</button>
                       </div>
                     </div>

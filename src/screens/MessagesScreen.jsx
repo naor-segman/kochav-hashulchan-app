@@ -10,6 +10,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
+import Icon from "../components/ui/Icon.jsx";
 import styles from "./MessagesScreen.module.css";
 
 /**
@@ -202,7 +203,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
 
                     {pending.length > 0 && (
                       <p className={styles.hint}>
-                        💡 לחיצה על "שלחו" פותחת את וואטסאפ עם הטקסט מוכן ומסמנת את האורח כנשלח.
+                        <Icon name="bulb" /> לחיצה על "שלחו" פותחת את וואטסאפ עם הטקסט מוכן ומסמנת את האורח כנשלח.
                         עדיין צריך ללחוץ "שלח" בוואטסאפ עצמו.
                       </p>
                     )}

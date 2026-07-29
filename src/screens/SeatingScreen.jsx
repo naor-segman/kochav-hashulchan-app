@@ -542,7 +542,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             <div className={styles.successCard}>
               <div className={styles.successIconWrap}>✓</div>
               <div className={styles.successText}>
-                <div className={styles.successTitle}>הושבה מלאה וללא הפרות 🎉</div>
+                <div className={styles.successTitle}>הושבה מלאה וללא הפרות</div>
                 <div className={styles.successSub}>
                   כל {activeGuests.length} הרשומות שובצו בהצלחה ל{ev.tables.length} שולחנות.
                   {declinedGuests.length > 0 && ` (${declinedGuests.length} סירבו ולא שובצו)`}
@@ -593,7 +593,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             <div className={styles.violCard}>
               <div className={styles.violHeader}>
                 <span className={styles.violTitle}>
-                  ⚠ {violations.length} {violations.length === 1 ? "הפרה" : "הפרות"} בסידור הנוכחי
+                  <Icon name="alert" /> {violations.length} {violations.length === 1 ? "הפרה" : "הפרות"} בסידור הנוכחי
                 </span>
                 <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={runAuto}>חשבו מחדש</button>
               </div>
@@ -610,7 +610,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     ].join(" ")}
                   >
                     <span className={styles.violIcon}>
-                      {v.type === "capacity" ? "🔴" : v.type === "apart" ? "⛔" : "🤝"}
+                      <Icon name={v.type === "capacity" ? "chair" : v.type === "apart" ? "apart" : "together"} size={16} />
                     </span>
                     <span>{v.text}</span>
                   </div>
@@ -660,7 +660,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                             rel="noreferrer"
                             onPointerDown={e => e.stopPropagation()}
                           >
-                            📱
+                            <Icon name="chat" size={16} />
                           </a>
                         )}
                         <button
@@ -681,7 +681,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           {checkInMode && (
             <div className={styles.checkInPanel}>
               <div className={styles.checkInHeader}>
-                <span className={styles.checkInTitle}>✅ מצב צ׳ק אין</span>
+                <span className={styles.checkInTitle}><Icon name="check" /> מצב צ׳ק אין</span>
                 <div className={styles.checkInHeaderRight}>
                   <span className={styles.checkInProgress}>
                     {nArrived} / {ev.guests.filter(g => g.rsvp !== "declined").length} הגיעו
@@ -765,7 +765,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   ].filter(Boolean).join(" ")}
                 >
                   <div className={styles.unassignedHeader}>
-                    <span className={styles.unassignedTitle}>⏳ ממתינים לשיבוץ</span>
+                    <span className={styles.unassignedTitle}><Icon name="chair" size={15} /> ממתינים לשיבוץ</span>
                     {unassigned.length > 0 && (
                       <span className={styles.unassignedCount}>{unassigned.length} רשומות</span>
                     )}
@@ -905,7 +905,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   <span className={styles.tCardStar} title="שולחן מלא">✦</span>
                                 )}
                                 {t.type !== "regular" && <TypeTag type={t.type} />}
-                                {isLocked              && <span className={styles.tCardBadgeLock}>🔒</span>}
+                                {isLocked              && <span className={styles.tCardBadgeLock}><Icon name="lock" size={13} /></span>}
                                 {isCapOver             && <span className={styles.tCardBadgeRed}>חריגה!</span>}
                                 {hasViol && !isCapOver && <span className={styles.tCardBadgeWarn}>הפרה</span>}
                               </div>
@@ -967,7 +967,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   onClick={e => { e.stopPropagation(); toggleTableLock(t.id); }}
                                   title={isLocked ? "בטלו נעילת שולחן — יוכל לקבל הצעות מהעוזר החכם" : "נעלו שולחן — לא יוצעו שינויים לשולחן זה"}
                                 >
-                                  {isLocked ? "🔒 שולחן נעול" : "🔓 נעלו שולחן"}
+                                  {isLocked ? <><Icon name="lock" /> שולחן נעול</> : <><Icon name="unlock" /> נעלו שולחן</>}
                                 </button>
                               </div>
                             )}
@@ -981,7 +981,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   <span className={base.gName}>
                                     {g.name}
                                     {isGuestLocked(g.id) && (
-                                      <span className={styles.tGuestLockedBadge} title="אורח נעול — לא יוצע להזזה">🔒</span>
+                                      <span className={styles.tGuestLockedBadge} title="אורח נעול — לא יוצע להזזה"><Icon name="lock" size={12} /></span>
                                     )}
                                   </span>
                                   <span className={base.gMeta}>
@@ -1001,7 +1001,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                     rel="noreferrer"
                                     title={"WhatsApp: " + g.phone}
                                     onPointerDown={e => e.stopPropagation()}
-                                  >📱</a>
+                                  ><Icon name="chat" size={16} /></a>
                                 )}
                                 <button
                                   className={[styles.tGuestLockBtn, isGuestLocked(g.id) ? styles.tGuestLockBtnActive : ""].filter(Boolean).join(" ")}
@@ -1009,7 +1009,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   onClick={e => { e.stopPropagation(); toggleGuestLock(g.id); }}
                                   title={isGuestLocked(g.id) ? "בטלו נעילה — האורח יוכל לקבל הצעות" : "נעלו אורח — לא יוצע להזזה על-ידי העוזר החכם"}
                                 >
-                                  {isGuestLocked(g.id) ? "🔒" : "🔓"}
+                                  <Icon name={isGuestLocked(g.id) ? "lock" : "unlock"} size={14} />
                                 </button>
                                 <button
                                   className={styles.tGuestRemoveBtn}
@@ -1124,7 +1124,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         <div className={styles.pvFullOnly}>
           {violations.length > 0 && (
             <div className={styles.pvViolWarn}>
-              ⚠ שימו לב: {violations.length} {violations.length === 1 ? "הפרה" : "הפרות"} אילוצים בסידור הנוכחי
+              <Icon name="alert" /> שימו לב: {violations.length} {violations.length === 1 ? "הפרה" : "הפרות"} אילוצים בסידור הנוכחי
             </div>
           )}
 
@@ -1138,7 +1138,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   <div key={t.id} className={[styles.pvTable, capOver ? styles.pvTableOver : ""].filter(Boolean).join(" ")}>
                     <div className={styles.pvTableHead}>
                       <span className={styles.pvTableName}>{t.name}</span>
-                      <span className={styles.pvTableCount}>{tgSeats}/{t.capacity}{capOver ? " ⚠" : ""}</span>
+                      <span className={styles.pvTableCount}>{tgSeats}/{t.capacity}{capOver ? <> <Icon name="alert" size={12} /></> : ""}</span>
                     </div>
                     <div className={styles.pvTableBody}>
                       {tg.length === 0
@@ -1166,7 +1166,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
           {unassigned.length > 0 && (
             <div className={styles.pvUnassigned}>
-              <div className={styles.pvUnassignedTitle}>⏳ ממתינים לשיבוץ ({unassigned.length})</div>
+              <div className={styles.pvUnassignedTitle}><Icon name="chair" size={14} /> ממתינים לשיבוץ ({unassigned.length})</div>
               <div className={styles.pvUnassignedList}>
                 {unassigned.map(g => (
                   <span key={g.id} className={styles.pvUnassignedGuest}>
@@ -1207,7 +1207,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
           {unassigned.length > 0 && (
             <div className={styles.pvCompactUnassigned}>
-              ⏳ ממתינים לשיבוץ ({unassigned.length}): {unassigned.map(g => g.name).join(" · ")}
+              <Icon name="chair" size={12} /> ממתינים לשיבוץ ({unassigned.length}): {unassigned.map(g => g.name).join(" · ")}
             </div>
           )}
         </div>

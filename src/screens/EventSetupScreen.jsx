@@ -10,15 +10,16 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import QrCode from "../components/ui/QrCode.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
+import SectionMark from "../components/ui/SectionMark.jsx";
 import styles from "./EventSetupScreen.module.css";
 
 const SHARE_LINKS = [
-  { key: "rsvp",    label: "RSVP אישור הגעה",  path: "/rsvp/",    icon: "📋" },
-  { key: "invite",  label: "הזמנה דיגיטלית",   path: "/invite/",  icon: "💌" },
-  { key: "card",    tokenKey: "invite", label: "כרטיס הזמנה + QR", path: "/card/", icon: "🎴" },
-  { key: "gift",    label: "מתנה דיגיטלית",    path: "/gift/",    icon: "💛" },
-  { key: "hostess", label: "מצב דיילות",        path: "/hostess/", icon: "🏷" },
-  { key: "collab",  label: "הוספת אורחים (למשפחה)", path: "/collab/", icon: "👥" },
+  { key: "rsvp",    label: "RSVP אישור הגעה",  path: "/rsvp/",    mark: "rsvp" },
+  { key: "invite",  label: "הזמנה דיגיטלית",   path: "/invite/",  mark: "invite" },
+  { key: "card",    tokenKey: "invite", label: "כרטיס הזמנה + QR", path: "/card/", mark: "nameTags" },
+  { key: "gift",    label: "מתנה דיגיטלית",    path: "/gift/",    mark: "gifts" },
+  { key: "hostess", label: "מצב דיילות",        path: "/hostess/", mark: "hostess" },
+  { key: "collab",  label: "הוספת אורחים (למשפחה)", path: "/collab/", mark: "collab" },
 ];
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
@@ -323,7 +324,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           const url = BASE_URL + sl.path + token;
           return (
             <div key={sl.key} className={styles.shareRow}>
-              <span className={styles.shareLabel}>{sl.icon} {sl.label}</span>
+              <span className={styles.shareLabel}><SectionMark name={sl.mark} size={20} /> {sl.label}</span>
               <div className={styles.shareInputRow}>
                 <input
                   className={[base.input, styles.shareInput].join(" ")}

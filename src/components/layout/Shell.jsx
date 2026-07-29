@@ -6,6 +6,7 @@ import { SYNC_STATUS } from "../../utils/cloudSync.js";
 import NavBadge from "../navigation/NavBadge.jsx";
 import SectionMark from "../ui/SectionMark.jsx";
 import styles from "./Shell.module.css";
+import Icon from "../ui/Icon.jsx";
 
 // 5 numbered core steps (the build spine) + un-numbered tools, so the nav
 // matches the "שלב X מתוך 5" badges the screens show.
@@ -81,7 +82,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
             syncStatus === SYNC_STATUS.ERROR   ? styles.autoSaveErr : null,
           ].filter(Boolean).join(" ")}>
             {syncStatus === SYNC_STATUS.SYNCING ? "שומר..." :
-             syncStatus === SYNC_STATUS.ERROR   ? "⚠ שגיאה" :
+             syncStatus === SYNC_STATUS.ERROR   ? "שגיאה בשמירה" :
              syncStatus === SYNC_STATUS.SYNCED  ? "✓ נשמר בענן" :
              "✓ נשמר"}
           </span>
@@ -91,7 +92,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
           user
             ? (
               <Link to="/account" className={styles.accountBtn} title={user.email}>
-                <span className={styles.accountIcon}>👤</span>
+                <span className={styles.accountIcon}><Icon name="users" size={15} /></span>
                 <span className={styles.accountLabel}>{user.email.split("@")[0]}</span>
               </Link>
             ) : (

@@ -224,7 +224,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
                         {v.contact}
                         {v.contact && v.phone ? " · " : ""}
                         {wa
-                          ? <a href={wa} target="_blank" rel="noopener noreferrer" className={styles.phone}>{v.phone} 📞</a>
+                          ? <a href={wa} target="_blank" rel="noopener noreferrer" className={styles.phone}>{v.phone} <Icon name="chat" size={13} /></a>
                           : v.phone}
                       </div>
                     )}
@@ -247,7 +247,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
                     {v.status !== "booked" && (
                       <button className={styles.actBtn} onClick={() => setStatus(v.id, "booked")}>✓ סגור</button>
                     )}
-                    <button className={styles.iconBtn} onClick={() => startEdit(v)} aria-label="עריכה">✎</button>
+                    <button className={styles.iconBtn} onClick={() => startEdit(v)} aria-label="עריכה"><Icon name="edit" size={15} /></button>
                     <button className={styles.iconBtn} onClick={() => remove(v.id)} aria-label="מחיקה">✕</button>
                   </div>
                 </div>

@@ -52,8 +52,12 @@
   font-weight: 500;
 }
 
+/* Was a ⚠ character; now the drawn icon, so the failure states look like the
+   rest of the product rather than like a system dialog. */
 .stateIcon {
-  font-size: 36px;
+  display: flex;
+  justify-content: center;
+  color: var(--red-border);
 }
 
 /* ── Header ── */
@@ -337,9 +341,9 @@
   inset-inline-end: 18px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.3rem;
+  display: flex;
   pointer-events: none;
-  opacity: 0.6;
+  color: var(--nav-muted);
 }
 
 /* The one light surface on the page. A greeter who has never seen this looks
@@ -417,10 +421,10 @@
 }
 
 .emptyIcon {
-  font-size: 3.5rem;
-  opacity: 0.5;
-  display: block;
-  line-height: 1;
+  display: flex;
+  justify-content: center;
+  color: var(--nav-muted);
+  margin-bottom: 6px;
 }
 
 .emptyTitle {
@@ -449,10 +453,10 @@
 }
 
 .noResultIcon {
-  font-size: 3rem;
-  display: block;
-  opacity: 0.5;
-  line-height: 1;
+  display: flex;
+  justify-content: center;
+  color: var(--nav-muted);
+  margin-bottom: 6px;
 }
 
 .noResultText {

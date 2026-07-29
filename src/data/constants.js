@@ -42,14 +42,17 @@ export const tableShape = t => TABLE_SHAPES.find(s => s.value === t?.shape) ||
 // for orientation ("who sits near the speakers?") but never hold guests, so
 // they live outside the tables array entirely.
 export const VENUE_ELEMENTS = [
-  { value:"chuppah",    label:"חופה",          icon:"⛩" },
-  { value:"stage",      label:"במה",           icon:"▭" },
-  { value:"buffet",     label:"בופה",          icon:"🍽" },
-  { value:"bar",        label:"בר",            icon:"🍸" },
-  { value:"dancefloor", label:"רחבת ריקודים",  icon:"♪" },
-  { value:"dj",         label:"עמדת DJ",       icon:"🎛" },
-  { value:"entrance",   label:"כניסה",         icon:"⇥" },
-  { value:"giftbox",    label:"קופסת מתנות",   icon:"🎁" },
+  // `icon` is a key into components/ui/Icon.jsx, not a character. Eight
+  // fixtures drawn in four different emoji styles sat on a photo of a real
+  // hall and looked like stickers; the line set belongs to the product.
+  { value:"chuppah",    label:"חופה",          icon:"chuppah" },
+  { value:"stage",      label:"במה",           icon:"stage" },
+  { value:"buffet",     label:"בופה",          icon:"food" },
+  { value:"bar",        label:"בר",            icon:"glass" },
+  { value:"dancefloor", label:"רחבת ריקודים",  icon:"note" },
+  { value:"dj",         label:"עמדת DJ",       icon:"turntable" },
+  { value:"entrance",   label:"כניסה",         icon:"doorway" },
+  { value:"giftbox",    label:"קופסת מתנות",   icon:"gift" },
 ];
 export const venueElement = v => VENUE_ELEMENTS.find(e => e.value === v) || null;
 

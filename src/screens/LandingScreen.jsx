@@ -420,7 +420,7 @@ export default function LandingScreen() {
               Saying so here keeps the page from advertising a limit a visitor
               will not actually meet. The pricing screen carries the same note. */}
           <p className={styles.betaNote}>
-            🎉 בתקופת הבטא כל התוכניות פתוחות ללא תשלום — המגבלות שלמטה מתארות את המודל המתוכנן.
+            בתקופת הבטא כל התוכניות פתוחות ללא תשלום — המגבלות שלמטה מתארות את המודל המתוכנן.
           </p>
 
           <div className={styles.pricingGrid}>

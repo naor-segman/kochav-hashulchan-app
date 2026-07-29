@@ -6,6 +6,7 @@ import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
+import Icon from "../components/ui/Icon.jsx";
 import styles from "./RSVPResponsesScreen.module.css";
 
 // Normalize a display name for fuzzy matching between an RSVP response and a
@@ -263,7 +264,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       {/* ── Meal forecast (optional — collapsed by default) ── */}
       {confirmedSeats > 0 && !showForecast && (
         <button className={base.btnSecondary} style={{ marginBottom: 14 }} onClick={() => setShowForecast(true)}>
-          🍽 הציגו תחזית מנות (אופציונלי)
+          <Icon name="food" /> הציגו תחזית מנות (אופציונלי)
         </button>
       )}
       {shuttleCounts.length > 0 && (

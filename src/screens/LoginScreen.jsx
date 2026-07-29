@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
+import Icon from "../components/ui/Icon.jsx";
 
 function friendlyError(message) {
   const m = message.toLowerCase();
@@ -129,7 +130,7 @@ export default function LoginScreen() {
                 aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
                 tabIndex={-1}
               >
-                {showPw ? "🙈" : "👁"}
+                <Icon name={showPw ? "eyeOff" : "eye"} size={18} />
               </button>
             </div>
           </div>

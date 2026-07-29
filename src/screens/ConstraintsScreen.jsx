@@ -257,13 +257,13 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
               className={[base.segBtn, formType === "together" ? base.segTog : ""].filter(Boolean).join(" ")}
               onClick={() => setFormType("together")}
             >
-              🤝 חייבים לשבת יחד
+              <Icon name="together" /> חייבים לשבת יחד
             </button>
             <button
               className={[base.segBtn, formType === "apart" ? base.segApart : ""].filter(Boolean).join(" ")}
               onClick={() => setFormType("apart")}
             >
-              ⛔ לא יכולים לשבת יחד
+              <Icon name="apart" /> לא יכולים לשבת יחד
             </button>
           </div>
         </Field>
@@ -316,7 +316,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
             formType === "together" ? styles.constraintPreviewTog : styles.constraintPreviewApart
           ].join(" ")}>
             <span className={styles.previewIcon}>
-              {formType === "together" ? "🤝" : "⛔"}
+              <Icon name={formType === "together" ? "together" : "apart"} size={16} />
             </span>
             <div className={styles.previewContent}>
               <div className={styles.previewNames}>
@@ -343,7 +343,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
 
       {together.length > 0 && (
         <div className={[base.card, styles.cardTogether].join(" ")}>
-          <SectionLabel>🤝 חייבים לשבת יחד — {together.length}</SectionLabel>
+          <SectionLabel><Icon name="together" /> חייבים לשבת יחד — {together.length}</SectionLabel>
           <div className={styles.cList}>
             {together.map(c => {
               const ga = gMap[c.guestA], gb = gMap[c.guestB];
@@ -371,7 +371,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
 
       {apart.length > 0 && (
         <div className={[base.card, styles.cardApart].join(" ")}>
-          <SectionLabel>⛔ לא יכולים לשבת יחד — {apart.length}</SectionLabel>
+          <SectionLabel><Icon name="apart" /> לא יכולים לשבת יחד — {apart.length}</SectionLabel>
           <div className={styles.cList}>
             {apart.map(c => {
               const ga = gMap[c.guestA], gb = gMap[c.guestB];

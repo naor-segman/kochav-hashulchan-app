@@ -1,0 +1,10 @@
+/* reset.css sets `svg { display: block }` for images, which is right for a
+   figure and wrong for an icon sitting inside a line of text — every icon in a
+   button label broke onto its own line. Icons are type-adjacent, so they get
+   inline-block and a baseline nudge instead. Inside a flex row this is a no-op:
+   flex items are blockified anyway. */
+.icon {
+  display: inline-block;
+  vertical-align: -0.14em;
+  flex-shrink: 0;
+}

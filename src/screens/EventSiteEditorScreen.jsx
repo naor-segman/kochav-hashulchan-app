@@ -434,11 +434,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         <SectionLabel>מקטעים נוספים</SectionLabel>
         <div className={styles.toggleList}>
           <div className={styles.toggleRow}>
-            <span>מתנה 💝 — קישור למסך המתנה</span>
+            <span>מתנה — קישור למסך המתנה</span>
             <Toggle on={site.sections.gift} onChange={v => setSection("gift", v)} />
           </div>
           <div className={styles.toggleRow}>
-            <span>קיר ברכות 💌 — ברכות מהאורחים</span>
+            <span>קיר ברכות — ברכות מהאורחים</span>
             <Toggle on={site.sections.blessings} onChange={v => setSection("blessings", v)} />
           </div>
         </div>

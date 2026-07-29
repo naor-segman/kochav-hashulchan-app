@@ -4,6 +4,8 @@ import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import styles from "./CheckInScreen.module.css";
 import QrScanner from "../components/ui/QrScanner.jsx";
+import Icon from "../components/ui/Icon.jsx";
+import SectionMark from "../components/ui/SectionMark.jsx";
 import { isScanSupported, parseScanPayload } from "../utils/scanPayload.js";
 
 export default function CheckInScreen({ events, patchEventById, loading = false }) {
@@ -152,12 +154,12 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
         </button>
         <div className={styles.eventName}>{ev.name || "אירוע"}</div>
         <button className={styles.walkInTopBtn} onClick={() => { setWalkInName(""); setWalkInOpen(true); }}>
-          ➕ אורח חדש
+          <Icon name="plus" /> אורח חדש
         </button>
         <div className={styles.topStats}>
           <span className={styles.arrivedCount}>{nArrived}/{nActive}</span>
           {totalGifts > 0 && (
-            <span className={styles.giftTotal}>💰 ₪{totalGifts.toLocaleString("he-IL")}</span>
+            <span className={styles.giftTotal}><Icon name="money" /> ₪{totalGifts.toLocaleString("he-IL")}</span>
           )}
         </div>
       </div>
@@ -176,13 +178,13 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
           className={[styles.viewTab, viewMode === "name" ? styles.viewTabActive : ""].filter(Boolean).join(" ")}
           onClick={() => setViewMode("name")}
         >
-          🔍 לפי שם
+          <Icon name="search" /> לפי שם
         </button>
         <button
           className={[styles.viewTab, viewMode === "table" ? styles.viewTabActive : ""].filter(Boolean).join(" ")}
           onClick={() => setViewMode("table")}
         >
-          ⬡ לפי שולחן
+          <Icon name="hexagon" /> לפי שולחן
         </button>
       </div>
 
@@ -202,7 +204,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
             className={styles.searchInput}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 חפשו שם או טלפון..."
+            placeholder="חפשו שם או טלפון..."
             inputMode="text"
             autoComplete="off"
           />
@@ -215,7 +217,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
       )}
       {viewMode === "name" && !scanning && isScanSupported() && (
         <button className={styles.scanBtn} onClick={() => { setScanning(true); setScanMsg(""); }}>
-          📷 סרקו קוד מההזמנה
+          <Icon name="camera" /> סרקו קוד מההזמנה
         </button>
       )}
 
@@ -289,7 +291,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
       {/* ── Results ── */}
       {searchTrim.length >= 1 && results.length === 0 && (
         <div className={styles.noResult}>
-          <div className={styles.noResultIcon}>🔍</div>
+          <div className={styles.noResultIcon}><Icon name="search" size={40} /></div>
           <div className={styles.noResultText}>לא נמצא אורח עם שם &ldquo;{searchTrim}&rdquo;</div>
           <div className={styles.noResultSub}>בדקו את האיות או חפשו לפי מספר טלפון</div>
           <button className={styles.walkInTriggerBtn} onClick={() => { setWalkInName(searchTrim); setWalkInOpen(true); }}>
@@ -335,7 +337,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
               </div>
               {g.arrived && (
                 <div className={styles.giftRow}>
-                  <label className={styles.giftLabel}>💰 מתנה:</label>
+                  <label className={styles.giftLabel}><Icon name="money" /> מתנה:</label>
                   <input
                     className={styles.giftInput}
                     type="number"
@@ -359,7 +361,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
       {/* ── Empty state (name mode, no search) ── */}
       {viewMode === "name" && !searchTrim && (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>✅</div>
+          <div className={styles.emptyIcon}><SectionMark name="checkin" size={54} /></div>
           <div className={styles.emptyTitle}>מצב צ׳ק אין — {ev.name || "אירוע"}</div>
           <div className={styles.emptySub}>
             {nArrived > 0
@@ -378,7 +380,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
         <div className={styles.tableView}>
           {ev.tables.length === 0 && (
             <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>⬡</div>
+              <div className={styles.emptyIcon}><SectionMark name="tables" size={54} /></div>
               <div className={styles.emptyTitle}>לא הוגדרו שולחנות</div>
             </div>
           )}
