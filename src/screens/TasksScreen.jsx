@@ -173,10 +173,15 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
         {tasks.length > 0 && (
           <div className={styles.board}>
             {TASK_STATUSES.map(col => (
-              <div key={col.value} className={styles.column}>
+              <div key={col.value} className={styles.column} data-state={col.value}>
                 <div className={styles.colHead}>
                   {col.label}
-                  <span className={styles.colCount}>{byStatus[col.value].length}</span>
+                  <span
+                    className={styles.colCount}
+                    data-empty={byStatus[col.value].length === 0 ? "1" : undefined}
+                  >
+                    {byStatus[col.value].length}
+                  </span>
                 </div>
 
                 {byStatus[col.value].length === 0 && (

@@ -15,7 +15,7 @@ export const MESSAGE_STAGES = [
   {
     key: "saveTheDate",
     label: "Save the Date",
-    icon: "📅",
+    icon: "calendar",
     when: "3–6 חודשים לפני",
     audience: "all",
     body: "היי {{שם}} 👋\n\nשומרים לכם את התאריך!\n{{אירוע}} — {{תאריך}}\n\nהפרטים המלאים בקרוב 💛\n{{קישור}}",
@@ -23,7 +23,7 @@ export const MESSAGE_STAGES = [
   {
     key: "invitation",
     label: "הזמנה",
-    icon: "💌",
+    icon: "mail",
     when: "4–6 שבועות לפני",
     audience: "all",
     body: "היי {{שם}} 👋\n\nאתם מוזמנים ל{{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n\nנשמח שתאשרו הגעה:\n{{קישור}}",
@@ -31,7 +31,7 @@ export const MESSAGE_STAGES = [
   {
     key: "reminder1",
     label: "תזכורת ראשונה",
-    icon: "🔔",
+    icon: "bell",
     when: "שבועיים לפני",
     // Only chase the people who haven't answered — messaging everyone again is
     // what makes guests mute the thread.
@@ -41,7 +41,7 @@ export const MESSAGE_STAGES = [
   {
     key: "reminder2",
     label: "תזכורת אחרונה",
-    icon: "⏰",
+    icon: "clock",
     when: "שבוע לפני",
     audience: "pending",
     body: "היי {{שם}},\n\nאנחנו סוגרים מספרים מול המקום — נשמח לדעת אם תגיעו ל{{אירוע}}:\n{{קישור}}\n\nתודה! 💛",
@@ -49,7 +49,7 @@ export const MESSAGE_STAGES = [
   {
     key: "details",
     label: "פרטי הגעה",
-    icon: "📍",
+    icon: "pin",
     when: "2–3 ימים לפני",
     // Only the people who are actually coming need directions and a table.
     audience: "confirmed",
@@ -58,7 +58,7 @@ export const MESSAGE_STAGES = [
   {
     key: "thanks",
     label: "תודה אחרי האירוע",
-    icon: "💛",
+    icon: "heart",
     when: "1–2 ימים אחרי",
     audience: "arrived",
     body: "היי {{שם}} 💛\n\nתודה ענקית שהייתם איתנו ב{{אירוע}} — זה לא היה אותו דבר בלעדיכם!",

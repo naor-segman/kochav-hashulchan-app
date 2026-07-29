@@ -12,7 +12,14 @@
   cursor: pointer;
 }
 
-.stageIcon { font-size: 20px; flex-shrink: 0; }
+/* Was six emoji from six different drawing styles down one column — the one
+   place in the app where the SEQUENCE is the information, rendered as a pile
+   of stickers. One family, one weight, ink like the rest of the row. */
+.stageIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text2);
+}
 
 .stageMain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 

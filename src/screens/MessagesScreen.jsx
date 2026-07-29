@@ -133,7 +133,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
               onClick={() => setOpenStage(isOpen ? null : stage.key)}
               aria-expanded={isOpen}
             >
-              <span className={styles.stageIcon} aria-hidden="true">{stage.icon}</span>
+              <span className={styles.stageIcon} aria-hidden="true"><Icon name={stage.icon} size={18} /></span>
               <span className={styles.stageMain}>
                 <span className={styles.stageTitle}>{stage.label}</span>
                 <span className={styles.stageWhen}>
