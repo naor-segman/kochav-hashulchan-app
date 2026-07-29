@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import TableGlyph from "../components/ui/TableGlyph.jsx";
 import { useParams } from "react-router-dom";
 import { fetchHostessData } from "../utils/publicTokens.js";
 import styles from "./HostessScreen.module.css";
@@ -265,6 +266,10 @@ export default function HostessScreen() {
                   className={[styles.tableChip, openTable === t.id ? styles.tableChipActive : ""].filter(Boolean).join(" ")}
                   onClick={() => setOpenTable(id => id === t.id ? null : t.id)}
                 >
+                  {/* The hostess is standing at the door reading this off a
+                      phone. The glyph says how full the table is before the
+                      number does, which is the whole question at that moment. */}
+                  <TableGlyph shape={t.shape} capacity={t.capacity} taken={n} size={24} onDark />
                   <span className={styles.tableChipName}>{t.name}</span>
                   <span className={styles.tableChipCount}>{n}</span>
                 </button>

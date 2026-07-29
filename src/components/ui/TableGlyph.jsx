@@ -73,6 +73,8 @@ export default function TableGlyph({
   taken = 0,
   size = 64,
   label,                 // optional text in the middle (usually the table number)
+  animate = false,       // replay the seats filling — see runKey in SeatingScreen
+  onDark = false,        // for the near-black chrome (hostess screen)
   className = "",
 }) {
   const cap  = Math.max(1, Math.round(capacity) || 1);
@@ -116,7 +118,7 @@ export default function TableGlyph({
       viewBox={`0 0 ${vb} ${vb}`}
       width={size}
       height={size}
-      className={[styles.glyph, over ? styles.over : "", className].filter(Boolean).join(" ")}
+      className={[styles.glyph, over ? styles.over : "", onDark ? styles.onDark : "", className].filter(Boolean).join(" ")}
       role="img"
       aria-label={label
         ? `שולחן ${label} — ${full} מתוך ${cap} מקומות`
@@ -144,7 +146,14 @@ export default function TableGlyph({
             cx={s.x}
             cy={s.y}
             r={seatR}
-            className={s.on ? styles.seatOn : styles.seatOff}
+            className={[
+              s.on ? styles.seatOn : styles.seatOff,
+              animate && s.on ? styles.seatArriving : "",
+            ].filter(Boolean).join(" ")}
+            // Staggered around the table so guests appear to take their places
+            // one after another rather than blinking on together. Capped so a
+            // twenty-seat table still finishes inside half a second.
+            style={animate && s.on ? { animationDelay: `${Math.min(i, 14) * 28}ms` } : undefined}
           />
         ))
       )}
