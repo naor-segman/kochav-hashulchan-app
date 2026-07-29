@@ -107,6 +107,11 @@ class Query {
   delete()  { return this; }
   upsert()  { return this; }
   then(res) {
+    // ?slow=1 on the preview URL holds every query open, so the loading and
+    // skeleton states can actually be looked at.
+    if (typeof location !== "undefined" && /[?&]slow=1/.test(location.search)) {
+      return new Promise(() => {}).then(res);
+    }
     return Promise.resolve({
       data: this.head ? null : this.rows,
       count: this.rows.length,

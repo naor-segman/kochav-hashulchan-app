@@ -372,3 +372,50 @@
     padding: 0 !important;
   }
 }
+
+/* Touch targets. The box stays exactly where it is — only the tappable area
+   grows to 44px, centred, through a pseudo-element. Forcing the visual height
+   instead would inflate every dense row on a phone, which is precisely why the
+   row-scale buttons were left small to begin with. Measured with
+   qa/mobile.mjs, which reports anything a finger has to aim at under 40px. */
+@media (pointer: coarse) {
+  .bcBack {
+    position: relative;
+  }
+
+  .bcBack::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .logo {
+    position: relative;
+  }
+
+  .logo::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}
+
+/* .breadcrumb sets overflow: hidden so a long event name ellipsises. That also
+   clipped the 44px tap target on the back button — the one control on every
+   single screen. The row gets the height on touch instead. */
+@media (pointer: coarse) {
+  .breadcrumb {
+    min-height: 44px;
+  }
+}

@@ -374,14 +374,20 @@
 }
 
 /* ── Event count link ── */
+/* A column of brand-pink numbers in the quiet panel, where the colour was
+   carrying "this is a link" — the underline already says that. Same fix as the
+   owner-email column on the events table. */
 .eventsLink {
-  color: var(--accent);
-  text-decoration: none;
+  color: var(--adm-ink-darker);
+  text-decoration: underline;
+  text-decoration-color: var(--adm-line-strong);
+  text-underline-offset: 2px;
   font-weight: 700;
 }
 
 .eventsLink:hover {
-  text-decoration: underline;
+  color: var(--adm-accent-dark);
+  text-decoration-color: currentColor;
 }
 
 /* Says out loud that the list is a window, not the whole table. */

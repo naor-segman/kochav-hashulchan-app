@@ -10,6 +10,7 @@ import { isPaidPlan, isStripeConfigured } from "../admin/lib/stripeConfig.js";
 import { useBilling } from "../hooks/useBilling.js";
 import { useSubscription } from "../hooks/useSubscription.js";
 import styles from "./AccountScreen.module.css";
+import Loading from "../components/feedback/Loading.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 
@@ -223,7 +224,7 @@ export default function AccountScreen({ eventCount = 0 }) {
         <section className={styles.section}>
           <h2 className={styles.sectionLabel}>תוכנית ומנוי</h2>
           {sub === undefined ? (
-            <p className={styles.loadingText}>טוען…</p>
+            <Loading />
           ) : (
             <>
               <div className={styles.infoRow}>

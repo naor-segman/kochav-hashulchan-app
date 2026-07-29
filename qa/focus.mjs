@@ -13,7 +13,18 @@ await p.addInitScript(() => {
     tokens:{rsvp:'r1',invite:'i1',gift:'gi1',hostess:'h1',collab:'c1',album:'al1'},
     createdAt:Date.now(),updatedAt:Date.now()}],activeEventId:'e1'}));
 });
-for (const route of ['/events/e1/checkin','/events/e1/costs','/events/e1/vendors','/events/e1/seating']) {
+// Every route, not four. A focus ring that exists on the seating screen and
+// not on the guest form is not a keyboard path — it is a coincidence.
+const ROUTES = [
+  '/', '/pricing', '/login', '/signup', '/help', '/account', '/app',
+  '/events/e1/setup', '/events/e1/tables', '/events/e1/guests',
+  '/events/e1/constraints', '/events/e1/seating', '/events/e1/rsvps',
+  '/events/e1/collab', '/events/e1/site', '/events/e1/costs',
+  '/events/e1/tasks', '/events/e1/announce', '/events/e1/vendors',
+  '/events/e1/messages', '/events/e1/nametags', '/events/e1/checkin',
+  '/rsvp/r1', '/invite/i1', '/gift/gi1', '/card/i1',
+];
+for (const route of ROUTES) {
   await p.goto('http://127.0.0.1:5188'+route,{waitUntil:'domcontentloaded'});
   await p.waitForTimeout(1200);
   const r = await p.evaluate(async () => {

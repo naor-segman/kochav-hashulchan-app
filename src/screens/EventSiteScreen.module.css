@@ -238,3 +238,63 @@
   background: var(--s-accent-soft);
   border-color: var(--s-accent);
 }
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move, so dense rows keep their
+   density on a phone. */
+@media (pointer: coarse) {
+  .heroCta {
+    position: relative;
+  }
+
+  .heroCta::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move. */
+@media (pointer: coarse) {
+  .navRsvp {
+    position: relative;
+  }
+
+  .navRsvp::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}
+
+/* Touch target — see qa/mobile.mjs. */
+@media (pointer: coarse) {
+  .navBurger {
+    position: relative;
+  }
+
+  .navBurger::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}

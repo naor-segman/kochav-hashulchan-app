@@ -70,3 +70,26 @@
   outline-offset: 1px;
   opacity: 1;
 }
+
+/* Touch targets. The box stays exactly where it is — only the tappable area
+   grows to 44px, centred, through a pseudo-element. Forcing the visual height
+   instead would inflate every dense row on a phone, which is precisely why the
+   row-scale buttons were left small to begin with. Measured with
+   qa/mobile.mjs, which reports anything a finger has to aim at under 40px. */
+@media (pointer: coarse) {
+  .btn {
+    position: relative;
+  }
+
+  .btn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}

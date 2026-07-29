@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase.js";
 import Icon from "../../components/ui/Icon.jsx";
 import { EVENT_TYPES } from "../../data/constants.js";
 import styles from "./AdminSettingsScreen.module.css";
+import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -187,9 +188,7 @@ export default function AdminSettingsScreen() {
 
         {/* ── Loading ── */}
         {loading && (
-          <div className={styles.stateBox}>
-            <span className={styles.loadingText}>טוען הגדרות…</span>
-          </div>
+          <Loading rows={3} label="טוען הגדרות…" />
         )}
 
         {/* ── Table missing ── */}

@@ -3,6 +3,7 @@ import TableGlyph from "../../components/ui/TableGlyph.jsx";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventDetailScreen.module.css";
+import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -183,9 +184,7 @@ export default function AdminEventDetailScreen() {
       <div className={styles.page}>
         {topbar}
         <main className={styles.main}>
-          <div className={styles.stateBox}>
-            <span className={styles.loadingText}>טוען אירוע…</span>
-          </div>
+          <Loading rows={3} label="טוען אירוע…" />
         </main>
       </div>
     );

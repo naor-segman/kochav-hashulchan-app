@@ -6,6 +6,7 @@ import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
+import Loading from "../components/feedback/Loading.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import styles from "./RSVPResponsesScreen.module.css";
 
@@ -334,7 +335,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
         </Banner>
       )}
       {loadState === "loading" && (
-        <div className={styles.loadingNote}>טוען תשובות…</div>
+        <Loading rows={4} label="טוען תשובות…" />
       )}
 
       {/* ── Empty state with share link ── */}

@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase.js";
 import { invalidateTemplateCache } from "../../utils/templateHelpers.js";
 import { EVENT_TYPES } from "../../data/constants.js";
 import styles from "./AdminTemplatesScreen.module.css";
+import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 
 const FORM_DEFAULTS = {
@@ -337,9 +338,7 @@ export default function AdminTemplatesScreen() {
 
         {/* ── Loading ── */}
         {loading && (
-          <div className={styles.stateBox}>
-            <span className={styles.loadingText}>טוען תבניות…</span>
-          </div>
+          <Loading rows={4} label="טוען תבניות…" />
         )}
 
         {/* ── Empty state ── */}

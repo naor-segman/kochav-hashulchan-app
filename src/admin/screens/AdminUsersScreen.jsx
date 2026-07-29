@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import { getPlanLabel } from "../lib/planConfig.js";
 import styles from "./AdminUsersScreen.module.css";
+import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -198,9 +199,7 @@ export default function AdminUsersScreen() {
 
         {/* ── Loading skeleton ── */}
         {loading && (
-          <div className={styles.stateBox}>
-            <span className={styles.loadingText}>טוען משתמשים…</span>
-          </div>
+          <Loading rows={5} label="טוען משתמשים…" />
         )}
 
         {/* ── Empty state ── */}

@@ -710,3 +710,23 @@
     font-size: var(--step-2);
   }
 }
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move. */
+@media (pointer: coarse) {
+  .logo {
+    position: relative;
+  }
+
+  .logo::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+}
