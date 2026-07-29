@@ -59,7 +59,7 @@
 .layout_card .card {
   background: var(--a-surface);
   border: 1px solid var(--a-line);
-  border-radius: 22px;
+  border-radius: var(--radius-lg);
   padding: 34px 26px;
   box-shadow: 0 18px 50px var(--scrim-18);
 }
@@ -150,7 +150,7 @@
 .btnGhost {
   display: inline-block;
   padding: 12px 24px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: inherit;
   font-size: 15px;
   font-weight: 700;

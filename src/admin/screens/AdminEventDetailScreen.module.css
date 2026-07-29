@@ -30,7 +30,7 @@
   color: var(--adm-ink-muted);
   text-decoration: none;
   padding: 4px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   line-height: 1;
   transition: background 0.12s, color 0.12s;
 }
@@ -63,7 +63,7 @@
 .logoutBtn {
   background: none;
   border: 1px solid var(--adm-line-strong);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
@@ -98,7 +98,7 @@
   background: var(--adm-danger-bg);
   border: 1px solid var(--adm-danger-border-soft);
   border-inline-start: 4px solid var(--adm-danger-soft);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 12px 16px;
   font-size: 13px;
   color: var(--adm-danger);
@@ -109,7 +109,7 @@
 .retryBtn {
   background: none;
   border: 1px solid var(--adm-danger-border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
@@ -126,7 +126,7 @@
 .stateBox {
   background: var(--adm-surface);
   border: 1px solid var(--adm-line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 48px 24px;
   text-align: center;
 }
@@ -150,7 +150,7 @@
   text-decoration: none;
   background: var(--accent);
   color: var(--adm-surface);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px 20px;
   font-size: 13px;
   font-weight: 700;
@@ -188,7 +188,7 @@
 .statusIssues,
 .statusPending {
   display: inline-block;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 700;
@@ -207,7 +207,7 @@
 .metaCard {
   background: var(--adm-surface);
   border: 1px solid var(--adm-line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 20px 24px;
   box-shadow: 0 1px 4px var(--adm-shadow);
 }
@@ -232,7 +232,7 @@
 .statChip {
   background: var(--adm-surface);
   border: 1px solid var(--adm-line);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 12px 20px;
   display: flex;
   flex-direction: column;
@@ -249,7 +249,7 @@
 .section {
   background: var(--adm-surface);
   border: 1px solid var(--adm-line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   overflow: hidden;
   box-shadow: 0 1px 4px var(--adm-shadow);
 }
@@ -268,7 +268,7 @@
 .sectionCount {
   background: var(--adm-line);
   color: var(--adm-ink-mid);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1px 8px;
   font-size: 11px;
   font-weight: 700;
@@ -294,7 +294,7 @@
 .tableCard {
   background: var(--adm-bg-alt);
   border: 1px solid var(--adm-line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   display: grid;
   grid-template-columns: auto 1fr;
@@ -367,7 +367,7 @@
   background: var(--adm-badge-pink-bg);
   color: var(--adm-badge-pink-ink);
   border: 1px solid var(--adm-badge-pink-border);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1px 8px;
   font-size: 11px;
   font-weight: 700;
@@ -378,7 +378,7 @@
   background: var(--adm-info-bg);
   color: var(--adm-info);
   border: 1px solid var(--adm-info-border);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1px 8px;
   font-size: 11px;
   font-weight: 700;
@@ -388,7 +388,7 @@
   display: inline-block;
   background: var(--adm-ok-bg);
   color: var(--adm-ok);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   padding: 1px 7px;
   font-size: 12px;
 }
@@ -418,7 +418,7 @@
   background: var(--adm-ok-bg);
   color: var(--adm-ok);
   border: 1px solid var(--adm-ok-border);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 2px 10px;
   font-size: 11px;
   font-weight: 700;
@@ -431,7 +431,7 @@
   background: var(--adm-danger-bg);
   color: var(--adm-danger);
   border: 1px solid var(--adm-danger-border-soft);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 2px 10px;
   font-size: 11px;
   font-weight: 700;
@@ -484,7 +484,7 @@
   color: var(--adm-ok-mid);
   background: var(--adm-ok-bg-soft);
   border: 1px solid var(--adm-ok-border-soft);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 2px 9px;
   white-space: nowrap;
   flex-shrink: 0;

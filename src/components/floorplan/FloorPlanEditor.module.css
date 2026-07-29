@@ -142,7 +142,7 @@
   font-weight: 600;
   background: var(--surface);
   border: 1px solid var(--blush-line);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 3px 10px;
   color: var(--text2);
 }
@@ -196,7 +196,7 @@
   max-width: 180px;
   background: var(--surface);
   border: 1px solid var(--border2);
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   z-index: 10;
@@ -268,7 +268,7 @@
   inset-inline-end: 3px;
   width: 14px;
   height: 14px;
-  border-radius: 4px 4px 4px 0;
+  border-radius: var(--radius-xs) var(--radius-xs) var(--radius-xs) 0;
   background: var(--accent);
   border: 1.5px solid var(--white-soft);
   cursor: nwse-resize;
@@ -328,7 +328,7 @@
   font-weight: 600;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 2px 8px;
   color: var(--text);
   cursor: grab;
@@ -398,7 +398,7 @@
   background: var(--bg);
   border: 1px solid var(--border2);
   color: var(--text2);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 5px 12px;
   font-size: 12px;
   font-weight: 600;
@@ -478,7 +478,7 @@
   align-items: center;
   gap: 5px;
   padding: 4px 9px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   /* Opaque, for the same reason the table markers are: the label has to be
      readable over whatever the photograph happens to put behind it. */
   background: var(--surface);
@@ -536,7 +536,7 @@
 .viewToggle {
   display: inline-flex;
   border: 1px solid var(--border2);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   margin-inline-end: 4px;
 }

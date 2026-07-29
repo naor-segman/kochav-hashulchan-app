@@ -31,14 +31,14 @@
 /* The chosen palette — a ground, not an outline-plus-halo. The swatch strip
    inside it is the content; the chip only has to say "this one". */
 .themeActive { border-color: var(--blush-line); background: var(--blush); }
-.themeColors { display: inline-flex; border-radius: 6px; overflow: hidden; flex-shrink: 0; border: 1px solid var(--border); }
+.themeColors { display: inline-flex; border-radius: var(--radius-md); overflow: hidden; flex-shrink: 0; border: 1px solid var(--border); }
 .themeColors span { width: 16px; height: 26px; }
 .themeName { font-size: 13px; font-weight: 600; color: var(--text); }
 
 /* Cover */
 .coverRow { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
 .coverPreview {
-  width: 120px; height: 80px; border-radius: 10px; background: var(--bg) center/cover no-repeat;
+  width: 120px; height: 80px; border-radius: var(--radius-md); background: var(--bg) center/cover no-repeat;
   border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
   color: var(--muted); font-size: 11px; flex-shrink: 0;
 }
@@ -62,7 +62,7 @@
 .toggleList { display: flex; flex-direction: column; gap: 12px; }
 .toggleRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--text); }
 .toggle {
-  width: 44px; height: 26px; border-radius: 100px; background: var(--border2); border: none;
+  width: 44px; height: 26px; border-radius: var(--radius-pill); background: var(--border2); border: none;
   cursor: pointer; position: relative; flex-shrink: 0; transition: background var(--transition); padding: 0;
 }
 .toggleOn { background: var(--green); }
@@ -80,7 +80,7 @@
 .galleryEdit { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; }
 .galleryEditItem {
   position: relative; aspect-ratio: 1; background-size: cover; background-position: center;
-  border-radius: 8px; border: 1px solid var(--border);
+  border-radius: var(--radius-md); border: 1px solid var(--border);
 }
 .galleryDel {
   position: absolute; top: 4px; inset-inline-end: 4px; width: 24px; height: 24px;
@@ -151,7 +151,7 @@
   font-size: 12.5px;
   font-weight: 700;
   padding: 5px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border2);
   background: var(--surface);
   color: var(--text2);
@@ -213,7 +213,7 @@
 }
 .domainBox code {
   background: var(--bg);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   padding: 1px 6px;
   font-size: .9em;
   direction: ltr;

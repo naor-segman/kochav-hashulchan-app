@@ -23,7 +23,7 @@
 
 .backLink {
   font-size: 18px; color: var(--adm-ink-muted); text-decoration: none;
-  padding: 4px 6px; border-radius: 6px; line-height: 1;
+  padding: 4px 6px; border-radius: var(--radius-md); line-height: 1;
   transition: background 0.12s, color 0.12s;
 }
 .backLink:hover { background: var(--adm-bg-sunken); color: var(--adm-ink-dark); }
@@ -39,7 +39,7 @@
 .adminEmail  { font-size: 13px; color: var(--adm-ink-soft); direction: ltr; }
 
 .logoutBtn {
-  background: none; border: 1px solid var(--adm-line-strong); border-radius: 7px;
+  background: none; border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
   padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--adm-ink-mid);
   cursor: pointer; transition: background 0.12s, border-color 0.12s;
   font-family: inherit;
@@ -61,12 +61,12 @@
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft);
   border-inline-start: 4px solid var(--adm-danger-soft);
-  border-radius: 10px; padding: 12px 16px;
+  border-radius: var(--radius-md); padding: 12px 16px;
   font-size: 13px; color: var(--adm-danger); direction: ltr; text-align: left;
 }
 
 .retryInlineBtn {
-  background: none; border: 1px solid var(--adm-danger-border); border-radius: 6px;
+  background: none; border: 1px solid var(--adm-danger-border); border-radius: var(--radius-md);
   padding: 4px 12px; font-size: 12px; font-weight: 600; color: var(--adm-danger);
   cursor: pointer; white-space: nowrap; font-family: inherit; flex-shrink: 0;
   transition: background 0.12s;
@@ -76,7 +76,7 @@
 /* ── Setup / not configured box ── */
 .setupBox {
   background: var(--adm-surface); border: 1px solid var(--adm-line);
-  border-radius: 14px; padding: 40px 32px;
+  border-radius: var(--radius); padding: 40px 32px;
   display: flex; flex-direction: column; align-items: center;
   gap: 14px; text-align: center;
 }
@@ -88,7 +88,7 @@
 
 .inlineCode {
   background: var(--adm-bg-sunken); border: 1px solid var(--adm-line);
-  border-radius: 4px; padding: 1px 6px;
+  border-radius: var(--radius-xs); padding: 1px 6px;
   font-family: monospace; font-size: 12px; color: var(--adm-ink-dark);
 }
 
@@ -101,7 +101,7 @@
 .actionTypePill {
   display: flex; align-items: center; gap: 5px;
   background: var(--adm-bg-alt); border: 1px solid var(--adm-line);
-  border-radius: 20px; padding: 4px 12px;
+  border-radius: var(--radius-lg); padding: 4px 12px;
   font-size: 12px; color: var(--adm-ink-mid);
 }
 
@@ -110,7 +110,7 @@
 
 .retryBtn {
   background: var(--accent); color: var(--adm-surface); border: none;
-  border-radius: 8px; padding: 10px 22px;
+  border-radius: var(--radius-md); padding: 10px 22px;
   font-size: 14px; font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s;
 }
@@ -125,7 +125,7 @@
 .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 .searchInput {
-  border: 1px solid var(--adm-line-strong); border-radius: 8px;
+  border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
   padding: 8px 12px; font-size: 13px; color: var(--adm-ink);
   background: var(--adm-surface); outline: none; font-family: inherit;
   width: 220px; transition: border-color 0.15s, box-shadow 0.15s;
@@ -136,7 +136,7 @@
 }
 
 .filterSelect {
-  border: 1px solid var(--adm-line-strong); border-radius: 8px;
+  border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
   padding: 8px 10px; font-size: 13px; color: var(--adm-ink-dark);
   background: var(--adm-surface); outline: none; font-family: inherit;
   transition: border-color 0.15s; cursor: pointer;
@@ -148,7 +148,7 @@
 /* ── State boxes ── */
 .stateBox {
   background: var(--adm-surface); border: 1px solid var(--adm-line);
-  border-radius: 12px; padding: 48px 24px; text-align: center;
+  border-radius: var(--radius); padding: 48px 24px; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 8px;
 }
 
@@ -168,7 +168,7 @@
 /* ── Table ── */
 .tableWrap {
   overflow-x: auto;
-  border-radius: 12px; border: 1px solid var(--adm-line);
+  border-radius: var(--radius); border: 1px solid var(--adm-line);
   background: var(--adm-surface);
   box-shadow: 0 1px 4px var(--adm-shadow);
 }

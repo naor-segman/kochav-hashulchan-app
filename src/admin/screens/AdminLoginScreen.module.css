@@ -12,7 +12,7 @@
 
 .card {
   background: var(--adm-surface);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 40px 36px 32px;
   width: 100%;
   max-width: 380px;
@@ -51,7 +51,7 @@
   background: var(--adm-warn-bg);
   border: 1px solid var(--adm-warn-border);
   border-inline-start: 4px solid var(--adm-warn-mid);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   font-size: 13px;
   color: var(--adm-badge-amber-deep);
@@ -63,7 +63,7 @@
 
 .setupBanner code {
   background: var(--adm-warn-bg-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   padding: 1px 5px;
   font-family: monospace;
   font-size: 12px;
@@ -90,7 +90,7 @@
 
 .input {
   border: 1px solid var(--adm-line-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 11px 13px;
   font-size: 14px;
   color: var(--adm-ink);
@@ -111,7 +111,7 @@
   color: var(--adm-danger);
   background: var(--adm-danger-bg);
   border: 1px solid var(--adm-danger-border-soft);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   padding: 9px 12px;
   margin: 0;
   line-height: 1.4;
@@ -123,7 +123,7 @@
   background: var(--accent);
   color: var(--adm-surface);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 13px;
   font-size: 15px;
   font-weight: 700;

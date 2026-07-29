@@ -148,7 +148,7 @@
   font-weight: 700;
   color: var(--text2);
   background: var(--bg);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   padding: 2px 8px;
 }
 

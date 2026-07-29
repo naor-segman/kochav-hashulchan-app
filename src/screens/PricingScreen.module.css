@@ -149,7 +149,7 @@
   background: rgba(var(--accent-rgb),0.14);
   color: var(--blush);
   border: 1px solid rgba(var(--accent-rgb),0.30);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 700;
   padding: 5px 18px;
@@ -230,7 +230,7 @@
   font-size: 11px;
   font-weight: 700;
   padding: 4px 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
@@ -408,7 +408,7 @@
   display: inline-block;
   background: var(--blush);
   color: var(--text);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 800;
   padding: 6px 18px;

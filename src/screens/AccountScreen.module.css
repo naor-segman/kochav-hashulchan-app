@@ -133,7 +133,7 @@
 .badge {
   display: inline-block;
   border: 1px solid;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 2px 10px;
   font-size: 11px;
   font-weight: 700;
@@ -218,7 +218,7 @@
 .planCardBadge {
   display: inline-block;
   border: 1px solid;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 1px 6px;
   font-size: 9px;
   font-weight: 700;
@@ -271,7 +271,7 @@
 .planCardBtn {
   width: 100%;
   padding: 6px 4px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 10px;
   font-weight: 700;
   font-family: inherit;
@@ -476,7 +476,7 @@
   background: var(--red);
   color: var(--white);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 5px 12px;
   font-size: 12px;
   font-weight: 700;

@@ -23,7 +23,7 @@
 
 .backLink {
   font-size: 18px; color: var(--adm-ink-muted); text-decoration: none;
-  padding: 4px 6px; border-radius: 6px; line-height: 1;
+  padding: 4px 6px; border-radius: var(--radius-md); line-height: 1;
   transition: background 0.12s, color 0.12s;
 }
 .backLink:hover { background: var(--adm-bg-sunken); color: var(--adm-ink-dark); }
@@ -43,7 +43,7 @@
 .adminEmail  { font-size: 13px; color: var(--adm-ink-soft); direction: ltr; }
 
 .logoutBtn {
-  background: none; border: 1px solid var(--adm-line-strong); border-radius: 7px;
+  background: none; border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
   padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--adm-ink-mid);
   cursor: pointer; transition: background 0.12s, border-color 0.12s;
   font-family: inherit;
@@ -63,7 +63,7 @@
 /* ── State box (loading) ── */
 .stateBox {
   background: var(--adm-surface); border: 1px solid var(--adm-line);
-  border-radius: 12px; padding: 48px 24px; text-align: center;
+  border-radius: var(--radius); padding: 48px 24px; text-align: center;
 }
 
 .loadingText {
@@ -79,7 +79,7 @@
 /* ── Not-configured placeholder ── */
 .notConfiguredBox {
   background: var(--adm-surface); border: 1px solid var(--adm-line);
-  border-radius: 14px; padding: 40px 32px;
+  border-radius: var(--radius); padding: 40px 32px;
   text-align: center; display: flex; flex-direction: column;
   align-items: center; gap: 12px;
 }
@@ -90,7 +90,7 @@
 
 .migrationName {
   background: var(--adm-bg-sunken); border: 1px solid var(--adm-line);
-  border-radius: 8px; padding: 8px 16px;
+  border-radius: var(--radius-md); padding: 8px 16px;
   font-size: 13px; color: var(--adm-ink-dark); direction: ltr;
   font-family: monospace;
 }
@@ -98,7 +98,7 @@
 .retryBtn {
   margin-top: 8px;
   background: var(--accent); color: var(--adm-surface); border: none;
-  border-radius: 8px; padding: 10px 22px;
+  border-radius: var(--radius-md); padding: 10px 22px;
   font-size: 14px; font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s;
 }
@@ -109,12 +109,12 @@
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft);
   border-inline-start: 4px solid var(--adm-danger-soft);
-  border-radius: 10px; padding: 12px 16px;
+  border-radius: var(--radius-md); padding: 12px 16px;
   font-size: 13px; color: var(--adm-danger); direction: ltr; text-align: left;
 }
 
 .retryInlineBtn {
-  background: none; border: 1px solid var(--adm-danger-border); border-radius: 6px;
+  background: none; border: 1px solid var(--adm-danger-border); border-radius: var(--radius-md);
   padding: 4px 12px; font-size: 12px; font-weight: 600; color: var(--adm-danger);
   cursor: pointer; white-space: nowrap; font-family: inherit; flex-shrink: 0;
   transition: background 0.12s;
@@ -132,7 +132,7 @@
 
 .card {
   background: var(--adm-surface); border: 1px solid var(--adm-line);
-  border-radius: 12px; padding: 20px 22px;
+  border-radius: var(--radius); padding: 20px 22px;
   display: flex; flex-direction: column; gap: 16px;
   box-shadow: 0 1px 3px var(--adm-shadow);
 }
@@ -148,7 +148,7 @@
 .label { font-size: 13px; font-weight: 600; color: var(--adm-ink-dark); }
 
 .input, .select {
-  border: 1px solid var(--adm-line-strong); border-radius: 8px;
+  border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
   padding: 9px 12px; font-size: 14px; color: var(--adm-ink);
   background: var(--adm-bg); outline: none; font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -161,7 +161,7 @@
 }
 
 .textarea {
-  border: 1px solid var(--adm-line-strong); border-radius: 8px;
+  border: 1px solid var(--adm-line-strong); border-radius: var(--radius-md);
   padding: 9px 12px; font-size: 14px; color: var(--adm-ink);
   background: var(--adm-bg); outline: none; font-family: inherit;
   resize: vertical; min-height: 80px;
@@ -184,7 +184,7 @@
 
 .flagRow {
   display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; border-radius: 8px;
+  padding: 8px 10px; border-radius: var(--radius-md);
   cursor: pointer;
   transition: background 0.1s;
 }
@@ -196,7 +196,7 @@
 
 .flagBadge {
   font-size: 11px; font-weight: 700;
-  padding: 2px 9px; border-radius: 20px;
+  padding: 2px 9px; border-radius: var(--radius-lg);
   white-space: nowrap;
   background: var(--adm-bg-sunken); color: var(--adm-ink-muted); border: 1px solid var(--adm-line);
 }
@@ -208,14 +208,14 @@
 .saveError {
   font-size: 13px; color: var(--adm-danger);
   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft);
-  border-radius: 7px; padding: 9px 12px; margin: 0;
+  border-radius: var(--radius-md); padding: 9px 12px; margin: 0;
   direction: ltr; text-align: left;
 }
 
 .saveSuccess {
   font-size: 13px; color: var(--adm-ok);
   background: var(--adm-ok-bg); border: 1px solid var(--adm-ok-border);
-  border-radius: 7px; padding: 9px 12px; margin: 0;
+  border-radius: var(--radius-md); padding: 9px 12px; margin: 0;
 }
 
 .formActions {
@@ -224,7 +224,7 @@
 
 .saveBtn {
   background: var(--accent); color: var(--adm-surface); border: none;
-  border-radius: 8px; padding: 11px 28px;
+  border-radius: var(--radius-md); padding: 11px 28px;
   font-size: 14px; font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s, box-shadow 0.12s;
 }

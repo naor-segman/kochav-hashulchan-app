@@ -70,7 +70,7 @@
   color: var(--accent-border);
   background: rgba(var(--accent-rgb),.16);
   border: 1px solid rgba(var(--accent-rgb),.34);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   padding: 2px 7px;
   letter-spacing: 0.06em;
   flex-shrink: 0;
@@ -138,7 +138,7 @@
   flex-shrink: 0;
   background: rgba(var(--green-rgb),.14);
   border: 1px solid rgba(var(--green-rgb),.34);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   padding: 3px 10px;
   letter-spacing: 0.01em;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
@@ -165,7 +165,7 @@
   gap: 5px;
   background: rgba(var(--nav-text-rgb),.06);
   border: 1px solid rgba(var(--nav-text-rgb),.14);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   padding: 6px 12px;
   font-size: var(--step--1);
   font-weight: var(--font-weight-semibold);
@@ -199,7 +199,7 @@
   background: var(--cta);
   color: var(--on-accent);
   border: 1px solid var(--cta);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   padding: 8px 18px;
   font-size: var(--step--1);
   font-weight: var(--font-weight-extrabold);
@@ -293,7 +293,7 @@
 .subnavBtn:focus-visible {
   outline: 2px solid var(--accent-text);
   outline-offset: -3px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
 }
 
 /* The LABEL takes --accent-text (6.87:1); the 2px underline takes --accent,

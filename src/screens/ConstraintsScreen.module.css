@@ -219,7 +219,7 @@
   color: var(--muted);
   font-size: 11px;
   padding: 2px 4px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   flex-shrink: 0;
   line-height: 1;
   transition: color 0.12s;
@@ -285,7 +285,7 @@
 .acMark {
   background: var(--blush);
   color: var(--text);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   font-weight: 800;
   font-style: normal;
 }

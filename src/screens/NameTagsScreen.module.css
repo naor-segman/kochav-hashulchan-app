@@ -75,7 +75,7 @@
   text-align: center;
   /* A dashed border is the cut line — it has to survive printing. */
   border: 1px dashed var(--border2);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 16px 10px;
   min-height: 74px;
   break-inside: avoid;
