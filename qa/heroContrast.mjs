@@ -35,6 +35,16 @@ const FRAMES = readdirSync(FRAME_DIR)
   .map(f => [Number(f.match(/\d+/)[0]),
              'data:image/jpeg;base64,' + readFileSync(`${FRAME_DIR}/${f}`).toString('base64')]);
 
+// The scratchpad is not permanent. When the frames are gone the frame loop
+// simply never runs, nothing is logged, and `worst` prints its starting value
+// as if every frame had passed — a silent pass with zero measurements, which is
+// the third time this file has produced one. Refuse to run instead.
+if (FRAMES.length === 0) {
+  console.error(`אין פריימים ב-${FRAME_DIR} (hf<t>.jpg). חלץ אותם עם ffmpeg לפני ההרצה.`);
+  await b.close();
+  process.exit(1);
+}
+
 let worst = 99;
 for (const [w, label] of WIDTHS) {
   const ctx = await b.newContext({ viewport: { width: w, height: 900 }, deviceScaleFactor: 1 });

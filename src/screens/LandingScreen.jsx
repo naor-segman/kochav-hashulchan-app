@@ -157,8 +157,15 @@ export default function LandingScreen() {
   // the first thing on the page and a video is a slow way to say hello on 4G.
   const [stillOnly] = useState(() => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        || window.matchMedia("(max-width: 700px)").matches;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
+    // Was "any screen under 700px", which meant every phone in the world got
+    // the still — including the owner's, who then could not find the video he
+    // had just supplied. A phone is not a slow connection; most of them are on
+    // wifi, and the clip is 2MB. Ask about the CONNECTION instead, which is the
+    // thing that actually made the rule worth having.
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (c && (c.saveData || /^(slow-)?2g$/.test(c.effectiveType || ""))) return true;
+    return false;
   });
 
   return (
