@@ -3,26 +3,23 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import {
   PLAN_META,
-  STATUS_META, displayStatus,
+  displayStatus,
   getPlanLabel,
   getStatusLabel,
   getPlanLimits,
+  isKnownPlan,
+  isKnownStatus,
+  ALARMING_STATUSES,
   PLAN_KEYS,
   STATUS_KEYS,
 } from "../lib/planConfig.js";
+import { formatDate, countPhrase } from "../lib/adminFormat.js";
 import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSubscriptionsScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatDate(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  });
-}
 
 async function loadSubscriptionsData() {
   const { data, error } = await supabase
@@ -40,29 +37,67 @@ async function loadSubscriptionsData() {
 
 // ── Badge components ──────────────────────────────────────────────────────────
 
+// Three plan colours and six status colours came out of PLAN_META / STATUS_META
+// as inline styles. The panel is monochrome by contract, and both of these are
+// ORDERED quantities that a value ladder expresses better than a hue does:
+// quiet → outline → filled ink. The one exception is the panel's one semantic
+// colour, spent on the one state that needs somebody to act on it today.
+//
+// Explicit maps, not `styles["plan_" + key]`: a computed CSS-module lookup that
+// misses renders class="undefined" and loses every style with no error.
+const PLAN_BADGE = {
+  free:       "badgeQuiet",
+  pro:        "badgeOutline",
+  enterprise: "badgeFilled",
+};
+
+const STATUS_BADGE = {
+  active:             "badgeFilled",
+  trialing:           "badgeOutline",
+  incomplete:         "badgeOutline",
+  paused:             "badgeOutline",
+  cancelled:          "badgeQuiet",
+  expired:            "badgeQuiet",
+  incomplete_expired: "badgeQuiet",
+  past_due:           "badgeAlarm",
+  unpaid:             "badgeAlarm",
+};
+
 function PlanBadge({ plan }) {
-  const meta = PLAN_META[plan];
-  if (!meta) return <span className={styles.badgeMuted}>{plan || "—"}</span>;
+  // An unmapped DB value used to render its raw English key as if it were a
+  // Hebrew label. It is now labelled as unknown, with the raw value on hover.
+  const cls = styles[PLAN_BADGE[plan]] ?? styles.badgeUnknown;
   return (
-    <span
-      className={styles.badge}
-      style={{ color: meta.color, background: meta.bgColor, borderColor: meta.borderColor }}
-    >
-      {meta.label}
+    <span className={cls} title={isKnownPlan(plan) ? undefined : (plan || "")}>
+      {getPlanLabel(plan)}
     </span>
   );
 }
 
 function StatusBadge({ status }) {
-  const meta = STATUS_META[status];
-  if (!meta) return <span className={styles.badgeMuted}>{status || "—"}</span>;
+  const cls = styles[STATUS_BADGE[status]] ?? styles.badgeUnknown;
   return (
     <span
-      className={styles.badge}
-      style={{ color: meta.color, background: meta.bgColor, borderColor: meta.borderColor }}
+      className={cls}
+      title={isKnownStatus(status) ? undefined : (status || "")}
+      data-alarm={ALARMING_STATUSES.has(status) ? "true" : undefined}
     >
-      {meta.label}
+      {getStatusLabel(status)}
     </span>
+  );
+}
+
+// A ✓ / — pair inside a Hebrew line is another bidi trap and another glyph
+// vocabulary; the check comes from the shared line-icon set and the "off" line
+// simply loses the mark instead of gaining a dash that reads as a minus.
+function FeatureLine({ on, label }) {
+  return (
+    <li className={on ? styles.featureOn : styles.featureOff}>
+      <span className={styles.featureMark} aria-hidden="true">
+        {on ? <Icon name="check" size={14} /> : null}
+      </span>
+      {label}
+    </li>
   );
 }
 
@@ -73,9 +108,9 @@ function PlanLimitsPanel({ plan }) {
   const rows = [
     { label: "אירועים מקס׳",    value: limits.maxEvents   === Infinity ? "ללא הגבלה" : limits.maxEvents },
     { label: "אורחים מקס׳",     value: limits.maxGuests   === Infinity ? "ללא הגבלה" : limits.maxGuests },
-    { label: "ייצוא מתקדם",     value: limits.advancedExports ? "✓" : "—" },
-    { label: "תכונות AI",       value: limits.aiFeatures  ? "✓" : "—" },
-    { label: "שיתוף פעולה",     value: limits.collaboration ? "✓" : "—" },
+    { label: "ייצוא מתקדם",     value: limits.advancedExports ? "כלול" : "לא כלול" },
+    { label: "תכונות AI",       value: limits.aiFeatures    ? "כלול" : "לא כלול" },
+    { label: "שיתוף פעולה",     value: limits.collaboration ? "כלול" : "לא כלול" },
   ];
   return (
     <table className={styles.limitsTable}>
@@ -162,7 +197,7 @@ export default function AdminSubscriptionsScreen() {
       {/* ── Top bar ── */}
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
+          <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminSubscriptions" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>מנויים ותשלומים</span>
           <span className={styles.brandSep}>·</span>
@@ -210,28 +245,27 @@ export default function AdminSubscriptionsScreen() {
                 const meta   = PLAN_META[plan];
                 const limits = getPlanLimits(plan);
                 return (
-                  <div key={plan} className={styles.planCard} style={{ borderTopColor: meta.color }}>
+                  // The 3px top rule was magenta / blue / grey and the label
+                  // was the same colour again — two hues doing the job the
+                  // three words already do, on the quietest screen in the app.
+                  <div key={plan} className={styles.planCard}>
                     <div className={styles.planCardHeader}>
-                      <span className={styles.planCardLabel} style={{ color: meta.color }}>
-                        {meta.label}
-                      </span>
+                      <span className={styles.planCardLabel}>{meta.label}</span>
                       <span className={styles.planCardSub}>{meta.labelEn}</span>
                     </div>
                     <ul className={styles.planCardList}>
                       <li>{limits.maxEvents === Infinity ? "ללא הגבלת אירועים" : `עד ${limits.maxEvents} אירועים`}</li>
                       <li>{limits.maxGuests  === Infinity ? "ללא הגבלת אורחים"  : `עד ${limits.maxGuests} אורחים`}</li>
-                      <li className={!limits.advancedExports ? styles.featureOff : ""}>
-                        {limits.advancedExports ? "✓" : "—"} ייצוא מתקדם
-                      </li>
-                      <li className={!limits.aiFeatures ? styles.featureOff : ""}>
-                        {limits.aiFeatures ? "✓" : "—"} תכונות AI
-                      </li>
-                      <li className={!limits.collaboration ? styles.featureOff : ""}>
-                        {limits.collaboration ? "✓" : "—"} שיתוף פעולה
-                      </li>
+                      <FeatureLine on={limits.advancedExports} label="ייצוא מתקדם" />
+                      <FeatureLine on={limits.aiFeatures}      label="תכונות AI" />
+                      <FeatureLine on={limits.collaboration}   label="שיתוף פעולה" />
                     </ul>
                     <div className={styles.planCardCount}>
-                      {(subs || []).filter(s => s.plan === plan && s.status === "active" && !s.payment_past_due).length} פעילים
+                      {/* Read "1 פעילים" on every plan that had exactly one. */}
+                      {countPhrase(
+                        (subs || []).filter(s => s.plan === plan && s.status === "active" && !s.payment_past_due).length,
+                        { none: "אין מנויים פעילים", one: "מנוי פעיל אחד", many: "%n מנויים פעילים" }
+                      )}
                     </div>
                   </div>
                 );
@@ -321,7 +355,7 @@ export default function AdminSubscriptionsScreen() {
                             s.status === "cancelled" || s.status === "expired" ? styles.rowDim : "",
                           ].filter(Boolean).join(" ")}
                         >
-                          <td className={styles.emailCell}>{s.email}</td>
+                          <td className={styles.emailCell} dir="ltr" title={s.email}>{s.email}</td>
                           <td><PlanBadge plan={s.plan} /></td>
                           <td><StatusBadge status={displayStatus(s)} /></td>
                           <td className={styles.dateCell}>{formatDate(s.created_at)}</td>

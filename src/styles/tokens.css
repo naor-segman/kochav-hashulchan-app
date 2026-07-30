@@ -233,17 +233,30 @@
   --adm-info:                 #1e40af;
   --adm-info-bg:              #eff6ff;
   --adm-info-border:          #bfdbfe;
-  --adm-ink:                  #111;
-  --adm-ink-dark:             #333;
-  --adm-ink-darker:           #222;
-  --adm-ink-dim:              #999;
-  --adm-ink-faint:            #aaa;
-  --adm-ink-fainter:          #bbb;
-  --adm-ink-faintest:         #ccc;
-  --adm-ink-mid:              #555;
-  --adm-ink-muted:            #888;
-  --adm-ink-soft:             #666;
-  --adm-ink-strong:           #444;
+  /* The grey ladder. The bottom six rungs were a decorative scale, not a text
+     scale: #ccc/#bbb/#aaa/#999/#888 measure 1.61 / 1.92 / 2.32 / 2.85 / 3.54
+     against white and worse against the panel's own #f4f4f5 page, and they
+     carry ~45 TEXT declarations — the missing venue, "לא פעיל", the plan of
+     most rows in the users table, "מציג 100 מתוך 120 אורחים". #777 was the
+     first rung that came close and it still only reached 4.48.
+
+     Re-cut so every rung clears 4.5:1 against the WORST ground it lands on
+     (--adm-bg-sunken #f4f4f5, the page itself) while the order — and so the
+     hierarchy — is unchanged. Ratios below are white / sunken.
+     faintest and fainter now share a value: #ccc vs #bbb was never a
+     perceptible step either, it was two levels of invisible. Nothing from
+     --adm-ink-mid up moved. */
+  --adm-ink:                  #111;      /* 18.88 / 17.13 */
+  --adm-ink-dark:             #333;      /* 12.63 / 11.46 */
+  --adm-ink-darker:           #222;      /* 15.91 / 14.44 */
+  --adm-ink-dim:              #666666;   /*  5.74 /  5.22 — was #999, 2.85 */
+  --adm-ink-faint:            #6a6a6a;   /*  5.41 /  4.92 — was #aaa, 2.32 */
+  --adm-ink-fainter:          #6e6e6e;   /*  5.10 /  4.64 — was #bbb, 1.92 */
+  --adm-ink-faintest:         #6e6e6e;   /*  5.10 /  4.64 — was #ccc, 1.61 */
+  --adm-ink-mid:              #555;      /*  7.46 /  6.78 */
+  --adm-ink-muted:            #626262;   /*  6.10 /  5.55 — was #888, 3.54 */
+  --adm-ink-soft:             #5a5a5a;   /*  6.88 /  6.25 — was #666, 5.74 */
+  --adm-ink-strong:           #444;      /*  9.73 /  8.84 */
   --adm-line:                 #e5e7eb;
   --adm-line-soft:            #f0f0f0;
   --adm-line-strong:          #ddd;
@@ -283,26 +296,25 @@
   --adm-focus-ring-strong:    rgba(var(--accent-rgb), 0.30);
   --adm-focus-ring-stronger:  rgba(var(--accent-rgb), 0.35);
 
-  /* Status badges. Each is a ground / ink / hairline trio, which is why they
-     were three literals on one line in five different files. */
-  --adm-badge-orange-bg:      #fff7ed;
-  --adm-badge-orange-ink:     #9a3412;
-  --adm-badge-orange-border:  #fed7aa;
-  --adm-badge-pink-bg:        #fdf2f8;
-  --adm-badge-pink-ink:       #9d174d;
-  --adm-badge-pink-border:    #f9a8d4;
-  --adm-badge-purple-bg:      #f5f3ff;
-  --adm-badge-purple-ink:     #6d28d9;
-  --adm-badge-purple-border:  #ddd6fe;
-  --adm-badge-blue-ink:       #1d4ed8;
-  --adm-badge-amber-ink:      #b45309;
-  --adm-badge-amber-deep:     #78350f;
-  --adm-badge-amber-mark:     #fbbf24;
+  /* The badge rainbow — orange / pink / purple / blue / amber trios — is gone.
+     It existed so that the panel could paint plan tiers violet-blue-grey in
+     one column, roles amber in the next, event statuses across five hues in a
+     third, and six saturated colours down the activity log's action column.
+     Every one of those encodes an ORDERED quantity or a plain category that
+     the Hebrew word beside it already names, in a tool whose design contract
+     is that it is monochrome and disappears.
+
+     They are value ladders now — quiet fill, outline, filled ink — and the
+     panel keeps exactly one semantic colour, --adm-danger, for the states
+     somebody has to act on: a failing payment, a failed write, missing
+     configuration. The remaining --adm-ok / --adm-warn / --adm-info families
+     stay because they name real semantics; nothing paints a category with
+     them any more. */
 
   --adm-bg-tint:              #f8f8f8;
   --adm-bg-warm:              #fffbf7;
   --adm-line-warm:            #e4c49a;
-  --adm-ink-quiet:            #777;
+  --adm-ink-quiet:            #5e5e5e;   /*  6.48 /  5.90 — was #777, 4.48 */
 }
 
 /* ── Neutral overlays ────────────────────────────────────────────────────

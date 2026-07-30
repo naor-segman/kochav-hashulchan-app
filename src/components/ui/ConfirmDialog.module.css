@@ -1,0 +1,141 @@
+/* In-product confirm / prompt — replaces the native browser dialogs.
+   A dialog genuinely floats above the page, so --shadow-lg belongs here (the
+   resting-card rule in screenBase is about blocks that sit ON the page). */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(var(--text-rgb), 0.44);
+  animation: fadeIn 0.14s ease;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 24px 24px 20px;
+  text-align: start;
+  animation: rise 0.16s var(--ease-out);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay, .card { animation: none; }
+}
+
+/* The dismiss affordance sits in the corner the reading direction ends on. */
+.close {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.close:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Blush is how this system says "look at this" without spending the accent.
+   A destructive action is a real state, so it — and only it — takes red. */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--blush-soft);
+  border: 1px solid var(--blush-line);
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.markDanger {
+  background: var(--red-bg);
+  border-color: var(--red-border);
+  color: var(--red);
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: var(--step-1);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.body {
+  margin-bottom: 14px;
+}
+
+.line {
+  margin: 0 0 4px;
+  font-size: var(--step--1);
+  color: var(--text2);
+  line-height: 1.55;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Destructive confirm: the filled button commits to red rather than to --cta,
+   because the one thing it must not read as is "the pleasant next step". */
+.confirmDanger {
+  background: var(--red);
+  border-color: var(--red);
+  box-shadow: none;
+}
+
+.confirmDanger:hover:not(:disabled) {
+  background: var(--red);
+  border-color: var(--red);
+  filter: brightness(0.92);
+  box-shadow: none;
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 20px 16px 16px;
+    border-radius: var(--radius);
+  }
+  .actions > * {
+    flex: 1 1 auto;
+  }
+}

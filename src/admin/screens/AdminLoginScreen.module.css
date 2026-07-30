@@ -25,10 +25,12 @@
   margin-bottom: 32px;
 }
 
+/* DESIGN.md rule 2: accent as TEXT is --accent-text on a light ground.
+   --accent is 3.80:1 and is for fills that carry no text. Same hue family. */
 .logo {
   display: block;
   font-size: 30px;
-  color: var(--accent);
+  color: var(--accent-text);
   margin-bottom: 10px;
 }
 
@@ -47,22 +49,24 @@
 }
 
 /* ── Setup banner (shown when env vars are missing) ── */
+/* Was amber, i.e. "heads up". With no Supabase URL the panel cannot sign
+   anybody in at all — nothing on this screen works. It takes the panel's one
+   semantic colour, the same one a failed payment takes, because it is the
+   same kind of thing: something a person has to go and fix. */
 .setupBanner {
-  background: var(--adm-warn-bg);
-  border: 1px solid var(--adm-warn-border);
-  border-inline-start: 4px solid var(--adm-warn-mid);
+  background: var(--adm-danger-bg);
+  border: 1px solid var(--adm-danger-border-soft);
+  border-inline-start: 4px solid var(--adm-danger-soft);
   border-radius: var(--radius-md);
   padding: 12px 14px;
   font-size: var(--step--1);
-  color: var(--adm-badge-amber-deep);
+  color: var(--adm-danger);
   line-height: 1.5;
   margin-bottom: 20px;
-  direction: ltr;
-  text-align: left;
 }
 
 .setupBanner code {
-  background: var(--adm-warn-bg-strong);
+  background: var(--adm-danger-bg-strong);
   border-radius: var(--radius-xs);
   padding: 1px 4px;
   font-family: monospace;
@@ -115,12 +119,12 @@
   padding: 8px 12px;
   margin: 0;
   line-height: 1.4;
-  direction: ltr;
-  text-align: left;
 }
 
+/* DESIGN.md rule 1: a filled button is --cta, never --accent. White on
+   --accent measures 3.80:1; on --cta it is 4.71:1. */
 .btn {
-  background: var(--accent);
+  background: var(--cta);
   color: var(--adm-surface);
   border: none;
   border-radius: var(--radius-md);
@@ -146,7 +150,7 @@
 /* ── Footer ── */
 .footer {
   font-size: var(--step--3);
-  color: var(--adm-ink-fainter);
+  color: var(--adm-ink-fainter);   /* was 1.92:1 — see the ladder in tokens.css */
   text-align: center;
   margin: 20px 0 0;
 }

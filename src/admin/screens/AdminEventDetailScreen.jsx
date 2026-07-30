@@ -5,39 +5,8 @@ import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventDetailScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatDate(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso + (iso.includes("T") ? "" : "T00:00:00"));
-  if (isNaN(d)) return iso;
-  return d.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
-
-function formatRelative(iso) {
-  if (!iso) return "—";
-  const diff = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(diff / 86_400_000);
-  if (days === 0) return "היום";
-  if (days === 1) return "אתמול";
-  if (days < 7)  return `לפני ${days} ימים`;
-  if (days < 30) return `לפני ${Math.floor(days / 7)} שבועות`;
-  return formatDate(iso);
-}
-
-function deriveStatus(ev) {
-  const g = ev.guest_count ?? 0;
-  const t = ev.table_count ?? 0;
-  const s = Number(ev.seated_pct ?? 0);
-  if (g === 0 && t === 0) return { label: "ריק",          cls: styles.statusEmpty    };
-  if (g === 0)            return { label: "אין אורחים",   cls: styles.statusWarning  };
-  if (t === 0)            return { label: "אין שולחנות",  cls: styles.statusWarning  };
-  if (s >= 90)            return { label: "מוכן",          cls: styles.statusReady    };
-  if (s >= 50)            return { label: "בעיבוד",        cls: styles.statusProgress };
-  if (s >  0)             return { label: "בעיות",         cls: styles.statusIssues   };
-  return                         { label: "ממתין לסידור",  cls: styles.statusPending  };
-}
+import { formatDate, formatRelative } from "../lib/adminFormat.js";
+import { deriveEventStatus } from "../lib/eventStatus.js";
 
 const SIDE_LABEL = { bride: "כלה", groom: "חתן" };
 const CONSTRAINT_LABEL = { together: "יחד", apart: "רחוק" };
@@ -159,18 +128,38 @@ export default function AdminEventDetailScreen() {
 
   // ── Render states ────────────────────────────────────────────────────────────
 
+  // The badge said "נתונים חיים" in green unconditionally — including with a
+  // 500 banner directly beneath it and zero rows on screen. A signal that
+  // never changes carries no information, and it misleads in the one state
+  // where it matters. It now reports what is actually true.
+  const dataState = error ? "error" : (event === null && !notFound ? "loading" : "live");
+
   const topbar = (
     <header className={styles.topbar}>
       <div className={styles.brand}>
-        <Link to="/admin/events" className={styles.backLink}>←</Link>
+        <Link to="/admin/events" className={styles.backLink} aria-label="חזרה לרשימת האירועים">→</Link>
         <SectionMark name="adminEvents" tone="admin" size={20} className={styles.brandMark} />
         <span className={styles.brandName}>פרטי אירוע</span>
         <span className={styles.brandSep}>·</span>
         <span className={styles.brandSub}>כוכב השולחן</span>
-        <span className={styles.liveBadge}>
-          <span className={styles.liveDot} />
-          נתונים חיים
-        </span>
+        {dataState === "live" && (
+          <span className={styles.liveBadge}>
+            <span className={styles.liveDot} />
+            נתונים חיים
+          </span>
+        )}
+        {dataState === "loading" && (
+          <span className={styles.loadBadge}>
+            <span className={styles.loadDot} />
+            טוען נתונים
+          </span>
+        )}
+        {dataState === "error" && (
+          <span className={styles.staleBadge}>
+            <span className={styles.staleDot} />
+            הנתונים לא נטענו
+          </span>
+        )}
       </div>
       <div className={styles.topbarRight}>
         {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}
@@ -219,7 +208,7 @@ export default function AdminEventDetailScreen() {
     );
   }
 
-  const status = deriveStatus(event);
+  const status = deriveEventStatus(event, styles);
   const ownerEmail = event.profiles?.email || null;
 
   // ── Full detail view ─────────────────────────────────────────────────────────
@@ -265,7 +254,9 @@ export default function AdminEventDetailScreen() {
             )}
             <div className={styles.metaField}>
               <span className={styles.metaLabel}>בעלים</span>
-              <span className={styles.metaValue}>{ownerEmail || "—"}</span>
+              <span className={[styles.metaValue, styles.metaEmail].join(" ")} dir="ltr" title={ownerEmail || undefined}>
+                {ownerEmail || "—"}
+              </span>
             </div>
             <div className={styles.metaField}>
               <span className={styles.metaLabel}>נוצר</span>
@@ -295,22 +286,35 @@ export default function AdminEventDetailScreen() {
         {/* ── Stats chips ── */}
         <div className={styles.statsRow}>
           <div className={styles.statChip}>
-            <span className={styles.statChipValue}>{event.guest_count}</span>
+            <span className={styles.statChipValue} dir="ltr">{event.guest_count}</span>
             <span className={styles.statChipLabel}>אורחים</span>
           </div>
           <div className={styles.statChip}>
-            <span className={styles.statChipValue}>{event.table_count}</span>
+            <span className={styles.statChipValue} dir="ltr">{event.table_count}</span>
             <span className={styles.statChipLabel}>שולחנות</span>
           </div>
           <div className={styles.statChip}>
-            <span className={styles.statChipValue}>
-              {event.seated_pct > 0 ? `${Math.round(event.seated_pct)}%` : "—"}
+            <span className={styles.statChipValue} dir="ltr">
+              {/* 0% seated is a fact, not missing data. "—" said "we do not
+                  know" about an event we know is at zero. */}
+              {event.seated_pct === null || event.seated_pct === undefined
+                ? "—"
+                : `${Math.round(event.seated_pct)}%`}
             </span>
             <span className={styles.statChipLabel}>ישיבה</span>
           </div>
           {totalGuestCount > 0 && (
             <div className={styles.statChip}>
-              <span className={styles.statChipValue}>{seatedGuestCount} / {totalGuestCount}</span>
+              {/* 250 of 300 rendered as "300 / 250" — the biggest number on the
+                  page, reading as 20% overbooked. Nothing in "250 / 300" is a
+                  strong LTR character, so bidi rule N1 resolved the neutrals
+                  around the slash as RTL and swapped the two number runs. The
+                  Hebrew phrasings further down the page ("250 מתוך 300",
+                  "4 / 12 מקומות") are correct only because the Hebrew word
+                  anchors the resolution. dir="ltr" states it outright. */}
+              <span className={styles.statChipValue} dir="ltr">
+                {seatedGuestCount} / {totalGuestCount}
+              </span>
               <span className={styles.statChipLabel}>מקומות ישיבה</span>
             </div>
           )}

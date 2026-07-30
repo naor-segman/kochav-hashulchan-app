@@ -6,6 +6,9 @@ import { EVENT_TYPES } from "../../data/constants.js";
 import styles from "./AdminTemplatesScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
+import Icon from "../../components/ui/Icon.jsx";
+import { useConfirm } from "../../components/ui/useConfirm.jsx";
+import { formatDate } from "../lib/adminFormat.js";
 
 const FORM_DEFAULTS = {
   name:        "",
@@ -17,13 +20,6 @@ const FORM_DEFAULTS = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatDate(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  });
-}
 
 function templateToForm(t) {
   return {
@@ -69,7 +65,7 @@ function TemplateForm({ initial, onSave, onClose, saving, formError }) {
 
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>{isNew ? "תבנית חדשה" : "עריכת תבנית"}</h2>
-          <button className={styles.closeBtn} onClick={onClose} type="button">✕</button>
+          <button className={styles.closeBtn} onClick={onClose} type="button" aria-label="סגור">✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
@@ -89,19 +85,25 @@ function TemplateForm({ initial, onSave, onClose, saving, formError }) {
               />
             </div>
             <div className={styles.fieldNarrow}>
-              <label className={styles.label} htmlFor="tpl-icon">אייקון</label>
+              <label className={styles.label} htmlFor="tpl-icon">סמל (אופציונלי)</label>
               <div className={styles.iconWrap}>
+                {/* The placeholder was 💍 — emoji as a first-class concept in
+                    the operator's own form, in a product that removed 102 of
+                    them from its interface. And an empty field rendered a
+                    literal "?" at 20px in faint grey, floating 30px away,
+                    which reads as a broken glyph rather than "none chosen". */}
                 <input
                   id="tpl-icon"
                   className={styles.iconInput}
                   type="text"
                   value={form.icon}
                   onChange={set("icon")}
-                  placeholder="💍"
                   maxLength={4}
                   dir="auto"
                 />
-                <span className={styles.iconPreview}>{form.icon || "?"}</span>
+                <span className={form.icon ? styles.iconPreview : styles.iconPreviewEmpty}>
+                  {form.icon || "ללא סמל"}
+                </span>
               </div>
             </div>
           </div>
@@ -189,6 +191,8 @@ export default function AdminTemplatesScreen() {
   const [saving,      setSaving]      = useState(false);
   const [formError,   setFormError]   = useState(null);
   const [toggling,    setToggling]    = useState(null);   // id of row currently toggling
+  const [actionError, setActionError] = useState(null);   // failed activate/deactivate
+  const { confirm, dialog }           = useConfirm();
 
   useEffect(() => {
     if (!supabase) return;
@@ -277,21 +281,42 @@ export default function AdminTemplatesScreen() {
   };
 
   const handleToggleActive = async (template) => {
+    // Deactivating hides the template from every customer's new-event flow,
+    // and it used to happen on a single click with no confirmation. Activating
+    // is not destructive, so only the deactivate direction asks.
+    if (template.is_active) {
+      const ok = await confirm(
+        `להשבית את התבנית "${template.name}"? היא תיעלם מרשימת התבניות של כל הלקוחות ביצירת אירוע חדש.`,
+        { danger: true, confirmLabel: "השבת", cancelLabel: "ביטול" }
+      );
+      if (!ok) return;
+    }
+
     setToggling(template.id);
+    setActionError(null);
     const { error: err } = await supabase
       .from("templates")
       .update({ is_active: !template.is_active, updated_at: new Date().toISOString() })
       .eq("id", template.id);
     setToggling(null);
-    if (!err) {
-      invalidateTemplateCache();
-      // Optimistic update to avoid full reload flash
-      setTemplates((prev) =>
-        (prev || []).map((t) =>
-          t.id === template.id ? { ...t, is_active: !template.is_active } : t
-        )
+
+    // On failure this used to do NOTHING AT ALL — no toast, no revert, no
+    // banner — so the operator could not tell whether the template was still
+    // live for customers. The row is only updated when the write succeeded.
+    if (err) {
+      setActionError(
+        `${template.is_active ? "השבתת" : "הפעלת"} התבנית "${template.name}" נכשלה: ${err.message || "שגיאה לא ידועה"}`
       );
+      return;
     }
+
+    invalidateTemplateCache();
+    // Optimistic update to avoid full reload flash
+    setTemplates((prev) =>
+      (prev || []).map((t) =>
+        t.id === template.id ? { ...t, is_active: !template.is_active } : t
+      )
+    );
   };
 
   const loading = templates === null;
@@ -302,7 +327,7 @@ export default function AdminTemplatesScreen() {
       {/* ── Top bar ── */}
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
+          <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminTemplates" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>ניהול תבניות</span>
           <span className={styles.brandSep}>·</span>
@@ -324,6 +349,16 @@ export default function AdminTemplatesScreen() {
           </div>
         )}
 
+        {/* ── Activate / deactivate failure ── */}
+        {actionError && (
+          <div className={styles.errorBanner}>
+            {actionError}
+            <button className={styles.retryBtn} onClick={() => { setActionError(null); loadTemplates(); }}>
+              רענן מהשרת
+            </button>
+          </div>
+        )}
+
         {/* ── Toolbar ── */}
         <div className={styles.toolbar}>
           {!loading && !error && (
@@ -332,7 +367,8 @@ export default function AdminTemplatesScreen() {
             </span>
           )}
           <button className={styles.newBtn} onClick={openCreate} disabled={loading}>
-            + תבנית חדשה
+            <Icon name="plus" size={14} />
+            תבנית חדשה
           </button>
         </div>
 
@@ -409,6 +445,8 @@ export default function AdminTemplatesScreen() {
         )}
 
       </main>
+
+      {dialog}
 
       {/* ── Modal form ── */}
       {editTarget !== null && (

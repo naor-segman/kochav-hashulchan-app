@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminDashboardScreen.module.css";
 import SectionMark from "../../components/ui/SectionMark.jsx";
+import Icon from "../../components/ui/Icon.jsx";
 
 // Stat tile definitions — key maps to the stats object returned by fetchStats().
 // `mark` is a key into components/ui/SectionMark — the same drawings the
@@ -104,10 +105,26 @@ export default function AdminDashboardScreen() {
           <span className={styles.brandName}>לוח בקרה</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>
-          <span className={styles.liveBadge}>
-            <span className={styles.liveDot} />
-            נתונים חיים
-          </span>
+          {/* Was green and unconditional — it stayed green with a red error
+              banner underneath and every tile showing "—". */}
+          {!loading && !statsError && (
+            <span className={styles.liveBadge}>
+              <span className={styles.liveDot} />
+              נתונים חיים
+            </span>
+          )}
+          {loading && (
+            <span className={styles.loadBadge}>
+              <span className={styles.loadDot} />
+              טוען נתונים
+            </span>
+          )}
+          {!loading && statsError && (
+            <span className={styles.staleBadge}>
+              <span className={styles.staleDot} />
+              הנתונים לא נטענו
+            </span>
+          )}
         </div>
         <div className={styles.topbarRight}>
           {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}
@@ -123,6 +140,9 @@ export default function AdminDashboardScreen() {
         {statsError && (
           <div className={styles.statsError}>
             {statsError}
+            {/* The banner had no action on it at all, which is why .retryBtn
+                sat unused in the stylesheet. */}
+            <button className={styles.retryBtn} onClick={loadStats}>נסה שוב</button>
           </div>
         )}
 
@@ -130,8 +150,13 @@ export default function AdminDashboardScreen() {
         <section>
           <div className={styles.statsSectionRow}>
             <h2 className={styles.sectionTitle} style={{ margin: 0 }}>סטטיסטיקות</h2>
+            {/* Was the literal U+21BB. In the Heebo stack it draws as a shape
+                indistinguishable from the Hebrew letter ט, so the button read
+                "ט רענן". It was also a fourth icon vocabulary alongside
+                SectionMark, Icon and TableGlyph. */}
             <button className={styles.refreshBtn} onClick={loadStats} disabled={loading}>
-              {loading ? "טוען…" : "↻ רענן"}
+              <Icon name="refresh" size={14} />
+              {loading ? "טוען…" : "רענן"}
             </button>
             {lastRefreshed && (
               <span className={styles.lastRefreshed}>

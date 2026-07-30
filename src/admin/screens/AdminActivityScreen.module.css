@@ -62,7 +62,7 @@
   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft);
   border-inline-start: 4px solid var(--adm-danger-soft);
   border-radius: var(--radius-md); padding: 12px 16px;
-  font-size: var(--step--1); color: var(--adm-danger); direction: ltr; text-align: left;
+  font-size: var(--step--1); color: var(--adm-danger);
 }
 
 .retryInlineBtn {
@@ -105,11 +105,12 @@
   font-size: var(--step--2); color: var(--adm-ink-mid);
 }
 
-.actionTypeIcon  { font-size: var(--step-0); }
+.actionTypeIcon  { display: inline-flex; color: var(--adm-ink-mid); }
 .actionTypeLabel { font-weight: 600; }
 
 .retryBtn {
-  background: var(--accent); color: var(--adm-surface); border: none;
+  /* DESIGN.md rule 1: a filled button is --cta, never --accent (3.80:1). */
+  background: var(--cta); color: var(--adm-surface); border: none;
   border-radius: var(--radius-md); padding: 10px 20px;
   font-size: var(--step-0); font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s;
@@ -156,15 +157,6 @@
 .emptyTitle { font-size: var(--step-1); font-weight: 700; color: var(--adm-ink-dark); margin: 0; }
 .emptyHint  { font-size: var(--step--1); color: var(--adm-ink-dim); margin: 0; max-width: 360px; }
 
-.loadingText {
-  font-size: var(--step-0); color: var(--adm-ink-faint);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
-}
-
 /* ── Table ── */
 .tableWrap {
   overflow-x: auto;
@@ -197,17 +189,54 @@
 
 /* Cell variants */
 .dateCell   { color: var(--adm-ink-muted); font-size: var(--step--2); white-space: nowrap; }
-.emailCell  { color: var(--adm-ink-strong); font-size: var(--step--2); direction: ltr; }
+/* An address is LTR and this cell truncates: `direction` is what decides
+   which end the ellipsis eats. In an RTL cell it removes the mailbox name —
+   the part that identifies the customer — and keeps the shared domain. */
+.emailCell  {
+  color: var(--adm-ink-strong); font-size: var(--step--2);
+  direction: ltr; text-align: start; unicode-bidi: isolate;
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .entityCell { color: var(--adm-ink-soft); }
 .nameCell   { color: var(--adm-ink-darker); font-size: var(--step--2); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.metaCell   { color: var(--adm-ink-muted); font-size: var(--step--3); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
+/* The summary is Hebrew now (see activityConfig metaSummary), so it must not
+   be forced LTR any more, and the full value is in the cell's title. */
+.metaCell   { color: var(--adm-ink-muted); font-size: var(--step--3); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .muted { color: var(--adm-ink-faintest); }
 
 /* ── Action badge ── */
-.actionBadge {
-  display: inline-flex; align-items: center; gap: 4px;
+/* Was `style={{ color: meta.color }}` with seven hardcoded hex colours behind
+   it — six saturated hues painted down ONE column of a panel whose whole
+   design contract is that it is monochrome, encoding what the label beside it
+   already said. The icon carries the distinction; ink carries the text. */
+.actionBadge,
+.actionBadgeRaw {
+  display: inline-flex; align-items: center; gap: 6px;
   font-size: var(--step--2); font-weight: 700;
+  color: var(--adm-ink-darker);
+}
+
+.actionBadgeRaw { color: var(--adm-ink-mid); font-weight: 600; }
+
+/* An action or entity the panel has no Hebrew label for. Rendering the raw
+   key as if it were a label put `stripe.invoice.payment_failed` in bold black
+   mid-Hebrew-table; as a code token it reads as the identifier it is. */
+.rawKey {
+  font-family: monospace;
+  font-size: var(--step--3);
+  background: var(--adm-bg-sunken);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+  color: var(--adm-ink-dark);
+  unicode-bidi: isolate;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* ── Mobile ── */

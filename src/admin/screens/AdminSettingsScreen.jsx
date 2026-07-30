@@ -172,7 +172,7 @@ export default function AdminSettingsScreen() {
       {/* ── Top bar ── */}
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
+          <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminSettings" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>הגדרות מערכת</span>
           <span className={styles.brandSep}>·</span>
@@ -355,7 +355,12 @@ export default function AdminSettingsScreen() {
 
             {/* ── Actions ── */}
             {saveError && <p className={styles.saveError}>{saveError}</p>}
-            {saveSuccess && <p className={styles.saveSuccess}>ההגדרות נשמרו בהצלחה ✓</p>}
+            {saveSuccess && (
+              <p className={styles.saveSuccess}>
+                <Icon name="check" size={15} />
+                ההגדרות נשמרו בהצלחה
+              </p>
+            )}
 
             <div className={styles.formActions}>
               <button type="submit" className={styles.saveBtn} disabled={saving}>

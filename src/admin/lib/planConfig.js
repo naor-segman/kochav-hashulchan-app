@@ -53,7 +53,12 @@ export const PLAN_META = {
   enterprise: {
     label:       "ארגוני",
     labelEn:     "Enterprise",
-    color:       "#E8437B",
+    // Was the literal #E8437B — a hardcoded colour outside tokens.css, and
+    // --accent measures 3.80:1 on white and 3.63:1 on the cream ground below,
+    // i.e. below the text floor on both. --accent-text is the token for accent
+    // ON A LIGHT GROUND (6.87:1). The admin panel does not read these at all
+    // any more — it is monochrome — but AccountScreen (customer-facing) does.
+    color:       "var(--accent-text)",
     bgColor:     "#fef9f0",
     borderColor: "#f3d99e",
   },
@@ -96,7 +101,38 @@ export const STATUS_META = {
     bgColor:     "#fef2f2",
     borderColor: "#fecaca",
   },
+  // Stripe emits these four as well, and every one of them reached the panel
+  // unmapped: the raw English key rendered mid-Hebrew-table, and
+  // `incomplete_expired` clipped to "te_expired" at 390px. They are ordinary
+  // subscription states, not errors — they just had no label.
+  incomplete: {
+    label:       "ממתין לתשלום ראשון",
+    color:       "#854d0e",
+    bgColor:     "#fefce8",
+    borderColor: "#fde68a",
+  },
+  incomplete_expired: {
+    label:       "תשלום ראשון לא הושלם",
+    color:       "#6b7280",
+    bgColor:     "#f9fafb",
+    borderColor: "#e5e7eb",
+  },
+  unpaid: {
+    label:       "לא שולם",
+    color:       "#b91c1c",
+    bgColor:     "#fef2f2",
+    borderColor: "#fecaca",
+  },
+  paused: {
+    label:       "מושהה",
+    color:       "#6b7280",
+    bgColor:     "#f9fafb",
+    borderColor: "#e5e7eb",
+  },
 };
+
+/** Statuses that need somebody to act. The panel's ONE semantic colour. */
+export const ALARMING_STATUSES = new Set(["past_due", "unpaid"]);
 
 /** The status to DISPLAY — delinquency outranks the nominal status. */
 export function displayStatus(sub) {
@@ -118,7 +154,14 @@ export function getPlanLimits(plan) {
  * E.g. getPlanLabel("pro") → "מקצועי"
  */
 export function getPlanLabel(plan) {
-  return PLAN_META[plan]?.label ?? plan ?? "—";
+  // Never fall through to the raw key. A DB value the panel does not know
+  // rendered as `enterprise_annual` mid-Hebrew-table and read as a label.
+  return PLAN_META[plan]?.label ?? (plan ? "תוכנית לא מוכרת" : "—");
+}
+
+/** False when the raw DB value has no Hebrew label — show it in a title. */
+export function isKnownPlan(plan) {
+  return !!PLAN_META[plan];
 }
 
 /**
@@ -126,31 +169,21 @@ export function getPlanLabel(plan) {
  * E.g. getStatusLabel("trialing") → "תקופת ניסיון"
  */
 export function getStatusLabel(status) {
-  return STATUS_META[status]?.label ?? status ?? "—";
+  return STATUS_META[status]?.label ?? (status ? "סטטוס לא מוכר" : "—");
 }
 
-/**
- * Checks whether a plan includes a specific named feature.
- *
- * Feature keys match the PLAN_LIMITS shape:
- *   "advancedExports" | "aiFeatures" | "collaboration"
- *
- * For numeric limits, returns true when the value is Infinity.
- *
- * Usage:
- *   hasFeature("pro", "advancedExports")  → true
- *   hasFeature("free", "aiFeatures")      → false
- *   hasFeature("enterprise", "maxEvents") → true  (Infinity)
- */
-export function hasFeature(plan, feature) {
-  const limits = getPlanLimits(plan);
-  const val = limits[feature];
-  if (typeof val === "boolean") return val;
-  if (typeof val === "number")  return val === Infinity;
-  return false;
+/** False when the raw DB value has no Hebrew label — show it in a title. */
+export function isKnownStatus(status) {
+  return !!STATUS_META[status];
 }
+
+// hasFeature() lived here and was never imported anywhere in the repo — the
+// question it answered is asked through getPlanLimits() directly.
 
 // ── Ordered plan list (for UI pickers, upgrade prompts, etc.) ─────────────────
 export const PLAN_KEYS   = ["free", "pro", "enterprise"];
 // past_due first: it is the only one that needs somebody to act on it.
-export const STATUS_KEYS = ["past_due", "active", "trialing", "cancelled", "expired"];
+export const STATUS_KEYS = [
+  "past_due", "unpaid", "active", "trialing",
+  "incomplete", "incomplete_expired", "paused", "cancelled", "expired",
+];
