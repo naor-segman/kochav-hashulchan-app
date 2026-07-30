@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { loadState, persist, userStorageKey } from "../utils/storage.js";
-import { normalizeEvent, updateEventTimestamp } from "../utils/eventHelpers.js";
+import { normalizeEvent, updateEventTimestamp, TOKEN_KEYS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import {
   SYNC_STATUS,
@@ -8,7 +8,26 @@ import {
   createCloudEvent,
   updateCloudEvent,
   deleteCloudEvent,
+  CloudConflictError,
 } from "../utils/cloudSync.js";
+
+// Tokens are merged PER KEY, never as a whole object.
+//
+// `album` has no column of its own — it lives only inside `payload`. A cloud row
+// written before the album feature therefore comes back with `album: null`, and
+// swapping the whole object let that null win. `normalizeEvent` then minted a
+// fresh UUID, and every album QR already printed on an invitation 404'd. The
+// mapper carries a guard for exactly this hazard; the merge used to re-open it.
+//
+// Rule: a token that exists on either side survives; the cloud wins only where
+// it actually has a value. `fallback` is the already-normalized token set, used
+// only where neither side has one — otherwise a key missing on both sides would
+// come out null and, past the normalize gateway, stay null.
+function mergeTokens(cloudTokens, localTokens, fallback) {
+  return Object.fromEntries(
+    TOKEN_KEYS.map(k => [k, cloudTokens?.[k] || localTokens?.[k] || fallback?.[k] || null])
+  );
+}
 
 // Cloud events take precedence over local events with the same ID.
 // Local-only events (no cloudId, not present in cloud) are kept as-is.
@@ -36,9 +55,14 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
       return normalizeEvent({
         ...localMatch,
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
+        // The concurrency base always comes from the row we just read, whichever
+        // side's CONTENT wins — otherwise the next push compares against a
+        // version the server has already moved past and conflicts forever.
+        syncedVersion: ce.syncedVersion ?? localMatch.syncedVersion ?? null,
         // Tokens are minted server-side on first sync; never let a local copy
-        // that predates that push resurrect a null token.
-        tokens: ce.tokens ?? localMatch.tokens,
+        // that predates that push resurrect a null token — and never let a
+        // cloud row that predates a NEW token (album) erase the local one.
+        tokens: mergeTokens(ce.tokens, localMatch.tokens),
       });
     }
 
@@ -47,17 +71,23 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
       // Cloud has no floor plan (positions never synced) but local does. Spread
       // guards against result.floorPlan being null, and tablePositions falls back
       // to the local ones so locally-placed tables aren't wiped on hydration.
+      //
+      // `elements` needs the same fallback for the same reason: when the cloud
+      // copy has no floor plan at all, `result.floorPlan` is null, so the spread
+      // contributed no `elements` key and the venue fixtures — chuppah, stage,
+      // bar, dance floor — vanished, and that object was what got persisted.
       result = { ...result, floorPlan: {
         ...(result.floorPlan || {}),
         image: localMatch.floorPlan.image,
         tablePositions: result.floorPlan?.tablePositions ?? localMatch.floorPlan.tablePositions ?? {},
+        elements:       result.floorPlan?.elements       ?? localMatch.floorPlan.elements       ?? [],
       } };
     }
     // normalizeEvent always produces a tokens object, so check the raw cloud
-    // record (ce) instead of the normalized result — if the DB row had no
-    // token columns, preserve the locally-generated tokens unchanged.
-    if (localMatch?.tokens && !ce.tokens) {
-      result = { ...result, tokens: localMatch.tokens };
+    // record (ce) instead of the normalized result — per key, so a cloud row
+    // that predates one of the tokens cannot erase the local value.
+    if (localMatch?.tokens) {
+      result = { ...result, tokens: mergeTokens(ce.tokens, localMatch.tokens, result.tokens) };
     }
     return result;
   });
@@ -105,11 +135,15 @@ export function useEvents(user) {
   // Event ids removed before their initial cloud-create resolved, so the create
   // handler can delete the orphaned cloud row instead of letting it resurrect.
   const pendingDeletes = useRef(new Set());
+  // Event ids whose cloud-create is in flight, so a second debounced edit
+  // cannot fire a duplicate create for the same event.
+  const creatingRef    = useRef(new Set());
 
   useEffect(() => () => { Object.values(syncTimers.current).forEach(clearTimeout); }, []);
 
   useEffect(() => { eventsRef.current = events; });
   useEffect(() => { userRef.current = user; }, [user]);
+  const userId = user?.id ?? null;
 
   // ── PERSISTENCE ─────────────────────────────────────────────────────────────
   // Flush the full snapshot to localStorage under the CURRENT owner's key, so a
@@ -120,10 +154,18 @@ export function useEvents(user) {
   // ── CLOUD HYDRATION + PER-USER STORAGE ───────────────────────────────────────
   // Runs once per logged-in user per session.
   // On logout: reverts state to the shared guest bucket.
+  // Keyed on the id, NOT the user object. `useAuth` calls setUser from both
+  // getSession() and onAuthStateChange (INITIAL_SESSION, SIGNED_IN,
+  // TOKEN_REFRESHED), each producing a NEW object identity for the same person.
+  // With `[user]` as the dependency, a token refresh landing mid-hydration ran
+  // the cleanup — cancelling the in-flight fetch — and the re-run then returned
+  // early on `loadedForRef`, so no replacement fetch ever started. syncStatus
+  // stayed SYNCING forever and the next edit pushed a full payload over remote
+  // state that had never been read.
   useEffect(() => {
     const load = (key) => (loadState(key).events || []).map(normalizeEvent).filter(Boolean);
 
-    if (!user) {
+    if (!userId) {
       // LOGOUT → guest bucket, drafts only. The just-logged-out account's events
       // live under their own key and are never shown to a guest.
       if (loadedForRef.current !== null) {
@@ -135,15 +177,15 @@ export function useEvents(user) {
       return;
     }
 
-    if (loadedForRef.current === user.id) return;
-    loadedForRef.current = user.id;
-    ownerRef.current = user.id;
+    if (loadedForRef.current === userId) return;
+    loadedForRef.current = userId;
+    ownerRef.current = userId;
 
     // Start from THIS user's own bucket, plus a one-time migration of any
     // unsynced guest-mode events (cloudId === null) created before logging in
     // — honouring "continue without account, it'll sync later" without ever
     // pulling in a different user's already-synced events.
-    const userLocal   = load(userStorageKey(user.id));
+    const userLocal   = load(userStorageKey(userId));
     const guestState  = loadState(userStorageKey(null));
     const guestEvents = (guestState.events || []).map(normalizeEvent).filter(Boolean);
     const guestDrafts = guestEvents.filter(e => !e.cloudId);
@@ -172,8 +214,8 @@ export function useEvents(user) {
     (async () => {
       setSyncStatus(SYNC_STATUS.SYNCING);
       try {
-        const cloudEvents = await fetchCloudEvents(user.id);
-        if (cancelled || ownerRef.current !== user.id) return;
+        const cloudEvents = await fetchCloudEvents(userId);
+        if (cancelled || ownerRef.current !== userId) return;
         setEvents(prev => mergeCloudWithLocal(prev, cloudEvents));
         setSyncStatus(SYNC_STATUS.SYNCED);
       } catch {
@@ -182,9 +224,38 @@ export function useEvents(user) {
       }
     })();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [userId]);
 
   // ── MUTATIONS ────────────────────────────────────────────────────────────────
+
+  // Push one event to the cloud and keep the concurrency base in step.
+  //
+  // On CloudConflictError the row moved on since this client last read it —
+  // someone edited the same event on another device. Re-read the account's rows
+  // and let mergeCloudWithLocal decide per event (newest updatedAt wins),
+  // instead of overwriting work this tab never loaded.
+  const pushUpdate = useCallback(async (ev, uid) => {
+    try {
+      const version = await updateCloudEvent(ev, uid);
+      if (Number.isFinite(version)) {
+        setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, syncedVersion: version } : e));
+      }
+      setSyncStatus(SYNC_STATUS.SYNCED);
+    } catch (err) {
+      if (err instanceof CloudConflictError) {
+        try {
+          const cloudEvents = await fetchCloudEvents(uid);
+          if (ownerRef.current !== uid) return;
+          setEvents(prev => mergeCloudWithLocal(prev, cloudEvents));
+          setSyncStatus(SYNC_STATUS.SYNCED);
+        } catch {
+          setSyncStatus(SYNC_STATUS.ERROR);
+        }
+        return;
+      }
+      setSyncStatus(SYNC_STATUS.ERROR);
+    }
+  }, []);
 
   const addEvent = useCallback((ev) => {
     const normalized = normalizeEvent(ev);
@@ -195,29 +266,34 @@ export function useEvents(user) {
     if (!currentUser || !isSupabaseConfigured) return;
 
     setSyncStatus(SYNC_STATUS.SYNCING);
+    creatingRef.current.add(normalized.id);
     createCloudEvent(normalized, currentUser.id)
-      .then(cloudId => {
+      .then(created => {
+        creatingRef.current.delete(normalized.id);
         // If the event was deleted while this create was in flight, the local
         // copy is already gone — delete the just-created cloud row so it can't
         // reappear on the next hydration, instead of adding it back.
         const wasDeleted = pendingDeletes.current.delete(normalized.id);
-        if (cloudId) {
+        if (created) {
+          const { cloudId, version } = created;
           if (wasDeleted) {
             deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
           } else {
-            setEvents(prev => prev.map(e => e.id === normalized.id ? { ...e, cloudId } : e));
+            setEvents(prev => prev.map(e =>
+              e.id === normalized.id ? { ...e, cloudId, syncedVersion: version } : e));
             // Push any edits that arrived during the round-trip so the cloud row stays current.
             const latest = eventsRef.current.find(e => e.id === normalized.id);
-            if (latest) updateCloudEvent({ ...latest, cloudId }, currentUser.id).catch(() => {});
+            if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
           }
         }
         setSyncStatus(SYNC_STATUS.SYNCED);
       })
       .catch(() => {
+        creatingRef.current.delete(normalized.id);
         pendingDeletes.current.delete(normalized.id); // create failed → no orphan to clean
         setSyncStatus(SYNC_STATUS.ERROR);
       });
-  }, []);
+  }, [pushUpdate]);
 
   const removeEvent = useCallback((id) => {
     // Capture cloudId before removing from state.
@@ -276,23 +352,50 @@ export function useEvents(user) {
       // hit this early return, so an hour of guest entry existed on exactly one
       // browser and vanished with its cache. Retry the create on the next edit.
       if (!ev.cloudId) {
+        // This retry is the same operation as addEvent's create and needs the
+        // same two guards, which it did not have:
+        //
+        //   • in-flight: two edits 1500ms apart during a slow create fired a
+        //     SECOND create for one event. The unique token indexes turn that
+        //     into an error rather than a duplicate row, so it surfaced as a
+        //     spurious "sync failed" AND the second snapshot was never pushed.
+        //   • pendingDeletes: an event deleted while the retry was in flight
+        //     left an orphaned cloud row that came back on the next hydration.
+        if (creatingRef.current.has(id)) return;
+        creatingRef.current.add(id);
         setSyncStatus(SYNC_STATUS.SYNCING);
         createCloudEvent(ev, currentUser.id)
-          .then(cloudId => {
-            if (!cloudId) { setSyncStatus(SYNC_STATUS.ERROR); return; }
-            setEvents(prev => prev.map(e => e.id === id ? { ...e, cloudId } : e));
+          .then(created => {
+            creatingRef.current.delete(id);
+            const wasDeleted = pendingDeletes.current.delete(id);
+            if (!created) { setSyncStatus(SYNC_STATUS.ERROR); return; }
+            const { cloudId, version } = created;
+            if (wasDeleted) {
+              deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
+              setSyncStatus(SYNC_STATUS.SYNCED);
+              return;
+            }
+            setEvents(prev => prev.map(e =>
+              e.id === id ? { ...e, cloudId, syncedVersion: version } : e));
+            // Push whatever arrived during the round-trip, exactly as addEvent
+            // does — without this the edit that TRIGGERED the retry was the one
+            // change the cloud never received.
+            const latest = eventsRef.current.find(e => e.id === id);
+            if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
             setSyncStatus(SYNC_STATUS.SYNCED);
           })
-          .catch(() => setSyncStatus(SYNC_STATUS.ERROR));
+          .catch(() => {
+            creatingRef.current.delete(id);
+            pendingDeletes.current.delete(id); // create failed → no orphan to clean
+            setSyncStatus(SYNC_STATUS.ERROR);
+          });
         return;
       }
 
       setSyncStatus(SYNC_STATUS.SYNCING);
-      updateCloudEvent(ev, currentUser.id)
-        .then(() => setSyncStatus(SYNC_STATUS.SYNCED))
-        .catch(() => setSyncStatus(SYNC_STATUS.ERROR));
+      pushUpdate(ev, currentUser.id);
     }, 1500);
-  }, []);
+  }, [pushUpdate]);
 
   return { events, addEvent, removeEvent, patchEventById, syncStatus };
 }

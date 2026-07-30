@@ -185,42 +185,6 @@ export async function fetchCollabEvent(token) {
   };
 }
 
-/** Anonymous submit of one guest to the collaborative list, keyed by the token. */
-export async function submitGuestEntry(token, guest) {
-  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const { error } = await supabase.rpc("submit_guest_by_token", {
-    token_value: token,
-    guest: {
-      name:  guest.name,
-      phone: guest.phone || null,
-      side:  guest.side || null,
-      group: guest.group || null,
-      count: Number(guest.count) || 1,
-      submittedBy: guest.submittedBy || null,
-    },
-  });
-  if (error) throw error;
-}
-
-/** Host: read guest submissions for an owned event (RLS-guarded). */
-export async function fetchGuestSubmissions(eventCloudId) {
-  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
-  const { data, error } = await supabase
-    .from("guest_submissions")
-    .select("id, name, phone, side, guest_group, guests_count, submitted_by, imported, created_at")
-    .eq("event_id", eventCloudId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data ?? [];
-}
-
-/** Host: mark a submission as imported so it isn't offered again. */
-export async function markSubmissionImported(id) {
-  if (!isSupabaseConfigured || !supabase || !id) return;
-  const { error } = await supabase.from("guest_submissions").update({ imported: true }).eq("id", id);
-  if (error) throw error;
-}
-
 // ── Live collaborative guest table ────────────────────────────────────────────
 // A shared, real-time table: family members read the whole list and add/edit/
 // delete rows by token; the owner's app two-way-syncs it with the guest list.
@@ -369,12 +333,3 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader)
   return path;
 }
 
-/** Owner-only removal — deletes the file and its index row. */
-export async function deleteAlbumPhoto(id, storagePath) {
-  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  // Row first. Removing the file first means a denied or failed row delete
-  // leaves the gallery pointing at a missing image with no way to clear it.
-  const { error } = await supabase.from("album_photos").delete().eq("id", id);
-  if (error) throw error;
-  await supabase.storage.from("event-album").remove([storagePath]);
-}

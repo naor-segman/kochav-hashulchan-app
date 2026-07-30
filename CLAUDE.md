@@ -17,7 +17,7 @@ The project has a full production stack. The previous CLAUDE.md described a Phas
 - **Cloud sync**: Supabase Postgres, optimistic local-first with 1500ms debounce (`src/utils/cloudSync.js`, `src/hooks/useEvents.js`)
 - **Billing**: Stripe Checkout + Billing Portal via Supabase Edge Functions (`src/hooks/useSubscription.js`, `src/lib/stripe.js`)
 - **Plans**: Free / Pro / Enterprise via `src/utils/featureGates.js` + `src/hooks/usePlan.js` (gates are currently **soft / client-side only**)
-- **Admin panel**: Isolated subtree at `src/admin/` — lazy-loaded, never imported into the customer bundle
+- **Admin panel**: `src/admin/screens/` + the guard are lazy-loaded and genuinely absent from the customer chunk (verified against a real build). **`src/admin/lib/` is NOT** — `src/hooks/usePlan.js` and `src/lib/stripe.js` import `planConfig.js` and `stripeConfig.js`, so plan limits and Stripe status labels do ship to customers. No secrets in either, but the blanket "never imported" claim was wrong.
 - **Primary storage**: localStorage (`kochav_hashulchan_v1`) as source of truth; Supabase is secondary/sync
 - **React version**: React 19
 
@@ -158,7 +158,19 @@ Check for these first — each has bitten more than once:
 5. **Contrast measured against the wrong ground.** A tint is a ground: `--muted`
    is 5.3:1 on white and 4.4:1 on the warm danger tint. Always compute against
    the element's actual background, not against white.
-6. **CSS Modules fail silently.** A renamed class leaves `styles.foo` undefined,
+6. **A duplicate that is maintained by hand will drift.** `supabase/setup_full.sql`
+   fell seven migrations behind and a fresh project built from it came up with
+   the public-insert holes still open and three tables missing entirely. It is
+   generated now (`node qa/genSetupSql.mjs`).
+7. **Numbers reverse in an RTL line with no strong Hebrew character.** `{a} / {b}`
+   rendered `300 / 250` for a DOM value of `250 / 300` — bidi rule N1 resolves
+   the neutrals around the slash as RTL. `250 מתוך 300` is correct, because the
+   Hebrew word anchors it. Measure the VISUAL order with Range rects, not the DOM.
+8. **`String.replace` with a string replacement expands `$&`, `` $` ``, `$'`
+   AFTER your escaping.** The OG tag builder escaped a host-controlled name
+   correctly and then let the replacement expand raw page HTML into the
+   attribute. Use a replacement function.
+9. **CSS Modules fail silently.** A renamed class leaves `styles.foo` undefined,
    React renders `class="undefined"`, and the element loses all styling with no
    error. `qa/cssmod.mjs` catches it.
 
@@ -174,9 +186,11 @@ Check for these first — each has bitten more than once:
   afternoon into "fixing" CSS that was already correct.
 - **Outbound HTTP is blocked** by the proxy for most hosts, including competitor
   sites. Say so rather than inventing findings.
-- **`npm run lint` runs `eslint .` and reports 10 errors** — all pre-existing,
-  in `legacy/`, `netlify/` and `qa_test.js`. `npx eslint src` is the meaningful
-  one and is at 0 errors.
+- **`npm run lint` runs `eslint .` and reports 12 errors** — all pre-existing,
+  in `legacy/` (7), `netlify/` (2), `qa_test.js` (1) and `qa/marksPreview.jsx`
+  (2, `react-refresh/only-export-components`). The count was recorded as 10 for
+  a while and had drifted. `npx eslint src` is the meaningful one and is at 0
+  errors.
 
 ## Commit message format
 ```

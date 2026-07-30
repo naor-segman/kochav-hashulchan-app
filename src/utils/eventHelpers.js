@@ -77,6 +77,13 @@ export function normalizeEvent(ev) {
     // Set by cloudSync.createCloudEvent() after first successful upload.
     // Preserved here so it survives localStorage ↔ normalizeEvent round-trips.
     cloudId:     ev.cloudId                    ?? null,
+    // The cloud `version` this client last read or wrote — the base for the
+    // optimistic-concurrency predicate in updateCloudEvent. Client-side only:
+    // deliberately NOT a column and NOT inside `payload`, because it describes
+    // this browser's knowledge of the row, not the row itself. null = never
+    // synced, in which case the update falls back to the old unconditional
+    // write rather than blocking a legacy event from syncing at all.
+    syncedVersion: Number.isFinite(ev.syncedVersion) ? ev.syncedVersion : null,
     // Locking — guests/tables excluded from smart-assistant suggestions.
     // Must be preserved here so locks survive page reload (localStorage round-trip).
     lockedGuests: Array.isArray(ev.lockedGuests) ? ev.lockedGuests : [],
@@ -176,20 +183,6 @@ export function updateEventTimestamp(ev) {
     updatedAt: Date.now(),
     version:   (ev.version ?? 1) + 1,
   });
-}
-
-/**
- * Deep clone an event, preserving all IDs.
- * Use this for conflict-resolution snapshots ("take local copy" / "take remote copy").
- * Do NOT use this to create a new event — use duplicateEvent for that.
- *
- * Safe because the event data model is pure JSON (no Date objects, no functions).
- *
- * TODO(cloud-sync): when merging remote and local versions, clone both with
- * cloneEvent, diff the fields, and surface conflicts to the user.
- */
-export function cloneEvent(ev) {
-  return JSON.parse(JSON.stringify(ev));
 }
 
 /**

@@ -117,3 +117,28 @@ describe("icsFileName", () => {
     expect(icsFileName(undefined)).toBe("אירוע.ics");
   });
 });
+
+describe("an end time equal to the start", () => {
+  it("does not produce a 24-hour block", () => {
+    // `<=` was there for a 21:00 start ending at 01:00. Equality fell through
+    // it, so a host who typed the same time twice put a whole day in every
+    // guest's calendar.
+    const ics = buildEventIcs({
+      name: "חתונה", date: "2027-09-15", venue: "אולמי הגן",
+      startTime: "21:00", endTime: "21:00",
+    });
+    const start = /DTSTART[^:]*:(\d{8}T\d{6})/.exec(ics)[1];
+    const end   = /DTEND[^:]*:(\d{8}T\d{6})/.exec(ics)[1];
+    expect(start.slice(0, 8)).toBe(end.slice(0, 8));   // same calendar day
+  });
+
+  it("still rolls a past-midnight end onto the next day", () => {
+    const ics = buildEventIcs({
+      name: "חתונה", date: "2027-09-15", venue: "אולמי הגן",
+      startTime: "21:00", endTime: "01:00",
+    });
+    const start = /DTSTART[^:]*:(\d{8})/.exec(ics)[1];
+    const end   = /DTEND[^:]*:(\d{8})/.exec(ics)[1];
+    expect(Number(end)).toBe(Number(start) + 1);
+  });
+});

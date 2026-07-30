@@ -225,8 +225,14 @@ export function generateSuggestions(
     const { ga, gb, ta, tb } = togetherViol[0];
     const remaining = tableSpace(ta);
     // Also check apart: fixing one constraint by breaking another is not a fix.
+    // Fixing one constraint by breaking another is not a fix. `apart` was
+    // checked here; `together` was not — so with together(A,B), together(B,C)
+    // and together(B,D), moving B to A's table separated it from C and D and
+    // the panel still printed "הפרה אחת פחות" beside the button. Sections 5, 9
+    // and 10 already check both; this one was missed.
     const canMove   = remaining >= (gb.count || 1) && !isGuestLocked(gb.id) && !isTableLocked(ta)
-                      && !moveViolatesApart(gb.id, ta, tableGuests, apartPairs);
+                      && !moveViolatesApart(gb.id, ta, tableGuests, apartPairs)
+                      && !moveBreaksTogether(gb.id, ta, seating, togetherPairs);
     suggestions.push({
       id:                `together_${ga.id}_${gb.id}`,
       type:              "together_violated",
@@ -269,6 +275,62 @@ export function generateSuggestions(
     });
   }
 
+  // ── 2b. Together pairs waiting on a seat ─────────────────────────────────
+  // One member seated, the other not. This is not a conflict — computeViolations
+  // deliberately no longer counts it — but it used to dock 15 points off the
+  // quality score while producing NO suggestion at all, so the host saw a low
+  // number with nothing to act on. 655 of 4,000 fuzzed events were in this
+  // state. Now it says which pair, and where the seated one already sits.
+  const togetherPending = [];
+  constraints.forEach(c => {
+    if (c.type !== "together") return;
+    const ga = guestMap[c.guestA];
+    const gb = guestMap[c.guestB];
+    if (!ga || !gb) return;
+    const ta = seating[c.guestA];
+    const tb = seating[c.guestB];
+    if (ta && !tb) togetherPending.push({ seated: ga, waiting: gb, tid: ta });
+    if (!ta && tb) togetherPending.push({ seated: gb, waiting: ga, tid: tb });
+  });
+
+  if (togetherPending.length > 0) {
+    const first  = togetherPending[0];
+    const room   = tableSpace(first.tid) >= (first.waiting.count || 1);
+    const canSit = room
+      && !isGuestLocked(first.waiting.id)
+      && !isTableLocked(first.tid)
+      && !moveViolatesApart(first.waiting.id, first.tid, tableGuests, apartPairs);
+    const many = togetherPending.length > 1;
+    suggestions.push({
+      id:                "together_pending",
+      type:              "together_pending",
+      severity:          "warning",
+      section:           "warnings",
+      explanation:       many
+        ? `${togetherPending.length} אילוצי "יחד" ממתינים — בכל אחד מהם אדם אחד כבר יושב והשני עדיין לא שובץ`
+        : `${first.seated.name} כבר יושב ב${tableMap[first.tid]?.name || "שולחן"}, ו${first.waiting.name} עדיין לא שובץ`,
+      whyMatters:        "האילוץ לא יתקיים עד ששניהם ישבו — וכל עוד אחד מהם ממתין, השולחן עלול להתמלא במישהו אחר",
+      impact:            many
+        ? `${togetherPending.length} זוגות ממתינים להשלמה`
+        : `${first.waiting.name} ממתין לשיבוץ`,
+      recommendedAction: canSit
+        ? `שבצו את ${first.waiting.name} ל${tableMap[first.tid]?.name || "אותו שולחן"}`
+        : 'שבצו את מי שממתין לשולחן של בן הזוג שלו, או הפעילו "חשבו מחדש"',
+      canApply:    canSit,
+      applyAction: canSit ? {
+        type:          "moveGuest",
+        guestId:       first.waiting.id,
+        toTableId:     first.tid,
+        guestName:     first.waiting.name,
+        fromTableName: "רשימת הממתינים",
+        toTableName:   tableMap[first.tid]?.name || "?",
+      } : null,
+      score:          Math.min(12, togetherPending.length * 4),
+      confidence:     "high",
+      violationDelta: 0,
+    });
+  }
+
   // ── 3. Apart constraints violated ────────────────────────────────────────
   const apartViol = [];
   constraints.forEach(c => {
@@ -283,7 +345,11 @@ export function generateSuggestions(
 
   if (apartViol.length === 1) {
     const { ga, gb, ta } = apartViol[0];
-    const canUnassign = !isGuestLocked(gb.id);
+    // Unassigning is a move to "nowhere", so it separates gb from every
+    // together partner currently at their table. This checked only the lock,
+    // which meant the one-click fix regularly traded one violation for two.
+    const canUnassign = !isGuestLocked(gb.id)
+                        && !moveBreaksTogether(gb.id, null, seating, togetherPairs);
     suggestions.push({
       id:                `apart_${ga.id}_${gb.id}`,
       type:              "apart_violated",
@@ -341,7 +407,18 @@ export function generateSuggestions(
       }
     });
 
-    const safeGuest = tg.find(g => !anchoredIds.has(g.id) && !isGuestLocked(g.id));
+    // Whoever is evicted has to cover the excess, and must not be dragged away
+    // from a together partner still at the table. `tg.find(...)` took the first
+    // eligible row regardless of its seat count: a 2-seat table holding a
+    // 1-seat guest and a 5-seat group evicted the guest worth ONE seat, left
+    // the table over by three, and still reported violationDelta: -1.
+    // Prefer the smallest row that clears it, so the fix is minimal as well as
+    // real.
+    const evictable = tg
+      .filter(g => !anchoredIds.has(g.id) && !isGuestLocked(g.id)
+                   && !moveBreaksTogether(g.id, null, seating, togetherPairs))
+      .sort((a, b) => (a.count || 1) - (b.count || 1));
+    const safeGuest = evictable.find(g => (g.count || 1) >= excess);
 
     suggestions.push({
       id:                `overloaded_${t.id}`,

@@ -123,6 +123,10 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     createdAt:        p.createdAt ?? new Date(cloudRow.created_at).getTime(),
     updatedAt:        p.updatedAt ?? new Date(cloudRow.updated_at).getTime(),
     version:          cloudRow.version ?? p.version ?? 1,
+    // The version this client last SAW in the cloud. Client-side bookkeeping —
+    // deliberately not a column and not in `payload`; it is the base for the
+    // optimistic-concurrency predicate in updateCloudEvent.
+    syncedVersion:    cloudRow.version ?? p.version ?? 1,
     cloudId:          cloudRow.id,
     lockedGuests:     Array.isArray(p.lockedGuests) ? p.lockedGuests : [],
     lockedTables:     Array.isArray(p.lockedTables) ? p.lockedTables : [],
@@ -163,6 +167,17 @@ export function mapCloudEventToLocalEvent(cloudRow) {
   };
 }
 
+/**
+ * Thrown when an update's optimistic-concurrency predicate matched no row —
+ * i.e. someone else wrote the event since this client last read it.
+ */
+export class CloudConflictError extends Error {
+  constructor() {
+    super("cloud row changed since last sync");
+    this.name = "CloudConflictError";
+  }
+}
+
 // ── Cloud CRUD ────────────────────────────────────────────────────────────────
 //
 // All functions are no-ops (return null / []) when Supabase is not configured.
@@ -185,11 +200,11 @@ export async function createCloudEvent(localEvent, userId) {
   const { data, error } = await supabase
     .from("events")
     .insert(row)
-    .select("id")
+    .select("id, version")
     .single();
 
   if (error) throw error;
-  return data.id;
+  return { cloudId: data.id, version: data.version ?? row.version };
 }
 
 /**
@@ -201,17 +216,36 @@ export async function createCloudEvent(localEvent, userId) {
  * @returns {void}
  */
 export async function updateCloudEvent(localEvent, userId) {
-  if (!isSupabaseConfigured || !supabase) return;
+  if (!isSupabaseConfigured || !supabase) return null;
   if (!localEvent.cloudId) throw new Error("updateCloudEvent: missing cloudId");
 
   const row = mapLocalEventToCloudPayload(localEvent, userId);
-  const { error } = await supabase
+  // Optimistic concurrency. This used to be a full-row overwrite filtered only
+  // on id + user_id, and the cloud is fetched ONCE per login and never re-read
+  // — so a tab left open since morning pushed a payload built from a snapshot
+  // hours old. Because updateEventTimestamp stamps `now`, that stale copy was
+  // also the NEWEST, so it won the write and then won the next merge too.
+  // Measured: partner adds 37 guests on their phone, host edits the venue on
+  // the laptop, cloud goes 40 guests -> 3. Unrecoverable.
+  //
+  // `syncedVersion` is the version this client last read or wrote. If the row
+  // has moved on, nothing matches and the caller re-reads instead of clobbering.
+  // A legacy event that predates the field has no base to compare, so it keeps
+  // the old unconditional behaviour rather than being unable to sync at all.
+  const base = Number.isFinite(localEvent.syncedVersion) ? localEvent.syncedVersion : null;
+
+  let q = supabase
     .from("events")
     .update(row)
     .eq("id", localEvent.cloudId)
     .eq("user_id", userId);
+  if (base !== null) q = q.eq("version", base);
+
+  const { data, error } = await q.select("version");
 
   if (error) throw error;
+  if (base !== null && (!data || data.length === 0)) throw new CloudConflictError();
+  return data?.[0]?.version ?? row.version;
 }
 
 /**

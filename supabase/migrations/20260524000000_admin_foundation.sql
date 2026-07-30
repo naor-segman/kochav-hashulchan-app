@@ -19,7 +19,7 @@
 --
 --   UPDATE public.profiles
 --   SET    role = 'admin', updated_at = now()
---   WHERE  email = 'YOUR_EMAIL';   -- e.g. 'naor.segman@gmail.com'
+--   WHERE  email = 'YOUR_EMAIL';   -- e.g. 'you@example.com'
 --
 --   Run this in Supabase Dashboard → SQL Editor.
 --   Only direct SQL / existing admin can promote accounts — no self-promotion.
@@ -278,7 +278,7 @@ CREATE POLICY "subscriptions: admins manage"
 --
 --   UPDATE public.profiles
 --   SET    role = 'admin', updated_at = now()
---   WHERE  email = 'YOUR_EMAIL';   -- e.g. 'naor.segman@gmail.com'
+--   WHERE  email = 'YOUR_EMAIL';   -- e.g. 'you@example.com'
 --
 -- You only need to do this once. All subsequent logins will detect admin role.
 -- =============================================================================

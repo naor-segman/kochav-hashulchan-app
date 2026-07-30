@@ -71,8 +71,11 @@ export function dashStats(events) {
     totalGuests  += h.totalSeats;
     seatedGuests += h.seatedSeats;
     totalViols   += h.viols;
+    // The `else if (ev.guests.length > 0)` guard here was unreachable: reaching
+    // the else already requires needsAttention === false, which requires at
+    // least one guest.
     if (h.needsAttention) needAttention++;
-    else if (ev.guests.length > 0) readyToPrint++;
+    else readyToPrint++;
   }
 
   return {
@@ -106,7 +109,14 @@ export function summaryMessages(stats) {
   }
   const unassigned = stats.totalGuests - stats.seatedGuests;
   if (unassigned > 0) {
-    msgs.push({ text: "נשארו " + unassigned + " מקומות ללא שיבוץ", severity: "warn" });
+    // Hebrew singular. `eventHealth` two functions up already says "1 מקום
+    // ממתין" correctly, so the dashboard used to show both forms at once.
+    msgs.push({
+      text: unassigned === 1
+        ? "נשאר מקום אחד ללא שיבוץ"
+        : "נשארו " + unassigned + " מקומות ללא שיבוץ",
+      severity: "warn",
+    });
   }
   return msgs;
 }

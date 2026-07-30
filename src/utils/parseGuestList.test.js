@@ -101,3 +101,26 @@ describe("Hebrew abbreviations and foreign numbers", () => {
     expect(parseGuestList("דנה, +972-50-123-4567")[0].phone).toBe("0501234567");
   });
 });
+
+// The international-prefix handling had NO test in either file that implements
+// it, and both carry a comment saying the bug already shipped once. Deleting
+// the `^00` strip left the whole suite green.
+describe("normalizePhone — international forms", () => {
+  it("strips the 00 dialling prefix", () => {
+    expect(normalizePhone("00972521234567")).toBe("0521234567");
+    expect(normalizePhone("00972-52-123-4567")).toBe("0521234567");
+  });
+
+  it("drops the redundant trunk zero after the country code", () => {
+    // How Israelis write their own number on a business card, and what a
+    // contacts export produces. This used to store "00521234567".
+    expect(normalizePhone("+972 (0)52-123-4567")).toBe("0521234567");
+    expect(normalizePhone("972-052-1234567")).toBe("0521234567");
+  });
+
+  it("leaves the local forms alone", () => {
+    expect(normalizePhone("050-123-4567")).toBe("0501234567");
+    expect(normalizePhone("521234567")).toBe("0521234567");  // missing leading zero
+    expect(normalizePhone("")).toBe("");
+  });
+});

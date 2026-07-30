@@ -1,0 +1,28 @@
+# Supabase project config.
+#
+# This file did not exist, which meant every Edge Function deployed with the
+# platform default `verify_jwt = true`.
+#
+# For `stripe-webhook` that is fatal and silent: Stripe signs its deliveries
+# with its own webhook secret and sends no `Authorization: Bearer <supabase-jwt>`
+# header, so the platform rejects the request with 401 before `Deno.serve` ever
+# runs. A customer completes Checkout, `checkout.session.completed` is refused,
+# no `subscriptions` row is ever written, `usePlan()` keeps returning "free" —
+# and nothing logs it, because the handler that would have logged it never
+# executed. The function verifies Stripe's signature itself (index.ts:84-101),
+# which is the correct authentication for this endpoint.
+#
+# The two billing functions keep JWT verification ON: they are called by the
+# app on behalf of a signed-in user and must know who that user is.
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.create-checkout-session]
+verify_jwt = true
+
+[functions.create-billing-portal]
+verify_jwt = true
+
+[functions.detect-floor-plan]
+verify_jwt = true

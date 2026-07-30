@@ -130,7 +130,11 @@ export function renderTemplate(body, { event, guest, table, link }) {
     // "הילה ואור" went out to every guest as "מוזמנים לילה ואור", and
     // "היכל התרבות" became "ביכל התרבות". The event name is free text, so the
     // rule is anchored to the event-type nouns the app itself prefixes with ה.
-    .replace(/(?<=^|[\s(])([לבכ])\{\{\s*([^}]+?)\s*\}\}/gm, (_, prefix, key) => {
+    // The lookbehind allowed start-of-line, whitespace or "(" — so a prefix
+    // letter carried by a conjunction ("ול{{אירוע}}") was skipped and went out
+    // as "ולהחתונה". Templates are host-editable, so that shape is reachable.
+    // ו and ש are the two letters that attach in front of a prefix letter.
+    .replace(/(?<=^|[\s(]|[וש])([לבכ])\{\{\s*([^}]+?)\s*\}\}/gm, (_, prefix, key) => {
       const v = get(key);
       return prefix + (hasDefiniteArticle(v) ? v.slice(1) : v);
     })
@@ -146,7 +150,10 @@ export function whatsappLink(phone, text) {
   if (d.length < 9) return null;
   d = d.replace(/^00/, "");
   let intl;
-  if (d.startsWith("972"))      intl = d;                       // already Israeli
+  // Same redundant trunk zero as parseGuestList: "+972 (0)52…" digitises to
+  // 9720521234567, which is a dead wa.me link.
+  if (d.startsWith("9720"))     intl = "972" + d.slice(4);
+  else if (d.startsWith("972")) intl = d;                       // already Israeli
   else if (d.startsWith("0"))   intl = "972" + d.slice(1);       // local form
   else if (d.length === 9)      intl = "972" + d;                // local, no zero
   // Anything else already carries its own country code. Relatives abroad are
