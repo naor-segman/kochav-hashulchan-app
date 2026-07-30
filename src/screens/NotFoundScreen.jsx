@@ -25,8 +25,10 @@ export default function NotFoundScreen() {
         style={{
           marginTop: "12px",
           padding: "10px 24px",
-          background: "var(--accent)",
-          color: "#fff",
+          /* --accent under a white label is 3.80:1 and --accent is fills-only.
+             --cta is the token for exactly this job, at 4.71:1. */
+          background: "var(--cta)",
+          color: "var(--on-accent)",
           borderRadius: "var(--radius)",
           fontSize: "14px",
           fontWeight: 600,

@@ -498,3 +498,23 @@
   }
 
 }
+
+/* Touch target — see qa/mobile.mjs. The way back to the site is new on these
+   two screens and arrived at 32px. Only the tappable area grows; the box does
+   not move. */
+@media (pointer: coarse) {
+  .homeLink {
+    position: relative;
+  }
+
+  .homeLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

@@ -129,6 +129,14 @@ check('vendor added', (ev5.vendors || []).length === 1, JSON.stringify((ev5.vend
 await p.locator('button[aria-label=עריכה]').first().click();
 await p.waitForTimeout(300);
 await p.locator('button[aria-label=מחיקה]').first().click();
+await p.waitForTimeout(300);
+// Destructive actions no longer hand off to the browser's native confirm() —
+// they open the product's own dialog, so the flow has to answer it. The old
+// script relied on Playwright auto-accepting the native prompt, which is why
+// this check went red the moment the dialogs were replaced: the CHECK was
+// stale, not the delete.
+const confirmBtn = p.locator('[role=alertdialog] button', { hasText: /^מחקו|^אישור|^כן/ });
+if (await confirmBtn.count()) await confirmBtn.first().click();
 await p.waitForTimeout(600);
 ev5 = await readEvent();
 const formStillOpen = await p.locator('button', { hasText: /^שמרו$/ }).count();

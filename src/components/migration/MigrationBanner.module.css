@@ -103,13 +103,16 @@
 }
 
 .migrateBtn {
-  background: var(--accent);
+  /* A filled button with a white label is --cta (4.71:1), never --accent
+     (3.80:1). The sweep never rendered this banner — it only appears mid
+     migration — so it was found by grep, not by measurement. */
+  background: var(--cta);
   border: 1px solid transparent;
   border-radius: var(--radius);
   padding: 6px 14px;
   font-size: var(--step--2);
   font-weight: 700;
-  color: var(--white);
+  color: var(--on-accent);
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;

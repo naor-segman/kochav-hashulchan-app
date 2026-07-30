@@ -421,8 +421,9 @@
 .tCardCapLabel {
   font-size: var(--step--3);
   font-weight: 600;
-  color: inherit;
-  opacity: 0.7;
+  /* `inherit` + opacity .7 measured 2.90:1 on the white card. The label beside
+     every table's occupancy figure is not decoration. */
+  color: var(--text2);
   margin-inline-start: 2px;
 }
 

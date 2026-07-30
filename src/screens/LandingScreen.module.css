@@ -911,8 +911,10 @@
 
 .ctaNote {
   font-size: var(--step--1);
+  /* Was --nav-muted at opacity .65, which composites to 3.65:1 on the ink
+     banner. This is the line that removes the last objection before signing
+     up. Dim it by choosing a dimmer colour, not by fading a chosen one. */
   color: var(--nav-muted);
-  opacity: 0.65;
   margin: 0;
 }
 

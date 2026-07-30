@@ -86,8 +86,16 @@
   border-radius: var(--radius);
   flex-wrap: wrap;
 }
-/* Passed-on vendors stay visible (you may change your mind) but recede. */
-.rowOff { opacity: .55; }
+/* Passed-on vendors stay visible (you may change your mind) but recede.
+   `opacity: .55` receded them out of existence: the category label measured
+   2.22:1 and the name and price 4.02:1. Receding is a job for the GROUND — a
+   sunken card with quiet ink says "not active" without making it unreadable. */
+.rowOff {
+  background: var(--bg);
+  border-color: var(--border);
+}
+.rowOff .name,
+.rowOff .price { color: var(--text2); }
 
 .rowMain { flex: 1; min-width: 190px; display: flex; flex-direction: column; gap: 4px; }
 
