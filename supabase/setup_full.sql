@@ -1854,3 +1854,265 @@ CREATE POLICY "collab_owner_delete" ON public.collab_guests
         AND e.user_id = auth.uid()
     )
   );
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260730000001_collab_active_switch.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- The shared guest table gets an ON/OFF switch.
+--
+-- The collab token is a full-control capability: whoever holds the link can
+-- read every guest's phone number, edit any row, delete any row and export the
+-- lot to Excel. It is minted once and there was no way to withdraw it — a
+-- single forward in a family WhatsApp group was permanent.
+--
+-- The host asked for a switch rather than a new link, and that is the better
+-- shape: the relatives keep the link they already have, and the host decides
+-- when it answers. Same URL, on or off.
+--
+-- Enforced HERE, not in the client. A toggle that only hides a button is
+-- decoration — anyone holding the token can call these RPCs directly.
+--
+-- Default is ON, so nothing changes for an event that is already being filled
+-- in: `payload->>'collabActive'` is absent on every existing row, and absent
+-- means active. Only an explicit "false" closes it.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.collab_is_active(e public.events)
+RETURNS boolean
+LANGUAGE sql IMMUTABLE
+AS $$
+  SELECT COALESCE(e.payload->>'collabActive', 'true') <> 'false';
+$$;
+
+-- ── Read the event behind the token ──────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.collab_event_by_token(token_value text)
+RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT jsonb_build_object(
+    'id',          e.id,
+    'name',        e.name,
+    'type',        e.type,
+    'bride_name',  e.payload->>'brideName',
+    'groom_name',  e.payload->>'groomName',
+    'couple_type', e.payload->>'coupleType',
+    'side_labels', e.payload->'sideLabels'
+  )
+  FROM public.events e
+  WHERE token_value IS NOT NULL
+    AND char_length(token_value) >= 8
+    AND e.collab_token = token_value
+    AND public.collab_is_active(e)
+  LIMIT 1;
+$$;
+REVOKE ALL ON FUNCTION public.collab_event_by_token(text) FROM public;
+GRANT EXECUTE ON FUNCTION public.collab_event_by_token(text) TO anon, authenticated;
+
+-- ── List the rows ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.collab_list_by_token(token_value text)
+RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+    'id',           g.id,
+    'name',         g.name,
+    'phone',        g.phone,
+    'side',         g.side,
+    'guest_group',  g.guest_group,
+    'guests_count', g.guests_count,
+    'updated_at',   g.updated_at,
+    'updated_by',   g.updated_by
+  ) ORDER BY g.updated_at DESC), '[]'::jsonb)
+  FROM public.collab_guests g
+  JOIN public.events e ON e.id = g.event_id
+  WHERE e.collab_token = token_value
+    AND char_length(token_value) >= 8
+    AND public.collab_is_active(e);
+$$;
+REVOKE ALL ON FUNCTION public.collab_list_by_token(text) FROM public;
+GRANT EXECUTE ON FUNCTION public.collab_list_by_token(text) TO anon, authenticated;
+
+-- ── Write paths ──────────────────────────────────────────────────────────────
+-- The two that matter most: with the switch off, a holder of the link must not
+-- be able to add, change or remove a row either.
+CREATE OR REPLACE FUNCTION public.collab_upsert_by_token(token_value text, row_data jsonb)
+RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE ev_id uuid; row_id uuid;
+BEGIN
+  SELECT e.id INTO ev_id FROM public.events e
+    WHERE e.collab_token = token_value
+      AND char_length(token_value) >= 8
+      AND public.collab_is_active(e)
+    LIMIT 1;
+  IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
+
+  row_id := (row_data->>'id')::uuid;
+  IF row_id IS NULL THEN RAISE EXCEPTION 'id required'; END IF;
+
+  -- Cap total rows per event so a leaked link can't flood the table.
+  IF NOT EXISTS (SELECT 1 FROM public.collab_guests WHERE id = row_id AND event_id = ev_id)
+     AND (SELECT count(*) FROM public.collab_guests WHERE event_id = ev_id) >= 5000 THEN
+    RAISE EXCEPTION 'row limit reached';
+  END IF;
+
+  INSERT INTO public.collab_guests (id, event_id, name, phone, side, guest_group, guests_count, updated_by, updated_at)
+  VALUES (
+    row_id, ev_id,
+    nullif(left(trim(coalesce(row_data->>'name','')), 120), ''),
+    nullif(left(trim(coalesce(row_data->>'phone','')), 20), ''),
+    nullif(left(row_data->>'side', 20), ''),
+    nullif(left(row_data->>'guest_group', 60), ''),
+    greatest(1, least(50, coalesce((row_data->>'guests_count')::int, 1))),
+    nullif(left(trim(coalesce(row_data->>'updated_by','')), 80), ''),
+    now()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    name         = excluded.name,
+    phone        = excluded.phone,
+    side         = excluded.side,
+    guest_group  = excluded.guest_group,
+    guests_count = excluded.guests_count,
+    updated_by   = excluded.updated_by,
+    updated_at   = now()
+  WHERE public.collab_guests.event_id = ev_id;  -- never move a row across events
+END;
+$$;
+REVOKE ALL ON FUNCTION public.collab_upsert_by_token(text, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION public.collab_upsert_by_token(text, jsonb) TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.collab_delete_by_token(token_value text, row_id uuid)
+RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE ev_id uuid;
+BEGIN
+  SELECT e.id INTO ev_id FROM public.events e
+    WHERE e.collab_token = token_value
+      AND char_length(token_value) >= 8
+      AND public.collab_is_active(e)
+    LIMIT 1;
+  IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
+  DELETE FROM public.collab_guests WHERE id = row_id AND event_id = ev_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.collab_delete_by_token(text, uuid) FROM public;
+GRANT EXECUTE ON FUNCTION public.collab_delete_by_token(text, uuid) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260730000002_error_reports.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Error reporting.
+--
+-- Until now a crash on a customer's phone left NO trace anywhere: the error
+-- boundary rendered a message and the exception went to that browser's console
+-- and disappeared. The owner would find out only if the couple happened to
+-- call. Before running real events that is the gap worth closing first, because
+-- an event happens once and there is no second chance to reproduce it.
+--
+-- Deliberately NOT a third-party service. Supabase is already here, the admin
+-- panel is already here, and there is no account to open, no DSN to configure
+-- and no bill. What it gives up versus Sentry is release tracking, symbolicated
+-- stacks and grouping — worth adding later if the volume ever justifies it.
+--
+-- PRIVACY: the client sends the message, a truncated stack, the route and the
+-- browser. It does NOT send guest data, and it scrubs public tokens out of the
+-- path before sending (see src/utils/errorReport.js) — a token in a URL is a
+-- credential, and this table is read by the admin panel.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.error_reports (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  user_id     uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
+  message     text        NOT NULL,
+  stack       text,
+  route       text,
+  user_agent  text,
+  kind        text        NOT NULL DEFAULT 'render',
+  seen        boolean     NOT NULL DEFAULT false
+);
+
+CREATE INDEX IF NOT EXISTS error_reports_created_idx ON public.error_reports (created_at DESC);
+CREATE INDEX IF NOT EXISTS error_reports_unseen_idx  ON public.error_reports (seen, created_at DESC);
+
+ALTER TABLE public.error_reports ENABLE ROW LEVEL SECURITY;
+
+-- No direct access for anybody. Writes go through the RPC below (which bounds
+-- the payload and rate-limits), reads are admin-only.
+CREATE POLICY "error_reports_admin_select" ON public.error_reports
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+  );
+
+CREATE POLICY "error_reports_admin_update" ON public.error_reports
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+  );
+
+CREATE POLICY "error_reports_admin_delete" ON public.error_reports
+  FOR DELETE USING (
+    EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+  );
+
+-- ── The write path ───────────────────────────────────────────────────────────
+-- Callable by anyone, because the pages that crash hardest are the PUBLIC ones
+-- a guest opens from a WhatsApp link, where there is no session at all.
+--
+-- Three guards, because an endpoint anonymous callers can write to is an
+-- endpoint someone will flood:
+--   • every field is length-bounded here, not trusted from the client;
+--   • a crash LOOP (the boundary's reload re-crashing) is collapsed — the same
+--     message on the same route within 10 minutes is dropped rather than
+--     written 400 times;
+--   • a global ceiling of 200 rows per hour, after which writes are ignored.
+CREATE OR REPLACE FUNCTION public.report_error(
+  p_message    text,
+  p_stack      text DEFAULT NULL,
+  p_route      text DEFAULT NULL,
+  p_user_agent text DEFAULT NULL,
+  p_kind       text DEFAULT 'render'
+)
+RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_message text := nullif(left(trim(coalesce(p_message, '')), 500), '');
+  v_route   text := left(coalesce(p_route, ''), 200);
+BEGIN
+  IF v_message IS NULL THEN RETURN; END IF;
+
+  -- Crash loop: same message, same route, already recorded in the last 10 min.
+  IF EXISTS (
+    SELECT 1 FROM public.error_reports
+    WHERE message = v_message
+      AND coalesce(route, '') = v_route
+      AND created_at > now() - interval '10 minutes'
+  ) THEN
+    RETURN;
+  END IF;
+
+  -- Global ceiling.
+  IF (SELECT count(*) FROM public.error_reports WHERE created_at > now() - interval '1 hour') >= 200 THEN
+    RETURN;
+  END IF;
+
+  INSERT INTO public.error_reports (user_id, message, stack, route, user_agent, kind)
+  VALUES (
+    auth.uid(),
+    v_message,
+    left(coalesce(p_stack, ''), 4000),
+    v_route,
+    left(coalesce(p_user_agent, ''), 300),
+    coalesce(nullif(left(p_kind, 20), ''), 'render')
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.report_error(text, text, text, text, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.report_error(text, text, text, text, text) TO anon, authenticated;

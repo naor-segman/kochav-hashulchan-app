@@ -70,6 +70,7 @@ const MAXIMAL = {
   costs: { catering: { planned: 90000, actual: 88000 } },
   messagesSent: { g1: { invite: 1700000000000 } },
   messageTemplates: { invite: "בואו לחגוג {{אירוע}}" },
+  collabActive: false,
   giftBitPhone: "0501234567",
   giftPayboxLink: "https://payboxapp.page.link/abc",
   tokens: { rsvp: "TK-rsvp", album: "TK-album", invite: "TK-invite",
@@ -221,6 +222,9 @@ describe("full cloud round-trip", () => {
     expect(n2.floorPlan.tablePositions).toEqual(MAXIMAL.floorPlan.tablePositions);
     expect(n2.noShowPct).toBe(7);
     expect(n2.coupleType).toBe("bride-bride");
+    // The shared-table switch. It is read by a public RPC out of the payload,
+    // so losing it silently re-opens a link the host closed.
+    expect(n2.collabActive).toBe(false);
     expect(n2.sideLabels).toEqual(MAXIMAL.sideLabels);
   });
 

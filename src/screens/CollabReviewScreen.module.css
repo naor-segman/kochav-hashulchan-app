@@ -1,0 +1,82 @@
+/* The shared-table link switch.
+   A control that revokes access to every guest's phone number should look like
+   a decision, not like a settings row — so it gets its own bordered strip above
+   the link, and the copy changes with the state rather than sitting static
+   beside a generic toggle. */
+
+.linkSwitch {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.linkSwitchText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.linkSwitchTitle {
+  font-size: var(--step-0);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+}
+
+.linkSwitchHint {
+  font-size: var(--step--1);
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+/* Off is the neutral border colour, not red: a closed link is a normal state
+   the host chose, not an error. On is --green, which in this system means the
+   thing is done and working. */
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--border2);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.switchOn { background: var(--green); }
+
+.switch:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 3px;
+}
+
+.switchKnob {
+  position: absolute;
+  top: 3px;
+  inset-inline-start: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(var(--text-rgb), .3);
+  transition: transform var(--transition);
+}
+
+/* RTL: "on" moves the knob toward the logical end, which is visually left. */
+.switchOn .switchKnob { transform: translateX(-20px); }
+
+@media (pointer: coarse) {
+  .switch {
+    min-height: 44px;
+    min-width: 52px;
+  }
+  .switchKnob { top: 50%; margin-top: -10px; }
+}

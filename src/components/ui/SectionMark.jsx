@@ -288,6 +288,17 @@ const MARKS = {
     </>
   ),
 
+  /* Errors — the plate is the report, the live dot is the thing that went
+     wrong. Same shape family as `help`, because they are the two screens that
+     exist for something being unclear or broken. */
+  alert: (s) => (
+    <>
+      <path d="M12 3.4L21.2 19.6a1.6 1.6 0 0 1-1.4 2.4H4.2a1.6 1.6 0 0 1-1.4-2.4z" className={s.plate} />
+      <path d="M12 9.6v4.3" className={s.line} />
+      <circle cx="12" cy="17.6" r="1.5" className={s.live} />
+    </>
+  ),
+
   /* Privacy — a shield with a lock, because the promise the page makes is that
      the guest list is held, not shared. */
   privacy: (s) => (

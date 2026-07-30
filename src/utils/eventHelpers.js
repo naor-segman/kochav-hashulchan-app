@@ -124,6 +124,11 @@ export function normalizeEvent(ev) {
     // Digital gift transfer details — shown to guests on the public gift page.
     // bit has no permanent payment links for individuals, so we store the
     // recipient's phone number; PayBox supports shareable group links.
+    // The shared guest table's on/off switch. Same link always — the host
+    // decides when it answers. Absent means ON, so nothing changes for an event
+    // that is already being filled in; only an explicit false closes it, and
+    // the token RPCs enforce the same rule server-side.
+    collabActive: ev.collabActive === false ? false : true,
     giftBitPhone:   ev.giftBitPhone   ?? "",
     giftPayboxLink: ev.giftPayboxLink ?? "",
     // Event site — the auto-built guest-facing site (hero, schedule, location,
