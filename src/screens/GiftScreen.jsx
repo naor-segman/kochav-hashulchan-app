@@ -13,6 +13,12 @@ const MOCK_EVENT = {
 
 const AMOUNT_CHIPS = [200, 300, 500, 1000];
 
+// Every other money render in the app pins the locale. A bare toLocaleString()
+// on a PUBLIC page hands the grouping to whatever the guest's device is set to
+// — ₪1.200 on de-DE, ₪١٬٢٠٠ on ar-EG — for a shekel amount the host has to
+// reconcile against a bank transfer.
+const shekels = (n) => Number(n || 0).toLocaleString("he-IL");
+
 export default function GiftScreen() {
   const { token } = useParams();
   const [event, setEvent]         = useState(null);
@@ -125,13 +131,18 @@ export default function GiftScreen() {
               </div>
               <div className={styles.successRow}>
                 <span className={styles.successLabel}>סכום</span>
-                <span className={styles.successAmount}>₪{finalAmount.toLocaleString()}</span>
+                <span className={styles.successAmount}>₪{shekels(finalAmount)}</span>
               </div>
               {message && (
                 <div className={styles.successBlessingRow}>
                   <span className={styles.successLabel}>ברכה</span>
+                  {/* In full. This is the guest's OWN blessing being read back
+                      to them as confirmation of what was sent — cutting it at
+                      50 characters made the confirmation unable to confirm the
+                      thing it exists to confirm. The textarea is capped instead,
+                      so the page stays bounded at the source. */}
                   <span className={styles.successBlessing}>
-                    &ldquo;{message.slice(0, 50)}{message.length > 50 ? "…" : ""}&rdquo;
+                    &ldquo;{message}&rdquo;
                   </span>
                 </div>
               )}
@@ -140,7 +151,7 @@ export default function GiftScreen() {
             {/* Transfer instructions — bit / PayBox */}
             {hasPayment && (
               <div className={styles.transferBox}>
-                <div className={styles.transferTitle}>להשלמת המתנה — העבירו ₪{finalAmount.toLocaleString()}:</div>
+                <div className={styles.transferTitle}>להשלמת המתנה — העבירו ₪{shekels(finalAmount)}:</div>
                 {ev.giftBitPhone && (
                   <div className={styles.transferRow}>
                     <span className={styles.transferMethod}>ביט למספר</span>
@@ -188,7 +199,7 @@ export default function GiftScreen() {
   const btnLabel = step === "submitting"
     ? "שולח..."
     : finalAmount >= 50
-      ? `שלחו מתנה ← ₪${finalAmount.toLocaleString()}`
+      ? `שלחו מתנה ← ₪${shekels(finalAmount)}`
       : "שלחו מתנה";
 
   return (
@@ -244,7 +255,7 @@ export default function GiftScreen() {
                     setErrors(p => { const n = { ...p }; delete n.amount; return n; });
                   }}
                 >
-                  <span className={styles.chipAmt}>₪{a.toLocaleString()}</span>
+                  <span className={styles.chipAmt}>₪{shekels(a)}</span>
                 </button>
               ))}
             </div>
@@ -277,6 +288,7 @@ export default function GiftScreen() {
             <textarea
               id="gift-message"
               className={styles.textarea}
+              maxLength={600}
               rows={4}
               value={message}
               placeholder="כתבו ברכה מהלב..."

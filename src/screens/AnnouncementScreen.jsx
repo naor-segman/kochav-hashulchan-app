@@ -19,9 +19,14 @@ import Icon from "../components/ui/Icon.jsx";
  * Resolves through the existing invite token — no new token type, no migration.
  */
 
+// `type` is one of the HEBREW strings in constants.js EVENT_TYPES — there are no
+// English keys anywhere in this field. This fixture said "wedding", which
+// matches nothing in announcementTemplates.js and fell silently through to the
+// "אחר" headline, so the dev preview of the wedding invitation has never once
+// shown the wedding copy. (CLAUDE.md bug class 1.)
 const MOCK = {
   name: "חתונת נועה וטל", date: "2026-09-15", venue: "אולמי הגן, רחובות",
-  brideName: "נועה", groomName: "טל", type: "wedding",
+  brideName: "נועה", groomName: "טל", type: "חתונה",
   rsvpToken: "aaaa", inviteToken: "bbbb",
   announcements: null,
 };

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
+import Footer from "../components/layout/Footer.jsx";
 import help from "./HelpScreen.module.css";
 
 const FAQ = [
@@ -77,10 +78,18 @@ export default function HelpScreen() {
           </p>
         </section>
 
+        {/* This page's only navigation used to be a single link into /app —
+            which sends a logged-out visitor arriving from the public footer
+            straight into the application. The three legal pages next to it
+            already go to "/", and so does this now. */}
         <div className={styles.backRow}>
-          <Link to="/app" className={styles.backLink}>→ חזרה לדשבורד</Link>
+          <Link to="/" className={styles.backLink}>→ חזרה לדף הבית</Link>
         </div>
       </main>
+
+      {/* The page was a cul-de-sac: reached from the public footer, and then
+          carrying no footer of its own. */}
+      <Footer />
     </div>
   );
 }

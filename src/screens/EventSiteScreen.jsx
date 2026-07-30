@@ -45,6 +45,30 @@ const MOCK = {
   },
 };
 
+/**
+ * Schedule icons.
+ *
+ * The stored value is whatever the host typed into the editor's icon field, and
+ * the templates seed it with emoji — four vendors' worth of colour artwork in
+ * one four-row list, under a venue card that draws its pin. The 🍽️ in
+ * particular is near-white and effectively invisible on the light theme grounds.
+ *
+ * The data is left alone (the host owns that field and sees the character they
+ * typed); the GUEST gets the drawn icon whenever we recognise what was typed,
+ * and the raw character otherwise. That also upgrades every event already
+ * saved, without a migration.
+ */
+const SCHEDULE_ICON = {
+  "🥂": "glass",  "🍾": "glass",  "🍸": "glass",  "🍷": "glass",
+  "💍": "rings",  "💒": "chuppah", "⛩": "chuppah", "🕍": "chuppah",
+  "🍽️": "food",  "🍽": "food",   "🍰": "food",   "🥗": "food",
+  "💃": "turntable", "🕺": "turntable", "🎶": "note", "🎵": "note",
+  "🎤": "note",   "🎧": "turntable", "🎛": "turntable", "🎉": "star",
+  "📸": "camera", "🎁": "gift",   "🚌": "car",    "🚗": "car",
+  "🕯": "star6",  "✡": "star6",   "🎂": "food",   "⏰": "clock",
+  "📍": "pin",    "🏛": "building", "🎬": "stage", "🎪": "stage",
+};
+
 const HE_DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 const HE_MONTHS = ["בינואר","בפברואר","במרץ","באפריל","במאי","ביוני","ביולי","באוגוסט","בספטמבר","באוקטובר","בנובמבר","בדצמבר"];
 function heDate(str) {
@@ -225,7 +249,14 @@ export default function EventSiteScreen({ localEvent }) {
               <li key={item.id} className={styles.tlItem}>
                 <span className={styles.tlTime}>{item.time}</span>
                 <span className={styles.tlDot} aria-hidden="true" />
-                <span className={styles.tlTitle}>{item.icon} {item.title}</span>
+                <span className={styles.tlTitle}>
+                  {item.icon && (
+                    SCHEDULE_ICON[item.icon]
+                      ? <span className={styles.tlIcon} aria-hidden="true"><Icon name={SCHEDULE_ICON[item.icon]} size={17} /></span>
+                      : <span aria-hidden="true">{item.icon} </span>
+                  )}
+                  {item.title}
+                </span>
               </li>
             ))}
           </ol>
@@ -378,7 +409,13 @@ function Countdown({ date, styles }) {
   const pad = (n) => String(n).padStart(2, "0");
   // The day figure is the one a guest reads as a sentence ("עוד 1 ימים" the
   // day before the wedding); the padded clock units always read as numerals.
-  const dayLabel = d === 1 ? "יום" : d === 2 ? "יומיים" : "ימים";
+  //
+  // יומיים is the Hebrew DUAL — it already means "two days" — so printing the
+  // numeral beside it gave "2 יומיים", i.e. "2 two-days", for the whole 24
+  // hours two days before every event. This is a four-cell numeral grid, so
+  // blanking the cell would leave a hole; the dual is dropped instead and the
+  // plural takes 2, exactly as AnnouncementScreen already does it.
+  const dayLabel = d === 1 ? "יום" : "ימים";
   const units = [[d, dayLabel], [pad(h), "שעות"], [pad(m), "דקות"], [pad(s), "שניות"]];
   return (
     <section className={styles.section}>

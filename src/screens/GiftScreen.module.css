@@ -34,25 +34,30 @@
   line-height: 1;
 }
 
+/* Same ornament as /card, so: same colour. Both pages draw --blush stars, but
+   this page drew them at 0.18–0.28 and /card at 0.035–0.06 — five times the
+   weight, which composites to a visibly pink star here and a grey one there.
+   One ornament cannot be two colours. The quieter ladder wins: this is
+   background texture, not an accent moment. */
 .ds1 {
   top: 8%;
   inset-inline-end: 5%;
   font-size: 96px;
-  opacity: 0.28;
+  opacity: 0.055;
 }
 
 .ds2 {
   top: 50%;
   inset-inline-start: 3%;
   font-size: 136px;
-  opacity: 0.18;
+  opacity: 0.035;
 }
 
 .ds3 {
   bottom: 12%;
   inset-inline-end: 8%;
   font-size: 64px;
-  opacity: 0.24;
+  opacity: 0.05;
 }
 
 /* ── Header — narrow dark strip at top ───────────────────────────────────── */
@@ -623,27 +628,36 @@
   line-height: 1.2;
 }
 
-/* Summary details block */
+/* Summary details block.
+   It used to be a stack of `justify-content: space-between` rows, which means
+   every value is flush to the far edge and its distance from its own label is
+   whatever the value's own width leaves over: a long name ends up tucked right
+   under its label, while ₪500 sits ~180px away across an empty gutter. Two
+   facts in a three-line summary, related to their labels by two different
+   distances.
+   One grid instead — the labels share a column and the values share a column,
+   so the eye reads straight down and the gap is the same every time. */
 .successDetails {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px 20px;
   margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 12px 14px;
   text-align: start;
 }
 
+/* The row is not a box — it hands its label and its value straight to the grid
+   so they land in the two shared columns. */
 .successRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: contents;
 }
 
 .successBlessingRow {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -671,11 +685,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The guest's own words, shown back to them in full — see the JSX. Long ones
+   wrap rather than run, which is why this needs an explicit break rule: a
+   pasted URL or an unbroken string would otherwise widen the card. */
 .successBlessing {
   font-size: var(--step-0);
   color: var(--text2);
   font-style: italic;
   line-height: 1.65;
+  overflow-wrap: anywhere;
 }
 
 .successClosing {

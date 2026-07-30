@@ -229,17 +229,38 @@ export default function RSVPScreen() {
 
             <div className={styles.questionBlock}>
               <h2 className={styles.questionTitle}>האם תגיע/י לאירוע?</h2>
+              {/* One control, three options — so it is a real pressed-state
+                  group. `aria-pressed` was missing entirely: a screen reader
+                  had no way to know which answer was chosen, and sighted users
+                  were told by a green fill that "yes" was ALREADY selected
+                  before anything was clicked. All three now rest identically
+                  and only the chosen one takes the colour. */}
               <div className={styles.choiceButtons}>
-                <button className={styles.btnYes} onClick={handleYesClick}>
-                  <span className={styles.choiceBtnIcon} aria-hidden="true">✓</span>
+                <button
+                  type="button"
+                  className={[styles.choiceBtn, styles.btnYes, answer === "yes" && styles.choiceBtnOn].filter(Boolean).join(" ")}
+                  aria-pressed={answer === "yes"}
+                  onClick={handleYesClick}
+                >
+                  <span className={styles.choiceBtnIcon} aria-hidden="true"><Icon name="check" size={20} /></span>
                   כן, אגיע בשמחה
                 </button>
-                <button className={styles.btnMaybe} onClick={handleMaybeClick}>
-                  <span className={styles.choiceBtnIcon} aria-hidden="true">?</span>
+                <button
+                  type="button"
+                  className={[styles.choiceBtn, styles.btnMaybe, answer === "maybe" && styles.choiceBtnOn].filter(Boolean).join(" ")}
+                  aria-pressed={answer === "maybe"}
+                  onClick={handleMaybeClick}
+                >
+                  <span className={styles.choiceBtnIcon} aria-hidden="true"><Icon name="question" size={20} /></span>
                   עדיין לא בטוח/ה
                 </button>
-                <button className={styles.btnNo} onClick={handleNoClick}>
-                  <span className={styles.choiceBtnIcon} aria-hidden="true">✗</span>
+                <button
+                  type="button"
+                  className={[styles.choiceBtn, styles.btnNo, answer === "no" && styles.choiceBtnOn].filter(Boolean).join(" ")}
+                  aria-pressed={answer === "no"}
+                  onClick={handleNoClick}
+                >
+                  <span className={styles.choiceBtnIcon} aria-hidden="true"><Icon name="close" size={20} /></span>
                   לא אוכל להגיע
                 </button>
               </div>
@@ -390,7 +411,7 @@ export default function RSVPScreen() {
               onClick={goBack}
               disabled={submitting}
             >
-              ← חזרו
+              → חזרו
             </button>
 
           </div>
@@ -456,7 +477,7 @@ export default function RSVPScreen() {
               onClick={goBack}
               disabled={submitting}
             >
-              ← חזרו — שיניתי את דעתי
+              → חזרו — שיניתי את דעתי
             </button>
 
           </div>

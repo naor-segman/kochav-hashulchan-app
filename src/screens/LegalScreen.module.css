@@ -7,28 +7,47 @@
   direction: rtl;
 }
 
+/* These four pages are reached from the public footer, so they are part of the
+   marketing site and have to wear its chrome. The bar was 54px against the
+   site's 68px, the brand sat flush to the window instead of on the site's
+   1200px container, and the ✦ was 17px against 22px — three small differences
+   that together read as "you have left the site".
+   The container gutter is done with padding rather than an inner wrapper so
+   every page picks it up without a markup change: half the leftover width plus
+   the site's own 24px, clamped to 24px once the window is narrower than the
+   container. */
 .header {
   background: var(--nav-bg);
-  padding: 14px 24px;
+  border-bottom: 1px solid var(--nav-border);
+  /* 69px, not 68: `box-sizing: border-box` is global, and the site's own bar is
+     a 68px inner row plus a 1px rule, i.e. 69px of chrome. Measured. */
+  height: 69px;
+  display: flex;
+  align-items: center;
+  padding-inline: max(24px, calc((100% - var(--container-max)) / 2 + 24px));
 }
 
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
 }
 
 .logoMark {
-  /* --accent-text is 2.66:1 on the near-black header bar; --accent is 4.84:1. */
-  color: var(--accent);
-  font-size: var(--step-1);
+  /* The brand-mark rule: --accent-on-dark on a dark ground (9.52:1).
+     --accent-text is 2.66:1 here and --accent is a fill token, not a glyph
+     colour — see CLAUDE.md bug class 4. */
+  color: var(--accent-on-dark);
+  font-size: var(--step-2);
+  line-height: 1;
 }
 
 .logoName {
   color: var(--nav-text);
-  font-size: var(--step-0);
+  font-size: var(--step-1);
   font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .main {
