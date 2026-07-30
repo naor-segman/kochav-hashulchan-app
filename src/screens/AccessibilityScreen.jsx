@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
+import SectionMark from "../components/ui/SectionMark.jsx";
+import Footer from "../components/layout/Footer.jsx";
 
 export default function AccessibilityScreen() {
   return (
@@ -12,7 +14,10 @@ export default function AccessibilityScreen() {
       </header>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>הצהרת נגישות</h1>
+        <div className={styles.titleRow}>
+          <SectionMark name="accessibility" size={26} tile />
+          <h1 className={styles.title}>הצהרת נגישות</h1>
+        </div>
         <p className={styles.updated}>עודכן לאחרונה: 21 ביולי 2026</p>
 
         <section className={styles.section}>
@@ -57,6 +62,8 @@ export default function AccessibilityScreen() {
           <Link to="/" className={styles.backLink}>→ חזרה לדף הבית</Link>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

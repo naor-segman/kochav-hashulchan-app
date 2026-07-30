@@ -195,7 +195,9 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  align-items: start;
+  /* `start` let each card be exactly as tall as its own content, which is what
+     put the three CTAs at three different heights. */
+  align-items: stretch;
 }
 
 .planCard {
@@ -205,6 +207,12 @@
   padding: 40px 32px;
   box-shadow: var(--shadow);
   position: relative;
+  /* The three buttons sat at three different heights — 1114 / 1193 / 1206 —
+     and the two UNSCALED cards differed by 79px, which on a pricing table is
+     the single most-noticed misalignment there is. The cards stretch to the
+     tallest and the CTA is pushed to the bottom of each. */
+  display: flex;
+  flex-direction: column;
 }
 
 /* THE decision on this page. It used to shout with four separate signals at
@@ -353,6 +361,8 @@
 .planCta {
   display: block;
   text-align: center;
+  /* Bottom of the card, so the row of buttons is a row. */
+  margin-top: auto;
   background: var(--bg);
   color: var(--text2);
   text-decoration: none;
@@ -575,14 +585,17 @@
    already does. */
 .betaNote {
   max-width: 620px;
-  margin: 0 auto 20px;
+  /* The "הכי פופולרי" badge sits 13px above its card and overlapped this by
+     7px — and both are blush, so the pill was sandwiched between two identical
+     pink surfaces with a grey sliver between them. */
+  margin: 0 auto 34px;
   padding: 12px 16px;
   background: var(--blush);
   color: var(--text);
   border-radius: var(--radius);
   text-align: center;
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: var(--step--1);
   line-height: 1.5;
 }
 

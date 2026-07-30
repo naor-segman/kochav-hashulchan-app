@@ -30,7 +30,14 @@
 .themeSwatch:hover { border-color: var(--border2); }
 /* The chosen palette — a ground, not an outline-plus-halo. The swatch strip
    inside it is the content; the chip only has to say "this one". */
-.themeActive { border-color: var(--blush-line); background: var(--blush); }
+ /* The last of the four different "selected" treatments the app used to carry.
+    Same pair as everywhere else now: --accent-bg ground with --accent-text ink,
+    which is the `segActive` primitive in screenBase. */
+.themeActive {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
 .themeColors { display: inline-flex; border-radius: var(--radius-md); overflow: hidden; flex-shrink: 0; border: 1px solid var(--border); }
 .themeColors span { width: 16px; height: 26px; }
 .themeName { font-size: var(--step--1); font-weight: 600; color: var(--text); }

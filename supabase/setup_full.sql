@@ -334,7 +334,7 @@ ALTER TABLE public.templates
   ADD COLUMN IF NOT EXISTS icon       text,
   ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
 
-COMMENT ON COLUMN public.templates.icon       IS 'Emoji or symbol shown in the UI, e.g. "💍" or "✦".';
+COMMENT ON COLUMN public.templates.icon       IS 'Short symbol shown in the UI. The admin form treats it as optional text; the product itself uses drawn SectionMark icons, not emoji.';
 COMMENT ON COLUMN public.templates.sort_order IS 'Ascending display order for template pickers. Lower = earlier.';
 
 -- Index so ORDER BY sort_order, created_at is efficient even on large template sets.
