@@ -1,4 +1,5 @@
-/* NavBadge — default accent colours; dynamic override applied inline */
+/* NavBadge — the count beside a nav tab. Grounds are declared here, never
+   assembled inline from a token string: `var(--red)22` is not a colour. */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -11,4 +12,11 @@
   min-width: 18px;
   height: 18px;
   padding: 0 4px;
+}
+
+/* A real violation. Same box as its neighbours — it was the only one without a
+   ground, so the one badge that matters read as loose type. */
+.badgeDanger {
+  background: var(--red-bg);
+  color: var(--red);
 }

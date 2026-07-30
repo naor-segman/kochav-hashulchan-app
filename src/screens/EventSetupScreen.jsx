@@ -4,6 +4,7 @@ import { EVENT_TYPES } from "../data/constants.js";
 import { getEventPersonalConfig, getEventNamePlaceholder, getSideLabels, COUPLE_TYPES } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Divider from "../components/ui/Divider.jsx";
+import Icon from "../components/ui/Icon.jsx";
 import Field from "../components/ui/Field.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -123,13 +124,13 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         }
       />
 
-      <div className={styles.stepGuide}>
-        <span className={styles.stepBadge}>שלב 1 מתוך 5 — פרטי האירוע</span>
-        <span className={styles.stepText}>לאחר השמירה תוכלו להמשיך: שולחנות ← אורחים ← אילוצים ← הושבה</span>
+      <div className={base.stepGuide}>
+        <span className={base.stepBadge}>שלב 1 מתוך 5 — פרטי האירוע</span>
+        <span className={base.stepText}>לאחר השמירה תוכלו להמשיך: שולחנות ← אורחים ← אילוצים ← הושבה</span>
       </div>
 
       {dirty && <Banner variant="warn">יש שינויים שלא נשמרו — שמרו בכפתור למטה.</Banner>}
-      {saved && !dirty && <Banner variant="ok">הפרטים נשמרו ✓</Banner>}
+      {saved && !dirty && <Banner variant="ok">הפרטים נשמרו <Icon name="check" size={15} /></Banner>}
 
       <div className={[base.card, dirty ? base.cardDirty : ""].filter(Boolean).join(" ")}>
         <SectionLabel>פרטי האירוע</SectionLabel>
@@ -302,10 +303,10 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
 
         <div className={base.formActions}>
           <button className={base.btnPrimary} onClick={saveAndNext}>
-            שמרו והמשיכו לשולחנות ←
+            שמרו והמשיכו לשולחנות <Icon name="arrowLeft" size={15} />
           </button>
           <button className={base.btnSecondary} onClick={save}>
-            {dirty ? "שמרו בלבד" : (saved ? "נשמר ✓" : "שמרו פרטים")}
+            {dirty ? "שמרו בלבד" : (saved ? <>נשמר <Icon name="check" size={14} /></> : "שמרו פרטים")}
           </button>
           {saved && !dirty && (
             <span className={styles.savedNote}>עודכן בהצלחה</span>
@@ -337,7 +338,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
                   onClick={() => copyLink(sl.key, url)}
                   type="button"
                 >
-                  {copiedKey === sl.key ? "הועתק ✓" : "העתיקו"}
+                  {copiedKey === sl.key ? <>הועתק <Icon name="check" size={13} /></> : "העתיקו"}
                 </button>
                 {token && <QrCode url={url} label={sl.label} filename={"qr-" + sl.key} />}
               </div>

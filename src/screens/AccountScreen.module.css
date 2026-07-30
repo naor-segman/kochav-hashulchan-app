@@ -215,13 +215,16 @@
   letter-spacing: -0.01em;
 }
 
+/* 11px (--step--3) is this product's floor — it is the bottom rung of the type
+   ladder and it exists precisely so badges and counts have somewhere to land.
+   This was 9px, i.e. below the floor the rest of the app keeps. */
 .planCardBadge {
   display: inline-block;
   border: 1px solid;
   border-radius: var(--radius-lg);
   padding: 1px 6px;
-  font-size: 9px;
-  font-weight: 700;
+  font-size: var(--step--3);
+  font-weight: var(--font-weight-bold);
   white-space: nowrap;
 }
 
@@ -447,6 +450,10 @@
 }
 
 .backLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   font-size: var(--step--2);
   color: var(--muted);
   text-decoration: none;
@@ -517,9 +524,11 @@
 @media (max-width: 480px) {
   .card { padding: 28px 20px 24px; }
 
-  .planCardFeature { font-size: 9px; }
+  /* Was 9px on both. The plan card gets narrower on a phone, but the answer
+     is the card, not type below the product's own 11px floor. */
+  .planCardFeature { font-size: var(--step--3); }
   .planCardName    { font-size: var(--step--3); }
-  .planCardBtn     { font-size: 9px; padding: 4px 2px; }
+  .planCardBtn     { font-size: var(--step--3); padding: 5px 4px; }
 }
 
 /* Password change form */

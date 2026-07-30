@@ -11,6 +11,7 @@ import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import TypeTag from "../components/ui/TypeTag.jsx";
 import base from "../styles/screenBase.module.css";
@@ -22,6 +23,7 @@ const TABS = [
 ];
 
 export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  const { confirm, prompt, dialog } = useConfirm();
   const [tab,     setTab]     = useState("list");
   const [batch,   setBatch]   = useState({ prefix: "", capacity: "10", count: "1", type: "regular", shape: DEFAULT_TABLE_SHAPE });
   const [editId,  setEditId]  = useState(null);
@@ -44,9 +46,12 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       .map(t => ({ value: t, label: t })),
     ...inUseExtraTypes.map(t => ({ value: t, label: LEGACY_TYPE_LABELS[t] || t })),
   ];
-  const chooseType = (value, apply) => {
+  const chooseType = async (value, apply) => {
     if (value === "__add__") {
-      const name = (prompt("שם סוג השולחן המותאם (למשל: שולחן ילדים)") || "").trim();
+      const name = (await prompt("שם סוג השולחן המותאם (למשל: שולחן ילדים)", {
+        placeholder: "שם הסוג",
+        confirmLabel: "צרו סוג",
+      }) || "").trim();
       if (!name) return;
       if (!TABLE_TYPES.some(s => s.value === name) && !customTypes.includes(name)) {
         patchEvent(e => Object.assign({}, e, {
@@ -124,7 +129,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     showToast("השולחן עודכן ✓");
   };
 
-  const delTable = id => {
+  const delTable = async id => {
     const t     = ev.tables.find(t => t.id === id);
     const tName = t ? t.name : "";
     const cnt   = ev.guests
@@ -134,7 +139,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       ? "למחוק את השולחן \"" + tName + "\"?\n\n" +
         cnt + " מקומות שובצו לשולחן זה — הרשומות יחזרו לרשימת הממתינים.\n\nפעולה זו אינה ניתנת לביטול."
       : "למחוק את השולחן \"" + tName + "\"?\n\nהשולחן ריק. פעולה זו אינה ניתנת לביטול.";
-    if (!confirm(msg)) return;
+    if (!await confirm(msg, { danger: true, confirmLabel: "מחקו שולחן" })) return;
     patchEvent(e => {
       const tables  = e.tables.filter(t => t.id !== id);
       const seating = Object.fromEntries(Object.entries(e.seating).filter(([, tid]) => tid !== id));
@@ -148,21 +153,22 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
 
   return (
     <div className={base.page}>
+      {dialog}
       <PageHeader
         title="שולחנות"
         mark="tables"
         sub="הגדירו את השולחנות באולם לפי מבנה האירוע."
         aside={
           <div className={base.pills}>
-            <StatPill n={ev.tables.length} label="שולחנות" />
+            <StatPill n={ev.tables.length} label="שולחנות" primary />
             <StatPill n={totalCap} label="מקומות" color={gap < 0 ? "var(--red)" : undefined} />
           </div>
         }
       />
 
-      <div className={styles.stepGuide}>
-        <span className={styles.stepBadge}>שלב 2 מתוך 5 — שולחנות</span>
-        <span className={styles.stepText}>הגדירו כמה שולחנות יש באולם ומה הקיבולת שלהם. לאחר מכן המשיכו לרשימת האורחים. כל שינוי נשמר אוטומטית.</span>
+      <div className={base.stepGuide}>
+        <span className={base.stepBadge}>שלב 2 מתוך 5 — שולחנות</span>
+        <span className={base.stepText}>הגדירו כמה שולחנות יש באולם ומה הקיבולת שלהם. לאחר מכן המשיכו לרשימת האורחים. כל שינוי נשמר אוטומטית.</span>
       </div>
 
       {gap < 0 && totalGuestSeats > 0 && (
@@ -170,8 +176,11 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
           חסרים {Math.abs(gap)} מקומות — יש יותר מקומות לאורחים ({totalGuestSeats}) ממקומות פנויים ({totalCap}).
         </Banner>
       )}
+      {/* This was <Banner variant="ok"> — a green success band. Spare capacity
+          is a measurement, not something the host achieved; the screen already
+          says so loudly in amber when there is NOT enough. Neutral. */}
       {gap > 0 && ev.tables.length > 0 && totalGuestSeats > 0 && (
-        <Banner variant="ok">{gap} מקומות פנויים מעבר לכמות מקומות האורחים ({totalGuestSeats}).</Banner>
+        <p className={styles.capNote}>{gap} מקומות פנויים מעבר לכמות מקומות האורחים ({totalGuestSeats}).</p>
       )}
 
       {/* ── Tabs ── */}
@@ -257,7 +266,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                 </p>
               )}
               {totalCap > 0 && totalGuestSeats > 0 && gap >= 0 && (
-                <p className={styles.capStatOk}>
+                <p className={styles.capStat}>
                   קיבולת מספיקה — {totalGuestSeats} מקומות לאורחים, {gap} פנויים מתוך {totalCap}
                 </p>
               )}
@@ -327,10 +336,16 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                           </span>
                           <span style={{ textAlign: "center" }}>{t.capacity}</span>
                           <span style={{ textAlign: "center" }}><TypeTag type={t.type} /></span>
+                          {/* Every occupied table used to print its count in
+                              --green, so "3/12" — a table two-thirds empty —
+                              was drawn in the colour this system reserves for
+                              "בוצע". This is now exactly the rule the seating
+                              cards use: ink while filling, amber near capacity,
+                              red over it. */}
                           <span style={{
                             textAlign: "center",
                             fontWeight: seated > 0 ? 700 : 400,
-                            color: isOver ? "var(--red)" : pct > 0.85 ? "var(--warn)" : seated > 0 ? "var(--green)" : "var(--muted)"
+                            color: isOver ? "var(--red)" : pct > 0.85 ? "var(--warn)" : seated > 0 ? "var(--text)" : "var(--muted)"
                           }}>
                             {seated}/{t.capacity}
                           </span>

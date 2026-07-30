@@ -10,6 +10,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./ConstraintsScreen.module.css";
 
@@ -42,8 +43,31 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
 
   useEffect(() => { valueRef.current = value; }, [value]);
 
-  // Sync display text when selection is cleared from outside (e.g. after save)
+  // Read by the outside-click handler below, which must not be re-bound on
+  // every parent render just because the parent hands down a fresh `guests`
+  // array each time (`ev.guests.slice().sort(...)`).
+  const guestsRef = useRef(guests);
+  useEffect(() => { guestsRef.current = guests; }, [guests]);
+
+  // Sync the display text when the SELECTION changes from outside (e.g. the
+  // form is cleared after save).
+  //
+  // This used to depend on `guests` as well, and the parent passes
+  // `ev.guests.slice().sort(...)` — a new array identity on EVERY render. So
+  // any unrelated App re-render ran setQuery(""), and the host lost whatever
+  // they were typing: a success toast expiring 3.2s after the previous
+  // constraint was added wiped the half-typed name out from under the cursor.
+  // The sync/quota/PWA-update toasts did it too. A sweep of every visible input
+  // on twelve screens found these two fields were the only ones in the product
+  // that lost their text.
+  //
+  // `guests` stays in the dependency list — the lookup genuinely needs it — but
+  // the effect now only writes when `value` ITSELF changed, so a new array
+  // identity alone can no longer touch the input.
+  const syncedValue = useRef(value);
   useEffect(() => {
+    if (syncedValue.current === value) return;
+    syncedValue.current = value;
     const g = guests.find(g => g.id === value);
     setQuery(g ? g.name : "");
   }, [value, guests]);
@@ -54,13 +78,13 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setOpen(false);
         setHi(-1);
-        const g = guests.find(g => g.id === valueRef.current);
+        const g = guestsRef.current.find(g => g.id === valueRef.current);
         setQuery(g ? g.name : "");
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [guests]);
+  }, []);
 
   const lquery  = query.toLowerCase();
   const results = guests
@@ -125,7 +149,7 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
             onMouseDown={e => { e.preventDefault(); onChange(""); setQuery(""); setOpen(false); }}
             tabIndex={-1}
             aria-label="נקו בחירה"
-          >✕</button>
+          ><Icon name="close" size={13} /></button>
         )}
       </div>
 
@@ -161,6 +185,7 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  const { confirm, dialog }     = useConfirm();
   const [formA, setFormA]       = useState("");
   const [formB, setFormB]       = useState("");
   const [formType, setFormType] = useState("together");
@@ -191,11 +216,11 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
     showToast("האילוץ נוסף ✓");
   };
 
-  const delConstraint = (id, nameA, nameB, type) => {
+  const delConstraint = async (id, nameA, nameB, type) => {
     const label = type === "together"
       ? "להסיר את האילוץ \"יחד\" בין " + nameA + " ל" + nameB + "?"
       : "להסיר את האילוץ \"בנפרד\" בין " + nameA + " ל" + nameB + "?";
-    if (!confirm(label)) return;
+    if (!await confirm(label, { danger: true, confirmLabel: "הסירו" })) return;
     patchEvent(e => Object.assign({}, e, { constraints: e.constraints.filter(c => c.id !== id) }));
     showToast("האילוץ הוסר ✓");
   };
@@ -207,21 +232,23 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
 
   return (
     <div className={base.page}>
+      {dialog}
       <PageHeader
         title="אילוצים"
         mark="constraints"
         sub="הגדירו מי חייב לשבת יחד ומי לא יכול — המערכת תכבד זאת בסידור האוטומטי."
         aside={
           <div className={base.pills}>
+            <StatPill n={ev.constraints.length} label="אילוצים" primary />
             <StatPill n={together.length} label="יחד"   color={together.length > 0 ? "var(--green)" : undefined} />
             <StatPill n={apart.length}    label="בנפרד" color={apart.length > 0 ? "var(--red)" : undefined} />
           </div>
         }
       />
 
-      <div className={styles.stepGuide}>
-        <span className={styles.stepBadge}>שלב 4 מתוך 5 — אילוצים</span>
-        <span className={styles.stepText}>שלב אופציונלי. הגדירו מי חייב לשבת יחד ומי לא — ואז המשיכו לסידור ההושבה. כל שינוי נשמר אוטומטית.</span>
+      <div className={base.stepGuide}>
+        <span className={base.stepBadge}>שלב 4 מתוך 5 — אילוצים</span>
+        <span className={base.stepText}>שלב אופציונלי. הגדירו מי חייב לשבת יחד ומי לא — ואז המשיכו לסידור ההושבה. כל שינוי נשמר אוטומטית.</span>
       </div>
 
       {ev.guests.length < 2 && (
@@ -254,13 +281,13 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         <Field label="סוג האילוץ">
           <div className={base.seg}>
             <button
-              className={[base.segBtn, formType === "together" ? base.segTog : ""].filter(Boolean).join(" ")}
+              className={[base.segBtn, formType === "together" ? base.segActive : ""].filter(Boolean).join(" ")}
               onClick={() => setFormType("together")}
             >
               <Icon name="together" /> חייבים לשבת יחד
             </button>
             <button
-              className={[base.segBtn, formType === "apart" ? base.segApart : ""].filter(Boolean).join(" ")}
+              className={[base.segBtn, formType === "apart" ? base.segActive : ""].filter(Boolean).join(" ")}
               onClick={() => setFormType("apart")}
             >
               <Icon name="apart" /> לא יכולים לשבת יחד

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { tableLabel } from "../components/seating/tableLabel.js";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import styles from "./CheckInScreen.module.css";
@@ -150,7 +151,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
       {/* ── Top bar ── */}
       <div className={styles.topbar}>
         <button className={styles.backBtn} onClick={() => navigate(`/events/${eventId}/seating`)}>
-          ← חזרו
+          <Icon name="arrowRight" size={14} /> חזרו
         </button>
         <div className={styles.eventName}>{ev.name || "אירוע"}</div>
         <button className={styles.walkInTopBtn} onClick={() => { setWalkInName(""); setWalkInOpen(true); }}>
@@ -209,8 +210,8 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
             autoComplete="off"
           />
           {search && (
-            <button className={styles.searchClear} onClick={() => { setSearch(""); searchRef.current?.focus(); }}>
-              ✕
+            <button className={styles.searchClear} onClick={() => { setSearch(""); searchRef.current?.focus(); }} aria-label="נקו חיפוש">
+              <Icon name="close" size={15} />
             </button>
           )}
         </div>
@@ -228,12 +229,12 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
         if (!g) return null;
         return (
           <div className={styles.lastChecked}>
-            <span className={styles.lastCheckedIcon}>✓</span>
+            <span className={styles.lastCheckedIcon}><Icon name="check" size={16} /></span>
             <div className={styles.lastCheckedInfo}>
               <span className={styles.lastCheckedName}>{g.name}</span>
-              {t && <span className={styles.lastCheckedTable}>שולחן {t.name}</span>}
+              {t && <span className={styles.lastCheckedTable}>{tableLabel(t)}</span>}
             </div>
-            <button className={styles.lastCheckedDismiss} onClick={() => setLastChecked(null)}>✕</button>
+            <button className={styles.lastCheckedDismiss} onClick={() => setLastChecked(null)} aria-label="סגירה"><Icon name="close" size={14} /></button>
           </div>
         );
       })()}
@@ -324,14 +325,14 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
                 </div>
                 <div className={styles.rowRight}>
                   {table
-                    ? <span className={styles.tableTag}>שולחן {table.name}</span>
+                    ? <span className={styles.tableTag}>{tableLabel(table)}</span>
                     : <span className={styles.noTable}>לא שובץ</span>
                   }
                   <button
                     className={[styles.checkBtn, g.arrived ? styles.checkBtnDone : ""].filter(Boolean).join(" ")}
                     onClick={() => toggleArrived(g.id, g.arrived)}
                   >
-                    {g.arrived ? "✓ הגיע/ה" : "צ׳ק אין"}
+                    {g.arrived ? <><Icon name="check" size={14} /> הגיע/ה</> : "צ׳ק אין"}
                   </button>
                 </div>
               </div>
@@ -398,7 +399,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
                   <div className={styles.tableBlockActions}>
                     {!allArrived && tGuests.length > 0 && (
                       <button className={styles.tableMarkAllBtn} onClick={() => markTableArrived(t.id, true)}>
-                        כולם הגיעו ✓
+                        כולם הגיעו <Icon name="check" size={13} />
                       </button>
                     )}
                     {allArrived && (
@@ -419,7 +420,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
                         >
                           <span className={styles.tableGuestName}>{g.name}{g.count > 1 ? ` ×${g.count}` : ""}</span>
                           <span className={[styles.tableGuestStatus, g.arrived ? styles.tableGuestStatusDone : ""].filter(Boolean).join(" ")}>
-                            {g.arrived ? "✓ הגיע/ה" : "טרם הגיע"}
+                            {g.arrived ? <><Icon name="check" size={12} /> הגיע/ה</> : "טרם הגיע"}
                           </span>
                         </div>
                       ))
@@ -450,7 +451,7 @@ export default function CheckInScreen({ events, patchEventById, loading = false 
                     >
                       <span className={styles.tableGuestName}>{g.name}{g.count > 1 ? ` ×${g.count}` : ""}</span>
                       <span className={[styles.tableGuestStatus, g.arrived ? styles.tableGuestStatusDone : ""].filter(Boolean).join(" ")}>
-                        {g.arrived ? "✓ הגיע/ה" : "טרם הגיע"}
+                        {g.arrived ? <><Icon name="check" size={12} /> הגיע/ה</> : "טרם הגיע"}
                       </span>
                     </div>
                   ))}

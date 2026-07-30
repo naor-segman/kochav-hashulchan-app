@@ -222,7 +222,7 @@ export default function HostessScreen() {
               autoComplete="off" inputMode="text" type="search" aria-label="חיפוש אורח או שולחן"
             />
             {query.length > 0 && (
-              <button className={styles.clearBtn} onClick={() => { setQuery(""); searchRef.current?.focus(); }} type="button" aria-label="נקו חיפוש">✕</button>
+              <button className={styles.clearBtn} onClick={() => { setQuery(""); searchRef.current?.focus(); }} type="button" aria-label="נקו חיפוש"><Icon name="close" size={15} /></button>
             )}
           </div>
 

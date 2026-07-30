@@ -359,7 +359,13 @@
   .eventGrid { grid-template-columns: 1fr; }
 }
 
+/* `align-self: start` — a grid item stretches to its row's height by default,
+   so an event with nothing in it yet inherited the height of whatever
+   populated card sat beside it: two chips, then roughly 200px of void
+   (.eventActions is margin-top:auto and gets pushed to the bottom of that
+   borrowed height), then its buttons. A card is now as tall as what is in it. */
 .eventCard {
+  align-self: start;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -763,9 +769,13 @@
   border-color: var(--border2);
 }
 
+/* 800 (--font-weight-extrabold) is the top of this product's weight scale, and
+   it is what StatPill's number and CostScreen's now use. This tile is
+   deliberately the biggest number in the app — that is the dashboard's job —
+   but it should not also be the only weight nothing else has. */
 .statValue {
   font-size: var(--step-3);
-  font-weight: 900;
+  font-weight: var(--font-weight-extrabold);
   color: var(--text);
   line-height: 1;
   letter-spacing: -0.02em;
@@ -1027,7 +1037,8 @@
 }
 
 .demoChevron {
-  font-size: var(--step--3);
+  display: inline-flex;
+  align-items: center;
   color: var(--muted);
   flex-shrink: 0;
 }

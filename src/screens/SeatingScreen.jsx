@@ -1,5 +1,7 @@
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
+import { flushSync } from "react-dom";
 import { messageSignature } from "../data/company.js";
+import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
 import Icon from "../components/ui/Icon.jsx";
 import { useNavigate } from "react-router-dom";
 import {
@@ -20,9 +22,11 @@ import CapBar from "../components/ui/CapBar.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import TypeTag from "../components/ui/TypeTag.jsx";
 import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
+import { tableLabel } from "../components/seating/tableLabel.js";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
 
@@ -40,7 +44,7 @@ function DraggableGuestRow({ guestId, className, children }) {
       {...attributes}
       {...listeners}
     >
-      <span className={styles.dragHandle} aria-hidden="true">⠿</span>
+      <span className={styles.dragHandle} aria-hidden="true"><Icon name="grip" size={16} /></span>
       {children}
     </div>
   );
@@ -71,11 +75,13 @@ const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const navigate = useNavigate();
+  const { confirm, dialog } = useConfirm();
   const [expandedTable, setExpandedTable]   = useState(null);
   const [expandAll,     setExpandAll]       = useState(false);
   const [activeId, setActiveId]             = useState(null);
   const [seatingHistory, setSeatingHistory] = useState([]);
   const [printMode, setPrintMode]           = useState("full");
+  const [printing,  setPrinting]            = useState(false);
   const [daySearch, setDaySearch]           = useState("");
   const [checkInMode, setCheckInMode]       = useState(false);
   const [checkInSearch, setCheckInSearch]   = useState("");
@@ -142,30 +148,32 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const sideLabel   = s => getSideLabel(ev, s);
   const tableGuests = tid => ev.guests.filter(g => ev.seating[g.id] === tid);
 
-  const whatsappUrl = (phone) => {
-    const digits = phone.replace(/\D/g, "");
-    if (!digits) return null;
-    const intl = digits.startsWith("0") ? "972" + digits.slice(1) : digits;
-    return "https://wa.me/" + intl;
-  };
+  // Was a third, drifted copy of the phone normaliser: it did not strip a "00"
+  // prefix (00972… became wa.me/9720972…, a dead link) and had no minimum
+  // length, so "050" produced wa.me/97250. whatsappLink() in messageSequence.js
+  // is the one that is tested; use it.
+  const whatsappUrl = (phone) => whatsappLink(phone, "");
 
   const buildWhatsAppTableMsg = (g) => {
     const tid   = ev.seating[g.id];
     if (!tid) return null;
     const table = ev.tables.find(t => t.id === tid);
     if (!table) return null;
-    const eventName = ev.name || "האירוע";
     // Personal entry card — the QR on it is what the door scanner reads, so the
     // message is also what makes check-in scanning usable at all.
     const cardUrl = buildGuestCardUrl(window.location.origin, ev.tokens?.invite, g, table);
     const cardLine = cardUrl
       ? `\n\nכרטיס הכניסה האישי שלכם (הציגו בכניסה):\n${cardUrl}`
       : "";
-    const msg = `שלום ${g.name} 👋\n\nב${eventName} תשבו ב*שולחן ${table.name}*.${cardLine}\n\nנשמח לראותכם! 🎉` + messageSignature();
-    const digits = (g.phone || "").replace(/\D/g, "");
-    if (!digits) return null;
-    const intl = digits.startsWith("0") ? "972" + digits.slice(1) : digits;
-    return "https://wa.me/" + intl + "?text=" + encodeURIComponent(msg);
+    // "ב{{אירוע}}" through renderTemplate: it falls back to "האירוע" for an
+    // unnamed event (the raw `ב${ev.name || "האירוע"}` produced "בהאירוע"
+    // because normalizeEvent defaults name to "") and it absorbs the definite
+    // article, so "החתונה של דנה" reads "בחתונה של דנה" and not "בהחתונה".
+    const msg = renderTemplate(
+      `שלום {{שם}} 👋\n\nב{{אירוע}} תשבו ב*${tableLabel(table)}*.${cardLine}\n\nנשמח לראותכם! 🎉`,
+      { event: ev, guest: g, table }
+    ) + messageSignature();
+    return whatsappLink(g.phone, msg);
   };
 
   const whatsappBulkCount = activeGuests.filter(g =>
@@ -193,13 +201,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     setSeatingHistory(h => [...h.slice(-(MAX_UNDO - 1)), ev.seating]);
   };
 
-  const runAuto = () => {
+  const runAuto = async () => {
     if (noTables) { showToast("יש להגדיר שולחנות תחילה", "err"); return; }
     if (noGuests) { showToast("יש להוסיף אורחים תחילה", "err"); return; }
-    if (nAssigned > 0 && !confirm(
+    if (nAssigned > 0 && !await confirm(
       "לחשב מחדש את ההושבה?\n\n" +
       nAssigned + " שיבוצים קיימים יוחלפו (אורחים נעולים ישמרו במקומם).\n" +
-      "ניתן לבטל עד 20 פעולות אחרי ההרצה."
+      "ניתן לבטל עד 20 פעולות אחרי ההרצה.",
+      { danger: true, confirmLabel: "חשבו מחדש" }
     )) return;
     pushHistory();
     // A locked TABLE has to pin its occupants too, otherwise "recompute" quietly
@@ -231,11 +240,12 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     setRunKey(k => k + 1);
   };
 
-  const clearAll = () => {
-    if (!confirm(
+  const clearAll = async () => {
+    if (!await confirm(
       "לנקות את כל ההושבה?\n\n" +
       "כל " + nAssigned + " הרשומות השובצות יחזרו לרשימת הממתינים.\n" +
-      "ניתן לשחזר בלחיצה על \"↩ בטלו\" — אך לא לאחר יציאה מהמסך."
+      "ניתן לשחזר בלחיצה על \"בטלו\" — אך לא לאחר יציאה מהמסך.",
+      { danger: true, confirmLabel: "נקו הכל" }
     )) return;
     pushHistory();
     patchEvent(e => Object.assign({}, e, { seating: {} }));
@@ -298,7 +308,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     });
   };
 
-  const handleApplySuggestion = (suggestion) => {
+  const handleApplySuggestion = async (suggestion) => {
     const { applyAction } = suggestion;
     if (!applyAction) return;
 
@@ -313,7 +323,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       confirmMsg = `לשבץ אוטומטית את ${applyAction.count} הרשומות שנותרו? השיבוצים הקיימים יישמרו במקומם.`;
     }
 
-    if (!confirm(confirmMsg)) return;
+    if (!await confirm(confirmMsg)) return;
 
     pushHistory();
 
@@ -356,10 +366,31 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const handlePrint = (mode) => {
     setPrintMode(mode);
+    setPrinting(true);
     // 200ms gives React time to re-render the chosen print layout before the
     // print dialog snapshots the page (60ms was too tight on slow devices).
-    setTimeout(() => { window.print(); setPrintMode("full"); }, 200);
+    setTimeout(() => { window.print(); setPrintMode("full"); setPrinting(false); }, 200);
   };
+
+  // The three print layouts were mounted at ALL times behind display:none —
+  // 2,657 of the page's 4,134 DOM nodes at 400 guests — and were therefore
+  // rebuilt and reconciled on every render of a screen whose entire job is
+  // changing state. Mount them only while printing.
+  //
+  // beforeprint covers the browser's own Ctrl+P, which never goes through
+  // handlePrint(); flushSync is required there because window.print() blocks
+  // synchronously right after the event, so a normal setState would commit too
+  // late and print an empty page.
+  useEffect(() => {
+    const before = () => flushSync(() => setPrinting(true));
+    const after  = () => setPrinting(false);
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint",  after);
+    return () => {
+      window.removeEventListener("beforeprint", before);
+      window.removeEventListener("afterprint",  after);
+    };
+  }, []);
 
   const clearTable = (tableId) => {
     const guests = tableGuests(tableId);
@@ -404,6 +435,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   return (
     <>
+      {dialog}
       <DndContext
         sensors={sensors}
         collisionDetection={collisionStrategy}
@@ -430,9 +462,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             }
           />
 
-          <div className={styles.stepGuide}>
-            <span className={styles.stepBadge}>שלב 5 מתוך 5 — סידור הושבה</span>
-            <span className={styles.stepText}>הריצו את הסידור האוטומטי ואז גררו אורחים בין שולחנות לפי הצורך. כל שינוי נשמר מיידית.</span>
+          <div className={base.stepGuide}>
+            <span className={base.stepBadge}>שלב 5 מתוך 5 — סידור הושבה</span>
+            <span className={base.stepText}>הריצו את הסידור האוטומטי ואז גררו אורחים בין שולחנות לפי הצורך. כל שינוי נשמר מיידית.</span>
           </div>
 
           {noTables && (
@@ -481,7 +513,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   disabled={seatingHistory.length === 0}
                   title={seatingHistory.length > 0 ? "בטלו שינוי הושבה אחרון (" + seatingHistory.length + " זמינים)" : "אין שינויים לביטול"}
                 >
-                  ↩ בטלו
+                  <Icon name="undo" size={14} /> בטלו
                 </button>
               </div>
 
@@ -540,7 +572,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
           {allSeated && noProblems && (
             <div className={styles.successCard}>
-              <div className={styles.successIconWrap}>✓</div>
+              <div className={styles.successIconWrap}><Icon name="check" size={22} /></div>
               <div className={styles.successText}>
                 <div className={styles.successTitle}>הושבה מלאה וללא הפרות</div>
                 <div className={styles.successSub}>
@@ -576,7 +608,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       <a key={g.id} href={url} target="_blank" rel="noreferrer" className={styles.waNotifyItem}>
                         <SideDot side={g.side} />
                         <span className={styles.waNotifyName}>{g.name}</span>
-                        <span className={styles.waNotifyTable}>שולחן {table?.name}</span>
+                        <span className={styles.waNotifyTable}>{tableLabel(table)}</span>
                         <span className={styles.waNotifyArrow}><Icon name="send" size={16} /></span>
                       </a>
                     ) : null;
@@ -649,7 +681,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                         <SideDot side={g.side} />
                         <span className={styles.daySearchName}>{g.name}</span>
                         {table
-                          ? <span className={styles.daySearchTable}>שולחן {table.name}</span>
+                          ? <span className={styles.daySearchTable}>{tableLabel(table)}</span>
                           : <span className={styles.daySearchUnseated}>לא שובץ</span>
                         }
                         {g.phone && whatsappUrl(g.phone) && (
@@ -668,7 +700,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                           onClick={() => toggleGuestArrived(g.id)}
                           title={g.arrived ? "בטלו צ׳ק אין" : "סמנו כהגיע/ה"}
                         >
-                          {g.arrived ? "✓ הגיע/ה" : "צ׳ק אין"}
+                          {g.arrived ? <><Icon name="check" size={13} /> הגיע/ה</> : "צ׳ק אין"}
                         </button>
                       </div>
                     );
@@ -722,7 +754,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                           <SideDot side={g.side} />
                           <span className={styles.checkInName}>{g.name}</span>
                           {table
-                            ? <span className={styles.checkInTable}>שולחן {table.name}</span>
+                            ? <span className={styles.checkInTable}>{tableLabel(table)}</span>
                             : <span className={styles.checkInUnseated}>לא שובץ</span>
                           }
                           {g.count > 1 && <span className={styles.checkInCount}>×{g.count}</span>}
@@ -731,7 +763,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                           className={[styles.checkInBtn, g.arrived ? styles.checkInBtnDone : ""].filter(Boolean).join(" ")}
                           onClick={() => toggleGuestArrived(g.id)}
                         >
-                          {g.arrived ? "✓ הגיע/ה" : "צ׳ק אין"}
+                          {g.arrived ? <><Icon name="check" size={13} /> הגיע/ה</> : "צ׳ק אין"}
                         </button>
                         {g.arrived && (
                           <input
@@ -782,10 +814,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       </p>
                       <div className={base.gList}>
                         {[...unassigned]
+                          // normalizeEvent does not normalise guest rows, so a
+                          // legacy or hand-edited guest can arrive with no `side`
+                          // and no `name`. localeCompare on undefined threw and
+                          // took the whole seating screen down with it.
                           .sort((a, b) =>
-                            a.side !== b.side
-                              ? a.side.localeCompare(b.side)
-                              : a.name.localeCompare(b.name)
+                            (a.side || "") !== (b.side || "")
+                              ? (a.side || "").localeCompare(b.side || "")
+                              : (a.name || "").localeCompare(b.name || "", "he")
                           )
                           .map((g, i, arr) => {
                             const showSep   = i === 0 || arr[i - 1].side !== g.side;
@@ -808,8 +844,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                     </span>
                                   </div>
                                   <select
-                                    className={base.select}
-                                    style={{ minWidth: 160, fontSize: 13 }}
+                                    className={[base.select, base.selectInline].join(" ")}
                                     value=""
                                     aria-label={`שבצו את ${g.name} לשולחן`}
                                     onPointerDown={e => e.stopPropagation()}
@@ -946,7 +981,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                 {t.capacity - usedSeats} נותרו
                               </span>
                             )}
-                            <span className={styles.tCardChevron}>{isExpanded ? "▲" : "▼"}</span>
+                            <span className={styles.tCardChevron}><Icon name={isExpanded ? "chevronUp" : "chevronDown"} size={13} /></span>
                           </div>
                         </button>
 
@@ -959,7 +994,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   onPointerDown={e => e.stopPropagation()}
                                   onClick={e => { e.stopPropagation(); clearTable(t.id); }}
                                 >
-                                  ✕ פנו שולחן
+                                  <Icon name="close" size={13} /> פנו שולחן
                                 </button>
                                 <button
                                   className={[styles.tTableLockBtn, isLocked ? styles.tTableLockBtnActive : ""].filter(Boolean).join(" ")}
@@ -1016,10 +1051,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   onPointerDown={e => e.stopPropagation()}
                                   onClick={e => { e.stopPropagation(); assignGuest(g.id, null); }}
                                   title="החזירו לרשימת הממתינים"
-                                >↩</button>
+                                ><Icon name="undo" size={14} /></button>
                                 <select
-                                  className={base.select}
-                                  style={{ minWidth: 140, fontSize: 13 }}
+                                  className={[base.select, base.selectInline].join(" ")}
                                   value={t.id}
                                   onPointerDown={e => e.stopPropagation()}
                                   onChange={e => {
@@ -1029,7 +1063,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                   }}
                                 >
                                   <option value={t.id}>{t.name} (כאן)</option>
-                                  <option value="__remove__">↩ הסירו מהשולחן</option>
+                                  <option value="__remove__">הסירו מהשולחן</option>
                                   <optgroup label="העבירו לשולחן אחר">
                                     {ev.tables.filter(ot => ot.id !== t.id).map(ot => {
                                       const seats = tableSeats(ot.id);
@@ -1052,8 +1086,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                               >
                                 <span className={base.gMeta} style={{ flex: 1, color: "var(--text2)" }}>הוסיפו אורח לשולחן זה:</span>
                                 <select
-                                  className={base.select}
-                                  style={{ minWidth: 180, fontSize: 13 }}
+                                  className={[base.select, base.selectInline].join(" ")}
                                   value=""
                                   onChange={e => { if (e.target.value) assignGuest(e.target.value, t.id); }}
                                 >
@@ -1097,6 +1130,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           data-print-mode="full"    → shows detailed 2-col grid
           data-print-mode="compact" → shows 3-col name-only grid for venue staff
       ─────────────────────────────────────────────────────────────────── */}
+      {printing && (
       <div className={styles.printView} data-print-mode={printMode}>
 
         {/* ── Header (both modes) ── */}
@@ -1240,6 +1274,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           הופק באמצעות כוכב השולחן · {new Date().toLocaleDateString("he-IL")}
         </div>
       </div>
+      )}
     </>
   );
 }

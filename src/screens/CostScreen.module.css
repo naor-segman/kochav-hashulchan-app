@@ -6,6 +6,11 @@
   margin-bottom: 16px;
 }
 
+/* Eight identical white tiles and no primary: this screen asked the host a
+   question ("am I over?") and then answered it in the same weight as seven
+   other numbers. `.statPrimary` is StatPill's `primary` treatment — the blush
+   ground, near-black at 12.3:1 — so the leading number reads the same here as
+   it does in every page header. One per screen. */
 .stat {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -16,9 +21,21 @@
   gap: 4px;
 }
 
+.statPrimary {
+  background: var(--blush);
+  border-color: var(--blush-line);
+}
+
+.statPrimary .statLabel {
+  color: var(--text2);
+}
+
+/* Was 1.3rem = 20.8px — the ONLY off-ladder size in the whole app-screen set
+   (the ladder is 11/12/13/15/17/22/28). --step-2 is 22px, which is also what
+   StatPill's number uses, so the two components finally agree. */
 .statNum {
-  font-size: 1.3rem;
-  font-weight: 800;
+  font-size: var(--step-2);
+  font-weight: var(--font-weight-extrabold);
   color: var(--text);
   letter-spacing: -0.02em;
   line-height: 1.1;

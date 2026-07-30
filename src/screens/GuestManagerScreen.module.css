@@ -5,40 +5,6 @@
    the row is the RSVP chip and the seated/unseated chip — and nothing else
    competing with them. */
 
-/* Step guidance banner */
-/* Was a full-width accent-tinted panel sitting directly above the list. The
-   panel is now a plain hairline card; only the step number keeps a warm
-   ground, and it uses --blush (near-black at 12.3:1) rather than the brand
-   accent, so the accent stays spendable elsewhere. */
-.stepGuide {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-
-.stepBadge {
-  font-size: var(--step--1);
-  font-weight: 800;
-  color: var(--text);
-  background: var(--blush);
-  border-radius: var(--radius-pill);
-  padding: 2px 10px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.stepText {
-  font-size: var(--step--1);
-  color: var(--text2);
-  line-height: 1.5;
-}
-
 /* Plan gate upgrade tip */
 /* An accent-tinted panel wearing a warning-coloured border read as neither.
    It is a limit warning, so it gets the warning ground outright. */

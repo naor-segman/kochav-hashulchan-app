@@ -9,6 +9,7 @@ import Icon from "../components/ui/Icon.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import base from "../styles/screenBase.module.css";
 import Loading from "../components/feedback/Loading.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import styles from "./DashboardScreen.module.css";
 
 const WORKFLOW_STEPS = ["פרטי האירוע", "שולחנות", "אורחים", "אילוצים", "הושבה"];
@@ -34,6 +35,7 @@ const DEMO_STEPS = [
 ];
 
 export default function DashboardScreen({ events, plan = "free", onCreateEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
+  const { confirm, dialog } = useConfirm();
   const [showTemplates, setShowTemplates] = useState(false);
   const [showDemo,      setShowDemo]      = useState(false);
   const [doneSteps,     setDoneSteps]     = useState(() => new Set());
@@ -62,6 +64,19 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
       });
     return ranked[0].id;
   }, [events]);
+
+  // The featured card is `grid-column: 1 / -1`, so WHERE IT IS IN THE SOURCE is
+  // where it lands on the page. `featuredId` picked the nearest upcoming event
+  // correctly and then the list was mapped in storage order, so the "3 ימים
+  // לאירוע" hero card rendered third and last — underneath an empty
+  // placeholder card. It is the one thing on this page with any size to it; it
+  // goes first.
+  const orderedEvents = useMemo(() => {
+    if (!featuredId) return events;
+    const i = events.findIndex(e => e.id === featuredId);
+    if (i <= 0) return events;
+    return [events[i], ...events.slice(0, i), ...events.slice(i + 1)];
+  }, [events, featuredId]);
   const { mainTemplates, emptyTemplate, loading: templateLoading } = useTemplates();
   const eventGate     = canCreateEvent(plan, events.length);
 
@@ -72,6 +87,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
 
   return (
     <div className={base.pageWide}>
+      {dialog}
 
       {/* ── Compact header: shown when events exist ── */}
       {hasEvents && (
@@ -190,7 +206,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
                 m.severity === "ok" ? styles.summaryPillOk : styles.summaryPillWarn,
               ].join(" ")}
             >
-              {m.severity === "ok" ? "✓" : "●"} {m.text}
+              {m.severity === "ok" ? <Icon name="check" size={12} /> : <Icon name="dot" size={9} />} {m.text}
             </span>
           ))}
         </div>
@@ -201,7 +217,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
         <section>
           <h2 className={styles.sectionHead}>האירועים שלי ({events.length})</h2>
           <div className={styles.eventGrid}>
-            {events.map(ev => {
+            {orderedEvents.map(ev => {
               const h    = eventHealth(ev);
               const cap  = ev.tables.reduce((s, t) => s + t.capacity, 0);
               const feat = ev.id === featuredId && events.length > 0;
@@ -263,20 +279,21 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
                       <button
                         className={styles.deleteBtn}
                         title="מחקו אירוע"
-                        onClick={() => {
+                        onClick={async () => {
                           const details = [];
                           if (ev.tables.length > 0) details.push(ev.tables.length + " שולחנות");
                           if (ev.guests.length > 0) details.push(ev.guests.length + " רשומות");
                           const dataNote = details.length > 0
                             ? "\n\nיימחקו: " + details.join(" ו-") + " וכל ההושבה."
                             : "";
-                          if (!confirm(
+                          if (!await confirm(
                             "למחוק לצמיתות את \"" + (ev.name || "אירוע ללא שם") + "\"?" +
-                            dataNote + "\n\nפעולה זו אינה ניתנת לביטול."
+                            dataNote + "\n\nפעולה זו אינה ניתנת לביטול.",
+                            { danger: true, confirmLabel: "מחקו לצמיתות" }
                           )) return;
                           onDeleteEvent(ev.id);
                         }}
-                      >✕</button>
+                      ><Icon name="close" size={14} /></button>
                     </div>
                   </div>
 
@@ -364,7 +381,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
 
                   <div className={styles.eventActions}>
                     <button className={styles.eventOpenBtn} onClick={() => onOpenEvent(ev.id)}>
-                      פתחו לניהול ←
+                      פתחו לניהול <Icon name="arrowLeft" size={14} />
                     </button>
                     <button className={styles.duplicateBtn} onClick={() => onDuplicateEvent(ev.id)}>
                       שכפלו אירוע
@@ -391,7 +408,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
               </span>
             )}
           </span>
-          <span className={styles.demoChevron}>{showDemo ? "▲" : "▼"}</span>
+          <span className={styles.demoChevron}><Icon name={showDemo ? "chevronUp" : "chevronDown"} size={14} /></span>
         </button>
 
         {showDemo && (
@@ -410,7 +427,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
                       onClick={() => toggleStep(i)}
                     >
                       <span className={[styles.demoCheck, done ? styles.demoCheckDone : ""].filter(Boolean).join(" ")}>
-                        {done ? "✓" : (i + 1)}
+                        {done ? <Icon name="check" size={11} /> : (i + 1)}
                       </span>
                       <span className={styles.demoStepText}>
                         <span className={styles.demoStepLabel}>{step.label}</span>
@@ -423,7 +440,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
             </ol>
             {doneSteps.size === DEMO_STEPS.length && (
               <p className={styles.demoComplete}>
-                ✓ כל השלבים הושלמו — המערכת עובדת מצוין!
+                <Icon name="check" size={14} /> כל השלבים הושלמו — המערכת עובדת מצוין!
               </p>
             )}
           </div>
@@ -435,7 +452,7 @@ export default function DashboardScreen({ events, plan = "free", onCreateEvent, 
           <div className={styles.tmplPanel} onClick={e => e.stopPropagation()}>
             <div className={styles.tmplPanelHead}>
               <span className={styles.tmplPanelTitle}>באיזה אירוע מדובר?</span>
-              <button className={styles.tmplCloseBtn} onClick={() => setShowTemplates(false)}>✕</button>
+              <button className={styles.tmplCloseBtn} onClick={() => setShowTemplates(false)} aria-label="סגירה"><Icon name="close" size={15} /></button>
             </div>
 
             {templateLoading

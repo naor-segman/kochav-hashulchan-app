@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { computeViolations } from "../../logic/seating.js";
 import { useAuth } from "../../hooks/useAuth.js";
@@ -56,6 +56,54 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
   const showAutoSave = inEvent && screen !== "setup";
 
+  // ── The tool rail ──────────────────────────────────────────────────────
+  // It never scrolled: scrollLeft was 0 on every screen, so at 1024 the active
+  // tab sat at left −323 / right −232 (entirely off-screen) and at 390 it was
+  // ~900px past the edge. Fourteen tools, and a phone user always saw the same
+  // first four whichever one they were actually on.
+  const subnavRef = useRef(null);
+
+  // Written straight to the DOM rather than through state: this is a
+  // scroll-position readout, not application state, and it fires on every
+  // scroll frame. `none` when the rail fits, so a rail with nothing hidden is
+  // never faded.
+  const syncNavFade = useCallback(() => {
+    const sc = subnavRef.current;
+    if (!sc) return;
+    const max = sc.scrollWidth - sc.clientWidth;
+    if (max <= 1) { sc.dataset.fade = "none"; return; }
+    // Chrome reports RTL scrollLeft as 0 → −max; other engines as 0 → max.
+    const off = Math.abs(sc.scrollLeft);
+    sc.dataset.fade = off <= 1 ? "end" : off >= max - 1 ? "start" : "both";
+  }, []);
+
+  useLayoutEffect(() => {
+    const sc = subnavRef.current;
+    const btn = sc?.querySelector(`[data-nav="${screen}"]`);
+    if (!sc || !btn) return;
+    const scBox = sc.getBoundingClientRect();
+    const bBox  = btn.getBoundingClientRect();
+    // Delta from measured boxes, so this is correct in RTL without caring how
+    // the engine signs scrollLeft.
+    const delta = (bBox.left - scBox.left) - (sc.clientWidth - bBox.width) / 2;
+    // reset.css sets `html { scroll-behavior: smooth }`. That property is not
+    // inherited, but state it anyway: putting the active tool on screen is not
+    // a movement the host asked for, and it must not animate.
+    sc.scrollBy({ left: delta, behavior: "auto" });
+    syncNavFade();
+  }, [screen, inEvent, syncNavFade]);
+
+  useEffect(() => {
+    const sc = subnavRef.current;
+    if (!sc) return;
+    sc.addEventListener("scroll", syncNavFade, { passive: true });
+    window.addEventListener("resize", syncNavFade);
+    return () => {
+      sc.removeEventListener("scroll", syncNavFade);
+      window.removeEventListener("resize", syncNavFade);
+    };
+  }, [inEvent, syncNavFade]);
+
   return (
     <div className={styles.root}>
       <header className={styles.topbar}>
@@ -67,7 +115,9 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
         {inEvent && (
           <div className={styles.breadcrumb}>
-            <button className={styles.bcBack} onClick={() => go("dashboard")}>← כל האירועים</button>
+            <button className={styles.bcBack} onClick={() => go("dashboard")}>
+              <Icon name="arrowRight" size={14} /> כל האירועים
+            </button>
             <span className={styles.bcSep}>/</span>
             <span className={styles.bcCurrent}>
               {activeEvent.name || "אירוע חדש"}
@@ -83,8 +133,8 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
           ].filter(Boolean).join(" ")}>
             {syncStatus === SYNC_STATUS.SYNCING ? "שומר..." :
              syncStatus === SYNC_STATUS.ERROR   ? "שגיאה בשמירה" :
-             syncStatus === SYNC_STATUS.SYNCED  ? "✓ נשמר בענן" :
-             "✓ נשמר"}
+             syncStatus === SYNC_STATUS.SYNCED  ? <><Icon name="check" size={12} /> נשמר בענן</> :
+             <><Icon name="check" size={12} /> נשמר</>}
           </span>
         )}
 
@@ -104,7 +154,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
       </header>
 
       {inEvent && (
-        <nav className={styles.subnav}>
+        <nav className={styles.subnav} ref={subnavRef} data-fade="none">
           <div className={styles.subnavInner}>
             {NAV.map((n, i) => {
               const isActive = screen === n.id;
@@ -114,6 +164,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
               return (
                 <button
                   key={n.id}
+                  data-nav={n.id}
                   data-firsttool={firstTool ? "1" : undefined}
                   className={[styles.subnavBtn, isActive && styles.subnavActive].filter(Boolean).join(" ")}
                   onClick={() => {
@@ -133,14 +184,14 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
                       done && !isActive && styles.stepDotDone,
                       isActive && styles.stepDotActive,
                     ].filter(Boolean).join(" ")}>
-                      {done && !isActive ? "✓" : n.num}
+                      {done && !isActive ? <Icon name="check" size={11} /> : n.num}
                     </span>
                   )}
                   <span className={styles.subnavLabel}>{n.label}</span>
                   {n.id === "tables"      && activeEvent.tables.length > 0      && <NavBadge n={activeEvent.tables.length} />}
                   {n.id === "guests"      && activeEvent.guests.length > 0      && <NavBadge n={activeEvent.guests.length} />}
                   {n.id === "constraints" && activeEvent.constraints.length > 0 && <NavBadge n={activeEvent.constraints.length} />}
-                  {showViol && <NavBadge n={violationCount} color="var(--red)" />}
+                  {showViol && <NavBadge n={violationCount} tone="danger" />}
                 </button>
               );
             })}

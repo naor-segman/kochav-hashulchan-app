@@ -171,7 +171,7 @@ export default function AccountScreen({ eventCount = 0 }) {
           <section className={styles.section}>
             <h2 className={styles.sectionLabel}>שינוי סיסמה</h2>
             {pwDone ? (
-              <p className={styles.successMsg}>✓ הסיסמה שונתה בהצלחה.</p>
+              <p className={styles.successMsg}><Icon name="check" size={14} /> הסיסמה שונתה בהצלחה.</p>
             ) : (
               <form onSubmit={handlePasswordChange} className={styles.pwForm} noValidate>
                 <div className={styles.pwFieldWrap}>
@@ -333,7 +333,7 @@ export default function AccountScreen({ eventCount = 0 }) {
         {/* ── Checkout result banners ── */}
         {checkoutResult === "success" && (
           <div className={styles.checkoutSuccessBanner}>
-            ✓ ההרשמה לתוכנית הצליחה! ייתכן שיידרשו כמה שניות לעדכון התוכנית.
+            <Icon name="check" size={14} /> ההרשמה לתוכנית הצליחה! ייתכן שיידרשו כמה שניות לעדכון התוכנית.
           </div>
         )}
         {checkoutResult === "cancelled" && (
@@ -424,7 +424,7 @@ export default function AccountScreen({ eventCount = 0 }) {
                           ].filter(Boolean).join(" ")}
                         >
                           <span className={styles.planCardMark}>
-                            {f.included ? "✓" : "✗"}
+                            {f.included ? <Icon name="check" size={13} /> : <Icon name="close" size={13} />}
                           </span>
                           <span>{f.label}</span>
                         </li>
@@ -450,7 +450,7 @@ export default function AccountScreen({ eventCount = 0 }) {
                         }
                       >
                         {isCurrent
-                          ? "תוכנית נוכחית ✓"
+                          ? "תוכנית נוכחית"
                           : isThisLoading
                           ? "מעבד…"
                           : !isStripeConfigured && !isEnterprise
@@ -513,7 +513,7 @@ export default function AccountScreen({ eventCount = 0 }) {
 
         <p className={styles.versionLabel}>גרסה 0.1 · בטא מוקדמת</p>
 
-        <Link to="/" className={styles.backLink}>← חזרה לאפליקציה</Link>
+        <Link to="/" className={styles.backLink}><Icon name="arrowRight" size={14} /> חזרה לאפליקציה</Link>
 
       </div>
     </div>
