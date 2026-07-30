@@ -9,6 +9,7 @@ import AdminTemplatesScreen      from "./screens/AdminTemplatesScreen.jsx";
 import AdminSettingsScreen       from "./screens/AdminSettingsScreen.jsx";
 import AdminSubscriptionsScreen  from "./screens/AdminSubscriptionsScreen.jsx";
 import AdminActivityScreen       from "./screens/AdminActivityScreen.jsx";
+import AdminErrorsScreen         from "./screens/AdminErrorsScreen.jsx";
 
 // ── AdminApp ──────────────────────────────────────────────────────────────────
 //
@@ -24,6 +25,7 @@ import AdminActivityScreen       from "./screens/AdminActivityScreen.jsx";
 //   /admin/templates          — protected
 //   /admin/subscriptions      — protected
 //   /admin/activity           — protected
+//   /admin/errors             — protected
 //   /admin/settings           — protected
 //   /admin/*                  — catch-all redirects to dashboard
 // ─────────────────────────────────────────────────────────────────────────────
@@ -88,6 +90,14 @@ export default function AdminApp() {
         element={
           <AdminGuard>
             <AdminActivityScreen />
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="errors"
+        element={
+          <AdminGuard>
+            <AdminErrorsScreen />
           </AdminGuard>
         }
       />

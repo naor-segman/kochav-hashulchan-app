@@ -7,6 +7,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import QrCode from "../components/ui/QrCode.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
+import styles from "./CollabReviewScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 
 const norm = (s) => (s || "").toString().trim();
@@ -15,7 +16,7 @@ const complete = (r) => !!(norm(r.name) && norm(r.phone) && r.side && norm(r.gue
 // The shared collaborative table hub. Family members fill the live table via the
 // link; complete rows sync into the guest list automatically (useCollabSync), so
 // there is no manual import here — just share, watch, and export.
-export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
+export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [rows, setRows] = useState([]);
   const [loadState, setLoadState] = useState("loading"); // loading | ready | offline
 
@@ -40,7 +41,8 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
     return unsub;
   }, [ev.cloudId]);
 
-  const collabLink = ev.tokens?.collab ? window.location.origin + "/collab/" + ev.tokens.collab : null;
+  const collabLink   = ev.tokens?.collab ? window.location.origin + "/collab/" + ev.tokens.collab : null;
+  const collabActive = ev.collabActive !== false;
   const sides = getSideLabels(ev);
   const completeCount = rows.filter(complete).length;
 
@@ -68,6 +70,38 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
 
       {collabLink ? (
         <div className={base.card}>
+          {/* The link is a full-control capability — whoever holds it can read
+              every phone number, edit, delete and export. It is minted once and
+              never changes, so a forward in a family group is permanent. The
+              switch is how it gets taken back: same link, on or off. Enforced
+              in the token RPCs, not here — a toggle that only hides a button
+              would be decoration. */}
+          <div className={styles.linkSwitch}>
+            <div className={styles.linkSwitchText}>
+              <span className={styles.linkSwitchTitle}>
+                {collabActive ? "הקישור פעיל" : "הקישור סגור"}
+              </span>
+              <span className={styles.linkSwitchHint}>
+                {collabActive
+                  ? "כל מי שיש לו את הקישור יכול למלא ולערוך את הטבלה"
+                  : "אותו קישור יפסיק לענות לכולם. אפשר להחזיר אותו בכל רגע."}
+              </span>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={collabActive}
+              aria-label="קישור הטבלה השיתופית פעיל"
+              className={[styles.switch, collabActive ? styles.switchOn : ""].filter(Boolean).join(" ")}
+              onClick={() => {
+                patchEvent({ collabActive: !collabActive });
+                showToast(collabActive ? "הקישור נסגר" : "הקישור פעיל שוב ✓");
+              }}
+            >
+              <span className={styles.switchKnob} />
+            </button>
+          </div>
+
           <p className={base.fieldHint}>הקישור לטבלה השיתופית (שם וטלפון בהקלדה, השאר מרשימה — בלי טעויות):</p>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input className={base.input} readOnly value={collabLink} dir="ltr" aria-label="קישור לטבלה השיתופית" />

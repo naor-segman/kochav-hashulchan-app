@@ -329,7 +329,7 @@ export default function App() {
       <Route path="/login"         element={<LoginScreen />} />
       <Route path="/signup"        element={<SignupScreen />} />
       <Route path="/reset-password" element={<ResetPasswordScreen />} />
-      <Route path="/account"       element={<AccountScreen eventCount={events.length} />} />
+      <Route path="/account"       element={<AccountScreen eventCount={events.length} showToast={showToast} />} />
       <Route path="/auth/callback" element={<AuthCallbackScreen />} />
 
       {/* ── Legal / policy / help pages ── */}

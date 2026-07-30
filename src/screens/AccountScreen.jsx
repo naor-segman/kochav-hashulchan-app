@@ -13,6 +13,8 @@ import styles from "./AccountScreen.module.css";
 import Loading from "../components/feedback/Loading.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
+import { userStorageKey } from "../utils/storage.js";
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -52,7 +54,8 @@ function cardBtnLabel(cardKey, currentPlanKey) {
 
 // ── AccountScreen ─────────────────────────────────────────────────────────────
 
-export default function AccountScreen({ eventCount = 0 }) {
+export default function AccountScreen({ eventCount = 0, showToast }) {
+  const { confirm, dialog } = useConfirm();
   const { user, loading, signOut } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -103,6 +106,35 @@ export default function AccountScreen({ eventCount = 0 }) {
     setSigningOut(true);
     await signOut();
     navigate("/", { replace: true });
+  };
+
+  // Signing out ends the SESSION; it does not remove the copy of the events
+  // that lives in this browser. That copy holds every guest's name and phone
+  // number, it has no expiry, and there was no way to remove it — which matters
+  // on a borrowed laptop or the tablet at the venue. It is NOT a leak between
+  // accounts (each account has its own key); it is residue on a device.
+  //
+  // Cloud-synced events come back on the next login. Anything that was never
+  // synced is gone for good, so the wording says so and the action confirms.
+  const handleClearLocal = async () => {
+    const ok = await confirm(
+      "למחוק את העותק המקומי של האירועים מהדפדפן הזה?",
+      {
+        body: "אירועים שסונכרנו לענן יחזרו בכניסה הבאה. אירוע שלא הספיק להסתנכרן יימחק לצמיתות.",
+        confirmLabel: "מחקו מהמכשיר",
+        danger: true,
+      }
+    );
+    if (!ok) return;
+    try {
+      localStorage.removeItem(userStorageKey(user?.id));
+      localStorage.removeItem(userStorageKey(null));
+      showToast?.("הנתונים המקומיים נמחקו מהמכשיר ✓");
+      // Reload so nothing in memory writes the data straight back.
+      setTimeout(() => window.location.reload(), 400);
+    } catch {
+      showToast?.("לא ניתן היה למחוק — ייתכן שהדפדפן חוסם אחסון מקומי", "err");
+    }
   };
 
   const handlePasswordChange = async (e) => {
@@ -500,7 +532,18 @@ export default function AccountScreen({ eventCount = 0 }) {
           >
             {signingOut ? "מתנתק…" : "התנתקות"}
           </button>
+          <button
+            className={styles.clearLocalBtn}
+            onClick={handleClearLocal}
+            type="button"
+          >
+            מחיקת נתונים מקומיים מהמכשיר
+          </button>
         </div>
+        <p className={styles.clearLocalHint}>
+          העותק של האירועים נשמר גם בדפדפן הזה כדי שהאפליקציה תעבוד גם בלי רשת.
+          במחשב משותף כדאי למחוק אותו כשמסיימים.
+        </p>
 
         <a
           href={`mailto:${import.meta.env.VITE_SUPPORT_EMAIL || "support@kochav-hashulchan.co.il"}?subject=%D7%9E%D7%A9%D7%95%D7%91%20%D7%A2%D7%9C%20%D7%9B%D7%95%D7%9B%D7%91%20%D7%94%D7%A9%D7%95%D7%9C%D7%97%D7%9F&body=%D7%A9%D7%9C%D7%95%D7%9D%2C%0A%0A%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A9%D7%AA%D7%A3%20%D7%9E%D7%A9%D7%95%D7%91%2F%D7%A8%D7%A2%D7%99%D7%95%D7%9F%3A%0A%0A`}
@@ -516,6 +559,7 @@ export default function AccountScreen({ eventCount = 0 }) {
         <Link to="/" className={styles.backLink}><Icon name="arrowRight" size={14} /> חזרה לאפליקציה</Link>
 
       </div>
+      {dialog}
     </div>
   );
 }

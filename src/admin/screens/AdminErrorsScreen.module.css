@@ -1,0 +1,254 @@
+/* Errors — the operator's work queue.
+   The panel is monochrome by contract, so severity is carried by the ladder
+   (unread sits on the surface with a strong start-edge rule; read recedes onto
+   the sunken ground), not by a colour. --adm-danger is spent only on a write
+   that actually failed. */
+
+.page {
+  min-height: 100vh;
+  background: var(--adm-bg-sunken);
+  padding: 24px;
+  font-family: inherit;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto 20px;
+  flex-wrap: wrap;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  color: var(--adm-ink-muted);
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+.back:hover { background: var(--adm-surface); color: var(--adm-ink-dark); }
+
+.title {
+  font-size: var(--step-2);
+  font-weight: 800;
+  color: var(--adm-ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.sub {
+  font-size: var(--step--1);
+  color: var(--adm-ink-muted);
+  margin: 2px 0 0;
+  max-width: 52ch;
+  line-height: 1.5;
+}
+
+.refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: auto;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line-strong);
+  border-radius: var(--radius-md);
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--adm-ink-dark);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.refresh:hover { background: var(--adm-bg-sunken); border-color: var(--adm-ink-quiet); }
+
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto 16px;
+  background: var(--adm-danger-bg);
+  border: 1px solid var(--adm-danger-border-soft);
+  border-inline-start: 4px solid var(--adm-danger-soft);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: var(--step--1);
+  color: var(--adm-danger);
+}
+.error button {
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-md);
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto 12px;
+  flex-wrap: wrap;
+}
+
+.count {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--adm-ink-dark);
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--step--1);
+  color: var(--adm-ink-muted);
+  cursor: pointer;
+  margin-inline-start: auto;
+}
+.filter input { accent-color: var(--cta); width: 15px; height: 15px; cursor: pointer; }
+
+.list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line);
+  border-inline-start: 4px solid var(--adm-ink-dark);
+  border-radius: var(--radius-md);
+  padding: 13px 16px;
+}
+
+/* Read errors recede onto the sunken ground and drop the rule — still legible,
+   no longer asking for attention. */
+.rowSeen {
+  background: var(--adm-bg-sunken);
+  border-inline-start-color: var(--adm-line-strong);
+}
+
+.rowTop {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.msg {
+  font-size: var(--step-0);
+  font-weight: 700;
+  color: var(--adm-ink);
+  word-break: break-word;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.badgeNew {
+  flex-shrink: 0;
+  font-size: var(--step--3);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--adm-ink-dark);
+  color: var(--adm-surface);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+  font-size: var(--step--1);
+  color: var(--adm-ink-muted);
+}
+
+.route {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--step--2);
+  background: var(--adm-bg-sunken);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+}
+.rowSeen .route { background: var(--adm-surface); }
+
+.dot { color: var(--adm-line-strong); }
+
+.rowActions {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.linkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--adm-ink-quiet);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.linkBtn:hover { color: var(--adm-ink-dark); }
+.linkBtn:focus-visible { outline: 2px solid var(--adm-ink-dark); outline-offset: 3px; border-radius: var(--radius-xs); }
+
+.stack {
+  margin: 10px 0 0;
+  padding: 12px;
+  background: var(--adm-bg-sunken);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--radius-md);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--step--2);
+  line-height: 1.55;
+  color: var(--adm-ink-dark);
+  /* A stack trace is the one thing on this page that legitimately runs wide. */
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.empty {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--adm-surface);
+  border: 1px dashed var(--adm-line-strong);
+  border-radius: var(--radius);
+  padding: 46px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.emptyTitle { font-size: var(--step-1); font-weight: 700; color: var(--adm-ink-dark); margin: 0; }
+.emptyHint  { font-size: var(--step--1); color: var(--adm-ink-muted); margin: 0; max-width: 42ch; line-height: 1.6; }
+
+@media (max-width: 600px) {
+  .page { padding: 16px 14px; }
+  .sub  { display: none; }
+}

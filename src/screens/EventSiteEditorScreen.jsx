@@ -32,6 +32,14 @@ async function compressImage(file, maxPx = 1200, quality = 0.72) {
   });
 }
 
+// The event lives in localStorage, which is a per-origin budget of roughly 5MB
+// in Safari — shared by EVERY event the host has. A 400-guest wedding with a
+// full gallery measured 2.52MB on its own, so two of them overflowed the quota
+// and `persist` then failed for the WHOLE `{events}` blob, not just the large
+// one: every event silently reverted to its last good snapshot on reload.
+// Six photos is the cap that keeps a realistic wedding comfortably inside it.
+const GALLERY_MAX = 6;
+
 export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, showToast }) {
   // null = preview closed. Otherwise the device frame width to render in.
   const [previewDevice, setPreviewDevice] = useState(null);
@@ -69,7 +77,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
   };
 
   const onGallery = async (files) => {
-    const imgs = [...files].filter(f => f.type.startsWith("image/")).slice(0, 12);
+    const imgs = [...files].filter(f => f.type.startsWith("image/")).slice(0, GALLERY_MAX);
     if (!imgs.length) { showToast("יש לבחור קובצי תמונה", "err"); return; }
     try {
       const compressed = await Promise.all(imgs.map(f => compressImage(f, 1000, 0.7)));
@@ -80,11 +88,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       let added = 0;
       patchEvent(e => {
         const cur  = e.eventSite?.gallery || [];
-        const room = Math.max(0, 12 - cur.length);
+        const room = Math.max(0, GALLERY_MAX - cur.length);
         added = Math.min(room, compressed.length);
         return { ...e, eventSite: { ...e.eventSite, gallery: [...cur, ...compressed.slice(0, room)] } };
       });
-      if (added === 0)      showToast("הגלריה מלאה (12 תמונות)", "err");
+      if (added === 0)      showToast(`הגלריה מלאה (${GALLERY_MAX} תמונות)`, "err");
       else if (added === 1) showToast("נוספה תמונה אחת ✓");
       else                  showToast(`נוספו ${added} תמונות ✓`);
     } catch { showToast("שגיאה בעיבוד התמונות", "err"); }
@@ -315,7 +323,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <SectionLabel>גלריית תמונות</SectionLabel>
           <Toggle on={site.sections.gallery !== false} onChange={v => setSection("gallery", v)} />
         </div>
-        <p className={base.fieldHint}>עד 12 תמונות. הראשונה תוצג גדולה יותר.</p>
+        <p className={base.fieldHint}>עד {GALLERY_MAX} תמונות. הראשונה תוצג גדולה יותר.</p>
         {(site.gallery || []).length > 0 && (
           <div className={styles.galleryEdit}>
             {(site.gallery || []).map((src, i) => (

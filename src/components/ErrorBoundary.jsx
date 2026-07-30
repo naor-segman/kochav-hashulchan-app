@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { reportError } from "../utils/errorReport.js";
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -15,9 +16,7 @@ export default class ErrorBoundary extends Component {
   // (Sentry is still on the plan), so the minimum honest thing is to put it on
   // the console where a support conversation can reach it.
   componentDidCatch(error, info) {
-    if (typeof console !== "undefined" && console.error) {
-      console.error("[kochav] unhandled render error", error, info?.componentStack);
-    }
+    reportError(error, { kind: "render", extra: info?.componentStack || "" });
   }
 
   render() {

@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { mark: "adminTemplates",     label: "ניהול תבניות",    path: "/admin/templates",     live: true },
   { mark: "adminSubscriptions", label: "מנויים ותשלומים", path: "/admin/subscriptions", live: true },
   { mark: "adminActivity",      label: "יומן פעילות",     path: "/admin/activity",      live: true },
+  { mark: "alert",              label: "שגיאות",          path: "/admin/errors",        live: true },
   { mark: "adminSettings",      label: "הגדרות מערכת",   path: "/admin/settings",      live: true },
 ];
 

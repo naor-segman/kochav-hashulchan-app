@@ -91,7 +91,16 @@ export default function CollabScreen() {
   }, [token, mergePolled]);
 
   if (state === "loading")  return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
-  if (state === "notfound") return <div className={styles.state}><span className={styles.star}><Icon name="alert" size={26} /></span><p>הקישור אינו תקין או שפג תוקפו</p></div>;
+  // The RPCs return nothing both when the token is wrong AND when the host has
+  // switched the link off, and from here the two are indistinguishable — so the
+  // copy has to cover both without guessing which one happened.
+  if (state === "notfound") return (
+    <div className={styles.state}>
+      <span className={styles.star}><Icon name="alert" size={26} /></span>
+      <p>הקישור אינו פעיל</p>
+      <p className={styles.stateHint}>ייתכן שבעלי האירוע סגרו אותו, או שהכתובת שגויה. שווה לבקש מהם קישור מעודכן.</p>
+    </div>
+  );
 
   const sides = getSideLabels(ev);
 

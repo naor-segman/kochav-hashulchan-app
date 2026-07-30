@@ -146,3 +146,13 @@
   .toolbar { flex-direction: column; }
   .btn, .btnGhost { width: 100%; }
 }
+
+/* The second line of the closed/invalid state. The first line says what
+   happened; this one says what to do about it. */
+.stateHint {
+  font-size: var(--step--1);
+  color: var(--text2);
+  max-width: 34ch;
+  line-height: 1.6;
+  margin: 0;
+}
