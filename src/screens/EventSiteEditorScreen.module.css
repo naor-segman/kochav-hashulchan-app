@@ -237,3 +237,32 @@
   border-color: var(--text2);
   color: var(--text);
 }
+
+/* Touch targets — see qa/mobile.mjs. The section switches are 44px wide and
+   26px tall, so a thumb aiming at one had 26px of vertical room.
+
+   NOTE: .toggle already carries `position: relative` for its knob, so only the
+   pseudo-element is added here — re-declaring position would be harmless, but
+   assuming it was absent is exactly how the password-eye button was nearly
+   thrown out of its field in the first touch pass. */
+@media (pointer: coarse) {
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}
+
+/* The switches sit 12px apart, so their centres are 38px apart and the two
+   44px targets trimmed each other to 38px. 18px of gap gives each one its own
+   room. Nothing moves on a mouse. */
+@media (pointer: coarse) {
+  .toggleList {
+    gap: 18px;
+  }
+}

@@ -91,8 +91,21 @@ for (const [route, label] of ROUTES) {
       // which is the technique this codebase uses — measuring the box alone
       // would report a fixed control as still broken.
       if (/^(button|a)$/i.test(el.tagName) && el.offsetParent !== null) {
-        const cx = box.left + box.width / 2;
-        const cy = box.top + box.height / 2;
+        // Bring the control to the middle of the viewport first. elementFromPoint
+        // returns null outside the viewport, so a control sitting 11px from the
+        // bottom edge measured 34px and looked broken — while the page scrolls
+        // and a thumb reaches it perfectly well. The viewport edge is not a
+        // blocker; only another element is. Centring also keeps the probe clear
+        // of the sticky topbar at the other end.
+        // reset.css sets `html { scroll-behavior: smooth }`, so scrollIntoView
+        // ANIMATES and the rect read on the next line still shows the old
+        // position — the scroll silently does nothing here. Forced to auto for
+        // the duration of the probe.
+        document.documentElement.style.scrollBehavior = 'auto';
+        el.scrollIntoView({ block: 'center', inline: 'center' });
+        const b2 = el.getBoundingClientRect();
+        const cx = b2.left + b2.width / 2;
+        const cy = b2.top + b2.height / 2;
         if (cx < 0 || cy < 0 || cx > vw || cy > innerHeight) continue;
         const hits = (y) => {
           const t = document.elementFromPoint(cx, y);

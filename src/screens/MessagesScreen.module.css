@@ -126,3 +126,22 @@
   border-radius: var(--radius);
   padding: 10px 12px;
 }
+
+/* Touch targets — see qa/mobile.mjs. Sending the WhatsApp message is the whole
+   point of this screen and the link was 28px. Only the tappable area grows. */
+@media (pointer: coarse) {
+  .waBtn {
+    position: relative;
+  }
+
+  .waBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

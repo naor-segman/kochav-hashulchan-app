@@ -267,10 +267,23 @@
 }
 
 /* The 44px targets inside this row were being trimmed by the row itself —
-   it is only as tall as a 34px chip. It gets the height on touch. */
+   it is only as tall as a 34px chip. It gets the height on touch.
+
+   The row also WRAPS at 390px, and two wrapped lines of 34px chips 4px apart
+   put their centres 38px apart — so each chip's 44px target ran into the one
+   on the line below and both were trimmed to 37px. A pseudo-element cannot
+   invent room that is not there. 10px of row-gap puts the centres exactly
+   44px apart; nothing moves on a mouse. */
 @media (pointer: coarse) {
   .filters {
     min-height: 44px;
     align-items: center;
+    row-gap: 10px;
+  }
+
+  /* Same collision one level up: the phone link is the last line of .rowMain,
+     and the action buttons wrap onto the line directly beneath it. */
+  .row {
+    row-gap: 20px;
   }
 }

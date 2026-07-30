@@ -1417,4 +1417,20 @@
     min-width: 44px;
     height: 44px;
   }
+
+  /* The one way from the pricing block to the full comparison, at 18px. */
+  .pricingMoreLink {
+    position: relative;
+  }
+
+  .pricingMoreLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
 }
