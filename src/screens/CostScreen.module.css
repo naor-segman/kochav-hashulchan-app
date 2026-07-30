@@ -361,3 +361,32 @@
   .chartName, .bigLabel { font-size: var(--step--2); }
   .chartVal, .bigVal { font-size: var(--step--2); }
 }
+
+/* Touch targets — see qa/mobile.mjs. The delete button in a budget row was
+   21px, with no expanded target at all.
+
+   The row needs the extra 3px of padding as well: at 8px the rows sit 37px
+   apart, and two 44px targets 37px apart trim each other to 37px — a
+   pseudo-element cannot invent room the layout does not have. At 11px the rows
+   are 43px apart and each button owns its own target. Nothing moves on a
+   mouse. */
+@media (pointer: coarse) {
+  .tableRow {
+    padding-block: 11px;
+  }
+
+  .delBtn {
+    position: relative;
+  }
+
+  .delBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

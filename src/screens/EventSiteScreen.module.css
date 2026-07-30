@@ -298,3 +298,37 @@
   }
 
 }
+
+/* Touch targets — see qa/mobile.mjs. This is the page the guests actually
+   open, on a phone, at a wedding. Four links had no expanded target: leaving a
+   wish (18px), the host's contact line (23px), the product credit (18px) and
+   the promo chip (32px). Visual only — nothing about what these do changes. */
+@media (pointer: coarse) {
+  /* At 360px the promo chip wraps and rises to within 35px of the credit line
+     above it, and the two targets trim each other. 20px of separation holds at
+     both widths. */
+  .footPromo {
+    margin-top: 20px;
+  }
+
+  .wishLink,
+  .footContact,
+  .footBrand,
+  .footPromo {
+    position: relative;
+  }
+
+  .wishLink::after,
+  .footContact::after,
+  .footBrand::after,
+  .footPromo::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

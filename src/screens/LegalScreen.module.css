@@ -154,3 +154,26 @@
   }
 
 }
+
+/* Touch targets — see qa/mobile.mjs. Two links on the help screen had none:
+   the support address (20px) and the way back to the dashboard (18px). The
+   mailto has no class of its own — it is a link inside body copy — so the
+   paragraph selects it. */
+@media (pointer: coarse) {
+  .backLink,
+  .text a {
+    position: relative;
+  }
+
+  .backLink::after,
+  .text a::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

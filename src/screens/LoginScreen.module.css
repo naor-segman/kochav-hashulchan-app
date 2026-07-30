@@ -376,6 +376,12 @@
 @media (pointer: coarse) {
   .forgotLink {
     position: relative;
+    /* "שכחתם סיסמה?" and "הרשמה חינמית" sit 20px apart in the card's flex gap,
+       which puts their centres 38px apart — so the two 44px targets overlapped
+       and the upper one was trimmed to 38px. The signup link paints later and
+       wins, meaning a thumb aimed just under "שכחתם סיסמה?" opened signup
+       instead. 6px of separation is the whole fix. */
+    margin-block-end: 6px;
   }
 
   .forgotLink::after {

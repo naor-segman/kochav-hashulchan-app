@@ -102,3 +102,45 @@
     flex-wrap: wrap;
   }
 }
+
+/* Touch targets — see qa/mobile.mjs. The footer was never measured before: the
+   audit skipped anything below the fold, and the entire footer is below the
+   fold on every page. Fourteen navigation links at 20px.
+
+   Padding, not a pseudo-element, for the column links. A 44px pseudo-target on
+   links stacked 30px apart just makes them fight each other — the arithmetic
+   has to work first. 6px of block padding puts the boxes 42px between centres,
+   and it grows the link itself, so there is no dead gap between two live
+   targets. */
+@media (pointer: coarse) {
+  .colLink {
+    padding-block: 6px;
+    position: relative;
+  }
+
+  .colLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .logo {
+    position: relative;
+  }
+
+  .logo::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

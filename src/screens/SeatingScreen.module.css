@@ -1741,3 +1741,38 @@
   flex-shrink: 0;
   margin-top: 1px;
 }
+
+/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
+   through a pseudo-element; the box does not move, so the dense seating chrome
+   keeps its density on a phone. */
+@media (pointer: coarse) {
+  .waNotifyItem {
+    position: relative;
+  }
+
+  .waNotifyItem::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .expandAllBtn {
+    position: relative;
+  }
+
+  .expandAllBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

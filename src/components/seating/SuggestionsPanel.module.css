@@ -310,3 +310,22 @@
   .groupLabel   { font-size: var(--step--3); }
   .scoreChip    { font-size: var(--step--3); }
 }
+
+/* Touch targets — see qa/mobile.mjs. "החילו" is the one button that acts on a
+   suggestion, and it was 27px. Only the tappable area grows. */
+@media (pointer: coarse) {
+  .applyBtn {
+    position: relative;
+  }
+
+  .applyBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}
