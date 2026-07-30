@@ -56,13 +56,23 @@ export default async (request, context) => {
     const title = `${typeSite} ${hosts}`;
     const desc  = [ev.type, ev.venue].filter(Boolean).join(" · ") || "אתם מוזמנים! פרטים ואישור הגעה בקישור.";
 
-    const html = await res.text();
+    // Replacement FUNCTIONS, not strings.
+    //
+    // esc() is correct, but String.prototype.replace expands `$&`, "$`", `$'`
+    // and `$1` inside a STRING replacement — after the escaping. A host whose
+    // event name contained `$'` had the entire remainder of the document
+    // swallowed into <title>, and `` $` `` injected raw page HTML, quotes
+    // included, straight into content="…". The attacker is the host, the
+    // victims are their guests and every WhatsApp link-preview crawler.
+    // A function replacement never expands anything.
+    const t = esc(title);
+    const d = esc(desc);
     const out = html
-      .replace(/<title>[\s\S]*?<\/title>/i, `<title>${esc(title)}</title>`)
-      .replace(/(<meta property="og:title" content=")[^"]*(")/i, `$1${esc(title)}$2`)
-      .replace(/(<meta property="og:description" content=")[^"]*(")/i, `$1${esc(desc)}$2`)
-      .replace(/(<meta name="twitter:title" content=")[^"]*(")/i, `$1${esc(title)}$2`)
-      .replace(/(<meta name="twitter:description" content=")[^"]*(")/i, `$1${esc(desc)}$2`);
+      .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${t}</title>`)
+      .replace(/(<meta property="og:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)
+      .replace(/(<meta property="og:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
+      .replace(/(<meta name="twitter:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)
+      .replace(/(<meta name="twitter:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b);
 
     const headers = new Headers(res.headers);
     headers.delete("content-length");

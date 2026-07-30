@@ -155,7 +155,8 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
           <span className={styles.statNum}>{fmtILS(totalBudget)}</span>
           <span className={styles.statLabel}>תקציב מתוכנן</span>
         </div>
-        <div className={styles.stat}>
+        {/* The one number this screen exists to answer. */}
+        <div className={[styles.stat, styles.statPrimary].join(" ")}>
           <span className={[
             styles.statNum,
             totalActual > totalBudget && totalBudget > 0 ? styles.statOver : "",
@@ -247,7 +248,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
                         d > 0 ? styles.over : d < 0 ? styles.under : styles.exact,
                       ].join(" ")}>
                         {d === 0
-                          ? "✓"
+                          ? <Icon name="check" size={13} />
                           : (d > 0 ? "+" : "−") + "₪" + Math.abs(d).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
                       </span>
                     ) : (
@@ -261,7 +262,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
                       type="button"
                       title="הסירו שורה"
                       aria-label="הסירו"
-                    >✕</button>
+                    ><Icon name="close" size={14} /></button>
                   </div>
                 </div>
               );
@@ -296,7 +297,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
                     totalDiff > 0 ? styles.over : totalDiff < 0 ? styles.under : styles.exact,
                   ].join(" ")}>
                     {totalDiff === 0
-                      ? "✓"
+                      ? <Icon name="check" size={13} />
                       : (totalDiff > 0 ? "+" : "−") + "₪" + Math.abs(totalDiff).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
                   </span>
                 ) : (
@@ -336,7 +337,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
         </div>
 
         <div className={base.formActions}>
-          <span className={styles.savedHint}>✓ נשמר אוטומטית</span>
+          <span className={styles.savedHint}><Icon name="check" size={12} /> נשמר אוטומטית</span>
         </div>
       </div>
 

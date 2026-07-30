@@ -81,7 +81,11 @@ export function buildEventIcs({ name, date, venue, startTime, endTime, url, desc
   // A host who types an end time of 01:00 for a 21:00 wedding means the small
   // hours of the NEXT day, not a negative-length event.
   const explicitEnd = /^\d{1,2}:\d{2}$/.test((endTime || "").trim())
-    ? { day: toTime(endTime) <= start ? addDays(day, 1) : day, time: toTime(endTime) }
+    // `<=` was meant for a wedding that starts at 21:00 and ends at 01:00. But
+    // equality falls through it too, so a host who typed the same time in both
+    // fields — or left the end equal to the start — got DTSTART 21:00 and
+    // DTEND 21:00 the NEXT DAY: a 24-hour block in every guest's calendar.
+    ? { day: toTime(endTime) < start ? addDays(day, 1) : day, time: toTime(endTime) }
     : null;
   const end = explicitEnd || defaultEnd(day, start);
 

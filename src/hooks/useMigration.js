@@ -93,12 +93,13 @@ export function useMigration(events, patchEventById, user) {
 
       for (let i = 0; i < toMigrate.length; i++) {
         const ev      = toMigrate[i];
-        const cloudId = await createCloudEvent(ev, user.id);
-        if (cloudId) {
-          // Store cloudId locally so this event isn't migrated again.
+        const created = await createCloudEvent(ev, user.id);
+        if (created) {
+          // Store cloudId locally so this event isn't migrated again, and the
+          // version so the first post-migration edit has a concurrency base.
           // patchEventById also bumps updatedAt/version — acceptable for a
           // one-time migration operation.
-          patchEventById(ev.id, { cloudId });
+          patchEventById(ev.id, { cloudId: created.cloudId, syncedVersion: created.version });
         }
         setProgress({ done: i + 1, total: toMigrate.length });
       }

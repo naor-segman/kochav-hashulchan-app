@@ -75,7 +75,13 @@ export default function LoginScreen() {
   );
 
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${styles.pageStack}`}>
+      {/* The only way back to the marketing site — the card itself has no nav
+          and no footer, and the wordmark inside it is not a link. */}
+      <div className={styles.homeRow}>
+        <Link to="/" className={styles.homeLink}>→ חזרה לדף הבית</Link>
+      </div>
+
       <div className={styles.card}>
 
         <div className={styles.brand}>

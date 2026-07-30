@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import Icon from "../ui/Icon.jsx";
+import { canUseAI } from "../../utils/featureGates.js";
+import { usePlan } from "../../hooks/usePlan.js";
 import {
   DndContext, DragOverlay,
   useDraggable, useDroppable,
@@ -267,6 +269,7 @@ function VenueMarker({ element, containerRef, onMove, onRemove }) {
 }
 
 export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
+  const { plan } = usePlan();
   const [placingId,  setPlacingId]  = useState(null);
   // Kind of venue fixture waiting to be dropped on the sketch (null = none).
   const [placingKind, setPlacingKind] = useState(null);
@@ -318,6 +321,16 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   const handleDetect = async () => {
     if (!isSupabaseConfigured || !supabase) {
       showToast("זיהוי אוטומטי דורש חיבור לענן (Supabase)", "err");
+      return;
+    }
+    // The one call in the product that spends the project's Anthropic key, and
+    // it had no plan check at all — `canUseAI` existed, was tested, and had
+    // zero call sites, so flipping PLAN_GATES_ENFORCED would have enforced
+    // nothing here. While the switch is off this always allows; it is wiring,
+    // not a decision about what is free.
+    const aiGate = canUseAI(plan);
+    if (!aiGate.allowed) {
+      showToast(aiGate.upgradeNote || "הזיהוי האוטומטי אינו זמין בתוכנית הנוכחית", "warn");
       return;
     }
     const [, base64] = (floorPlan.image || "").split(",");

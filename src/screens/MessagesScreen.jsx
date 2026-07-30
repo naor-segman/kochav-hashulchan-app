@@ -11,6 +11,7 @@ import SectionLabel from "../components/ui/SectionLabel.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import styles from "./MessagesScreen.module.css";
 
 /**
@@ -25,6 +26,7 @@ import styles from "./MessagesScreen.module.css";
  * built, so connecting an API later is a connection rather than a project.
  */
 export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast }) {
+  const { confirm, dialog } = useConfirm();
   const [openStage, setOpenStage] = useState("invitation");
   const [editing, setEditing]     = useState(null);
 
@@ -58,8 +60,8 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
     },
   }));
 
-  const clearStage = (stageKey) => {
-    if (!confirm("לאפס את הסימונים של השלב הזה?")) return;
+  const clearStage = async (stageKey) => {
+    if (!await confirm("לאפס את הסימונים של השלב הזה?", { danger: true, confirmLabel: "אפסו" })) return;
     patchEvent(e => {
       const next = { ...(e.messagesSent || {}) };
       delete next[stageKey];
@@ -97,6 +99,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
 
   return (
     <div className={base.page}>
+      {dialog}
       <PageHeader
         title="הודעות לאורחים"
         mark="messages"
@@ -143,7 +146,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
               <span className={styles.stageCount}>
                 {stage.done}/{stage.withPhone.length}
               </span>
-              <span className={styles.chev} aria-hidden="true">{isOpen ? "▲" : "▼"}</span>
+              <span className={styles.chev} aria-hidden="true"><Icon name={isOpen ? "chevronUp" : "chevronDown"} size={14} /></span>
             </button>
 
             {isOpen && (
@@ -184,7 +187,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                         return (
                           <div key={g.id} className={[styles.guestRow, already ? styles.guestDone : ""].filter(Boolean).join(" ")}>
                             <span className={styles.guestName}>{g.name}</span>
-                            {already && <span className={styles.sentTag}>נשלח ✓</span>}
+                            {already && <span className={styles.sentTag}>נשלח <Icon name="check" size={11} /></span>}
                             {url && (
                               <a
                                 className={styles.waBtn}

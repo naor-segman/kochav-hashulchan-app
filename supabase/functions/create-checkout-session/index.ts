@@ -36,6 +36,30 @@ function json(data: unknown, status = 200) {
   });
 }
 
+
+// A Stripe-hosted checkout or portal page carries the real merchant account's
+// branding, and `returnUrl` decides where the customer lands when it closes.
+// It came straight out of the request body with no allow-list, and the function
+// is callable directly by anyone holding a valid JWT — i.e. any signed-up user
+// — so it minted a genuine, real-branded Stripe page that redirected to an
+// attacker's domain. Only origins this deployment actually serves are allowed.
+//
+// APP_ORIGINS is a comma-separated list set per environment; the request's own
+// Origin header is accepted only if it is in that list.
+function safeReturnUrl(raw: string, req: Request): string | null {
+  const allowed = (Deno.env.get("APP_ORIGINS") ?? "")
+    .split(",").map(s => s.trim()).filter(Boolean);
+  const origin = req.headers.get("Origin");
+  if (origin && allowed.includes(origin)) allowed.push(origin);
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:" && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") return null;
+    return allowed.includes(u.origin) ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   // Respond to CORS preflight
   if (req.method === "OPTIONS") {
@@ -67,6 +91,8 @@ Deno.serve(async (req: Request) => {
 
     // ── Validate plan ─────────────────────────────────────────────────────────
     const { plan, returnUrl } = await req.json() as { plan: string; returnUrl: string };
+    const safeReturn = safeReturnUrl(returnUrl, req);
+    if (!safeReturn) return json({ error: "returnUrl is not an allowed origin" }, 400);
 
     if (!plan || !["pro", "enterprise"].includes(plan)) {
       return json({ error: `Invalid plan: ${plan}` }, 400);
@@ -111,8 +137,8 @@ Deno.serve(async (req: Request) => {
       mode:             "subscription",
       customer:         customerId,
       line_items:       [{ price: priceId, quantity: 1 }],
-      success_url:      `${returnUrl}?checkout=success`,
-      cancel_url:       `${returnUrl}?checkout=cancelled`,
+      success_url:      `${safeReturn}?checkout=success`,
+      cancel_url:       `${safeReturn}?checkout=cancelled`,
       allow_promotion_codes: true,
       locale:           "he",
       metadata:         { user_id: user.id, plan },

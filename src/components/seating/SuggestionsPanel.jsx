@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import styles from "./SuggestionsPanel.module.css";
 import Icon from "../ui/Icon.jsx";
 
@@ -37,9 +37,28 @@ function scoreColorClass(score) {
 export default function SuggestionsPanel({ suggestions = [], qualityScore = null, onApply }) {
   const [open, setOpen] = useState(() => hasCriticalOrWarning(suggestions));
 
+  // Open when a NEW problem appears — not on every render.
+  //
+  // `suggestions` is a useMemo in SeatingScreen keyed on guests/seating, so it
+  // gets a fresh identity on every single seating edit. The effect was written
+  // as "new problems appeared" and behaved as "anything changed": the host
+  // collapsed the assistant to get it out of the way, assigned one guest, and
+  // it popped back open and shoved the table cards down the page. Every edit.
+  //
+  // The signature is the set of problem ids, so re-running the engine and
+  // getting the same problems back does not re-open a panel the host closed —
+  // while a genuinely new problem still does.
+  const problemSig = suggestions
+    .filter(x => x.severity === "critical" || x.severity === "warning")
+    .map(x => x.id)
+    .sort()
+    .join("|");
+  const lastSigRef = useRef(problemSig);
+
   useEffect(() => {
-    if (hasCriticalOrWarning(suggestions)) setOpen(true);
-  }, [suggestions]);
+    if (problemSig && problemSig !== lastSigRef.current) setOpen(true);
+    lastSigRef.current = problemSig;
+  }, [problemSig]);
 
   if (!suggestions) return null;
 
@@ -85,7 +104,7 @@ export default function SuggestionsPanel({ suggestions = [], qualityScore = null
           )}
         </div>
         <span className={styles.toggleChevron} aria-hidden="true">
-          {open ? "▲" : "▼"}
+          <Icon name={open ? "chevronUp" : "chevronDown"} size={16} />
         </span>
       </button>
 

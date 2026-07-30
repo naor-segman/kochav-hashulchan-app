@@ -43,11 +43,13 @@
   border-bottom: 1px solid var(--nav-border);
 }
 
+/* The brand-mark rule: --accent-on-dark on a dark ground. --accent-text is
+   calibrated for LIGHT grounds and measures 2.58:1 on --nav-bg — under even
+   the 3:1 floor a non-text graphic has to clear. This is 9.52:1. */
 .headerMark {
-  color: var(--accent-text);
+  color: var(--accent-on-dark);
   font-size: var(--step-1);
   line-height: 1;
-  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.5));
 }
 
 .headerName {
@@ -206,11 +208,14 @@
    panel, not as an invitation.
    These are three CHOICES, so they are quiet cards that carry their colour in
    the hairline and the label, and commit to the fill on hover — the moment the
-   pointer is already on one. "Yes" is the only one that keeps a little weight,
-   because it is the answer the host is hoping for. */
-.btnYes,
-.btnMaybe,
-.btnNo {
+   pointer is already on one.
+   "Yes" used to keep "a little weight" — a --green-bg fill, a green border AND
+   green text at rest, while the other two were white with grey. That is not a
+   little weight, it is the resting appearance of a SELECTED option: the guest
+   arrived at a form that looked like it had already answered itself. All three
+   now rest at the same rung, and colour means chosen (or hovered), nothing
+   else. */
+.choiceBtn {
   flex: 1;
   min-width: 130px;
   display: flex;
@@ -232,46 +237,45 @@
   line-height: 1.25;
 }
 
-.btnYes {
-  border-color: var(--green-border);
-  background: var(--green-bg);
-  color: var(--green);
-}
-
-.btnYes:hover {
-  background: var(--green);
-  border-color: var(--green);
-  color: var(--on-accent);
-  transform: translateY(-1px);
-}
-
-.btnMaybe {
+/* Rest: identical for all three. Only :hover and the pressed state below carry
+   the semantic colour. */
+.btnYes,
+.btnMaybe,
+.btnNo {
   border-color: var(--border2);
+  background: var(--surface);
   color: var(--text2);
 }
 
-.btnMaybe:hover {
+.btnYes:hover,
+.btnYes.choiceBtnOn {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green);
+  transform: translateY(-1px);
+}
+
+.btnMaybe:hover,
+.btnMaybe.choiceBtnOn {
   background: var(--warn-bg);
-  border-color: var(--warn-border);
+  border-color: var(--warn);
   color: var(--warn);
   transform: translateY(-1px);
 }
 
-.btnNo {
-  border-color: var(--border2);
-  color: var(--text2);
-}
-
-.btnNo:hover {
+.btnNo:hover,
+.btnNo.choiceBtnOn {
   background: var(--red-bg);
-  border-color: var(--red-border);
+  border-color: var(--red);
   color: var(--red);
   transform: translateY(-1px);
 }
 
+/* Drawn icons on a 24 grid, inheriting the button's colour. `✓ ? ✗` were three
+   different Unicode families at three different stroke weights inside one
+   three-option control, sitting under a calendar and a pin that are drawn. */
 .choiceBtnIcon {
-  font-size: var(--step-1);
-  font-weight: 700;
+  display: inline-flex;
   line-height: 1;
 }
 
@@ -301,15 +305,17 @@
   width: 100%;
   margin-bottom: 18px;
 }
+/* Same rule as the submit button: a filled button is --cta. White on --accent
+   measured 3.80:1 here — the last screen a guest sees, and its main way onward. */
 .successBtnPrimary {
-  background: var(--accent);
+  background: var(--cta);
   color: var(--on-accent);
   text-decoration: none;
   border-radius: var(--radius);
   padding: 12px;
   font-size: var(--step-0);
   font-weight: 700;
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-cta);
 }
 .successBtnGhost {
   background: var(--surface);
@@ -430,9 +436,14 @@
   margin: 0;
 }
 
+/* A filled button is --cta, never --accent (DESIGN.md colour rule 1). The
+   gradient started at --accent, which puts the white label at 3.80:1 across the
+   button's lighter half — under AA on the one control this page exists for.
+   --cta is 4.71:1 and --cta-dark 8.05:1, so the whole sweep of the gradient
+   passes now instead of only its far end. Found by measuring, not by eye. */
 .btnSubmitYes {
   width: 100%;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: linear-gradient(135deg, var(--cta) 0%, var(--cta-dark) 100%);
   color: var(--on-accent);
   border: none;
   border-radius: var(--radius);
@@ -441,19 +452,23 @@
   font-weight: 800;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-cta);
   transition: opacity var(--transition), box-shadow var(--transition), transform var(--transition);
   margin-block-start: 4px;
 }
 
 .btnSubmitYes:hover:not(:disabled) {
-  opacity: 0.92;
-  box-shadow: var(--shadow-accent-lg);
+  box-shadow: var(--shadow-cta-lg);
   transform: translateY(-1px);
 }
 
+/* One disabled language, the readable one — see LoginScreen.module.css.
+   `opacity: .48` put the white label at 2.06:1 over the composited fill, and
+   this button IS disabled at first paint (the name field starts empty). */
 .btnSubmitYes:disabled {
-  opacity: 0.48;
+  background: var(--border2);
+  color: var(--text2);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -510,10 +525,14 @@
   box-shadow: 0 4px 16px rgba(var(--red-rgb), 0.36);
 }
 
+/* Same disabled language as the yes button above. */
 .btnSubmitNo:disabled {
-  opacity: 0.48;
+  background: var(--border2);
+  color: var(--text2);
+  box-shadow: none;
   cursor: not-allowed;
 }
+
 
 /* ── Back button ────────────────────────────────────────────────────────── */
 
@@ -638,8 +657,7 @@
     gap: 10px;
   }
 
-  .btnYes,
-  .btnNo {
+  .choiceBtn {
     min-width: 120px;
     padding: 14px 10px;
     font-size: var(--step-0);

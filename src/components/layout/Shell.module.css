@@ -91,14 +91,20 @@
   overflow: hidden;
 }
 
-/* --accent is 4.76:1 on the bar, which passes for a 13px link, but it is also
-   the only saturated colour up here — so the back link keeps it and everything
-   else stays neutral. Hover goes lighter, never darker. */
+/* --accent is FILLS ONLY (this file used to argue 4.76:1 "passes for a 13px
+   link" — it does not: 4.76 is under AA for 13px text, and the rule in this
+   product is that accent-coloured text is --accent-text on light and
+   --accent-on-dark on dark). On the #14161A bar --accent-on-dark is 9.30:1.
+   It is still the only saturated colour up here; everything else stays
+   neutral. Hover goes lighter, never darker. */
 .bcBack {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent-on-dark);
   font-weight: var(--font-weight-bold);
   font-size: var(--step--1);
   padding: 4px 8px;
@@ -111,6 +117,11 @@
 .bcBack:hover {
   background: rgba(var(--accent-rgb),.14);
   color: var(--accent-border);
+}
+
+/* The step dot's tick is a drawn mark now, so it needs to centre like one. */
+.stepDot svg {
+  display: block;
 }
 
 .bcSep {
@@ -249,6 +260,26 @@
 
 .subnav::-webkit-scrollbar {
   display: none;
+}
+
+/* The rail carries fourteen tools and the scrollbar is hidden, so with a hard
+   edge the cut-off tab read as a broken tab rather than as "there is more".
+   The fade is applied only on the side that actually has content hidden —
+   data-fade is written by Shell from the live scroll position, so a rail that
+   fits is never faded. RTL: the start edge is the RIGHT one. */
+.subnav[data-fade="start"] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 34px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - 34px), transparent 100%);
+}
+
+.subnav[data-fade="end"] {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 34px), transparent 100%);
+  mask-image: linear-gradient(to left, #000 calc(100% - 34px), transparent 100%);
+}
+
+.subnav[data-fade="both"] {
+  -webkit-mask-image: linear-gradient(to left, transparent 0, #000 34px, #000 calc(100% - 34px), transparent 100%);
+  mask-image: linear-gradient(to left, transparent 0, #000 34px, #000 calc(100% - 34px), transparent 100%);
 }
 
 .subnavInner {

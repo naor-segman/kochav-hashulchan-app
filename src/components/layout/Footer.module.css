@@ -86,8 +86,8 @@
 
 .copy {
   font-size: var(--step--2);
+  /* opacity: .6 on --nav-muted composited to 3.30:1. */
   color: var(--nav-muted);
-  opacity: 0.6;
 }
 
 @media (max-width: 640px) {

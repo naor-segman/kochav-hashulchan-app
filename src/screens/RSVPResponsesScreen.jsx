@@ -29,14 +29,18 @@ const respStatus = (r) => r.status || (r.attending ? "yes" : "no");
 // Map an RSVP answer to a guest-list rsvp value.
 const GUEST_RSVP = { yes: "confirmed", maybe: "maybe", no: "declined" };
 
+// `new Date(null)` is the epoch and `new Date("nonsense")` is an Invalid Date;
+// neither THROWS, and toLocaleDateString does not throw either — it returns
+// the string "Invalid Date". So the catch here never ran once, and
+// formatDate(null) rendered "1 בינו׳, 02:00" — the epoch, shown to the host as
+// a real response time. Guard the input instead of the call.
 function formatDate(iso) {
-  try {
-    return new Date(iso).toLocaleDateString("he-IL", {
-      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-    });
-  } catch {
-    return "";
-  }
+  if (iso == null || iso === "") return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("he-IL", {
+    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+  });
 }
 
 export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, showToast }) {
@@ -389,7 +393,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                     </span>
                   </div>
                   {applied ? (
-                    <span className={base.tagSeated}>מעודכן ברשימה ✓</span>
+                    <span className={base.tagSeated}>מעודכן ברשימה <Icon name="check" size={12} /></span>
                   ) : guest ? (
                     <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => applyToGuest(r, guest)}>
                       עדכנו אורח קיים
@@ -408,7 +412,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
           </div>
           <div className={styles.footerActions}>
             <button className={base.btnSecondary} onClick={() => go("guests")}>
-              → לרשימת האורחים המלאה
+              <Icon name="arrowLeft" size={15} /> לרשימת האורחים המלאה
             </button>
           </div>
         </>

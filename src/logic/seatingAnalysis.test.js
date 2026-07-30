@@ -378,3 +378,108 @@ describe("suggestions never trade one violation for another", () => {
     expect(together.canApply).toBe(false);
   });
 });
+
+// ── The one-click fixes must not trade one violation for two ────────────────
+//
+// Every suggestion with `canApply: true` promises a `violationDelta`. Three of
+// them lied, and an audit reproduced each: applying the "safe" fix took the
+// plan from 1 violation to 2 while the panel printed "הפרה אחת פחות" beside the
+// button. The rule these pin: applying a suggestion may never increase the
+// number of violations.
+describe("applying a suggestion never makes the plan worse", () => {
+  const together = (a, b) => ({ id: `tog-${a}-${b}`, type: "together", guestA: a, guestB: b });
+
+  // Apply an action the way SeatingScreen does, and re-count.
+  const applied = (seating, action) => {
+    const next = { ...seating };
+    if (action.type === "moveGuest")     next[action.guestId] = action.toTableId;
+    if (action.type === "unassignGuest") delete next[action.guestId];
+    return next;
+  };
+  // Total unmet-ness, not just `computeViolations.length`.
+  //
+  // computeViolations deliberately counts only CONFLICTS, so a together pair
+  // whose partner has been thrown back into the waiting list no longer scores
+  // as a violation — which would let "unassign B" look like an improvement
+  // while it actually separated B from two people. The measure that matters to
+  // the host is: how many together constraints are still unmet, plus every
+  // other violation.
+  const count = (guests, tables, constraints, seating) => {
+    const unmetTogether = constraints.filter(c =>
+      c.type === "together" &&
+      !(seating[c.guestA] && seating[c.guestA] === seating[c.guestB])).length;
+    const others = computeViolations(guests, tables, constraints, seating)
+      .filter(v => v.type !== "together").length;
+    return unmetTogether + others;
+  };
+
+  it("the together fix does not separate the guest from their OTHER partners", () => {
+    // A@t1, B+C+D@t2 with together(A,B), together(B,C), together(B,D).
+    // Moving B to t1 fixes A-B and breaks B-C and B-D.
+    const guests = [g("A"), g("B"), g("C"), g("D")];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const constraints = [together("A", "B"), together("B", "C"), together("B", "D")];
+    const seating = { A: "t1", B: "t2", C: "t2", D: "t2" };
+
+    const before = count(guests, tables, constraints, seating);
+    const s = find(generateSuggestions(guests, tables, constraints, seating), "together_violated");
+    expect(s).toBeDefined();
+    if (s.canApply) {
+      const after = count(guests, tables, constraints, applied(seating, s.applyAction));
+      expect(after).toBeLessThanOrEqual(before);
+    } else {
+      expect(s.applyAction).toBeNull();
+    }
+  });
+
+  it("the apart fix does not orphan the guest's together partners", () => {
+    // A+B+C+D@t1 with apart(A,B), together(B,C), together(B,D).
+    // Unassigning B fixes A/B and orphans C and D.
+    const guests = [g("A"), g("B"), g("C"), g("D")];
+    const tables = [t("t1", 10)];
+    const constraints = [apart("A", "B"), together("B", "C"), together("B", "D")];
+    const seating = { A: "t1", B: "t1", C: "t1", D: "t1" };
+
+    const before = count(guests, tables, constraints, seating);
+    const s = find(generateSuggestions(guests, tables, constraints, seating), "apart_violated");
+    expect(s).toBeDefined();
+    if (s.canApply) {
+      const after = count(guests, tables, constraints, applied(seating, s.applyAction));
+      expect(after).toBeLessThanOrEqual(before);
+    } else {
+      expect(s.applyAction).toBeNull();
+    }
+  });
+
+  it("the overloaded fix evicts someone whose seats actually clear the excess", () => {
+    // A 2-seat table holding a 1-seat guest and a 5-seat group: evicting the
+    // 1-seat guest leaves the table over by three, while still claiming -1.
+    const guests = [g("small", { count: 1 }), g("big", { count: 5 })];
+    const tables = [t("t1", 2)];
+    const seating = { small: "t1", big: "t1" };
+
+    const before = count(guests, tables, [], seating);
+    const s = find(generateSuggestions(guests, tables, [], seating), "overloaded");
+    expect(s).toBeDefined();
+    if (s.canApply) {
+      const after = count(guests, tables, [], applied(seating, s.applyAction));
+      expect(after).toBeLessThan(before);   // a claimed -1 must actually be -1
+    } else {
+      expect(s.applyAction).toBeNull();
+    }
+  });
+
+  it("names the pair when a together constraint is only waiting on a seat", () => {
+    // One member seated, the other not. This used to dock 15 points off the
+    // quality score and produce no suggestion at all, so the host saw a low
+    // number with nothing to act on.
+    const guests = [g("A"), g("B")];
+    const tables = [t("t1", 10)];
+    const constraints = [together("A", "B")];
+    const s = generateSuggestions(guests, tables, constraints, { A: "t1" });
+    const pending = find(s, "together_pending");
+    expect(pending).toBeDefined();
+    expect(pending.canApply).toBe(true);
+    expect(pending.applyAction).toMatchObject({ type: "moveGuest", guestId: "B", toTableId: "t1" });
+  });
+});

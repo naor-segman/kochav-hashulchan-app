@@ -41,6 +41,11 @@ const P = {
   bulb:       <><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.7.7-1 1.2-1 2.5H9c0-1.3-.3-1.8-1-2.5A6 6 0 0 1 12 3Z" /></>,
   globe:      <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 3.5 6 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-6-3.5-9s1-6.5 3.5-9Z" /></>,
   check:      <><path d="M20 6 9 17l-5-5" /></>,
+  // The middle answer on the RSVP control. `?` was a Heebo glyph at roughly
+  // double the stroke weight of the ✓ beside it; this is drawn on the same 24
+  // grid at the same 1.6 hairline, and the dot matches `alert`, which is the
+  // same shape in the same set. (`close` — the third answer — is below.)
+  question:   <><path d="M8.6 9a3.4 3.4 0 1 1 3.4 3.4V15" /><circle cx="12" cy="18.4" r=".4" /></>,
   scale:      <><path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 5a3 3 0 0 0 5 0L5 8Zm14 0-2.5 5a3 3 0 0 0 5 0L19 8ZM12 4a2 2 0 0 0 0 4" /></>,
 
   // Added when the emoji were pulled out of the app chrome. Same 24 grid, same
@@ -78,6 +83,21 @@ const P = {
   list:       <><path d="M4 7h16M4 12h16M4 17h16" /></>,
   car:        <><path d="M3.5 16.5v-4l2-5h13l2 5v4" /><rect x="2.5" y="12.5" width="19" height="4.5" rx="1.4" /><path d="M6 17v2H4v-2M20 17v2h-2v-2" /><circle cx="7.4" cy="14.8" r=".9" /><circle cx="16.6" cy="14.8" r=".9" /></>,
   leaf:       <><path d="M20 4C10 4.6 4.5 8.5 4.5 14.5A5.5 5.5 0 0 0 10 20c6 0 9.6-6 10-16Z" /><path d="M6.5 21c1.5-5 5-9 11-13" /></>,
+  // Added to retire the Unicode dingbats (✕ ✓ → ← ↩ ⠿) that were sitting in
+  // the same button rows as drawn icons — three font glyphs at three weights
+  // beside a 24-grid 1.6 line. Same grid, same stroke, same joins.
+  close:      <><path d="M6 6l12 12M18 6 6 18" /></>,
+  // Direction is stated literally; the CALLER decides what it means. This page
+  // reads right-to-left, so back is arrowRight and forward is arrowLeft.
+  arrowRight: <><path d="M4 12h16M14 6l6 6-6 6" /></>,
+  arrowLeft:  <><path d="M20 12H4M10 6l-6 6 6 6" /></>,
+  undo:       <><path d="M4 9h11a5 5 0 0 1 0 10H8" /><path d="M8 5 4 9l4 4" /></>,
+  // Disclosure. `▲`/`▼` were the last two font glyphs in the app chrome, and
+  // at --step--3 the ▼ rendered noticeably heavier than the 1.6 hairline
+  // beside it. Rotate `chevronDown` for the open state.
+  chevronDown: <><path d="m5 9 7 7 7-7" /></>,
+  chevronUp:   <><path d="m5 15 7-7 7 7" /></>,
+  grip:       <g fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.35" /><circle cx="15" cy="6" r="1.35" /><circle cx="9" cy="12" r="1.35" /><circle cx="15" cy="12" r="1.35" /><circle cx="9" cy="18" r="1.35" /><circle cx="15" cy="18" r="1.35" /></g>,
 };
 
 export default function Icon({ name, size, className, strokeWidth = 1.6, style }) {

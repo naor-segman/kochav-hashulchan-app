@@ -38,7 +38,7 @@ describe("plan rules — what each plan allows", () => {
 
   it("an unknown plan key falls back to the free limits", () => {
     expect(canCreateEvent("bogus", 1).withinPlan).toBe(false);
-    expect(canUseAdvancedExports("bogus").allowed).toBe(false);
+    expect(canUseAdvancedExports("bogus").withinPlan).toBe(false);
   });
 });
 
@@ -80,16 +80,33 @@ describe("the enforcement switch", () => {
 });
 
 describe("feature flags by plan", () => {
+  // `withinPlan` is the RULE; `allowed` is the rule after PLAN_GATES_ENFORCED.
+  // These three used to return the raw rule as `allowed`, which meant wiring
+  // them to a call site would have enforced the paid split while the switch was
+  // off — so they were never wired at all, and flipping the switch would have
+  // enforced nothing for them. The rule is what these assert.
   it("advanced exports: pro and up", () => {
-    expect(canUseAdvancedExports("free").allowed).toBe(false);
-    expect(canUseAdvancedExports("pro").allowed).toBe(true);
-    expect(canUseAdvancedExports("enterprise").allowed).toBe(true);
+    expect(canUseAdvancedExports("free").withinPlan).toBe(false);
+    expect(canUseAdvancedExports("pro").withinPlan).toBe(true);
+    expect(canUseAdvancedExports("enterprise").withinPlan).toBe(true);
   });
 
   it("AI and collaboration: enterprise only", () => {
-    expect(canUseAI("pro").allowed).toBe(false);
-    expect(canUseAI("enterprise").allowed).toBe(true);
-    expect(canUseCollaboration("pro").allowed).toBe(false);
-    expect(canUseCollaboration("enterprise").allowed).toBe(true);
+    expect(canUseAI("pro").withinPlan).toBe(false);
+    expect(canUseAI("enterprise").withinPlan).toBe(true);
+    expect(canUseCollaboration("pro").withinPlan).toBe(false);
+    expect(canUseCollaboration("enterprise").withinPlan).toBe(true);
+  });
+
+  // The switch is the single point of control. While it is off nothing is
+  // blocked, including for the plans the rule excludes — that is the frozen
+  // decision, and this pins it so a call site can be wired safely.
+  it("every gate returns allowed while enforcement is off", () => {
+    expect(PLAN_GATES_ENFORCED).toBe(false);
+    for (const plan of ["free", "pro", "enterprise"]) {
+      expect(canUseAdvancedExports(plan).allowed).toBe(true);
+      expect(canUseAI(plan).allowed).toBe(true);
+      expect(canUseCollaboration(plan).allowed).toBe(true);
+    }
   });
 });

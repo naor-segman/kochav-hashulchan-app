@@ -102,8 +102,6 @@
   padding: 12px 16px;
   font-size: var(--step--1);
   color: var(--adm-danger);
-  direction: ltr;
-  text-align: left;
 }
 
 .retryBtn {
@@ -131,24 +129,15 @@
   text-align: center;
 }
 
-.loadingText {
-  font-size: var(--step-0);
-  color: var(--adm-ink-faint);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
-}
-
 .emptyTitle { font-size: var(--step-1); font-weight: 700; color: var(--adm-ink-dark); margin: 0 0 6px; }
 .emptyHint  { font-size: var(--step--1); color: var(--adm-ink-dim); margin: 0 0 20px; }
 
 .backBtn {
   display: inline-block;
   text-decoration: none;
-  background: var(--accent);
+  /* DESIGN.md rule 1: a filled button is --cta, never --accent. White on
+     --accent measures 3.80:1; on --cta it is 4.71:1. */
+  background: var(--cta);
   color: var(--adm-surface);
   border-radius: var(--radius-md);
   padding: 10px 20px;
@@ -185,7 +174,6 @@
 .statusWarning,
 .statusReady,
 .statusProgress,
-.statusIssues,
 .statusPending {
   display: inline-block;
   border-radius: var(--radius-lg);
@@ -196,12 +184,16 @@
   flex-shrink: 0;
 }
 
-.statusEmpty    { background: var(--adm-bg-sunken); color: var(--adm-ink-muted);    border: 1px solid var(--adm-line); }
-.statusWarning  { background: var(--adm-warn-bg); color: var(--adm-warn); border: 1px solid var(--adm-warn-border); }
-.statusPending  { background: var(--adm-info-bg); color: var(--adm-info); border: 1px solid var(--adm-info-border); }
-.statusProgress { background: var(--adm-badge-orange-bg); color: var(--adm-badge-orange-ink); border: 1px solid var(--adm-badge-orange-border); }
-.statusIssues   { background: var(--adm-danger-bg); color: var(--adm-danger); border: 1px solid var(--adm-danger-border-soft); }
-.statusReady    { background: var(--adm-ok-bg); color: var(--adm-ok); border: 1px solid var(--adm-ok-border); }
+/* A VALUE ladder, not a rainbow. These were green / blue / amber / orange /
+   red — five hues in one column of a panel whose design contract is that it
+   is monochrome, encoding a single ordered quantity that colour is the wrong
+   tool for. Quiet fill → outline → strong outline → tint → filled ink reads
+   as progress at a glance and survives a greyscale print. */
+.statusEmpty    { background: var(--adm-bg-sunken); color: var(--adm-ink-muted);  border: 1px solid var(--adm-line); }
+.statusPending  { background: var(--adm-surface);   color: var(--adm-ink-mid);    border: 1px solid var(--adm-line-strong); }
+.statusWarning  { background: var(--adm-surface);   color: var(--adm-ink);        border: 1px solid var(--adm-ink-faint); }
+.statusProgress { background: var(--adm-bg-sunken); color: var(--adm-ink-darker); border: 1px solid var(--adm-line-strong); }
+.statusReady    { background: var(--adm-ink-dark);  color: var(--adm-surface);    border: 1px solid var(--adm-ink-dark); }
 
 /* ── Meta card ── */
 .metaCard {
@@ -221,6 +213,10 @@
 .metaField { display: flex; flex-direction: column; gap: 2px; }
 .metaLabel { font-size: var(--step--3); font-weight: 700; color: var(--adm-ink-dim); text-transform: uppercase; letter-spacing: 0.05em; }
 .metaValue { font-size: var(--step-0); color: var(--adm-ink); font-weight: 500; word-break: break-all; }
+
+/* An address is LTR data. Without this the bidi algorithm reorders the runs
+   around the @ and the dots in an RTL paragraph. */
+.metaEmail { direction: ltr; text-align: start; unicode-bidi: isolate; }
 
 /* ── Stats chips ── */
 .statsRow {
@@ -313,10 +309,17 @@
 .tableType     { font-size: var(--step--3); color: var(--adm-ink-faint); margin-top: 2px; }
 
 /* ── Guests table ── */
+/* This is the one line on the page that says data is being withheld, and it
+   was --adm-warn-mid #f59e0b on white — 2.15:1, the least legible thing in
+   the section it is warning about. It is now a notice block, in ink. */
 .truncateNote {
   margin: 12px 20px 0;
+  padding: 8px 12px;
+  background: var(--adm-bg-sunken);
+  border: 1px solid var(--adm-line-strong);
+  border-radius: var(--radius-md);
   font-size: var(--step--2);
-  color: var(--adm-warn-mid);
+  color: var(--adm-ink-dark);
   font-weight: 600;
 }
 
@@ -362,32 +365,27 @@
    cells instead of stretching the row. */
 .guestSeated { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.sideBride {
-  display: inline-block;
-  background: var(--adm-badge-pink-bg);
-  color: var(--adm-badge-pink-ink);
-  border: 1px solid var(--adm-badge-pink-border);
-  border-radius: var(--radius-lg);
-  padding: 1px 8px;
-  font-size: var(--step--3);
-  font-weight: 700;
-}
-
+/* Pink "כלה" and blue "חתן" across a hundred rows, in a monochrome panel, to
+   distinguish two values whose own Hebrew words already distinguish them.
+   The word is the encoding; the chip is just a chip. */
+.sideBride,
 .sideGroom {
   display: inline-block;
-  background: var(--adm-info-bg);
-  color: var(--adm-info);
-  border: 1px solid var(--adm-info-border);
+  background: var(--adm-bg-sunken);
+  color: var(--adm-ink-dark);
+  border: 1px solid var(--adm-line);
   border-radius: var(--radius-lg);
   padding: 1px 8px;
   font-size: var(--step--3);
   font-weight: 700;
 }
 
+/* Green is "בוצע" in this system. Being assigned to a table is a fact about a
+   row, not an achievement, and it was green on every seated guest. */
 .seatedAt {
   display: inline-block;
-  background: var(--adm-ok-bg);
-  color: var(--adm-ok);
+  background: var(--adm-bg-sunken);
+  color: var(--adm-ink-darker);
   border-radius: var(--radius-xs);
   padding: 1px 6px;
   font-size: var(--step--2);
@@ -413,11 +411,12 @@
 
 .constraintRow:first-child { border-top: none; }
 
+/* "יחד" / "רחוק" are two constraint TYPES, not a good state and a bad one. */
 .ctTogether {
   display: inline-block;
-  background: var(--adm-ok-bg);
-  color: var(--adm-ok);
-  border: 1px solid var(--adm-ok-border);
+  background: var(--adm-bg-sunken);
+  color: var(--adm-ink-darker);
+  border: 1px solid var(--adm-line-strong);
   border-radius: var(--radius-lg);
   padding: 2px 10px;
   font-size: var(--step--3);
@@ -428,9 +427,9 @@
 
 .ctApart {
   display: inline-block;
-  background: var(--adm-danger-bg);
-  color: var(--adm-danger);
-  border: 1px solid var(--adm-danger-border-soft);
+  background: var(--adm-surface);
+  color: var(--adm-ink-darker);
+  border: 1px solid var(--adm-ink-faint);
   border-radius: var(--radius-lg);
   padding: 2px 10px;
   font-size: var(--step--3);
@@ -474,30 +473,43 @@
   .tableGrid { grid-template-columns: 1fr 1fr; }
 }
 
-/* ── Live badge ── */
-.liveBadge {
+/* ── Data-state badge ── */
+/* One badge, three states. It used to render green "נתונים חיים"
+   unconditionally — including under a red 500 banner with zero rows loaded.
+   A signal that never changes carries no information; this one only appears
+   in a state it is telling the truth about, and only the state that needs
+   somebody to act on it takes the panel's one semantic colour. */
+.liveBadge,
+.loadBadge,
+.staleBadge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: var(--step--3);
   font-weight: 700;
-  color: var(--adm-ok-mid);
-  background: var(--adm-ok-bg-soft);
-  border: 1px solid var(--adm-ok-border-soft);
   border-radius: var(--radius-lg);
   padding: 2px 8px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.liveDot {
+.liveBadge  { color: var(--adm-ink-mid);  background: var(--adm-bg-sunken); border: 1px solid var(--adm-line); }
+.loadBadge  { color: var(--adm-ink-muted); background: var(--adm-bg-sunken); border: 1px solid var(--adm-line); }
+.staleBadge { color: var(--adm-danger);   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft); }
+
+.liveDot,
+.loadDot,
+.staleDot {
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--adm-ok-mid);
   flex-shrink: 0;
 }
+
+.liveDot  { background: var(--adm-ink-mid); }
+.loadDot  { background: var(--adm-ink-faint); }
+.staleDot { background: var(--adm-danger); }
 
 /* ── Cloud/local ID display ── */
 .metaId {

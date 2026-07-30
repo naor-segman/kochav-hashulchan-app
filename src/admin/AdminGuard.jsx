@@ -90,7 +90,16 @@ export default function AdminGuard({ children }) {
   }, [navigate]);
 
   if (status === "loading") {
-    return <div className={styles.loading}><span>טוען…</span></div>;
+    // This is the full viewport on every admin page load, and it used to be a
+    // single "טוען…" in --adm-ink-dim (#999) on --adm-bg-tint — 2.68:1, the
+    // least legible thing in the panel, shown to the operator first. Legible
+    // now via the token ladder, and it says which of the two checks it is on.
+    return (
+      <div className={styles.loading} role="status">
+        <span className={styles.loadingDot} aria-hidden="true" />
+        <span>בודק הרשאות מנהל…</span>
+      </div>
+    );
   }
 
   if (status === "denied") {

@@ -10,8 +10,11 @@ export default function Footer() {
             <span className={styles.logoMark}>✦</span>
             <span className={styles.logoName}>כוכב השולחן</span>
           </Link>
+          {/* Factual, not superlative. "המובילה" is the same unearned claim as
+              the invented statistics that were removed from the landing page —
+              a product this new has not earned it. This says what the tool does. */}
           <p className={styles.tagline}>
-            הפלטפורמה המובילה לסידור הושבה באירועים בישראל
+            סידור הושבה אוטומטי, ניהול אורחים ואישורי הגעה — לאירועים בישראל.
           </p>
         </div>
 

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { guestSeatNames } from "../utils/eventHelpers.js";
+import { tableLabel } from "../components/seating/tableLabel.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -46,7 +47,9 @@ export default function NameTagsScreen({ activeEvent: ev }) {
       return guestSeatNames(g).map((seatName, i) => ({
         key: `${g.id}-${i}`,
         name: seatName,
-        table: table?.name || "",
+        // The printed card said "שולחן שולחן 1" for every default-named
+        // table — TableBuilderScreen already uses "שולחן" as the name prefix.
+        table: table ? tableLabel(table) : "",
       }));
     }).sort((a, b) => a.name.localeCompare(b.name, "he"));
   }, [ev.guests, ev.seating, scope, tableOf]);
@@ -132,7 +135,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
             <div key={c.key} className={styles.card}>
               <span className={styles.cardName}>{c.name}</span>
               {showTable && c.table && (
-                <span className={styles.cardTable}>שולחן {c.table}</span>
+                <span className={styles.cardTable}>{c.table}</span>
               )}
             </div>
           ))}

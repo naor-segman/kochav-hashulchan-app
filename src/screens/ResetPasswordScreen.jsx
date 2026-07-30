@@ -17,13 +17,29 @@ export default function ResetPasswordScreen() {
   const [error, setError] = useState("");
   const [done,  setDone]  = useState(false);
 
+  // Only a RECOVERY session may change a password without knowing the old one.
+  //
+  // This used to accept any session at all: `getSession()` returning anything
+  // set `ready`, and `SIGNED_IN` counted too. On a browser that was already
+  // logged in — the shared family laptop, the venue tablet, exactly the devices
+  // this product is built around — anyone could open /reset-password, type a
+  // new password twice and take the account over with no email and no
+  // re-authentication. AccountScreen deliberately re-authenticates with
+  // signInWithPassword before allowing a change; this path removed that.
+  //
+  // Supabase delivers the recovery link's session through PASSWORD_RECOVERY.
+  // It can fire before this effect subscribes, so the URL fragment is checked
+  // too — `type=recovery` is what the emailed link carries.
   useEffect(() => {
     if (!supabase) return;
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) setReady(true);
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const fromRecoveryLink = /[#&?]type=recovery(&|$)/.test(hash);
+
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setReady(true);
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
+      if (session && fromRecoveryLink) setReady(true);
       setChecking(false);
     });
     return () => data.subscription.unsubscribe();

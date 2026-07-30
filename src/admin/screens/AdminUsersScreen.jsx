@@ -5,15 +5,10 @@ import { getPlanLabel } from "../lib/planConfig.js";
 import styles from "./AdminUsersScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
+import Icon from "../../components/ui/Icon.jsx";
+import { formatDate } from "../lib/adminFormat.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatDate(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  });
-}
 
 function planBadgeClass(plan, s) {
   return { free: s.planFree, pro: s.planPro, enterprise: s.planEnterprise }[plan] ?? s.planFree;
@@ -141,15 +136,31 @@ export default function AdminUsersScreen() {
       {/* ── Top bar ── */}
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
+          <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminUsers" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>ניהול משתמשים</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>
-          <span className={styles.liveBadge}>
-            <span className={styles.liveDot} />
-            נתונים חיים
-          </span>
+          {/* Was green and unconditional — including with a 500 banner under
+              it and zero rows loaded, the one state where it matters. */}
+          {!loading && !error && (
+            <span className={styles.liveBadge}>
+              <span className={styles.liveDot} />
+              נתונים חיים
+            </span>
+          )}
+          {loading && (
+            <span className={styles.loadBadge}>
+              <span className={styles.loadDot} />
+              טוען נתונים
+            </span>
+          )}
+          {error && (
+            <span className={styles.staleBadge}>
+              <span className={styles.staleDot} />
+              הנתונים לא נטענו
+            </span>
+          )}
         </div>
         <div className={styles.topbarRight}>
           {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}
@@ -170,7 +181,10 @@ export default function AdminUsersScreen() {
         {/* ── Toolbar: search + count ── */}
         <div className={styles.toolbar}>
           <div className={styles.searchWrap}>
-            <span className={styles.searchIcon}>⌕</span>
+            {/* Was "⌕" positioned with `left: 11px` in an RTL interface —
+                a fourth icon vocabulary, sitting at the far end of the field
+                from where the caret and the typing begin. */}
+            <span className={styles.searchIcon}><Icon name="search" size={16} /></span>
             <input
               className={styles.searchInput}
               type="text"
@@ -229,8 +243,11 @@ export default function AdminUsersScreen() {
               <tbody>
                 {filtered.map((user) => (
                   <tr key={user.id}>
-                    <td className={styles.emailCell}>{user.email}</td>
-                    <td className={styles.nameCell}>
+                    {/* dir="ltr" decides which end the ellipsis eats: in the
+                        RTL cell it removed the mailbox name and kept the
+                        shared domain. The title keeps the full address. */}
+                    <td className={styles.emailCell} dir="ltr" title={user.email}>{user.email}</td>
+                    <td className={styles.nameCell} title={user.full_name || undefined}>
                       {user.full_name ?? <span className={styles.muted}>—</span>}
                     </td>
                     <td>

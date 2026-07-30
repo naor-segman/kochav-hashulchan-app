@@ -5,29 +5,24 @@ import Icon from "../../components/ui/Icon.jsx";
 import {
   ACTION_META,
   ACTION_KEYS,
+  UNKNOWN_ACTION_ICON,
   getActionLabel,
+  isKnownAction,
   getEntityLabel,
+  isKnownEntity,
+  metaSummary,
+  metaFull,
 } from "../lib/activityConfig.js";
+import { getPlanLabel } from "../lib/planConfig.js";
+import { formatDateTime } from "../lib/adminFormat.js";
 import styles from "./AdminActivityScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatDateTime(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("he-IL", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
-}
-
-function metaSummary(meta) {
-  if (!meta || typeof meta !== "object") return "—";
-  const entries = Object.entries(meta).slice(0, 3);
-  if (entries.length === 0) return "—";
-  return entries.map(([k, v]) => `${k}: ${v}`).join(", ");
-}
+//
+// formatDateTime / metaSummary moved to admin/lib — see adminFormat.js and
+// activityConfig.js for what was wrong with them.
 
 async function loadActivityData() {
   const { data, error } = await supabase
@@ -113,7 +108,7 @@ export default function AdminActivityScreen() {
       {/* ── Top bar ── */}
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
+          <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminActivity" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>יומן פעילות</span>
           <span className={styles.brandSep}>·</span>
@@ -152,7 +147,7 @@ export default function AdminActivityScreen() {
                 const meta = ACTION_META[key];
                 return (
                   <div key={key} className={styles.actionTypePill}>
-                    <span className={styles.actionTypeIcon} style={{ color: meta.color }}><Icon name={meta.icon} size={16} /></span>
+                    <span className={styles.actionTypeIcon}><Icon name={meta.icon} size={16} /></span>
                     <span className={styles.actionTypeLabel}>{meta.label}</span>
                   </div>
                 );
@@ -227,24 +222,51 @@ export default function AdminActivityScreen() {
                   </thead>
                   <tbody>
                     {filtered.map(row => {
-                      const meta = ACTION_META[row.action];
+                      const meta    = ACTION_META[row.action];
+                      const known   = isKnownAction(row.action);
+                      const summary = metaSummary(row.metadata, getPlanLabel);
                       return (
                         <tr key={row.id} className={styles.dataRow}>
-                          <td className={styles.dateCell}>{formatDateTime(row.created_at)}</td>
+                          {/* "29.07.2026, 14:32" rendered as "14:32 ,29.07.2026"
+                              on every row: no strong LTR character, so bidi
+                              rule N1 resolved the neutrals around the comma as
+                              RTL and put the time first with the comma
+                              orphaned. dir="ltr" isolates the run. */}
+                          <td className={styles.dateCell}>
+                            <span dir="ltr">{formatDateTime(row.created_at)}</span>
+                          </td>
                           <td>
-                            <span
-                              className={styles.actionBadge}
-                              style={{ color: meta?.color ?? "#374151", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                            >
-                              {meta?.icon && <Icon name={meta.icon} size={15} />} {getActionLabel(row.action)}
+                            {/* The hue on this badge was a second encoding of
+                                the label right next to it — six saturated
+                                colours in one column of a monochrome panel.
+                                The icon is the scannable distinction. An
+                                action with no mapping used to render its raw
+                                key in bold black with no glyph at all; it now
+                                renders as what it is, a raw identifier. */}
+                            <span className={known ? styles.actionBadge : styles.actionBadgeRaw}>
+                              <Icon name={(meta?.icon) || UNKNOWN_ACTION_ICON} size={15} />
+                              {known
+                                ? getActionLabel(row.action)
+                                : <code className={styles.rawKey} dir="ltr" title={row.action}>{row.action}</code>
+                              }
                             </span>
                           </td>
-                          <td className={styles.emailCell}>{row.actorEmail}</td>
-                          <td className={styles.entityCell}>{getEntityLabel(row.entity_type)}</td>
-                          <td className={styles.nameCell}>
+                          <td className={styles.emailCell} title={row.actorEmail}>{row.actorEmail}</td>
+                          <td className={styles.entityCell}>
+                            {isKnownEntity(row.entity_type)
+                              ? getEntityLabel(row.entity_type)
+                              : <code className={styles.rawKey} dir="ltr" title={row.entity_type || ""}>{row.entity_type || "—"}</code>
+                            }
+                          </td>
+                          <td className={styles.nameCell} title={row.entity_name || row.entity_id || ""}>
                             {row.entity_name || row.entity_id || <span className={styles.muted}>—</span>}
                           </td>
-                          <td className={styles.metaCell}>{metaSummary(row.metadata)}</td>
+                          {/* The JSONB used to be serialised verbatim:
+                              `amount_cents: 24900`, English keys, truncated
+                              mid-word at 200px with no way to see the rest. */}
+                          <td className={styles.metaCell} title={metaFull(row.metadata, getPlanLabel)}>
+                            {summary}
+                          </td>
                         </tr>
                       );
                     })}

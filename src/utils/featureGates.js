@@ -93,8 +93,14 @@ export function planGuestSlotsLeft(plan, currentCount) {
  */
 export function canUseAdvancedExports(plan) {
   const { advancedExports } = getPlanLimits(plan);
+  // Same contract as canCreateEvent: `withinPlan` is the rule, `allowed` is the
+  // rule after PLAN_GATES_ENFORCED. These three returned the raw rule instead,
+  // so they could never be wired to a call site without enforcing the split
+  // while the switch was off — which is why they had zero call sites and
+  // flipping the switch would have enforced nothing for them.
   return {
-    allowed:     advancedExports,
+    withinPlan:  advancedExports,
+    allowed:     !PLAN_GATES_ENFORCED || advancedExports,
     upgradeNote: advancedExports
       ? null
       : "ייצוא מתקדם (PDF, ייצוא מפורט) — זמין בתוכנית מקצועי ומעלה",
@@ -107,8 +113,14 @@ export function canUseAdvancedExports(plan) {
  */
 export function canUseAI(plan) {
   const { aiFeatures } = getPlanLimits(plan);
+  // Same contract as canCreateEvent: `withinPlan` is the rule, `allowed` is the
+  // rule after PLAN_GATES_ENFORCED. These three returned the raw rule instead,
+  // so they could never be wired to a call site without enforcing the split
+  // while the switch was off — which is why they had zero call sites and
+  // flipping the switch would have enforced nothing for them.
   return {
-    allowed:     aiFeatures,
+    withinPlan:  aiFeatures,
+    allowed:     !PLAN_GATES_ENFORCED || aiFeatures,
     upgradeNote: aiFeatures
       ? null
       : "הושבה חכמה מבוססת AI — זמינה בתוכנית ארגוני",
@@ -121,8 +133,14 @@ export function canUseAI(plan) {
  */
 export function canUseCollaboration(plan) {
   const { collaboration } = getPlanLimits(plan);
+  // Same contract as canCreateEvent: `withinPlan` is the rule, `allowed` is the
+  // rule after PLAN_GATES_ENFORCED. These three returned the raw rule instead,
+  // so they could never be wired to a call site without enforcing the split
+  // while the switch was off — which is why they had zero call sites and
+  // flipping the switch would have enforced nothing for them.
   return {
-    allowed:     collaboration,
+    withinPlan:  collaboration,
+    allowed:     !PLAN_GATES_ENFORCED || collaboration,
     upgradeNote: collaboration
       ? null
       : "שיתוף פעולה עם הצוות — זמין בתוכנית ארגוני",

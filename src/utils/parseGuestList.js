@@ -35,7 +35,13 @@ export function normalizePhone(raw) {
   // Strip the international dialling prefix FIRST — "00972…" starts with "0"
   // and used to be returned untouched, producing wa.me/9720972…
   digits = digits.replace(/^00/, "");
-  if (digits.startsWith("972")) return "0" + digits.slice(3);
+  // "+972 (0)52-123-4567" is how Israelis write their own number on a business
+  // card, and it is what a contacts export produces. The country code is
+  // followed by a REDUNDANT trunk zero, so stripping only "972" left "0" +
+  // "0521234567" = "00521234567" — stored on the guest, printed in the list and
+  // written into the Excel export.
+  if (digits.startsWith("9720")) return "0" + digits.slice(4);
+  if (digits.startsWith("972"))  return "0" + digits.slice(3);
   if (digits.startsWith("0"))   return digits;
   // A bare 9-digit number is a local one missing its leading zero.
   return digits.length === 9 ? "0" + digits : digits;

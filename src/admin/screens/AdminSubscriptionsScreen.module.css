@@ -62,7 +62,7 @@
   background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft);
   border-inline-start: 4px solid var(--adm-danger-soft);
   border-radius: var(--radius-md); padding: 12px 16px;
-  font-size: var(--step--1); color: var(--adm-danger); direction: ltr; text-align: left;
+  font-size: var(--step--1); color: var(--adm-danger);
 }
 
 .retryInlineBtn {
@@ -92,7 +92,8 @@
 }
 
 .retryBtn {
-  background: var(--accent); color: var(--adm-surface); border: none;
+  /* DESIGN.md rule 1: a filled button is --cta, never --accent (3.80:1). */
+  background: var(--cta); color: var(--adm-surface); border: none;
   border-radius: var(--radius-md); padding: 10px 20px;
   font-size: var(--step-0); font-weight: 700; cursor: pointer;
   font-family: inherit; transition: background 0.12s;
@@ -115,9 +116,11 @@
   gap: 14px;
 }
 
+/* The 3px top rule was magenta / blue / grey — three hues for three ORDERED
+   tiers, on the quietest screen in the product. */
 .planCard {
   background: var(--adm-surface); border: 1px solid var(--adm-line);
-  border-top-width: 3px;
+  border-top: 3px solid var(--adm-line-strong);
   border-radius: var(--radius-md); padding: 16px 18px;
   display: flex; flex-direction: column; gap: 10px;
   box-shadow: 0 1px 3px var(--adm-shadow);
@@ -126,7 +129,7 @@
 .planCardHeader {
   display: flex; align-items: baseline; gap: 8px;
 }
-.planCardLabel { font-size: var(--step-0); font-weight: 800; }
+.planCardLabel { font-size: var(--step-0); font-weight: 800; color: var(--adm-ink); }
 .planCardSub   { font-size: var(--step--2); color: var(--adm-ink-faint); }
 
 .planCardList {
@@ -135,6 +138,16 @@
   font-size: var(--step--1); color: var(--adm-ink-strong);
 }
 
+.planCardList li { display: flex; align-items: center; gap: 6px; }
+
+/* A fixed-width slot so the three lines align whether or not they carry a
+   mark — the "—" that used to fill it read as a minus sign in the sentence. */
+.featureMark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; flex-shrink: 0; color: var(--adm-ink-dark);
+}
+
+.featureOn  { color: var(--adm-ink-strong); }
 .featureOff { color: var(--adm-ink-fainter); }
 
 .planCardCount {
@@ -178,15 +191,6 @@
   border-radius: var(--radius); padding: 48px 24px; text-align: center;
 }
 
-.loadingText {
-  font-size: var(--step-0); color: var(--adm-ink-faint);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
-}
-
 .emptyTitle { font-size: var(--step-1); font-weight: 700; color: var(--adm-ink-dark); margin: 0 0 6px; }
 .emptyHint  { font-size: var(--step--1); color: var(--adm-ink-dim); margin: 0; max-width: 380px; margin-inline: auto; }
 
@@ -219,22 +223,51 @@
 
 .table tbody tr:last-child td       { border-bottom: none; }
 .dataRow:hover td                   { background: var(--adm-bg); }
-.rowDim td                          { opacity: 0.6; }
+/* Was `opacity: 0.6`, which fades the TEXT as well as the row: a cancelled
+   customer's email measured 3.23:1 and its dates 1.98:1 — a row support is
+   most likely to be reading when something has gone wrong. A sunken ground
+   says "inactive" without taking the ink with it. */
+.rowDim td                          { background: var(--adm-bg-sunken); color: var(--adm-ink-mid); }
 
 /* Cell variants */
-.emailCell { font-size: var(--step--1); color: var(--adm-ink-strong); direction: ltr; }
+/* `direction` decides which end the ellipsis eats — in an RTL cell it removes
+   the mailbox name and keeps the shared domain. */
+.emailCell {
+  font-size: var(--step--1); color: var(--adm-ink-strong);
+  direction: ltr; text-align: start; unicode-bidi: isolate;
+  max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .dateCell  { color: var(--adm-ink-muted); font-size: var(--step--2); white-space: nowrap; }
 
 /* ── Badges ── */
-.badge {
-  display: inline-block; border-radius: var(--radius-lg); border: 1px solid;
-  padding: 2px 10px; font-size: var(--step--3); font-weight: 700; white-space: nowrap;
-}
+/* Colour came in as inline styles off PLAN_META / STATUS_META: three plan hues
+   and six status hues in two adjacent columns. Both encode an ORDERED
+   quantity, so they are a value ladder here — and only the states that need
+   somebody to act today take the panel's one semantic colour. */
+.badgeQuiet,
+.badgeOutline,
+.badgeFilled,
+.badgeAlarm,
+.badgeUnknown,
 .badgeMuted {
   display: inline-block; border-radius: var(--radius-lg);
   padding: 2px 10px; font-size: var(--step--3); font-weight: 700;
-  background: var(--adm-bg-sunken); color: var(--adm-ink-muted); border: 1px solid var(--adm-line);
+  white-space: nowrap; border: 1px solid;
 }
+
+.badgeQuiet   { background: var(--adm-bg-sunken); color: var(--adm-ink-muted);  border-color: var(--adm-line); }
+.badgeOutline { background: var(--adm-surface);   color: var(--adm-ink-darker); border-color: var(--adm-line-strong); }
+.badgeFilled  { background: var(--adm-ink-dark);  color: var(--adm-surface);    border-color: var(--adm-ink-dark); }
+.badgeAlarm   { background: var(--adm-danger-bg); color: var(--adm-danger);     border-color: var(--adm-danger-border); }
+
+/* A raw DB value with no Hebrew label. Dashed, so it reads as "we do not know
+   this one" rather than as a tier. */
+.badgeUnknown {
+  background: var(--adm-surface); color: var(--adm-ink-mid);
+  border-style: dashed; border-color: var(--adm-line-strong);
+}
+
+.badgeMuted   { background: var(--adm-bg-sunken); color: var(--adm-ink-muted); border-color: var(--adm-line); }
 
 /* ── Expand row ── */
 .expandBtn {
@@ -245,7 +278,10 @@
 }
 .expandBtn:hover { background: var(--adm-bg-sunken); }
 
-.expandRow td { padding: 0 !important; border-bottom: 1px solid var(--adm-line); }
+/* Was `padding: 0 !important` overriding `.table td`, which is the same
+   specificity and declared earlier in this file — so source order already
+   won and the !important was never doing anything. */
+.expandRow td { padding: 0; border-bottom: 1px solid var(--adm-line); }
 
 .expandCell { padding: 0; }
 

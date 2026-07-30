@@ -39,7 +39,7 @@
   white-space: nowrap;
 }
 
-.chev { font-size: var(--step--3); color: var(--muted); flex-shrink: 0; }
+.chev { display: inline-flex; align-items: center; color: var(--muted); flex-shrink: 0; }
 
 .stageBody {
   margin-top: 14px;

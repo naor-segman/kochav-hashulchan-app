@@ -16,6 +16,27 @@ import Icon from "../components/ui/Icon.jsx";
 const MAX_EDGE = 1600;
 const QUALITY  = 0.82;
 
+/**
+ * localStorage, guarded.
+ *
+ * This is the only screen in the product that touched `localStorage` directly —
+ * everywhere else it goes through `storage.js`, which wraps it. Access here
+ * THROWS, not returns null, in Safari private browsing, under "block all
+ * cookies", and inside a partitioned third-party embed. It was called in a
+ * render-phase state initializer, so the throw escaped React's rendering and
+ * the public guest album white-screened into the error boundary — verified:
+ * /album/:token was the only route in the app that did.
+ *
+ * Remembering a name is a convenience. It is not worth a blank page.
+ */
+const NAME_KEY = "kh_album_name";
+function readName() {
+  try { return localStorage.getItem(NAME_KEY) || ""; } catch { return ""; }
+}
+function writeName(v) {
+  try { localStorage.setItem(NAME_KEY, v); } catch { /* nothing to do — it is a nicety */ }
+}
+
 function downscale(file) {
   return new Promise((resolve, reject) => {
     // Anything that isn't an image the canvas can read goes up untouched
@@ -52,7 +73,7 @@ export default function AlbumScreen() {
   const [event, setEvent]   = useState(null);
   const [state, setState]   = useState("loading");
   const [photos, setPhotos] = useState([]);
-  const [name, setName]     = useState(() => localStorage.getItem("kh_album_name") || "");
+  const [name, setName]     = useState(readName);
   const [busy, setBusy]     = useState(0);
   const [error, setError]   = useState("");
   const [lightbox, setLightbox] = useState(null);
@@ -83,11 +104,17 @@ export default function AlbumScreen() {
     // A phone's gallery picker happily hands over 500 files at once, and every
     // one of them is a 10MB upload billed to the host. Take a batch at a time.
     const list = all.slice(0, MAX_BATCH);
-    if (all.length > MAX_BATCH) {
-      setError(`נבחרו ${all.length} תמונות — מעלים ${MAX_BATCH} ראשונות. בחרו את השאר אחר כך.`);
-    }
-    setError("");
-    localStorage.setItem("kh_album_name", name.trim());
+    // One assignment, not two. The over-the-batch warning was set and then
+    // cleared unconditionally on the very next line, so it could never be
+    // seen: a guest who picked 200 photos was told nothing about the 170 that
+    // were dropped.
+    setError(all.length > MAX_BATCH
+      ? `נבחרו ${all.length} תמונות — מעלים ${MAX_BATCH} ראשונות. בחרו את השאר אחר כך.`
+      : "");
+    // Guarded: this used to be a bare setItem, and it sits BEFORE setBusy and
+    // the upload loop — so where storage throws, tapping "upload photos" did
+    // nothing at all and said nothing about it.
+    writeName(name.trim());
     setBusy(list.length);
     let failed = 0;
     for (const f of list) {

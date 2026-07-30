@@ -61,24 +61,24 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
   return (
     <div className={base.page}>
       <PageHeader
-        title="טבלה משותפת"
+        title="טבלה שיתופית"
         mark="collab"
         sub={`שתפו קישור אחד עם ${ev.type === "אירוע עסקי" ? "הצוות" : "המשפחה"} — כולם ממלאים את אותה טבלה יחד, בזמן אמת. כל רשומה מלאה נכנסת אוטומטית לרשימת האורחים.`}
       />
 
       {collabLink ? (
         <div className={base.card}>
-          <p className={base.fieldHint}>הקישור לטבלה המשותפת (שם וטלפון בהקלדה, השאר מרשימה — בלי טעויות):</p>
+          <p className={base.fieldHint}>הקישור לטבלה השיתופית (שם וטלפון בהקלדה, השאר מרשימה — בלי טעויות):</p>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input className={base.input} readOnly value={collabLink} dir="ltr" aria-label="קישור לטבלה השיתופית" />
             <button className={base.btnSm} onClick={async () => {
               try { await navigator.clipboard.writeText(collabLink); showToast("הקישור הועתק ✓"); }
               catch { showToast("העתיקו ידנית", "err"); }
             }}>העתיקו</button>
-            <QrCode url={collabLink} label="טבלה משותפת" filename="qr-collab" />
+            <QrCode url={collabLink} label="טבלה שיתופית" filename="qr-collab" />
           </div>
           <div className={base.actionBar} style={{ marginTop: 14 }}>
-            <a className={base.btnPrimary} href={collabLink} target="_blank" rel="noopener noreferrer">פתחו את הטבלה ←</a>
+            <a className={base.btnPrimary} href={collabLink} target="_blank" rel="noopener noreferrer">פתחו את הטבלה <Icon name="arrowLeft" size={15} /></a>
             <button className={base.btnSecondary} onClick={downloadExcel} disabled={!(ev.guests || []).length}><Icon name="download" /> הורדה לאקסל</button>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
       {loadState === "offline" && (
         <Banner variant="warn">
           {isSupabaseConfigured
-            ? "האירוע עדיין לא סונכרן לענן — הטבלה המשותפת תתחיל לעבוד אחרי הסנכרון הראשון (התחברו לחשבון)."
+            ? "האירוע עדיין לא סונכרן לענן — הטבלה השיתופית תתחיל לעבוד אחרי הסנכרון הראשון (התחברו לחשבון)."
             : "סנכרון ענן אינו מוגדר בסביבה זו."}
         </Banner>
       )}
@@ -107,7 +107,7 @@ export default function CollabReviewScreen({ activeEvent: ev, go, showToast }) {
             הרשומות המלאות כבר ברשימת האורחים שלכם — הכל מתעדכן אוטומטית בשני הכיוונים.
           </p>
           <div style={{ marginTop: 14 }}>
-            <button className={base.btnSecondary} onClick={() => go("guests")}>→ לרשימת האורחים</button>
+            <button className={base.btnSecondary} onClick={() => go("guests")}><Icon name="arrowLeft" size={15} /> לרשימת האורחים</button>
           </div>
         </div>
       )}

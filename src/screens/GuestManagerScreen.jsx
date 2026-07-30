@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
+import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
 import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { getSideLabel } from "../utils/eventHelpers.js";
@@ -15,12 +16,14 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import base from "../styles/screenBase.module.css";
 import Divider from "../components/ui/Divider.jsx";
 import styles from "./GuestManagerScreen.module.css";
 
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  const { confirm, prompt, dialog } = useConfirm();
   // Corporate events use a business group set + default; everyone else the
   // family-oriented one. Custom groups (below) work regardless of type.
   const isBusiness   = ev.type === "אירוע עסקי";
@@ -54,8 +57,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
   // Add a brand-new custom group to this event from anywhere a group is picked.
   // Saved to customGroups so it appears in every group list + the filter.
-  const addCustomGroup = (setSelected) => {
-    const name = (prompt("שם הקבוצה החדשה (למשל: חברים מהגן / צוות שיווק)") || "").trim();
+  const addCustomGroup = async (setSelected) => {
+    const name = (await prompt("שם הקבוצה החדשה (למשל: חברים מהגן / צוות שיווק)", {
+      placeholder: "שם הקבוצה",
+      confirmLabel: "צרו קבוצה",
+    }) || "").trim();
     if (!name) return;
     if (!allGroupOptions.includes(name)) {
       patchEvent(e => ({ ...e, customGroups: [...(e.customGroups || []), name] }));
@@ -183,14 +189,14 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
 
-  const delGuest = (id, name) => {
+  const delGuest = async (id, name) => {
     const tableId   = ev.seating[id];
     const tableName = tableId ? (ev.tables.find(t => t.id === tableId)?.name || null) : null;
     const collabNote = ev.tokens?.collab ? "\n\nהאורח יימחק גם מהטבלה השיתופית של המשפחה." : "";
     const msg = tableName
       ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית." + collabNote + "\n\nפעולה זו אינה ניתנת לביטול."
       : "למחוק את \"" + name + "\" מרשימת האורחים?" + collabNote + "\n\nפעולה זו אינה ניתנת לביטול.";
-    if (!confirm(msg)) return;
+    if (!await confirm(msg, { danger: true, confirmLabel: "מחקו" })) return;
     if (editId === id) { setEditId(null); setForm(EF); setCustomGroupInput(""); }
     patchEvent(e => Object.assign({}, e, {
       guests:  e.guests.filter(g => g.id !== id),
@@ -234,20 +240,18 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
   // Open WhatsApp to a specific guest with a personal invite + event-site link.
   const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
-  // Normalize an Israeli phone to wa.me international form (972…) — handles
-  // "05x-xxxxxxx", "+972…", "972…" and "00972…".
-  const normalizePhone = (raw) => {
-    let d = (raw || "").replace(/[^\d]/g, "");
-    if (d.startsWith("00")) d = d.slice(2);
-    if (d.startsWith("972")) return d;
-    if (d.startsWith("0")) return "972" + d.slice(1);
-    return d;
-  };
+  // Was a second copy of the phone normaliser with its own divergences (no
+  // minimum length, so "050" produced wa.me/97250) and a raw `ל${ev.name}`,
+  // which reads "להחתונה של דנה" — in Hebrew the attached ל absorbs the
+  // definite article. renderTemplate + whatsappLink already handle both, and
+  // they are the versions that have tests.
   const waGuest = (guest) => {
-    const phone = normalizePhone(guest.phone);
-    const msg = `היי ${guest.name}! 💛\nאתם מוזמנים ל${ev.name || "אירוע שלנו"}.\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}` + messageSignature();
-    const base = phone ? `https://wa.me/${phone}` : "https://wa.me/";
-    window.open(`${base}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+    const msg = renderTemplate(
+      "היי {{שם}}! 💛\nאתם מוזמנים ל{{אירוע}}.\nכל הפרטים ואישור הגעה כאן:\n{{קישור}}",
+      { event: ev, guest, link: siteUrl }
+    ) + messageSignature();
+    const url = whatsappLink(guest.phone, msg);
+    window.open(url || ("https://wa.me/?text=" + encodeURIComponent(msg)), "_blank", "noopener");
   };
 
   const visible = ev.guests.filter(g => {
@@ -286,29 +290,49 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
   return (
     <div className={base.page}>
+      {dialog}
       <PageHeader
         title="אורחים"
         mark="guests"
         sub="נהלו את רשימת האורחים. לחצו Enter להוספה מהירה."
         aside={
+          /* Four numbers, one of them leading. The sides and the meal
+             breakdown moved to the quiet strip below the header: eleven equal
+             boxes in five ink colours gave the eye nowhere to land. */
           <div className={base.pills}>
             <StatPill n={ev.guests.length} label="סה״כ" primary />
-            <StatPill n={nBride} label={sideLabel("bride")} color="var(--bride)" />
-            <StatPill n={nGroom} label={sideLabel("groom")} color="var(--groom)" />
             {nConfirmed > 0 && <StatPill n={nConfirmed} label="אישרו" color="var(--green)" />}
             {nDeclined > 0 && <StatPill n={nDeclined} label="סירבו" color="var(--red)" />}
             {nSeated > 0 && <StatPill n={nSeated} label="משובצים" color="var(--green)" />}
-            {mealCounts.map(m => (
-              <StatPill key={m.value} n={m.n} label={m.label} />
-            ))}
-            {totalGifts > 0 && <StatPill n={"₪" + totalGifts.toLocaleString("he-IL")} label={"מתנות (" + nGiftsLogged + ")"} color="var(--green)" />}
           </div>
         }
       />
 
-      <div className={styles.stepGuide}>
-        <span className={styles.stepBadge}>שלב 3 מתוך 5 — אורחים</span>
-        <span className={styles.stepText}>הוסיפו אורחים ידנית, הדביקו רשימה מוכנה, או שלחו קישור לטבלה שיתופית שהמשפחה תמלא. לאחר מכן המשיכו לאילוצים. כל שינוי נשמר אוטומטית.</span>
+      {ev.guests.length > 0 && (
+        <div className={base.statStrip}>
+          <span className={base.statStripLabel}>פילוח:</span>
+          <span className={base.statChip}>
+            <SideDot side="bride" /><span className={base.statChipN}>{nBride}</span> {sideLabel("bride")}
+          </span>
+          <span className={base.statChip}>
+            <SideDot side="groom" /><span className={base.statChipN}>{nGroom}</span> {sideLabel("groom")}
+          </span>
+          {mealCounts.map(m => (
+            <span key={m.value} className={base.statChip}>
+              <span className={base.statChipN}>{m.n}</span> {m.label}
+            </span>
+          ))}
+          {totalGifts > 0 && (
+            <span className={base.statChip}>
+              <span className={base.statChipN}>₪{totalGifts.toLocaleString("he-IL")}</span> מתנות ({nGiftsLogged})
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className={base.stepGuide}>
+        <span className={base.stepBadge}>שלב 3 מתוך 5 — אורחים</span>
+        <span className={base.stepText}>הוסיפו אורחים ידנית, הדביקו רשימה מוכנה, או שלחו קישור לטבלה שיתופית שהמשפחה תמלא. לאחר מכן המשיכו לאילוצים. כל שינוי נשמר אוטומטית.</span>
       </div>
 
       {/* ── Guest limit upgrade tip ── */}
@@ -584,7 +608,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               <span className={base.filterCount}>מציג {visible.length} מתוך {ev.guests.length}</span>
               <button className={[base.btnSm, base.btnGhost].join(" ")}
                 onClick={() => setFilter({ side: "all", group: "all", rsvp: "all", search: "" })}>
-                נקו ✕
+                נקו <Icon name="close" size={12} />
               </button>
             </>
           ) : (
@@ -642,7 +666,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   </span>
                 )}
                 {t
-                  ? <span className={base.tagSeated}><Icon name="hexagon" size={12} /> {t.name}</span>
+                  ? (
+                    <span className={[base.tagSeated, base.tagFlexible].join(" ")} title={t.name}>
+                      <Icon name="hexagon" size={12} />
+                      <span className={base.tagFlexibleText}>{t.name}</span>
+                    </span>
+                  )
                   : <span className={base.tagUnseated}>לא שובץ</span>
                 }
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>

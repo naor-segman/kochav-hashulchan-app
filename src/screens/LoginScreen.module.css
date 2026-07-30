@@ -49,6 +49,44 @@
   .loadingMark { animation-duration: 3s; }
 }
 
+/* The card was a dead end: no nav, no footer, and the only thing that led back
+   to the marketing site was the wordmark — which is not a link on this page and
+   does not look like one anywhere. One quiet line above the card, outside it,
+   so it reads as chrome and not as a fourth thing to decide about. */
+.homeRow {
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 14px;
+  text-align: start;
+}
+
+.homeLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--step--1);
+  font-weight: 600;
+  /* On the near-black page ground: --nav-muted is 5.71:1, --nav-text 15.30:1. */
+  color: var(--nav-muted);
+  text-decoration: none;
+  padding: 6px 2px;
+  transition: color 0.12s;
+}
+
+.homeLink:hover { color: var(--nav-text); }
+
+.homeLink:focus-visible {
+  outline: 2px solid var(--accent-on-dark);
+  outline-offset: 3px;
+  border-radius: var(--radius-xs);
+}
+
+/* The whole page is one centred card; the back link has to sit above it rather
+   than beside it, so the flex container stacks. */
+.pageStack {
+  flex-direction: column;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -125,8 +163,12 @@
   background: var(--surface);
 }
 
+/* Same disabled language as the button and the links: a sunken ground and a
+   quieter ink, not a faded copy of the enabled state. At 0.55 the field's own
+   text composited to 3.20:1 on white. */
 .input:disabled {
-  opacity: 0.55;
+  background: var(--bg);
+  color: var(--text2);
   cursor: not-allowed;
 }
 
@@ -196,8 +238,16 @@
   transform: translateY(-1px);
 }
 
+/* One disabled language across the product, and it is the readable one.
+   `opacity: .5` on --cta composites to white-on-#EA96B5 = 2.17:1 — and this is
+   the FIRST-PAINT state of both screens, because the button is disabled until
+   the fields are filled. /gift already solved the same problem by swapping to a
+   grey fill instead of fading the brand one; this is that solution. --text2 on
+   --border2 is 5.14:1. */
 .submitBtn:disabled {
-  opacity: 0.50;
+  background: var(--border2);
+  color: var(--text2);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -270,7 +320,12 @@
 }
 
 .forgotLink:hover:not(:disabled) { color: var(--accent-text); text-decoration: underline; }
-.forgotLink:disabled { opacity: 0.45; cursor: not-allowed; }
+/* Same rule as the button above: a disabled control is the one the visitor is
+   trying to work out how to enable, so it has to stay readable. `opacity: .45`
+   put --muted at 2.28:1 on the white card. It keeps --muted (5.32:1) and simply
+   stops responding: no hover colour, no underline, `not-allowed` pointer. The
+   state is carried by "it does not react", not by "it is faint". */
+.forgotLink:disabled { color: var(--muted); cursor: not-allowed; }
 
 .forgotTitle {
   font-size: var(--step--1);
@@ -352,7 +407,8 @@
   padding: 0;
 }
 
-.resendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* --accent-text at 0.5 composited to 2.70:1. Same language as .forgotLink. */
+.resendBtn:disabled { color: var(--muted); text-decoration: none; cursor: not-allowed; }
 
 /* One visible keyboard focus ring for every control on the page. The form had
    none outside the inputs, so tabbing through it was invisible. */
@@ -441,4 +497,24 @@
     height: 44px;
   }
 
+}
+
+/* Touch target — see qa/mobile.mjs. The way back to the site is new on these
+   two screens and arrived at 32px. Only the tappable area grows; the box does
+   not move. */
+@media (pointer: coarse) {
+  .homeLink {
+    position: relative;
+  }
+
+  .homeLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
 }

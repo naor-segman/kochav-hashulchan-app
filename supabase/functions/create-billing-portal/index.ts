@@ -37,6 +37,30 @@ function json(data: unknown, status = 200) {
   });
 }
 
+
+// A Stripe-hosted checkout or portal page carries the real merchant account's
+// branding, and `returnUrl` decides where the customer lands when it closes.
+// It came straight out of the request body with no allow-list, and the function
+// is callable directly by anyone holding a valid JWT — i.e. any signed-up user
+// — so it minted a genuine, real-branded Stripe page that redirected to an
+// attacker's domain. Only origins this deployment actually serves are allowed.
+//
+// APP_ORIGINS is a comma-separated list set per environment; the request's own
+// Origin header is accepted only if it is in that list.
+function safeReturnUrl(raw: string, req: Request): string | null {
+  const allowed = (Deno.env.get("APP_ORIGINS") ?? "")
+    .split(",").map(s => s.trim()).filter(Boolean);
+  const origin = req.headers.get("Origin");
+  if (origin && allowed.includes(origin)) allowed.push(origin);
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:" && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") return null;
+    return allowed.includes(u.origin) ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: CORS_HEADERS });
@@ -79,11 +103,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const { returnUrl } = await req.json() as { returnUrl: string };
+    const safeReturn = safeReturnUrl(returnUrl, req);
+    if (!safeReturn) return json({ error: "returnUrl is not an allowed origin" }, 400);
 
     // ── Create Billing Portal session ─────────────────────────────────────────
     const session = await stripe.billingPortal.sessions.create({
       customer:   profile.stripe_customer_id,
-      return_url: returnUrl,
+      return_url: safeReturn,
     });
 
     return json({ url: session.url });

@@ -54,13 +54,14 @@
 .filterBtn:hover { border-color: var(--text2); color: var(--text); background: var(--bg); }
 
 /* Was a saturated --accent fill with a white label: 3.8:1, which is below AA
-   for any text at any size. --blush is a GROUND — it carries near-black at
-   12.3:1, marks the selected filter just as clearly, and does not spend the
-   brand colour on a segmented control. */
+   for any text at any size. It then became a --blush pill — correct in
+   principle, but a FOURTH way of drawing "selected" in one product. This is the
+   `.segActive` pair from screenBase, which is now the only one: --accent-text
+   on --accent-bg, 6.4:1. */
 .filterOn {
-  background: var(--blush);
-  border-color: var(--blush-line);
-  color: var(--text);
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
 }
 
 .formCard {
@@ -85,8 +86,16 @@
   border-radius: var(--radius);
   flex-wrap: wrap;
 }
-/* Passed-on vendors stay visible (you may change your mind) but recede. */
-.rowOff { opacity: .55; }
+/* Passed-on vendors stay visible (you may change your mind) but recede.
+   `opacity: .55` receded them out of existence: the category label measured
+   2.22:1 and the name and price 4.02:1. Receding is a job for the GROUND — a
+   sunken card with quiet ink says "not active" without making it unreadable. */
+.rowOff {
+  background: var(--bg);
+  border-color: var(--border);
+}
+.rowOff .name,
+.rowOff .price { color: var(--text2); }
 
 .rowMain { flex: 1; min-width: 190px; display: flex; flex-direction: column; gap: 4px; }
 

@@ -147,3 +147,42 @@ describe("estimateCost", () => {
     expect(estimateCost(100, 0.2)).toBe(20);
   });
 });
+
+describe("whatsappLink — international forms", () => {
+  it("strips the 00 dialling prefix", () => {
+    expect(whatsappLink("00972521234567", "x")).toContain("wa.me/972521234567");
+  });
+
+  it("drops the redundant trunk zero after the country code", () => {
+    expect(whatsappLink("+972 (0)52-123-4567", "x")).toContain("wa.me/972521234567");
+  });
+
+  it("leaves a foreign number's own country code alone", () => {
+    // Relatives abroad are normal at an Israeli wedding; forcing 972 onto a
+    // UK number produced a link to an account that does not exist.
+    expect(whatsappLink("00447911123456", "x")).toContain("wa.me/447911123456");
+  });
+
+  it("refuses a number too short to be one", () => {
+    expect(whatsappLink("050", "x")).toBeNull();
+    expect(whatsappLink("", "x")).toBeNull();
+  });
+});
+
+describe("renderTemplate — the article rule after a conjunction", () => {
+  const ctx = { event: { name: "החתונה של דנה" } };
+  it("absorbs the article when the prefix letter follows ו or ש", () => {
+    // The lookbehind allowed start-of-line, whitespace or "(" only, so
+    // "ול{{אירוע}}" came out "ולהחתונה של דנה". Templates are host-editable.
+    expect(renderTemplate("ל{{אירוע}} ול{{אירוע}}", ctx))
+      .toBe("לחתונה של דנה ולחתונה של דנה");
+    expect(renderTemplate("של{{אירוע}}", ctx)).toBe("שלחתונה של דנה");
+  });
+
+  it("still keeps a ה that is part of the name", () => {
+    expect(renderTemplate("ל{{אירוע}}", { event: { name: "הילה ואור" } }))
+      .toBe("להילה ואור");
+    expect(renderTemplate("ב{{מקום}}", { event: { venue: "היכל התרבות" } }))
+      .toBe("בהיכל התרבות");
+  });
+});

@@ -90,8 +90,12 @@
 }
 
 /* ── Main ── */
+/* Eleven columns at 1100px overflowed by ~100px at 1440, which is what put
+   the status badge and the only route into an event off the visible area on
+   a full-size desktop. This is the panel's densest table; the 1100 it shared
+   with the six-column screens was not a decision about this one. */
 .main {
-  max-width: 1100px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 28px 20px 64px;
   display: flex;
@@ -112,8 +116,6 @@
   padding: 12px 16px;
   font-size: var(--step--1);
   color: var(--adm-danger);
-  direction: ltr;
-  text-align: left;
 }
 
 .retryBtn {
@@ -148,12 +150,16 @@
   max-width: 340px;
 }
 
+/* `left: 11px` in a right-to-left interface put the magnifier at the far end
+   of the field from where the caret and the typing begin. Logical property,
+   so it follows the writing direction the way the rest of this project's CSS
+   is required to. */
 .searchIcon {
   position: absolute;
-  left: 11px;
+  inset-inline-start: 11px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--step-1);
+  display: inline-flex;
   color: var(--adm-ink-faint);
   pointer-events: none;
   line-height: 1;
@@ -164,7 +170,9 @@
   box-sizing: border-box;
   border: 1px solid var(--adm-line-strong);
   border-radius: var(--radius-md);
-  padding: 8px 12px 8px 32px;
+  padding-block: 8px;
+  padding-inline-start: 34px;
+  padding-inline-end: 12px;
   font-size: var(--step-0);
   color: var(--adm-ink);
   background: var(--adm-surface);
@@ -217,17 +225,6 @@
   text-align: center;
 }
 
-.loadingText {
-  font-size: var(--step-0);
-  color: var(--adm-ink-faint);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
-}
-
 .emptyTitle {
   font-size: var(--step-1);
   font-weight: 700;
@@ -242,12 +239,57 @@
 }
 
 /* ── Table ── */
+/* Eleven columns do not fit at 1024 or 390 — three of them render at 390px —
+   and the only thing that said so was a 2px overlay scrollbar and a rounded
+   corner that made the table look complete. Two affordances now do:
+   the pinned action column casts a real shadow over the cells sliding under
+   it (see the sticky rule at the bottom of this file), and the scrollbar is
+   given a visible track and thumb instead of the overlay hairline. */
 .tableWrap {
   overflow-x: auto;
   border-radius: var(--radius);
   border: 1px solid var(--adm-line);
   background: var(--adm-surface);
   box-shadow: 0 1px 4px var(--adm-shadow);
+  scrollbar-width: thin;
+  scrollbar-color: var(--adm-line-strong) var(--adm-bg-sunken);
+}
+
+/* Chromium ignores scrollbar-width's sizing for overlay scrollbars, so the
+   track is asked for explicitly. Not a third-party override — this is the
+   only way to opt out of an overlay scrollbar. */
+.tableWrap::-webkit-scrollbar {
+  height: 10px;
+}
+
+.tableWrap::-webkit-scrollbar-track {
+  background: var(--adm-bg-sunken);
+  border-top: 1px solid var(--adm-line);
+}
+
+.tableWrap::-webkit-scrollbar-thumb {
+  background: var(--adm-line-strong);
+  border-radius: var(--radius-pill);
+}
+
+.tableWrap::-webkit-scrollbar-thumb:hover {
+  background: var(--adm-ink-faint);
+}
+
+/* The table is 1124px wide; .main caps at 1320 with 20px of padding, so it
+   fits from ~1164px up and does not below. The breakpoint is that number, not
+   a guess — the hint never claims a scroll that is not there. */
+.scrollHint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--adm-ink-mid);
+}
+
+@media (max-width: 1164px) {
+  .scrollHint { display: flex; }
 }
 
 .table {
@@ -263,7 +305,7 @@
 .table th {
   background: var(--adm-bg-alt);
   border-bottom: 1px solid var(--adm-line);
-  padding: 10px 14px;
+  padding: 10px 12px;
   font-size: var(--step--3);
   font-weight: 700;
   color: var(--adm-ink-soft);
@@ -273,7 +315,7 @@
 }
 
 .table td {
-  padding: 10px 14px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--adm-line-soft);
   color: var(--adm-ink-darker);
   vertical-align: middle;
@@ -303,6 +345,9 @@
   white-space: nowrap;
 }
 
+/* An address is LTR data and the cell truncates. `direction` is what decides
+   which end `text-overflow` eats: in the RTL cell it removed the mailbox name
+   — the only part that identifies the customer — and kept the shared domain. */
 .ownerCell {
   color: var(--adm-ink-mid);
   font-size: var(--step--2);
@@ -310,6 +355,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: isolate;
 }
 
 .numCol    { text-align: center; }
@@ -319,23 +367,28 @@
 
 .muted { color: var(--adm-ink-faintest); }
 
+/* The only route into an event, and it was magenta text on a cream-yellow
+   ground — a pairing used nowhere else in the product, which reads as a
+   warning rather than as an action, and measured 3.67:1. It is now the same
+   quiet outline chip every other secondary action in the panel uses. */
 .viewLink {
   display: inline-block;
   text-decoration: none;
-  color: var(--accent);
-  background: var(--adm-warn-bg);
-  border: 1px solid var(--adm-warn-border);
+  color: var(--adm-ink-dark);
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line-strong);
   border-radius: var(--radius-xs);
-  padding: 2px 10px;
+  padding: 3px 12px;
   font-size: var(--step--2);
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
 .viewLink:hover {
-  background: var(--adm-warn-bg-strong);
-  border-color: var(--adm-badge-amber-mark);
+  background: var(--adm-ink-dark);
+  border-color: var(--adm-ink-dark);
+  color: var(--adm-surface);
 }
 
 /* ── Status badges ── */
@@ -343,7 +396,6 @@
 .statusWarning,
 .statusReady,
 .statusProgress,
-.statusIssues,
 .statusPending {
   display: inline-block;
   border-radius: var(--radius-lg);
@@ -353,46 +405,49 @@
   white-space: nowrap;
 }
 
-/* grey — no guests and no tables */
+/* A VALUE ladder, not a rainbow. These were grey / amber / blue / orange /
+   red / green — six hues in one column of a panel whose design contract is
+   that it is monochrome, encoding a single ordered quantity. Quiet fill →
+   outline → strong outline → tint → filled ink, which reads as progress at a
+   glance and survives greyscale.
+
+   The red band is gone with the "בעיות" label it carried: it painted every
+   event under 50% seated as broken, and an event three weeks out at 33% is
+   simply in progress. See admin/lib/eventStatus.js. */
+
+/* nothing entered yet */
 .statusEmpty {
   background: var(--adm-bg-sunken);
   color: var(--adm-ink-muted);
   border: 1px solid var(--adm-line);
 }
 
-/* amber — missing guests or tables */
-.statusWarning {
-  background: var(--adm-warn-bg);
-  color: var(--adm-warn);
-  border: 1px solid var(--adm-warn-border);
-}
-
-/* blue — ready to seat but not started */
+/* ready to seat, not started */
 .statusPending {
-  background: var(--adm-info-bg);
-  color: var(--adm-info);
-  border: 1px solid var(--adm-info-border);
+  background: var(--adm-surface);
+  color: var(--adm-ink-mid);
+  border: 1px solid var(--adm-line-strong);
 }
 
-/* orange — seating in progress, >= 50% */
+/* one half of the pair is missing — the strongest outline, no hue */
+.statusWarning {
+  background: var(--adm-surface);
+  color: var(--adm-ink);
+  border: 1px solid var(--adm-ink-faint);
+}
+
+/* seating under way */
 .statusProgress {
-  background: var(--adm-badge-orange-bg);
-  color: var(--adm-badge-orange-ink);
-  border: 1px solid var(--adm-badge-orange-border);
+  background: var(--adm-bg-sunken);
+  color: var(--adm-ink-darker);
+  border: 1px solid var(--adm-line-strong);
 }
 
-/* red — seating started but < 50% (possible issues) */
-.statusIssues {
-  background: var(--adm-danger-bg);
-  color: var(--adm-danger);
-  border: 1px solid var(--adm-danger-border-soft);
-}
-
-/* green — 90%+ seated */
+/* 90%+ seated */
 .statusReady {
-  background: var(--adm-ok-bg);
-  color: var(--adm-ok);
-  border: 1px solid var(--adm-ok-border);
+  background: var(--adm-ink-dark);
+  color: var(--adm-surface);
+  border: 1px solid var(--adm-ink-dark);
 }
 
 /* ── Mobile ── */
@@ -401,30 +456,40 @@
   .main { padding: 16px 12px 40px; }
 }
 
-/* ── Live badge ── */
-.liveBadge {
+/* ── Data-state badge ── */
+/* One badge, three states — see AdminEventDetailScreen.module.css for why the
+   permanently-green version was worse than no badge at all. */
+.liveBadge,
+.loadBadge,
+.staleBadge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: var(--step--3);
   font-weight: 700;
-  color: var(--adm-ok-mid);
-  background: var(--adm-ok-bg-soft);
-  border: 1px solid var(--adm-ok-border-soft);
   border-radius: var(--radius-lg);
   padding: 2px 8px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.liveDot {
+.liveBadge  { color: var(--adm-ink-mid);   background: var(--adm-bg-sunken); border: 1px solid var(--adm-line); }
+.loadBadge  { color: var(--adm-ink-muted); background: var(--adm-bg-sunken); border: 1px solid var(--adm-line); }
+.staleBadge { color: var(--adm-danger);    background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft); }
+
+.liveDot,
+.loadDot,
+.staleDot {
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--adm-ok-mid);
   flex-shrink: 0;
 }
+
+.liveDot  { background: var(--adm-ink-mid); }
+.loadDot  { background: var(--adm-ink-faint); }
+.staleDot { background: var(--adm-danger); }
 
 /* ── Owner link (email → filter events) ── */
 /* One column of eight saturated brand-pink strings was the loudest thing in a
@@ -443,21 +508,42 @@
   text-decoration-color: currentColor;
 }
 
-/* The status is the column an operator scans, and it sits last — so on a
-   narrow window it was the first thing to slide out of view. It stays put
-   while the rest of the row scrolls under it. */
+/* ── The pinned action column ──────────────────────────────────────────────
+   "צפה" is the ONLY route into an event, and it was unreachable at every
+   width measured — 1440, 1024 and 390 — because this rule had two bugs
+   stacked on it.
+
+   (a) The comment named the status column; `td:last-child` is the ACTION
+       column. Status is nth-last-child(2). Whatever the intent, the rule was
+       never applied to the element it described.
+   (b) `inset-inline-start: 0` computes to `right: 0` in RTL — the edge the
+       first column is already glued to. The table overflows to the LEFT here,
+       so a column pinned to the right can never be brought back into view.
+       Measured before: the link's rect sat at x=76.9–150.8 against a wrap
+       starting at x=190, and elementFromPoint at its centre returned the page
+       background.
+
+   Pinned to the inline END (the visual left in RTL), which is the edge the
+   overflow actually hides. */
 .table td:last-child,
 .table th:last-child {
   position: sticky;
-  inset-inline-start: 0;
+  inset-inline-end: 0;
   background: var(--adm-surface);
-  box-shadow: 1px 0 0 var(--adm-line-soft);
+  /* Sits above the scrolling cells rather than beside them, so the column
+     reads as pinned and the row underneath reads as continuing. */
+  box-shadow: 6px 0 10px -6px var(--adm-shadow-mid), 1px 0 0 var(--adm-line);
+  z-index: 1;
 }
 
 .table th:last-child {
   background: var(--adm-bg-alt);
+  z-index: 2;
 }
 
 .table tbody tr:hover td:last-child {
   background: var(--adm-bg);
 }
+
+.actionCol  { text-align: center; }
+.actionCell { text-align: center; }

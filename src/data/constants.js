@@ -35,8 +35,6 @@ export const TABLE_SHAPES = [
   { value:"ellipse", label:"אליפסה", glyph:"⬭" },
 ];
 export const DEFAULT_TABLE_SHAPE = "round";
-export const tableShape = t => TABLE_SHAPES.find(s => s.value === t?.shape) ||
-                               TABLE_SHAPES.find(s => s.value === DEFAULT_TABLE_SHAPE);
 
 // Non-table fixtures placed on the venue sketch. They occupy space and matter
 // for orientation ("who sits near the speakers?") but never hold guests, so

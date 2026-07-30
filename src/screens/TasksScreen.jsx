@@ -8,6 +8,7 @@ import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./TasksScreen.module.css";
 
@@ -17,6 +18,7 @@ const EMPTY = { title: "", note: "", due: "", priority: "normal" };
 const todayISO = () => localISODate();
 
 export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) {
+  const { confirm, dialog } = useConfirm();
   const [form,   setForm]   = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [adding, setAdding] = useState(false);
@@ -62,9 +64,9 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
       ? { ...t, status, doneAt: status === "done" ? Date.now() : null }
       : t));
 
-  const remove = (id) => {
+  const remove = async (id) => {
     const t = tasks.find(x => x.id === id);
-    if (!confirm(`למחוק את "${t?.title ?? "המשימה"}"?`)) return;
+    if (!await confirm(`למחוק את "${t?.title ?? "המשימה"}"?`, { danger: true, confirmLabel: "מחקו" })) return;
     write(list => list.filter(x => x.id !== id));
     // Same as vendors: clear the open editor, or "שמרו" writes nothing and
     // still reports success.
@@ -88,6 +90,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
 
   return (
     <div className={base.page}>
+      {dialog}
       <PageHeader
         title="לוח משימות"
         mark="tasks"
@@ -104,7 +107,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
       <div className={base.card}>
         <div className={styles.toolbar}>
           <button className={base.btnPrimary} onClick={() => { setAdding(true); setEditId(null); setForm(EMPTY); }}>
-            ＋ משימה חדשה
+            <Icon name="plus" size={15} /> משימה חדשה
           </button>
           {tasks.length === 0 && (
             <button className={base.btnSm} onClick={loadStarter}>
@@ -114,8 +117,8 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
           {done > 0 && (
             <button
               className={[base.btnSm, base.btnGhost].join(" ")}
-              onClick={() => {
-                if (!confirm(`למחוק ${done} משימות שהושלמו?`)) return;
+              onClick={async () => {
+                if (!await confirm(`למחוק ${done} משימות שהושלמו?`, { danger: true, confirmLabel: "מחקו" })) return;
                 write(list => list.filter(t => t.status !== "done"));
                 showToast("המשימות שהושלמו נמחקו");
               }}
@@ -208,11 +211,13 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
                       <div className={styles.taskActions}>
                         {TASK_STATUSES.filter(s => s.value !== t.status).map(s => (
                           <button key={s.value} className={styles.moveBtn} onClick={() => move(t.id, s.value)}>
-                            {s.value === "done" ? "✓ הושלם" : "→ " + s.label}
+                            {s.value === "done"
+                              ? <><Icon name="check" size={13} /> הושלם</>
+                              : <><Icon name="arrowLeft" size={13} /> {s.label}</>}
                           </button>
                         ))}
                         <button className={styles.iconBtn} onClick={() => startEdit(t)} aria-label="עריכה"><Icon name="edit" size={15} /></button>
-                        <button className={styles.iconBtn} onClick={() => remove(t.id)} aria-label="מחיקה">✕</button>
+                        <button className={styles.iconBtn} onClick={() => remove(t.id)} aria-label="מחיקה"><Icon name="close" size={15} /></button>
                       </div>
                     </div>
                   );

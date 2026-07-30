@@ -288,6 +288,36 @@ const MARKS = {
     </>
   ),
 
+  /* Privacy — a shield with a lock, because the promise the page makes is that
+     the guest list is held, not shared. */
+  privacy: (s) => (
+    <>
+      <path d="M12 2.8l7.4 2.9v6.1c0 4.6-3.1 8-7.4 9.4-4.3-1.4-7.4-4.8-7.4-9.4V5.7z" className={s.plate} />
+      <path d="M9.6 12.2v-1.9a2.4 2.4 0 0 1 4.8 0v1.9" className={s.line} />
+      <rect x="8.7" y="12.2" width="6.6" height="4.9" rx="1.5" className={s.live} />
+    </>
+  ),
+
+  /* Terms — the document, with the clause that is actually signed picked out. */
+  terms: (s) => (
+    <>
+      <path d="M5.2 2.8h9.1l4.5 4.5v13.9H5.2z" className={s.plate} />
+      <path d="M14.3 2.8v4.5h4.5" className={s.line} />
+      <path d="M8.4 11.6h7.2M8.4 15h7.2" className={s.line} />
+      <circle cx="9.6" cy="18.4" r="1.5" className={s.live} />
+    </>
+  ),
+
+  /* Accessibility — a person, standing in the middle of the plate rather than
+     beside it. */
+  accessibility: (s) => (
+    <>
+      <circle cx="12" cy="12" r="8.8" className={s.plate} />
+      <circle cx="12" cy="7.2" r="1.6" className={s.live} />
+      <path d="M7.9 10.2h8.2M12 10.6v4.2M12 14.8l-2.4 3.9M12 14.8l2.4 3.9" className={s.line} />
+    </>
+  ),
+
   /* Cloud sync — not a section of its own, but the landing page promises it
      beside five things that are, and one stray line icon in that row would
      break the set. */

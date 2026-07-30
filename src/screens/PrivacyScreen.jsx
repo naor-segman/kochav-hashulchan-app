@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
+import SectionMark from "../components/ui/SectionMark.jsx";
+import Footer from "../components/layout/Footer.jsx";
 
 export default function PrivacyScreen() {
   return (
@@ -12,7 +14,10 @@ export default function PrivacyScreen() {
       </header>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>מדיניות פרטיות</h1>
+        <div className={styles.titleRow}>
+          <SectionMark name="privacy" size={26} tile />
+          <h1 className={styles.title}>מדיניות פרטיות</h1>
+        </div>
         <p className={styles.updated}>עודכן לאחרונה: 21 ביולי 2026</p>
 
         <section className={styles.section}>
@@ -83,6 +88,8 @@ export default function PrivacyScreen() {
           <Link to="/" className={styles.backLink}>→ חזרה לדף הבית</Link>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

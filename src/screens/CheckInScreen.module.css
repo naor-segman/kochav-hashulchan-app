@@ -177,11 +177,15 @@
   color: var(--text2);
 }
 
-/* ACCENT MOMENT 1 of 3 — which of the two views you are in. */
+/* ACCENT MOMENT 1 of 3 — which of the two views you are in.
+   The ground is the app's single "selected" pair (--accent-bg + --accent-text,
+   as in `.segActive`); the rule underneath is the tab-bar affordance on top of
+   it, not a second treatment. */
 .viewTabActive {
+  background: var(--accent-bg);
   color: var(--accent-text);
   border-bottom-color: var(--accent);
-  font-weight: 800;
+  font-weight: var(--font-weight-extrabold);
 }
 
 /* ── Search ── */

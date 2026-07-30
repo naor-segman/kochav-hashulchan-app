@@ -208,7 +208,7 @@ export default function CollabScreen() {
                 <div className={styles.cardTop}>
                   <input className={[styles.input, styles.nameInput].join(" ")} value={r.name || ""} placeholder="שם מלא"
                     onChange={e => editRow(r.id, { name: e.target.value })} />
-                  <button className={styles.del} onClick={() => removeRow(r.id)} aria-label="מחיקת שורה" title="מחיקה">✕</button>
+                  <button className={styles.del} onClick={() => removeRow(r.id)} aria-label="מחיקת שורה" title="מחיקה"><Icon name="close" size={14} /></button>
                 </div>
                 {failed.has(r.id) && (
                   <p className={styles.saveWarn} role="status">
@@ -253,7 +253,7 @@ export default function CollabScreen() {
                 )}
 
                 {complete
-                  ? <div className={styles.rowOk}>✓ מלאה — מסונכרנת לרשימה</div>
+                  ? <div className={styles.rowOk}><Icon name="check" size={13} /> מלאה — מסונכרנת לרשימה</div>
                   : <div className={styles.rowWarn}><Icon name="alert" size={13} /> חסר: {miss.join(", ")} — לא תסתנכרן עד שיושלם</div>}
                 {r.updated_by && <div className={styles.byLine}>עודכן ע"י {r.updated_by}</div>}
               </div>

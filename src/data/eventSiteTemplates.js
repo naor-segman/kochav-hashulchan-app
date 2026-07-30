@@ -5,22 +5,52 @@
 import { uid } from "../utils/uid.js";
 
 // Visual themes (color + display treatment) available to the public event site.
-// Kept independent of the app's teal system — these are celebratory event looks.
+// Kept independent of the app's magenta system — these are celebratory event
+// looks, and the host picks what their guests see. That decision stands; the
+// pass below is legibility, not identity.
+//
+// ── Contrast (30.7) ────────────────────────────────────────────────────────
+// Seven of the ten themes failed AA on the guest-facing page. Measured, not
+// judged: `accent` carries body-weight text (the timeline times, the countdown
+// figures, the wish names, the FAQ chevrons) AND is the fill under `onAccent`
+// on the "אישור הגעה" button; `muted` carries the story, the FAQ answers and
+// every caption. Both were measured against every ground they are actually
+// composited on — `bg`, `surface`, and `accentSoft`, which is a GROUND (the
+// countdown tile) and not just a tint.
+//
+//   before → after, accent/bg · onAccent/accent · muted/bg
+//     sky        3.74/3.97/4.41 → 4.91/5.21/4.88
+//     olive      2.83/3.06/4.15 → 4.80/5.19/4.80
+//     rose       3.42/3.66/4.30 → 5.01/5.36/4.99
+//     sand       2.37/2.53/3.94 → 5.04/5.39/5.02
+//     emerald    3.90/4.19/4.39 → 4.86/5.22/4.86
+//     terracotta 3.82/4.13/4.34 → 5.10/5.51/5.11
+//     blush      2.78/2.96/3.99 → 4.99/5.31/5.02
+//     plum       4.58/4.94/4.58 → 5.06/5.46/5.02   (failed only on accentSoft, 4.10)
+//     midnight   passed the three above, failed accent/accentSoft at 3.95 → 4.52
+//     night      passed everywhere; untouched.
+//
+// Each value was moved along OKLCH LIGHTNESS ONLY — hue and chroma held to the
+// authored value — and only as far as the binary search needed to clear 4.50.
+// That is why the themes still read as תכלת, זית, טרקוטה and so on: the colour
+// is the same colour, at the lightness it needed to be legible. The two dark
+// themes move the other way (lighter), because on them that is the direction
+// of more contrast.
 export const SITE_THEMES = {
   sky: {
     key: "sky", label: "תכלת שמיים",
-    bg: "#F4F9FB", surface: "#FFFFFF", ink: "#173747", muted: "#5E7883",
-    accent: "#2E86C1", accentSoft: "#E5F1FA", line: "#DCE7EF", onAccent: "#FFFFFF",
+    bg: "#F4F9FB", surface: "#FFFFFF", ink: "#173747", muted: "#57717C",
+    accent: "#1272AC", accentSoft: "#E5F1FA", line: "#DCE7EF", onAccent: "#FFFFFF",
   },
   olive: {
     key: "olive", label: "זית וחול",
-    bg: "#F7F6F1", surface: "#FFFFFF", ink: "#3A3A2E", muted: "#7A776A",
-    accent: "#8A9A5B", accentSoft: "#EEF0E4", line: "#E4E2D6", onAccent: "#FFFFFF",
+    bg: "#F7F6F1", surface: "#FFFFFF", ink: "#3A3A2E", muted: "#706D60",
+    accent: "#647335", accentSoft: "#EEF0E4", line: "#E4E2D6", onAccent: "#FFFFFF",
   },
   rose: {
     key: "rose", label: "ורד רך",
-    bg: "#FBF6F7", surface: "#FFFFFF", ink: "#3E2A30", muted: "#8A6E75",
-    accent: "#C56A7E", accentSoft: "#F7E8EC", line: "#EEDCE1", onAccent: "#FFFFFF",
+    bg: "#FBF6F7", surface: "#FFFFFF", ink: "#3E2A30", muted: "#7F646A",
+    accent: "#A64F63", accentSoft: "#F7E8EC", line: "#EEDCE1", onAccent: "#FFFFFF",
   },
   night: {
     key: "night", label: "לילה וזהב",
@@ -29,33 +59,33 @@ export const SITE_THEMES = {
   },
   sand: {
     key: "sand", label: "חול חם",
-    bg: "#FAF7F2", surface: "#FFFFFF", ink: "#3B342B", muted: "#857A6B",
-    accent: "#C89B5A", accentSoft: "#F3EADB", line: "#E7DECE", onAccent: "#FFFFFF",
+    bg: "#FAF7F2", surface: "#FFFFFF", ink: "#3B342B", muted: "#74695A",
+    accent: "#8D621D", accentSoft: "#F3EADB", line: "#E7DECE", onAccent: "#FFFFFF",
   },
   emerald: {
     key: "emerald", label: "אמרלד",
-    bg: "#F3F8F5", surface: "#FFFFFF", ink: "#1E3A2E", muted: "#5C7A6C",
-    accent: "#2E8B6A", accentSoft: "#E2F2EA", line: "#D8E8DF", onAccent: "#FFFFFF",
+    bg: "#F3F8F5", surface: "#FFFFFF", ink: "#1E3A2E", muted: "#557365",
+    accent: "#187B5B", accentSoft: "#E2F2EA", line: "#D8E8DF", onAccent: "#FFFFFF",
   },
   plum: {
     key: "plum", label: "שזיף",
-    bg: "#F9F5FA", surface: "#FFFFFF", ink: "#3A2A40", muted: "#7C6A84",
-    accent: "#8B5EA6", accentSoft: "#F0E7F4", line: "#E7DCEC", onAccent: "#FFFFFF",
+    bg: "#F9F5FA", surface: "#FFFFFF", ink: "#3A2A40", muted: "#75647D",
+    accent: "#84579F", accentSoft: "#F0E7F4", line: "#E7DCEC", onAccent: "#FFFFFF",
   },
   terracotta: {
     key: "terracotta", label: "טרקוטה",
-    bg: "#FBF5F1", surface: "#FFFFFF", ink: "#3F2A21", muted: "#8A6E60",
-    accent: "#C4603D", accentSoft: "#F6E5DC", line: "#EDDBD0", onAccent: "#FFFFFF",
+    bg: "#FBF5F1", surface: "#FFFFFF", ink: "#3F2A21", muted: "#7E6355",
+    accent: "#AD4B27", accentSoft: "#F6E5DC", line: "#EDDBD0", onAccent: "#FFFFFF",
   },
   midnight: {
     key: "midnight", label: "כחול חצות",
     bg: "#0F1826", surface: "#1A2536", ink: "#E6EDF6", muted: "#8FA3BD",
-    accent: "#5B8FD6", accentSoft: "#22314A", line: "#2A3A54", onAccent: "#0F1826",
+    accent: "#659AE1", accentSoft: "#22314A", line: "#2A3A54", onAccent: "#0F1826",
   },
   blush: {
     key: "blush", label: "פודרה",
-    bg: "#FBF7F5", surface: "#FFFFFF", ink: "#3D3033", muted: "#8A7679",
-    accent: "#B98A8E", accentSoft: "#F5EAEB", line: "#EEE0E1", onAccent: "#FFFFFF",
+    bg: "#FBF7F5", surface: "#FFFFFF", ink: "#3D3033", muted: "#7A6669",
+    accent: "#8B6064", accentSoft: "#F5EAEB", line: "#EEE0E1", onAccent: "#FFFFFF",
   },
 };
 

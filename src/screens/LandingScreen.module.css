@@ -35,10 +35,13 @@
 }
 
 .navLogoMark {
-  /* On the near-black nav, --accent-text (#B01253) is 2.66:1 — it disappeared.
-     --accent-text is calibrated for LIGHT grounds; on the dark chrome the
-     saturated --accent is the legible member of the family (4.84:1). */
-  color: var(--accent);
+  /* The brand glyph appeared in FOUR different pinks on this page, three of
+     them on the same ink ground. One rule, the documented one: --accent-text on
+     a light ground, --accent-on-dark on a dark one. --accent is a FILL token
+     (CLAUDE.md bug class 4) and was never the right answer for a glyph.
+     Here — the near-black nav — that is --accent-on-dark at 9.52:1, against
+     4.87:1 for the --accent that was here and 2.66:1 for --accent-text. */
+  color: var(--accent-on-dark);
   font-size: var(--step-2);
   line-height: 1;
 }
@@ -859,11 +862,13 @@
   z-index: 1;
 }
 
+/* Ink ground → the dark case of the brand-mark rule. The opacity is gone with
+   the old colour: a translucent glyph composites to a fourth pink, which is
+   exactly the thing being fixed. */
 .ctaStar {
   display: block;
   font-size: 44px;
-  color: var(--blush);
-  opacity: 0.42;
+  color: var(--accent-on-dark);
   margin-bottom: 24px;
   animation: landingSpin 20s linear infinite;
   line-height: 1;
@@ -906,8 +911,10 @@
 
 .ctaNote {
   font-size: var(--step--1);
+  /* Was --nav-muted at opacity .65, which composites to 3.65:1 on the ink
+     banner. This is the line that removes the last objection before signing
+     up. Dim it by choosing a dimmer colour, not by fading a chosen one. */
   color: var(--nav-muted);
-  opacity: 0.65;
   margin: 0;
 }
 
@@ -1025,6 +1032,13 @@
   margin-bottom: 14px;
 }
 
+/* The mock card is a near-white surface, so this is the LIGHT case of the
+   brand-mark rule and --accent-text is already the right token (6.51:1 on the
+   composited #F0F1F1). It is the only one of the page's four marks that was
+   correct: the other three all sit on the ink ground and are now all
+   --accent-on-dark. The rule is per-ground, so "one colour everywhere" would
+   be the wrong fix — "one colour per ground, chosen by the same rule" is the
+   right one. */
 .mockCardMark {
   color: var(--accent-text);
   font-size: var(--step-0);
@@ -1356,10 +1370,20 @@
   border-block: 1px solid var(--border);
   padding: 40px 0;
 }
+/* Four claims. `auto-fit, minmax(220px, 1fr)` fitted three of them per row from
+   about 1000px down to 640px and orphaned the fourth alone in the right-hand
+   column — a 3 + 1 break reads as one claim being different from the others.
+   An explicit ladder: four, then two, then one. Never three. */
 .trustGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 28px;
+}
+@media (max-width: 1000px) {
+  .trustGrid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 520px) {
+  .trustGrid { grid-template-columns: 1fr; gap: 20px; }
 }
 .trustItem { display: flex; gap: 14px; align-items: flex-start; }
 /* The blush ground here is deliberate: it is the surface the system uses when

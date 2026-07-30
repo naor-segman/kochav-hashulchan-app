@@ -112,8 +112,6 @@
   padding: 12px 16px;
   font-size: var(--step--1);
   color: var(--adm-danger);
-  direction: ltr;
-  text-align: left;
 }
 
 .retryBtn {
@@ -148,12 +146,14 @@
   max-width: 360px;
 }
 
+/* `left: 11px` in a right-to-left interface put the magnifier at the far end
+   of the field from where the caret and the typing begin. Logical property. */
 .searchIcon {
   position: absolute;
-  left: 11px;
+  inset-inline-start: 11px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--step-1);
+  display: inline-flex;
   color: var(--adm-ink-faint);
   pointer-events: none;
   line-height: 1;
@@ -164,7 +164,9 @@
   box-sizing: border-box;
   border: 1px solid var(--adm-line-strong);
   border-radius: var(--radius-md);
-  padding: 8px 12px 8px 32px;
+  padding-block: 8px;
+  padding-inline-start: 34px;
+  padding-inline-end: 12px;
   font-size: var(--step-0);
   color: var(--adm-ink);
   background: var(--adm-surface);
@@ -191,17 +193,6 @@
   border-radius: var(--radius);
   padding: 48px 24px;
   text-align: center;
-}
-
-.loadingText {
-  font-size: var(--step-0);
-  color: var(--adm-ink-faint);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
 }
 
 .emptyTitle {
@@ -260,6 +251,10 @@
 .table tbody tr:hover td { background: var(--adm-bg); }
 
 /* ── Cell variants ── */
+/* `direction` is what decides which end `text-overflow` eats. In the RTL cell
+   the ellipsis removed the logical end of the LTR string — the mailbox name,
+   the only part that identifies the customer — and kept the shared domain:
+   "…-department-of-events.example.co.il". */
 .emailCell {
   font-size: var(--step--1);
   font-weight: 500;
@@ -268,6 +263,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: isolate;
 }
 
 .nameCell {
@@ -298,10 +296,14 @@
   white-space: nowrap;
 }
 
+/* Amber "מנהל" next to a blue plan badge in the very next column put two
+   unrelated hue systems side by side in a panel that is meant to be silent.
+   An elevated role is a value, not a warning: it gets the filled end of the
+   ink ladder, the ordinary role the quiet end. */
 .badgeAdmin {
-  background: var(--adm-warn-bg-strong);
-  color: var(--adm-warn);
-  border: 1px solid var(--adm-warn-border);
+  background: var(--adm-ink-dark);
+  color: var(--adm-surface);
+  border: 1px solid var(--adm-ink-dark);
 }
 
 .badgeUser {
@@ -311,35 +313,37 @@
 }
 
 /* ── Plan badges ── */
+/* Were grey / blue / violet: three hues, in the column right next to the role
+   badge's amber, to encode three ORDERED tiers. Colour is the wrong tool for
+   an ordered quantity and the panel does not get to spend it here at all.
+   A value ladder instead — quiet text, outline chip, filled ink — which reads
+   as a tier at a glance and survives greyscale. */
 .planFree {
   font-size: var(--step--1);
-  color: var(--adm-ink-faint);
+  color: var(--adm-ink-muted);
+}
+
+.planPro,
+.planEnterprise {
+  display: inline-block;
+  border-radius: var(--radius-lg);
+  padding: 2px 8px;
+  font-size: var(--step--3);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .planPro {
-  display: inline-block;
-  background: var(--adm-info-bg);
-  color: var(--adm-badge-blue-ink);
-  border: 1px solid var(--adm-info-border);
-  border-radius: var(--radius-lg);
-  padding: 2px 8px;
-  font-size: var(--step--3);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  background: var(--adm-surface);
+  color: var(--adm-ink-darker);
+  border: 1px solid var(--adm-line-strong);
 }
 
 .planEnterprise {
-  display: inline-block;
-  background: var(--adm-badge-purple-bg);
-  color: var(--adm-badge-purple-ink);
-  border: 1px solid var(--adm-badge-purple-border);
-  border-radius: var(--radius-lg);
-  padding: 2px 8px;
-  font-size: var(--step--3);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  background: var(--adm-ink-dark);
+  color: var(--adm-surface);
+  border: 1px solid var(--adm-ink-dark);
 }
 
 /* ── Mobile ── */
@@ -349,29 +353,39 @@
 }
 
 /* ── Live badge ── */
-.liveBadge {
+/* One badge, three states — it used to say "נתונים חיים" in green whatever
+   was actually on screen, including under a red 500 banner. */
+.liveBadge,
+.loadBadge,
+.staleBadge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: var(--step--3);
   font-weight: 700;
-  color: var(--adm-ok-mid);
-  background: var(--adm-ok-bg-soft);
-  border: 1px solid var(--adm-ok-border-soft);
   border-radius: var(--radius-lg);
   padding: 2px 8px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.liveDot {
+.liveBadge  { color: var(--adm-ink-mid);   background: var(--adm-bg-sunken); border: 1px solid var(--adm-line); }
+.loadBadge  { color: var(--adm-ink-muted); background: var(--adm-bg-sunken); border: 1px solid var(--adm-line); }
+.staleBadge { color: var(--adm-danger);    background: var(--adm-danger-bg); border: 1px solid var(--adm-danger-border-soft); }
+
+.liveDot,
+.loadDot,
+.staleDot {
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--adm-ok-mid);
   flex-shrink: 0;
 }
+
+.liveDot  { background: var(--adm-ink-mid); }
+.loadDot  { background: var(--adm-ink-faint); }
+.staleDot { background: var(--adm-danger); }
 
 /* ── Event count link ── */
 /* A column of brand-pink numbers in the quiet panel, where the colour was
@@ -390,8 +404,10 @@
   text-decoration-color: currentColor;
 }
 
-/* Says out loud that the list is a window, not the whole table. */
+/* Says out loud that the list is a window, not the whole table. Was amber —
+   the panel's one semantic colour is reserved for a failing payment, and a
+   truncated window is a fact about the query, not an alarm. */
 .truncNote {
-  color: var(--adm-badge-amber-ink);
-  font-weight: 600;
+  color: var(--adm-ink-dark);
+  font-weight: 700;
 }

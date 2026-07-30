@@ -116,6 +116,38 @@ describe("autoAssign", () => {
   });
 });
 
+// affinityScore is the entire "smart" in smart seating, and it was completely
+// unpinned: an audit inverted its sign — making the engine deliberately seat
+// people with the OTHER side and the OTHER group — and all 334 tests stayed
+// green. Every other assertion in this file is about capacity, locks and
+// constraints; none was about who ends up next to whom, which is the product.
+describe("affinityScore — who ends up next to whom", () => {
+  it("seats a guest with their own side and group rather than the opposite one", () => {
+    // Two tables, each already holding one anchor. The newcomer shares side and
+    // group with the anchor at t1 and neither with the anchor at t2, and both
+    // tables have exactly one seat left, so the engine has to choose.
+    const guests = [
+      g("anchorSame",  { side: "bride", group: "משפחה" }),
+      g("anchorOther", { side: "groom", group: "עבודה" }),
+      g("newcomer",    { side: "bride", group: "משפחה" }),
+    ];
+    const tables = [t("t1", 2), t("t2", 2)];
+    const seating = autoAssign(guests, tables, [], { anchorSame: "t1", anchorOther: "t2" });
+    expect(seating.newcomer).toBe("t1");
+  });
+
+  it("prefers the same side when the group does not match either table", () => {
+    const guests = [
+      g("brideAnchor", { side: "bride", group: "חברים" }),
+      g("groomAnchor", { side: "groom", group: "עבודה" }),
+      g("newcomer",    { side: "bride", group: "שכנים" }),
+    ];
+    const tables = [t("t1", 2), t("t2", 2)];
+    const seating = autoAssign(guests, tables, [], { brideAnchor: "t1", groomAnchor: "t2" });
+    expect(seating.newcomer).toBe("t1");
+  });
+});
+
 describe("computeViolations", () => {
   const guests = [g("a", { name: "אבי" }), g("b", { name: "בני" })];
   const tables = [t("t1", 10), t("t2", 10)];
@@ -131,10 +163,23 @@ describe("computeViolations", () => {
     expect(v.some(x => x.type === "together")).toBe(true);
   });
 
-  it("flags a 'together' pair where one guest is unseated", () => {
-    const seating = { a: "t1" };
-    const v = computeViolations(guests, tables, [together("a", "b")], seating);
-    expect(v.some(x => x.type === "together")).toBe(true);
+  // A violation is a CONFLICT, not "not finished yet". The count used to jump
+  // 0 → 1 the moment the host seated the FIRST member of a together pair,
+  // because a half-seated pair counted and an entirely unseated pair did not.
+  // Seating a guest is progress; it must never raise the violation count.
+  it("does not count a 'together' pair that is only half seated", () => {
+    const v = computeViolations(guests, tables, [together("a", "b")], { a: "t1" });
+    expect(v.some(x => x.type === "together")).toBe(false);
+  });
+
+  it("keeps the together count monotone as guests get seated", () => {
+    const c = [together("a", "b")];
+    const none = computeViolations(guests, tables, c, {}).filter(x => x.type === "together").length;
+    const half = computeViolations(guests, tables, c, { a: "t1" }).filter(x => x.type === "together").length;
+    const both = computeViolations(guests, tables, c, { a: "t1", b: "t1" }).filter(x => x.type === "together").length;
+    const split = computeViolations(guests, tables, c, { a: "t1", b: "t2" }).filter(x => x.type === "together").length;
+    expect([none, half, both]).toEqual([0, 0, 0]);
+    expect(split).toBe(1);
   });
 
   it("flags 'apart' guests seated at the same table", () => {
@@ -242,7 +287,18 @@ describe("cluster members that are already pinned", () => {
   });
 });
 
-describe("the individual-guest fallback obeys the same rules as clustering", () => {
+describe("seatClusterBestEffort obeys the same rules as clustering", () => {
+  // This block used to be named for the individual-guest fallback that ran
+  // after the cluster passes. That fallback was dead code and has been removed
+  // — and its "still honours an apart constraint" test never entered it, and
+  // asserted conditionally (`if (seating.mum && seating.dad)`), so it passed
+  // whether or not the guard existed.
+  //
+  // The live path is seatClusterBestEffort: it packs any `together` cluster
+  // too large for a single table. Deleting its apart guard left the whole
+  // suite green while a fuzz run immediately produced 849 engine-created apart
+  // violations. These two enter it and assert unconditionally.
+
   it("never exceeds capacity", () => {
     // Three 5-seat rows, one 10-seat table: the third must NOT be seated.
     const seating = autoAssign(
@@ -253,14 +309,38 @@ describe("the individual-guest fallback obeys the same rules as clustering", () 
     expect(used).toBeLessThanOrEqual(10);
   });
 
-  it("still honours an apart constraint when guests fall through to it", () => {
-    // Crowded room — exactly the case where the constraint matters most.
+  it("keeps an apart pair apart while packing an oversized together cluster", () => {
+    // One together-chain of 8 seats against 4-seat tables, so the cluster
+    // cannot fit anywhere and MUST go through bestEffort. The chain drags an
+    // apart pair along with it — the exact collision the guard exists for.
     const seating = autoAssign(
-      [g("mum", { count: 2 }), g("dad", { count: 2 }), g("x", { count: 2 }), g("y", { count: 2 })],
-      [t("t1", 4), t("t2", 4)],
-      [{ id: "c1", type: "apart", guestA: "mum", guestB: "dad" }]
+      [g("a", { count: 2 }), g("b", { count: 2 }), g("c", { count: 2 }), g("d", { count: 2 })],
+      [t("t1", 4), t("t2", 4), t("t3", 4)],
+      [
+        { id: "c1", type: "together", guestA: "a", guestB: "b" },
+        { id: "c2", type: "together", guestA: "b", guestB: "c" },
+        { id: "c3", type: "together", guestA: "c", guestB: "d" },
+        { id: "c4", type: "apart",    guestA: "a", guestB: "c" },
+      ]
     );
-    if (seating.mum && seating.dad) expect(seating.mum).not.toBe(seating.dad);
+    // Unconditional: everyone fits in 12 seats, so everyone must be seated.
+    expect(Object.keys(seating).sort()).toEqual(["a", "b", "c", "d"]);
+    expect(seating.a).not.toBe(seating.c);
+  });
+
+  it("never lets bestEffort overfill a table", () => {
+    const seating = autoAssign(
+      [g("a", { count: 3 }), g("b", { count: 3 }), g("c", { count: 3 })],
+      [t("t1", 4), t("t2", 4)],
+      [
+        { id: "c1", type: "together", guestA: "a", guestB: "b" },
+        { id: "c2", type: "together", guestA: "b", guestB: "c" },
+      ]
+    );
+    for (const tid of ["t1", "t2"]) {
+      const used = ["a", "b", "c"].filter(id => seating[id] === tid).length * 3;
+      expect(used).toBeLessThanOrEqual(4);
+    }
   });
 });
 

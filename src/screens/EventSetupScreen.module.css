@@ -1,35 +1,5 @@
 /* EventSetupScreen-specific styles */
 
-/* Orientation, not action. This screen is a form: one column of attention, and
-   the only tinted band on it is the NextStep rail at the very bottom. A pink
-   banner at the top competed with it for the same job. */
-.stepGuide {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-inline-start: 3px solid var(--border2);
-  border-radius: var(--radius);
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-
-.stepBadge {
-  font-size: var(--step--2);
-  font-weight: 800;
-  color: var(--text);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.stepText {
-  font-size: var(--step--1);
-  color: var(--text2);
-  line-height: 1.4;
-}
-
 /* The rule that governs whether the host can move on — it is not fine print.
    --muted was the faintest ink in the product carrying the one instruction on
    the card; --text2 is 7.57:1. */

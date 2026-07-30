@@ -11,6 +11,7 @@ import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./VendorsScreen.module.css";
 
@@ -22,6 +23,7 @@ const EMPTY = {
 const ils = n => "₪" + Math.round(n).toLocaleString("he-IL");
 
 export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }) {
+  const { confirm, dialog } = useConfirm();
   const [form, setForm]     = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [adding, setAdding] = useState(false);
@@ -65,9 +67,9 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
     setAdding(true);
   };
 
-  const remove = id => {
+  const remove = async id => {
     const v = vendors.find(x => x.id === id);
-    if (!confirm(`למחוק את "${v?.name ?? "הספק"}"?`)) return;
+    if (!await confirm(`למחוק את "${v?.name ?? "הספק"}"?`, { danger: true, confirmLabel: "מחקו" })) return;
     write(l => l.filter(x => x.id !== id));
     // Deleting the row that is open for editing left the form up; pressing
     // "שמרו" then matched nothing yet still toasted success.
@@ -85,6 +87,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
 
   return (
     <div className={base.page}>
+      {dialog}
       <PageHeader
         title="ספקים"
         mark="vendors"
@@ -123,7 +126,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
       <div className={base.card}>
         <div className={styles.toolbar}>
           <button className={base.btnPrimary} onClick={() => { setAdding(true); setEditId(null); setForm(EMPTY); }}>
-            ＋ ספק חדש
+            <Icon name="plus" size={15} /> ספק חדש
           </button>
           {vendors.length > 0 && (
             <div className={styles.filters}>
@@ -245,10 +248,10 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
 
                   <div className={styles.rowActions}>
                     {v.status !== "booked" && (
-                      <button className={styles.actBtn} onClick={() => setStatus(v.id, "booked")}>✓ סגור</button>
+                      <button className={styles.actBtn} onClick={() => setStatus(v.id, "booked")}><Icon name="check" size={13} /> סגור</button>
                     )}
                     <button className={styles.iconBtn} onClick={() => startEdit(v)} aria-label="עריכה"><Icon name="edit" size={15} /></button>
-                    <button className={styles.iconBtn} onClick={() => remove(v.id)} aria-label="מחיקה">✕</button>
+                    <button className={styles.iconBtn} onClick={() => remove(v.id)} aria-label="מחיקה"><Icon name="close" size={15} /></button>
                   </div>
                 </div>
               );

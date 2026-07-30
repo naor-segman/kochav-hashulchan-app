@@ -4,42 +4,9 @@ import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventsScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatDate(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso + (iso.includes("T") ? "" : "T00:00:00"));
-  if (isNaN(d)) return iso;
-  return d.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
-
-function formatRelative(iso) {
-  if (!iso) return "—";
-  const diff = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(diff / 86_400_000);
-  if (days === 0) return "היום";
-  if (days === 1) return "אתמול";
-  if (days < 7)  return `לפני ${days} ימים`;
-  if (days < 30) return `לפני ${Math.floor(days / 7)} שבועות`;
-  return formatDate(iso);
-}
-
-// Derive a display status from the event's denormalised counters.
-// Returns { label, cls } where cls is a CSS module key.
-function deriveStatus(ev) {
-  const g = ev.guest_count ?? 0;
-  const t = ev.table_count ?? 0;
-  const s = Number(ev.seated_pct ?? 0);
-
-  if (g === 0 && t === 0) return { label: "ריק",          cls: styles.statusEmpty    };
-  if (g === 0)            return { label: "אין אורחים",   cls: styles.statusWarning  };
-  if (t === 0)            return { label: "אין שולחנות",  cls: styles.statusWarning  };
-  if (s >= 90)            return { label: "מוכן",          cls: styles.statusReady    };
-  if (s >= 50)            return { label: "בעיבוד",        cls: styles.statusProgress };
-  if (s >  0)             return { label: "בעיות",         cls: styles.statusIssues   };
-  return                         { label: "ממתין לסידור",  cls: styles.statusPending  };
-}
+import Icon from "../../components/ui/Icon.jsx";
+import { formatDate, formatRelative } from "../lib/adminFormat.js";
+import { deriveEventStatus } from "../lib/eventStatus.js";
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
 //
@@ -145,15 +112,31 @@ export default function AdminEventsScreen() {
       {/* ── Top bar ── */}
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <Link to="/admin/dashboard" className={styles.backLink}>←</Link>
+          <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminEvents" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>כל האירועים</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>כוכב השולחן</span>
-          <span className={styles.liveBadge}>
-            <span className={styles.liveDot} />
-            נתונים חיים
-          </span>
+          {/* Was green and unconditional, including with a 500 banner under it
+              and zero rows loaded. Now it reports the state it is in. */}
+          {!loading && !error && (
+            <span className={styles.liveBadge}>
+              <span className={styles.liveDot} />
+              נתונים חיים
+            </span>
+          )}
+          {loading && (
+            <span className={styles.loadBadge}>
+              <span className={styles.loadDot} />
+              טוען נתונים
+            </span>
+          )}
+          {error && (
+            <span className={styles.staleBadge}>
+              <span className={styles.staleDot} />
+              הנתונים לא נטענו
+            </span>
+          )}
         </div>
         <div className={styles.topbarRight}>
           {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}
@@ -174,7 +157,11 @@ export default function AdminEventsScreen() {
         {/* ── Toolbar ── */}
         <div className={styles.toolbar}>
           <div className={styles.searchWrap}>
-            <span className={styles.searchIcon}>⌕</span>
+            {/* Was the literal "⌕" — a fourth icon vocabulary alongside
+                SectionMark, Icon and TableGlyph, and positioned with
+                `left: 11px` in a right-to-left interface, i.e. ~300px from
+                where the caret and the typing actually start. */}
+            <span className={styles.searchIcon}><Icon name="search" size={16} /></span>
             <input
               className={styles.searchInput}
               type="text"
@@ -225,6 +212,15 @@ export default function AdminEventsScreen() {
 
         {/* ── Events table ── */}
         {!loading && !error && filtered.length > 0 && (
+          <>
+          {/* Eleven columns fit at 1440 and do not below it — three of them
+              render at 390px. Shown by a media query at exactly the width the
+              table stops fitting, so it never claims a scroll that is not
+              there. The pinned action column casts the matching shadow. */}
+          <p className={styles.scrollHint}>
+            <Icon name="list" size={14} />
+            הטבלה רחבה מהמסך — אפשר לגלול אותה לצדדים. עמודת הפעולה נשארת במקומה.
+          </p>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
@@ -243,21 +239,25 @@ export default function AdminEventsScreen() {
                   <th className={styles.numCol}>ישיבה</th>
                   <th>עדכון</th>
                   <th>סטטוס</th>
-                  <th></th>
+                  <th className={styles.actionCol}>פעולה</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((ev) => {
-                  const status = deriveStatus(ev);
+                  const status = deriveEventStatus(ev, styles);
                   return (
                     <tr key={ev.id}>
-                      <td className={styles.nameCell}>{ev.name}</td>
+                      <td className={styles.nameCell} title={ev.name}>{ev.name}</td>
                       <td className={styles.typeCell}>{ev.type}</td>
                       <td className={styles.dateCell}>{formatDate(ev.date)}</td>
-                      <td className={styles.venueCell}>
+                      <td className={styles.venueCell} title={ev.venue || undefined}>
                         {ev.venue || <span className={styles.muted}>—</span>}
                       </td>
-                      <td className={styles.ownerCell}>
+                      {/* dir="ltr" is what decides WHICH END the ellipsis eats.
+                          In the RTL cell it ate the logical end of the LTR
+                          string — the mailbox name, the part that identifies
+                          the customer — and kept the shared domain. */}
+                      <td className={styles.ownerCell} dir="ltr">
                         {ev.owner_email
                           ? (
                             <Link
@@ -273,15 +273,13 @@ export default function AdminEventsScreen() {
                       </td>
                       <td className={styles.numCell}>{ev.guest_count}</td>
                       <td className={styles.numCell}>{ev.table_count}</td>
-                      <td className={styles.numCell}>
-                        {ev.seated_pct > 0
-                          ? `${Math.round(ev.seated_pct)}%`
-                          : <span className={styles.muted}>—</span>
-                        }
-                      </td>
+                      {/* 0% seated is a measurement, not missing data. "—"
+                          told the operator we had no number for an event we
+                          know is at zero. */}
+                      <td className={styles.numCell}>{`${Math.round(ev.seated_pct)}%`}</td>
                       <td className={styles.relativeCell}>{formatRelative(ev.updated_at)}</td>
                       <td><span className={status.cls}>{status.label}</span></td>
-                      <td>
+                      <td className={styles.actionCell}>
                         <Link
                           to={`/admin/events/${ev.id}`}
                           className={styles.viewLink}
@@ -295,6 +293,7 @@ export default function AdminEventsScreen() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
       </main>
