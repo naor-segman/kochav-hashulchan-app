@@ -20,6 +20,96 @@ function safeName(str) {
   return (str || "סידור הושבה").replace(/[/\\?%*:|"<>[\]]/g, "-");
 }
 
+// ── The shared collaborative table ───────────────────────────────────────────
+//
+// One builder, used by BOTH screens that offer to download that table: the
+// relative's public page (CollabScreen) and the host's hub (CollabReviewScreen).
+// They each had their own copy, and the copies had drifted into two different
+// features wearing one label: the relative's button exported the collab rows,
+// the host's exported `ev.guests`. Both wrote a file named
+// `אורחים-<event>.xlsx` — which is also the name GuestManagerScreen's full-list
+// export writes. Three buttons, three datasets, one filename in the Downloads
+// folder.
+//
+// The rule now: this button exports THE SHARED TABLE, on both screens, under its
+// own filename. The host's full guest list has its own export in the guest
+// manager and does not need a second, thinner one here.
+
+const COLLAB_FIELDS = [
+  ["name",        "שם"],
+  ["phone",       "טלפון"],
+  ["side",        "צד"],
+  ["guest_group", "קבוצה"],
+];
+
+/**
+ * Which required fields a shared-table row is still missing, in Hebrew.
+ * Empty array = the row is complete and syncs into the guest list.
+ * `guests_count` is never listed: it always defaults to 1, so it is never
+ * missing. Exported so the screen badge and the exported סטטוס column can never
+ * disagree about what "complete" means.
+ */
+export function collabRowMissing(row) {
+  return COLLAB_FIELDS
+    .filter(([k]) => !((row?.[k] ?? "").toString().trim()))
+    .map(([, label]) => label);
+}
+
+/**
+ * Download the shared collaborative table as a workbook.
+ *
+ * @param {object[]} rows       collab rows: { name, phone, side, guest_group,
+ *                              guests_count, companions, updated_by }
+ * @param {object}   opts
+ * @param {string}   opts.eventName   used for the filename only
+ * @param {object}   opts.sideLabels  { bride, groom } — already localised
+ */
+export async function exportCollabTableToExcel(rows, { eventName, sideLabels } = {}) {
+  const XLSX = await import("xlsx");
+  const sides = sideLabels || {};
+  const list  = Array.isArray(rows) ? rows : [];
+
+  const aoa = [[
+    "שם מלא", "טלפון", "צד", "קבוצה", "כמות", "שמות המצטרפים", "נוסף/עודכן ע״י", "סטטוס",
+  ]];
+
+  list.forEach(r => {
+    const count = Number(r.guests_count) || 1;
+    // The companion names are the reason this table exists — a host who
+    // downloads it and finds "9" with nobody named has been handed a number,
+    // not a guest list. Clamped to the extra seats exactly as the app clamps
+    // them, so a stale longer array can't print people who have no chair.
+    const companions = (Array.isArray(r.companions) ? r.companions : [])
+      .slice(0, Math.max(0, count - 1))
+      .map(c => (c || "").toString().trim())
+      .filter(Boolean)
+      .join(", ");
+    const missing = collabRowMissing(r);
+    aoa.push([
+      r.name || "",
+      r.phone || "",
+      sides[r.side] || "",
+      r.guest_group || "",
+      count,
+      companions,
+      r.updated_by || "",
+      missing.length ? "חסר: " + missing.join(", ") : "מלאה — מסונכרנת",
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    { wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 },
+    { wch: 7 }, { wch: 34 }, { wch: 16 }, { wch: 24 },
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "טבלה שיתופית");
+  // Same reason as the seating export: without this the Hebrew sheet opens
+  // left-to-right, with the first column on the wrong side.
+  wb.Workbook = { Views: [{ RTL: true }] };
+  XLSX.writeFile(wb, `טבלה-שיתופית-${(eventName || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
+}
+
 export async function exportToExcel(ev, sideLabel, violations) {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();

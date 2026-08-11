@@ -9,6 +9,7 @@ import { GROUP_OPTIONS } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
 import { hostsLabel } from "../utils/hostsLabel.js";
+import { collabRowMissing, exportCollabTableToExcel } from "../utils/exportHelpers.js";
 import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 
@@ -17,15 +18,9 @@ const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתו�
 
 // A row syncs to the guest list only when every field the seating system needs
 // is present. Count always defaults to 1, so it's never "missing".
-function missingFields(r) {
-  const m = [];
-  if (!(r.name || "").trim())  m.push("שם");
-  if (!(r.phone || "").trim()) m.push("טלפון");
-  if (!r.side)                 m.push("צד");
-  if (!r.guest_group)          m.push("קבוצה");
-  return m;
-}
-const isComplete = (r) => missingFields(r).length === 0;
+// The predicate itself lives next to the export that prints it as a status
+// column — one definition of "complete", not one per screen.
+const isComplete = (r) => collabRowMissing(r).length === 0;
 
 export default function CollabScreen() {
   const { token } = useParams();
@@ -186,19 +181,13 @@ export default function CollabScreen() {
 
   const saveMe = (v) => { setMe(v); try { localStorage.setItem("collab_me", v); } catch { /* ignore */ } };
 
-  const downloadExcel = async () => {
-    const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות"]];
-    rows.forEach(r => aoa.push([r.name || "", r.phone || "", sides[r.side] || "", r.guest_group || "", r.guests_count || 1]));
-    // Loaded on demand: a static import made the 416KB xlsx chunk a hard
-    // dependency of this page, which relatives open on their phones to type in
-    // names — they were downloading a spreadsheet writer to do it.
-    const XLSX = await import("xlsx");
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 }, { wch: 7 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "רשימת אורחים");
-    XLSX.writeFile(wb, `אורחים-${(ev.name || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
-  };
+  // Shared with the host's hub so the two cannot drift into exporting different
+  // things under the same label. xlsx itself is still loaded on demand inside
+  // the helper: a static import made the 416KB spreadsheet writer a hard
+  // dependency of this page, which relatives open on their phones to type in
+  // names.
+  const downloadExcel = () =>
+    exportCollabTableToExcel(rows, { eventName: ev.name, sideLabels: sides });
 
   const completeCount = rows.filter(isComplete).length;
 
@@ -225,7 +214,9 @@ export default function CollabScreen() {
 
           <div className={styles.toolbar}>
             <button className={styles.btn} onClick={addRow}>+ הוסיפו שורה</button>
-            <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}><Icon name="download" /> הורדה לאקסל</button>
+            {/* The label says WHICH list you get. A plain "הורדה לאקסל" is also
+                the guest manager's button, which hands you a different file. */}
+            <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}><Icon name="download" /> הורדת הטבלה לאקסל</button>
           </div>
           <div className={styles.counts}>
             {rows.length} רשומות · <span className={styles.ok}>{completeCount} מלאות ומסונכרנות</span>
@@ -239,7 +230,7 @@ export default function CollabScreen() {
 
         <div className={styles.rowsList}>
           {rows.map(r => {
-            const miss = missingFields(r);
+            const miss = collabRowMissing(r);
             const complete = miss.length === 0;
             return (
               <div key={r.id} className={[styles.guestCard, complete ? styles.cardOk : styles.cardWarn].join(" ")}>

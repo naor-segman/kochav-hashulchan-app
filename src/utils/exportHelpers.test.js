@@ -19,7 +19,8 @@ vi.mock("xlsx", () => ({
   writeFile: (wb, filename) => { written = { wb, filename }; },
 }));
 
-const { exportToExcel } = await import("./exportHelpers.js");
+const { exportToExcel, exportCollabTableToExcel, collabRowMissing } =
+  await import("./exportHelpers.js");
 
 const sideLabel = s => (s === "bride" ? "כלה" : "חתן");
 const g = (id, extra = {}) => ({
@@ -107,6 +108,77 @@ describe("exportToExcel — seat expansion (entrance list)", () => {
     expect(entrance).toContain("רונית (טל)");
     expect(entrance).not.toContain("יוסי");
     expect(entrance).not.toContain("דנה");
+  });
+});
+
+// The shared collaborative table. Both screens that offer to download it now go
+// through this one builder — the whole point is that they cannot drift into
+// exporting different datasets under the same label again.
+describe("exportCollabTableToExcel", () => {
+  const sideLabels = { bride: "צד הכלה", groom: "צד החתן" };
+  const opts = { eventName: "חתונת נועה וטל", sideLabels };
+  const collabRows = [
+    { id: "r1", name: "יעל כהן", phone: "0501112222", side: "bride", guest_group: "משפחה קרובה",
+      guests_count: 9, companions: ["אבי", "בני", "גילי", "דנה", "הדס", "ורד", "זהר", "חן"], updated_by: "רונית" },
+    { id: "r2", name: "משה לוי", phone: "", side: null, guest_group: null, guests_count: 1, companions: [] },
+  ];
+  const rowsOf = () => sheetNamed("טבלה שיתופית").rows;
+
+  it("writes the companion names — the reason the table exists", async () => {
+    await exportCollabTableToExcel(collabRows, opts);
+    const r = rowsOf()[1];
+    expect(r[0]).toBe("יעל כהן");
+    expect(r[4]).toBe(9);
+    // Before this existed the sheet said "9" and named nobody.
+    expect(r[5]).toBe("אבי, בני, גילי, דנה, הדס, ורד, זהר, חן");
+  });
+
+  it("never prints a companion who has no chair", async () => {
+    await exportCollabTableToExcel(
+      [{ id: "r", name: "טל", guests_count: 2, companions: ["רונית", "יוסי", "דנה"] }], opts);
+    expect(rowsOf()[1][5]).toBe("רונית");
+  });
+
+  it("says which rows are still incomplete instead of printing them as equals", async () => {
+    await exportCollabTableToExcel(collabRows, opts);
+    const [, complete, incomplete] = rowsOf();
+    expect(complete[7]).toBe("מלאה — מסונכרנת");
+    expect(incomplete[7]).toBe("חסר: טלפון, צד, קבוצה");
+  });
+
+  it("carries who added the row, and the localised side", async () => {
+    await exportCollabTableToExcel(collabRows, opts);
+    expect(rowsOf()[1][2]).toBe("צד הכלה");
+    expect(rowsOf()[1][6]).toBe("רונית");
+  });
+
+  it("sets workbook RTL, so a Hebrew sheet does not open left-to-right", async () => {
+    await exportCollabTableToExcel(collabRows, opts);
+    expect(written.wb.Workbook).toEqual({ Views: [{ RTL: true }] });
+  });
+
+  it("uses a filename of its own — not the one two other exports already use", async () => {
+    await exportCollabTableToExcel(collabRows, opts);
+    expect(written.filename).toBe("טבלה-שיתופית-חתונת נועה וטל.xlsx");
+    expect(written.filename.startsWith("אורחים-")).toBe(false);
+  });
+
+  it("survives an empty table and a missing event name", async () => {
+    await exportCollabTableToExcel([], {});
+    expect(rowsOf()).toHaveLength(1); // header only
+    expect(written.filename).toBe("טבלה-שיתופית-אירוע.xlsx");
+  });
+});
+
+describe("collabRowMissing", () => {
+  it("lists exactly the four fields the sync requires", () => {
+    expect(collabRowMissing({})).toEqual(["שם", "טלפון", "צד", "קבוצה"]);
+  });
+  it("never reports the seat count, which always defaults to 1", () => {
+    expect(collabRowMissing({ name: "א", phone: "05", side: "bride", guest_group: "חברים" })).toEqual([]);
+  });
+  it("treats whitespace-only values as missing", () => {
+    expect(collabRowMissing({ name: "   ", phone: "05", side: "bride", guest_group: "חברים" })).toEqual(["שם"]);
   });
 });
 

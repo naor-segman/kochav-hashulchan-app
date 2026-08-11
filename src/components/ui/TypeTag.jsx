@@ -7,7 +7,7 @@ const TYPE_MAP = {
   // 3.80:1. The fill-only rule is enforced in CSS everywhere else; an inline
   // style is the one place it could slip through.
   vip:     ["VIP",   "var(--accent-text)"],
-  bar:     ["בר",    "var(--warn)"],
+  bar:     ["Bar",   "var(--warn)"],
   small:   ["קטן",   "var(--green)"],
   head:    ["ראשי",  "var(--groom)"], // legacy — kept so old events still render
 };

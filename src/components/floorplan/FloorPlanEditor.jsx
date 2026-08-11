@@ -20,6 +20,7 @@ const collisionStrategy = (args) => {
 const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
+import { nextTableNames } from "../../utils/tableNames.js";
 import { VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
 import TableGlyph from "../ui/TableGlyph.jsx";
 import VenueCanvas from "./VenueCanvas.jsx";
@@ -449,10 +450,16 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
     const newIds = snapshot.tables.map(() => uid());
 
     patchEvent(e => {
-      const baseIdx   = e.tables.length;
+      // Names come from the event's own numbering, not from `tables.length`:
+      // delete "שולחן 5" from a fourteen-table event and a count-based name is
+      // "שולחן 14", which is already on the floor. A duplicate is a defect
+      // everywhere else in the product — SeatingScreen's rename refuses one —
+      // because the WhatsApp message and the printed entry card address a
+      // table by name.
+      const names     = nextTableNames(e.tables, snapshot.tables.length);
       const newTables = snapshot.tables.map((det, i) => ({
         id:       newIds[i],
-        name:     "שולחן " + (baseIdx + i + 1),
+        name:     names[i],
         capacity: det.seats || 8,
         type:     "regular",
       }));
