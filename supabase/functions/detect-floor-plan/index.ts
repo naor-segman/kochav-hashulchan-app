@@ -72,6 +72,27 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
   if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
+  // A signed-in user can still call this in a loop, and the only limit in front
+  // of it was `canUseAI(plan)` — which runs in the BROWSER. A client-side gate
+  // is a UI affordance, not a limit: this endpoint is reachable with curl and a
+  // valid session. The count lives in Postgres, the check is atomic with the
+  // insert, and the claim happens BEFORE the key is spent — not after, which
+  // would rate-limit the response and still pay for the request.
+  const { data: remaining, error: limitError } =
+    await supabaseUser.rpc("claim_ai_call", { call_kind: "detect-floor-plan" });
+  if (limitError) {
+    // 53400 is the code claim_ai_call raises at the ceiling. Anything else is a
+    // real failure (function not deployed, database down) and must not be
+    // reported to the host as "you have used your quota".
+    const atLimit = limitError.code === "53400" ||
+      /rate limit reached/i.test(limitError.message ?? "");
+    if (atLimit) {
+      return json({ error: "rate_limited", note: "יותר מדי בקשות זיהוי. נסו שוב בעוד שעה." }, 429);
+    }
+    console.error("claim_ai_call failed:", limitError);
+    return json({ error: "Rate limit check failed" }, 503);
+  }
+
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) {
     return json({ error: "ANTHROPIC_API_KEY is not configured for this environment." }, 503);
@@ -141,7 +162,10 @@ Deno.serve(async (req: Request) => {
         y:     Math.min(100, Math.max(0, Number(t.y)  || 50)),
       }));
 
-    return json({ tables, totalDetected: tables.length, note: parsed.note ?? null });
+    // `remaining` lets the screen say how many detections are left instead of
+    // only saying "no" once the ceiling is hit.
+    return json({ tables, totalDetected: tables.length, note: parsed.note ?? null,
+                  remaining: typeof remaining === "number" ? remaining : null });
 
   } catch (err: any) {
     console.error("detect-floor-plan error:", err?.message ?? err);

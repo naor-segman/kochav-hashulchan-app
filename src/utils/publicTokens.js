@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
+import { toSeatIndex } from "./arrival.js";
 
 function mapPublicEvent(data) {
   return {
@@ -46,12 +47,17 @@ export async function fetchEventByToken(tokenType, token) {
 }
 
 /**
- * Fetch the hostess dataset (guest list + tables + seating map) by hostess
+ * Fetch the entrance dataset (guest list + tables + seating map) by hostess
  * token. Guest phone numbers are never included — the SQL function returns
- * only id / name / count per guest.
+ * only id / name / count / companions / arrivedSeats per guest.
+ *
+ * `writesOpen` is the server's answer to "may this link mark arrival", read
+ * from payload->>'hostessWriteActive'. It is advisory for the UI only: the
+ * write RPC re-checks the same switch, because a token holder can call the RPC
+ * directly and a toggle that only hides a button is decoration.
  *
  * @param {string} token — the hostess UUID token from the URL
- * @returns {{ id, name, guests: [], tables: [], seating: {} }|null}
+ * @returns {{ cloudId, name, guests: [], tables: [], seating: {}, writesOpen: boolean }|null}
  */
 export async function fetchHostessData(token) {
   if (!isSupabaseConfigured || !supabase || !token) return null;
@@ -65,7 +71,42 @@ export async function fetchHostessData(token) {
     guests:  Array.isArray(data.guests) ? data.guests : [],
     tables:  Array.isArray(data.tables) ? data.tables : [],
     seating: (data.seating && typeof data.seating === "object") ? data.seating : {},
+    // Absent means open, matching the collab switch: an event whose owner has
+    // never touched the setting must not hand the greeter a dead link.
+    writesOpen: data.writes_open !== false,
   };
+}
+
+/**
+ * Mark which people of one guest row are physically in the room, by hostess
+ * token.
+ *
+ * This is the ONLY write the entrance link can perform. It cannot add a guest,
+ * cannot move anyone between tables, cannot read or write a phone number and
+ * cannot touch gifts — not because this function declines to, but because
+ * `hostess_mark_arrival_by_token` is the only write RPC the token opens and it
+ * touches exactly `arrivedSeats` and `arrived` on one row.
+ *
+ * @param {string}   token   the hostess token from the URL — the authorisation
+ * @param {string}   guestId the guest row id
+ * @param {number[]} seats   seat indices that have arrived
+ */
+export async function markArrivalByToken(token, guestId, seats) {
+  if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
+  // Bounded here so an oversized array is rejected before the round-trip, and
+  // bounded again in SQL because this function is not the security boundary.
+  const clean = [...new Set(
+    (Array.isArray(seats) ? seats : [])
+      .map(toSeatIndex)
+      .filter(i => i !== null && i < 200),
+  )].sort((a, b) => a - b).slice(0, 50);
+
+  const { error } = await supabase.rpc("hostess_mark_arrival_by_token", {
+    token_value: token,
+    guest_id:    String(guestId || "").slice(0, 64),
+    seats:       clean,
+  });
+  if (error) throw error;
 }
 
 /**
@@ -80,7 +121,7 @@ export async function fetchRSVPResponses(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
   const { data, error } = await supabase
     .from("rsvp_responses")
-    .select("id, guest_name, phone, attending, guests_count, status, companions, shuttle_id, created_at")
+    .select("id, guest_name, phone, attending, guests_count, status, companions, shuttle_id, meal, created_at")
     .eq("event_id", eventCloudId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -114,6 +155,9 @@ export async function submitRSVP(token, response) {
   const count = Math.max(0, Math.min(50, rawCount));
   // Only meaningful for guests who are coming; "no" never carries a shuttle.
   const shuttleId = status === "no" ? null : (response.shuttleId || null);
+  // Same rule for the meal: someone who is not coming does not eat. Bounded
+  // here as well as in SQL — this is not the boundary, the RPC is.
+  const meal = status === "no" ? null : ((response.meal || "").slice(0, 40) || null);
 
   const { error } = await supabase.rpc("submit_rsvp_by_token", {
     token_value:  token,
@@ -123,6 +167,7 @@ export async function submitRSVP(token, response) {
     guests_count: count,
     companions,
     shuttle_id:   shuttleId,
+    meal,
   });
   if (error) throw error;
 }

@@ -80,3 +80,11 @@
   }
   .switchKnob { top: 50%; margin-top: -10px; }
 }
+
+/* Sits between the link row and the actions, so "החליפו קישור" is explained
+   before it is offered rather than after. Quieter than the copy above it —
+   this is the escape hatch, not the instruction. */
+.rotateHint {
+  margin-top: 14px;
+  margin-bottom: 0;
+}

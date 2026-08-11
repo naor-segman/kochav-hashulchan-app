@@ -68,8 +68,10 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       lockedGuests:     Array.isArray(localEvent.lockedGuests) ? localEvent.lockedGuests : [],
       lockedTables:     Array.isArray(localEvent.lockedTables) ? localEvent.lockedTables : [],
       tokens: localEvent.tokens ?? null,
+      tokensRotatedAt: Number.isFinite(localEvent.tokensRotatedAt) ? localEvent.tokensRotatedAt : null,
       costs:  localEvent.costs  ?? {},
       collabActive:       localEvent.collabActive === false ? false : true,
+      hostessWriteActive: localEvent.hostessWriteActive === false ? false : true,
       giftBitPhone:   localEvent.giftBitPhone   ?? "",
       giftPayboxLink: localEvent.giftPayboxLink ?? "",
       eventSite:      localEvent.eventSite      ?? null,
@@ -140,6 +142,7 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     // tokens object. A column that is NULL (e.g. added by a later migration)
     // must not clobber an already-shared token still held in payload.tokens —
     // otherwise normalizeEvent regenerates it and the distributed link breaks.
+    tokensRotatedAt: Number.isFinite(p.tokensRotatedAt) ? p.tokensRotatedAt : null,
     tokens: (cloudRow.rsvp_token || p.tokens) ? {
       rsvp:    cloudRow.rsvp_token    ?? p.tokens?.rsvp    ?? null,
       invite:  cloudRow.invite_token  ?? p.tokens?.invite  ?? null,
@@ -153,6 +156,7 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     } : null,
     costs: (p.costs && typeof p.costs === "object") ? p.costs : {},
     collabActive:   p.collabActive === false ? false : true,
+    hostessWriteActive: p.hostessWriteActive === false ? false : true,
     giftBitPhone:   p.giftBitPhone   ?? "",
     giftPayboxLink: p.giftPayboxLink ?? "",
     eventSite:      p.eventSite      ?? null,

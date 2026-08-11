@@ -2116,3 +2116,609 @@ $$;
 
 REVOKE ALL ON FUNCTION public.report_error(text, text, text, text, text) FROM public;
 GRANT EXECUTE ON FUNCTION public.report_error(text, text, text, text, text) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260811000000_entrance_scoped_writes.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- עמדת כניסה — the entrance link stops being read-only.
+--
+-- The hostess token could only VIEW. So at a real event the greeter was handed
+-- the OWNER'S ACCOUNT to mark arrivals — the one credential that can also read
+-- every phone number, edit the guest list, and delete the event. That is unsafe
+-- and impractical, and it is what actually happened.
+--
+-- This migration gives the same token exactly ONE write: which people of one
+-- guest row are physically in the room. It cannot add a guest, cannot move
+-- anyone between tables, cannot read a phone number, cannot touch gifts. Not
+-- because the client declines to offer those — a token holder can call any RPC
+-- directly with curl — but because this is the only write function the token
+-- opens, and it touches exactly two keys on one row.
+--
+-- Shape copied deliberately from 20260730000001_collab_active_switch.sql:
+-- SECURITY DEFINER keyed on the token, every field length-bounded server-side,
+-- and an on/off switch read from payload->>'hostessWriteActive' so the host can
+-- close the door link after the event without invalidating the URL the greeter
+-- already has.
+--
+-- Default is ON. Absent means open, exactly as `collabActive` behaves, because
+-- the failure mode of defaulting to closed is that the next event repeats the
+-- one this fixes: the greeter opens the link, it does nothing, and nobody knows
+-- why. Only an explicit "false" closes it.
+--
+-- ARRIVAL IS PER-PERSON. A guest row is a GROUP — `count` people, `companions`
+-- names. `arrived` was one boolean for the whole row, so marking the aunt
+-- marked her husband and three children with her. The canonical field is now
+-- `arrivedSeats`: an array of seat indices. `arrived` is still written, as
+-- "somebody from this row is here", so every existing reader keeps working.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ── The switch ───────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.hostess_writes_active(e public.events)
+RETURNS boolean
+LANGUAGE sql IMMUTABLE
+AS $$
+  SELECT COALESCE(e.payload->>'hostessWriteActive', 'true') <> 'false';
+$$;
+
+-- ── Read ─────────────────────────────────────────────────────────────────────
+-- Replaces the version in 20260723000001_companions.sql. Three additions, each
+-- for a thing the screen could not do without it:
+--   arrivedSeats — otherwise the greeter's phone shows everyone as not-arrived
+--                  and she re-marks people who are already inside;
+--   capacity/shape — the table glyph on this screen was already being rendered
+--                  with `shape` and `capacity` that this function never
+--                  returned, so it drew a default-shaped, zero-capacity table
+--                  on every chip;
+--   writes_open  — so the UI can say "the host has closed marking" instead of
+--                  failing silently on every tap.
+-- Phone numbers are still absent. That has not changed and must not.
+CREATE OR REPLACE FUNCTION public.hostess_data_by_token(token_value text)
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT jsonb_build_object(
+    'id',    e.id,
+    'name',  e.name,
+    'guests', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id',           g->>'id',
+        'name',         g->>'name',
+        'count',        COALESCE((g->>'count')::int, 1),
+        'companions',   COALESCE(g->'companions', '[]'::jsonb),
+        'rsvp',         g->>'rsvp',
+        'arrived',      COALESCE((g->>'arrived')::boolean, false),
+        'arrivedSeats', COALESCE(g->'arrivedSeats', 'null'::jsonb)
+      ))
+      FROM jsonb_array_elements(COALESCE(e.payload->'guests', '[]'::jsonb)) g
+    ), '[]'::jsonb),
+    'tables', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id',       t->>'id',
+        'name',     t->>'name',
+        'capacity', COALESCE((t->>'capacity')::int, 0),
+        'shape',    t->>'shape'
+      ))
+      FROM jsonb_array_elements(COALESCE(e.payload->'tables', '[]'::jsonb)) t
+    ), '[]'::jsonb),
+    'seating',     COALESCE(e.payload->'seating', '{}'::jsonb),
+    'writes_open', public.hostess_writes_active(e)
+  )
+  FROM public.events e
+  WHERE token_value IS NOT NULL
+    AND char_length(token_value) >= 8
+    AND e.hostess_token = token_value
+  LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.hostess_data_by_token(text) FROM public;
+GRANT EXECUTE ON FUNCTION public.hostess_data_by_token(text) TO anon, authenticated;
+
+-- ── The one write ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.hostess_mark_arrival_by_token(
+  token_value text,
+  guest_id    text,
+  seats       jsonb
+)
+RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  ev_id      uuid;
+  seat_count int;
+  clean      jsonb;
+BEGIN
+  SELECT e.id INTO ev_id
+  FROM public.events e
+  WHERE token_value IS NOT NULL
+    AND char_length(token_value) >= 8
+    AND e.hostess_token = token_value
+    AND public.hostess_writes_active(e)
+  LIMIT 1;
+  IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
+
+  IF guest_id IS NULL OR char_length(guest_id) = 0 OR char_length(guest_id) > 64 THEN
+    RAISE EXCEPTION 'guest id required';
+  END IF;
+
+  -- The row's own seat count is the ceiling. A caller cannot invent seats for
+  -- a party of two and inflate the number the host gives the caterer.
+  SELECT greatest(1, COALESCE((g->>'count')::int, 1))
+    INTO seat_count
+  FROM public.events e,
+       jsonb_array_elements(COALESCE(e.payload->'guests', '[]'::jsonb)) g
+  WHERE e.id = ev_id AND g->>'id' = guest_id
+  LIMIT 1;
+  IF seat_count IS NULL THEN RAISE EXCEPTION 'guest not found'; END IF;
+
+  -- Deduped, sorted, integers only, inside [0, seat_count).
+  --
+  -- The regex is inside the CASE, not in a WHERE beside the cast: Postgres does
+  -- not promise to evaluate a subquery's WHERE before its select list, and is
+  -- free to push the cast down — so `["abc"]` would raise "invalid input syntax
+  -- for type integer" instead of being quietly ignored, which is the exact
+  -- failure this guard exists to prevent. Non-matching entries become NULL, and
+  -- the outer predicate drops them (NULL >= 0 is NULL, not true).
+  SELECT COALESCE(jsonb_agg(DISTINCT v ORDER BY v), '[]'::jsonb)
+    INTO clean
+  FROM (
+    SELECT CASE WHEN x ~ '^[0-9]{1,3}$' THEN x::int END AS v
+    FROM jsonb_array_elements_text(
+           CASE WHEN jsonb_typeof(seats) = 'array' THEN seats ELSE '[]'::jsonb END
+         ) AS x
+  ) s
+  WHERE v >= 0 AND v < seat_count;
+
+  UPDATE public.events e
+  SET payload = jsonb_set(
+        e.payload,
+        '{guests}',
+        COALESCE((
+          SELECT jsonb_agg(
+            CASE WHEN t.g->>'id' = guest_id
+              THEN t.g
+                   || jsonb_build_object('arrivedSeats', clean)
+                   || jsonb_build_object('arrived', to_jsonb(jsonb_array_length(clean) > 0))
+              ELSE t.g
+            END
+            ORDER BY t.ord
+          )
+          FROM jsonb_array_elements(COALESCE(e.payload->'guests', '[]'::jsonb))
+               WITH ORDINALITY AS t(g, ord)
+        ), '[]'::jsonb)
+      ),
+      -- Bump the version so the owner's next optimistic push conflicts and
+      -- re-pulls instead of silently overwriting arrivals marked at the door.
+      version    = COALESCE(e.version, 1) + 1,
+      updated_at = now()
+  WHERE e.id = ev_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.hostess_mark_arrival_by_token(text, text, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION public.hostess_mark_arrival_by_token(text, text, jsonb) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260811010000_collab_companions_restore.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- RESTORE: companion names on the shared collaborative table.
+--
+-- THE BUG (found 11.8, after a real event):
+--   "מילאתי אורח עם 8 מלווים וכל השמות. זה מסתנכרן לעמוד אורחים. כשאני עורך,
+--    זה נותן לי את הפרטים של האדם הראשי אבל מוחק את כל שמות המלווים."
+--
+-- 20260725000000_collab_companions.sql taught both token RPCs about the
+-- `companions` column. Five days later 20260730000001_collab_active_switch.sql
+-- added the on/off switch by doing CREATE OR REPLACE on the SAME two functions
+-- — copied from the pre-companions version. Postgres does not merge function
+-- bodies: the later file simply won the definition, and the companions support
+-- was silently reverted in every database built or updated from it (including
+-- setup_full.sql, whose last definition of these two functions is the broken
+-- one).
+--
+-- What that cost, exactly:
+--   * collab_upsert_by_token no longer wrote `companions` at all — not on
+--     INSERT (which fell back to the '[]' default) and not in the ON CONFLICT
+--     update. Every companion name a relative typed into the shared table was
+--     discarded at the database.
+--   * collab_list_by_token no longer returned `companions`, so on the next
+--     load the shared table rendered every companion input blank — the exact
+--     "it deletes all the companion names" the owner saw.
+--   * The owner's app reads the table directly (RLS, not the RPC) and DOES
+--     select companions, so it received '[]' and mirrored that emptiness into
+--     the guest list, wiping names that had been typed in the app too.
+--
+-- This restores the companions handling ON TOP of the active-switch guard, so
+-- both properties hold at once. Idempotent — safe to run more than once.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- The column is created by 20260725000000; repeated here so this file can be
+-- applied to a database that somehow missed it.
+ALTER TABLE public.collab_guests
+  ADD COLUMN IF NOT EXISTS companions jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+-- ── List the rows: companions come back ──────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.collab_list_by_token(token_value text)
+RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+    'id',           g.id,
+    'name',         g.name,
+    'phone',        g.phone,
+    'side',         g.side,
+    'guest_group',  g.guest_group,
+    'guests_count', g.guests_count,
+    'companions',   COALESCE(g.companions, '[]'::jsonb),
+    'updated_at',   g.updated_at,
+    'updated_by',   g.updated_by
+  ) ORDER BY g.updated_at DESC), '[]'::jsonb)
+  FROM public.collab_guests g
+  JOIN public.events e ON e.id = g.event_id
+  WHERE e.collab_token = token_value
+    AND char_length(token_value) >= 8
+    AND public.collab_is_active(e);
+$$;
+REVOKE ALL ON FUNCTION public.collab_list_by_token(text) FROM public;
+GRANT EXECUTE ON FUNCTION public.collab_list_by_token(text) TO anon, authenticated;
+
+-- ── Upsert a row: companions are stored again ────────────────────────────────
+-- Positions are preserved (so "מלווה 2" stays the second seat); each name is
+-- trimmed to 80 chars and the array capped at 49 entries (max extra seats for
+-- guests_count ≤ 50).
+CREATE OR REPLACE FUNCTION public.collab_upsert_by_token(token_value text, row_data jsonb)
+RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE ev_id uuid; row_id uuid; comp jsonb;
+BEGIN
+  SELECT e.id INTO ev_id FROM public.events e
+    WHERE e.collab_token = token_value
+      AND char_length(token_value) >= 8
+      AND public.collab_is_active(e)
+    LIMIT 1;
+  IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
+
+  row_id := (row_data->>'id')::uuid;
+  IF row_id IS NULL THEN RAISE EXCEPTION 'id required'; END IF;
+
+  -- Cap total rows per event so a leaked link can't flood the table.
+  IF NOT EXISTS (SELECT 1 FROM public.collab_guests WHERE id = row_id AND event_id = ev_id)
+     AND (SELECT count(*) FROM public.collab_guests WHERE event_id = ev_id) >= 5000 THEN
+    RAISE EXCEPTION 'row limit reached';
+  END IF;
+
+  -- Normalize companions to a bounded jsonb array of ≤80-char strings, in order.
+  comp := (
+    SELECT COALESCE(jsonb_agg(left(COALESCE(elem, ''), 80) ORDER BY ord), '[]'::jsonb)
+    FROM jsonb_array_elements_text(
+      CASE WHEN jsonb_typeof(row_data->'companions') = 'array'
+           THEN row_data->'companions' ELSE '[]'::jsonb END
+    ) WITH ORDINALITY AS a(elem, ord)
+    WHERE ord <= 49
+  );
+
+  INSERT INTO public.collab_guests (id, event_id, name, phone, side, guest_group, guests_count, companions, updated_by, updated_at)
+  VALUES (
+    row_id, ev_id,
+    nullif(left(trim(coalesce(row_data->>'name','')), 120), ''),
+    nullif(left(trim(coalesce(row_data->>'phone','')), 20), ''),
+    nullif(left(row_data->>'side', 20), ''),
+    nullif(left(row_data->>'guest_group', 60), ''),
+    greatest(1, least(50, coalesce((row_data->>'guests_count')::int, 1))),
+    comp,
+    nullif(left(trim(coalesce(row_data->>'updated_by','')), 80), ''),
+    now()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    name         = excluded.name,
+    phone        = excluded.phone,
+    side         = excluded.side,
+    guest_group  = excluded.guest_group,
+    guests_count = excluded.guests_count,
+    companions   = excluded.companions,
+    updated_by   = excluded.updated_by,
+    updated_at   = now()
+  WHERE public.collab_guests.event_id = ev_id;  -- never move a row across events
+END;
+$$;
+REVOKE ALL ON FUNCTION public.collab_upsert_by_token(text, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION public.collab_upsert_by_token(text, jsonb) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260811020000_rsvp_meal.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── The meal question moves to the person who knows the answer ──────────────
+--
+-- `meal` was settable ONLY on the host's guest list. So the host — who at that
+-- point has not spoken to anyone — was guessing who is vegan, and the RSVP form
+-- the guest actually fills in never asked. That is the wrong way round, and it
+-- is the thing the owner named after running a real event: "אין להם מושג מי
+-- יגיע, מה הוא רוצה אם הוא טבעוני… את כל הפרטים האלו מי שממלא זה האורח".
+--
+-- The choice rides along on the RSVP the guest is already submitting — one
+-- form, one submission — exactly as `shuttle_id` does. Values are the keys from
+-- MEAL_OPTIONS in src/data/constants.js. Free-form text, not an enum: the
+-- option list lives in the client and a host who later removes an option must
+-- not break rows already stored. An unrecognised value simply stops resolving
+-- to a label.
+--
+-- Idempotent — safe to run more than once.
+
+ALTER TABLE public.rsvp_responses
+  ADD COLUMN IF NOT EXISTS meal text;
+
+COMMENT ON COLUMN public.rsvp_responses.meal IS
+  'Optional MEAL_OPTIONS key the guest chose (regular/kosher/vegan/vegetarian/child/none). Free-form: the option list lives in the client.';
+
+-- The existing RLS policies on rsvp_responses scope by event ownership and
+-- grant the ROW, not a column list, so the new column needs no policy.
+
+-- ── The write path ──────────────────────────────────────────────────────────
+-- A new 8-argument function. The 7-argument one is NOT dropped — it is
+-- redefined below as a thin forwarder, because the service worker can serve a
+-- cached build for days after a deploy and a guest on that build still calls
+-- the 7-argument signature. Dropping it would turn "I clicked אישור הגעה" into
+-- a permanent failure for exactly the people who already responded once.
+CREATE OR REPLACE FUNCTION public.submit_rsvp_by_token(
+  token_value   text,
+  guest_name    text,
+  phone         text,
+  status        text,
+  guests_count  int,
+  companions    text[],
+  shuttle_id    text,
+  meal          text
+) RETURNS void LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  ev_id uuid;
+  n     int;
+BEGIN
+  IF token_value IS NULL OR char_length(token_value) < 8 THEN
+    RAISE EXCEPTION 'invalid token';
+  END IF;
+
+  SELECT e.id INTO ev_id
+    FROM public.events e
+   WHERE e.rsvp_token = token_value
+   LIMIT 1;
+
+  IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
+
+  IF COALESCE(trim(guest_name), '') = '' THEN
+    RAISE EXCEPTION 'name required';
+  END IF;
+
+  -- Same ceiling submit_guest_by_token uses. A real event does not have 5000
+  -- responses; anything past it is someone hammering the endpoint.
+  SELECT count(*) INTO n FROM public.rsvp_responses WHERE event_id = ev_id;
+  IF n >= 5000 THEN RAISE EXCEPTION 'limit reached'; END IF;
+
+  INSERT INTO public.rsvp_responses
+    (event_id, guest_name, phone, attending, guests_count, status, companions, shuttle_id, meal)
+  VALUES (
+    ev_id,
+    left(trim(guest_name), 200),
+    nullif(left(trim(COALESCE(phone, '')), 40), ''),
+    status = 'yes',
+    greatest(0, least(50, COALESCE(guests_count, 1))),
+    CASE WHEN status IN ('yes', 'no', 'maybe') THEN status ELSE 'yes' END,
+    COALESCE(companions, '{}')::text[],
+    nullif(trim(COALESCE(shuttle_id, '')), ''),
+    -- Bounded server-side like every other free-form field here. A guest who
+    -- is not coming has no meal.
+    CASE WHEN status = 'no' THEN NULL
+         ELSE nullif(left(trim(COALESCE(meal, '')), 40), '') END
+  );
+END; $$;
+
+REVOKE ALL ON FUNCTION public.submit_rsvp_by_token(text, text, text, text, int, text[], text, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.submit_rsvp_by_token(text, text, text, text, int, text[], text, text) TO anon, authenticated;
+
+-- ── The old signature, kept alive as a forwarder ────────────────────────────
+-- Same 7 arguments, same behaviour, meal NULL. Two functions with different
+-- argument counts are not ambiguous to PostgREST, which resolves by the exact
+-- set of argument NAMES it is given.
+CREATE OR REPLACE FUNCTION public.submit_rsvp_by_token(
+  token_value   text,
+  guest_name    text,
+  phone         text,
+  status        text,
+  guests_count  int,
+  companions    text[],
+  shuttle_id    text
+) RETURNS void LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  PERFORM public.submit_rsvp_by_token(
+    token_value, guest_name, phone, status, guests_count, companions, shuttle_id, NULL);
+END; $$;
+
+REVOKE ALL ON FUNCTION public.submit_rsvp_by_token(text, text, text, text, int, text[], text) FROM public;
+GRANT EXECUTE ON FUNCTION public.submit_rsvp_by_token(text, text, text, text, int, text[], text) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260811030000_fix_length_constraints.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── The length constraints from 20260719 were never actually applied ─────────
+--
+-- 20260719000000_public_pages_hardening.sql writes
+--
+--   ALTER TABLE public.rsvp_responses
+--     ADD CONSTRAINT IF NOT EXISTS ck_rsvp_guest_name_len CHECK (...),
+--     ...
+--
+-- PostgreSQL has no `IF NOT EXISTS` for ADD CONSTRAINT. That is a syntax error,
+-- so BOTH statements aborted whole and neither rsvp_responses nor gifts ever
+-- received any of their eight checks. Nothing broke visibly — the RPCs bound
+-- every field server-side anyway — but the file reads as if a second layer of
+-- defence exists, and setup_full.sql carries the same broken statements into
+-- any project built from it.
+--
+-- Added properly here, each one guarded by a catalog lookup so this file is
+-- idempotent and safe on a database that somehow does have them.
+--
+-- ONE DELIBERATE CHANGE: ck_rsvp_phone_len allows 40, not 20. The RPC
+-- (20260728000000) stores `left(trim(phone), 40)` and the client sends up to 40
+-- — applying the original 20 now would start REJECTING RSVPs that have been
+-- accepted all along, which is a worse outcome than the missing check.
+
+DO $$
+DECLARE
+  c record;
+BEGIN
+  FOR c IN
+    SELECT * FROM (VALUES
+      ('rsvp_responses', 'ck_rsvp_guest_name_nonempty', 'char_length(guest_name) > 0'),
+      ('rsvp_responses', 'ck_rsvp_guest_name_len',      'char_length(guest_name) <= 200'),
+      ('rsvp_responses', 'ck_rsvp_phone_len',           'phone IS NULL OR char_length(phone) <= 40'),
+      ('rsvp_responses', 'ck_rsvp_guests_count_range',  'guests_count >= 0 AND guests_count <= 50'),
+      ('gifts',          'ck_gift_donor_name_nonempty', 'char_length(donor_name) > 0'),
+      ('gifts',          'ck_gift_donor_name_len',      'char_length(donor_name) <= 200'),
+      ('gifts',          'ck_gift_message_len',         'message IS NULL OR char_length(message) <= 500'),
+      ('gifts',          'ck_gift_amount_range',        'amount >= 5000 AND amount <= 10000000')
+    ) AS t(tbl, name, expr)
+  LOOP
+    IF to_regclass('public.' || c.tbl) IS NOT NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM pg_constraint
+          WHERE conname = c.name
+            AND conrelid = ('public.' || c.tbl)::regclass
+       )
+    THEN
+      -- NOT VALID: existing rows are not re-checked. A row already stored that
+      -- violates one of these is the host's data, and failing the migration to
+      -- protect a length limit would be the wrong trade. New writes are checked.
+      EXECUTE format('ALTER TABLE public.%I ADD CONSTRAINT %I CHECK (%s) NOT VALID',
+                     c.tbl, c.name, c.expr);
+    END IF;
+  END LOOP;
+END $$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260811040000_ai_rate_limit.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── A real rate limit on the one endpoint that spends money ──────────────────
+--
+-- `detect-floor-plan` calls a paid vision model with the project's Anthropic
+-- key. It already requires a signed-in user — without that, anyone holding the
+-- anon key (which ships in the browser bundle) could bill us in a loop. But a
+-- signed-in user can still loop it, and the only limit in front of it today is
+-- `canUseAI(plan)`, which runs IN THE BROWSER. A client-side gate is a UI
+-- affordance, not a limit: the RPC is reachable with curl.
+--
+-- So the count lives in Postgres, the check is atomic with the insert, and the
+-- edge function claims a call BEFORE it spends the key.
+--
+-- Deliberately NOT a token bucket or a leaky bucket. This has to be obvious to
+-- read at 2am when a host says "it stopped working": a plain row per call, a
+-- plain count over a window, and a limit you can raise with an UPDATE.
+--
+-- Idempotent — safe to run more than once.
+
+CREATE TABLE IF NOT EXISTS public.ai_usage (
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  kind       text        NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- The only query this table serves: "how many calls for this user, of this
+-- kind, since T". Ordered by time so the window scan is a range, not a sort.
+CREATE INDEX IF NOT EXISTS ai_usage_user_kind_time
+  ON public.ai_usage (user_id, kind, created_at DESC);
+
+ALTER TABLE public.ai_usage ENABLE ROW LEVEL SECURITY;
+
+-- A user may READ their own usage — the UI can say "3 מתוך 10 היום" instead of
+-- failing with no explanation. Nobody may INSERT directly: that is the whole
+-- point, and it is why claim_ai_call is SECURITY DEFINER.
+DROP POLICY IF EXISTS ai_usage_owner_read ON public.ai_usage;
+CREATE POLICY ai_usage_owner_read ON public.ai_usage
+  FOR SELECT USING (user_id = auth.uid());
+
+-- ── The claim ────────────────────────────────────────────────────────────────
+-- Returns the number of calls REMAINING in the tighter of the two windows, so
+-- the caller can show it. Raises when the limit is reached — an exception, not
+-- a false return, because the whole value of this function is that a caller
+-- cannot ignore it by forgetting to check a boolean.
+--
+-- The count and the insert are in one statement so two concurrent calls cannot
+-- both see "9 used" and both proceed.
+CREATE OR REPLACE FUNCTION public.claim_ai_call(
+  call_kind  text,
+  per_hour   int DEFAULT 10,
+  per_day    int DEFAULT 30
+)
+RETURNS int
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid       uuid := auth.uid();
+  used_hour int;
+  used_day  int;
+BEGIN
+  IF uid IS NULL THEN
+    RAISE EXCEPTION 'authentication required' USING ERRCODE = '28000';
+  END IF;
+  IF call_kind IS NULL OR char_length(call_kind) = 0 OR char_length(call_kind) > 64 THEN
+    RAISE EXCEPTION 'call kind required';
+  END IF;
+
+  -- Bound what a caller can ask for. These arguments exist so the edge function
+  -- can be tuned per endpoint, not so a client can hand itself a bigger budget.
+  per_hour := greatest(1, least(COALESCE(per_hour, 10), 100));
+  per_day  := greatest(1, least(COALESCE(per_day,  30), 500));
+
+  WITH ins AS (
+    INSERT INTO public.ai_usage (user_id, kind)
+    SELECT uid, call_kind
+    WHERE (SELECT count(*) FROM public.ai_usage
+            WHERE user_id = uid AND kind = call_kind
+              AND created_at > now() - interval '1 hour') < per_hour
+      AND (SELECT count(*) FROM public.ai_usage
+            WHERE user_id = uid AND kind = call_kind
+              AND created_at > now() - interval '1 day') < per_day
+    RETURNING 1
+  )
+  SELECT count(*)::int INTO used_hour FROM ins;
+
+  IF used_hour = 0 THEN
+    RAISE EXCEPTION 'rate limit reached' USING ERRCODE = '53400';
+  END IF;
+
+  SELECT count(*) INTO used_hour FROM public.ai_usage
+   WHERE user_id = uid AND kind = call_kind AND created_at > now() - interval '1 hour';
+  SELECT count(*) INTO used_day FROM public.ai_usage
+   WHERE user_id = uid AND kind = call_kind AND created_at > now() - interval '1 day';
+
+  RETURN least(per_hour - used_hour, per_day - used_day);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_ai_call(text, int, int) FROM public;
+GRANT EXECUTE ON FUNCTION public.claim_ai_call(text, int, int) TO authenticated;
+
+-- ── Housekeeping ─────────────────────────────────────────────────────────────
+-- Nothing older than a day is ever read. Left as a function rather than wired
+-- to a cron: this project has no scheduler yet, and an unbounded table of one
+-- row per AI call grows at the speed of usage, which is slow enough that a
+-- manual sweep is honest for now.
+CREATE OR REPLACE FUNCTION public.prune_ai_usage()
+RETURNS int
+LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+  WITH gone AS (
+    DELETE FROM public.ai_usage WHERE created_at < now() - interval '7 days'
+    RETURNING 1
+  ) SELECT count(*)::int FROM gone;
+$$;
+REVOKE ALL ON FUNCTION public.prune_ai_usage() FROM public;

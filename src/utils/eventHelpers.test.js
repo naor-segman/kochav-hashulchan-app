@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeEvent, duplicateEvent, seatingTotals, TOKEN_KEYS } from "./eventHelpers.js";
+import { normalizeEvent, duplicateEvent, seatingTotals, TOKEN_KEYS, rotateEventToken } from "./eventHelpers.js";
 
 describe("normalizeEvent — timestamps", () => {
   it("defaults updatedAt to createdAt (never epoch 0) when both are missing", () => {
@@ -342,7 +342,7 @@ describe("duplicateEvent does not carry day-of state forward", () => {
     const src = {
       id: "e1", name: "גאלה", type: "אירוע עסקי", date: "2027-01-01",
       guests: [
-        { id: "g1", name: "א", side: "bride", group: "עבודה", count: 2, arrived: true, giftAmount: 500 },
+        { id: "g1", name: "א", side: "bride", group: "עבודה", count: 2, arrived: true, arrivedSeats: [0, 1], giftAmount: 500 },
         { id: "g2", name: "ב", side: "groom", group: "עבודה", count: 1, arrived: true },
       ],
       tables: [], seating: {}, constraints: [],
@@ -350,7 +350,58 @@ describe("duplicateEvent does not carry day-of state forward", () => {
     const copy = duplicateEvent(src);
     expect(copy.guests.every(g => !g.arrived)).toBe(true);
     expect(copy.guests.every(g => g.giftAmount === undefined)).toBe(true);
+    // `arrivedSeats` is the per-person form of the same state. Stripping only
+    // the boolean left the copy reading "nobody arrived" in the summary while
+    // the entrance screen showed two of them already inside.
+    expect(copy.guests.every(g => g.arrivedSeats === undefined)).toBe(true);
     // The original is untouched.
     expect(src.guests[0].arrived).toBe(true);
+  });
+});
+
+// ── Revoking a public link ───────────────────────────────────────────────────
+// The shared-table token is a FULL grant — whoever holds the link can read
+// every phone number, edit, delete and export — and until now it could never be
+// taken back. One forward to the wrong WhatsApp group was permanent.
+describe("rotateEventToken", () => {
+  const ev = () => normalizeEvent({
+    id: "e1", name: "החתונה", type: "חתונה", date: "2027-06-01",
+    guests: [], tables: [], seating: {}, constraints: [],
+  });
+
+  it("replaces the named token and leaves every other one alone", () => {
+    const before = ev();
+    const after  = rotateEventToken(before, "collab", 5_000);
+    expect(after.tokens.collab).not.toBe(before.tokens.collab);
+    expect(after.tokens.collab).toBeTruthy();
+    for (const k of ["rsvp", "invite", "gift", "hostess", "album"]) {
+      expect(after.tokens[k]).toBe(before.tokens[k]);
+    }
+  });
+
+  it("stamps when it happened, because the merge needs to know", () => {
+    expect(rotateEventToken(ev(), "collab", 5_000).tokensRotatedAt).toBe(5_000);
+  });
+
+  it("does not mutate the event it was given", () => {
+    const before = ev();
+    const token  = before.tokens.collab;
+    rotateEventToken(before, "collab", 5_000);
+    expect(before.tokens.collab).toBe(token);
+    expect(before.tokensRotatedAt).toBeNull();
+  });
+
+  it("refuses a key that is not a public page", () => {
+    const before = ev();
+    for (const bad of ["password", "", null, undefined, "__proto__"]) {
+      expect(rotateEventToken(before, bad, 5_000)).toBe(before);
+    }
+  });
+
+  it("survives normalizeEvent, which is the only way it reaches storage", () => {
+    const rotated = rotateEventToken(ev(), "collab", 5_000);
+    const n = normalizeEvent(rotated);
+    expect(n.tokens.collab).toBe(rotated.tokens.collab);
+    expect(n.tokensRotatedAt).toBe(5_000);
   });
 });

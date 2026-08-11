@@ -1212,3 +1212,41 @@
   }
 
 }
+
+/* Header actions — "how it works" sits beside the one filled button, and is
+   deliberately not brand-coloured: a secondary action never takes the accent. */
+.heroBarActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.howBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-pill);
+  padding: 9px 16px;
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
+  color: var(--text2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.howBtn:hover {
+  background: var(--blush-soft);
+  border-color: var(--blush-line);
+  color: var(--text);
+}
+
+.howBtn:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+@media (pointer: coarse) {
+  .howBtn { min-height: 44px; }
+}

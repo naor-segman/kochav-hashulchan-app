@@ -116,6 +116,12 @@ export function normalizeEvent(ev) {
     // Public-URL tokens — stable random UUIDs generated once, never changed.
     // Each token grants access to one public page. Built from TOKEN_KEYS so a
     // new page's token cannot be added here and forgotten in duplicateEvent.
+    // When a token was last DELIBERATELY replaced. Without this, rotation is
+    // not safe: the hydration merge lets the cloud's token win per key, so a
+    // host who kills a leaked link and reloads before the debounced push lands
+    // gets the dead link back — and a second device with an older copy pushes
+    // it back too. Whichever side rotated more recently wins the whole set.
+    tokensRotatedAt: Number.isFinite(ev.tokensRotatedAt) ? ev.tokensRotatedAt : null,
     tokens: Object.fromEntries(
       TOKEN_KEYS.map(k => [k, (ev.tokens && typeof ev.tokens === "object" && ev.tokens[k]) || uid()])
     ),
@@ -129,6 +135,12 @@ export function normalizeEvent(ev) {
     // that is already being filled in; only an explicit false closes it, and
     // the token RPCs enforce the same rule server-side.
     collabActive: ev.collabActive === false ? false : true,
+    // The entrance link's write switch, same rule and same reason: the greeter
+    // marks arrivals through it, the host closes it after the event without
+    // invalidating the URL, and absent means open so an existing event is not
+    // silently shut. `hostess_writes_active(e)` enforces the identical default
+    // in SQL, so a token holder cannot get past a closed switch with curl.
+    hostessWriteActive: ev.hostessWriteActive === false ? false : true,
     giftBitPhone:   ev.giftBitPhone   ?? "",
     giftPayboxLink: ev.giftPayboxLink ?? "",
     // Event site — the auto-built guest-facing site (hero, schedule, location,
@@ -210,7 +222,11 @@ export function duplicateEvent(ev) {
     // Day-of state belongs to the event that actually happened. Copying it
     // meant duplicating last year's gala produced a copy where everyone was
     // already checked in and the gift total was already banked.
-    const { arrived, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
+    // `arrivedSeats` is the per-person form of `arrived` and has to be stripped
+    // with it. Stripping only the boolean left the copy with
+    // `arrivedSeats: [0,1]` — nobody reads as arrived in the summary while the
+    // entrance screen shows two of them already inside.
+    const { arrived, arrivedSeats, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
     return Object.assign({}, rest, { id: newId });
   });
 
@@ -425,4 +441,29 @@ export function getEventNamePlaceholder(type) {
     "יום הולדת":     "לדוגמה: יום הולדת 40 לדניאל",
   };
   return map[type] || "לדוגמה: אירוע סיום 2025";
+}
+
+/**
+ * Replace one public-page token, killing every link already shared for it.
+ *
+ * This is the only way to revoke a public link. The shared-table link in
+ * particular is a FULL grant — whoever holds it can read every phone number,
+ * edit, delete and export — so "I sent it to the wrong WhatsApp group" had no
+ * remedy at all before this existed.
+ *
+ * `tokensRotatedAt` is stamped so the hydration merge knows this side is the
+ * deliberate one. Returns a NEW event object; the caller decides how to store
+ * it.
+ *
+ * @param {object} ev   the event
+ * @param {string} key  one of TOKEN_KEYS
+ * @param {number} now  timestamp, injected so the caller owns the clock
+ */
+export function rotateEventToken(ev, key, now = Date.now()) {
+  if (!ev || !TOKEN_KEYS.includes(key)) return ev;
+  return {
+    ...ev,
+    tokens: { ...(ev.tokens ?? {}), [key]: uid() },
+    tokensRotatedAt: now,
+  };
 }

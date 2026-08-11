@@ -188,7 +188,7 @@ export default function LoginScreen() {
               className={styles.forgotLink}
               onClick={() => { setForgotMode(false); setForgotError(""); }}
             >
-              ← חזרו לכניסה
+              → חזרו לכניסה
             </button>
           </form>
         )}

@@ -20,15 +20,24 @@ const collisionStrategy = (args) => {
 const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
+import { nextTableNames } from "../../utils/tableNames.js";
 import { VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
 import TableGlyph from "../ui/TableGlyph.jsx";
 import VenueCanvas from "./VenueCanvas.jsx";
 import styles from "./FloorPlanEditor.module.css";
 
-// AI table-detection needs the `detect-floor-plan` Edge Function deployed.
-// Disabled until that function is live so the button can never error out.
-// Flip to true once the function is deployed (Enterprise feature).
-const ENABLE_AI_DETECT = false;
+// AI table-detection reads the uploaded sketch and returns one table per shape
+// it finds, WITH a position — and `handleConfirmDetection` below already creates
+// those tables and places them. The whole path was built and then switched off
+// behind this constant, which is why the floor plan read as a drawing toy: the
+// only way to get a table onto the sketch was to place it by hand, one at a
+// time, and nobody does that fourteen times.
+//
+// It stays honest about its dependencies: the button only appears when Supabase
+// is configured and there is a sketch to read, the call is plan-gated, and if
+// the Edge Function is not deployed the catch below says so in words. A feature
+// that fails loudly is better than one that silently does not exist.
+const ENABLE_AI_DETECT = true;
 
 // ── Image helpers ────────────────────────────────────────────────────────────
 
@@ -273,9 +282,6 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   const [placingId,  setPlacingId]  = useState(null);
   // Kind of venue fixture waiting to be dropped on the sketch (null = none).
   const [placingKind, setPlacingKind] = useState(null);
-  // "map" = the sketch, "cards" = a plain occupancy list. The sketch is the
-  // point of this editor, but it is useless for scanning capacity at a glance.
-  const [view, setView] = useState("map");
   const [detecting,  setDetecting]  = useState(false);
   const [detResult,  setDetResult]  = useState(null);
   const [activeId,   setActiveId]   = useState(null);
@@ -342,6 +348,13 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         body: { imageBase64: base64, mimeType: "image/jpeg" },
       });
       if (error) throw error;
+      // The server's own ceiling, not the client-side plan gate above it. That
+      // gate is a UI affordance and this is the limit — say so in words rather
+      // than surfacing "rate_limited" to a host who has done nothing wrong.
+      if (data?.error === "rate_limited") {
+        showToast(data.note || "יותר מדי בקשות זיהוי. נסו שוב בעוד שעה.", "warn");
+        return;
+      }
       if (data?.error) throw new Error(data.error);
       if (!data?.tables?.length) {
         showToast("לא זוהו שולחנות. נסו תמונה ברורה יותר.", "warn");
@@ -355,16 +368,98 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
     }
   };
 
+  // Put every unplaced table on the sketch in one action.
+  //
+  // Until now the ONLY way onto the sketch was: click the table in the unplaced
+  // list, then click the spot — twice per table, fourteen times for a normal
+  // wedding, before the map showed anything at all. That is what made this
+  // screen feel like a craft exercise instead of a tool.
+  //
+  // The layout is a plain grid across the middle of the image in Hebrew reading
+  // order (table 1 top-RIGHT), with the edges left clear, because that is where
+  // the walls, the stage and the entrance are in nearly every hall. It is a
+  // STARTING POINT, not an answer — dragging a chip is easy, and re-arranging
+  // from something beats arranging from nothing.
+  const autoArrange = () => {
+    const missingNow = (ev.tables ?? []).filter(t => !positions[t.id]).length;
+
+    patchEvent(e => {
+      const cur     = e.floorPlan?.tablePositions ?? {};
+      const all     = e.tables ?? [];
+      const missing = all.filter(t => !cur[t.id]);
+      if (missing.length === 0) return e;
+
+      // The grid is sized for the WHOLE room, not for the tables that happen to
+      // be missing — and occupied slots are skipped.
+      //
+      // Sizing it by `missing.length` and writing straight into the slots put a
+      // chip exactly on top of a hand-placed one: two chips render as one and
+      // the host silently loses a table off the map. It bit twice, and the
+      // second way is the ordinary workflow — arrange, add a table, arrange
+      // again: with one table missing the grid collapses to a single slot at
+      // (0.82, 0.5), which is where the sixth table of a fourteen-table grid
+      // already is.
+      const cols = Math.max(1, Math.ceil(Math.sqrt(all.length * 1.4)));
+      const rows = Math.max(1, Math.ceil(all.length / cols));
+      const dx   = cols > 1 ? 0.64 / (cols - 1) : 1;
+      const dy   = rows > 1 ? 0.52 / (rows - 1) : 1;
+      // Comfortably under half the grid pitch, so one occupied chip can never
+      // block more than the one slot it actually sits on.
+      const minSep = Math.min(0.07, 0.4 * Math.min(dx, dy));
+
+      const slot = (i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = cols === 1 ? 0.5 : 0.82 - col * dx;
+        const y = rows === 1 ? 0.5 : 0.24 + row * dy;
+        return {
+          x: Math.min(0.94, Math.max(0.06, x)),
+          y: Math.min(0.94, Math.max(0.06, y)),
+        };
+      };
+
+      const taken = Object.values(cur)
+        .filter(p => Number.isFinite(p?.x) && Number.isFinite(p?.y))
+        .map(p => ({ x: p.x, y: p.y }));
+      const isFree = p => taken.every(q => Math.hypot(p.x - q.x, p.y - q.y) >= minSep);
+
+      const next = { ...cur };
+      let i = 0;
+      // Bounded: at most one skip per already-placed chip, plus slack.
+      const limit = cols * rows + all.length + 8;
+      for (const t of missing) {
+        let p = slot(i);
+        while (!isFree(p) && i < limit) { i += 1; p = slot(i); }
+        i += 1;
+        next[t.id] = p;
+        taken.push(p);
+      }
+      return { ...e, floorPlan: { ...e.floorPlan, tablePositions: next } };
+    });
+
+    showToast(
+      missingNow === 0 ? "כל השולחנות כבר על הסקיצה"
+      : missingNow === 1 ? "שולחן אחד הונח על הסקיצה — גררו אותו למקום הנכון ✓"
+      : `${missingNow} שולחנות הונחו על הסקיצה — גררו אותם למקום הנכון ✓`
+    );
+  };
+
   const handleConfirmDetection = () => {
     const snapshot = detResult; // capture before async state clear
     // Pre-generate IDs so positions map can reference them before patchEvent runs
     const newIds = snapshot.tables.map(() => uid());
 
     patchEvent(e => {
-      const baseIdx   = e.tables.length;
+      // Names come from the event's own numbering, not from `tables.length`:
+      // delete "שולחן 5" from a fourteen-table event and a count-based name is
+      // "שולחן 14", which is already on the floor. A duplicate is a defect
+      // everywhere else in the product — SeatingScreen's rename refuses one —
+      // because the WhatsApp message and the printed entry card address a
+      // table by name.
+      const names     = nextTableNames(e.tables, snapshot.tables.length);
       const newTables = snapshot.tables.map((det, i) => ({
         id:       newIds[i],
-        name:     "שולחן " + (baseIdx + i + 1),
+        name:     names[i],
         capacity: det.seats || 8,
         type:     "regular",
       }));
@@ -594,17 +689,10 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
 
       {/* Toolbar */}
       <div className={styles.toolbar}>
-        <div className={styles.viewToggle} role="group" aria-label="תצוגת מפת האולם">
-          {[["map", "מפה"], ["cards", "כרטיסים"]].map(([key, label]) => (
-            <button
-              key={key}
-              className={[styles.viewBtn, view === key ? styles.viewActive : ""].filter(Boolean).join(" ")}
-              onClick={() => setView(key)}
-              aria-pressed={view === key}
-              type="button"
-            >{label}</button>
-          ))}
-        </div>
+        <button className={styles.toolBtn} onClick={autoArrange} type="button">
+          <Icon name="sparkle" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />
+          סדרו את השולחנות על הסקיצה
+        </button>
         <button className={styles.toolBtn} onClick={() => fileInputRef.current?.click()}>
           החליפו תמונה
         </button>
@@ -645,47 +733,8 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         </div>
       )}
 
-      {/* Card view — every table with its occupancy, sketch or not */}
-      {view === "cards" && (
-        <div className={styles.cardGrid}>
-          {ev.tables.map(t => {
-            const tGuests = ev.guests.filter(g => ev.seating[g.id] === t.id);
-            const seats   = tGuests.reduce((n, g) => n + (g.count || 1), 0);
-            const pct     = t.capacity > 0 ? seats / t.capacity : 0;
-            return (
-              <div
-                key={t.id}
-                className={[
-                  styles.tableCard,
-                  pct > 1        ? styles.cardOver :
-                  pct > 0.85     ? styles.cardWarn : "",
-                ].filter(Boolean).join(" ")}
-              >
-                <div className={styles.cardHead}>
-                  <TableGlyph shape={t.shape} capacity={t.capacity} taken={seats} size={26} />
-                  <span className={styles.cardName}>{t.name}</span>
-                  <span className={styles.cardCap}>{seats}/{t.capacity}</span>
-                </div>
-                <div className={styles.cardBody}>
-                  {tGuests.length === 0
-                    ? <span className={styles.chipEmpty}>ריק</span>
-                    : tGuests.map(g => (
-                        <span key={g.id} className={styles.guestPill}>
-                          {g.name}
-                          {(g.count || 1) > 1 && <span className={styles.pillCount}>×{g.count}</span>}
-                        </span>
-                      ))}
-                </div>
-                {!positions[t.id] && <span className={styles.cardUnplaced}>לא מוקם על הסקיצה</span>}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* Floor plan image with table chips */}
       <div
-        hidden={view !== "map"}
         className={[styles.imageContainer, (placingId || placingKind) ? styles.placingMode : ""].filter(Boolean).join(" ")}
         ref={containerRef}
         onClick={handleImageClick}

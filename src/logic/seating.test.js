@@ -416,3 +416,237 @@ describe("a together-cluster whose locked members sit at different tables", () =
     if (seating.k1 && seating.foe) expect(seating.k1).not.toBe(seating.foe);
   });
 });
+
+// ── The venue sketch actually changes the answer ─────────────────────────────
+// A family too big for one table has to spill. Which table it spills to used to
+// be "whichever is emptiest", i.e. whichever the host happened to create with a
+// bigger capacity — which can be at the far end of the hall. Once tables are
+// placed on the sketch, the spill goes to the table NEXT TO them.
+//
+// Every fixture here is built so the two rules disagree: the nearest table is
+// deliberately the SMALLER one, so a pass cannot be explained by emptiest-first.
+describe("autoAssign — position-aware spill", () => {
+  // 4 guests × 4 seats = 16, more than any single table holds.
+  const family = ["f1", "f2", "f3", "f4"].map(id => g(id, { count: 4 }));
+  const bound  = [together("f1", "f2"), together("f2", "f3"), together("f3", "f4")];
+
+  // anchor is picked first (emptiest, ties → first listed). far is the emptiest
+  // of what is left; near is smaller but adjacent to the anchor.
+  const tables = [t("anchor", 10), t("far", 10), t("near", 8)];
+  const positions = {
+    anchor: { x: 0.10, y: 0.10 },
+    near:   { x: 0.15, y: 0.12 },
+    far:    { x: 0.90, y: 0.90 },
+  };
+
+  const spillTable = seating =>
+    [...new Set(Object.values(seating))].find(id => id !== seating.f1);
+
+  it("without a sketch, spills to the emptiest table (unchanged behaviour)", () => {
+    const seating = autoAssign(family, tables, bound);
+    expect(seating.f1).toBe("anchor");
+    expect(spillTable(seating)).toBe("far");
+  });
+
+  it("with a sketch, spills to the NEAREST table even though it is smaller", () => {
+    const seating = autoAssign(family, tables, bound, {}, positions);
+    expect(seating.f1).toBe("anchor");
+    expect(spillTable(seating)).toBe("near");
+  });
+
+  it("seats the whole family either way (this fixture has room for everyone)", () => {
+    // Named honestly: 16 seats into 28 of capacity, so nobody can be left over
+    // whatever the engine picks. It is NOT evidence that proximity is free —
+    // that claim is tested by "proximity never costs a seat" below, on a
+    // fixture where the old engine really did leave a guest standing.
+    for (const p of [null, positions]) {
+      const seating = autoAssign(family, tables, bound, {}, p);
+      for (const guest of family) expect(seating[guest.id]).toBeTruthy();
+    }
+  });
+
+  it("ignores a half-drawn sketch: an unplaced table never beats a placed one", () => {
+    // `near` is the only table with coordinates besides the anchor, so even
+    // though `far` is emptiest it must lose to the one we can actually measure.
+    const partial = { anchor: positions.anchor, near: positions.near };
+    const seating = autoAssign(family, tables, bound, {}, partial);
+    expect(spillTable(seating)).toBe("near");
+  });
+
+  it("falls back to emptiest-first when the sketch has no usable coordinates", () => {
+    const junk = { anchor: { x: null, y: 0.1 }, near: {}, far: { x: "0.9", y: "0.9" } };
+    const seating = autoAssign(family, tables, bound, {}, junk);
+    expect(spillTable(seating)).toBe("far");
+  });
+
+  it("respects capacity and apart constraints while preferring the near table", () => {
+    const guests = [...family, g("foe")];
+    const cons   = [...bound, apart("f3", "foe")];
+    const seating = autoAssign(guests, tables, cons, { foe: "near" }, positions);
+    if (seating.f3) expect(seating.f3).not.toBe("near");
+    for (const tbl of tables) {
+      expect(seatsAt(seating, guests, tbl.id)).toBeLessThanOrEqual(tbl.capacity);
+    }
+  });
+});
+
+// Three near-misses the first version of the rule let through, each caught by
+// mutating the engine and watching the suite stay green. They are separate
+// fixtures because each needs the two rules to disagree in a different way.
+describe("autoAssign — position-aware spill, edge cases", () => {
+  const family = ["f1", "f2", "f3", "f4"].map(id => g(id, { count: 4 }));
+  const bound  = [together("f1", "f2"), together("f2", "f3"), together("f3", "f4")];
+  const spillTable = seating =>
+    [...new Set(Object.values(seating))].find(id => id !== seating.f1);
+
+  it("prefers a measurable table even when the unmeasurable one is listed first", () => {
+    // Same half-drawn sketch as above, but with the placed table earlier in the
+    // list. Order must not decide it — the placed table wins from either side.
+    const tables = [t("anchor", 10), t("near", 8), t("far", 10)];
+    const seating = autoAssign(family, tables, bound, {}, {
+      anchor: { x: 0.10, y: 0.10 },
+      near:   { x: 0.15, y: 0.12 },
+    });
+    expect(seating.f1).toBe("anchor");
+    expect(spillTable(seating)).toBe("near");
+  });
+
+  it("treats a table with a junk y as unplaced, not as distance NaN", () => {
+    // `near` is nominally adjacent but its y is unusable. It must drop out of
+    // the distance comparison entirely and lose to the table we can measure.
+    // Both list orders, because a NaN distance loses every comparison it is on
+    // the right of and wins every one it is on the left of — so a fixture that
+    // only tests one order proves nothing.
+    const positions = {
+      anchor: { x: 0.10, y: 0.10 },
+      near:   { x: 0.15, y: undefined },
+      far:    { x: 0.90, y: 0.90 },
+    };
+    for (const tables of [[t("anchor", 10), t("far", 10), t("near", 8)],
+                          [t("anchor", 10), t("near", 8), t("far", 10)]]) {
+      const seating = autoAssign(family, tables, bound, {}, positions);
+      expect(spillTable(seating)).toBe("far");
+    }
+  });
+
+  it("proximity never costs a seat — the reduced case from the fuzz run", () => {
+    // Reduced from a random event the fuzz caught (5,000 events, 67 of which
+    // seated fewer people once the sketch was read). Three tables in a column,
+    // so t1 is between t0 and t2 and "nearest" and "emptiest" disagree.
+    //
+    // The 17-seat family {g0,g1,g2,g5,g9} fits nowhere: t0 is down to 15 free
+    // because g11 is locked there. It spills, and where the last member lands
+    // decides the rest of the evening — with the sketch g9 went to t1 (nearest)
+    // instead of t2 (emptiest), which later left g4 with no table that g10 was
+    // not already sitting at. Three seats, lost to an `apart` constraint three
+    // clusters downstream of the decision that caused it.
+    const guests = [
+      g("g0", { count: 4 }), g("g1", { count: 6 }), g("g2", { count: 2 }),
+      g("g4", { count: 3 }), g("g5", { count: 2 }), g("g7", { count: 5 }),
+      g("g9", { count: 3 }), g("g10", { count: 4 }), g("g11", { count: 2 }),
+    ];
+    const tables = [t("t0", 17), t("t1", 10), t("t2", 15)];
+    const cons = [
+      together("g1", "g2"), together("g9", "g0"), together("g0", "g1"),
+      together("g5", "g1"), apart("g10", "g4"),
+    ];
+    const locks = { g11: "t0" };
+    const positions = {
+      t0: { x: 0.3, y: 0.1 },
+      t1: { x: 0.3, y: 0.5 },
+      t2: { x: 0.3, y: 0.9 },
+    };
+    const placed = seating =>
+      guests.reduce((s, x) => s + (seating[x.id] ? x.count : 0), 0);
+
+    const plain  = autoAssign(guests, tables, cons, { ...locks }, null);
+    const sketch = autoAssign(guests, tables, cons, { ...locks }, positions);
+
+    expect(placed(plain)).toBe(31);              // everyone, without the sketch
+    expect(placed(sketch)).toBeGreaterThanOrEqual(placed(plain));
+    for (const guest of guests) expect(sketch[guest.id]).toBeTruthy();
+  });
+
+  it("measures distance in both axes", () => {
+    // `col` shares the anchor's x exactly and sits across the hall; `next` is a
+    // step away in both. Comparing x alone would pick the wrong one.
+    const tables = [t("anchor", 10), t("col", 10), t("next", 8)];
+    const seating = autoAssign(family, tables, bound, {}, {
+      anchor: { x: 0.50, y: 0.10 },
+      col:    { x: 0.50, y: 0.90 },
+      next:   { x: 0.55, y: 0.12 },
+    });
+    expect(spillTable(seating)).toBe("next");
+  });
+});
+
+// ── The invariant, not one example of it ─────────────────────────────────────
+// Every fixture above is a case somebody thought of. This one is the rule
+// itself, over events nobody designed: reading the venue sketch must never
+// leave more people standing than ignoring it would have.
+//
+// It is worth pinning here rather than only in a qa script because the failure
+// is silent — the plan still looks fine, it just has a cousin left over — and
+// because the losses came from a cascade (a different-but-equally-valid spill
+// changing what every later cluster had to fit into), which no single example
+// fixture generalises. Before the fix this run reported 67 losing events in
+// 5,000; the numbers here are the same generator at a size the suite can carry.
+describe("autoAssign — the sketch never costs a seat (fuzz)", () => {
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let x = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // Deliberately tight: capacity from 85% to 130% of demand, so who gets a
+  // chair actually depends on how well the engine packs.
+  function buildEvent(seed) {
+    const rnd = mulberry32(seed);
+    const ri  = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+    const guests = Array.from({ length: ri(5, 30) }, (_, i) =>
+      g("g" + i, { side: ["bride", "groom"][ri(0, 1)], group: "grp" + ri(0, 3), count: ri(1, 6) }));
+    const n = guests.length;
+    const totalSeats = guests.reduce((s, x) => s + x.count, 0);
+
+    const nTables = ri(3, 10);
+    const target  = Math.round(totalSeats * (0.85 + rnd() * 0.45));
+    const caps    = Array.from({ length: nTables }, () => 1);
+    for (let left = target - nTables; left > 0; left--) caps[ri(0, nTables - 1)]++;
+    const tables = caps.map((c, i) => t("t" + i, Math.max(2, c)));
+
+    const constraints = [];
+    for (let i = 0, m = ri(0, Math.max(1, Math.round(n * 0.6))); i < m; i++) {
+      const a = "g" + ri(0, n - 1), b = "g" + ri(0, n - 1);
+      if (a !== b) constraints.push(rnd() < 0.65 ? together(a, b) : apart(a, b));
+    }
+
+    const locks = {};
+    for (let i = 0, m = ri(0, 3); i < m; i++) locks["g" + ri(0, n - 1)] = "t" + ri(0, nTables - 1);
+
+    // Sometimes half-drawn — the case the engine has to ignore, not reorder on.
+    const positions = {};
+    for (const tb of tables) if (rnd() < 0.9) positions[tb.id] = { x: rnd(), y: rnd() };
+
+    return { guests, tables, constraints, locks, positions };
+  }
+
+  it("never seats fewer people with the sketch than without, over 2,000 events", () => {
+    const placed = (seating, guests) =>
+      guests.reduce((s, x) => s + (seating[x.id] ? x.count : 0), 0);
+
+    const losses = [];
+    for (let seed = 1; seed <= 2000; seed++) {
+      const e = buildEvent(seed);
+      const plain  = autoAssign(e.guests, e.tables, e.constraints, { ...e.locks }, null);
+      const sketch = autoAssign(e.guests, e.tables, e.constraints, { ...e.locks }, e.positions);
+      const delta  = placed(sketch, e.guests) - placed(plain, e.guests);
+      if (delta < 0) losses.push({ seed, delta });
+    }
+    // Report the seeds, not just the count — a failure here has to be
+    // reproducible without re-deriving the generator.
+    expect(losses).toEqual([]);
+  });
+});

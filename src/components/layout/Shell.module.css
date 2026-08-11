@@ -138,6 +138,40 @@
   white-space: nowrap;
 }
 
+/* Same text, but it is the way back to the event's own map. Neutral at rest —
+   the bar already has one coloured control (the back link) and DESIGN.md caps
+   the chrome at one. */
+.bcCurrentLink {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  font-weight: 700;
+  color: var(--nav-text);
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  transition: background var(--transition);
+}
+
+.bcCurrentText {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bcCurrentLink:hover { background: rgba(var(--nav-text-rgb),.10); }
+
+.bcCurrentLink:focus-visible {
+  outline: 2px solid var(--nav-text);
+  outline-offset: 2px;
+}
+
 /* Save state — three variants of one chip. The tints are held at ~.14 because
    a heavier green wash drags --green-light down to 4.40:1 at 11px/700; at .14
    it reads 5.05:1. */
@@ -188,8 +222,50 @@
   transition: background var(--transition), border-color var(--transition), color var(--transition);
   max-width: 160px;
   overflow: hidden;
-  margin-inline-start: auto;
 }
+
+/* The end of the bar — the two controls that are about the PERSON, not about
+   the event. Grouped so the auto margin lives in one place. */
+.topRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+
+/* Way out to the public site. Quiet — it is an escape hatch, not a call to
+   action — but it carries a label, because a bare arrow on a dark bar says
+   nothing. --nav-muted is 6.35:1 on #14161A. In RTL, back is →. */
+.homeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--nav-muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  padding: 6px 10px;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color var(--transition), background var(--transition), border-color var(--transition);
+}
+
+.homeBtn:hover {
+  color: var(--nav-text);
+  background: rgba(var(--nav-text-rgb),.08);
+  border-color: rgba(var(--nav-text-rgb),.14);
+}
+
+.homeBtn:focus-visible {
+  outline: 2px solid var(--nav-text);
+  outline-offset: 2px;
+}
+
+.homeLabel { display: inline; }
 
 .accountBtn:hover {
   background: rgba(var(--nav-text-rgb),.12);
@@ -229,9 +305,76 @@
 
 @media (pointer: coarse) {
   .accountBtn,
-  .signupBtn {
+  .signupBtn,
+  .homeBtn {
     min-height: 40px;
   }
+}
+
+/* ── Tier 1 — the three areas ─────────────────────────────────────────────
+   On the chrome, not on the page, because the areas are the product's
+   STRUCTURE: they do not change when the screen does. Measured against
+   #21242A, the same ground DESIGN.md already documents for the hostess chips:
+   --nav-muted 5.32:1, --nav-text 12.72:1. The accent appears only as a 2px
+   rule, which is a shape, not text. */
+.areaBar {
+  background: var(--nav-bg2);
+  border-bottom: 1px solid var(--nav-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: sticky;
+  top: 62px;
+  z-index: 190;
+}
+
+.areaBar::-webkit-scrollbar { display: none; }
+
+.areaInner {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 0 20px;
+  max-width: var(--container-max);
+  margin: 0 auto;
+}
+
+.areaTab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  padding: 11px 14px;
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-semibold);
+  color: var(--nav-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color var(--transition), background var(--transition), border-color var(--transition);
+}
+
+.areaTab:hover {
+  color: var(--nav-text);
+  background: rgba(var(--nav-text-rgb),.06);
+}
+
+.areaTabActive {
+  color: var(--nav-text);
+  font-weight: var(--font-weight-extrabold);
+  border-bottom-color: var(--accent);
+  background: rgba(var(--nav-text-rgb),.08);
+}
+
+.areaTab:focus-visible {
+  outline: 2px solid var(--nav-text);
+  outline-offset: -3px;
+  border-radius: var(--radius-xs);
+}
+
+.areaLabelShort { display: none; }
+
+@media (pointer: coarse) {
+  .areaTab { min-height: 44px; }
 }
 
 .accountLabel {
@@ -285,6 +428,8 @@
 .subnavInner {
   display: flex;
   padding: 0 20px;
+  max-width: var(--container-max);
+  margin: 0 auto;
 }
 
 @media (max-width: 600px) {
@@ -391,11 +536,23 @@
   .autoSave { display: none; }
   .subnavBtn { padding: 10px 8px; font-size: var(--step--2); }
   .topbar { padding: 0 14px; }
+  /* Three area tabs plus "מפת האירוע" have to fit a 390px bar without the
+     rail scrolling on arrival — the shortened labels are what makes that
+     true. Measured, not assumed. */
+  .areaLabel { display: none; }
+  .areaLabelShort { display: inline; }
+  .areaInner { padding: 0 10px; }
+  .areaTab { padding: 10px 8px; font-size: var(--step--2); }
+  /* The label stays on a phone. A bare arrow beside the wordmark on a dark bar
+     reads as "back", which is not what this does — and "עמוד הבית" is nine
+     characters, which the 390px bar has room for. */
+  .homeBtn { padding: 6px 8px; font-size: var(--step--2); }
 }
 
 /* ── Print: hide shell chrome ── */
 @media print {
   .topbar,
+  .areaBar,
   .subnav {
     display: none !important;
   }
@@ -410,6 +567,26 @@
    row-scale buttons were left small to begin with. Measured with
    qa/mobile.mjs, which reports anything a finger has to aim at under 40px. */
 @media (pointer: coarse) {
+  /* Same treatment as .bcBack, and for the same reason. Making the event name
+     a button (the way back to its own map) turned an unmeasured <span> into a
+     28px tap target on every event screen — measured by qa/mobile.mjs, which
+     probes the EFFECTIVE hit area, so the pseudo-element is what fixes it
+     without inflating the bar. */
+  .bcCurrentLink {
+    position: relative;
+  }
+
+  .bcCurrentLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
   .bcBack {
     position: relative;
   }

@@ -7,11 +7,16 @@ import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } fro
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import { parseGuestList, countWithPhone } from "../utils/parseGuestList.js";
+import {
+  emptyGuestForm, guestToForm, applyGuestForm, newGuestFromForm,
+  companionsForCount, setCompanionAt, companionSlots,
+} from "../utils/guestForm.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canAddGuest, guestSlotsLeft } from "../utils/featureGates.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
+import { buildStep, nextBuildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
@@ -23,16 +28,24 @@ import styles from "./GuestManagerScreen.module.css";
 
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  // Position in the build order, from src/data/eventAreas.js — never a literal.
+  const step = buildStep("guests");
+  const next = nextBuildStep("guests");
+
   const { confirm, prompt, dialog } = useConfirm();
   // Corporate events use a business group set + default; everyone else the
   // family-oriented one. Custom groups (below) work regardless of type.
   const isBusiness   = ev.type === "אירוע עסקי";
   const baseGroups   = isBusiness ? BUSINESS_GROUP_OPTIONS : GROUP_OPTIONS;
   const defaultGroup = isBusiness ? BUSINESS_GROUP_OPTIONS[0] : "משפחה קרובה";
-  const EF = { name: "", side: "bride", group: defaultGroup, count: 1, phone: "", notes: "", rsvp: "pending", meal: MEAL_DEFAULT, giftAmount: "", estGift: "", companions: [] };
+  const EF = emptyGuestForm(defaultGroup);
   const [form, setForm]           = useState(EF);
   const [editId, setEditId]       = useState(null);
-  const [showList, setShowList]     = useState(false);
+  // Which of the three ways to add guests is open. The chooser sits at the TOP
+  // of the screen: a host who types forty names by hand and only then discovers
+  // the paste box and the shared link has been failed by the page.
+  const [addWay, setAddWay]         = useState("manual"); // "manual" | "list"
+  const showList                    = addWay === "list";
   const [listText, setListText]     = useState("");
   const [listSide, setListSide]     = useState("bride");
   const [listGroup, setListGroup]   = useState(defaultGroup);
@@ -53,7 +66,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   // Collab-table wording adapts to the event: "family" reads wrong for a
   // corporate event, so business events talk about "the team" instead.
   const collabWho   = isBusiness ? "הצוות" : "המשפחה";
-  const collabLabel = isBusiness ? "טבלה שיתופית לצוות" : "טבלה שיתופית למשפחה";
+  const collabWhoTo = isBusiness ? "לצוות" : "למשפחה";
 
   // Add a brand-new custom group to this event from anywhere a group is picked.
   // Saved to customGroups so it appears in every group list + the filter.
@@ -95,12 +108,6 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const saveGuest = () => {
     if (!form.name.trim()) { showToast("יש להזין שם אורח", "err"); return; }
     const { group, newCustom } = resolveGroup();
-    // Keep only as many companion names as there are extra seats; drop blanks
-    // at the tail but preserve positions so "מלווה 2" stays the second seat.
-    const cnt = form.count || 1;
-    const rawComp = (form.companions || []).slice(0, cnt - 1).map(c => (c || "").trim());
-    while (rawComp.length && rawComp[rawComp.length - 1] === "") rawComp.pop();
-    const companions = rawComp;
     if (form.group === "אחר" && !customGroupInput.trim()) {
       showToast("יש להזין שם לקבוצה החדשה", "err"); return;
     }
@@ -110,11 +117,13 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         showToast("האורח כבר נמחק", "err");
         return;
       }
-      const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
-      const estGift = form.estGift !== "" && !isNaN(parseInt(form.estGift)) ? Math.max(0, parseInt(form.estGift)) : undefined;
       patchEvent(e => {
+        // applyGuestForm merges onto the STORED row, so every field this form
+        // does not own — arrival, the gift recorded at the door, a flag some
+        // future screen adds — comes through untouched, and the companion names
+        // it did not touch stay exactly as typed. See utils/guestForm.js.
         const updated = e.guests.map(g =>
-          g.id === editId ? Object.assign({}, g, form, { name: form.name.trim(), group, giftAmount, estGift, companions }) : g
+          g.id === editId ? applyGuestForm(g, form, group) : g
         );
         const customGroups = newCustom && !e.customGroups?.includes(newCustom)
           ? [...(e.customGroups || []), newCustom]
@@ -129,9 +138,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         showToast(guestGate.reason + " — שדרגו להוספת אורחים נוספים", "err");
         return;
       }
-      const giftAmount = form.giftAmount !== "" && !isNaN(parseInt(form.giftAmount)) ? Math.max(0, parseInt(form.giftAmount)) : undefined;
-      const estGift = form.estGift !== "" && !isNaN(parseInt(form.estGift)) ? Math.max(0, parseInt(form.estGift)) : undefined;
-      const newG = Object.assign({}, form, { id: uid(), name: form.name.trim(), count: form.count || 1, group, giftAmount, estGift, companions });
+      const newG = newGuestFromForm(form, uid(), group);
       patchEvent(e => {
         const customGroups = newCustom && !e.customGroups?.includes(newCustom)
           ? [...(e.customGroups || []), newCustom]
@@ -185,14 +192,14 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       skipped ? "warn" : undefined
     );
     setListText("");
-    setShowList(false);
+    setAddWay("manual");
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
 
   const delGuest = async (id, name) => {
     const tableId   = ev.seating[id];
     const tableName = tableId ? (ev.tables.find(t => t.id === tableId)?.name || null) : null;
-    const collabNote = ev.tokens?.collab ? "\n\nהאורח יימחק גם מהטבלה השיתופית של המשפחה." : "";
+    const collabNote = ev.tokens?.collab ? `\n\nהאורח יימחק גם מהטבלה המשותפת של ${collabWho}.` : "";
     const msg = tableName
       ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית." + collabNote + "\n\nפעולה זו אינה ניתנת לביטול."
       : "למחוק את \"" + name + "\" מרשימת האורחים?" + collabNote + "\n\nפעולה זו אינה ניתנת לביטול.";
@@ -283,8 +290,6 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     if (n > 0) acc.push({ ...o, n });
     return acc;
   }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < ev.guests.length);
-  const totalGifts   = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
-  const nGiftsLogged = ev.guests.filter(g => g.giftAmount > 0).length;
   const tableOf    = id => { const tid = ev.seating[id]; return tid ? ev.tables.find(t => t.id === tid) : null; };
   const isFiltered = filter.side !== "all" || filter.group !== "all" || filter.rsvp !== "all" || filter.search;
 
@@ -294,7 +299,9 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       <PageHeader
         title="אורחים"
         mark="guests"
-        sub="נהלו את רשימת האורחים. לחצו Enter להוספה מהירה."
+        /* What this screen IS, in one line — because the owner's hosts kept
+           trying to answer questions here that only the guest can answer. */
+        sub="רשימת המוזמנים: מי הוזמן, מאיזה צד, וכמה מקומות לשמור לו. מי באמת הגיע ומה הוא נתן נרשם ביום האירוע."
         aside={
           /* Four numbers, one of them leading. The sides and the meal
              breakdown moved to the quiet strip below the header: eleven equal
@@ -322,17 +329,15 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               <span className={base.statChipN}>{m.n}</span> {m.label}
             </span>
           ))}
-          {totalGifts > 0 && (
-            <span className={base.statChip}>
-              <span className={base.statChipN}>₪{totalGifts.toLocaleString("he-IL")}</span> מתנות ({nGiftsLogged})
-            </span>
-          )}
         </div>
       )}
 
       <div className={base.stepGuide}>
-        <span className={base.stepBadge}>שלב 3 מתוך 5 — אורחים</span>
-        <span className={base.stepText}>הוסיפו אורחים ידנית, הדביקו רשימה מוכנה, או שלחו קישור לטבלה שיתופית שהמשפחה תמלא. לאחר מכן המשיכו לאילוצים. כל שינוי נשמר אוטומטית.</span>
+        {/* From the model — see the note in TableBuilderScreen. */}
+        <span className={base.stepBadge}>
+          {"שלב " + step.num + " מתוך " + BUILD_STEP_COUNT + " — " + step.label}
+        </span>
+        <span className={base.stepText}>בחרו למטה איך להכניס את המוזמנים: להקליד אחד-אחד, להדביק רשימה שכבר יש לכם, או לשלוח קישור שהמשפחה תמלא במקומכם. אחר כך ממשיכים לשולחנות. הכל נשמר לבד.</span>
       </div>
 
       {/* ── Guest limit upgrade tip ── */}
@@ -344,70 +349,131 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         </p>
       )}
 
+      {/* ── The three ways in — FIRST, because they are what the page is for ──
+          They used to sit under the manual form: a host typed forty names by
+          hand and only then met the paste box and the shared link. Each option
+          is titled by what HAPPENS, not by what it is called. */}
+      {!editId && (
+        <div className={styles.ways}>
+          <SectionLabel>איך להכניס את המוזמנים לרשימה</SectionLabel>
+          <div className={styles.waysGrid}>
+            <button
+              type="button"
+              className={[styles.way, addWay === "manual" ? styles.wayOn : ""].filter(Boolean).join(" ")}
+              aria-pressed={addWay === "manual"}
+              onClick={() => { setAddWay("manual"); setTimeout(() => nameRef.current && nameRef.current.focus(), 50); }}
+            >
+              <span className={styles.wayIcon}><Icon name="edit" size={18} /></span>
+              <span className={styles.wayTitle}>להקליד בעצמכם, שורה-שורה</span>
+              <span className={styles.wayText}>
+                אתם ממלאים שם, טלפון וכמה מקומות לשמור. הצד והקבוצה נשארים כפי שבחרתם,
+                כך שאפשר להזין משפחה שלמה ברצף.
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={[styles.way, addWay === "list" ? styles.wayOn : ""].filter(Boolean).join(" ")}
+              aria-pressed={addWay === "list"}
+              onClick={() => setAddWay("list")}
+            >
+              <span className={styles.wayIcon}><Icon name="clipboard" size={18} /></span>
+              <span className={styles.wayTitle}>להדביק רשימה שכבר יש לכם</span>
+              <span className={styles.wayText}>
+                שמות בהודעת וואטסאפ, בפתק או בגיליון — מדביקים הכל בבת אחת, שם אחד בכל שורה.
+                טלפון שנמצא באותה שורה נקלט לבד. כולם נכנסים לאותו צד ולאותה קבוצה.
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={styles.way}
+              onClick={() => go("collab")}
+            >
+              <span className={styles.wayIcon}><Icon name="link" size={18} /></span>
+              <span className={styles.wayTitle}>לשלוח קישור {collabWhoTo} — והם ממלאים</span>
+              <span className={styles.wayText}>
+                שולחים קישור אחד בוואטסאפ. כל מי שפותח אותו מוסיף את המוזמנים שלו לאותה טבלה,
+                בלי הרשמה ובלי סיסמה. כל שורה שהושלמה מופיעה כאן מיד — ולא צריך לאסוף אקסלים.
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")}>
         <SectionLabel>
           {editId
             ? ("עריכת אורח — " + (ev.guests.find(g => g.id === editId)?.name ?? ""))
-            : "הוספת אורח ידנית"}
+            : showList ? "הדביקו את הרשימה" : "הוספת אורח"}
         </SectionLabel>
-        {!editId && (
-          <p className={styles.addHint}>
-            הוספה אחת בכל פעם. להוספה מהירה — "הוסיפו לפי רשימה", או "טבלה שיתופית למשפחה" שכולם ממלאים יחד.
-          </p>
-        )}
 
-        <div className={base.grid2}>
-          <Field label="שם מלא" required>
-            <input
-              ref={nameRef}
-              className={base.input}
-              value={form.name}
-              placeholder="שם ושם משפחה"
-              onChange={e => setF("name", e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") saveGuest(); }}
+        {showList && !editId ? (
+          <div className={styles.listAddPanel}>
+            <p className={styles.listAddHint}>
+              שם אחד בכל שורה. אם יש בשורה גם מספר טלפון — הוא ייקלט לשדה הטלפון לבד,
+              לא צריך לסדר כלום מראש. בחרו למטה לאיזה צד ולאיזו קבוצה כולם שייכים;
+              אפשר לשנות לכל אחד בנפרד אחר כך.
+            </p>
+            <textarea
+              className={[base.input, styles.listAddTextarea].join(" ")}
+              value={listText}
+              onChange={e => setListText(e.target.value)}
+              placeholder={"דוד לוי\nשרה כהן, 050-1234567\n~משפחת אברהם\t0521234567\n..."}
+              rows={6}
+              autoFocus
+              aria-label="הדביקו כאן את רשימת השמות"
             />
-          </Field>
-          <Field label="טלפון" hint="אופציונלי">
-            <input className={base.input} value={form.phone} placeholder="050-0000000"
-              onChange={e => setF("phone", e.target.value)} />
-          </Field>
-          <Field label="כמות מקומות" hint="כמה מקומות תופסת הרשומה הזו">
-            <input className={base.input} type="number" min="1" max="50" value={form.count || 1}
-              onChange={e => setF("count", Math.max(1, parseInt(e.target.value) || 1))} />
-          </Field>
-        </div>
-
-        {(form.count || 1) > 1 && (
-          <Field
-            label={`שמות המגיעים עם ${form.name.trim() || "האורח"} (אופציונלי)`}
-            hint="כדי לראות שם על כל כיסא בשולחן. מה שלא ימולא יוצג כ״+1 / +2״."
-          >
-            <div className={styles.companionsGrid}>
-              {Array.from({ length: (form.count || 1) - 1 }).map((_, i) => (
-                <input
-                  key={i}
-                  className={base.input}
-                  value={(form.companions || [])[i] || ""}
-                  placeholder={`מלווה ${i + 1}`}
-                  onChange={e => {
-                    const arr = [...(form.companions || [])];
-                    arr[i] = e.target.value;
-                    setF("companions", arr);
-                  }}
-                />
-              ))}
+            <div className={styles.listAddRow}>
+              <div className={base.seg}>
+                {["bride", "groom"].map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={[base.segBtn, listSide === s ? (s === "bride" ? base.segBride : base.segGroom) : ""].filter(Boolean).join(" ")}
+                    onClick={() => setListSide(s)}
+                  >
+                    {sideLabel(s)}
+                  </button>
+                ))}
+              </div>
+              <select
+                className={base.select}
+                aria-label="הקבוצה שכל השמות ברשימה יקבלו"
+                value={listGroup}
+                onChange={e => chooseListGroup(e.target.value)}
+              >
+                {allGroupOptions.filter(g => g !== "אחר").map(g => <option key={g} value={g}>{g}</option>)}
+                <option value="__addgroup__">+ קבוצה חדשה…</option>
+              </select>
             </div>
-          </Field>
-        )}
-
-        <Divider label="שיוך לסידור" />
+            <div className={base.formActions}>
+              <button
+                className={base.btnPrimary}
+                onClick={addFromList}
+                disabled={parsedList.length === 0}
+              >
+                + הוסיפו {parsedList.length} אורחים
+                {parsedWithPhone > 0 ? ` (${parsedWithPhone} עם טלפון)` : ""}
+              </button>
+              <button className={base.btnSecondary} onClick={() => setAddWay("manual")}>ביטול</button>
+            </div>
+          </div>
+        ) : (
+        <>
+        {/* Assignment first, name second — the owner's correction. Entering a
+            family means picking the side and the group ONCE and then typing
+            name after name; asking for the name first put the sticky choice
+            after the thing that changes every time. */}
+        <Divider label="למי משייכים?" />
 
         <div className={base.grid2}>
-          <Field label="צד" hint="מי מזמין את האורח">
+          <Field label="מי הזמין אותם" hint="לפי זה נדע לשבת אותם באזור הנכון באולם">
             <div className={base.seg}>
               {["bride", "groom"].map(s => (
                 <button
                   key={s}
+                  type="button"
                   className={[
                     base.segBtn,
                     form.side === s ? (s === "bride" ? base.segBride : base.segGroom) : ""
@@ -419,7 +485,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               ))}
             </div>
           </Field>
-          <Field label="קבוצה" hint="ישפיע על הסידור האוטומטי">
+          <Field label="קבוצה" hint="הסידור האוטומטי מושיב את אותה קבוצה יחד">
             <select
               className={base.select}
               value={form.group}
@@ -438,37 +504,77 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   onKeyDown={e => { if (e.key === "Enter") saveGuest(); }}
                 />
                 <span className={styles.customGroupHint}>
-                  הקבוצה תישמר לאירוע זה ותופיע בתפריט לאורחים הבאים.
+                  הקבוצה תישמר לאירוע הזה ותופיע בתפריט לכל אורח הבא.
                 </span>
               </div>
             )}
           </Field>
         </div>
 
-        <Divider label="הגעה ומנה" />
+        <Divider label="מי מגיע?" />
 
         <div className={base.grid2}>
-          <Field label={<>סטטוס הגעה <InfoTip text="לעדכון ידני של תשובות שקיבלתם בעצמכם (בטלפון או פנים־אל־פנים). אורחים שמאשרים דרך הקישור הדיגיטלי מתעדכנים אוטומטית — אין צורך לעדכן אותם כאן." /></>}>
-            <select className={base.select} value={form.rsvp || "pending"} onChange={e => setF("rsvp", e.target.value)}>
-              {RSVP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+          <Field label="שם מלא" required>
+            <input
+              ref={nameRef}
+              className={base.input}
+              value={form.name}
+              placeholder="שם ושם משפחה"
+              onChange={e => setF("name", e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") saveGuest(); }}
+            />
           </Field>
-          <Field label="מנה">
-            <select className={base.select} value={form.meal || MEAL_DEFAULT} onChange={e => setF("meal", e.target.value)}>
-              {MEAL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+          <Field label="טלפון" hint="לשליחת ההזמנה ואישור ההגעה בוואטסאפ">
+            <input className={base.input} value={form.phone} placeholder="050-0000000"
+              onChange={e => setF("phone", e.target.value)} />
+          </Field>
+          <Field label="כמה כיסאות לשמור" hint="האורח עצמו + כל מי שמגיע איתו">
+            <input className={base.input} type="number" min="1" max="50" value={form.count || 1}
+              onChange={e => setF("count", Math.max(1, parseInt(e.target.value) || 1))} />
           </Field>
         </div>
+
+        {companionSlots(form.count) > 0 && (
+          <Field
+            /* The owner's wording: the field has to say WHO these people are.
+               "שמות המלווים" told a first-time host nothing. */
+            /* Hebrew does not take a numeral in front of a singular this way:
+               "מי 1 האנשים" is a plural sentence with the number one in it. The
+               seat <select> three lines down already gets this right. */
+            label={companionSlots(form.count) === 1
+              ? `מי האדם שמצטרף ${form.name.trim() ? "ל" + form.name.trim() : "לרשומה הזו"}?`
+              : `מי ${companionSlots(form.count)} האנשים שמצטרפים ${form.name.trim() ? "ל" + form.name.trim() : "לרשומה הזו"}?`}
+            hint="אפשר לדלג — אבל שם על כל כיסא הוא מה שמאפשר לשבת אותם נכון, ולדיילת בכניסה לזהות אותם. בלי שם הכיסא יופיע כ״+1״."
+          >
+            <div className={styles.companionsGrid}>
+              {companionsForCount(form.companions, form.count).map((val, i) => (
+                <input
+                  key={i}
+                  className={base.input}
+                  value={val}
+                  placeholder={`שם ${i + 1}`}
+                  aria-label={`שם המצטרף ${i + 1}`}
+                  /* One name at a time: setCompanionAt keeps every other
+                     position exactly as it was. */
+                  onChange={e => setF("companions", setCompanionAt(form.companions, i, e.target.value))}
+                />
+              ))}
+            </div>
+          </Field>
+        )}
+
+        <Divider label="לא חובה" />
+
         <div className={base.grid2}>
-          <Field label="הערות">
+          <Field label="הערה" hint="מה שחשוב לזכור עליהם">
             <input
               className={base.input}
               value={form.notes}
-              placeholder="מוגבלות, הערה כלשהי..."
+              placeholder="נגישות, אלרגיה, בקשה מיוחדת..."
               onChange={e => setF("notes", e.target.value)}
             />
           </Field>
-          <Field label={<>מתנה משוערת (₪) <InfoTip text="אופציונלי. כמה אתם מעריכים שהאורח יכניס במתנה — הסכום מכל האורחים נכנס ל'הכנסה צפויה' במסך תכנון התקציב." /></>}>
+          <Field label={<>מתנה משוערת (₪) <InfoTip text="הערכה שלכם מראש, לא סכום שהתקבל. הסכום מכל האורחים מרכיב את 'ההכנסה הצפויה' במסך התקציב, כדי שתדעו איפה אתם עומדים מול העלויות. מה שיתקבל בפועל נרשם ביום האירוע במסך הצ׳ק אין." /></>}>
             <input
               className={base.input}
               type="number"
@@ -479,18 +585,32 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               onChange={e => setF("estGift", e.target.value)}
             />
           </Field>
-          <Field label={<>מתנה שהתקבלה (₪) <InfoTip text="אופציונלי. אם כבר קיבלתם מתנה מהאורח — רשמו כאן את הסכום בפועל. נסכם לכם את סך המתנות שהתקבלו." /></>}>
-            <input
-              className={base.input}
-              type="number"
-              min="0"
-              step="50"
-              value={form.giftAmount}
-              placeholder="0"
-              onChange={e => setF("giftAmount", e.target.value)}
-            />
-          </Field>
         </div>
+
+        {/* Only when correcting an existing row. These two are ANSWERS the
+            guest gave, not details the host knows while building the list —
+            so they are not part of adding a guest, and they are visibly
+            separated from the fields that are. */}
+        {editId && (
+          <>
+            <Divider label="מה שהאורח מסר" />
+            <p className={styles.answersNote}>
+              אלה נקבעים מאישור ההגעה של האורח. שנו כאן רק כדי לתקן — למשל אם ענו לכם בטלפון.
+            </p>
+            <div className={base.grid2}>
+              <Field label={<>אישור הגעה <InfoTip text="אורח שעונה דרך קישור אישור ההגעה מתעדכן כאן לבד. השדה הזה קיים כדי לתקן תשובה שקיבלתם בדרך אחרת." /></>}>
+                <select className={base.select} value={form.rsvp || "pending"} onChange={e => setF("rsvp", e.target.value)}>
+                  {RSVP_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </Field>
+              <Field label={<>מנה <InfoTip text="מנה מיוחדת שהאורח ביקש. הספירה למטה היא מה שמזמינים מהקייטרינג. נכון להיום השדה הזה ממולא כאן ידנית — טופס אישור ההגעה עדיין לא שואל עליו." /></>}>
+                <select className={base.select} value={form.meal || MEAL_DEFAULT} onChange={e => setF("meal", e.target.value)}>
+                  {MEAL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </Field>
+            </div>
+          </>
+        )}
 
         <div className={base.formActions}>
           <button
@@ -504,77 +624,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             {editId ? "שמרו שינויים" : "+ הוסיפו אורח"}
           </button>
           {editId && <button className={base.btnSecondary} onClick={cancelEdit}>ביטול</button>}
-          {!editId && (
-            <button className={base.btnSecondary} onClick={() => setShowList(p => !p)}>
-              {showList ? "סגרו רשימה" : <><Icon name="clipboard" /> הוסיפו לפי רשימה</>}
-            </button>
-          )}
-          {!editId && ev.guests.length > 0 && (
-            <button className={base.btnSecondary} onClick={exportGuestsExcel}>
-              <Icon name="download" /> הורדה לאקסל
-            </button>
-          )}
-          {!editId && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <button className={base.btnSecondary} onClick={() => go("collab")}>
-                {collabLabel}
-              </button>
-              <InfoTip text={`שתפו קישור אחד עם ${collabWho} — כולם ממלאים את אותה טבלה יחד, בזמן אמת, בלי צורך במשתמש וסיסמה. כל רשומה מלאה נכנסת לכאן אוטומטית, ושינוי כאן מתעדכן אצלם. במקום לשלוח אקסל הלוך ושוב.`} />
-            </span>
-          )}
-          {!editId && <span className={base.fieldHint}>Enter = הוספה מהירה</span>}
+          {!editId && <span className={base.fieldHint}>Enter בשדה השם = הוספה ומעבר לאורח הבא</span>}
         </div>
-
-        {showList && !editId && (
-          <div className={styles.listAddPanel}>
-            <div className={styles.listAddTitle}>הוסיפו אורחים לפי רשימה</div>
-            <p className={styles.listAddHint}>
-              שם אחד בכל שורה. אפשר להדביק גם רשימה מוואטסאפ או מגיליון —
-              אם יש טלפון בשורה, הוא ייקלט אוטומטית. כל האורחים יקבלו את אותו הצד והקבוצה.
-            </p>
-            <textarea
-              className={[base.input, styles.listAddTextarea].join(" ")}
-              value={listText}
-              onChange={e => setListText(e.target.value)}
-              placeholder={"דוד לוי\nשרה כהן, 050-1234567\n~משפחת אברהם\t0521234567\n..."}
-              rows={6}
-              autoFocus
-            />
-            <div className={styles.listAddRow}>
-              <div className={base.seg}>
-                {["bride", "groom"].map(s => (
-                  <button
-                    key={s}
-                    className={[base.segBtn, listSide === s ? (s === "bride" ? base.segBride : base.segGroom) : ""].filter(Boolean).join(" ")}
-                    onClick={() => setListSide(s)}
-                  >
-                    {sideLabel(s)}
-                  </button>
-                ))}
-              </div>
-              <select
-                className={base.select}
-                value={listGroup}
-                onChange={e => chooseListGroup(e.target.value)}
-              >
-                {allGroupOptions.filter(g => g !== "אחר").map(g => <option key={g} value={g}>{g}</option>)}
-                <option value="__addgroup__">+ קבוצה חדשה…</option>
-              </select>
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                className={base.btnPrimary}
-                onClick={addFromList}
-                disabled={parsedList.length === 0}
-              >
-                + הוסיפו {parsedList.length} אורחים
-                {parsedWithPhone > 0 ? ` (${parsedWithPhone} עם טלפון)` : ""}
-              </button>
-              <button className={base.btnSecondary} onClick={() => setShowList(false)}>ביטול</button>
-            </div>
-          </div>
+        </>
         )}
-
       </div>
 
       {ev.guests.length > 0 && (
@@ -614,6 +667,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           ) : (
             <span className={base.filterCount}>{ev.guests.length} רשומות</span>
           )}
+          {/* The export belongs to the LIST, not to the add form it used to sit
+              in — you download what you are looking at. */}
+          <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={exportGuestsExcel}>
+            <Icon name="download" size={12} /> הורדה לאקסל
+          </button>
         </div>
       )}
 
@@ -652,7 +710,6 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                     {g.meal && g.meal !== MEAL_DEFAULT ? " · " + mealLabel(g.meal) : ""}
                     {g.phone ? " · " + g.phone : ""}
                     {g.notes ? " · " + g.notes : ""}
-                    {g.giftAmount > 0 ? " · ₪" + g.giftAmount.toLocaleString("he-IL") : ""}
                   </span>
                 </div>
                 {(g.rsvp === "confirmed" || g.rsvp === "declined" || g.rsvp === "maybe") && (
@@ -686,7 +743,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   )}
                   <button className={[base.btnSm, base.btnGhost].join(" ")}
                     onClick={() => {
-                      setForm({ name: g.name, side: g.side, group: g.group, count: g.count || 1, phone: g.phone || "", notes: g.notes || "", rsvp: g.rsvp || "pending", meal: g.meal || MEAL_DEFAULT, giftAmount: g.giftAmount || "", estGift: g.estGift || "", companions: Array.isArray(g.companions) ? g.companions : [] });
+                      // Every editable field is loaded from the row, companion
+                      // names included and padded to the seat count — a field
+                      // the form renders but does not load is a field the host
+                      // is being invited to blank out by accident.
+                      setForm(guestToForm(g, defaultGroup));
                       setEditId(g.id);
                       window.scrollTo(0, 0);
                     }}>
@@ -703,8 +764,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {ev.guests.length === 0 && (
-        <EmptyState mark="guests" title="טרם נוספו אורחים"
-          text='הוסיפו אורחים ידנית דרך הטופס למעלה, "הוסיפו לפי רשימה" להוספה מהירה, או שתפו "טבלה שיתופית למשפחה".' />
+        <EmptyState mark="guests" title="עוד לא נוסף אף מוזמן"
+          text={`בחרו למעלה איך להתחיל: להקליד שורה-שורה, להדביק רשימה שכבר יש לכם, או לשלוח קישור ${collabWhoTo} שימלאו במקומכם.`} />
       )}
       {visible.length === 0 && ev.guests.length > 0 && (
         <EmptyState icon={<Icon name="search" />} title="אין תוצאות לסינון הנוכחי"
@@ -712,11 +773,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       <NextStep
-        label="המשיכו להגדרת אילוצים"
-        hint={ev.constraints.length > 0
-          ? (ev.constraints.length + " אילוצים מוגדרים")
-          : "אופציונלי — הגדירו מי חייב / לא יכול לשבת יחד"}
-        onClick={() => go("constraints")}
+        label={"המשיכו ל" + next.label}
+        hint={ev.tables.length === 0 ? "כמה שולחנות יש באולם ומה הקיבולת שלהם"
+          : ev.tables.length === 1 ? "שולחן אחד מוגדר"
+          : ev.tables.length + " שולחנות מוגדרים"}
+        onClick={() => go(next.id)}
       />
     </div>
   );

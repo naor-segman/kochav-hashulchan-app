@@ -145,8 +145,26 @@ export function displayStatus(sub) {
  * Returns the full limits object for a given plan key.
  * Falls back to free limits for unknown plan values.
  */
+/**
+ * Look a key up in one of these maps WITHOUT reading through the prototype
+ * chain.
+ *
+ * `plan` and `status` are plain text columns written by the Stripe webhook, so
+ * they are not host-reachable today — but `PLAN_LIMITS["toString"]` returns a
+ * FUNCTION, and a function is truthy, so `?? PLAN_LIMITS.free` never fired:
+ * measured, `getPlanLimits("toString").maxGuests` is `undefined`,
+ * `canAddGuest(0).withinPlan` is `false` and `slotsLeft` is `NaN`. The account
+ * is locked out of everything instead of falling back to free. `isKnownPlan`
+ * had the same hole in the other direction — it answered TRUE for "constructor".
+ *
+ * One helper rather than four fixes, so the next map added here inherits it.
+ */
+function own(map, key) {
+  return typeof key === "string" && Object.hasOwn(map, key) ? map[key] : undefined;
+}
+
 export function getPlanLimits(plan) {
-  return PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+  return own(PLAN_LIMITS, plan) ?? PLAN_LIMITS.free;
 }
 
 /**
@@ -156,12 +174,12 @@ export function getPlanLimits(plan) {
 export function getPlanLabel(plan) {
   // Never fall through to the raw key. A DB value the panel does not know
   // rendered as `enterprise_annual` mid-Hebrew-table and read as a label.
-  return PLAN_META[plan]?.label ?? (plan ? "תוכנית לא מוכרת" : "—");
+  return own(PLAN_META, plan)?.label ?? (plan ? "תוכנית לא מוכרת" : "—");
 }
 
 /** False when the raw DB value has no Hebrew label — show it in a title. */
 export function isKnownPlan(plan) {
-  return !!PLAN_META[plan];
+  return !!own(PLAN_META, plan);
 }
 
 /**
@@ -169,12 +187,12 @@ export function isKnownPlan(plan) {
  * E.g. getStatusLabel("trialing") → "תקופת ניסיון"
  */
 export function getStatusLabel(status) {
-  return STATUS_META[status]?.label ?? (status ? "סטטוס לא מוכר" : "—");
+  return own(STATUS_META, status)?.label ?? (status ? "סטטוס לא מוכר" : "—");
 }
 
 /** False when the raw DB value has no Hebrew label — show it in a title. */
 export function isKnownStatus(status) {
-  return !!STATUS_META[status];
+  return !!own(STATUS_META, status);
 }
 
 // hasFeature() lived here and was never imported anywhere in the repo — the
@@ -187,3 +205,9 @@ export const STATUS_KEYS = [
   "past_due", "unpaid", "active", "trialing",
   "incomplete", "incomplete_expired", "paused", "cancelled", "expired",
 ];
+
+/** The metadata for a plan key, or undefined. Prototype-safe — see own(). */
+export function getPlanMeta(plan) { return own(PLAN_META, plan); }
+
+/** The metadata for a status key, or undefined. Prototype-safe — see own(). */
+export function getStatusMeta(status) { return own(STATUS_META, status); }

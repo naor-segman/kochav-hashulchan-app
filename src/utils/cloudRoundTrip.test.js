@@ -47,7 +47,8 @@ const MAXIMAL = {
   guests: [
     { id: "g1", name: "טל שוורץ", side: "bride", group: "משפחה", count: 3,
       phone: "0501234567", rsvp: "confirmed", meal: "vegan", notes: "ליד ההורים",
-      arrived: true, giftAmount: 500, companions: ["רון", "מיה"] },
+      arrived: true, arrivedSeats: [0, 2], giftAmount: 500, estGift: 750,
+      companions: ["רון", "מיה"] },
     { id: "g2", name: "רון לוי", side: "groom", group: "חברים", count: 1,
       phone: "0521234567", rsvp: "pending", meal: "regular", notes: "",
       arrived: false, giftAmount: 0, companions: [] },
@@ -71,6 +72,8 @@ const MAXIMAL = {
   messagesSent: { g1: { invite: 1700000000000 } },
   messageTemplates: { invite: "בואו לחגוג {{אירוע}}" },
   collabActive: false,
+  hostessWriteActive: false,
+  tokensRotatedAt: 1_700_000_500_000,
   giftBitPhone: "0501234567",
   giftPayboxLink: "https://payboxapp.page.link/abc",
   tokens: { rsvp: "TK-rsvp", album: "TK-album", invite: "TK-invite",
@@ -225,6 +228,20 @@ describe("full cloud round-trip", () => {
     // The shared-table switch. It is read by a public RPC out of the payload,
     // so losing it silently re-opens a link the host closed.
     expect(n2.collabActive).toBe(false);
+    // The entrance link's write switch, same story: enforced by
+    // hostess_writes_active(e) out of the payload, so dropping it here re-opens
+    // a door the host closed.
+    expect(n2.hostessWriteActive).toBe(false);
+    // Losing this makes a revoked public link come back: the merge uses it to
+    // decide which side rotated deliberately.
+    expect(n2.tokensRotatedAt).toBe(1_700_000_500_000);
+    // Per-person arrival. `guests` passes through whole, which is exactly why
+    // this needs pinning — nothing else would notice if it stopped.
+    expect(n2.guests[0].arrivedSeats).toEqual([0, 2]);
+    // estGift is one of the ten fields the guest form writes and it was missing
+    // from this fixture. It survives today because guests pass through both
+    // mappers whole — which is exactly why nothing would notice if that stopped.
+    expect(n2.guests[0].estGift).toBe(750);
     expect(n2.sideLabels).toEqual(MAXIMAL.sideLabels);
   });
 

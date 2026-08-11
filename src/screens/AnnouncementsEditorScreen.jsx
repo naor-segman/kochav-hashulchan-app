@@ -11,6 +11,7 @@ import QrCode from "../components/ui/QrCode.jsx";
 import base from "../styles/screenBase.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import styles from "./AnnouncementsEditorScreen.module.css";
+import { useShareGate } from "../components/share/useShareGate.jsx";
 
 /** Downscale + compress in the browser — a 5MB phone photo would otherwise be
  *  base64'd straight into the event payload and pushed to the cloud on save. */
@@ -36,6 +37,10 @@ function compress(file, maxW = 1400, quality = 0.82) {
 }
 
 export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent, showToast }) {
+  // Sharing is the moment guest mode stops being free. A guest event has no
+  // cloud row, so the link resolves to nothing for everyone it is sent to —
+  // withholding it is honest; showing it and letting it be copied is not.
+  const { guard, gate } = useShareGate();
   const [kind, setKind] = useState("saveTheDate");
   const [preview, setPreview] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -55,7 +60,9 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
   const token = ev.tokens?.invite;
   const url   = token ? `${window.location.origin}/${announcementRoute(kind)}/${token}` : "";
 
-  const copy = async () => {
+  const copy = () => guard("קישור ההזמנה", doCopy);
+
+  const doCopy = async () => {
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
@@ -264,6 +271,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
           </p>
         )}
       </div>
+      {gate}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, Fragment } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import {
-  PLAN_META,
+  getPlanMeta,
   displayStatus,
   getPlanLabel,
   getStatusLabel,
@@ -242,7 +242,7 @@ export default function AdminSubscriptionsScreen() {
             <h2 className={styles.sectionTitle}>סקירת תוכניות</h2>
             <div className={styles.planCards}>
               {PLAN_KEYS.map(plan => {
-                const meta   = PLAN_META[plan];
+                const meta   = getPlanMeta(plan);
                 const limits = getPlanLimits(plan);
                 return (
                   // The 3px top rule was magenta / blue / grey and the label

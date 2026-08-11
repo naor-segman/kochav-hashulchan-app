@@ -23,10 +23,50 @@ import {
 // it actually has a value. `fallback` is the already-normalized token set, used
 // only where neither side has one — otherwise a key missing on both sides would
 // come out null and, past the normalize gateway, stay null.
-function mergeTokens(cloudTokens, localTokens, fallback) {
+function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRotatedAt) {
+  // Rotation flips the precedence, and only rotation does.
+  //
+  // Killing a leaked link means minting a new token. But this merge let the
+  // CLOUD win per key, so a host who rotated and then reloaded before the
+  // debounced push landed got the dead link back — and a second device holding
+  // the old token would push it back over the new one. Revocation that can be
+  // silently undone is not revocation.
+  //
+  // `tokensRotatedAt` says which side last did that deliberately. With neither
+  // side rotated — every event today — this is exactly the old behaviour.
+  const localWins = Number.isFinite(localRotatedAt) &&
+    localRotatedAt > (Number.isFinite(cloudRotatedAt) ? cloudRotatedAt : 0);
+  const first  = localWins ? localTokens : cloudTokens;
+  const second = localWins ? cloudTokens : localTokens;
   return Object.fromEntries(
-    TOKEN_KEYS.map(k => [k, cloudTokens?.[k] || localTokens?.[k] || fallback?.[k] || null])
+    TOKEN_KEYS.map(k => [k, first?.[k] || second?.[k] || fallback?.[k] || null])
   );
+}
+
+/**
+ * Take the cloud's arrival state for any guest this tab has never expressed an
+ * opinion about.
+ *
+ * "Never expressed an opinion" is precisely `arrivedSeats === undefined` and no
+ * truthy `arrived`. That is different from `arrivedSeats: []`, which is the host
+ * deliberately un-marking someone — so un-marking still wins, and a host who
+ * marks people on their own device still wins. Only the guests the local copy is
+ * silent about are taken from the cloud, which is exactly the set the greeter
+ * touched after this tab last read the row.
+ *
+ * A guest missing from either side is left alone; this never adds or removes a
+ * row, only two keys on rows that exist on both.
+ */
+function mergeArrivals(localGuests, cloudGuests) {
+  if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
+  const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
+  return localGuests.map(g => {
+    const untouched = g.arrivedSeats === undefined && !g.arrived;
+    if (!untouched) return g;
+    const c = cloudById.get(g.id);
+    if (!c || (c.arrivedSeats === undefined && !c.arrived)) return g;
+    return { ...g, arrivedSeats: c.arrivedSeats, arrived: c.arrived };
+  });
 }
 
 // Cloud events take precedence over local events with the same ID.
@@ -54,6 +94,13 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
     if (localMatch && (localMatch.updatedAt ?? 0) > (ce.updatedAt ?? 0)) {
       return normalizeEvent({
         ...localMatch,
+        // Arrivals are the one thing on this row written by SOMEONE ELSE, from a
+        // device this tab never sees — the greeter, through the entrance token.
+        // Whole-event last-write-wins therefore cannot be right for them: the
+        // host edits the venue at 20:32, their copy is newer by definition, and
+        // three people the greeter checked in at 20:31 are dropped and then
+        // pushed back over the cloud. Measured: exactly that.
+        guests: mergeArrivals(localMatch.guests, ce.guests),
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
         // The concurrency base always comes from the row we just read, whichever
         // side's CONTENT wins — otherwise the next push compares against a
@@ -62,7 +109,9 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
         // Tokens are minted server-side on first sync; never let a local copy
         // that predates that push resurrect a null token — and never let a
         // cloud row that predates a NEW token (album) erase the local one.
-        tokens: mergeTokens(ce.tokens, localMatch.tokens),
+        tokensRotatedAt: Math.max(ce.tokensRotatedAt ?? 0, localMatch.tokensRotatedAt ?? 0) || null,
+        tokens: mergeTokens(ce.tokens, localMatch.tokens, null,
+                            ce.tokensRotatedAt, localMatch.tokensRotatedAt),
       });
     }
 
@@ -87,7 +136,10 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
     // record (ce) instead of the normalized result — per key, so a cloud row
     // that predates one of the tokens cannot erase the local value.
     if (localMatch?.tokens) {
-      result = { ...result, tokens: mergeTokens(ce.tokens, localMatch.tokens, result.tokens) };
+      result = { ...result,
+        tokensRotatedAt: Math.max(ce.tokensRotatedAt ?? 0, localMatch.tokensRotatedAt ?? 0) || null,
+        tokens: mergeTokens(ce.tokens, localMatch.tokens, result.tokens,
+                            ce.tokensRotatedAt, localMatch.tokensRotatedAt) };
     }
     return result;
   });

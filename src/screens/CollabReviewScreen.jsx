@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchCollabGuestsOwner, subscribeCollabGuests } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
+import { exportCollabTableToExcel, collabRowMissing } from "../utils/exportHelpers.js";
+import { rotateEventToken } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import QrCode from "../components/ui/QrCode.jsx";
@@ -9,14 +11,19 @@ import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./CollabReviewScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { useShareGate } from "../components/share/useShareGate.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 
-const norm = (s) => (s || "").toString().trim();
-const complete = (r) => !!(norm(r.name) && norm(r.phone) && r.side && norm(r.guest_group));
 
 // The shared collaborative table hub. Family members fill the live table via the
 // link; complete rows sync into the guest list automatically (useCollabSync), so
 // there is no manual import here — just share, watch, and export.
 export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  const { confirm, dialog } = useConfirm();
+  // Sharing is the moment guest mode stops being free. A guest event has no
+  // cloud row, so the link resolves to nothing for everyone it is sent to —
+  // withholding it is honest; showing it and letting it be copied is not.
+  const { guard, gate } = useShareGate();
   const [rows, setRows] = useState([]);
   const [loadState, setLoadState] = useState("loading"); // loading | ready | offline
 
@@ -44,21 +51,20 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
   const collabLink   = ev.tokens?.collab ? window.location.origin + "/collab/" + ev.tokens.collab : null;
   const collabActive = ev.collabActive !== false;
   const sides = getSideLabels(ev);
-  const completeCount = rows.filter(complete).length;
+  // One definition of "complete", shared with the table screen and the export.
+  // There were three hand-maintained copies of this predicate.
+  const completeCount = rows.filter(r => collabRowMissing(r).length === 0).length;
 
-  // Loaded on demand. A static import made the 416KB xlsx chunk a hard
-  // dependency of this screen for everyone who opens it, when only the people
-  // who press the download button ever need it.
-  const downloadExcel = async () => {
-    const XLSX = await import("xlsx");
-    const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות"]];
-    (ev.guests || []).forEach((g) => aoa.push([g.name || "", g.phone || "", sides[g.side] || "", g.group || "", g.count || 1]));
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 }, { wch: 7 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "רשימת אורחים");
-    XLSX.writeFile(wb, `אורחים-${(ev.name || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
-  };
+  // Both halves of this feature go through one builder now, so they can no
+  // longer drift into exporting different datasets under the same label — this
+  // screen and the shared table were writing DIFFERENT data to the same
+  // filename and the same sheet name, on top of each other in one Downloads
+  // folder, and neither of them included the companion names the shared table
+  // exists to collect. This screen is about the SHARED TABLE, so that is what
+  // it hands you; the full guest list has its own export in the guest manager.
+  // xlsx is still loaded on demand inside the helper.
+  const downloadExcel = () =>
+    exportCollabTableToExcel(rows, { eventName: ev.name, sideLabels: sides });
 
   return (
     <div className={base.page}>
@@ -102,18 +108,57 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
             </button>
           </div>
 
-          <p className={base.fieldHint}>הקישור לטבלה השיתופית (שם וטלפון בהקלדה, השאר מרשימה — בלי טעויות):</p>
+          {/* Said in terms of what the person on the other end will do with it,
+              not in terms of what the feature is called. */}
+          <p className={base.fieldHint}>
+            שלחו את הקישור הזה בוואטסאפ. כל מי שפותח אותו מוסיף את המוזמנים שלו לאותה טבלה,
+            בלי הרשמה ובלי סיסמה — וכל שורה שהושלמה מופיעה ברשימת האורחים שלכם מיד:
+          </p>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input className={base.input} readOnly value={collabLink} dir="ltr" aria-label="קישור לטבלה השיתופית" />
-            <button className={base.btnSm} onClick={async () => {
+            <button className={base.btnSm} onClick={() => guard("הקישור לטבלה השיתופית", async () => {
               try { await navigator.clipboard.writeText(collabLink); showToast("הקישור הועתק ✓"); }
               catch { showToast("העתיקו ידנית", "err"); }
-            }}>העתיקו</button>
+            })}>העתיקו</button>
             <QrCode url={collabLink} label="טבלה שיתופית" filename="qr-collab" />
           </div>
+          {/* The switch above closes the door; this changes the lock.
+              Until now the shared-table link was a FULL grant that could never
+              be taken back — whoever held it could read every phone number,
+              edit, delete and export, and one forward to the wrong WhatsApp
+              group was permanent. */}
+          <p className={[base.fieldHint, styles.rotateHint].join(" ")}>
+            שלחתם את הקישור למקום הלא נכון? אפשר להחליף אותו בקישור חדש — הישן יפסיק לעבוד מיד.
+          </p>
           <div className={base.actionBar} style={{ marginTop: 14 }}>
-            <a className={base.btnPrimary} href={collabLink} target="_blank" rel="noopener noreferrer">פתחו את הטבלה <Icon name="arrowLeft" size={15} /></a>
-            <button className={base.btnSecondary} onClick={downloadExcel} disabled={!(ev.guests || []).length}><Icon name="download" /> הורדה לאקסל</button>
+            <button className={base.btnPrimary} onClick={() => guard("הקישור לטבלה השיתופית",
+              () => window.open(collabLink, "_blank", "noopener,noreferrer"))}>
+              פתחו את הטבלה <Icon name="arrowLeft" size={15} />
+            </button>
+            <button
+              className={base.btnSecondary}
+              onClick={async () => {
+                // Says what is lost, not just what happens. Whoever already has
+                // the old link — including relatives mid-typing — stops at
+                // once, and the rows they already saved stay.
+                const ok = await confirm(
+                  "להחליף את הקישור לטבלה השיתופית?\n\n"
+                  + "הקישור הנוכחי יפסיק לעבוד מיד, וכל מי שקיבל אותו לא יוכל להיכנס יותר. "
+                  + "השורות שכבר מולאו נשארות. תצטרכו לשלוח את הקישור החדש מחדש.",
+                  { danger: true, confirmLabel: "החליפו את הקישור" },
+                );
+                if (!ok) return;
+                patchEvent(e => rotateEventToken(e, "collab"));
+                showToast("נוצר קישור חדש — הישן כבר לא עובד ✓");
+              }}
+            >
+              <Icon name="refresh" size={15} /> החליפו קישור
+            </button>
+            {/* Disabled on `rows`, not on `ev.guests`. Every stat on this screen
+                counts rows, so a table full of INCOMPLETE rows read
+                "5 רשומות · 0 מלאות" with the download greyed out — dead exactly
+                when the host most wants to see what the family typed. */}
+            <button className={base.btnSecondary} onClick={downloadExcel} disabled={rows.length === 0}><Icon name="download" /> הורדת הטבלה לאקסל</button>
           </div>
         </div>
       ) : (
@@ -145,6 +190,8 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
           </div>
         </div>
       )}
+      {gate}
+      {dialog}
     </div>
   );
 }

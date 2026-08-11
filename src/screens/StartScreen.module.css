@@ -1,0 +1,351 @@
+/* The first screen. Three of the four surfaces in one page — blush hero, white
+   card, grey footer strip — because the rotation between them IS the
+   composition, and a first impression made of one flat grey page is the thing
+   this document keeps calling "assembled rather than designed". */
+
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 20px 40px;
+  animation: fadeUp 0.22s ease;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page { animation: none; }
+}
+
+/* ── Hero ── */
+.hero {
+  background: var(--blush-soft);
+  border: 1px solid var(--blush-line);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px 30px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+/* --accent is a FILL token, 3.80:1, and on the blush hero it measured 3.37:1
+   — the exact bug class CLAUDE.md lists: accent used as a glyph, and contrast
+   read against the wrong ground. --accent-text is the token for ink on a light
+   ground and measures 6.87:1 on white, comfortably clear of the tint. */
+.brandMark { font-size: var(--step-2); color: var(--accent-text); }
+
+.brandName {
+  font-size: var(--step-0);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+/* One big confident thing per screen. This is it. */
+.headline {
+  font-family: var(--font-family-serif);
+  font-size: var(--step-4);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  line-height: 1.12;
+  margin: 0 0 14px;
+  letter-spacing: -0.01em;
+}
+
+.lead {
+  font-size: var(--step-1);
+  color: var(--text2);
+  line-height: var(--line-height-normal);
+  max-width: 52ch;
+  margin: 0 auto 26px;
+}
+
+.glyphPlate {
+  display: inline-block;
+  background: var(--surface);
+  border: 1px solid var(--blush-line);
+  border-radius: var(--radius);
+  padding: 16px 22px;
+  margin-bottom: 12px;
+  max-width: 100%;
+}
+
+.glyphRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.glyphCaption {
+  font-size: var(--step--2);
+  color: var(--text2);   /* --muted is 4.71:1 on --blush-soft; --text2 is 8.5:1 */
+  margin: 0;
+}
+
+/* ── The form ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px 28px;
+  margin-bottom: 20px;
+}
+
+.cardEyebrow {
+  font-size: var(--step--2);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--accent-text);
+  letter-spacing: 0.05em;
+  margin: 0 0 6px;
+}
+
+.cardTitle {
+  font-family: var(--font-family-serif);
+  font-size: var(--step-3);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+
+.cardSub {
+  font-size: var(--step-0);
+  color: var(--text2);
+  margin: 0 0 20px;
+  line-height: var(--line-height-normal);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+
+.fields > * { min-width: 0; }
+
+@media (max-width: 620px) {
+  .fields { grid-template-columns: 1fr; }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+}
+
+.optional {
+  font-weight: var(--font-weight-regular);
+  color: var(--muted);
+}
+
+.input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: var(--step-0);
+  color: var(--text);
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.input:focus {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16);
+}
+
+/* ── The demoted classification question ── */
+.typeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+}
+
+.typeLabel {
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
+  color: var(--text2);
+}
+
+.typeSelect {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-md);
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.typeSelect:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+.typeNote {
+  font-size: var(--step--2);
+  color: var(--muted);
+}
+
+.preview {
+  font-size: var(--step--1);
+  color: var(--text2);
+  margin: 0 0 18px;
+}
+
+.preview strong { color: var(--text); font-weight: var(--font-weight-extrabold); }
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+/* The one filled button on the page. --cta, never --accent. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cta);
+  border: 1px solid var(--cta);
+  color: var(--on-accent);
+  border-radius: var(--radius-pill);
+  padding: 13px 30px;
+  font-family: inherit;
+  font-size: var(--step-1);
+  font-weight: var(--font-weight-extrabold);
+  cursor: pointer;
+  box-shadow: var(--shadow-cta);
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+
+.cta:hover:not(:disabled) {
+  background: var(--cta-dark);
+  border-color: var(--cta-dark);
+  box-shadow: var(--shadow-cta-lg);
+}
+
+.cta:disabled {
+  background: var(--border);
+  border-color: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.cta:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+
+.cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  padding: 10px 6px;
+}
+
+.cancel:hover { color: var(--text); }
+
+.cancel:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+.note {
+  font-size: var(--step--2);
+  color: var(--muted);
+  margin: 0;
+  line-height: var(--line-height-normal);
+  max-width: 62ch;
+}
+
+/* ── What is inside — three, not fourteen ── */
+.areas { padding: 0 4px; }
+
+.areasHead {
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
+  color: var(--text2);
+  margin: 0 0 12px;
+}
+
+.areaList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .areaList { grid-template-columns: 1fr; }
+}
+
+.areaItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.areaText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.areaName {
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text);
+}
+
+.areaSub {
+  font-size: var(--step--2);
+  color: var(--text2);
+  line-height: var(--line-height-normal);
+}
+
+@media (max-width: 480px) {
+  .page { padding: 18px 14px 32px; }
+  .hero { padding: 28px 18px 22px; border-radius: var(--radius); }
+  .card { padding: 20px 16px; border-radius: var(--radius); }
+  .glyphPlate { padding: 12px 10px; }
+  .glyphRow { gap: 8px; }
+  .actions > .cta { flex: 1 1 auto; justify-content: center; }
+}
+
+@media (pointer: coarse) {
+  .cta, .cancel, .typeSelect { min-height: 44px; }
+}

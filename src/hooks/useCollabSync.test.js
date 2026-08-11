@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { matchExistingGuest } from "./useCollabSync.js";
+import { matchExistingGuest, pickCompanions } from "./useCollabSync.js";
 
 const guest = (id, name, phone) => ({ id, name, phone, side: "bride", group: "משפחה", count: 1 });
 
@@ -34,5 +34,49 @@ describe("matchExistingGuest (collab dedup)", () => {
 
   it("returns null (new guest) when phone is missing", () => {
     expect(matchExistingGuest(list, { id: "new", name: "דוד כהן", phone: "" })).toBeNull();
+  });
+});
+
+// The shared table is the only place in this product where a person who is not
+// the customer types data that cannot be reconstructed. These pin the ONE rule
+// both halves of the feature obey: an array on the wire — empty or not — is the
+// table's answer; only an ABSENT key means "no opinion".
+describe("pickCompanions (collab → app)", () => {
+  const row = (companions, count = 9) => ({ id: "r1", guests_count: count, companions });
+  const EIGHT = ["אבי", "בני", "גילי", "דנה", "הדס", "ורד", "זהר", "חן"];
+  const withNames = { id: "r1", companions: [...EIGHT] };
+
+  it("takes the names the table actually carries", () => {
+    expect(pickCompanions(row(["רונית", "טל"], 3), null)).toEqual(["רונית", "טל"]);
+  });
+
+  it("keeps the app's names when the table sends no companions field at all", () => {
+    // A database still running the pre-restore RPC: the column is simply absent.
+    // Silence is not an instruction to delete.
+    expect(pickCompanions({ id: "r1", guests_count: 9 }, withNames)).toEqual(EIGHT);
+  });
+
+  it("clears when the table sends an EMPTY list, even on the very first pull", () => {
+    // The bug this replaces: the app kept its eight and pushed them back, so a
+    // deletion made while the app was closed was silently undone. `[]` is a
+    // value the table can only hold because a client wrote it.
+    expect(pickCompanions(row([]), withNames)).toEqual([]);
+  });
+
+  it("treats a list of blank strings as cleared too — no name survives it", () => {
+    expect(pickCompanions(row(["", "", ""]), withNames).filter(Boolean)).toEqual([]);
+  });
+
+  it("clamps names kept from the app to the seat count the table reports", () => {
+    expect(pickCompanions({ id: "r1", guests_count: 3 }, withNames)).toEqual(["אבי", "בני"]);
+  });
+
+  it("clamps incoming names to the seat count as well", () => {
+    expect(pickCompanions(row([...EIGHT], 3), null)).toEqual(["אבי", "בני"]);
+  });
+
+  it("returns an empty list, not undefined, for a brand-new single-seat row", () => {
+    expect(pickCompanions(row([], 1), null)).toEqual([]);
+    expect(pickCompanions({ id: "r1", guests_count: 1 }, null)).toEqual([]);
   });
 });

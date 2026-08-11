@@ -26,12 +26,88 @@
   font-weight: 700;
 }
 
-/* Add-form hint (manual vs Excel) */
-.addHint {
+/* ── The three ways to add guests ──
+   These sit above the form, because choosing HOW to fill the list is the first
+   decision the page asks for. They are quiet cards, not three primary buttons:
+   three filled buttons in a row is three things shouting the same volume, and
+   the one the host wants is whichever matches their situation, not whichever
+   we picked. The chosen one takes the blush ground — the system's "look here"
+   that does not spend the accent. */
+.ways {
+  margin-bottom: 16px;
+}
+
+.waysGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .waysGrid { grid-template-columns: 1fr; }
+}
+
+.way {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px;
+  text-align: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.way:hover {
+  background: var(--blush-soft);
+  border-color: var(--blush-line);
+}
+
+.wayOn {
+  background: var(--blush-soft);
+  border-color: var(--blush-line);
+}
+
+.wayIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text2);
+}
+
+.wayTitle {
+  font-size: var(--step-0);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.wayText {
+  font-size: var(--step--1);
+  /* Measured on the real composited ground, not on white: 5.30:1 on --surface
+     and 4.71:1 once the card takes the --blush-soft ground of .wayOn. A tint is
+     a ground. */
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* The "what the guest told you" block in edit mode — a note, not a warning:
+   nothing is wrong, these fields simply have a different owner. */
+.answersNote {
   font-size: var(--step--1);
   color: var(--muted);
-  margin-bottom: 12px;
-  line-height: 1.5;
+  line-height: 1.55;
+  margin: 0 0 12px;
 }
 
 /* Custom group inline input (shown when "אחר" is selected) */

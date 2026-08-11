@@ -8,6 +8,8 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
+import { hostsLabel } from "../utils/hostsLabel.js";
+import { collabRowMissing, exportCollabTableToExcel } from "../utils/exportHelpers.js";
 import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 
@@ -16,15 +18,9 @@ const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתו�
 
 // A row syncs to the guest list only when every field the seating system needs
 // is present. Count always defaults to 1, so it's never "missing".
-function missingFields(r) {
-  const m = [];
-  if (!(r.name || "").trim())  m.push("שם");
-  if (!(r.phone || "").trim()) m.push("טלפון");
-  if (!r.side)                 m.push("צד");
-  if (!r.guest_group)          m.push("קבוצה");
-  return m;
-}
-const isComplete = (r) => missingFields(r).length === 0;
+// The predicate itself lives next to the export that prints it as a status
+// column — one definition of "complete", not one per screen.
+const isComplete = (r) => collabRowMissing(r).length === 0;
 
 export default function CollabScreen() {
   const { token } = useParams();
@@ -51,7 +47,27 @@ export default function CollabScreen() {
         seen.add(r.id);
         if (editing.current.has(r.id)) { next.push(r); return; } // don't clobber typing
         const fresh = byId.get(r.id);
-        if (fresh) { next.push({ ...r, ...fresh }); return; }     // updated remotely
+        // A server row that carries no companions array is a server that does
+        // not know about companions — not a row whose names were cleared. It
+        // has happened for real: a migration replaced the list RPC with a
+        // pre-companions copy, the poll came back without the field, and eight
+        // hand-typed names vanished from the screen. Silence is never an
+        // instruction to delete.
+        //
+        // The flip side is deliberate and is the SAME rule the owner's app now
+        // obeys (see pickCompanions in useCollabSync.js): an array that IS
+        // present — including an empty one — is the table's answer and wins, so
+        // a relative deleting the names actually deletes them. The two halves
+        // used to disagree about exactly this value: `[]` blanked eight inputs
+        // here and was ignored there, and the owner's app then pushed its eight
+        // back over the deletion.
+        if (fresh) {
+          const merged = { ...r, ...fresh };
+          if (!Array.isArray(fresh.companions) && Array.isArray(r.companions)) {
+            merged.companions = r.companions;
+          }
+          next.push(merged); return;                              // updated remotely
+        }
         if (!serverIds.current.has(r.id)) next.push(r);           // local, not yet saved → keep
         // else: server knew it and it's gone now → deleted remotely → drop
       });
@@ -106,6 +122,14 @@ export default function CollabScreen() {
 
   // Persist a row (debounced). Nameless drafts stay local until they get a name,
   // so clicking "add" doesn't spam the shared table with empty rows.
+  //
+  // Invariant this depends on: the row we hold must already carry whatever
+  // companion names the server has, because upsertCollabGuest always sends a
+  // companions array — there is no way to say "leave that column alone". The
+  // list RPC is what supplies them (restored in migration
+  // 20260811010000_collab_companions_restore.sql); against a database still
+  // running the pre-restore RPC, the names are simply not sent to us and the
+  // first edit of any field writes an empty list over them.
   const scheduleWrite = (row) => {
     const t = timers.current;
     if (t.has(row.id)) clearTimeout(t.get(row.id));
@@ -157,19 +181,13 @@ export default function CollabScreen() {
 
   const saveMe = (v) => { setMe(v); try { localStorage.setItem("collab_me", v); } catch { /* ignore */ } };
 
-  const downloadExcel = async () => {
-    const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות"]];
-    rows.forEach(r => aoa.push([r.name || "", r.phone || "", sides[r.side] || "", r.guest_group || "", r.guests_count || 1]));
-    // Loaded on demand: a static import made the 416KB xlsx chunk a hard
-    // dependency of this page, which relatives open on their phones to type in
-    // names — they were downloading a spreadsheet writer to do it.
-    const XLSX = await import("xlsx");
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 }, { wch: 7 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "רשימת אורחים");
-    XLSX.writeFile(wb, `אורחים-${(ev.name || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
-  };
+  // Shared with the host's hub so the two cannot drift into exporting different
+  // things under the same label. xlsx itself is still loaded on demand inside
+  // the helper: a static import made the 416KB spreadsheet writer a hard
+  // dependency of this page, which relatives open on their phones to type in
+  // names.
+  const downloadExcel = () =>
+    exportCollabTableToExcel(rows, { eventName: ev.name, sideLabels: sides });
 
   const completeCount = rows.filter(isComplete).length;
 
@@ -184,8 +202,8 @@ export default function CollabScreen() {
         <div className={styles.card}>
           <h1 className={styles.title}>רשימת האורחים המשותפת</h1>
           <p className={styles.sub}>
-            כולם עורכים את אותה טבלה יחד, בזמן אמת. הוסיפו את מי שאתם מכירים —
-            שם וטלפון בהקלדה, השאר מרשימה. רשומה מלאה נכנסת אוטומטית לרשימה של בעלי השמחה.
+            כולם עורכים את אותה טבלה יחד, בזמן אמת. הוסיפו את המוזמנים/ות שלכם/ן —
+            שם וטלפון בהקלדה או מרשימה. רשומה מלאה נכנסת אוטומטית לרשימה של {hostsLabel(ev)}.
           </p>
 
           <label className={styles.meRow}>
@@ -196,7 +214,9 @@ export default function CollabScreen() {
 
           <div className={styles.toolbar}>
             <button className={styles.btn} onClick={addRow}>+ הוסיפו שורה</button>
-            <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}><Icon name="download" /> הורדה לאקסל</button>
+            {/* The label says WHICH list you get. A plain "הורדה לאקסל" is also
+                the guest manager's button, which hands you a different file. */}
+            <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}><Icon name="download" /> הורדת הטבלה לאקסל</button>
           </div>
           <div className={styles.counts}>
             {rows.length} רשומות · <span className={styles.ok}>{completeCount} מלאות ומסונכרנות</span>
@@ -210,7 +230,7 @@ export default function CollabScreen() {
 
         <div className={styles.rowsList}>
           {rows.map(r => {
-            const miss = missingFields(r);
+            const miss = collabRowMissing(r);
             const complete = miss.length === 0;
             return (
               <div key={r.id} className={[styles.guestCard, complete ? styles.cardOk : styles.cardWarn].join(" ")}>
@@ -248,13 +268,26 @@ export default function CollabScreen() {
 
                 {(r.guests_count || 1) > 1 && (
                   <div className={styles.companions}>
-                    <span className={styles.companionsLabel}>שמות המלווים (רשות):</span>
+                    {/* The label has to say WHO these people are. "שמות
+                        המלווים" told a first-time reader nothing — and the
+                        reason to bother is worth far more than the word
+                        "רשות": names are what make the seating work. */}
+                    <span className={styles.companionsLabel}>
+                      {(r.guests_count || 1) - 1 === 1
+                        ? <>מי האדם שמצטרף {r.name?.trim() ? "ל" + r.name.trim() : "לשורה הזו"}?</>
+                        : <>מי {(r.guests_count || 1) - 1} האנשים שמצטרפים {r.name?.trim() ? "ל" + r.name.trim() : "לשורה הזו"}?</>}
+                    </span>
+                    <span className={styles.companionsWhy}>
+                      אפשר לדלג, אבל שם על כל כיסא הוא מה שמאפשר להושיב אותם נכון —
+                      ובכניסה לזהות אותם בלי לחפש.
+                    </span>
                     {Array.from({ length: (r.guests_count || 1) - 1 }, (_, i) => (
                       <input
                         key={i}
                         className={[styles.input, styles.companionInput].join(" ")}
                         value={(r.companions && r.companions[i]) || ""}
-                        placeholder={`מלווה ${i + 1}`}
+                        placeholder={`שם ${i + 1}`}
+                        aria-label={`שם המצטרף ${i + 1}`}
                         onChange={e => editCompanion(r, i, e.target.value)}
                       />
                     ))}

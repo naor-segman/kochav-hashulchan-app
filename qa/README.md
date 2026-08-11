@@ -18,6 +18,7 @@ Then, from the repo root:
 ```bash
 node qa/qa-full.mjs     # 48 routes x mobile+desktop: blank pages, overflow, a11y, JS errors
 node qa/flows.mjs       # 25 driven flows — clicks things and reads the result back out of localStorage
+node qa/floorplan.mjs   # uploads a sketch, arranges the tables, seats a family — and checks the map was used
 node qa/contrast.mjs    # samples rendered pixels and computes WCAG ratios
 node qa/cssmod.mjs      # finds styles.X referenced from JSX but never defined in the .module.css
 node qa/focus.mjs       # tabs through a screen and reports any control with no visible focus ring
