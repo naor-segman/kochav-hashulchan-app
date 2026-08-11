@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
+import { hostsLabel } from "../utils/hostsLabel.js";
 import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 
@@ -51,7 +52,19 @@ export default function CollabScreen() {
         seen.add(r.id);
         if (editing.current.has(r.id)) { next.push(r); return; } // don't clobber typing
         const fresh = byId.get(r.id);
-        if (fresh) { next.push({ ...r, ...fresh }); return; }     // updated remotely
+        // A server row that carries no companions array is a server that does
+        // not know about companions — not a row whose names were cleared. It
+        // has happened for real: a migration replaced the list RPC with a
+        // pre-companions copy, the poll came back without the field, and eight
+        // hand-typed names vanished from the screen. Silence is never an
+        // instruction to delete.
+        if (fresh) {
+          const merged = { ...r, ...fresh };
+          if (!Array.isArray(fresh.companions) && Array.isArray(r.companions)) {
+            merged.companions = r.companions;
+          }
+          next.push(merged); return;                              // updated remotely
+        }
         if (!serverIds.current.has(r.id)) next.push(r);           // local, not yet saved → keep
         // else: server knew it and it's gone now → deleted remotely → drop
       });
@@ -106,6 +119,14 @@ export default function CollabScreen() {
 
   // Persist a row (debounced). Nameless drafts stay local until they get a name,
   // so clicking "add" doesn't spam the shared table with empty rows.
+  //
+  // Invariant this depends on: the row we hold must already carry whatever
+  // companion names the server has, because upsertCollabGuest always sends a
+  // companions array — there is no way to say "leave that column alone". The
+  // list RPC is what supplies them (restored in migration
+  // 20260811010000_collab_companions_restore.sql); against a database still
+  // running the pre-restore RPC, the names are simply not sent to us and the
+  // first edit of any field writes an empty list over them.
   const scheduleWrite = (row) => {
     const t = timers.current;
     if (t.has(row.id)) clearTimeout(t.get(row.id));
@@ -184,8 +205,8 @@ export default function CollabScreen() {
         <div className={styles.card}>
           <h1 className={styles.title}>רשימת האורחים המשותפת</h1>
           <p className={styles.sub}>
-            כולם עורכים את אותה טבלה יחד, בזמן אמת. הוסיפו את מי שאתם מכירים —
-            שם וטלפון בהקלדה, השאר מרשימה. רשומה מלאה נכנסת אוטומטית לרשימה של בעלי השמחה.
+            כולם עורכים את אותה טבלה יחד, בזמן אמת. הוסיפו את המוזמנים/ות שלכם/ן —
+            שם וטלפון בהקלדה או מרשימה. רשומה מלאה נכנסת אוטומטית לרשימה של {hostsLabel(ev)}.
           </p>
 
           <label className={styles.meRow}>
@@ -248,13 +269,24 @@ export default function CollabScreen() {
 
                 {(r.guests_count || 1) > 1 && (
                   <div className={styles.companions}>
-                    <span className={styles.companionsLabel}>שמות המלווים (רשות):</span>
+                    {/* The label has to say WHO these people are. "שמות
+                        המלווים" told a first-time reader nothing — and the
+                        reason to bother is worth far more than the word
+                        "רשות": names are what make the seating work. */}
+                    <span className={styles.companionsLabel}>
+                      מי {(r.guests_count || 1) - 1} האנשים שמצטרפים {r.name?.trim() ? "ל" + r.name.trim() : "לשורה הזו"}?
+                    </span>
+                    <span className={styles.companionsWhy}>
+                      אפשר לדלג, אבל שם על כל כיסא הוא מה שמאפשר להושיב אותם נכון —
+                      ובכניסה לזהות אותם בלי לחפש.
+                    </span>
                     {Array.from({ length: (r.guests_count || 1) - 1 }, (_, i) => (
                       <input
                         key={i}
                         className={[styles.input, styles.companionInput].join(" ")}
                         value={(r.companions && r.companions[i]) || ""}
-                        placeholder={`מלווה ${i + 1}`}
+                        placeholder={`שם ${i + 1}`}
+                        aria-label={`שם המצטרף ${i + 1}`}
                         onChange={e => editCompanion(r, i, e.target.value)}
                       />
                     ))}

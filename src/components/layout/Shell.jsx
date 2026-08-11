@@ -3,37 +3,32 @@ import { Link } from "react-router-dom";
 import { computeViolations } from "../../logic/seating.js";
 import { useAuth } from "../../hooks/useAuth.js";
 import { SYNC_STATUS } from "../../utils/cloudSync.js";
+import { AREAS, areaOfScreen } from "../../data/eventAreas.js";
 import NavBadge from "../navigation/NavBadge.jsx";
 import SectionMark from "../ui/SectionMark.jsx";
 import styles from "./Shell.module.css";
 import Icon from "../ui/Icon.jsx";
 
-// 5 numbered core steps (the build spine) + un-numbered tools, so the nav
-// matches the "שלב X מתוך 5" badges the screens show.
-// The five numbered steps keep their number — a number carries an order, and
-// the order is the whole point of the spine. The tools have no order, so their
-// dot said "•", which carried nothing at all; each now shows its own section
-// mark instead. Numbers where there is a sequence, drawings where there is not.
-const NAV = [
-  { id: "setup",       label: "האירוע",       num: 1 },
-  { id: "tables",      label: "שולחנות",      num: 2 },
-  { id: "guests",      label: "אורחים",       num: 3 },
-  { id: "constraints", label: "אילוצים",      num: 4 },
-  { id: "seating",     label: "הושבה",        num: 5 },
-  { id: "rsvps",       label: "אישורים",      tool: true, mark: "rsvp" },
-  { id: "collab",      label: "טבלה שיתופית", tool: true, mark: "collab" },
-  { id: "site",        label: "אתר האירוע",   tool: true, mark: "site" },
-  { id: "costs",       label: "תקציב",        tool: true, mark: "budget" },
-  { id: "tasks",       label: "משימות",       tool: true, mark: "tasks" },
-  { id: "announce",    label: "הזמנות",       tool: true, mark: "announcements" },
-  { id: "vendors",     label: "ספקים",        tool: true, mark: "vendors" },
-  { id: "messages",    label: "הודעות",       tool: true, mark: "messages" },
-  { id: "nametags",    label: "כרטיסי שם",    tool: true, mark: "nameTags" },
-];
+// ── Two tiers, because there are two questions ────────────────────────────────
+//
+// The rail used to carry all fourteen tools at once. That is not a menu, it is
+// an inventory: nothing on it said which four things belong together, which are
+// due this month and which are only opened at the door — and on a phone a host
+// always saw the same first four whichever screen they were actually on.
+//
+// Tier 1 (on the dark chrome, because it is STRUCTURE) — the three areas.
+// Tier 2 (the white rail, because it is CONTENT)      — only that area's screens.
+//
+// Nothing here hard-codes a route list any more; `data/eventAreas.js` is the
+// single source of truth, so a screen that gets renamed or added is one edit.
+// A screen id the model does not know about simply shows no active tab rather
+// than throwing — other people are renaming routes in parallel.
 
 export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {
   const { user, loading: authLoading } = useAuth();
+  const isHub   = screen === "hub";
   const inEvent = !!activeEvent && screen !== "dashboard";
+  const area    = areaOfScreen(screen);
 
   const violationCount = useMemo(() => {
     if (!activeEvent) return 0;
@@ -54,13 +49,14 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
     return false;
   };
 
-  const showAutoSave = inEvent && screen !== "setup";
+  const showAutoSave = inEvent && !isHub && screen !== "setup";
 
   // ── The tool rail ──────────────────────────────────────────────────────
   // It never scrolled: scrollLeft was 0 on every screen, so at 1024 the active
   // tab sat at left −323 / right −232 (entirely off-screen) and at 390 it was
-  // ~900px past the edge. Fourteen tools, and a phone user always saw the same
-  // first four whichever one they were actually on.
+  // ~900px past the edge. With one area's items on it the rail now fits at most
+  // widths, but the centring stays — it is what makes the seventh item on a
+  // phone reachable.
   const subnavRef = useRef(null);
 
   // Written straight to the DOM rather than through state: this is a
@@ -102,7 +98,19 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
       sc.removeEventListener("scroll", syncNavFade);
       window.removeEventListener("resize", syncNavFade);
     };
-  }, [inEvent, syncNavFade]);
+  }, [area, inEvent, syncNavFade]);
+
+  // A tool is only reachable once the event has a name — the whole product
+  // keys off it. The start screen now collects it before the event exists, so
+  // this is a backstop for older drafts, not the normal path.
+  const openScreen = (id) => {
+    if (id !== "setup" && !activeEvent?.name?.trim()) {
+      showToast?.("יש להזין שם לאירוע לפני המשך", "err");
+      go("setup");
+      return;
+    }
+    go(id);
+  };
 
   return (
     <div className={styles.root}>
@@ -119,9 +127,15 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
               <Icon name="arrowRight" size={14} /> כל האירועים
             </button>
             <span className={styles.bcSep}>/</span>
-            <span className={styles.bcCurrent}>
-              {activeEvent.name || "אירוע חדש"}
-            </span>
+            {/* The event name is the way back to its own map. It used to be
+                inert text, so the only way out of a screen was the browser. */}
+            {isHub ? (
+              <span className={styles.bcCurrent}>{activeEvent.name || "אירוע חדש"}</span>
+            ) : (
+              <button className={styles.bcCurrentLink} onClick={() => go("hub")}>
+                {activeEvent.name || "אירוע חדש"}
+              </button>
+            )}
           </div>
         )}
 
@@ -138,47 +152,80 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
           </span>
         )}
 
-        {!authLoading && (
-          user
-            ? (
-              <Link to="/account" className={styles.accountBtn} title={user.email}>
-                <span className={styles.accountIcon}><Icon name="users" size={15} /></span>
-                <span className={styles.accountLabel}>{user.email.split("@")[0]}</span>
-              </Link>
-            ) : (
-              <Link to="/signup" className={styles.signupBtn}>
-                הצטרפו חינם
-              </Link>
-            )
-        )}
+        <div className={styles.topRight}>
+          {/* The wordmark goes to the event list, which is where a logged-in
+              host wants to be nine times out of ten — but that left NO way back
+              out to the public site short of typing the address, and "/" bounces
+              a logged-in user straight back into the app. This is that way out. */}
+          <Link to="/home" className={styles.homeBtn} title="לעמוד הבית של האתר">
+            <Icon name="arrowRight" size={13} />
+            <span className={styles.homeLabel}>עמוד הבית</span>
+          </Link>
+
+          {!authLoading && (
+            user
+              ? (
+                <Link to="/account" className={styles.accountBtn} title={user.email}>
+                  <span className={styles.accountIcon}><Icon name="users" size={15} /></span>
+                  <span className={styles.accountLabel}>{user.email.split("@")[0]}</span>
+                </Link>
+              ) : (
+                <Link to="/signup" className={styles.signupBtn}>
+                  הצטרפו חינם
+                </Link>
+              )
+          )}
+        </div>
       </header>
 
+      {/* ── Tier 1: the three areas, on the chrome ── */}
       {inEvent && (
-        <nav className={styles.subnav} ref={subnavRef} data-fade="none">
+        <nav className={styles.areaBar} aria-label="אזורי האירוע">
+          <div className={styles.areaInner}>
+            <button
+              className={[styles.areaTab, isHub && styles.areaTabActive].filter(Boolean).join(" ")}
+              onClick={() => go("hub")}
+              aria-current={isHub ? "page" : undefined}
+            >
+              <span className={styles.areaLabel}>מפת האירוע</span>
+            </button>
+            {AREAS.map(a => {
+              const isActive = area?.id === a.id;
+              return (
+                <button
+                  key={a.id}
+                  className={[styles.areaTab, isActive && styles.areaTabActive].filter(Boolean).join(" ")}
+                  onClick={() => openScreen(a.items[0].id)}
+                  aria-current={isActive ? "page" : undefined}
+                  title={a.sub}
+                >
+                  <span className={styles.areaLabel}>{a.label}</span>
+                  <span className={styles.areaLabelShort}>{a.short || a.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
+
+      {/* ── Tier 2: only the current area's screens ── */}
+      {inEvent && area && (
+        <nav className={styles.subnav} ref={subnavRef} data-fade="none" aria-label={area.label}>
           <div className={styles.subnavInner}>
-            {NAV.map((n, i) => {
+            {area.items.map((n, i) => {
               const isActive = screen === n.id;
               const done     = stepDone(n.id);
               const showViol = n.id === "seating" && violationCount > 0;
-              const firstTool = n.tool && !NAV[i - 1]?.tool;
+              const firstTool = !n.num && !!area.items[i - 1]?.num;
               return (
                 <button
                   key={n.id}
                   data-nav={n.id}
                   data-firsttool={firstTool ? "1" : undefined}
                   className={[styles.subnavBtn, isActive && styles.subnavActive].filter(Boolean).join(" ")}
-                  onClick={() => {
-                    if (n.id !== "setup" && !activeEvent.name?.trim()) {
-                      showToast?.("יש להזין שם לאירוע לפני המשך", "err");
-                      go("setup");
-                      return;
-                    }
-                    go(n.id);
-                  }}
+                  onClick={() => openScreen(n.id)}
                 >
-                  {n.mark ? (
-                    <SectionMark name={n.mark} size={17} className={styles.navMark} />
-                  ) : (
+                  {n.num ? (
                     <span className={[
                       styles.stepDot,
                       done && !isActive && styles.stepDotDone,
@@ -186,8 +233,10 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
                     ].filter(Boolean).join(" ")}>
                       {done && !isActive ? <Icon name="check" size={11} /> : n.num}
                     </span>
+                  ) : (
+                    <SectionMark name={n.mark} size={17} className={styles.navMark} />
                   )}
-                  <span className={styles.subnavLabel}>{n.label}</span>
+                  <span className={styles.subnavLabel}>{n.short || n.label}</span>
                   {n.id === "tables"      && activeEvent.tables.length > 0      && <NavBadge n={activeEvent.tables.length} />}
                   {n.id === "guests"      && activeEvent.guests.length > 0      && <NavBadge n={activeEvent.guests.length} />}
                   {n.id === "constraints" && activeEvent.constraints.length > 0 && <NavBadge n={activeEvent.constraints.length} />}

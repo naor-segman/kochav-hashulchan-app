@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitGift } from "../utils/publicTokens.js";
 import styles from "./GiftScreen.module.css";
-import Icon from "../components/ui/Icon.jsx";
 
 const MOCK_EVENT = {
   name: "חתונת נועה וטל",
@@ -29,7 +28,6 @@ export default function GiftScreen() {
   const [name, setName]           = useState("");
   const [step, setStep]           = useState("form"); // "form" | "submitting" | "submitted"
   const [errors, setErrors]       = useState({});
-  const [copied, setCopied]       = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +107,6 @@ export default function GiftScreen() {
 
   // ── Success ─────────────────────────────────────────────────────────────────
   if (step === "submitted") {
-    const hasPayment = !!(ev.giftBitPhone || ev.giftPayboxLink);
     return (
       <div className={styles.root}>
         <header className={styles.header}>
@@ -148,44 +145,13 @@ export default function GiftScreen() {
               )}
             </div>
 
-            {/* Transfer instructions — bit / PayBox */}
-            {hasPayment && (
-              <div className={styles.transferBox}>
-                <div className={styles.transferTitle}>להשלמת המתנה — העבירו ₪{shekels(finalAmount)}:</div>
-                {ev.giftBitPhone && (
-                  <div className={styles.transferRow}>
-                    <span className={styles.transferMethod}>ביט למספר</span>
-                    <span className={styles.transferValue} dir="ltr">{ev.giftBitPhone}</span>
-                    <button
-                      type="button"
-                      className={styles.transferCopy}
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(ev.giftBitPhone);
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                        } catch { /* manual copy */ }
-                      }}
-                    >
-                      {copied ? "הועתק ✓" : "העתיקו"}
-                    </button>
-                  </div>
-                )}
-                {ev.giftPayboxLink && (
-                  <a
-                    className={styles.transferLink}
-                    href={ev.giftPayboxLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    מעבר לתשלום ב-PayBox ←
-                  </a>
-                )}
-              </div>
-            )}
-            {!hasPayment && (
-              <p className={styles.successClosing}>את המתנה אפשר להעניק ביום האירוע</p>
-            )}
+            {/* No bit / PayBox route here, by decision (11.8): a peer-to-peer
+                transfer app charges the HOST the fee on money the product just
+                collected on their behalf. The page's job is the blessing and
+                the declared amount; the gift itself changes hands at the event.
+                The stored giftBitPhone / giftPayboxLink fields are untouched —
+                they round-trip through the cloud mappers. */}
+            <p className={styles.successClosing}>את המתנה עצמה אפשר להעניק ביום האירוע</p>
             <p className={styles.successClosing}>שיהיה בשעה טובה</p>
           </div>
         </div>
@@ -225,7 +191,9 @@ export default function GiftScreen() {
 
           {/* Event identity */}
           <div className={styles.cardTop}>
-            <div className={styles.eventTag}>{ev.type || "חתונה"} · מתנה דיגיטלית</div>
+            {/* Not "מתנה דיגיטלית" any more — the page does not move money,
+                and a tag that says it does is a promise the screen breaks. */}
+            <div className={styles.eventTag}>{ev.type || "חתונה"} · ברכה ומתנה</div>
             <h1 className={styles.eventName}>{ev.name || coupleLabel}</h1>
             <p className={styles.eventSub}>שלחו מתנה ל{coupleLabel}</p>
           </div>
@@ -314,19 +282,15 @@ export default function GiftScreen() {
             {errors.name && <span className={styles.fieldErr} id="gift-name-err" role="alert">{errors.name}</span>}
           </div>
 
-          {/* How the money is transferred */}
-          {(ev.giftBitPhone || ev.giftPayboxLink) && (
-            <div className={styles.payCard}>
-              <div className={styles.payCardTitle}><Icon name="heart" size={16} /> איך מעבירים את המתנה?</div>
-              <p className={styles.payComing}>
-                אחרי שליחת הברכה יוצגו פרטי ההעברה
-                {ev.giftBitPhone && " בביט"}
-                {ev.giftBitPhone && ev.giftPayboxLink && " או"}
-                {ev.giftPayboxLink && " ב-PayBox"}
-                .
-              </p>
-            </div>
-          )}
+          {/* What happens when you press the button — said before you press it,
+              so nobody expects a payment screen and doesn't get one. */}
+          <div className={styles.payCard}>
+            <div className={styles.payCardTitle}>מה קורה עכשיו?</div>
+            <p className={styles.payComing}>
+              הברכה והסכום נרשמים אצל {coupleLabel} ומופיעים בקיר הברכות של האירוע.
+              את המתנה עצמה מעניקים ביום האירוע.
+            </p>
+          </div>
 
           {/* Submit */}
           {errors.submit && <p className={styles.fieldErr} role="alert">{errors.submit}</p>}
@@ -338,8 +302,8 @@ export default function GiftScreen() {
             {btnLabel}
           </button>
 
-          {/* Fine print */}
-          <p className={styles.finePrint}>הברכה תופיע בקיר הברכות של האירוע</p>
+          {/* The "what happens now" card above already says where the blessing
+              goes; repeating it here was the same sentence twice on one card. */}
         </div>
       </main>
     </div>

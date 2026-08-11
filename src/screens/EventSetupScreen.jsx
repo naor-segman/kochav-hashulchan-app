@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { EVENT_TYPES } from "../data/constants.js";
+import { BUILD_STEP_COUNT, stepChainAfter, nextBuildStep } from "../data/eventAreas.js";
+import { useShareGate } from "../components/share/useShareGate.jsx";
 import { getEventPersonalConfig, getEventNamePlaceholder, getSideLabels, COUPLE_TYPES } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Divider from "../components/ui/Divider.jsx";
@@ -47,6 +49,8 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   const [errors, setErrors] = useState({});
   const [copiedKey, setCopiedKey] = useState(null);
   const nameRef = useRef(null);
+  // Sharing is the moment guest mode stops being free — see useShareGate.
+  const { guard, gate, isGuest } = useShareGate();
 
   const copyLink = useCallback(async (key, url) => {
     try {
@@ -90,10 +94,16 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     showToast("פרטי האירוע נשמרו ✓");
   };
 
+  // The step that follows comes from the build model, not from a string in
+  // this file — the default order changed once (guests moved ahead of tables)
+  // and every hardcoded "go('tables')" in the product was a place it could
+  // silently disagree with the numbers on screen.
+  const next = nextBuildStep("setup");
+
   const goNext = () => {
     if (!validate()) return;
     if (dirty) patchEvent(form);
-    go("tables");
+    go(next.id);
   };
 
   const saveAndNext = () => {
@@ -101,7 +111,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     if (dirty) patchEvent(form);
     setDirty(false);
     setSaved(true);
-    go("tables");
+    go(next.id);
   };
 
   const BASE_URL        = window.location.origin;
@@ -125,8 +135,8 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
       />
 
       <div className={base.stepGuide}>
-        <span className={base.stepBadge}>שלב 1 מתוך 5 — פרטי האירוע</span>
-        <span className={base.stepText}>לאחר השמירה תוכלו להמשיך: שולחנות ← אורחים ← אילוצים ← הושבה</span>
+        <span className={base.stepBadge}>שלב 1 מתוך {BUILD_STEP_COUNT} — פרטי האירוע</span>
+        <span className={base.stepText}>לאחר השמירה תוכלו להמשיך: {stepChainAfter("setup")}</span>
       </div>
 
       {dirty && <Banner variant="warn">יש שינויים שלא נשמרו — שמרו בכפתור למטה.</Banner>}
@@ -303,7 +313,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
 
         <div className={base.formActions}>
           <button className={base.btnPrimary} onClick={saveAndNext}>
-            שמרו והמשיכו לשולחנות <Icon name="arrowLeft" size={15} />
+            שמרו והמשיכו ל{next.label} <Icon name="arrowLeft" size={15} />
           </button>
           <button className={base.btnSecondary} onClick={save}>
             {dirty ? "שמרו בלבד" : (saved ? <>נשמר <Icon name="check" size={14} /></> : "שמרו פרטים")}
@@ -326,26 +336,51 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           return (
             <div key={sl.key} className={styles.shareRow}>
               <span className={styles.shareLabel}><SectionMark name={sl.mark} size={20} /> {sl.label}</span>
-              <div className={styles.shareInputRow}>
-                <input
-                  className={[base.input, styles.shareInput].join(" ")}
-                  readOnly
-                  value={url}
-                  aria-label={`קישור ל${sl.label}`}
-                />
-                <button
-                  className={[base.btnSm, styles.copyBtn].join(" ")}
-                  onClick={() => copyLink(sl.key, url)}
-                  type="button"
-                >
-                  {copiedKey === sl.key ? <>הועתק <Icon name="check" size={13} /></> : "העתיקו"}
-                </button>
-                {token && <QrCode url={url} label={sl.label} filename={"qr-" + sl.key} />}
-              </div>
+              {isGuest ? (
+                // The link is WITHHELD rather than shown-and-blocked, because
+                // showing it would be a lie: the public page resolves the token
+                // against the cloud, and a guest-mode event has no cloud row.
+                <div className={styles.shareInputRow}>
+                  <span className={styles.shareLocked}>
+                    <Icon name="lock" size={13} /> הקישור נפתח אחרי פתיחת חשבון
+                  </span>
+                  <button
+                    className={[base.btnSm, styles.copyBtn].join(" ")}
+                    onClick={() => guard(sl.label)}
+                    type="button"
+                  >
+                    למה?
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.shareInputRow}>
+                  <input
+                    className={[base.input, styles.shareInput].join(" ")}
+                    readOnly
+                    value={url}
+                    aria-label={`קישור ל${sl.label}`}
+                  />
+                  <button
+                    className={[base.btnSm, styles.copyBtn].join(" ")}
+                    onClick={() => guard(sl.label, () => copyLink(sl.key, url))}
+                    type="button"
+                  >
+                    {copiedKey === sl.key ? <>הועתק <Icon name="check" size={13} /></> : "העתיקו"}
+                  </button>
+                  {token && <QrCode url={url} label={sl.label} filename={"qr-" + sl.key} />}
+                </div>
+              )}
             </div>
           );
         })}
-        <p className={base.fieldHint}>קוד QR (▦) לכל קישור — להדפסה על שילוט בכניסה, בעמדת הדיילות או בהזמנה.</p>
+        {isGuest ? (
+          <p className={base.fieldHint}>
+            האירוע הזה שמור רק בדפדפן הזה, ולכן קישור שתשלחו לא ייפתח אצל האורחים.
+            פתיחת חשבון היא חינם, לוקחת חצי דקה, וכל מה שבניתם עובר איתכם.
+          </p>
+        ) : (
+          <p className={base.fieldHint}>קוד QR (▦) לכל קישור — להדפסה על שילוט בכניסה, בעמדת הדיילות או בהזמנה.</p>
+        )}
 
         <Divider label="קבלת מתנות — ביט / PayBox" />
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
@@ -374,10 +409,11 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
       </div>
 
       <NextStep
-        label="המשיכו להגדרת שולחנות"
-        hint={ev.tables.length > 0 ? (ev.tables.length + " שולחנות מוגדרים") : "עדיין לא הוגדרו שולחנות"}
+        label={"המשיכו ל" + next.label}
+        hint={ev.guests.length > 0 ? (ev.guests.length + " רשומות ברשימה") : "הרשימה היא הדבר שמשתנה הכי הרבה — ממנה נגזר כמה שולחנות צריך"}
         onClick={goNext}
       />
+      {gate}
     </div>
   );
 }

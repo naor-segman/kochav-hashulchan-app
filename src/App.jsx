@@ -20,6 +20,8 @@ import Shell              from "./components/layout/Shell.jsx";
 import Toast              from "./components/feedback/Toast.jsx";
 import MigrationBanner    from "./components/migration/MigrationBanner.jsx";
 import DashboardScreen    from "./screens/DashboardScreen.jsx";
+import EventHubScreen     from "./screens/EventHubScreen.jsx";
+import StartScreen        from "./screens/StartScreen.jsx";
 import EventSetupScreen   from "./screens/EventSetupScreen.jsx";
 import LoginScreen        from "./screens/LoginScreen.jsx";
 import SignupScreen       from "./screens/SignupScreen.jsx";
@@ -85,10 +87,15 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
     [eventId, patchEventById],
   );
 
+  // "hub" (or an empty screen) is the event's own front page at /events/:id.
+  // Everything else keeps the shape it already had, so no screen had to change
+  // the way it calls go().
   const go = useCallback((screen, newEventId) => {
     window.scrollTo(0, 0);
+    const id = newEventId || eventId;
     if (screen === "dashboard") navigate("/app");
-    else navigate(`/events/${newEventId || eventId}/${screen}`);
+    else if (!screen || screen === "hub") navigate(`/events/${id}`);
+    else navigate(`/events/${id}/${screen}`);
   }, [navigate, eventId]);
 
   // Keep the shared collaborative table and this event's guest list in sync,
@@ -106,9 +113,11 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
     return <Navigate to="/app" replace />;
   }
 
-  // Derive active tab name from last URL segment ("setup", "tables", …)
-  const segments = location.pathname.split("/");
-  const screen   = segments[segments.length - 1];
+  // Derive the active screen from the path RELATIVE to this event, not from the
+  // last segment: `/events/:id` (the hub) has no trailing segment of its own,
+  // and taking the last one made the screen name the event id.
+  const rest   = location.pathname.replace(`/events/${eventId}`, "").replace(/^\/+/, "");
+  const screen = rest === "" ? "hub" : rest.split("/")[0];
 
   const sp = { activeEvent, patchEvent, go, showToast };
 
@@ -134,7 +143,10 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
         <Route path="vendors"     element={<Suspense fallback={<Loading />}><VendorsScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
         <Route path="messages"    element={<Suspense fallback={<Loading />}><MessagesScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
         <Route path="nametags"    element={<Suspense fallback={<Loading />}><NameTagsScreen activeEvent={activeEvent} /></Suspense>} />
-        <Route index              element={<Navigate to="setup" replace />} />
+        {/* The event's front page. This used to redirect to `setup`, which is
+            why opening an event dropped a first-time host straight into a form
+            with no idea what the other thirteen screens were for. */}
+        <Route index              element={<EventHubScreen {...sp} />} />
         {/* Without this, /events/:id/typo matched `/events/:eventId/*` at the
             top level and then matched nothing here — the Shell rendered with a
             blank body and no error. The top-level catch-all cannot reach it. */}
@@ -203,7 +215,12 @@ export default function App() {
     return () => window.removeEventListener("storage-quota-exceeded", handler);
   }, [showToast]);
 
-  const createEvent = useCallback((template) => {
+  // Creation now carries the two facts the start screen collected, so the event
+  // arrives already named and dated instead of arriving empty and demanding a
+  // form. `seed` fields are whitelisted below rather than spread, so a future
+  // field on the start screen cannot silently write an unknown key into an
+  // event record that has to survive the cloud round-trip.
+  const startEvent = useCallback((seed = {}) => {
     const gate = canCreateEvent(plan, events.length);
     if (!gate.allowed) {
       showToast(gate.reason + " — שדרגו את התוכנית להוספת אירועים נוספים", "err");
@@ -211,15 +228,23 @@ export default function App() {
     }
     const now = Date.now();
     const ev = {
-      id: uid(), name: "", type: template?.type || "חתונה", date: "", venue: "",
-      brideName: "", groomName: "",
+      id: uid(),
+      name:  seed.name || "",
+      type:  seed.type || "חתונה",
+      date:  seed.date || "",
+      venue: "",
+      brideName:        seed.brideName        || "",
+      groomName:        seed.groomName        || "",
+      celebrantName:    seed.celebrantName    || "",
+      organizationName: seed.organizationName || "",
+      ownerName:        seed.ownerName        || "",
       tables: [], guests: [], seating: {}, constraints: [],
       createdAt: now,
       updatedAt:  now,
       version:    1,
     };
     addEvent(ev);
-    navigate(`/events/${ev.id}/setup`);
+    navigate(`/events/${ev.id}`);
     window.scrollTo(0, 0);
   }, [addEvent, navigate, plan, events.length, showToast]);
 
@@ -238,16 +263,17 @@ export default function App() {
     if (!original) return;
     const copy = duplicateEvent(original);
     addEvent(copy);
-    navigate(`/events/${copy.id}/setup`);
+    navigate(`/events/${copy.id}`);
     window.scrollTo(0, 0);
     showToast("האירוע שוכפל ✓");
   }, [events, addEvent, navigate, plan, showToast]);
 
-  // go() for the dashboard Shell — subnav is hidden on dashboard so only
-  // the logo click (→ "/") needs to be handled here.
+  // go() for the dashboard Shell — the area rails are hidden on the dashboard,
+  // so only the wordmark click and "new event" reach this.
   const dashGo = useCallback((screen, id) => {
     window.scrollTo(0, 0);
     if (screen === "dashboard") navigate("/app");
+    else if (screen === "start") navigate("/start");
     else if (id) navigate(`/events/${id}/${screen}`);
   }, [navigate]);
 
@@ -257,6 +283,14 @@ export default function App() {
       <Route
         path="/"
         element={authLoading ? <div /> : user ? <Navigate to="/app" replace /> : <Suspense fallback={<Loading />}><LandingScreen /></Suspense>}
+      />
+      {/* The marketing site, reachable while logged in.
+          "/" bounces an authenticated visitor into the app — which is right —
+          but it also meant there was no way back out to the public page at all,
+          short of logging out. The topbar's "עמוד הבית" points here. */}
+      <Route
+        path="/home"
+        element={<Suspense fallback={<Loading />}><LandingScreen /></Suspense>}
       />
       {/* Dashboard — authenticated app */}
       <Route
@@ -269,10 +303,27 @@ export default function App() {
             <DashboardScreen
               events={events}
               plan={plan}
-              onCreateEvent={createEvent}
-              onOpenEvent={id => { navigate(`/events/${id}/setup`); window.scrollTo(0, 0); }}
+              onStartEvent={startEvent}
+              onNewEvent={() => { navigate("/start"); window.scrollTo(0, 0); }}
+              onOpenEvent={id => { navigate(`/events/${id}`); window.scrollTo(0, 0); }}
               onDeleteEvent={deleteEvent}
               onDuplicateEvent={handleDuplicateEvent}
+            />
+            {toast && <Toast msg={toast.msg} variant={toast.variant} />}
+          </Shell>
+        }
+      />
+      {/* The opening screen — what the product does, and the two facts that are
+          true on day one. Its own route so it can be reached again from the
+          dashboard, and so the first-run path has an address. */}
+      <Route
+        path="/start"
+        element={
+          <Shell screen="dashboard" activeEvent={null} go={dashGo}>
+            <StartScreen
+              onStart={startEvent}
+              hasEvents={events.length > 0}
+              onCancel={() => navigate("/app")}
             />
             {toast && <Toast msg={toast.msg} variant={toast.variant} />}
           </Shell>

@@ -116,12 +116,21 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   const startEdit  = t  => { setEditId(t.id); setEditVals({ name: t.name, capacity: String(t.capacity), type: t.type, shape: t.shape || DEFAULT_TABLE_SHAPE }); };
   const cancelEdit = () => setEditId(null);
   const saveEdit   = () => {
-    const cap = parseInt(editVals.capacity);
-    if (!editVals.name.trim()) { showToast("שם השולחן לא יכול להיות ריק", "err"); return; }
-    if (!cap || cap < 1)       { showToast("קיבולת לא תקנית", "err"); return; }
+    const cap  = parseInt(editVals.capacity);
+    const name = (editVals.name || "").trim();
+    if (!name)           { showToast("שם השולחן לא יכול להיות ריק", "err"); return; }
+    if (!cap || cap < 1) { showToast("קיבולת לא תקנית", "err"); return; }
+    // Same guard the seating screen's inline rename applies. addBatch already
+    // refuses to generate a duplicate name; editing one by hand could still
+    // create it, and the WhatsApp message, the printed entry card and the
+    // violation list all address a table BY NAME.
+    if (ev.tables.some(t => t.id !== editId && (t.name || "").trim() === name)) {
+      showToast("כבר קיים שולחן בשם \"" + name + "\" — בחרו שם אחר", "err");
+      return;
+    }
     patchEvent(e => Object.assign({}, e, {
       tables: e.tables.map(t => t.id === editId
-        ? Object.assign({}, t, { name: editVals.name.trim(), capacity: cap, type: editVals.type, shape: editVals.shape || DEFAULT_TABLE_SHAPE })
+        ? Object.assign({}, t, { name, capacity: cap, type: editVals.type, shape: editVals.shape || DEFAULT_TABLE_SHAPE })
         : t
       )
     }));

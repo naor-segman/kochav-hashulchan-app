@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Icon from "../components/ui/Icon.jsx";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css"; // shares layout styles
@@ -21,6 +21,13 @@ function friendlyError(message) {
 export default function SignupScreen() {
   const { user, loading, signUp } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Signup used to land on the dashboard unconditionally. That is wrong when
+  // the reason somebody is here is that they pressed "share" three screens
+  // deep: the account exists to make THAT link work, and `useEvents` has
+  // already carried the guest draft over, so the honest place to return to is
+  // the page that sent them. LoginScreen has honoured this for a while.
+  const from = location.state?.from || "/app";
 
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -34,8 +41,8 @@ export default function SignupScreen() {
   const [resentError, setResentError] = useState("");
 
   useEffect(() => {
-    if (!loading && user) navigate("/app", { replace: true });
-  }, [loading, user, navigate]);
+    if (!loading && user) navigate(from, { replace: true });
+  }, [loading, user, navigate, from]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,7 +63,7 @@ export default function SignupScreen() {
       if (needsConfirmation) {
         setDone(true);
       } else {
-        navigate("/app", { replace: true });
+        navigate(from, { replace: true });
       }
     } catch (err) {
       setError(friendlyError(err.message));
@@ -110,7 +117,7 @@ export default function SignupScreen() {
               </button>
             </div>
           )}
-          <Link to="/login" className={styles.backLink}>← חזרה לכניסה</Link>
+          <Link to="/login" className={styles.backLink}>→ חזרה לכניסה</Link>
         </div>
       </div>
     );

@@ -1,0 +1,896 @@
+/* עמדת כניסה — the door screen.
+ *
+ * Every decision here answers the same brief: ONE HAND, A PHONE, A DARK ROOM,
+ * A QUEUE AT THE DOOR.
+ *
+ * GROUND. Dark (--nav-bg). The old check-in screen was white, which is a torch
+ * in a dark hall and is why the hostess link was already dark. One screen now,
+ * so one ground — the darker one, because a white phone at a wedding entrance
+ * ruins the greeter's night vision and everyone else's photographs.
+ *
+ * COLOUR. Only arrival carries hue. Measured against the real ground:
+ *   --nav-text      #F5F5F6 on #14161A  17.7:1   text
+ *   --nav-muted     #9BA1A9 on #21242A   5.97:1  meta (DESIGN.md)
+ *   --accent-on-dark #FA9FC0 on #21242A  7.99:1  the one accent, on the number
+ *   --green-light   #2AA274 on #14161A   5.6:1   the only green legible here
+ *   --red-border    #F0C0AC on #21242A   9.51:1  failure
+ * --accent itself is 3.8:1 and never carries text; a filled button is --cta.
+ *
+ * TAP TARGETS. The primary mark button is 60px tall and full width — it is the
+ * only thing on a row you can hit without looking. Everything that is not
+ * "this whole party is here" is deliberately smaller and one level down.
+ */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  padding-bottom: 40px;
+  box-sizing: border-box;
+}
+
+/* ── Load / failure states ── */
+.stateWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex: 1;
+  min-height: 70dvh;
+  padding: 24px;
+  text-align: center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--nav-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+
+.stateIcon { color: var(--red-border); display: flex; }
+.stateText { font-size: var(--step-1); font-weight: 500; color: var(--nav-text); }
+
+/* ── Bar ── */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--nav-bg2);
+  border-bottom: 1px solid var(--nav-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.backBtn,
+.walkInBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.backBtn:hover,
+.walkInBtn:hover { background: rgba(var(--nav-text-rgb), .08); }
+
+.walkInBtn { border-color: var(--accent-on-dark); color: var(--accent-on-dark); }
+
+.barTitle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.barName {
+  font-size: var(--step-0);
+  font-weight: 800;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barRole {
+  font-size: var(--step--3);
+  font-weight: 600;
+  color: var(--nav-muted);
+  letter-spacing: .04em;
+}
+
+/* ── The number ── */
+.counter {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 8px;
+}
+
+.counterNums { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+
+.counterBig {
+  font-size: var(--step-4);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent-on-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.counterOf { font-size: var(--step-0); color: var(--nav-text); font-weight: 600; }
+
+.counterPartial {
+  font-size: var(--step--2);
+  color: var(--nav-muted);
+  flex-basis: 100%;
+}
+
+.giftTotal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--nav-muted);
+  white-space: nowrap;
+}
+
+.progress {
+  height: 6px;
+  margin: 0 16px 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(var(--nav-text-rgb), .12);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+  transition: width var(--transition-slow);
+}
+
+.readOnly,
+.saveError {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--step--2);
+  font-weight: 600;
+}
+
+.readOnly { background: rgba(var(--nav-text-rgb), .07); color: var(--nav-muted); }
+.saveError { background: rgba(var(--red-rgb), .22); color: var(--red-border); }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+
+.tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-muted);
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.tabOn {
+  background: rgba(var(--nav-text-rgb), .1);
+  color: var(--nav-text);
+  border-color: var(--accent-on-dark);
+}
+
+/* ── Search ── */
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0 16px 12px;
+}
+
+.searchIcon {
+  position: absolute;
+  inset-inline-start: 14px;
+  display: flex;
+  color: var(--nav-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 44px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: var(--nav-bg2);
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--step-1);
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.searchInput::placeholder { color: var(--nav-muted); font-weight: 500; }
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--accent-on-dark);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .3);
+}
+
+.clearBtn {
+  position: absolute;
+  inset-inline-end: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 44px, not 40 — measured, not eyeballed. A one-handed thumb clearing a
+     search box in the dark is the same thumb that has to hit everything else
+     on this screen. */
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--nav-muted);
+  cursor: pointer;
+}
+
+.clearBtn:hover { background: rgba(var(--nav-text-rgb), .1); color: var(--nav-text); }
+
+.scanBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 16px 12px;
+  min-height: 48px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.scanBtn:hover { background: rgba(var(--nav-text-rgb), .08); }
+
+.scanMsg {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(var(--nav-text-rgb), .08);
+  color: var(--nav-text);
+  font-size: var(--step--1);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ── Last marked ── */
+.last {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--green-light);
+  border-radius: var(--radius);
+  background: rgba(var(--green-rgb), .18);
+}
+
+.lastIcon { display: flex; color: var(--green-light); }
+.lastName { font-size: var(--step--1); font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lastCount { font-size: var(--step--2); font-weight: 700; color: var(--green-light); font-variant-numeric: tabular-nums; }
+.lastTable { font-size: var(--step--2); font-weight: 700; color: var(--nav-text); }
+
+.lastClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--nav-muted);
+  cursor: pointer;
+}
+
+/* ── Empty states ── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.emptyIcon { display: flex; color: var(--nav-muted); }
+.emptyTitle { font-size: var(--step-1); font-weight: 700; margin: 0; }
+.emptyHint { font-size: var(--step--1); color: var(--nav-muted); margin: 0; max-width: 30ch; }
+
+.emptyCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  min-height: 48px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--cta);
+  color: var(--on-accent);
+  font-family: inherit;
+  font-size: var(--step-0);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.emptyCta:hover { background: var(--cta-dark); }
+
+/* ── Guest row ── */
+.list { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+
+.row {
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius-lg);
+  background: var(--nav-bg2);
+  padding: 14px;
+}
+
+.rowFull { border-color: var(--green-light); }
+.rowPartial { border-color: var(--accent-on-dark); }
+.rowLast { box-shadow: 0 0 0 2px var(--accent-on-dark); }
+
+.rowHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rowId { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.rowName {
+  font-size: var(--step-1);
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.rowVia { font-size: var(--step--2); color: var(--accent-on-dark); font-weight: 600; }
+.rowMeta { font-size: var(--step--2); color: var(--nav-muted); }
+
+/* --red-border is the light-family red; --red itself is 3.0:1 on this ground
+   and would be the "contrast measured against the wrong ground" bug again. */
+.rowDeclined { font-size: var(--step--2); color: var(--red-border); font-weight: 700; }
+
+.rowTable {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: var(--blush);
+  color: var(--text);
+  font-size: var(--step--1);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.rowNoTable {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--nav-muted);
+  color: var(--nav-muted);
+  font-size: var(--step--2);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rowActions { display: flex; gap: 8px; }
+
+/* The one tap that matters. */
+.markBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 60px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--nav-text);
+  color: var(--nav-bg);
+  font-family: inherit;
+  font-size: var(--step-1);
+  font-weight: 800;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.markBtn:hover { background: #FFFFFF; }
+.markBtn:disabled { opacity: .45; cursor: not-allowed; }
+
+.markBtnDone { background: var(--green); color: #FFFFFF; }
+.markBtnDone:hover { background: var(--green-light); }
+
+.partialBtn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 68px;
+  min-height: 60px;
+  padding: 8px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-text);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.partialBtnOpen { border-color: var(--accent-on-dark); background: rgba(var(--nav-text-rgb), .08); }
+.partialNum { font-size: var(--step-0); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ── Partial arrival ── */
+.party {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nav-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.stepBtn {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--step-2);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepBtn:hover:not(:disabled) { background: rgba(var(--nav-text-rgb), .1); }
+.stepBtn:disabled { opacity: .35; cursor: not-allowed; }
+
+.stepNum {
+  font-size: var(--step-0);
+  font-weight: 700;
+  min-width: 13ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.chip:hover:not(:disabled) { background: rgba(var(--nav-text-rgb), .1); }
+.chip:disabled { opacity: .45; cursor: not-allowed; }
+
+.chipOn { background: var(--green); border-color: var(--green); color: #FFFFFF; }
+.chipOn:hover:not(:disabled) { background: var(--green-light); border-color: var(--green-light); }
+
+/* ── Gift ── */
+.giftRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--nav-border);
+}
+
+.giftLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--step--2);
+  font-weight: 700;
+  color: var(--nav-muted);
+}
+
+.giftInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius-md);
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--step-0);
+  font-weight: 600;
+}
+
+.giftInput:focus { outline: none; border-color: var(--accent-on-dark); }
+.giftDone { font-size: var(--step--1); font-weight: 800; color: var(--green-light); white-space: nowrap; }
+
+/* ── Free seats ── */
+.freeStrip {
+  margin: 0 16px 12px;
+  padding: 12px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: var(--nav-bg2);
+}
+
+.freeStripLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--step--2);
+  font-weight: 700;
+  color: var(--nav-muted);
+}
+
+.freeStripList { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+.freePill {
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(var(--nav-text-rgb), .1);
+  font-size: var(--step--2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.freePill b { color: var(--accent-on-dark); }
+
+/* ── By table ── */
+.tableList { display: flex; flex-direction: column; gap: 16px; padding: 0 16px; }
+
+.tableBlock {
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius-lg);
+  background: rgba(var(--nav-text-rgb), .04);
+  overflow: hidden;
+}
+
+.tableBlockDone { border-color: var(--green-light); }
+
+.tableHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--nav-border);
+}
+
+.tableName { font-size: var(--step-1); font-weight: 800; flex: 1; min-width: 0; }
+.tableCount { font-size: var(--step-0); font-weight: 800; color: var(--accent-on-dark); font-variant-numeric: tabular-nums; }
+.tableFree { font-size: var(--step--2); font-weight: 700; color: var(--nav-muted); }
+
+.tableAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--nav-text);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--step--2);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tableAll:hover { background: var(--nav-text); color: var(--nav-bg); }
+.tableAllUndo { border-color: var(--nav-muted); color: var(--nav-muted); }
+.tableAllUndo:hover { background: var(--nav-muted); color: var(--nav-bg); }
+
+.tableGuests { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.tableEmpty { font-size: var(--step--1); color: var(--nav-muted); padding: 4px; }
+
+/* ── Door link ── */
+.linkCard {
+  margin: 24px 16px 0;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius-lg);
+  background: var(--nav-bg2);
+  overflow: hidden;
+}
+
+.linkToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: var(--nav-text);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.linkTitle { flex: 1; font-size: var(--step-0); font-weight: 700; }
+
+.linkState {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(var(--green-rgb), .22);
+  color: var(--green-light);
+  font-size: var(--step--3);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.linkStateOff { background: rgba(var(--nav-text-rgb), .1); color: var(--nav-muted); }
+
+.linkBody {
+  padding: 0 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.linkText { margin: 0; font-size: var(--step--1); color: var(--nav-muted); line-height: 1.6; }
+
+.linkUrl {
+  display: block;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  font-size: var(--step--2);
+  overflow-wrap: anywhere;
+  direction: ltr;
+  text-align: start;
+}
+
+.linkActions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.linkCopy,
+.linkSwitch {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.linkCopy:hover { background: rgba(var(--nav-text-rgb), .1); }
+.linkSwitch { border-color: var(--nav-muted); color: var(--nav-muted); }
+.linkSwitch:hover { background: rgba(var(--nav-text-rgb), .1); color: var(--nav-text); }
+.linkSwitchOff { border-color: var(--accent-on-dark); color: var(--accent-on-dark); }
+
+/* ── Walk-in sheet ── */
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, .6);
+  padding: 0;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  padding: 20px 16px 28px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--nav-bg2);
+  color: var(--nav-text);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+}
+
+.sheetTitle { font-size: var(--step-2); font-weight: 800; }
+
+.sheetInput {
+  min-height: 56px;
+  padding: 12px 14px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--step-1);
+  font-weight: 600;
+}
+
+.sheetInput:focus { outline: none; border-color: var(--accent-on-dark); }
+.sheetInput::placeholder { color: var(--nav-muted); font-weight: 500; }
+
+.sheetRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sheetLabel { font-size: var(--step--1); font-weight: 700; color: var(--nav-muted); }
+.sheetNote { margin: 0; font-size: var(--step--1); color: var(--nav-muted); }
+
+.sideBtns { display: flex; gap: 8px; }
+
+.sideBtn {
+  min-height: 48px;
+  padding: 10px 18px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-text);
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sideBtnOn { border-color: var(--accent-on-dark); background: rgba(var(--accent-rgb), .2); }
+
+.freeGrid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.freeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 60px;
+  padding: 10px 14px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-text);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.freeCardOn { border-color: var(--accent-on-dark); background: rgba(var(--accent-rgb), .2); }
+.freeCardName { font-size: var(--step--1); font-weight: 800; }
+.freeCardFree { font-size: var(--step--3); color: var(--nav-muted); }
+.freeCardOn .freeCardFree { color: var(--accent-on-dark); }
+
+.sheetActions { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+
+.sheetSave {
+  min-height: 56px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--cta);
+  color: var(--on-accent);
+  font-family: inherit;
+  font-size: var(--step-1);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sheetSave:hover:not(:disabled) { background: var(--cta-dark); }
+.sheetSave:disabled { opacity: .45; cursor: not-allowed; }
+
+.sheetCancel {
+  min-height: 48px;
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--nav-muted);
+  font-family: inherit;
+  font-size: var(--step-0);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sheetCancel:hover { background: rgba(var(--nav-text-rgb), .08); color: var(--nav-text); }
+
+/* ── Footer (token mode only) ── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 32px;
+  color: var(--nav-muted);
+  font-size: var(--step--2);
+}
+
+.footerStar { color: var(--accent-on-dark); }
+
+@media (min-width: 720px) {
+  .list,
+  .tableList,
+  .searchWrap,
+  .counter,
+  .progress,
+  .tabs,
+  .linkCard,
+  .freeStrip,
+  .scanBtn,
+  .last {
+    max-width: 640px;
+    margin-inline: auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}

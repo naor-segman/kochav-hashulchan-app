@@ -53,8 +53,34 @@ const sigCollab = (r) =>
 const sigGuest = (g) =>
   `${norm(g.name)}|${norm(g.phone)}|${sideOf(g.side)}|${norm(g.group)}|${g.count || 1}|${compSig(clampComp(g.companions, g.count))}`;
 
+/**
+ * Which companion names win when a collab row meets an existing guest.
+ *
+ * The old rule was "an array from the table wins", and both fetchers coerce a
+ * missing column to `[]` — so the fallback branch could never run, and an empty
+ * table column silently erased names the host had typed in the app. That is
+ * exactly how eight hand-typed names were lost after a migration replaced the
+ * collab RPCs with pre-companions copies (see
+ * 20260811010000_collab_companions_restore.sql).
+ *
+ * An EMPTY list from the table is ambiguous: it is what "this table never
+ * carried names" looks like and also what "someone deleted them all" looks
+ * like. `prev` — the last row we saw for this id — tells the two apart: if the
+ * table used to carry names and now does not, that is a real clear. Otherwise
+ * silence loses to typed data, every time.
+ */
+export function pickCompanions(r, existing, prev) {
+  const count = r.guests_count || 1;
+  if (!Array.isArray(r.companions)) return existing?.companions ?? [];
+  const incoming = clampComp(r.companions, count);
+  if (incoming.some((c) => norm(c))) return incoming;             // real names → win
+  const had = Array.isArray(prev?.companions) && prev.companions.some((c) => norm(c));
+  if (had) return incoming;                                       // genuinely cleared
+  return clampComp(existing?.companions ?? [], count);            // silence → keep ours
+}
+
 // Build/merge a guest row from a collab row, preserving app-only fields.
-function guestFromCollab(r, existing) {
+function guestFromCollab(r, existing, prev) {
   return {
     ...(existing || {}),
     id:    r.id,
@@ -66,11 +92,7 @@ function guestFromCollab(r, existing) {
     meal:       existing?.meal       ?? "regular",
     rsvp:       existing?.rsvp       ?? "pending",
     notes:      existing?.notes      ?? "",
-    // Companion names come from the collab row when present; otherwise keep the
-    // app-side ones. Clamp to the seat count so they stay consistent.
-    companions: Array.isArray(r.companions)
-      ? clampComp(r.companions, r.guests_count || 1)
-      : (existing?.companions ?? []),
+    companions: pickCompanions(r, existing, prev),
   };
 }
 const guestToCollab = (g) => ({
@@ -103,6 +125,9 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
     mirror.current = new Map();
 
     const applyRow = (row) => {
+      // Captured BEFORE the mirror is overwritten: pickCompanions needs to know
+      // what the table said last time to tell "cleared" from "never had".
+      const prev = mirror.current.get(row.id);
       mirror.current.set(row.id, row);
       if (!collabComplete(row)) return;
       const sig = sigCollab(row);
@@ -116,7 +141,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
 
         // Same row → straightforward in-place update.
         if (existing && existing.id === row.id) {
-          const merged = guestFromCollab(row, existing);
+          const merged = guestFromCollab(row, existing, prev);
           return { ...e, guests: guests.map((g) => (g.id === row.id ? merged : g)) };
         }
 
@@ -128,7 +153,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // locks off the old guest id.
         if (existing) {
           const remap = (id) => (id === existing.id ? row.id : id);
-          const merged = { ...guestFromCollab(row, existing), id: row.id };
+          const merged = { ...guestFromCollab(row, existing, prev), id: row.id };
           const seating = { ...(e.seating || {}) };
           if (seating[existing.id] !== undefined) {
             seating[row.id] = seating[existing.id];
@@ -148,7 +173,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // the host never saw, to enforce a limit the host is the one paying.
         // If PLAN_GATES_ENFORCED is ever turned on, the answer here is to warn
         // the host that the list has outgrown the plan — never to discard.
-        return { ...e, guests: [...guests, guestFromCollab(row, null)] };
+        return { ...e, guests: [...guests, guestFromCollab(row, null, prev)] };
       });
     };
 

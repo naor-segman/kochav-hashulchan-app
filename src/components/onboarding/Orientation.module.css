@@ -1,0 +1,170 @@
+/* Orientation panel — the blush ground, because this is the one block on the
+   page that has to be looked at without spending the accent on it. */
+
+.panel {
+  background: var(--blush-soft);
+  border: 1px solid var(--blush-line);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  margin-bottom: 20px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.title {
+  font-family: var(--font-family-serif);
+  font-size: var(--step-2);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  margin: 0 0 6px;
+  line-height: var(--line-height-tight);
+}
+
+.lead {
+  font-size: var(--step-0);
+  color: var(--text2);
+  margin: 0;
+  max-width: 58ch;
+  line-height: var(--line-height-normal);
+}
+
+/* Secondary action: never brand-coloured, per the colour rules. */
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.dismiss:hover { background: var(--bg); border-color: var(--text2); }
+
+.dismiss:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+.areas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .areas { grid-template-columns: 1fr; }
+}
+
+.area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 14px;
+}
+
+.areaNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text2);
+  font-size: var(--step--3);
+  font-weight: var(--font-weight-extrabold);
+  flex-shrink: 0;
+}
+
+.areaMark { flex-shrink: 0; }
+
+.areaText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.areaName {
+  font-size: var(--step-0);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text);
+}
+
+.areaSub {
+  font-size: var(--step--2);
+  color: var(--text2);
+  line-height: var(--line-height-normal);
+}
+
+/* "When" is the whole point of the division, so it gets its own weight —
+   quiet, but not the same voice as the description. */
+.areaWhen {
+  font-size: var(--step--3);
+  font-weight: var(--font-weight-bold);
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+.areaGo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: var(--step--2);
+  font-weight: var(--font-weight-bold);
+  color: var(--text2);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.areaGo:hover {
+  background: var(--blush-soft);
+  border-color: var(--blush-line);
+  color: var(--text);
+}
+
+.areaGo:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+
+.foot {
+  font-size: var(--step--1);
+  color: var(--text2);
+  margin: 16px 0 0;
+  line-height: var(--line-height-normal);
+  max-width: 74ch;
+}
+
+@media (max-width: 480px) {
+  .panel { padding: 16px 14px; border-radius: var(--radius); }
+  .head { flex-direction: column; gap: 12px; }
+  .dismiss { align-self: flex-start; }
+}
+
+@media (pointer: coarse) {
+  .dismiss, .areaGo { min-height: 40px; }
+}

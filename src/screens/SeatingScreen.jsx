@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Fragment } from "react";
+import { useState, useMemo, useCallback, useEffect, Fragment } from "react";
 import { flushSync } from "react-dom";
 import { messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
@@ -6,7 +6,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { useNavigate } from "react-router-dom";
 import {
   DndContext, DragOverlay,
-  useDraggable, useDroppable,
+  useDroppable,
   PointerSensor, TouchSensor,
   useSensor, useSensors,
   pointerWithin, rectIntersection, MeasuringStrategy,
@@ -14,18 +14,17 @@ import {
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
-import { getSideLabel, getSideLabels, guestSeatNames, seatingTotals } from "../utils/eventHelpers.js";
+import { getSideLabel, getSideLabels, seatingTotals } from "../utils/eventHelpers.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import { buildGuestCardUrl } from "../utils/guestCard.js";
 import Banner from "../components/feedback/Banner.jsx";
-import CapBar from "../components/ui/CapBar.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
-import TableGlyph from "../components/ui/TableGlyph.jsx";
-import TypeTag from "../components/ui/TypeTag.jsx";
+import DraggableGuestRow from "../components/seating/DraggableGuestRow.jsx";
 import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
+import TableCard from "../components/seating/TableCard.jsx";
 import { tableLabel } from "../components/seating/tableLabel.js";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
@@ -35,22 +34,11 @@ function DroppableWrapper({ id, children }) {
   return children({ ref: setNodeRef, isOver });
 }
 
-function DraggableGuestRow({ guestId, className, children }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: guestId });
-  return (
-    <div
-      ref={setNodeRef}
-      className={[className, styles.draggableRow, isDragging ? styles.guestDragging : ""].filter(Boolean).join(" ")}
-      {...attributes}
-      {...listeners}
-    >
-      <span className={styles.dragHandle} aria-hidden="true"><Icon name="grip" size={16} /></span>
-      {children}
-    </div>
-  );
-}
-
 const MAX_UNDO = 20;
+
+// One shared empty array, so a table with nobody at it hands the memoised card
+// the same reference every render instead of a fresh [] that defeats the memo.
+const EMPTY_GUESTS = [];
 
 /**
  * Drop targets here are large table cards and a long waiting list. Prefer
@@ -73,11 +61,26 @@ const collisionStrategy = (args) => {
 // droppable rects measured once at drag start go stale — re-measure always.
 const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 
+/* These two used to be object literals written inline in the useSensors() call,
+   and that quietly cost more than anything else on this screen. dnd-kit's
+   useSensor memoises on [sensor, options], so a fresh literal every render
+   produced a fresh sensor descriptor, a fresh sensors array, fresh `activators`
+   and therefore a NEW InternalContext value. useDraggable and useDroppable both
+   read that context — and a context change re-renders a consumer straight
+   THROUGH React.memo. Measured: every one of the 40 cards and every mounted
+   guest row re-rendered on every click, memo or no memo. Hoisting them out is
+   what makes the memo on TableCard real. */
+const POINTER_ACTIVATION = { activationConstraint: { distance: 5 } };
+const TOUCH_ACTIVATION   = { activationConstraint: { delay: 250, tolerance: 5 } };
+
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const navigate = useNavigate();
   const { confirm, dialog } = useConfirm();
-  const [expandedTable, setExpandedTable]   = useState(null);
-  const [expandAll,     setExpandAll]       = useState(false);
+  // Which table cards are open. A Set, not a single id: opening one table used
+  // to close whichever other table was open, which is exactly what the host
+  // complained about after running a real event. Nothing closes a card except
+  // the host clicking that card, "סגרו הכל", or leaving the screen.
+  const [expandedIds, setExpandedIds]       = useState(() => new Set());
   const [activeId, setActiveId]             = useState(null);
   const [seatingHistory, setSeatingHistory] = useState([]);
   const [printMode, setPrintMode]           = useState("full");
@@ -91,8 +94,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const [runKey, setRunKey]                 = useState(0);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(PointerSensor, POINTER_ACTIVATION),
+    useSensor(TouchSensor,   TOUCH_ACTIVATION),
   );
 
   const violations = useMemo(() =>
@@ -121,13 +124,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   );
 
   const lockedGuestsSet = useMemo(() => new Set(ev.lockedGuests || []), [ev.lockedGuests]);
-  const isGuestLocked   = id => lockedGuestsSet.has(id);
   const lockedTablesSet = useMemo(() => new Set(ev.lockedTables || []), [ev.lockedTables]);
-  const isTableLocked   = id => lockedTablesSet.has(id);
 
-  const activeGuests   = ev.guests.filter(g => g.rsvp !== "declined");
-  const declinedGuests = ev.guests.filter(g => g.rsvp === "declined");
-  const unassigned     = activeGuests.filter(g => !ev.seating[g.id]);
+  // These three feed the memoised table cards. Recomputing them into fresh
+  // arrays on every render would change every card's props on every keystroke
+  // and defeat the memo, so they are memoised on the data they actually read.
+  const activeGuests   = useMemo(() => ev.guests.filter(g => g.rsvp !== "declined"), [ev.guests]);
+  const declinedGuests = useMemo(() => ev.guests.filter(g => g.rsvp === "declined"), [ev.guests]);
+  const unassigned     = useMemo(() => activeGuests.filter(g => !ev.seating[g.id]), [activeGuests, ev.seating]);
   // nAssigned counts every seated row (declined included) — it drives the
   // "recompute / clear" confirmations, which really do act on all of them.
   const nAssigned      = ev.guests.filter(g => ev.seating[g.id]).length;
@@ -145,8 +149,36 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const noTables       = ev.tables.length === 0;
   const noGuests       = activeGuests.length === 0;
 
-  const sideLabel   = s => getSideLabel(ev, s);
-  const tableGuests = tid => ev.guests.filter(g => ev.seating[g.id] === tid);
+  // getSideLabel(ev, …) reads exactly the five fields listed — same argument as
+  // the `suggestions` memo above. Depending on `ev` itself would hand every
+  // table card a new callback on every unrelated edit.
+  const sideLabel = useCallback(
+    s => getSideLabel(ev, s),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ev.type, ev.coupleType, ev.brideName, ev.groomName, ev.sideLabels]
+  );
+
+  // One pass over the guests instead of one filter per table. At 40 tables and
+  // 400 guests the old `tableGuests(id)` cost 16,000 comparisons per render,
+  // and it also handed every card a brand-new array, which is what a memoised
+  // card cannot survive. Row order inside a table is unchanged: both walk
+  // ev.guests in order.
+  const guestsByTable = useMemo(() => {
+    const m = new Map(ev.tables.map(t => [t.id, []]));
+    for (const g of ev.guests) {
+      const tid = ev.seating[g.id];
+      if (tid && m.has(tid)) m.get(tid).push(g);
+    }
+    return m;
+  }, [ev.guests, ev.tables, ev.seating]);
+
+  const seatsByTable = useMemo(() => {
+    const m = new Map();
+    for (const [tid, gs] of guestsByTable) m.set(tid, gs.reduce((s, g) => s + (g.count || 1), 0));
+    return m;
+  }, [guestsByTable]);
+
+  const tableGuests = tid => guestsByTable.get(tid) || [];
 
   // Was a third, drifted copy of the phone normaliser: it did not strip a "00"
   // prefix (00972… became wa.me/9720972…, a dead link) and had no minimum
@@ -187,13 +219,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         (g.phone && g.phone.replace(/\D/g, "").includes(daySearchTrim.replace(/\D/g, "")))
       )
     : [];
-  const tableSeats  = tid => ev.guests
-    .filter(g => ev.seating[g.id] === tid)
-    .reduce((s, g) => s + (g.count || 1), 0);
+  const tableSeats  = tid => seatsByTable.get(tid) || 0;
 
-  const violatedTables = new Set(
+  const violatedTables = useMemo(() => new Set(
     violations.flatMap(v => [v.tableA, v.tableB]).filter(Boolean)
-  );
+  ), [violations]);
 
   const activeGuest = activeId ? ev.guests.find(g => g.id === activeId) : null;
 
@@ -223,8 +253,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // only charges capacity for guests it is handed, so that occupied seat has
     // to be passed in too — otherwise the table silently overbooks.
     const seatedDeclined = declinedGuests.filter(g => lockedSeating[g.id]);
+    // The venue sketch, when there is one. A family too big for one table then
+    // spills to the table NEXT TO them instead of to whichever table happens to
+    // be emptiest — see the `positions` note on autoAssign. Without a sketch
+    // this is undefined and nothing about the result changes.
     const newSeating = autoAssign(
-      [...activeGuests, ...seatedDeclined], ev.tables, ev.constraints, lockedSeating
+      [...activeGuests, ...seatedDeclined], ev.tables, ev.constraints, lockedSeating,
+      ev.floorPlan?.tablePositions
     );
     patchEvent(e => Object.assign({}, e, { seating: newSeating }));
     // Count only active rows: the declined passengers above are in newSeating
@@ -236,7 +271,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");
     else
       showToast("כל " + placed + " הרשומות שובצו ✓");
-    setExpandedTable(null);
+    // Deliberately NOT collapsing the open cards. A recompute is the moment the
+    // host most wants to look at what changed, and closing what they opened is
+    // the behaviour they asked to have removed.
     setRunKey(k => k + 1);
   };
 
@@ -250,18 +287,56 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     pushHistory();
     patchEvent(e => Object.assign({}, e, { seating: {} }));
     showToast("ההושבה נוקתה — " + nAssigned + " רשומות ממתינות לשיבוץ");
-    setExpandedTable(null);
   };
 
-  const assignGuest = (guestId, tableId) => {
-    pushHistory();
+  const assignGuest = useCallback((guestId, tableId) => {
+    setSeatingHistory(h => [...h.slice(-(MAX_UNDO - 1)), ev.seating]);
     patchEvent(e => {
       const s = Object.assign({}, e.seating);
       if (!tableId) delete s[guestId];
       else s[guestId] = tableId;
       return Object.assign({}, e, { seating: s });
     });
-  };
+  }, [ev.seating, patchEvent]);
+
+  // ── Expansion, one card at a time ─────────────────────────────────────────
+  const toggleTable = useCallback((tableId) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(tableId)) next.delete(tableId);
+      else next.add(tableId);
+      return next;
+    });
+  }, []);
+  const expandAllTables   = () => setExpandedIds(new Set(ev.tables.map(t => t.id)));
+  const collapseAllTables = () => setExpandedIds(new Set());
+  const nExpanded  = ev.tables.filter(t => expandedIds.has(t.id)).length;
+  const allExpanded  = ev.tables.length > 0 && nExpanded === ev.tables.length;
+  const noneExpanded = nExpanded === 0;
+
+  /**
+   * Rename a table from this screen. There is no sync to build — the name lives
+   * once, in ev.tables[].name, and the tables screen edits the same field.
+   * Returns false when the name was rejected, so the card keeps the input open.
+   */
+  const renameTable = useCallback((tableId, rawName) => {
+    const name    = (rawName || "").trim();
+    const current = ev.tables.find(t => t.id === tableId);
+    if (!current) return true;
+    if (name === (current.name || "")) return true;      // nothing changed
+    if (!name) { showToast("שם השולחן לא יכול להיות ריק", "err"); return false; }
+    // Two tables answering to one name is not cosmetic: the WhatsApp message,
+    // the printed entry card and the violation list all address a table BY NAME.
+    if (ev.tables.some(t => t.id !== tableId && (t.name || "").trim() === name)) {
+      showToast("כבר קיים שולחן בשם \"" + name + "\" — בחרו שם אחר", "err");
+      return false;
+    }
+    patchEvent(e => Object.assign({}, e, {
+      tables: e.tables.map(t => t.id === tableId ? Object.assign({}, t, { name }) : t),
+    }));
+    showToast("שם השולחן שונה ל\"" + name + "\" ✓");
+    return true;
+  }, [ev.tables, patchEvent, showToast]);
 
   const undo = () => {
     if (seatingHistory.length === 0) return;
@@ -271,14 +346,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     showToast("השינוי בוטל ✓");
   };
 
-  const toggleGuestLock = (guestId) => {
+  const toggleGuestLock = useCallback((guestId) => {
     patchEvent(e => {
       const locked = new Set(e.lockedGuests || []);
       if (locked.has(guestId)) locked.delete(guestId);
       else locked.add(guestId);
       return Object.assign({}, e, { lockedGuests: [...locked] });
     });
-  };
+  }, [patchEvent]);
 
 
   const toggleGuestArrived = (guestId) => {
@@ -299,14 +374,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     }));
   };
 
-  const toggleTableLock = (tableId) => {
+  const toggleTableLock = useCallback((tableId) => {
     patchEvent(e => {
       const locked = new Set(e.lockedTables || []);
       if (locked.has(tableId)) locked.delete(tableId);
       else locked.add(tableId);
       return Object.assign({}, e, { lockedTables: [...locked] });
     });
-  };
+  }, [patchEvent]);
 
   const handleApplySuggestion = async (suggestion) => {
     const { applyAction } = suggestion;
@@ -356,7 +431,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       // base) — otherwise their occupied seat is hidden and the table overbooks.
       const seatedDeclined = declinedGuests.filter(g => ev.seating[g.id]);
       const guestsForFill  = [...activeGuests, ...seatedDeclined];
-      const newSeating = autoAssign(guestsForFill, ev.tables, ev.constraints, ev.seating);
+      const newSeating = autoAssign(guestsForFill, ev.tables, ev.constraints, ev.seating,
+                                    ev.floorPlan?.tablePositions);
       const added = Object.keys(newSeating).length - Object.keys(ev.seating).length;
       patchEvent(e => Object.assign({}, e, { seating: newSeating }));
       if (added > 0) showToast(added + " רשומות שובצו אוטומטית ✓");
@@ -392,10 +468,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     };
   }, []);
 
-  const clearTable = (tableId) => {
-    const guests = tableGuests(tableId);
+  const clearTable = useCallback((tableId) => {
+    const guests = guestsByTable.get(tableId) || [];
     if (guests.length === 0) return;
-    pushHistory();
+    setSeatingHistory(h => [...h.slice(-(MAX_UNDO - 1)), ev.seating]);
     patchEvent(e => {
       const s = Object.assign({}, e.seating);
       guests.forEach(g => delete s[g.id]);
@@ -403,7 +479,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     });
     const t = ev.tables.find(t => t.id === tableId);
     showToast((t?.name || "השולחן") + " פונה — " + guests.length + " רשומות חזרו לממתינים");
-  };
+  }, [guestsByTable, ev.seating, ev.tables, patchEvent, showToast]);
 
   const handleDragStart  = ({ active }) => setActiveId(active.id);
   const handleDragCancel = () => setActiveId(null);
@@ -877,238 +953,59 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           {ev.tables.length > 0 && (
             <div className={styles.tablesToolbar}>
               <span className={styles.tablesToolbarTitle}>השולחנות שלי ({ev.tables.length})</span>
-              <button
-                className={styles.expandAllBtn}
-                onClick={() => { setExpandAll(v => !v); setExpandedTable(null); }}
-              >
-                <Icon name={expandAll ? "check" : "users"} size={15} style={{ verticalAlign: "middle", marginInlineEnd: 5 }} />
-                {expandAll ? "הסתירו שמות" : "הציגו שמות בכל השולחנות"}
-              </button>
+              <div className={styles.tablesToolbarActions}>
+                {nExpanded > 0 && (
+                  <span className={styles.tablesToolbarCount}>{nExpanded} פתוחים</span>
+                )}
+                <button
+                  className={styles.expandAllBtn}
+                  onClick={expandAllTables}
+                  disabled={allExpanded}
+                  title="פתחו את פירוט האורחים בכל השולחנות — נשאר פתוח עד שתסגרו"
+                >
+                  <Icon name="chevronDown" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 5 }} />
+                  פתחו הכל
+                </button>
+                <button
+                  className={[styles.expandAllBtn, styles.collapseAllBtn].join(" ")}
+                  onClick={collapseAllTables}
+                  disabled={noneExpanded}
+                  title="סגרו את פירוט האורחים בכל השולחנות"
+                >
+                  <Icon name="chevronUp" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 5 }} />
+                  סגרו הכל
+                </button>
+              </div>
             </div>
           )}
 
           {ev.tables.length > 0 && (
             <div className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}>
-              {ev.tables.map(t => {
-                const tGuests      = tableGuests(t.id);
-                const usedSeats    = tGuests.reduce((s, g) => s + (g.count || 1), 0);
-                const isCapOver    = usedSeats > t.capacity;
-                const hasViol      = violatedTables.has(t.name);
-                const isExpanded   = expandAll || expandedTable === t.id;
-                const isLocked     = isTableLocked(t.id);
-                const pct          = t.capacity > 0 ? usedSeats / t.capacity : 0;
-                const staticBorder = isCapOver ? "var(--red)" : hasViol ? "var(--warn)" : "var(--border)";
-                const draggedSeats  = activeGuest?.count || 1;
-                const isDragSame    = !!activeId && ev.seating[activeId] === t.id;
-                const wouldOverflow = !!activeId && !isDragSame && (usedSeats + draggedSeats > t.capacity);
-
-                return (
-                  <DroppableWrapper key={t.id} id={"table-" + t.id}>
-                    {({ ref, isOver: isDragOver }) => (
-                      <div
-                        ref={ref}
-                        className={[
-                          styles.tCard,
-                          activeId && !isDragSame && !wouldOverflow && !isDragOver ? styles.tCardDragReady : "",
-                          activeId && !isDragSame && wouldOverflow  && !isDragOver ? styles.tCardDragBlocked : "",
-                          isDragOver && !wouldOverflow ? styles.tCardDropOver : "",
-                          isDragOver && wouldOverflow  ? styles.tCardDropBlocked : "",
-                        ].filter(Boolean).join(" ")}
-                        style={{
-                          borderColor: activeId ? undefined : staticBorder,
-                          background:  activeId ? undefined : (isCapOver ? "var(--red-bg)" : undefined),
-                        }}
-                      >
-                        <button className={styles.tCardHead} onClick={() => setExpandedTable(isExpanded ? null : t.id)}>
-                          <div className={styles.tCardLeft}>
-                            {/* The table drawn as it is, with a seat per place
-                                and the taken ones filled — so the card answers
-                                "how full is this" before any number is read. */}
-                            <TableGlyph
-                              key={runKey}
-                              shape={t.shape}
-                              capacity={t.capacity}
-                              taken={usedSeats}
-                              size={46}
-                              animate={runKey > 0}
-                              className={styles.tCardGlyph}
-                            />
-                            <div>
-                              <div className={styles.tCardName}>
-                                {t.name}
-                                {!isCapOver && usedSeats >= t.capacity && t.capacity > 0 && (
-                                  <span className={styles.tCardStar} title="שולחן מלא">✦</span>
-                                )}
-                                {t.type !== "regular" && <TypeTag type={t.type} />}
-                                {isLocked              && <span className={styles.tCardBadgeLock}><Icon name="lock" size={13} /></span>}
-                                {isCapOver             && <span className={styles.tCardBadgeRed}>חריגה!</span>}
-                                {hasViol && !isCapOver && <span className={styles.tCardBadgeWarn}>הפרה</span>}
-                              </div>
-                              {tGuests.length === 0 && (
-                                <div className={styles.tCardEmpty}>{t.capacity} מקומות פנויים</div>
-                              )}
-                              {tGuests.length > 0 && (
-                                <div className={styles.tChipRow}>
-                                  {["bride", "groom"].map(side => {
-                                    const n = tGuests.filter(g => g.side === side).length;
-                                    if (!n) return null;
-                                    return (
-                                      <span
-                                        key={side}
-                                        className={[styles.tChip, side === "bride" ? styles.tChipBride : styles.tChipGroom].join(" ")}
-                                      >
-                                        <SideDot side={side} /> {n}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className={styles.tCardRight}>
-                            <CapBar filled={usedSeats} capacity={t.capacity} isOver={isCapOver} />
-                            <span
-                              className={styles.tCardCount}
-                              style={{
-                                color: isCapOver ? "var(--red)" : pct >= 0.85 ? "var(--warn)" : usedSeats > 0 ? "var(--text)" : "var(--muted)"
-                              }}
-                            >
-                              {usedSeats}/{t.capacity}
-                              <span className={styles.tCardCapLabel}> מקומות</span>
-                            </span>
-                            {pct >= 0.8 && pct < 1 && !isCapOver && (
-                              <span className={styles.tCardNearCap}>
-                                {t.capacity - usedSeats} נותרו
-                              </span>
-                            )}
-                            <span className={styles.tCardChevron}><Icon name={isExpanded ? "chevronUp" : "chevronDown"} size={13} /></span>
-                          </div>
-                        </button>
-
-                        {isExpanded && (
-                          <div className={styles.tGuestList}>
-                            {tGuests.length > 0 && (
-                              <div className={styles.tGuestListActions}>
-                                <button
-                                  className={styles.tClearTableBtn}
-                                  onPointerDown={e => e.stopPropagation()}
-                                  onClick={e => { e.stopPropagation(); clearTable(t.id); }}
-                                >
-                                  <Icon name="close" size={13} /> פנו שולחן
-                                </button>
-                                <button
-                                  className={[styles.tTableLockBtn, isLocked ? styles.tTableLockBtnActive : ""].filter(Boolean).join(" ")}
-                                  onPointerDown={e => e.stopPropagation()}
-                                  onClick={e => { e.stopPropagation(); toggleTableLock(t.id); }}
-                                  title={isLocked ? "בטלו נעילת שולחן — יוכל לקבל הצעות מהעוזר החכם" : "נעלו שולחן — לא יוצעו שינויים לשולחן זה"}
-                                >
-                                  {isLocked ? <><Icon name="lock" /> שולחן נעול</> : <><Icon name="unlock" /> נעלו שולחן</>}
-                                </button>
-                              </div>
-                            )}
-                            {tGuests.length === 0 && (
-                              <span className={styles.emptyInline}>שולחן ריק — גררו אורח לכאן, או בחרו מהממתינים</span>
-                            )}
-                            {tGuests.map(g => (
-                              <DraggableGuestRow key={g.id} guestId={g.id} className={styles.tGuestRow}>
-                                <SideDot side={g.side} />
-                                <div className={base.gInfo} style={{ flex: 1 }}>
-                                  <span className={base.gName}>
-                                    {g.name}
-                                    {isGuestLocked(g.id) && (
-                                      <span className={styles.tGuestLockedBadge} title="אורח נעול — לא יוצע להזזה"><Icon name="lock" size={12} /></span>
-                                    )}
-                                  </span>
-                                  <span className={base.gMeta}>
-                                    {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
-                                  </span>
-                                  {(g.count || 1) > 1 && (
-                                    <span className={styles.seatNames}>
-                                      {guestSeatNames(g).slice(1).join("  ·  ")}
-                                    </span>
-                                  )}
-                                </div>
-                                {g.phone && whatsappUrl(g.phone) && (
-                                  <a
-                                    href={whatsappUrl(g.phone)}
-                                    className={styles.tGuestWaBtn}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    title={"WhatsApp: " + g.phone}
-                                    onPointerDown={e => e.stopPropagation()}
-                                  ><Icon name="chat" size={16} /></a>
-                                )}
-                                <button
-                                  className={[styles.tGuestLockBtn, isGuestLocked(g.id) ? styles.tGuestLockBtnActive : ""].filter(Boolean).join(" ")}
-                                  onPointerDown={e => e.stopPropagation()}
-                                  onClick={e => { e.stopPropagation(); toggleGuestLock(g.id); }}
-                                  title={isGuestLocked(g.id) ? "בטלו נעילה — האורח יוכל לקבל הצעות" : "נעלו אורח — לא יוצע להזזה על-ידי העוזר החכם"}
-                                >
-                                  <Icon name={isGuestLocked(g.id) ? "lock" : "unlock"} size={14} />
-                                </button>
-                                <button
-                                  className={styles.tGuestRemoveBtn}
-                                  onPointerDown={e => e.stopPropagation()}
-                                  onClick={e => { e.stopPropagation(); assignGuest(g.id, null); }}
-                                  title="החזירו לרשימת הממתינים"
-                                ><Icon name="undo" size={14} /></button>
-                                <select
-                                  className={[base.select, base.selectInline].join(" ")}
-                                  value={t.id}
-                                  onPointerDown={e => e.stopPropagation()}
-                                  onChange={e => {
-                                    const val = e.target.value;
-                                    if (val === "__remove__") assignGuest(g.id, null);
-                                    else if (val !== t.id)   assignGuest(g.id, val);
-                                  }}
-                                >
-                                  <option value={t.id}>{t.name} (כאן)</option>
-                                  <option value="__remove__">הסירו מהשולחן</option>
-                                  <optgroup label="העבירו לשולחן אחר">
-                                    {ev.tables.filter(ot => ot.id !== t.id).map(ot => {
-                                      const seats = tableSeats(ot.id);
-                                      const full  = seats + (g.count || 1) > ot.capacity;
-                                      return (
-                                        <option key={ot.id} value={ot.id} disabled={full}>
-                                          {ot.name} ({seats}/{ot.capacity}){full ? " — מלא" : ""}
-                                        </option>
-                                      );
-                                    })}
-                                  </optgroup>
-                                </select>
-                              </DraggableGuestRow>
-                            ))}
-
-                            {unassigned.length > 0 && usedSeats < t.capacity && (
-                              <div
-                                className={styles.tGuestRow}
-                                style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 10 }}
-                              >
-                                <span className={base.gMeta} style={{ flex: 1, color: "var(--text2)" }}>הוסיפו אורח לשולחן זה:</span>
-                                <select
-                                  className={[base.select, base.selectInline].join(" ")}
-                                  value=""
-                                  onChange={e => { if (e.target.value) assignGuest(e.target.value, t.id); }}
-                                >
-                                  <option value="">— בחרו מהממתינים —</option>
-                                  {unassigned.map(g => {
-                                    const full = usedSeats + (g.count || 1) > t.capacity;
-                                    return (
-                                      <option key={g.id} value={g.id} disabled={full}>
-                                        {g.name} ({sideLabel(g.side)}{(g.count || 1) > 1 ? ` · ${g.count}` : ""}){full ? " — לא נכנס" : ""}
-                                      </option>
-                                    );
-                                  })}
-                                </select>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </DroppableWrapper>
-                );
-              })}
+              {ev.tables.map(t => (
+                <TableCard
+                  key={t.id}
+                  table={t}
+                  guests={guestsByTable.get(t.id) || EMPTY_GUESTS}
+                  seats={seatsByTable.get(t.id) || 0}
+                  expanded={expandedIds.has(t.id)}
+                  locked={lockedTablesSet.has(t.id)}
+                  hasViolation={violatedTables.has(t.name)}
+                  runKey={runKey}
+                  tables={ev.tables}
+                  unassigned={unassigned}
+                  seatsByTable={seatsByTable}
+                  lockedGuests={lockedGuestsSet}
+                  activeId={activeId}
+                  draggedSeats={activeGuest?.count || 1}
+                  sideLabel={sideLabel}
+                  onToggle={toggleTable}
+                  onRename={renameTable}
+                  onClearTable={clearTable}
+                  onToggleTableLock={toggleTableLock}
+                  onToggleGuestLock={toggleGuestLock}
+                  onAssign={assignGuest}
+                />
+              ))}
             </div>
           )}
         </div>
