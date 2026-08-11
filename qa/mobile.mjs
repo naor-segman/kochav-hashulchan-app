@@ -12,9 +12,16 @@ const EVENT = {
   id: 'e1', name: 'החתונה של דנה ויוסי', type: 'חתונה', date: '2027-06-01',
   brideName: 'דנה', groomName: 'יוסי', venue: 'אולמי הגן', startTime: '19:00',
   guests: [
-    { id: 'g1', name: 'טל שוורץ',  side: 'bride', group: 'משפחה', count: 2, phone: '0501234567', rsvp: 'confirmed' },
+    // g1 and g3 carry named companions on purpose. The fixture had none, so
+    // every screen that renders one row per PERSON — the entrance list, the
+    // place cards, the companion inputs in the shared table — was measured in
+    // its shortest possible state, which is the state that never overflows and
+    // never collides. A whole class of bug went unseen behind that.
+    { id: 'g1', name: 'טל שוורץ',  side: 'bride', group: 'משפחה', count: 2, phone: '0501234567', rsvp: 'confirmed',
+      companions: ['רונית שוורץ-אברמוביץ'] },
     { id: 'g2', name: 'רון לוי',   side: 'groom', group: 'חברים', count: 1, phone: '0521234567', rsvp: 'pending' },
-    { id: 'g3', name: 'שרה כהן',   side: 'bride', group: 'עבודה', count: 3, phone: '', rsvp: 'declined' },
+    { id: 'g3', name: 'שרה כהן',   side: 'bride', group: 'עבודה', count: 3, phone: '', rsvp: 'declined',
+      companions: ['אבי כהן', 'מיכל כהן-רוזנברג'] },
   ],
   tables: [
     { id: 't1', name: 'שולחן 1', capacity: 6,  type: 'regular', shape: 'round' },

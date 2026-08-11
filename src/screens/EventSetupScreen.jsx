@@ -41,8 +41,11 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     organizationName: ev.organizationName || "",
     contactName:      ev.contactName      || "",
     ownerName:        ev.ownerName        || "",
-    giftBitPhone:     ev.giftBitPhone     || "",
-    giftPayboxLink:   ev.giftPayboxLink   || "",
+    // No bit / PayBox fields. The gift page no longer moves money — collecting
+    // through them would take a cut of every gift at the host's expense — so a
+    // form that still asks for them is asking for something nothing reads. The
+    // two keys are deliberately NOT removed from storage: this screen simply
+    // stops writing them, so an event that already has them keeps them.
   });
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -382,30 +385,6 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           <p className={base.fieldHint}>קוד QR (▦) לכל קישור — להדפסה על שילוט בכניסה, בעמדת הדיילות או בהזמנה.</p>
         )}
 
-        <Divider label="קבלת מתנות — ביט / PayBox" />
-        <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-          הפרטים יוצגו לאורחים בדף המתנה אחרי שליחת הברכה. אפשר למלא אחד מהם או את שניהם.
-        </p>
-        <div className={base.grid2}>
-          <Field label="מספר טלפון לביט" hint="האורחים יעבירו אליו את המתנה בביט">
-            <input
-              className={base.input}
-              value={form.giftBitPhone}
-              placeholder="050-1234567"
-              inputMode="tel"
-              onChange={e => set("giftBitPhone", e.target.value)}
-            />
-          </Field>
-          <Field label="קישור PayBox" hint="קישור לקבוצת PayBox של האירוע (אופציונלי)">
-            <input
-              className={base.input}
-              value={form.giftPayboxLink}
-              placeholder="https://payboxapp.page.link/..."
-              dir="ltr"
-              onChange={e => set("giftPayboxLink", e.target.value)}
-            />
-          </Field>
-        </div>
       </div>
 
       <NextStep
