@@ -129,6 +129,12 @@ export function normalizeEvent(ev) {
     // that is already being filled in; only an explicit false closes it, and
     // the token RPCs enforce the same rule server-side.
     collabActive: ev.collabActive === false ? false : true,
+    // The entrance link's write switch, same rule and same reason: the greeter
+    // marks arrivals through it, the host closes it after the event without
+    // invalidating the URL, and absent means open so an existing event is not
+    // silently shut. `hostess_writes_active(e)` enforces the identical default
+    // in SQL, so a token holder cannot get past a closed switch with curl.
+    hostessWriteActive: ev.hostessWriteActive === false ? false : true,
     giftBitPhone:   ev.giftBitPhone   ?? "",
     giftPayboxLink: ev.giftPayboxLink ?? "",
     // Event site — the auto-built guest-facing site (hero, schedule, location,
@@ -210,7 +216,11 @@ export function duplicateEvent(ev) {
     // Day-of state belongs to the event that actually happened. Copying it
     // meant duplicating last year's gala produced a copy where everyone was
     // already checked in and the gift total was already banked.
-    const { arrived, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
+    // `arrivedSeats` is the per-person form of `arrived` and has to be stripped
+    // with it. Stripping only the boolean left the copy with
+    // `arrivedSeats: [0,1]` — nobody reads as arrived in the summary while the
+    // entrance screen shows two of them already inside.
+    const { arrived, arrivedSeats, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
     return Object.assign({}, rest, { id: newId });
   });
 

@@ -342,7 +342,7 @@ describe("duplicateEvent does not carry day-of state forward", () => {
     const src = {
       id: "e1", name: "גאלה", type: "אירוע עסקי", date: "2027-01-01",
       guests: [
-        { id: "g1", name: "א", side: "bride", group: "עבודה", count: 2, arrived: true, giftAmount: 500 },
+        { id: "g1", name: "א", side: "bride", group: "עבודה", count: 2, arrived: true, arrivedSeats: [0, 1], giftAmount: 500 },
         { id: "g2", name: "ב", side: "groom", group: "עבודה", count: 1, arrived: true },
       ],
       tables: [], seating: {}, constraints: [],
@@ -350,6 +350,10 @@ describe("duplicateEvent does not carry day-of state forward", () => {
     const copy = duplicateEvent(src);
     expect(copy.guests.every(g => !g.arrived)).toBe(true);
     expect(copy.guests.every(g => g.giftAmount === undefined)).toBe(true);
+    // `arrivedSeats` is the per-person form of the same state. Stripping only
+    // the boolean left the copy reading "nobody arrived" in the summary while
+    // the entrance screen showed two of them already inside.
+    expect(copy.guests.every(g => g.arrivedSeats === undefined)).toBe(true);
     // The original is untouched.
     expect(src.guests[0].arrived).toBe(true);
   });
