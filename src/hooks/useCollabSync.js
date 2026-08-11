@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { MEAL_DEFAULT } from "../data/constants.js";
+import { createRetryQueue } from "../utils/retryQueue.js";
 import {
   fetchCollabGuestsOwner, upsertCollabGuestOwner,
   deleteCollabGuestsOwner, subscribeCollabGuests,
@@ -129,6 +130,13 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
   const collabOn = !!activeEvent?.tokens?.collab;
 
   const applied = useRef(new Map()); // id -> signature we last reconciled
+  // Writes that have not landed yet. See src/utils/retryQueue.js — the push used
+  // to be `.catch(() => {})` with the row marked reconciled BEFORE it resolved,
+  // so a push lost to venue wifi was swallowed twice: nothing retried it, and
+  // nothing would push it again either. The next pull then overwrote the host's
+  // edit with the table's older copy, in silence.
+  const queue   = useRef(null);
+  const toldRef = useRef(false);   // one warning per outage, not one per row
   const mirror  = useRef(new Map()); // id -> latest known collab row
   const ready   = useRef(false);
   // Bumped when the initial pull finishes. `ready` is a ref (for synchronous
@@ -137,14 +145,34 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
   // owner's next edit.
   const [readyTick, setReadyTick] = useState(0);
 
+  // The queue is created inside the pull effect below, not here: React forbids
+  // touching a ref during render, and that effect is already the place where a
+  // change of event or account resets everything.
+  const toastRef = useRef(showToast);
+  useEffect(() => { toastRef.current = showToast; });
+
   // ── table → app: initial pull + live subscription ──
   useEffect(() => {
     if (!isSupabaseConfigured || !cloudId || !collabOn) { ready.current = false; return; }
     let cancelled = false;
     let unsub = () => {};
+    const stopQueue = () => queue.current?.stop();
     ready.current = false;
     applied.current = new Map();
     mirror.current = new Map();
+    // Switching event or account: anything still queued belongs to the old one.
+    queue.current?.stop();
+    queue.current = createRetryQueue({
+      onGiveUp: () => {
+        if (toldRef.current) return;
+        toldRef.current = true;
+        toastRef.current?.(
+          "חלק מהשינויים לא נשמרו בטבלה השיתופית — בדקו חיבור. הם יישלחו שוב בעריכה הבאה.",
+          "err",
+        );
+      },
+    });
+    toldRef.current = false;
 
     const applyRow = (row) => {
       mirror.current.set(row.id, row);
@@ -233,13 +261,14 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       });
     })();
 
-    return () => { cancelled = true; unsub(); ready.current = false; };
+    return () => { cancelled = true; unsub(); ready.current = false; stopQueue(); };
   }, [cloudId, collabOn, patchEvent, showToast]);
 
   // ── app → table: push owner add/edit/delete of guests ──
   const guests = activeEvent?.guests;
   useEffect(() => {
     if (!ready.current || !isSupabaseConfigured || !cloudId || !collabOn) return;
+    if (!queue.current) return;   // the pull effect owns its lifetime
     const list = guests || [];
     const seen = new Set();
 
@@ -250,17 +279,31 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       if (applied.current.get(g.id) === sig) return;            // unchanged since last sync
       const m = mirror.current.get(g.id);
       if (m && sigCollab(m) === sig) { applied.current.set(g.id, sig); return; } // already matches table
-      applied.current.set(g.id, sig);
-      mirror.current.set(g.id, { ...guestToCollab(g) });
-      upsertCollabGuestOwner(cloudId, guestToCollab(g)).catch(() => {});
+      // NOT marked applied yet. `applied` means "the table has this", and it
+      // only has it once the write lands — otherwise a failed push leaves the
+      // row looking reconciled and it is never sent again.
+      const row = guestToCollab(g);
+      queue.current.push(g.id, () =>
+        upsertCollabGuestOwner(cloudId, row).then(() => {
+          applied.current.set(g.id, sig);
+          mirror.current.set(g.id, { ...row });
+          toldRef.current = false;   // the link is back; a later outage may warn again
+        }));
     });
 
     // A guest that was previously synced (in `applied`) and is now gone → delete
     // its collab row. Draft collab rows that never became guests are untouched.
     const toDelete = [...applied.current.keys()].filter((id) => !seen.has(id));
     if (toDelete.length) {
-      toDelete.forEach((id) => { applied.current.delete(id); mirror.current.delete(id); });
-      deleteCollabGuestsOwner(cloudId, toDelete).catch(() => {});
+      toDelete.forEach((id) => {
+        applied.current.delete(id);
+        mirror.current.delete(id);
+        // A pending write for a row that no longer exists is moot, and letting
+        // it land would recreate the row the host just deleted.
+        queue.current.cancel(id);
+      });
+      queue.current.push("delete:" + toDelete.join(","), () =>
+        deleteCollabGuestsOwner(cloudId, toDelete));
     }
   }, [guests, cloudId, collabOn, readyTick]);
 }
