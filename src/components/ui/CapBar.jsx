@@ -14,7 +14,12 @@ export default function CapBar({ filled, capacity, isOver }) {
     : "none";
   return (
     <div className={styles.wrap}>
-      <div className={styles.fill} style={{ width: pct + "%", background: color, backgroundImage: hatch }} />
+      {/* `backgroundColor`, not the `background` shorthand: the shorthand also
+          resets background-image, so pairing it with `backgroundImage` in one
+          style object is a conflict React warns about on every rerender — and
+          whichever of the two React writes last decides whether the hatch is
+          there at all. */}
+      <div className={styles.fill} style={{ width: pct + "%", backgroundColor: color, backgroundImage: hatch }} />
     </div>
   );
 }
