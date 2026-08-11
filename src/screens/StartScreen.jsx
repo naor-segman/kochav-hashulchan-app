@@ -46,8 +46,7 @@ function deriveEventName(type, a, b) {
 // the host has — this one answers "what does it actually give me".
 const DEMO_TABLES = [
   { shape: "round", capacity: 10, taken: 10 },
-  { shape: "round", capacity: 10, taken: 10 },
-  { shape: "rect",  capacity: 12, taken: 9  },
+  { shape: "rect",  capacity: 12, taken: 12 },
   { shape: "round", capacity: 10, taken: 6  },
   { shape: "round", capacity: 8,  taken: 0  },
 ];
@@ -118,10 +117,16 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
           כוכב השולחן בונה את כל השולחנות בשניות — ואומר לכם מיד מה עדיין לא מסתדר.
         </p>
 
-        <div className={styles.glyphRow} aria-hidden="true">
-          {DEMO_TABLES.map((t, i) => (
-            <TableGlyph key={i} shape={t.shape} capacity={t.capacity} taken={t.taken} size={58} />
-          ))}
+        {/* The glyph's table top is --blush-soft. On the blush-soft hero it was
+            the same colour as its own ground and the tables read as bare rings
+            — the "contrast measured against the wrong ground" failure, in the
+            first thing anybody sees. It gets a white plate of its own. */}
+        <div className={styles.glyphPlate}>
+          <div className={styles.glyphRow} aria-hidden="true">
+            {DEMO_TABLES.map((t, i) => (
+              <TableGlyph key={i} shape={t.shape} capacity={t.capacity} taken={t.taken} size={58} />
+            ))}
+          </div>
         </div>
         <p className={styles.glyphCaption}>
           כל שולחן מצויר כפי שהוא — מושב מלא הוא אורח שכבר יושב, טבעת ריקה היא מקום פנוי.

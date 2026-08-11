@@ -142,6 +142,9 @@
    the bar already has one coloured control (the back link) and DESIGN.md caps
    the chrome at one. */
 .bcCurrentLink {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
   font-weight: 700;
   color: var(--nav-text);
   background: none;
@@ -151,10 +154,15 @@
   cursor: pointer;
   font-size: inherit;
   font-family: inherit;
+  transition: background var(--transition);
+}
+
+.bcCurrentText {
+  display: block;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: background var(--transition);
 }
 
 .bcCurrentLink:hover { background: rgba(var(--nav-text-rgb),.10); }
@@ -256,6 +264,8 @@
   outline: 2px solid var(--nav-text);
   outline-offset: 2px;
 }
+
+.homeLabel { display: inline; }
 
 .accountBtn:hover {
   background: rgba(var(--nav-text-rgb),.12);
@@ -533,8 +543,10 @@
   .areaLabelShort { display: inline; }
   .areaInner { padding: 0 10px; }
   .areaTab { padding: 10px 8px; font-size: var(--step--2); }
-  .homeLabel { display: none; }
-  .homeBtn { padding: 6px 8px; }
+  /* The label stays on a phone. A bare arrow beside the wordmark on a dark bar
+     reads as "back", which is not what this does — and "עמוד הבית" is nine
+     characters, which the 390px bar has room for. */
+  .homeBtn { padding: 6px 8px; font-size: var(--step--2); }
 }
 
 /* ── Print: hide shell chrome ── */
@@ -555,6 +567,26 @@
    row-scale buttons were left small to begin with. Measured with
    qa/mobile.mjs, which reports anything a finger has to aim at under 40px. */
 @media (pointer: coarse) {
+  /* Same treatment as .bcBack, and for the same reason. Making the event name
+     a button (the way back to its own map) turned an unmeasured <span> into a
+     28px tap target on every event screen — measured by qa/mobile.mjs, which
+     probes the EFFECTIVE hit area, so the pseudo-element is what fixes it
+     without inflating the bar. */
+  .bcCurrentLink {
+    position: relative;
+  }
+
+  .bcCurrentLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
   .bcBack {
     position: relative;
   }

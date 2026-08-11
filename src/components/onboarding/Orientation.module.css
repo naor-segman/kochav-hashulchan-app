@@ -1,9 +1,14 @@
-/* Orientation panel — the blush ground, because this is the one block on the
-   page that has to be looked at without spending the accent on it. */
+/* Orientation panel.
+   NOT blush. Measured on screen: the hub already spends blush on the countdown
+   and on "המשיכו מכאן" — the two things that are genuinely calls to action —
+   and a third blush block above them made a column of three pink slabs where
+   the rotation between surfaces is supposed to be the composition. This is an
+   EXPLAINER, so it takes the white surface and lets its own serif headline do
+   the work. */
 
 .panel {
-  background: var(--blush-soft);
-  border: 1px solid var(--blush-line);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 22px 24px;
   margin-bottom: 20px;
@@ -39,7 +44,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border2);
   border-radius: var(--radius-pill);
   padding: 8px 16px;
@@ -53,7 +58,7 @@
   transition: background var(--transition), border-color var(--transition);
 }
 
-.dismiss:hover { background: var(--bg); border-color: var(--text2); }
+.dismiss:hover { background: var(--surface); border-color: var(--text2); }
 
 .dismiss:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 
@@ -74,7 +79,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 14px;
@@ -87,7 +92,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text2);
   font-size: var(--step--3);
   font-weight: var(--font-weight-extrabold);
@@ -144,7 +149,7 @@
 }
 
 .areaGo:hover {
-  background: var(--blush-soft);
+  background: var(--surface);
   border-color: var(--blush-line);
   color: var(--text);
 }

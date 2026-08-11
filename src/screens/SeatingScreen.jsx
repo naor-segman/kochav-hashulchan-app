@@ -15,6 +15,7 @@ import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
 import { getSideLabel, getSideLabels, seatingTotals } from "../utils/eventHelpers.js";
+import { arrivalTotals, arrivedCountOf, setRowArrived } from "../utils/arrival.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import { buildGuestCardUrl } from "../utils/guestCard.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -357,13 +358,22 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
 
   const toggleGuestArrived = (guestId) => {
+    // Arrival is per-person now (`arrivedSeats`), and one tap here is still the
+    // whole row: nobody in yet -> everyone is in, anyone in -> everyone out.
+    // Routed through arrival.js so the boolean mirror and the seat list are
+    // written by the code that owns that invariant, not re-derived here.
     patchEvent(e => ({
       ...e,
-      guests: e.guests.map(g => g.id === guestId ? { ...g, arrived: !g.arrived } : g),
+      guests: e.guests.map(g => g.id === guestId ? setRowArrived(g, arrivedCountOf(g) === 0) : g),
     }));
   };
 
-  const nArrived    = ev.guests.filter(g => g.arrived).length;
+  /* The counters below the "הגיעו" label used to count ROWS on both sides, and
+     a row is a GROUP: at a real event with sixty people in the room this panel
+     read "0 / 39". Both sides are SEATS now, with the denominator coming from
+     seatingTotals() through arrivalTotals(), so this panel and the door screen
+     cannot disagree about what "everyone" means. */
+  const arrival     = useMemo(() => arrivalTotals(ev.guests, ev.seating), [ev.guests, ev.seating]);
   const totalGifts  = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
   const nGiftRecorded = ev.guests.filter(g => g.arrived && g.giftAmount != null && g.giftAmount > 0).length;
 
@@ -531,7 +541,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 <StatPill n={nActiveAssigned}     label="שובצו"   primary color={allSeated ? "var(--green)" : undefined} />
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
-                {nArrived > 0 && <StatPill n={nArrived} label="הגיעו" color="var(--green)" />}
+                {arrival.arrivedSeats > 0 && <StatPill n={arrival.arrivedSeats} label="הגיעו" color="var(--green)" />}
                 {totalGifts > 0 && <StatPill n={"₪" + totalGifts.toLocaleString("he-IL")} label="מתנות" color="var(--green)" />}
                 <StatPill n={violations.length}   label={violations.length === 1 ? "הפרה" : "הפרות"}   color={violations.length > 0 ? "var(--red)" : undefined} />
               </div>
@@ -792,7 +802,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 <span className={styles.checkInTitle}><Icon name="check" /> מצב צ׳ק אין</span>
                 <div className={styles.checkInHeaderRight}>
                   <span className={styles.checkInProgress}>
-                    {nArrived} / {ev.guests.filter(g => g.rsvp !== "declined").length} הגיעו
+                    {arrival.arrivedSeats} / {arrival.totalSeats} הגיעו
                   </span>
                   {totalGifts > 0 && (
                     <span className={styles.checkInGiftTotal}>
@@ -804,9 +814,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               <div className={styles.checkInProgressBar}>
                 <div
                   className={styles.checkInProgressFill}
-                  style={{ width: ev.guests.filter(g => g.rsvp !== "declined").length > 0
-                    ? (nArrived / ev.guests.filter(g => g.rsvp !== "declined").length * 100) + "%"
-                    : "0%" }}
+                  style={{ width: arrival.pct + "%" }}
                 />
               </div>
               <input

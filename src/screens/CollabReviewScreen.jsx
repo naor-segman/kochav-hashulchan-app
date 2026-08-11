@@ -102,7 +102,12 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
             </button>
           </div>
 
-          <p className={base.fieldHint}>הקישור לטבלה השיתופית (שם וטלפון בהקלדה, השאר מרשימה — בלי טעויות):</p>
+          {/* Said in terms of what the person on the other end will do with it,
+              not in terms of what the feature is called. */}
+          <p className={base.fieldHint}>
+            שלחו את הקישור הזה בוואטסאפ. כל מי שפותח אותו מוסיף את המוזמנים שלו לאותה טבלה,
+            בלי הרשמה ובלי סיסמה — וכל שורה שהושלמה מופיעה ברשימת האורחים שלכם מיד:
+          </p>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input className={base.input} readOnly value={collabLink} dir="ltr" aria-label="קישור לטבלה השיתופית" />
             <button className={base.btnSm} onClick={async () => {

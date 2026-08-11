@@ -133,7 +133,12 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
               <span className={styles.bcCurrent}>{activeEvent.name || "אירוע חדש"}</span>
             ) : (
               <button className={styles.bcCurrentLink} onClick={() => go("hub")}>
-                {activeEvent.name || "אירוע חדש"}
+                {/* The ellipsis lives on an INNER span. Putting overflow:hidden
+                    on the button itself clipped its own 44px tap pseudo-element,
+                    so the control measured 28px on every event screen — the
+                    exact trap the .bcBack comment at the bottom of the
+                    stylesheet already documents, re-entered from a new angle. */}
+                <span className={styles.bcCurrentText}>{activeEvent.name || "אירוע חדש"}</span>
               </button>
             )}
           </div>

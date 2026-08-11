@@ -40,6 +40,9 @@ const GuestManagerScreen = lazy(() => import("./screens/GuestManagerScreen.jsx")
 const ConstraintsScreen  = lazy(() => import("./screens/ConstraintsScreen.jsx"));
 const SeatingScreen      = lazy(() => import("./screens/SeatingScreen.jsx"));
 const CheckInScreen      = lazy(() => import("./screens/CheckInScreen.jsx"));
+// The unified day-of screen. CheckInScreen / HostessScreen are now thin shims
+// over it and stay routed for links already printed on invitations.
+const EntranceScreen     = lazy(() => import("./screens/EntranceScreen.jsx"));
 const LandingScreen      = lazy(() => import("./screens/LandingScreen.jsx"));
 
 const AdminApp       = lazy(() => import("./admin/AdminApp.jsx"));
@@ -350,7 +353,19 @@ export default function App() {
       <Route path="/invitation/:token"    element={<Suspense fallback={<Loading />}><AnnouncementScreen kind="invitation" /></Suspense>} />
       <Route path="/hostess/:token"   element={<Suspense fallback={<Loading />}><HostessScreen /></Suspense>} />
       <Route path="/collab/:token"    element={<Suspense fallback={<Loading />}><CollabScreen /></Suspense>} />
-      {/* Standalone check-in screen — no Shell nav, full-screen for event-day tablet use */}
+      {/* ── עמדת הכניסה — the one day-of screen ──────────────────────────
+          Two ways in, one screen: the host's own device (owner) and a hired
+          greeter's phone with no account (token). `/checkin` and `/hostess`
+          stay routed as aliases — they are printed on QR codes that are already
+          out in the world — and both now render the same thing. */}
+      <Route
+        path="/events/:eventId/entrance"
+        element={<Suspense fallback={<Loading />}><EntranceScreen mode="owner" events={events} patchEventById={patchEventById} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
+      />
+      <Route
+        path="/entrance/:token"
+        element={<Suspense fallback={<Loading />}><EntranceScreen mode="token" /></Suspense>}
+      />
       <Route
         path="/events/:eventId/checkin"
         element={<Suspense fallback={<Loading />}><CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}

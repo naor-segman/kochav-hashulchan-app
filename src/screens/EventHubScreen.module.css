@@ -194,6 +194,25 @@
   text-underline-offset: 3px;
 }
 
+/* An inline link inside a sentence is 20px tall. The line stays where it is;
+   only the reachable area grows. */
+@media (pointer: coarse) {
+  .guestLink {
+    position: relative;
+  }
+
+  .guestLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}
+
 /* ── The three areas ── */
 .areaGrid {
   display: grid;

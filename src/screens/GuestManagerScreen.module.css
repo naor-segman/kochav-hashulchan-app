@@ -94,6 +94,9 @@
 
 .wayText {
   font-size: var(--step--1);
+  /* Measured on the real composited ground, not on white: 5.30:1 on --surface
+     and 4.71:1 once the card takes the --blush-soft ground of .wayOn. A tint is
+     a ground. */
   color: var(--muted);
   line-height: 1.6;
 }

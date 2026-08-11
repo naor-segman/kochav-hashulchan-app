@@ -73,10 +73,12 @@ export const AREAS = [
     when: "ביום האירוע",
     mark: "hostess",
     items: [
-      // Standalone: this route lives OUTSIDE the Shell (full-screen tablet use
-      // at the door), so it is reached like any other screen but leaves the nav
-      // behind on purpose.
-      { id: "checkin",  label: "כניסה וקבלת פנים", short: "יום האירוע", mark: "checkin", standalone: true, hint: "מי הגיע, ולאיזה שולחן לשלוח" },
+      // One screen for the door — it replaced the old check-in screen, the
+      // hostess link and the "מסך כניסה" button. `/checkin` still resolves to
+      // it for anything already printed on an invitation.
+      // `standalone`: this route lives OUTSIDE the Shell (dark, full-screen, one
+      // hand, a queue at the door), so opening it deliberately leaves the nav.
+      { id: "entrance", label: "עמדת הכניסה", short: "הכניסה", mark: "checkin", standalone: true, hint: "מי הגיע, ולאיזה שולחן לשלוח" },
       { id: "nametags", label: "כרטיסי שם",        mark: "nameTags",  hint: "להדפסה מראש — שם ומספר שולחן" },
     ],
   },
