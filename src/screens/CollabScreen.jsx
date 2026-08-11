@@ -274,7 +274,9 @@ export default function CollabScreen() {
                         reason to bother is worth far more than the word
                         "רשות": names are what make the seating work. */}
                     <span className={styles.companionsLabel}>
-                      מי {(r.guests_count || 1) - 1} האנשים שמצטרפים {r.name?.trim() ? "ל" + r.name.trim() : "לשורה הזו"}?
+                      {(r.guests_count || 1) - 1 === 1
+                        ? <>מי האדם שמצטרף {r.name?.trim() ? "ל" + r.name.trim() : "לשורה הזו"}?</>
+                        : <>מי {(r.guests_count || 1) - 1} האנשים שמצטרפים {r.name?.trim() ? "ל" + r.name.trim() : "לשורה הזו"}?</>}
                     </span>
                     <span className={styles.companionsWhy}>
                       אפשר לדלג, אבל שם על כל כיסא הוא מה שמאפשר להושיב אותם נכון —

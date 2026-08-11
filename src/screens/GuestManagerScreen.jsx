@@ -538,7 +538,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           <Field
             /* The owner's wording: the field has to say WHO these people are.
                "שמות המלווים" told a first-time host nothing. */
-            label={`מי ${companionSlots(form.count)} האנשים שמצטרפים ${form.name.trim() ? "ל" + form.name.trim() : "לרשומה הזו"}?`}
+            /* Hebrew does not take a numeral in front of a singular this way:
+               "מי 1 האנשים" is a plural sentence with the number one in it. The
+               seat <select> three lines down already gets this right. */
+            label={companionSlots(form.count) === 1
+              ? `מי האדם שמצטרף ${form.name.trim() ? "ל" + form.name.trim() : "לרשומה הזו"}?`
+              : `מי ${companionSlots(form.count)} האנשים שמצטרפים ${form.name.trim() ? "ל" + form.name.trim() : "לרשומה הזו"}?`}
             hint="אפשר לדלג — אבל שם על כל כיסא הוא מה שמאפשר לשבת אותם נכון, ולדיילת בכניסה לזהות אותם. בלי שם הכיסא יופיע כ״+1״."
           >
             <div className={styles.companionsGrid}>

@@ -122,3 +122,21 @@ export function nextBuildStep(id) {
   const i = BUILD_STEPS.findIndex(s => s.id === id);
   return i === -1 || i === BUILD_STEPS.length - 1 ? null : BUILD_STEPS[i + 1];
 }
+
+/**
+ * The screen an area's tier-1 tab should open.
+ *
+ * NOT `items[0]`. The day area's first item is עמדת הכניסה, which renders
+ * OUTSIDE the Shell — so opening it from the tab destroyed the very rail the
+ * tab exists to show, and the area's second screen (כרטיסי שם) could not be
+ * reached by navigating at all: tab → entrance → חזרו → seating → tab →
+ * entrance, forever. The `standalone` flag was already declared on that item
+ * and read by nobody.
+ *
+ * The tab lands on the first item that stays in the Shell; the standalone
+ * screens are still one tap away from the rail and from the hub.
+ */
+export function areaLanding(area) {
+  const items = area?.items ?? [];
+  return (items.find(it => !it.standalone) ?? items[0])?.id ?? null;
+}

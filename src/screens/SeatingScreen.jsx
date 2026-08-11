@@ -27,6 +27,7 @@ import DraggableGuestRow from "../components/seating/DraggableGuestRow.jsx";
 import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
 import TableCard from "../components/seating/TableCard.jsx";
 import { tableLabel } from "../components/seating/tableLabel.js";
+import { buildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
 
@@ -514,7 +515,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           />
 
           <div className={base.stepGuide}>
-            <span className={base.stepBadge}>שלב 5 מתוך 5 — סידור הושבה</span>
+            <span className={base.stepBadge}>
+              {`שלב ${buildStep("seating").num} מתוך ${BUILD_STEP_COUNT} — סידור הושבה`}
+            </span>
             <span className={base.stepText}>הריצו את הסידור האוטומטי ואז גררו אורחים בין שולחנות לפי הצורך. כל שינוי נשמר מיידית.</span>
           </div>
 
@@ -535,8 +538,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             <div className={styles.runCardInfo}>
               <div className={styles.runCardTitle}>✦ חשבו הושבה אוטומטית</div>
               <div className={styles.runCardSub}>
-                {noTables ? "לפני ההרצה — הגדירו שולחנות בשלב 2."
-                  : noGuests ? "לפני ההרצה — הוסיפו אורחים בשלב 3."
+                {noTables ? `לפני ההרצה — הגדירו שולחנות בשלב ${buildStep("tables").num}.`
+                  : noGuests ? `לפני ההרצה — הוסיפו אורחים בשלב ${buildStep("guests").num}.`
                   : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
               </div>
               <div className={styles.runCardStats}>

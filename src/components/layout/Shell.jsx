@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { computeViolations } from "../../logic/seating.js";
 import { useAuth } from "../../hooks/useAuth.js";
 import { SYNC_STATUS } from "../../utils/cloudSync.js";
-import { AREAS, areaOfScreen } from "../../data/eventAreas.js";
+import { AREAS, areaOfScreen, areaLanding } from "../../data/eventAreas.js";
 import NavBadge from "../navigation/NavBadge.jsx";
 import SectionMark from "../ui/SectionMark.jsx";
 import styles from "./Shell.module.css";
@@ -201,7 +201,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
                 <button
                   key={a.id}
                   className={[styles.areaTab, isActive && styles.areaTabActive].filter(Boolean).join(" ")}
-                  onClick={() => openScreen(a.items[0].id)}
+                  onClick={() => openScreen(areaLanding(a))}
                   aria-current={isActive ? "page" : undefined}
                   title={a.sub}
                 >

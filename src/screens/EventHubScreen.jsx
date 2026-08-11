@@ -23,7 +23,18 @@ import styles from "./EventHubScreen.module.css";
  * is a fact about this event and not a fact about the product.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-export default function EventHubScreen({ activeEvent: ev, go }) {
+export default function EventHubScreen({ activeEvent: ev, go, showToast }) {
+  // The same guard the rail applies. Without it the identical click was blocked
+  // from the nav ("יש להזין שם לאירוע לפני המשך") and allowed from the hub —
+  // and half the product keys off the event name.
+  const openItem = (id) => {
+    if (id !== "setup" && !ev?.name?.trim()) {
+      showToast?.("יש להזין שם לאירוע לפני המשך", "err");
+      go("setup");
+      return;
+    }
+    go(id);
+  };
   const { user } = useAuth();
   const orientation = useOrientation();
 
@@ -174,7 +185,7 @@ export default function EventHubScreen({ activeEvent: ev, go }) {
                 const st = state(it.id);
                 return (
                   <li key={it.id}>
-                    <button className={styles.item} onClick={() => go(it.id)}>
+                    <button className={styles.item} onClick={() => openItem(it.id)}>
                       <span className={[styles.itemDot, isDone && styles.itemDotDone].filter(Boolean).join(" ")}>
                         {it.num
                           ? (isDone ? <Icon name="check" size={11} /> : it.num)

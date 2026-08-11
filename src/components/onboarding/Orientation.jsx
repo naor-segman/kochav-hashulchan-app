@@ -1,6 +1,6 @@
 import SectionMark from "../ui/SectionMark.jsx";
 import Icon from "../ui/Icon.jsx";
-import { AREAS } from "../../data/eventAreas.js";
+import { AREAS, areaLanding } from "../../data/eventAreas.js";
 import styles from "./Orientation.module.css";
 
 export default function Orientation({ onDismiss, onGo }) {
@@ -30,7 +30,7 @@ export default function Orientation({ onDismiss, onGo }) {
               <span className={styles.areaWhen}>{a.when}</span>
             </div>
             {onGo && (
-              <button className={styles.areaGo} onClick={() => onGo(a.items[0].id)}>
+              <button className={styles.areaGo} onClick={() => onGo(areaLanding(a))}>
                 פתחו <Icon name="arrowLeft" size={13} />
               </button>
             )}

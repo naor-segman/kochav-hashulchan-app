@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { getSideLabel } from "../utils/eventHelpers.js";
+import { buildStep, nextBuildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -247,7 +248,9 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       />
 
       <div className={base.stepGuide}>
-        <span className={base.stepBadge}>שלב 4 מתוך 5 — אילוצים</span>
+        <span className={base.stepBadge}>
+          {`שלב ${buildStep("constraints").num} מתוך ${BUILD_STEP_COUNT} — אילוצים`}
+        </span>
         <span className={base.stepText}>שלב אופציונלי. הגדירו מי חייב לשבת יחד ומי לא — ואז המשיכו לסידור ההושבה. כל שינוי נשמר אוטומטית.</span>
       </div>
 
@@ -429,7 +432,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
           text="שלב זה אופציונלי לחלוטין. אם יש אורחים שחייבים לשבת יחד (כמו הורים עם ילדים קטנים) או שאסור שיישבו יחד — הגדירו זאת כאן לפני הרצת הסידור." />
       )}
 
-      <NextStep label="המשיכו לסידור הושבה" hint="שבצו את כל האורחים לשולחנות" onClick={() => go("seating")} />
+      <NextStep label={"המשיכו ל" + nextBuildStep("constraints").label} hint="שבצו את כל האורחים לשולחנות" onClick={() => go("seating")} />
     </div>
   );
 }
