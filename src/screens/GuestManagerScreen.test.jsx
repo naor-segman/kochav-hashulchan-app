@@ -145,6 +145,29 @@ describe("GuestManagerScreen — editing a guest must not blank what the form ne
     expect(out[1]).toEqual(other);
   });
 
+  it("writes the form's TEXT fields through the converter, not raw off the inputs", () => {
+    // The screen must round-trip the form through applyGuestForm rather than
+    // spreading it over the row. That is easy to "simplify" to
+    // `{...g, ...form}` — which keeps arrival and companions in THIS fixture,
+    // so the obvious assertions above cannot see it — and it is still wrong in
+    // two ways that reach real screens:
+    //   • an <input type="number"> hands back a STRING. `estGift: "800"` sums
+    //     as string concatenation on the budget screen, so two guests at 800
+    //     and 500 become 800500 of expected income.
+    //   • the name goes in untrimmed, so " כהן " sorts and dedupes as its own
+    //     distinct guest.
+    const { applyLast } = renderGuests();
+    startEditing();
+    fireEvent.change(screen.getByDisplayValue("משפחת כהן"), { target: { value: "  משפחת לוי  " } });
+    fireEvent.change(screen.getByPlaceholderText("0"), { target: { value: "800" } });
+    save();
+
+    const g = applyLast().guests[0];
+    expect(g.name).toBe("משפחת לוי");
+    expect(g.estGift).toBe(800);
+    expect(typeof g.estGift).toBe("number");
+  });
+
   it("writes the seat count as a number and the row as ONE row", () => {
     // The row/seat invariant at the point of entry. `count` is chairs; the row
     // is still one record. A screen that added `count` rows instead would look

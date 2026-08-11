@@ -94,6 +94,26 @@ describe("useEvents — patchEventById debounce", () => {
     expect(cloud.updateCloudEvent.mock.calls[0][0].venue).toBe("היכל");
   });
 
+  it("waits the full 1500ms — not 0, not 150", async () => {
+    // The window LENGTH is the whole feature. A mutation run showed the
+    // "one write per burst" test above passes with the delay set to 0, because
+    // a 0ms timer still needs a macrotask and the coalescing still works — so
+    // the duration has to be asserted against the clock directly. 1500ms is
+    // roughly the pause between words: shorter and a thinking host generates a
+    // request per word, longer and closing the tab loses the edit.
+    seed(userKey("u1"), [ev("a", { cloudId: "c1", syncedVersion: 1 })]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+
+    act(() => { result.current.patchEventById("a", { venue: "היכל" }); });
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1499); });
+    expect(cloud.updateCloudEvent).not.toHaveBeenCalled();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(cloud.updateCloudEvent).toHaveBeenCalledTimes(1);
+  });
+
   it("applies the edit locally IMMEDIATELY — the UI never waits on the network", async () => {
     seed(userKey("u1"), [ev("a", { cloudId: "c1", syncedVersion: 1 })]);
     const { result } = renderHook(() => useEvents(USER));
