@@ -25,10 +25,18 @@ import TableGlyph from "../ui/TableGlyph.jsx";
 import VenueCanvas from "./VenueCanvas.jsx";
 import styles from "./FloorPlanEditor.module.css";
 
-// AI table-detection needs the `detect-floor-plan` Edge Function deployed.
-// Disabled until that function is live so the button can never error out.
-// Flip to true once the function is deployed (Enterprise feature).
-const ENABLE_AI_DETECT = false;
+// AI table-detection reads the uploaded sketch and returns one table per shape
+// it finds, WITH a position — and `handleConfirmDetection` below already creates
+// those tables and places them. The whole path was built and then switched off
+// behind this constant, which is why the floor plan read as a drawing toy: the
+// only way to get a table onto the sketch was to place it by hand, one at a
+// time, and nobody does that fourteen times.
+//
+// It stays honest about its dependencies: the button only appears when Supabase
+// is configured and there is a sketch to read, the call is plan-gated, and if
+// the Edge Function is not deployed the catch below says so in words. A feature
+// that fails loudly is better than one that silently does not exist.
+const ENABLE_AI_DETECT = true;
 
 // ── Image helpers ────────────────────────────────────────────────────────────
 
@@ -273,9 +281,6 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   const [placingId,  setPlacingId]  = useState(null);
   // Kind of venue fixture waiting to be dropped on the sketch (null = none).
   const [placingKind, setPlacingKind] = useState(null);
-  // "map" = the sketch, "cards" = a plain occupancy list. The sketch is the
-  // point of this editor, but it is useless for scanning capacity at a glance.
-  const [view, setView] = useState("map");
   const [detecting,  setDetecting]  = useState(false);
   const [detResult,  setDetResult]  = useState(null);
   const [activeId,   setActiveId]   = useState(null);
@@ -353,6 +358,51 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
     } finally {
       setDetecting(false);
     }
+  };
+
+  // Put every unplaced table on the sketch in one action.
+  //
+  // Until now the ONLY way onto the sketch was: click the table in the unplaced
+  // list, then click the spot — twice per table, fourteen times for a normal
+  // wedding, before the map showed anything at all. That is what made this
+  // screen feel like a craft exercise instead of a tool.
+  //
+  // The layout is a plain grid across the middle of the image in Hebrew reading
+  // order (table 1 top-RIGHT), with the edges left clear, because that is where
+  // the walls, the stage and the entrance are in nearly every hall. It is a
+  // STARTING POINT, not an answer — dragging a chip is easy, and re-arranging
+  // from something beats arranging from nothing.
+  const autoArrange = () => {
+    const missingNow = (ev.tables ?? []).filter(t => !positions[t.id]).length;
+
+    patchEvent(e => {
+      const cur     = e.floorPlan?.tablePositions ?? {};
+      const missing = (e.tables ?? []).filter(t => !cur[t.id]);
+      if (missing.length === 0) return e;
+
+      // Roughly square, biased wider than tall — halls are wider than deep.
+      const cols = Math.max(1, Math.ceil(Math.sqrt(missing.length * 1.4)));
+      const rows = Math.ceil(missing.length / cols);
+      const next = { ...cur };
+
+      missing.forEach((t, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = cols === 1 ? 0.5 : 0.82 - (col / (cols - 1)) * 0.64;
+        const y = rows === 1 ? 0.5 : 0.24 + (row / (rows - 1)) * 0.52;
+        next[t.id] = {
+          x: Math.min(0.94, Math.max(0.06, x)),
+          y: Math.min(0.94, Math.max(0.06, y)),
+        };
+      });
+      return { ...e, floorPlan: { ...e.floorPlan, tablePositions: next } };
+    });
+
+    showToast(
+      missingNow === 0 ? "כל השולחנות כבר על הסקיצה"
+      : missingNow === 1 ? "שולחן אחד הונח על הסקיצה — גררו אותו למקום הנכון ✓"
+      : `${missingNow} שולחנות הונחו על הסקיצה — גררו אותם למקום הנכון ✓`
+    );
   };
 
   const handleConfirmDetection = () => {
@@ -594,17 +644,10 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
 
       {/* Toolbar */}
       <div className={styles.toolbar}>
-        <div className={styles.viewToggle} role="group" aria-label="תצוגת מפת האולם">
-          {[["map", "מפה"], ["cards", "כרטיסים"]].map(([key, label]) => (
-            <button
-              key={key}
-              className={[styles.viewBtn, view === key ? styles.viewActive : ""].filter(Boolean).join(" ")}
-              onClick={() => setView(key)}
-              aria-pressed={view === key}
-              type="button"
-            >{label}</button>
-          ))}
-        </div>
+        <button className={styles.toolBtn} onClick={autoArrange} type="button">
+          <Icon name="sparkle" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />
+          סדרו את השולחנות על הסקיצה
+        </button>
         <button className={styles.toolBtn} onClick={() => fileInputRef.current?.click()}>
           החליפו תמונה
         </button>
@@ -645,47 +688,8 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         </div>
       )}
 
-      {/* Card view — every table with its occupancy, sketch or not */}
-      {view === "cards" && (
-        <div className={styles.cardGrid}>
-          {ev.tables.map(t => {
-            const tGuests = ev.guests.filter(g => ev.seating[g.id] === t.id);
-            const seats   = tGuests.reduce((n, g) => n + (g.count || 1), 0);
-            const pct     = t.capacity > 0 ? seats / t.capacity : 0;
-            return (
-              <div
-                key={t.id}
-                className={[
-                  styles.tableCard,
-                  pct > 1        ? styles.cardOver :
-                  pct > 0.85     ? styles.cardWarn : "",
-                ].filter(Boolean).join(" ")}
-              >
-                <div className={styles.cardHead}>
-                  <TableGlyph shape={t.shape} capacity={t.capacity} taken={seats} size={26} />
-                  <span className={styles.cardName}>{t.name}</span>
-                  <span className={styles.cardCap}>{seats}/{t.capacity}</span>
-                </div>
-                <div className={styles.cardBody}>
-                  {tGuests.length === 0
-                    ? <span className={styles.chipEmpty}>ריק</span>
-                    : tGuests.map(g => (
-                        <span key={g.id} className={styles.guestPill}>
-                          {g.name}
-                          {(g.count || 1) > 1 && <span className={styles.pillCount}>×{g.count}</span>}
-                        </span>
-                      ))}
-                </div>
-                {!positions[t.id] && <span className={styles.cardUnplaced}>לא מוקם על הסקיצה</span>}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* Floor plan image with table chips */}
       <div
-        hidden={view !== "map"}
         className={[styles.imageContainer, (placingId || placingKind) ? styles.placingMode : ""].filter(Boolean).join(" ")}
         ref={containerRef}
         onClick={handleImageClick}

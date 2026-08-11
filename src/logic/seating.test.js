@@ -416,3 +416,124 @@ describe("a together-cluster whose locked members sit at different tables", () =
     if (seating.k1 && seating.foe) expect(seating.k1).not.toBe(seating.foe);
   });
 });
+
+// ── The venue sketch actually changes the answer ─────────────────────────────
+// A family too big for one table has to spill. Which table it spills to used to
+// be "whichever is emptiest", i.e. whichever the host happened to create with a
+// bigger capacity — which can be at the far end of the hall. Once tables are
+// placed on the sketch, the spill goes to the table NEXT TO them.
+//
+// Every fixture here is built so the two rules disagree: the nearest table is
+// deliberately the SMALLER one, so a pass cannot be explained by emptiest-first.
+describe("autoAssign — position-aware spill", () => {
+  // 4 guests × 4 seats = 16, more than any single table holds.
+  const family = ["f1", "f2", "f3", "f4"].map(id => g(id, { count: 4 }));
+  const bound  = [together("f1", "f2"), together("f2", "f3"), together("f3", "f4")];
+
+  // anchor is picked first (emptiest, ties → first listed). far is the emptiest
+  // of what is left; near is smaller but adjacent to the anchor.
+  const tables = [t("anchor", 10), t("far", 10), t("near", 8)];
+  const positions = {
+    anchor: { x: 0.10, y: 0.10 },
+    near:   { x: 0.15, y: 0.12 },
+    far:    { x: 0.90, y: 0.90 },
+  };
+
+  const spillTable = seating =>
+    [...new Set(Object.values(seating))].find(id => id !== seating.f1);
+
+  it("without a sketch, spills to the emptiest table (unchanged behaviour)", () => {
+    const seating = autoAssign(family, tables, bound);
+    expect(seating.f1).toBe("anchor");
+    expect(spillTable(seating)).toBe("far");
+  });
+
+  it("with a sketch, spills to the NEAREST table even though it is smaller", () => {
+    const seating = autoAssign(family, tables, bound, {}, positions);
+    expect(seating.f1).toBe("anchor");
+    expect(spillTable(seating)).toBe("near");
+  });
+
+  it("seats the whole family either way — proximity never costs a seat", () => {
+    for (const p of [null, positions]) {
+      const seating = autoAssign(family, tables, bound, {}, p);
+      for (const guest of family) expect(seating[guest.id]).toBeTruthy();
+    }
+  });
+
+  it("ignores a half-drawn sketch: an unplaced table never beats a placed one", () => {
+    // `near` is the only table with coordinates besides the anchor, so even
+    // though `far` is emptiest it must lose to the one we can actually measure.
+    const partial = { anchor: positions.anchor, near: positions.near };
+    const seating = autoAssign(family, tables, bound, {}, partial);
+    expect(spillTable(seating)).toBe("near");
+  });
+
+  it("falls back to emptiest-first when the sketch has no usable coordinates", () => {
+    const junk = { anchor: { x: null, y: 0.1 }, near: {}, far: { x: "0.9", y: "0.9" } };
+    const seating = autoAssign(family, tables, bound, {}, junk);
+    expect(spillTable(seating)).toBe("far");
+  });
+
+  it("respects capacity and apart constraints while preferring the near table", () => {
+    const guests = [...family, g("foe")];
+    const cons   = [...bound, apart("f3", "foe")];
+    const seating = autoAssign(guests, tables, cons, { foe: "near" }, positions);
+    if (seating.f3) expect(seating.f3).not.toBe("near");
+    for (const tbl of tables) {
+      expect(seatsAt(seating, guests, tbl.id)).toBeLessThanOrEqual(tbl.capacity);
+    }
+  });
+});
+
+// Three near-misses the first version of the rule let through, each caught by
+// mutating the engine and watching the suite stay green. They are separate
+// fixtures because each needs the two rules to disagree in a different way.
+describe("autoAssign — position-aware spill, edge cases", () => {
+  const family = ["f1", "f2", "f3", "f4"].map(id => g(id, { count: 4 }));
+  const bound  = [together("f1", "f2"), together("f2", "f3"), together("f3", "f4")];
+  const spillTable = seating =>
+    [...new Set(Object.values(seating))].find(id => id !== seating.f1);
+
+  it("prefers a measurable table even when the unmeasurable one is listed first", () => {
+    // Same half-drawn sketch as above, but with the placed table earlier in the
+    // list. Order must not decide it — the placed table wins from either side.
+    const tables = [t("anchor", 10), t("near", 8), t("far", 10)];
+    const seating = autoAssign(family, tables, bound, {}, {
+      anchor: { x: 0.10, y: 0.10 },
+      near:   { x: 0.15, y: 0.12 },
+    });
+    expect(seating.f1).toBe("anchor");
+    expect(spillTable(seating)).toBe("near");
+  });
+
+  it("treats a table with a junk y as unplaced, not as distance NaN", () => {
+    // `near` is nominally adjacent but its y is unusable. It must drop out of
+    // the distance comparison entirely and lose to the table we can measure.
+    // Both list orders, because a NaN distance loses every comparison it is on
+    // the right of and wins every one it is on the left of — so a fixture that
+    // only tests one order proves nothing.
+    const positions = {
+      anchor: { x: 0.10, y: 0.10 },
+      near:   { x: 0.15, y: undefined },
+      far:    { x: 0.90, y: 0.90 },
+    };
+    for (const tables of [[t("anchor", 10), t("far", 10), t("near", 8)],
+                          [t("anchor", 10), t("near", 8), t("far", 10)]]) {
+      const seating = autoAssign(family, tables, bound, {}, positions);
+      expect(spillTable(seating)).toBe("far");
+    }
+  });
+
+  it("measures distance in both axes", () => {
+    // `col` shares the anchor's x exactly and sits across the hall; `next` is a
+    // step away in both. Comparing x alone would pick the wrong one.
+    const tables = [t("anchor", 10), t("col", 10), t("next", 8)];
+    const seating = autoAssign(family, tables, bound, {}, {
+      anchor: { x: 0.50, y: 0.10 },
+      col:    { x: 0.50, y: 0.90 },
+      next:   { x: 0.55, y: 0.12 },
+    });
+    expect(spillTable(seating)).toBe("next");
+  });
+});
