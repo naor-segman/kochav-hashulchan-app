@@ -347,6 +347,13 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         body: { imageBase64: base64, mimeType: "image/jpeg" },
       });
       if (error) throw error;
+      // The server's own ceiling, not the client-side plan gate above it. That
+      // gate is a UI affordance and this is the limit — say so in words rather
+      // than surfacing "rate_limited" to a host who has done nothing wrong.
+      if (data?.error === "rate_limited") {
+        showToast(data.note || "יותר מדי בקשות זיהוי. נסו שוב בעוד שעה.", "warn");
+        return;
+      }
       if (data?.error) throw new Error(data.error);
       if (!data?.tables?.length) {
         showToast("לא זוהו שולחנות. נסו תמונה ברורה יותר.", "warn");
