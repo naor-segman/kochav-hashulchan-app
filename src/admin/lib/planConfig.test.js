@@ -4,6 +4,8 @@ import {
   PLAN_KEYS, STATUS_KEYS,
   getPlanLimits, getPlanLabel, getStatusLabel,
   isKnownPlan, isKnownStatus, displayStatus,
+  getPlanMeta,
+  getStatusMeta
 } from "./planConfig.js";
 
 /**
@@ -232,5 +234,55 @@ describe("planConfig — the ordered key lists cannot drift from the tables", ()
     expect(PLAN_META.enterprise.color).toBe("var(--accent-text)");
     expect(PLAN_META.enterprise.color.toUpperCase()).not.toContain("E8437B");
     expect(PLAN_META.enterprise.color).not.toBe("var(--accent)");
+  });
+});
+
+// ── The prototype chain is not a plan ────────────────────────────────────────
+// `PLAN_LIMITS[plan]` read straight through Object.prototype, and a function is
+// truthy — so `?? PLAN_LIMITS.free` never fired. Measured before the fix:
+// getPlanLimits("toString").maxGuests was undefined, canAddGuest(0).withinPlan
+// was false and slotsLeft was NaN. The account was locked out of everything
+// instead of falling back to free. isKnownPlan had the same hole pointing the
+// other way — it answered TRUE for "constructor".
+//
+// `plan` is a text column written by the Stripe webhook, so it is not
+// host-reachable today. It is one webhook change away from being so.
+describe("plan lookups do not read through the prototype chain", () => {
+  const INHERITED = ["toString", "constructor", "valueOf", "hasOwnProperty",
+                     "__proto__", "isPrototypeOf", "propertyIsEnumerable"];
+
+  it("falls back to free limits for an inherited property name", () => {
+    for (const key of INHERITED) {
+      expect(getPlanLimits(key)).toEqual(getPlanLimits("free"));
+      expect(getPlanLimits(key).maxGuests).toBe(getPlanLimits("free").maxGuests);
+    }
+  });
+
+  it("does not call an inherited name a known plan or status", () => {
+    for (const key of INHERITED) {
+      expect(isKnownPlan(key)).toBe(false);
+      expect(isKnownStatus(key)).toBe(false);
+      expect(getPlanLabel(key)).toBe("תוכנית לא מוכרת");
+    }
+  });
+
+  it("returns undefined metadata rather than a function", () => {
+    for (const key of INHERITED) {
+      expect(getPlanMeta(key)).toBeUndefined();
+      expect(getStatusMeta(key)).toBeUndefined();
+    }
+  });
+
+  it("still answers correctly for the real keys", () => {
+    expect(isKnownPlan("free")).toBe(true);
+    expect(getPlanLimits("pro").maxGuests).toBe(getPlanLimits("pro").maxGuests);
+    expect(getPlanMeta("free")?.label).toBe("חינמי");
+  });
+
+  it("survives a non-string key without throwing", () => {
+    for (const key of [null, undefined, 7, {}, [], true]) {
+      expect(getPlanLimits(key)).toEqual(getPlanLimits("free"));
+      expect(isKnownPlan(key)).toBe(false);
+    }
   });
 });

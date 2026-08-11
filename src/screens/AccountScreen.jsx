@@ -4,7 +4,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { supabase } from "../lib/supabase.js";
 import {
   getPlanLabel, getStatusLabel, getPlanLimits,
-  PLAN_META, STATUS_META, PLAN_KEYS,
+  PLAN_KEYS, getPlanMeta, getStatusMeta,
 } from "../admin/lib/planConfig.js";
 import { isPaidPlan, isStripeConfigured } from "../admin/lib/stripeConfig.js";
 import { useBilling } from "../hooks/useBilling.js";
@@ -189,8 +189,8 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
 
   if (loading || !user) return null;
 
-  const planMeta  = PLAN_META[planKey];
-  const statusMeta = STATUS_META[statusKey];
+  const planMeta  = getPlanMeta(planKey);
+  const statusMeta = getStatusMeta(statusKey);
 
   return (
     <div className={styles.page}>
@@ -410,7 +410,7 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
 
             <div className={styles.planGrid}>
               {PLAN_KEYS.map((key) => {
-                const meta      = PLAN_META[key];
+                const meta      = getPlanMeta(key);
                 const isCurrent = key === planKey;
                 const btnLabel  = cardBtnLabel(key, planKey);
                 const noAction  = btnLabel === "—";
