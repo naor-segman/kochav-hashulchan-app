@@ -84,20 +84,15 @@ export const AREAS = [
   },
 ];
 
-/** Every navigable item, flat. */
-export const ALL_ITEMS = AREAS.flatMap(a => a.items.map(it => ({ ...it, areaId: a.id })));
-
 /** The five numbered steps, in build order. */
-export const BUILD_STEPS = ALL_ITEMS.filter(it => it.num).sort((a, b) => a.num - b.num);
+export const BUILD_STEPS = AREAS
+  .flatMap(a => a.items)
+  .filter(it => it.num)
+  .sort((a, b) => a.num - b.num);
 
 /** The area a screen id belongs to, or null (dashboard, hub, unknown route). */
 export function areaOfScreen(screen) {
   return AREAS.find(a => a.items.some(it => it.id === screen)) || null;
-}
-
-/** One item by id, or null. Tolerant: an unknown id is not an error. */
-export function itemOfScreen(screen) {
-  return ALL_ITEMS.find(it => it.id === screen) || null;
 }
 
 /**

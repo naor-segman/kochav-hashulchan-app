@@ -30,7 +30,6 @@ export function useOrientation() {
   }, []);
 
   const show = useCallback(() => setOpen(true), []);
-  const hide = useCallback(() => setOpen(false), []);
 
-  return { open, dismiss, show, hide };
+  return { open, dismiss, show };
 }

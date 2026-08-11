@@ -193,6 +193,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
               aria-current={isHub ? "page" : undefined}
             >
               <span className={styles.areaLabel}>מפת האירוע</span>
+              <span className={styles.areaLabelShort}>המפה</span>
             </button>
             {AREAS.map(a => {
               const isActive = area?.id === a.id;
