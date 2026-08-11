@@ -88,22 +88,24 @@ note('rows (not declined)', TOTAL_ROWS);
 note('SEATS (not declined)', TOTAL_SEATS);
 note('parties with named companions', active.filter(g => g.companions.length).length);
 
-// ═══ 1. The old row-based counter, still live on the seating screen ═════════
-console.log(`\n── 1. where the "0/6" number comes from ──`);
+// ═══ 1. The old row-based counter is GONE from the seating screen ══════════
+// This check used to assert the opposite — it documented the "0/6" the owner
+// reported, which came from SeatingScreen's own "מצב צ׳ק אין" panel where both
+// sides of the fraction were ROWS. That panel and the day-search card have
+// since been deleted (they were the second and third copies of the door), so
+// the check now pins their absence: three surfaces for one job is what caused
+// the confusion in the first place.
+console.log(`\n── 1. the seating screen no longer carries a second door ──`);
 await p.goto(BASE + '/events/e1/seating', { waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(900);
-const oldPanel = await p.evaluate(() => {
-  const btn = [...document.querySelectorAll('button')].find(x => /^צ׳ק אין$/.test(x.textContent.trim()));
-  if (!btn) return null;
-  btn.click();
-  return new Promise(r => setTimeout(() => {
-    const el = [...document.querySelectorAll('*')].find(x =>
-      x.children.length === 0 && /\d+\s*\/\s*\d+\s*הגיעו/.test(x.textContent));
-    r(el ? el.textContent.trim().replace(/\s+/g, ' ') : null);
-  }, 400));
-});
-note('SeatingScreen "מצב צ׳ק אין" header (NOT my file)', oldPanel);
-check('…and its denominator is ROWS, not seats', oldPanel, `0 / ${TOTAL_ROWS} הגיעו`);
+const oldDoors = await p.evaluate(() => [...document.querySelectorAll('button')]
+  .map(x => x.textContent.trim())
+  .filter(t => /^צ׳ק אין$/.test(t) || /^מסך כניסה$/.test(t)));
+note('leftover check-in controls on the seating screen', JSON.stringify(oldDoors));
+check('no "צ׳ק אין" / "מסך כניסה" buttons remain there', JSON.stringify(oldDoors), '[]');
+const doorLink = await p.evaluate(() => !![...document.querySelectorAll('button')]
+  .find(x => /עמדת כניסה/.test(x.textContent)));
+check('one link to the real door instead', doorLink, true);
 
 // ═══ 2. The unified entrance screen ════════════════════════════════════════
 console.log(`\n── 2. עמדת כניסה — the counter ──`);

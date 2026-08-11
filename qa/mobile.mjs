@@ -46,6 +46,12 @@ const ROUTES = [
   ['/events/e1/messages', 'הודעות'], ['/events/e1/nametags', 'כרטיסי שם'],
   ['/events/e1/checkin', 'צ׳ק אין'], ['/account', 'חשבון'], ['/help', 'עזרה'],
   ['/rsvp/r1', 'RSVP לאורח'], ['/invite/i1', 'אתר לאורח'], ['/gift/gi1', 'מתנה'],
+  // The routes the restructure added. Without them this probe kept printing
+  // 23/23 for the OLD product while the new opening screen, the event hub and
+  // the door screen went unmeasured — a green number that said nothing about
+  // the thing under review.
+  ['/start', 'מסך פתיחה'], ['/home', 'עמוד הבית'],
+  ['/events/e1', 'מפת האירוע'], ['/events/e1/entrance', 'עמדת כניסה'],
 ];
 
 const b = await chromium.launch({
