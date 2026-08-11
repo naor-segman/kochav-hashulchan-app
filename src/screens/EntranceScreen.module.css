@@ -690,7 +690,10 @@
   padding: 4px 10px;
   border-radius: var(--radius-pill);
   background: rgba(var(--green-rgb), .22);
-  color: var(--green-light);
+  /* Was --green-light on a .22-alpha green tint: 3.84:1 measured against the
+     COMPOSITED ground, not against white. The tint is the ground. White on the
+     solid green is the form already used by markBtnDone at 5.85:1. */
+  color: var(--on-accent);
   font-size: var(--step--3);
   font-weight: 700;
   white-space: nowrap;
