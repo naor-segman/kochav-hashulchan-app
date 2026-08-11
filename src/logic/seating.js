@@ -291,7 +291,12 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
  */
 export function autoAssign(guests, tables, constraints, lockedSeating = {}, positions = null) {
   const withPositions = assignOnce(guests, tables, constraints, lockedSeating, positions);
-  if (!positions) return withPositions;
+
+  // `ev.floorPlan.tablePositions` is `{}` for every event that has never been
+  // near a sketch, and one placed table has nothing to be near — neither can
+  // change the answer, so neither pays for a second pass.
+  const placed = positions ? Object.keys(positions).length : 0;
+  if (placed < 2) return withPositions;
 
   const seatsPlaced = seating =>
     guests.reduce((s, g) => s + (seating[g.id] ? guestSeats(g) : 0), 0);

@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { whatsappLink } from "../../data/messageSequence.js";
 import { guestSeatNames } from "../../utils/eventHelpers.js";
@@ -42,10 +42,8 @@ const FALLBACK_GEOM = {
 };
 
 let geom = FALLBACK_GEOM;
-let geomVersion = 0;
 const geomListeners = new Set();
-const subscribeGeom  = (fn) => { geomListeners.add(fn); return () => geomListeners.delete(fn); };
-const readGeomVersion = () => geomVersion;
+const subscribeGeom = (fn) => { geomListeners.add(fn); return () => geomListeners.delete(fn); };
 
 const outerHeight = (el) => {
   const cs = getComputedStyle(el);
@@ -80,7 +78,6 @@ function measureBody(el) {
   // whole board for a rounding difference.
   if (Object.keys(next).some(k => Math.abs(next[k] - geom[k]) > 0.5)) {
     geom = next;
-    geomVersion += 1;
     geomListeners.forEach(fn => fn());
   }
 }
@@ -136,6 +133,7 @@ function TableCard({
   // Initial value covers a runtime without IntersectionObserver: there the body
   // simply renders, rather than never appearing.
   const [bodyBuilt, setBodyBuilt] = useState(() => typeof IntersectionObserver !== "function");
+  const [, redrawPlaceholder]     = useState(0);
   const placeholderRef = useRef(null);
   const bodyRef        = useRef(null);
 
@@ -149,7 +147,13 @@ function TableCard({
       { rootMargin: "800px 0px" }
     );
     io.observe(el);
-    return () => io.disconnect();
+    // Only a card standing in for a body it has not built cares that the
+    // geometry was measured better, so only that card listens — and it listens
+    // from the effect it already has. A useSyncExternalStore on every card
+    // costs 200 ms of the "פתחו הכל" click at 40 tables, measured; this costs
+    // nothing on the cards that are collapsed or already built.
+    const stopListening = subscribeGeom(() => redrawPlaceholder(v => v + 1));
+    return () => { io.disconnect(); stopListening(); };
   }, [expanded, bodyBuilt]);
 
   // A card that HAS a body is the only honest source for what a row costs, so
@@ -165,9 +169,6 @@ function TableCard({
     ro.observe(el);
     return () => ro.disconnect();
   }, [expanded, bodyBuilt]);
-
-  // Re-render this card's placeholder when the measured geometry changes.
-  useSyncExternalStore(subscribeGeom, readGeomVersion, readGeomVersion);
 
   const stop = (e) => e.stopPropagation();
 
