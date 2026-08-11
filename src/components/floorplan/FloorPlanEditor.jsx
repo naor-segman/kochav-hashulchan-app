@@ -377,24 +377,55 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
 
     patchEvent(e => {
       const cur     = e.floorPlan?.tablePositions ?? {};
-      const missing = (e.tables ?? []).filter(t => !cur[t.id]);
+      const all     = e.tables ?? [];
+      const missing = all.filter(t => !cur[t.id]);
       if (missing.length === 0) return e;
 
-      // Roughly square, biased wider than tall — halls are wider than deep.
-      const cols = Math.max(1, Math.ceil(Math.sqrt(missing.length * 1.4)));
-      const rows = Math.ceil(missing.length / cols);
-      const next = { ...cur };
+      // The grid is sized for the WHOLE room, not for the tables that happen to
+      // be missing — and occupied slots are skipped.
+      //
+      // Sizing it by `missing.length` and writing straight into the slots put a
+      // chip exactly on top of a hand-placed one: two chips render as one and
+      // the host silently loses a table off the map. It bit twice, and the
+      // second way is the ordinary workflow — arrange, add a table, arrange
+      // again: with one table missing the grid collapses to a single slot at
+      // (0.82, 0.5), which is where the sixth table of a fourteen-table grid
+      // already is.
+      const cols = Math.max(1, Math.ceil(Math.sqrt(all.length * 1.4)));
+      const rows = Math.max(1, Math.ceil(all.length / cols));
+      const dx   = cols > 1 ? 0.64 / (cols - 1) : 1;
+      const dy   = rows > 1 ? 0.52 / (rows - 1) : 1;
+      // Comfortably under half the grid pitch, so one occupied chip can never
+      // block more than the one slot it actually sits on.
+      const minSep = Math.min(0.07, 0.4 * Math.min(dx, dy));
 
-      missing.forEach((t, i) => {
+      const slot = (i) => {
         const col = i % cols;
         const row = Math.floor(i / cols);
-        const x = cols === 1 ? 0.5 : 0.82 - (col / (cols - 1)) * 0.64;
-        const y = rows === 1 ? 0.5 : 0.24 + (row / (rows - 1)) * 0.52;
-        next[t.id] = {
+        const x = cols === 1 ? 0.5 : 0.82 - col * dx;
+        const y = rows === 1 ? 0.5 : 0.24 + row * dy;
+        return {
           x: Math.min(0.94, Math.max(0.06, x)),
           y: Math.min(0.94, Math.max(0.06, y)),
         };
-      });
+      };
+
+      const taken = Object.values(cur)
+        .filter(p => Number.isFinite(p?.x) && Number.isFinite(p?.y))
+        .map(p => ({ x: p.x, y: p.y }));
+      const isFree = p => taken.every(q => Math.hypot(p.x - q.x, p.y - q.y) >= minSep);
+
+      const next = { ...cur };
+      let i = 0;
+      // Bounded: at most one skip per already-placed chip, plus slack.
+      const limit = cols * rows + all.length + 8;
+      for (const t of missing) {
+        let p = slot(i);
+        while (!isFree(p) && i < limit) { i += 1; p = slot(i); }
+        i += 1;
+        next[t.id] = p;
+        taken.push(p);
+      }
       return { ...e, floorPlan: { ...e.floorPlan, tablePositions: next } };
     });
 

@@ -78,7 +78,12 @@ const readEvent = () => p.evaluate(() =>
 const openFloorPlanTab = async () => {
   await p.goto(BASE + '/events/e1/tables', { waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(1200);
-  const tab = p.locator('button', { hasText: /מפת אולם|מפה/ }).first();
+  // NOT a hasText regex. The nav rail gained a "מפת האירוע" button whose
+  // textContent is "מפת האירועהמפה" — the SectionMark SVG contributes its own
+  // label — so /מפה/ matched it, .first() took it in DOM order, the click
+  // navigated away, and this probe reported the arrange button missing. A
+  // false failure that also skipped every check below it.
+  const tab = p.getByRole('button', { name: /מפת אולם/ }).first();
   if (!(await tab.count())) return false;
   await tab.click();
   await p.waitForTimeout(600);
@@ -179,6 +184,67 @@ if (!(await openFloorPlanTab())) {
       }
     }
   }
+}
+
+// ── 4. Arranging never drops a chip on top of one already there ─────────────
+// Both ways this failed, because both shipped: a table placed BY HAND before
+// the first arrange, and — the ordinary workflow — a table added AFTER an
+// arrange and then arranged again. Nothing looks wrong in storage either time;
+// two chips simply render as one and the host loses a table off the map.
+const MIN_GAP = 0.02;
+const closestPair = pos => {
+  const ids = Object.keys(pos);
+  let worst = { d: Infinity, a: null, b: null };
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const d = Math.hypot(pos[ids[i]].x - pos[ids[j]].x, pos[ids[i]].y - pos[ids[j]].y);
+      if (d < worst.d) worst = { d, a: ids[i], b: ids[j] };
+    }
+  }
+  return worst;
+};
+
+console.log('\n── floor plan: arranging around what is already placed ──');
+// (a) one table placed by hand, dead centre — a slot the grid wants.
+await load(seed({ floorPlan: { image: PNG, tablePositions: { t5: { x: 0.5, y: 0.5 } } } }));
+if (await openFloorPlanTab()) {
+  await p.locator('button', { hasText: /סדרו את השולחנות/ }).first().click();
+  await p.waitForTimeout(700);
+  const pos = (await readEvent()).floorPlan.tablePositions;
+  check('the hand-placed table did not move', pos.t5.x === 0.5 && pos.t5.y === 0.5,
+    JSON.stringify(pos.t5));
+  const w = closestPair(pos);
+  check('nothing was dropped on top of it', w.d >= MIN_GAP,
+    `closest pair ${w.a}/${w.b} at ${w.d.toFixed(4)}`);
+}
+
+// (b) arrange → add a table → arrange again. This is the everyday path.
+await load(seed());
+if (await openFloorPlanTab()) {
+  const arrange = p.locator('button', { hasText: /סדרו את השולחנות/ }).first();
+  await arrange.click();
+  await p.waitForTimeout(700);
+  const first = (await readEvent()).floorPlan.tablePositions;
+
+  await p.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('kochav_hashulchan_v1'));
+    st.events[0].tables.push({ id: 't99', name: 'שולחן 15', capacity: 10, type: 'regular', shape: 'round' });
+    localStorage.setItem('kochav_hashulchan_v1', JSON.stringify(st));
+  });
+  await p.reload({ waitUntil: 'domcontentloaded' });
+  await p.waitForTimeout(1200);
+  const tab2 = p.getByRole('button', { name: /מפת אולם/ }).first();
+  if (await tab2.count()) { await tab2.click(); await p.waitForTimeout(600); }
+  await p.locator('button', { hasText: /סדרו את השולחנות/ }).first().click();
+  await p.waitForTimeout(700);
+
+  const pos2 = (await readEvent()).floorPlan.tablePositions;
+  check('the new table got a place', !!pos2.t99, JSON.stringify(pos2.t99));
+  check('the fourteen already placed did not move',
+    Object.keys(first).every(id => pos2[id]?.x === first[id].x && pos2[id]?.y === first[id].y));
+  const w2 = closestPair(pos2);
+  check('and it did not land on one of them', w2.d >= MIN_GAP,
+    `closest pair ${w2.a}/${w2.b} at ${w2.d.toFixed(4)}`);
 }
 
 check('no JS errors on the page', errs.length === 0, errs.slice(0, 3).join(' | '));
