@@ -23,9 +23,23 @@ import {
 // it actually has a value. `fallback` is the already-normalized token set, used
 // only where neither side has one — otherwise a key missing on both sides would
 // come out null and, past the normalize gateway, stay null.
-function mergeTokens(cloudTokens, localTokens, fallback) {
+function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRotatedAt) {
+  // Rotation flips the precedence, and only rotation does.
+  //
+  // Killing a leaked link means minting a new token. But this merge let the
+  // CLOUD win per key, so a host who rotated and then reloaded before the
+  // debounced push landed got the dead link back — and a second device holding
+  // the old token would push it back over the new one. Revocation that can be
+  // silently undone is not revocation.
+  //
+  // `tokensRotatedAt` says which side last did that deliberately. With neither
+  // side rotated — every event today — this is exactly the old behaviour.
+  const localWins = Number.isFinite(localRotatedAt) &&
+    localRotatedAt > (Number.isFinite(cloudRotatedAt) ? cloudRotatedAt : 0);
+  const first  = localWins ? localTokens : cloudTokens;
+  const second = localWins ? cloudTokens : localTokens;
   return Object.fromEntries(
-    TOKEN_KEYS.map(k => [k, cloudTokens?.[k] || localTokens?.[k] || fallback?.[k] || null])
+    TOKEN_KEYS.map(k => [k, first?.[k] || second?.[k] || fallback?.[k] || null])
   );
 }
 
@@ -95,7 +109,9 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
         // Tokens are minted server-side on first sync; never let a local copy
         // that predates that push resurrect a null token — and never let a
         // cloud row that predates a NEW token (album) erase the local one.
-        tokens: mergeTokens(ce.tokens, localMatch.tokens),
+        tokensRotatedAt: Math.max(ce.tokensRotatedAt ?? 0, localMatch.tokensRotatedAt ?? 0) || null,
+        tokens: mergeTokens(ce.tokens, localMatch.tokens, null,
+                            ce.tokensRotatedAt, localMatch.tokensRotatedAt),
       });
     }
 
@@ -120,7 +136,10 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
     // record (ce) instead of the normalized result — per key, so a cloud row
     // that predates one of the tokens cannot erase the local value.
     if (localMatch?.tokens) {
-      result = { ...result, tokens: mergeTokens(ce.tokens, localMatch.tokens, result.tokens) };
+      result = { ...result,
+        tokensRotatedAt: Math.max(ce.tokensRotatedAt ?? 0, localMatch.tokensRotatedAt ?? 0) || null,
+        tokens: mergeTokens(ce.tokens, localMatch.tokens, result.tokens,
+                            ce.tokensRotatedAt, localMatch.tokensRotatedAt) };
     }
     return result;
   });

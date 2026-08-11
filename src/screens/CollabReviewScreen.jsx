@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchCollabGuestsOwner, subscribeCollabGuests } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
+import { rotateEventToken } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import QrCode from "../components/ui/QrCode.jsx";
@@ -10,6 +11,7 @@ import base from "../styles/screenBase.module.css";
 import styles from "./CollabReviewScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { useShareGate } from "../components/share/useShareGate.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 
 const norm = (s) => (s || "").toString().trim();
 const complete = (r) => !!(norm(r.name) && norm(r.phone) && r.side && norm(r.guest_group));
@@ -18,6 +20,7 @@ const complete = (r) => !!(norm(r.name) && norm(r.phone) && r.side && norm(r.gue
 // link; complete rows sync into the guest list automatically (useCollabSync), so
 // there is no manual import here — just share, watch, and export.
 export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  const { confirm, dialog } = useConfirm();
   // Sharing is the moment guest mode stops being free. A guest event has no
   // cloud row, so the link resolves to nothing for everyone it is sent to —
   // withholding it is honest; showing it and letting it be copied is not.
@@ -121,10 +124,37 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
             })}>העתיקו</button>
             <QrCode url={collabLink} label="טבלה שיתופית" filename="qr-collab" />
           </div>
+          {/* The switch above closes the door; this changes the lock.
+              Until now the shared-table link was a FULL grant that could never
+              be taken back — whoever held it could read every phone number,
+              edit, delete and export, and one forward to the wrong WhatsApp
+              group was permanent. */}
+          <p className={[base.fieldHint, styles.rotateHint].join(" ")}>
+            שלחתם את הקישור למקום הלא נכון? אפשר להחליף אותו בקישור חדש — הישן יפסיק לעבוד מיד.
+          </p>
           <div className={base.actionBar} style={{ marginTop: 14 }}>
             <button className={base.btnPrimary} onClick={() => guard("הקישור לטבלה השיתופית",
               () => window.open(collabLink, "_blank", "noopener,noreferrer"))}>
               פתחו את הטבלה <Icon name="arrowLeft" size={15} />
+            </button>
+            <button
+              className={base.btnSecondary}
+              onClick={async () => {
+                // Says what is lost, not just what happens. Whoever already has
+                // the old link — including relatives mid-typing — stops at
+                // once, and the rows they already saved stay.
+                const ok = await confirm(
+                  "להחליף את הקישור לטבלה השיתופית?\n\n"
+                  + "הקישור הנוכחי יפסיק לעבוד מיד, וכל מי שקיבל אותו לא יוכל להיכנס יותר. "
+                  + "השורות שכבר מולאו נשארות. תצטרכו לשלוח את הקישור החדש מחדש.",
+                  { danger: true, confirmLabel: "החליפו את הקישור" },
+                );
+                if (!ok) return;
+                patchEvent(e => rotateEventToken(e, "collab"));
+                showToast("נוצר קישור חדש — הישן כבר לא עובד ✓");
+              }}
+            >
+              <Icon name="refresh" size={15} /> החליפו קישור
             </button>
             <button className={base.btnSecondary} onClick={downloadExcel} disabled={!(ev.guests || []).length}><Icon name="download" /> הורדה לאקסל</button>
           </div>
@@ -159,6 +189,7 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
         </div>
       )}
       {gate}
+      {dialog}
     </div>
   );
 }

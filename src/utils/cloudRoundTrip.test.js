@@ -73,6 +73,7 @@ const MAXIMAL = {
   messageTemplates: { invite: "בואו לחגוג {{אירוע}}" },
   collabActive: false,
   hostessWriteActive: false,
+  tokensRotatedAt: 1_700_000_500_000,
   giftBitPhone: "0501234567",
   giftPayboxLink: "https://payboxapp.page.link/abc",
   tokens: { rsvp: "TK-rsvp", album: "TK-album", invite: "TK-invite",
@@ -231,6 +232,9 @@ describe("full cloud round-trip", () => {
     // hostess_writes_active(e) out of the payload, so dropping it here re-opens
     // a door the host closed.
     expect(n2.hostessWriteActive).toBe(false);
+    // Losing this makes a revoked public link come back: the merge uses it to
+    // decide which side rotated deliberately.
+    expect(n2.tokensRotatedAt).toBe(1_700_000_500_000);
     // Per-person arrival. `guests` passes through whole, which is exactly why
     // this needs pinning — nothing else would notice if it stopped.
     expect(n2.guests[0].arrivedSeats).toEqual([0, 2]);
