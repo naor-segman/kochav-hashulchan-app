@@ -36,7 +36,11 @@
   margin-bottom: 18px;
 }
 
-.brandMark { font-size: var(--step-2); color: var(--accent); }
+/* --accent is a FILL token, 3.80:1, and on the blush hero it measured 3.37:1
+   — the exact bug class CLAUDE.md lists: accent used as a glyph, and contrast
+   read against the wrong ground. --accent-text is the token for ink on a light
+   ground and measures 6.87:1 on white, comfortably clear of the tint. */
+.brandMark { font-size: var(--step-2); color: var(--accent-text); }
 
 .brandName {
   font-size: var(--step-0);

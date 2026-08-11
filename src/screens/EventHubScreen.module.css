@@ -40,7 +40,11 @@
 
 .meta span { display: inline-flex; align-items: center; gap: 5px; }
 
-.metaSep { color: var(--border2); }
+/* --border2 measured 1.51:1 against the card ground. A separator is not
+   content, but at 1.51 it is not visible either — it reads as a rendering
+   glitch rather than a divider. --muted is the quietest token that is still
+   deliberately legible. */
+.metaSep { color: var(--muted); }
 
 .headSide {
   display: flex;
