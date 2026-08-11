@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP } from "../utils/publicTokens.js";
+import { MEAL_OPTIONS } from "../data/constants.js";
 import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
@@ -65,6 +66,7 @@ export default function RSVPScreen() {
   const [guestsCount, setGuestsCount] = useState(1);
   const [companions, setCompanions] = useState([]);
   const [shuttleId, setShuttleId] = useState("");
+  const [meal, setMeal] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [answer, setAnswer] = useState(null); // "yes" | "maybe" | "no"
@@ -111,6 +113,7 @@ export default function RSVPScreen() {
             ? companions.slice(0, Math.max(0, guestsCount - 1)).map(c => (c || "").trim()).filter(Boolean)
             : [],
           shuttleId,
+          meal: answer === "yes" ? meal : "",
         });
       } else if (isSupabaseConfigured) {
         // Production with no cloud target — don't fake success and lose the RSVP.
@@ -365,6 +368,31 @@ export default function RSVPScreen() {
                       }}
                     />
                   ))}
+                </div>
+              )}
+
+              {/* The meal question belongs to the guest, not to the host.
+                  It used to be settable ONLY on the host's guest list, so the
+                  host was guessing who is vegan for people they had not spoken
+                  to yet. Asked here, once, on the form the guest is already
+                  filling in. Only for "yes" — "אולי" is not a catering number,
+                  and someone who is not coming does not eat. */}
+              {answer === "yes" && (
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel} htmlFor="rsvp-meal">מנה מיוחדת?</label>
+                  <p className={styles.fieldHelp}>אופציונלי — כדי שנעביר לאולם את ההזמנה הנכונה.</p>
+                  <select
+                    id="rsvp-meal"
+                    className={styles.input}
+                    value={meal}
+                    disabled={submitting}
+                    onChange={e => setMeal(e.target.value)}
+                  >
+                    <option value="">רגיל — בלי בקשה מיוחדת</option>
+                    {MEAL_OPTIONS.filter(m => m.value !== "regular").map(m => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
                 </div>
               )}
 

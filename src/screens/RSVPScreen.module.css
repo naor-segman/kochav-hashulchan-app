@@ -409,6 +409,18 @@
   transition: border-color 0.18s, box-shadow 0.18s;
 }
 
+/* Touch targets — see qa/mobile.mjs. Measured at 390px: the inputs and the two
+   selects on this form come out 42px tall, two short of the 44px minimum, and
+   this is the one screen in the product that is used almost exclusively on a
+   phone by someone who has never seen it before. Growing the box rather than
+   using a pseudo-element, because a form field's tap target IS the box —
+   nothing here is a dense row that would lose its density. */
+@media (pointer: coarse) {
+  .input {
+    min-height: 44px;
+  }
+}
+
 .input:focus {
   outline: none;
   border-color: var(--accent);

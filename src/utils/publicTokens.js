@@ -121,7 +121,7 @@ export async function fetchRSVPResponses(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
   const { data, error } = await supabase
     .from("rsvp_responses")
-    .select("id, guest_name, phone, attending, guests_count, status, companions, shuttle_id, created_at")
+    .select("id, guest_name, phone, attending, guests_count, status, companions, shuttle_id, meal, created_at")
     .eq("event_id", eventCloudId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -155,6 +155,9 @@ export async function submitRSVP(token, response) {
   const count = Math.max(0, Math.min(50, rawCount));
   // Only meaningful for guests who are coming; "no" never carries a shuttle.
   const shuttleId = status === "no" ? null : (response.shuttleId || null);
+  // Same rule for the meal: someone who is not coming does not eat. Bounded
+  // here as well as in SQL — this is not the boundary, the RPC is.
+  const meal = status === "no" ? null : ((response.meal || "").slice(0, 40) || null);
 
   const { error } = await supabase.rpc("submit_rsvp_by_token", {
     token_value:  token,
@@ -164,6 +167,7 @@ export async function submitRSVP(token, response) {
     guests_count: count,
     companions,
     shuttle_id:   shuttleId,
+    meal,
   });
   if (error) throw error;
 }
