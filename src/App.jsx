@@ -7,7 +7,7 @@ import {
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { uid } from "./utils/uid.js";
 import { duplicateEvent } from "./utils/eventHelpers.js";
-import { useAuth }          from "./hooks/useAuth.js";
+import { AuthProvider, useAuth } from "./hooks/useAuth.js";
 import { useEvents }        from "./hooks/useEvents.js";
 import { useToast }         from "./hooks/useToast.js";
 import { usePlan }          from "./hooks/usePlan.js";
@@ -182,7 +182,17 @@ function AnnouncementPreview({ events }) {
 
 // ── Root app ──────────────────────────────────────────────────────────────────
 
+// The provider has to sit ABOVE every useAuth() consumer, and App itself is one
+// of them — hence the split. main.jsx is untouched.
 export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  );
+}
+
+function AppRoutes() {
   const { user, loading: authLoading }                                  = useAuth();
   const { events, addEvent, removeEvent, patchEventById, syncStatus }  = useEvents(user);
   const { toast, showToast }                                            = useToast();

@@ -57,31 +57,52 @@ const sigGuest = (g) =>
 /**
  * Which companion names win when a collab row meets an existing guest.
  *
- * The old rule was "an array from the table wins", and both fetchers coerce a
- * missing column to `[]` — so the fallback branch could never run, and an empty
- * table column silently erased names the host had typed in the app. That is
- * exactly how eight hand-typed names were lost after a migration replaced the
- * collab RPCs with pre-companions copies (see
- * 20260811010000_collab_companions_restore.sql).
+ * ONE rule, and both halves of this feature obey it (the other half is
+ * `mergePolled` in CollabScreen.jsx):
  *
- * An EMPTY list from the table is ambiguous: it is what "this table never
- * carried names" looks like and also what "someone deleted them all" looks
- * like. `prev` — the last row we saw for this id — tells the two apart: if the
- * table used to carry names and now does not, that is a real clear. Otherwise
- * silence loses to typed data, every time.
+ *   A `companions` ARRAY on the wire is the shared table's answer and wins,
+ *   INCLUDING an empty one. Only an ABSENT key means "no opinion", and then
+ *   whatever we already hold survives.
+ *
+ * Why this rule and not the other. The previous rule tried to treat `[]` as
+ * "no opinion" unless the last row we saw carried names, so a deletion could
+ * only propagate to a tab that had personally watched it happen. `prev` is
+ * undefined on the first pull, so the "genuinely cleared" branch could never
+ * fire for a clear that happened while the app was closed — measured in a
+ * browser: table `companions: []`, app holding eight names, and on the next app
+ * open the app kept its eight AND pushed them straight back into the shared
+ * table. A relative deleted eight names and the host's app silently undid it.
+ * Meanwhile CollabScreen was already treating `[]` as a clear, so the identical
+ * wire value blanked eight inputs on one screen and resurrected them on the
+ * other. An asymmetry like that is not a preference; it is two features.
+ *
+ * The cost is honest and bounded: companions become an ORDINARY field of the
+ * shared row. Every other field here — name, phone, side, group, count — is
+ * already overwritten from the table unconditionally, so a push that failed
+ * (venue wifi) already loses those edits on the next pull. Companions had a
+ * private exemption from that, and the exemption is what broke deletion. The
+ * real fix for the failed-push case is retrying the push, not one field
+ * quietly outranking the table.
+ *
+ * What the wire genuinely cannot say is "leave that column alone": both write
+ * paths (`upsertCollabGuest`, `upsertCollabGuestOwner`) coerce a missing
+ * `companions` to `[]`, so a client that never knew about the column can write
+ * an empty list it did not mean. Fixing THAT needs the write side to be able to
+ * omit the field — a change to `collab_upsert_by_token` (treat a NULL
+ * `row_data->'companions'` as "keep the existing value") plus dropping the
+ * coercion in publicTokens.js. That is a migration, and migrations are not this
+ * file's to make — flagged, not done.
  */
-export function pickCompanions(r, existing, prev) {
+export function pickCompanions(r, existing) {
   const count = r.guests_count || 1;
-  if (!Array.isArray(r.companions)) return existing?.companions ?? [];
-  const incoming = clampComp(r.companions, count);
-  if (incoming.some((c) => norm(c))) return incoming;             // real names → win
-  const had = Array.isArray(prev?.companions) && prev.companions.some((c) => norm(c));
-  if (had) return incoming;                                       // genuinely cleared
-  return clampComp(existing?.companions ?? [], count);            // silence → keep ours
+  // Absent key → the table has no opinion; keep ours (clamped to the seats the
+  // table says this row has).
+  if (!Array.isArray(r.companions)) return clampComp(existing?.companions ?? [], count);
+  return clampComp(r.companions, count);
 }
 
 // Build/merge a guest row from a collab row, preserving app-only fields.
-function guestFromCollab(r, existing, prev) {
+function guestFromCollab(r, existing) {
   return {
     ...(existing || {}),
     id:    r.id,
@@ -93,7 +114,7 @@ function guestFromCollab(r, existing, prev) {
     meal:       existing?.meal       ?? MEAL_DEFAULT,
     rsvp:       existing?.rsvp       ?? "pending",
     notes:      existing?.notes      ?? "",
-    companions: pickCompanions(r, existing, prev),
+    companions: pickCompanions(r, existing),
   };
 }
 const guestToCollab = (g) => ({
@@ -126,9 +147,6 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
     mirror.current = new Map();
 
     const applyRow = (row) => {
-      // Captured BEFORE the mirror is overwritten: pickCompanions needs to know
-      // what the table said last time to tell "cleared" from "never had".
-      const prev = mirror.current.get(row.id);
       mirror.current.set(row.id, row);
       if (!collabComplete(row)) return;
       const sig = sigCollab(row);
@@ -142,7 +160,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
 
         // Same row → straightforward in-place update.
         if (existing && existing.id === row.id) {
-          const merged = guestFromCollab(row, existing, prev);
+          const merged = guestFromCollab(row, existing);
           return { ...e, guests: guests.map((g) => (g.id === row.id ? merged : g)) };
         }
 
@@ -154,7 +172,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // locks off the old guest id.
         if (existing) {
           const remap = (id) => (id === existing.id ? row.id : id);
-          const merged = { ...guestFromCollab(row, existing, prev), id: row.id };
+          const merged = { ...guestFromCollab(row, existing), id: row.id };
           const seating = { ...(e.seating || {}) };
           if (seating[existing.id] !== undefined) {
             seating[row.id] = seating[existing.id];
@@ -174,7 +192,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // the host never saw, to enforce a limit the host is the one paying.
         // If PLAN_GATES_ENFORCED is ever turned on, the answer here is to warn
         // the host that the list has outgrown the plan — never to discard.
-        return { ...e, guests: [...guests, guestFromCollab(row, null, prev)] };
+        return { ...e, guests: [...guests, guestFromCollab(row, null)] };
       });
     };
 

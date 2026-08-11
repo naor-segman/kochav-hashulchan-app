@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { whatsappLink } from "../../data/messageSequence.js";
 import { guestSeatNames } from "../../utils/eventHelpers.js";
@@ -16,20 +16,79 @@ import styles from "../../screens/SeatingScreen.module.css";
 const waUrl = (phone) => whatsappLink(phone, "");
 
 /* Placeholder geometry for an expanded body that has not been rendered yet.
-   These are MEASURED heights of the real rows (see qa/seatingPerf.mjs), not
-   design values — the placeholder exists so the page is the right length while
-   its content is still off-screen, and a token would say nothing about that. */
-const H_ROW        = 46;  // .tGuestRow, single line
-const H_SEATNAMES  = 20;  // the companions line a multi-seat row adds
-const H_ACTIONS    = 28;  // .tGuestListActions
-const H_EMPTY      = 34;  // .emptyInline
-const H_ADD        = 50;  // the "add a guest to this table" row
-const H_PADDING    = 16;  // .tGuestList padding
+   The placeholder exists so the page is the right length while its content is
+   still off-screen, so being wrong here is not cosmetic: the scrollbar keeps
+   growing under the host's thumb as the real bodies swap in.
+
+   These numbers are a FALLBACK for the first estimate of a session, not the
+   answer. The real heights are measured off the first body that actually
+   renders (measureBody below) and cached, because no hardcoded number can be
+   right at two viewport widths: a single-line row is 56px everywhere, but a
+   multi-seat row is 96-114px at 1280 and 258-312px at 390, where the
+   companions line wraps. The fallbacks below are the 1280px measurements, and
+   `node qa/seatingPerf.mjs` prints both them and the live placeholder-vs-real
+   error, so the comment is checkable instead of being a promise.
+
+   Every value is the element's full layout footprint — border box plus its own
+   margins — because that is what the placeholder has to stand in for. */
+const FALLBACK_GEOM = {
+  border:   1,    // .tGuestList border-top (box-sizing is border-box)
+  padding:  16,   // .tGuestList padding
+  actions:  30,   // .tGuestListActions
+  empty:    36,   // .emptyInline, the "table is empty" line (35.5 measured)
+  add:      62,   // the "add a guest to this table" row, incl. its 6px margin
+  row:      56,   // .tGuestRow, single line
+  rowSeats: 100,  // .tGuestRow that also carries the companions line
+};
+
+let geom = FALLBACK_GEOM;
+let geomVersion = 0;
+const geomListeners = new Set();
+const subscribeGeom  = (fn) => { geomListeners.add(fn); return () => geomListeners.delete(fn); };
+const readGeomVersion = () => geomVersion;
+
+const outerHeight = (el) => {
+  const cs = getComputedStyle(el);
+  return el.getBoundingClientRect().height
+    + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+};
+const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+
+/** Read the real geometry off a body that HAS rendered, and tell the
+ *  placeholders about it. Cheap, and called from a ResizeObserver callback,
+ *  where layout is already clean — so these reads force nothing. */
+function measureBody(el) {
+  const cs   = getComputedStyle(el);
+  const next = { ...geom };
+  next.border  = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+  next.padding = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+
+  const rows = [], rowsSeats = [];
+  for (const ch of el.children) {
+    // .tAddGuestRow first — it also carries .tGuestRow.
+    if      (ch.classList.contains(styles.tAddGuestRow))      next.add     = outerHeight(ch);
+    else if (ch.classList.contains(styles.tGuestListActions)) next.actions = outerHeight(ch);
+    else if (ch.classList.contains(styles.emptyInline))       next.empty   = outerHeight(ch);
+    else if (ch.classList.contains(styles.tGuestRow)) {
+      (ch.getElementsByClassName(styles.seatNames).length ? rowsSeats : rows).push(outerHeight(ch));
+    }
+  }
+  if (rows.length)      next.row      = mean(rows);
+  if (rowsSeats.length) next.rowSeats = mean(rowsSeats);
+
+  // Publish only on a real change, so a resize storm does not re-render the
+  // whole board for a rounding difference.
+  if (Object.keys(next).some(k => Math.abs(next[k] - geom[k]) > 0.5)) {
+    geom = next;
+    geomVersion += 1;
+    geomListeners.forEach(fn => fn());
+  }
+}
 
 function estimateBodyHeight(guests, canAdd) {
-  let h = H_PADDING + (guests.length > 0 ? H_ACTIONS : H_EMPTY);
-  for (const g of guests) h += H_ROW + ((g.count || 1) > 1 ? H_SEATNAMES : 0);
-  return h + (canAdd ? H_ADD : 0);
+  let h = geom.border + geom.padding + (guests.length > 0 ? geom.actions : geom.empty);
+  for (const g of guests) h += (g.count || 1) > 1 ? geom.rowSeats : geom.row;
+  return h + (canAdd ? geom.add : 0);
 }
 
 /**
@@ -78,6 +137,7 @@ function TableCard({
   // simply renders, rather than never appearing.
   const [bodyBuilt, setBodyBuilt] = useState(() => typeof IntersectionObserver !== "function");
   const placeholderRef = useRef(null);
+  const bodyRef        = useRef(null);
 
   useEffect(() => {
     if (!expanded || bodyBuilt) return;
@@ -91,6 +151,23 @@ function TableCard({
     io.observe(el);
     return () => io.disconnect();
   }, [expanded, bodyBuilt]);
+
+  // A card that HAS a body is the only honest source for what a row costs, so
+  // every open one reports its geometry back to the placeholders. Re-reading it
+  // on resize is the point: the same row is 56px tall on a desktop and 300px on
+  // a phone, where the companions line wraps.
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    measureBody(el);
+    if (typeof ResizeObserver !== "function") return;
+    const ro = new ResizeObserver(() => measureBody(el));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [expanded, bodyBuilt]);
+
+  // Re-render this card's placeholder when the measured geometry changes.
+  useSyncExternalStore(subscribeGeom, readGeomVersion, readGeomVersion);
 
   const stop = (e) => e.stopPropagation();
 
@@ -222,7 +299,7 @@ function TableCard({
       )}
 
       {expanded && bodyBuilt && (
-        <div className={styles.tGuestList}>
+        <div className={styles.tGuestList} ref={bodyRef}>
           {guests.length > 0 && (
             <div className={styles.tGuestListActions}>
               <button

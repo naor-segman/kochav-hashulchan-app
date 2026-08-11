@@ -58,6 +58,14 @@ export default function CollabScreen() {
         // pre-companions copy, the poll came back without the field, and eight
         // hand-typed names vanished from the screen. Silence is never an
         // instruction to delete.
+        //
+        // The flip side is deliberate and is the SAME rule the owner's app now
+        // obeys (see pickCompanions in useCollabSync.js): an array that IS
+        // present — including an empty one — is the table's answer and wins, so
+        // a relative deleting the names actually deletes them. The two halves
+        // used to disagree about exactly this value: `[]` blanked eight inputs
+        // here and was ignored there, and the owner's app then pushed its eight
+        // back over the deletion.
         if (fresh) {
           const merged = { ...r, ...fresh };
           if (!Array.isArray(fresh.companions) && Array.isArray(r.companions)) {

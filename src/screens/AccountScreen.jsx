@@ -14,7 +14,7 @@ import Loading from "../components/feedback/Loading.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
-import { userStorageKey } from "../utils/storage.js";
+import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/storage.js";
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -108,31 +108,55 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
     navigate("/", { replace: true });
   };
 
-  // Signing out ends the SESSION; it does not remove the copy of the events
-  // that lives in this browser. That copy holds every guest's name and phone
-  // number, it has no expiry, and there was no way to remove it — which matters
-  // on a borrowed laptop or the tablet at the venue. It is NOT a leak between
-  // accounts (each account has its own key); it is residue on a device.
+  // The deliberate wipe. Signing out already removes everything the cloud
+  // provably holds (see the comment in useAuth.js); this is the harder action
+  // that also takes the events which exist ONLY on this device — the drafts,
+  // the edits that never got pushed. That is unrecoverable, so the dialog names
+  // them one by one before asking.
   //
-  // Cloud-synced events come back on the next login. Anything that was never
-  // synced is gone for good, so the wording says so and the action confirms.
+  // The warning used to be passed as a `body` option. ConfirmDialog has no such
+  // prop — it splits `message` on newlines — so the sentence about permanent
+  // deletion was dropped on the floor and the dialog asked for confirmation of
+  // a destructive action with nothing but its headline. Measured in the browser
+  // before the fix: the rendered dialog was the title and the two buttons.
   const handleClearLocal = async () => {
-    const ok = await confirm(
-      "למחוק את העותק המקומי של האירועים מהדפדפן הזה?",
-      {
-        body: "אירועים שסונכרנו לענן יחזרו בכניסה הבאה. אירוע שלא הספיק להסתנכרן יימחק לצמיתות.",
-        confirmLabel: "מחקו מהמכשיר",
-        danger: true,
-      }
-    );
+    const userKey  = userStorageKey(user?.id);
+    const guestKey = userStorageKey(null);
+    const onDevice = [
+      ...(loadState(userKey).events  || []),
+      ...(loadState(guestKey).events || []),
+    ];
+    const doomed    = onDevice.filter(ev => !isCloudBacked(ev));
+    const recovers  = onDevice.length - doomed.length;
+
+    const lines = ["למחוק את העותק המקומי של האירועים מהדפדפן הזה?"];
+    if (recovers > 0) {
+      lines.push(recovers === 1
+        ? "אירוע אחד כבר בענן ויחזור בכניסה הבאה."
+        : `${recovers} אירועים כבר בענן ויחזרו בכניסה הבאה.`);
+    }
+    if (doomed.length > 0) {
+      lines.push(doomed.length === 1
+        ? "אירוע אחד קיים רק על המכשיר הזה ויימחק לצמיתות:"
+        : `${doomed.length} אירועים קיימים רק על המכשיר הזה ויימחקו לצמיתות:`);
+      lines.push(doomed.map(ev => ev.name?.trim() || "אירוע ללא שם").join(" · "));
+    } else if (onDevice.length > 0) {
+      lines.push("שום דבר לא יאבד — כל מה ששמור כאן קיים גם בענן.");
+    } else {
+      lines.push("אין כרגע נתונים שמורים על המכשיר הזה.");
+    }
+    lines.push("החשבון עצמו והעותק בענן לא נמחקים.");
+
+    const ok = await confirm(lines.join("\n"), {
+      confirmLabel: "מחקו מהמכשיר",
+      danger: true,
+    });
     if (!ok) return;
-    try {
-      localStorage.removeItem(userStorageKey(user?.id));
-      localStorage.removeItem(userStorageKey(null));
+    if (clearState(userKey) && clearState(guestKey)) {
       showToast?.("הנתונים המקומיים נמחקו מהמכשיר ✓");
       // Reload so nothing in memory writes the data straight back.
       setTimeout(() => window.location.reload(), 400);
-    } catch {
+    } else {
       showToast?.("לא ניתן היה למחוק — ייתכן שהדפדפן חוסם אחסון מקומי", "err");
     }
   };
@@ -542,7 +566,8 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
         </div>
         <p className={styles.clearLocalHint}>
           העותק של האירועים נשמר גם בדפדפן הזה כדי שהאפליקציה תעבוד גם בלי רשת.
-          במחשב משותף כדאי למחוק אותו כשמסיימים.
+          בהתנתקות נמחק מהמכשיר כל מה שכבר מסונכרן לענן; מה שטרם הספיק
+          להסתנכרן נשאר כאן כדי שלא ילך לאיבוד. במחשב משותף כדאי למחוק גם אותו.
         </p>
 
         <a

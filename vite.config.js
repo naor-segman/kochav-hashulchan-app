@@ -4,6 +4,36 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  test: {
+    // The suite is 459 pure-function tests and they stay in the DEFAULT `node`
+    // environment — booting jsdom for `parseGuestList` costs ~1s per file and
+    // buys nothing. Component tests opt IN, one file at a time, with a
+    // `// @vitest-environment jsdom` docblock on line 1.
+    //
+    // Why the docblock and not `environmentMatchGlobs`: that option was REMOVED
+    // in Vitest 4 and this repo is on 4.1.10. Measured, not assumed — a config
+    // carrying `environmentMatchGlobs: [['**/*.dom.test.jsx', 'jsdom']]` ran the
+    // matching file with `typeof document === "undefined"`, with no warning and
+    // no error. A config key that is silently ignored is worse than no config.
+    //
+    // There is deliberately no `setupFiles` either: setup files run for EVERY
+    // test file, so a global jest-dom + cleanup setup would tax all 30 node
+    // suites for the benefit of six. The component tests import
+    // `src/test/dom.js`, which does the same work only where it is used.
+    css: {
+      // CSS Modules only mean anything in a test if they are actually compiled.
+      // With CSS processing off (the default) Vitest returns a Proxy where
+      // `styles.anythingAtAllEvenTypos` yields a string — so bug class 9, a
+      // renamed class leaving `styles.foo === undefined` and the element
+      // rendering `class="undefined"` with no error, is INVISIBLE to a test.
+      // Measured both ways: proxy → `styles.nope === "_nope_d09720"`; compiled →
+      // `styles.nope === undefined`. Compiled is the only setting under which
+      // the class-name assertions below can fail, so it is the one we use.
+      // Scoped to `.module.` so global stylesheets are still skipped.
+      include: [/\.module\./],
+      modules: { classNameStrategy: "non-scoped" },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

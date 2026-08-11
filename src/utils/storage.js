@@ -25,6 +25,55 @@ export function loadState(key = STORAGE_KEY) {
   return { events: [] };
 }
 
+/** Remove one bucket from localStorage entirely. Returns true on success. */
+export function clearState(key = STORAGE_KEY) {
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch { return false; }
+}
+
+/**
+ * True when the cloud PROVABLY holds this exact event — not "probably", proved.
+ *
+ * Three conditions, and all three are needed:
+ *  - `cloudId`       — a row exists (it is only set once createCloudEvent resolved)
+ *  - `syncedVersion` — a finite number: the cloud `version` this client last
+ *                      successfully wrote or read. A legacy event that predates
+ *                      the field has null here and is treated as unproven.
+ *  - `syncedVersion === version` — nothing has been edited since that push.
+ *                      `updateEventTimestamp` bumps `version` on every local
+ *                      edit and only a successful `updateCloudEvent` moves
+ *                      `syncedVersion` up to meet it, so any pending debounced
+ *                      write, any failed push, and any offline edit all leave
+ *                      the two apart and the event unproven.
+ *
+ * Conservative on purpose: a false negative costs a stale copy left on the
+ * device, a false positive costs somebody their guest list.
+ */
+export function isCloudBacked(ev) {
+  if (!ev || !ev.cloudId) return false;
+  if (!Number.isFinite(ev.syncedVersion)) return false;
+  return ev.syncedVersion === (ev.version ?? 1);
+}
+
+/**
+ * Drop from `key` every event the cloud provably holds, keep everything else.
+ * Removes the bucket outright when nothing is left, so no empty shell lingers.
+ * Returns { removed, kept } counts.
+ */
+export function pruneCloudBackedEvents(key) {
+  const all  = loadState(key).events || [];
+  const kept = all.filter(ev => !isCloudBacked(ev));
+  if (kept.length === all.length) return { removed: 0, kept: kept.length };
+  if (kept.length === 0) {
+    clearState(key);
+  } else {
+    persist({ ...loadState(key), events: kept }, key);
+  }
+  return { removed: all.length - kept.length, kept: kept.length };
+}
+
 /** Persist the full app state snapshot to localStorage. Returns true on success. */
 export function persist(state, key = STORAGE_KEY) {
   try {
