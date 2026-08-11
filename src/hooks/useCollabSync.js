@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { isSupabaseConfigured } from "../lib/supabase.js";
+import { MEAL_DEFAULT } from "../data/constants.js";
 import {
   fetchCollabGuestsOwner, upsertCollabGuestOwner,
   deleteCollabGuestsOwner, subscribeCollabGuests,
@@ -89,7 +90,7 @@ function guestFromCollab(r, existing, prev) {
     side:  sideOf(r.side),
     group: norm(r.guest_group) || "משפחה קרובה",
     count: r.guests_count || 1,
-    meal:       existing?.meal       ?? "regular",
+    meal:       existing?.meal       ?? MEAL_DEFAULT,
     rsvp:       existing?.rsvp       ?? "pending",
     notes:      existing?.notes      ?? "",
     companions: pickCompanions(r, existing, prev),

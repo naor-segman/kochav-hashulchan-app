@@ -29,6 +29,32 @@ function mergeTokens(cloudTokens, localTokens, fallback) {
   );
 }
 
+/**
+ * Take the cloud's arrival state for any guest this tab has never expressed an
+ * opinion about.
+ *
+ * "Never expressed an opinion" is precisely `arrivedSeats === undefined` and no
+ * truthy `arrived`. That is different from `arrivedSeats: []`, which is the host
+ * deliberately un-marking someone — so un-marking still wins, and a host who
+ * marks people on their own device still wins. Only the guests the local copy is
+ * silent about are taken from the cloud, which is exactly the set the greeter
+ * touched after this tab last read the row.
+ *
+ * A guest missing from either side is left alone; this never adds or removes a
+ * row, only two keys on rows that exist on both.
+ */
+function mergeArrivals(localGuests, cloudGuests) {
+  if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
+  const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
+  return localGuests.map(g => {
+    const untouched = g.arrivedSeats === undefined && !g.arrived;
+    if (!untouched) return g;
+    const c = cloudById.get(g.id);
+    if (!c || (c.arrivedSeats === undefined && !c.arrived)) return g;
+    return { ...g, arrivedSeats: c.arrivedSeats, arrived: c.arrived };
+  });
+}
+
 // Cloud events take precedence over local events with the same ID.
 // Local-only events (no cloudId, not present in cloud) are kept as-is.
 // Exported for tests: this function decides which copy of an event survives,
@@ -54,6 +80,13 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
     if (localMatch && (localMatch.updatedAt ?? 0) > (ce.updatedAt ?? 0)) {
       return normalizeEvent({
         ...localMatch,
+        // Arrivals are the one thing on this row written by SOMEONE ELSE, from a
+        // device this tab never sees — the greeter, through the entrance token.
+        // Whole-event last-write-wins therefore cannot be right for them: the
+        // host edits the venue at 20:32, their copy is newer by definition, and
+        // three people the greeter checked in at 20:31 are dropped and then
+        // pushed back over the cloud. Measured: exactly that.
+        guests: mergeArrivals(localMatch.guests, ce.guests),
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
         // The concurrency base always comes from the row we just read, whichever
         // side's CONTENT wins — otherwise the next push compares against a

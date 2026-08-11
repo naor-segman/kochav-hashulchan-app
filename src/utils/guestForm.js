@@ -69,9 +69,17 @@ export function setCompanionAt(companions, index, value) {
  * seats, trailing blanks dropped (so a half-filled list doesn't carry empty
  * tail entries) but inner blanks kept, because position is meaning.
  */
-export function normalizeCompanions(companions, count) {
+export function normalizeCompanions(companions, count) {   // eslint-disable-line no-unused-vars
   if (!Array.isArray(companions)) return null;      // "no opinion" — caller keeps stored
-  const out = companions.slice(0, companionSlots(count)).map((c) => str(c).trim());
+  // NOT clamped to `count`. Lowering "כמה כיסאות לשמור" from 9 to 1 and pressing
+  // save used to delete eight hand-typed names permanently, with no warning and
+  // no way back — the only data in this product that cannot be reconstructed.
+  // A stored list longer than the seat count is harmless: guestSeatNames()
+  // already takes only the first `count` and skips blanks, and the edit form
+  // renders exactly `count - 1` boxes. Raise the count again and the names are
+  // still there. `count` stays in the signature because callers pass it and the
+  // symmetry with companionsForCount() is the point.
+  const out = companions.map((c) => str(c).trim());
   while (out.length && out[out.length - 1] === "") out.pop();
   return out;
 }
@@ -106,9 +114,17 @@ export function guestToForm(guest, defaultGroup) {
     side:   g.side === "groom" ? "groom" : "bride",
     group:  str(g.group) || defaultGroup,
     count,
-    // Loaded in full, and padded to the seat count so all eight boxes appear
-    // with all eight names already in them.
-    companions: companionsForCount(g.companions, count),
+    // Loaded IN FULL — padded up to the seat count so every box appears with a
+    // name in it, but never truncated to it. A guest whose count was lowered
+    // still carries the names for the seats they no longer have; reopening the
+    // form and saving must not be the thing that finally deletes them. The
+    // screen clamps for RENDERING (companionsForCount), which is the right
+    // place for a clamp.
+    companions: (() => {
+      const stored = Array.isArray(g.companions) ? g.companions.map(str) : [];
+      const padded = companionsForCount(stored, count);
+      return stored.length > padded.length ? stored : padded;
+    })(),
     notes:  str(g.notes),
     estGift: g.estGift == null || g.estGift === "" ? "" : String(g.estGift),
     rsvp:   g.rsvp || "pending",
@@ -143,9 +159,6 @@ export function applyGuestForm(guest, form, group) {
   // stored names alone.
   const comps = normalizeCompanions(f.companions, count);
   if (comps) base.companions = comps;
-  else if (Array.isArray(base.companions)) {
-    base.companions = base.companions.slice(0, companionSlots(count));
-  }
 
   return base;
 }

@@ -100,14 +100,30 @@ export function toggleSeat(g, index) {
 }
 
 /**
- * Set a bare head-count for a row with no companion names — fills the lowest
- * free indices, so seat 0 (the person the row is named after) is always the
- * first one counted in.
+ * Set a head-count for a row, KEEPING whoever is already marked.
+ *
+ * It used to discard the current seats and refill 0..n-1, and the stepper is
+ * rendered next to the named chips for every row of more than one — so ticking
+ * נועה (seat 4) and then pressing "+" produced [0,1]: נועה, who is standing in
+ * the room, marked absent, and two people who are not there marked present. The
+ * count was right and the identities were wrong, and the identities are the
+ * whole point — the chips and the printed place cards are the same list.
+ *
+ * Growing adds the lowest free seats (seat 0, the person the row is named
+ * after, first). Shrinking removes the highest-numbered ones, which is the only
+ * order available without tracking when each was tapped.
  */
 export function setArrivedCount(g, n) {
   const total = seatsOf(g);
   const want  = Math.max(0, Math.min(total, Math.round(Number(n) || 0)));
-  return withArrivedSeats(g, Array.from({ length: want }, (_, i) => i));
+  const cur   = [...new Set(arrivedSeatsOf(g))]
+    .filter(i => Number.isInteger(i) && i >= 0 && i < total)
+    .sort((a, b) => a - b);
+  if (want <= cur.length) return withArrivedSeats(g, cur.slice(0, want));
+  const next = cur.slice();
+  const held = new Set(next);
+  for (let i = 0; i < total && next.length < want; i++) if (!held.has(i)) next.push(i);
+  return withArrivedSeats(g, next.sort((a, b) => a - b));
 }
 
 /** The names behind the seats, so a chip can say "מיה" and not "מקום 3". */
@@ -191,14 +207,22 @@ export function matchGuest(g, query) {
   if (!q) return null;
   if (norm(g?.name).includes(q)) return { via: "name", label: g.name, seat: 0 };
 
-  const comps = Array.isArray(g?.companions) ? g.companions : [];
+  // Bounded by the row's seat count, and derived the same way guestSeatNames()
+  // derives it — blanks skipped, then truncated. Iterating the raw array let a
+  // row be surfaced through a companion who has no seat on it: a row of 2 with
+  // three stored names answered a search for the third and then offered no chip
+  // by that name, so "כולם הגיעו" on it marked the wrong family. Stored lists
+  // can now legitimately be longer than the count (lowering the count no longer
+  // deletes names), which makes bounding here required, not merely tidy.
+  const comps = (Array.isArray(g?.companions) ? g.companions : [])
+    .map(c => (c || "").trim())
+    .filter(Boolean)
+    .slice(0, Math.max(0, seatsOf(g) - 1));
   for (let i = 0; i < comps.length; i++) {
-    const c = (comps[i] || "").trim();
-    if (c && norm(c).includes(q)) {
+    if (norm(comps[i]).includes(q)) {
       // Companion i is seat i+1 — guestSeatNames() puts the row's own name
-      // first and then the companions, in order.
-      const seat = Math.min(i + 1, seatsOf(g) - 1);
-      return { via: "companion", label: c, seat };
+      // first and then the companions, in that order.
+      return { via: "companion", label: comps[i], seat: i + 1 };
     }
   }
 

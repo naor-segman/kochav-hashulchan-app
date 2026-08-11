@@ -173,9 +173,23 @@ describe("search finds the person actually standing at the door", () => {
     expect(arrivalTotals(guests, {})).toMatchObject({ arrivedSeats: 0, totalSeats: 0, pct: 0 });
   });
 
-  it("a companion index past the row's seat count clamps to a real seat", () => {
+  it("does NOT surface a row through a companion who has no seat on it", () => {
+    // The row has 2 seats, so only the first companion is on it. The stored
+    // list may legitimately be longer — lowering the seat count no longer
+    // deletes names — and it used to clamp the index instead of rejecting the
+    // match: the row claimed it was found through "ד" and then offered no chip
+    // by that name, so "כולם הגיעו" on it marked the wrong family.
     const g = { id: "x", name: "א", count: 2, companions: ["ב", "ג", "ד"] };
-    expect(matchGuest(g, "ד").seat).toBe(1);
+    expect(matchGuest(g, "ב")).toEqual({ via: "companion", label: "ב", seat: 1 });
+    expect(matchGuest(g, "ג")).toBeNull();
+    expect(matchGuest(g, "ד")).toBeNull();
+  });
+
+  it("counts seats past the blanks, like guestSeatNames does", () => {
+    const g = { id: "x", name: "א", count: 3, companions: ["", "מיה", "רון"] };
+    // guestSeatNames drops the blank, so מיה is seat 1 and רון is seat 2.
+    expect(matchGuest(g, "מיה").seat).toBe(1);
+    expect(matchGuest(g, "רון").seat).toBe(2);
   });
 });
 
@@ -237,5 +251,38 @@ describe("arrivedSeats survives local → normalize → cloud → back", () => {
     expect(out.guests[0].companions).toEqual(["משה", "יעל", "איתי"]);
     expect(out.guests[1].arrivedSeats).toEqual([]);
     expect(arrivedCountOf(out.guests[0])).toBe(2);
+  });
+});
+
+// ── The stepper keeps the people who are already here ────────────────────────
+describe("setArrivedCount preserves identities, not just the count", () => {
+  const g = (over = {}) => ({ id: "x", name: "דודה רחל", count: 5,
+    companions: ["משה", "יעל", "איתי", "נועה"], ...over });
+
+  it("keeps whoever is marked and adds the lowest free seats", () => {
+    // Measured before the fix: ticking seat 4 and pressing "+" gave [0,1] —
+    // נועה marked absent, two people who are not there marked present.
+    expect(setArrivedCount(g({ arrivedSeats: [4] }), 2).arrivedSeats).toEqual([0, 4]);
+    expect(setArrivedCount(g({ arrivedSeats: [4] }), 3).arrivedSeats).toEqual([0, 1, 4]);
+  });
+
+  it("removes the highest-numbered seats when the count comes down", () => {
+    expect(setArrivedCount(g({ arrivedSeats: [0, 2, 4] }), 2).arrivedSeats).toEqual([0, 2]);
+    expect(setArrivedCount(g({ arrivedSeats: [0, 2, 4] }), 1).arrivedSeats).toEqual([0]);
+  });
+
+  it("is a no-op at the same count", () => {
+    expect(setArrivedCount(g({ arrivedSeats: [1, 3] }), 2).arrivedSeats).toEqual([1, 3]);
+  });
+
+  it("still fills from seat 0 for a row nobody has marked", () => {
+    expect(setArrivedCount(g(), 3).arrivedSeats).toEqual([0, 1, 2]);
+  });
+
+  it("clamps to the row and drops junk indices", () => {
+    expect(setArrivedCount(g({ arrivedSeats: [0, 9, -1, 2.5] }), 99).arrivedSeats)
+      .toEqual([0, 1, 2, 3, 4]);
+    expect(setArrivedCount(g({ arrivedSeats: [3] }), 0).arrivedSeats).toEqual([]);
+    expect(setArrivedCount(g({ arrivedSeats: [3] }), 0).arrived).toBe(false);
   });
 });

@@ -73,3 +73,64 @@ describe("mergeCloudWithLocal", () => {
     expect(mergeCloudWithLocal(local, cloud)[0].guests).toHaveLength(7);
   });
 });
+
+// ── Arrivals marked at the door survive the host's next edit ─────────────────
+// The one field on this row written by SOMEONE ELSE, on a device this tab never
+// sees. Whole-event last-write-wins cannot be right for it: the host edits the
+// venue at 20:32, their copy is newer by definition, and everyone the greeter
+// checked in at 20:31 is dropped and then pushed back over the cloud. Measured
+// before the fix: the venue edit survived, three arrivals did not.
+describe("mergeCloudWithLocal — arrivals marked at the door", () => {
+  const withArrivals = (over = {}) => ({
+    ...ev(over),
+    guests: [
+      { id: "g1", name: "דודה רחל", side: "bride", group: "משפחה", count: 5 },
+      { id: "g2", name: "משה כהן",  side: "groom", group: "חברים", count: 2 },
+    ],
+  });
+  const cloudSide = () => {
+    const e = withArrivals({ updatedAt: 20_310, cloudId: "c1" });
+    e.guests[0] = { ...e.guests[0], arrivedSeats: [0, 1, 2], arrived: true };
+    return e;
+  };
+
+  it("keeps the greeter's arrivals when the host edited something else after", () => {
+    const local = [withArrivals({ updatedAt: 20_320, cloudId: "c1", venue: "אולמי הגן" })];
+    const [out] = mergeCloudWithLocal(local, [cloudSide()]);
+    expect(out.venue).toBe("אולמי הגן");            // the host's edit still wins
+    expect(out.guests[0].arrivedSeats).toEqual([0, 1, 2]);
+    expect(out.guests[0].arrived).toBe(true);
+  });
+
+  it("does NOT resurrect someone the host deliberately un-marked", () => {
+    // [] is an opinion — "nobody from this row" — and must not lose to the
+    // cloud. undefined is silence, and that is the only thing we override.
+    const local = [withArrivals({ updatedAt: 20_320, cloudId: "c1" })];
+    local[0].guests[0] = { ...local[0].guests[0], arrivedSeats: [], arrived: false };
+    const [out] = mergeCloudWithLocal(local, [cloudSide()]);
+    expect(out.guests[0].arrivedSeats).toEqual([]);
+    expect(out.guests[0].arrived).toBe(false);
+  });
+
+  it("leaves the host's own marking alone", () => {
+    const local = [withArrivals({ updatedAt: 20_320, cloudId: "c1" })];
+    local[0].guests[0] = { ...local[0].guests[0], arrivedSeats: [4], arrived: true };
+    const [out] = mergeCloudWithLocal(local, [cloudSide()]);
+    expect(out.guests[0].arrivedSeats).toEqual([4]);
+  });
+
+  it("never adds or removes a guest row", () => {
+    const local = [withArrivals({ updatedAt: 20_320, cloudId: "c1" })];
+    const cloud = [cloudSide()];
+    cloud[0].guests.push({ id: "g9", name: "פולשת", side: "bride", group: "אחר", count: 1,
+      arrivedSeats: [0], arrived: true });
+    const [out] = mergeCloudWithLocal(local, cloud);
+    expect(out.guests.map(g => g.id)).toEqual(["g1", "g2"]);
+  });
+
+  it("touches nothing when the cloud is the side that wins", () => {
+    const local = [withArrivals({ updatedAt: 1_000, cloudId: "c1" })];
+    const [out] = mergeCloudWithLocal(local, [cloudSide()]);
+    expect(out.guests[0].arrivedSeats).toEqual([0, 1, 2]);
+  });
+});

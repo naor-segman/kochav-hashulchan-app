@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { fetchRSVPResponses } from "../utils/publicTokens.js";
-import { pickMeal } from "../utils/rsvpApply.js";
+import { pickMeal, pickCompanions } from "../utils/rsvpApply.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -133,7 +133,6 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
   const applyToGuest = useCallback((r, guest) => {
     const hasCount = respStatus(r) !== "no"; // yes + maybe carry a party size
-    const comps = Array.isArray(r.companions) ? r.companions.filter(Boolean) : [];
     // Functional updater so rapid successive edits don't clobber each other
     // over a stale ev.guests snapshot.
     patchEvent(e => ({
@@ -145,7 +144,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
               rsvp:  GUEST_RSVP[respStatus(r)],
               count: hasCount ? (r.guests_count || 1) : (g.count || 1),
               phone: g.phone || r.phone || "",
-              companions: comps.length ? comps : (g.companions || []),
+              companions: pickCompanions(r, g.companions),
               meal: pickMeal(r, g.meal),
             }
           : g,
@@ -165,7 +164,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       phone: r.phone || "",
       notes: "",
       rsvp: GUEST_RSVP[respStatus(r)],
-      companions: Array.isArray(r.companions) ? r.companions.filter(Boolean) : [],
+      companions: pickCompanions(r, []),
       meal: (r.meal || "").trim() || undefined,
     };
     // Same rule as the shared table: a guest who answered is data, not an
@@ -215,12 +214,11 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     chosen.forEach(({ r, guest }) => {
       if (isApplied(r, guest)) return;          // already reflects it
       const status = respStatus(r), hasCount = status !== "no";
-      const comps = Array.isArray(r.companions) ? r.companions.filter(Boolean) : [];
       updates.set(guest.id, {
         rsvp:  GUEST_RSVP[status],
         count: hasCount ? (r.guests_count || 1) : (guest.count || 1),
         phone: guest.phone || r.phone || "",
-        companions: comps.length ? comps : (guest.companions || []),
+        companions: pickCompanions(r, guest.companions),
         meal: pickMeal(r, guest.meal),
       });
       n++;

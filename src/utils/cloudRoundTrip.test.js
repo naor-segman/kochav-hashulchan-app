@@ -47,7 +47,8 @@ const MAXIMAL = {
   guests: [
     { id: "g1", name: "טל שוורץ", side: "bride", group: "משפחה", count: 3,
       phone: "0501234567", rsvp: "confirmed", meal: "vegan", notes: "ליד ההורים",
-      arrived: true, arrivedSeats: [0, 2], giftAmount: 500, companions: ["רון", "מיה"] },
+      arrived: true, arrivedSeats: [0, 2], giftAmount: 500, estGift: 750,
+      companions: ["רון", "מיה"] },
     { id: "g2", name: "רון לוי", side: "groom", group: "חברים", count: 1,
       phone: "0521234567", rsvp: "pending", meal: "regular", notes: "",
       arrived: false, giftAmount: 0, companions: [] },
@@ -233,6 +234,10 @@ describe("full cloud round-trip", () => {
     // Per-person arrival. `guests` passes through whole, which is exactly why
     // this needs pinning — nothing else would notice if it stopped.
     expect(n2.guests[0].arrivedSeats).toEqual([0, 2]);
+    // estGift is one of the ten fields the guest form writes and it was missing
+    // from this fixture. It survives today because guests pass through both
+    // mappers whole — which is exactly why nothing would notice if that stopped.
+    expect(n2.guests[0].estGift).toBe(750);
     expect(n2.sideLabels).toEqual(MAXIMAL.sideLabels);
   });
 

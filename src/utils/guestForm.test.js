@@ -78,12 +78,26 @@ describe("applyGuestForm — editing must not destroy what it did not touch", ()
     expect(applyGuestForm(g, form, form.group).companions).toEqual([]);
   });
 
-  it("lowering the seat count truncates the names, keeping the first ones", () => {
+  it("lowering the seat count KEEPS the names it no longer has seats for", () => {
+    // This used to truncate, and truncating on save destroyed data: one
+    // keystroke in "כמה כיסאות לשמור" plus שמרו deleted eight hand-typed names
+    // permanently, with no warning and no way back. Companion names are the
+    // only thing in this product that cannot be reconstructed from anywhere
+    // else. A stored list longer than the seat count costs nothing —
+    // guestSeatNames() takes only the first `count`, and the form renders only
+    // `count - 1` boxes — and raising the count again brings them back.
     const g = guest8();
     const form = { ...guestToForm(g, "משפחה קרובה"), count: 3 };
     const out = applyGuestForm(g, form, form.group);
     expect(out.count).toBe(3);
-    expect(out.companions).toEqual(["אבי", "בני"]);
+    expect(out.companions).toEqual(EIGHT);
+  });
+
+  it("and a later raise gets every one of them back", () => {
+    const g = guest8();
+    const lowered = applyGuestForm(g, { ...guestToForm(g, "משפחה קרובה"), count: 3 }, "משפחה קרובה");
+    const raised  = applyGuestForm(lowered, { ...guestToForm(lowered, "משפחה קרובה"), count: 9 }, "משפחה קרובה");
+    expect(raised.companions).toEqual(EIGHT);
   });
 
   it("raising the seat count keeps the names already typed", () => {
