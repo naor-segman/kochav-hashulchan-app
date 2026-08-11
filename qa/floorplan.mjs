@@ -8,11 +8,15 @@
  * and read what actually landed in storage.
  *
  *   node qa/floorplan.mjs        (needs `npm run dev -- --port 5188` running)
+ *
+ * QA_BASE points it somewhere else — `vite preview`, or a second dev server
+ * when 5188 is already taken. Same switch qa/seatingFlow.mjs and
+ * qa/seatingPerf.mjs already had; this file was the odd one out.
  */
 import { createRequire } from 'module';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
-const BASE = 'http://127.0.0.1:5188';
+const BASE = process.env.QA_BASE || 'http://127.0.0.1:5188';
 
 // 1×1 transparent PNG. The editor only needs `hasImage` to be true and an
 // <img> that loads; what the pixels show is irrelevant to placement.
