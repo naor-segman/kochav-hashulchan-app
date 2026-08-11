@@ -13,6 +13,7 @@ import base from "../styles/screenBase.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import styles from "./MessagesScreen.module.css";
+import { useShareGate } from "../components/share/useShareGate.jsx";
 
 /**
  * One place for everything sent to guests.
@@ -26,6 +27,10 @@ import styles from "./MessagesScreen.module.css";
  * built, so connecting an API later is a connection rather than a project.
  */
 export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast }) {
+  // Every message in this screen carries an RSVP link into it. In guest mode
+  // that link resolves to nothing, so sending forty of them is worse than
+  // sending none — see useShareGate.
+  const { guard, gate } = useShareGate();
   const { confirm, dialog } = useConfirm();
   const [openStage, setOpenStage] = useState("invitation");
   const [editing, setEditing]     = useState(null);
@@ -189,15 +194,16 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                             <span className={styles.guestName}>{g.name}</span>
                             {already && <span className={styles.sentTag}>נשלח <Icon name="check" size={11} /></span>}
                             {url && (
-                              <a
+                              <button
                                 className={styles.waBtn}
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={() => markSent(stage.key, g.id)}
+                                type="button"
+                                onClick={() => guard("ההודעה לאורחים", () => {
+                                  markSent(stage.key, g.id);
+                                  window.open(url, "_blank", "noopener,noreferrer");
+                                })}
                               >
                                 {already ? "שלחו שוב" : "שלחו בוואטסאפ"}
-                              </a>
+                              </button>
                             )}
                           </div>
                         );
@@ -217,6 +223,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
           </div>
         );
       })}
+      {gate}
     </div>
   );
 }

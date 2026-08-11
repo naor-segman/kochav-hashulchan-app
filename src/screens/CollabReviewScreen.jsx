@@ -9,6 +9,7 @@ import StatPill from "../components/ui/StatPill.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./CollabReviewScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { useShareGate } from "../components/share/useShareGate.jsx";
 
 const norm = (s) => (s || "").toString().trim();
 const complete = (r) => !!(norm(r.name) && norm(r.phone) && r.side && norm(r.guest_group));
@@ -17,6 +18,10 @@ const complete = (r) => !!(norm(r.name) && norm(r.phone) && r.side && norm(r.gue
 // link; complete rows sync into the guest list automatically (useCollabSync), so
 // there is no manual import here — just share, watch, and export.
 export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  // Sharing is the moment guest mode stops being free. A guest event has no
+  // cloud row, so the link resolves to nothing for everyone it is sent to —
+  // withholding it is honest; showing it and letting it be copied is not.
+  const { guard, gate } = useShareGate();
   const [rows, setRows] = useState([]);
   const [loadState, setLoadState] = useState("loading"); // loading | ready | offline
 
@@ -110,14 +115,17 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
           </p>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input className={base.input} readOnly value={collabLink} dir="ltr" aria-label="קישור לטבלה השיתופית" />
-            <button className={base.btnSm} onClick={async () => {
+            <button className={base.btnSm} onClick={() => guard("הקישור לטבלה השיתופית", async () => {
               try { await navigator.clipboard.writeText(collabLink); showToast("הקישור הועתק ✓"); }
               catch { showToast("העתיקו ידנית", "err"); }
-            }}>העתיקו</button>
+            })}>העתיקו</button>
             <QrCode url={collabLink} label="טבלה שיתופית" filename="qr-collab" />
           </div>
           <div className={base.actionBar} style={{ marginTop: 14 }}>
-            <a className={base.btnPrimary} href={collabLink} target="_blank" rel="noopener noreferrer">פתחו את הטבלה <Icon name="arrowLeft" size={15} /></a>
+            <button className={base.btnPrimary} onClick={() => guard("הקישור לטבלה השיתופית",
+              () => window.open(collabLink, "_blank", "noopener,noreferrer"))}>
+              פתחו את הטבלה <Icon name="arrowLeft" size={15} />
+            </button>
             <button className={base.btnSecondary} onClick={downloadExcel} disabled={!(ev.guests || []).length}><Icon name="download" /> הורדה לאקסל</button>
           </div>
         </div>
@@ -150,6 +158,7 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
           </div>
         </div>
       )}
+      {gate}
     </div>
   );
 }

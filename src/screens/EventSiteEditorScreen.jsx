@@ -7,6 +7,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventSiteEditorScreen.module.css";
+import { useShareGate } from "../components/share/useShareGate.jsx";
 
 // Compress an uploaded cover photo to a reasonable data URL for the site.
 // Kept modest (stored in payload JSONB + served via the public RPC) — a future
@@ -41,6 +42,10 @@ async function compressImage(file, maxPx = 1200, quality = 0.72) {
 const GALLERY_MAX = 6;
 
 export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, showToast }) {
+  // Sharing is the moment guest mode stops being free. A guest event has no
+  // cloud row, so the link resolves to nothing for everyone it is sent to —
+  // withholding it is honest; showing it and letting it be copied is not.
+  const { guard, gate } = useShareGate();
   // null = preview closed. Otherwise the device frame width to render in.
   const [previewDevice, setPreviewDevice] = useState(null);
   const site = ev.eventSite;
@@ -131,7 +136,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         </div>
         <div className={styles.shareRow}>
           <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" aria-label="קישור לאתר האירוע" />
-          <button className={base.btnSm} onClick={copyLink}>{copied ? "הועתק ✓" : "העתיקו"}</button>
+          <button className={base.btnSm} onClick={() => guard("הקישור לאתר האירוע", copyLink)}>{copied ? "הועתק ✓" : "העתיקו"}</button>
           <button
             className={[base.btnSm, previewDevice ? "" : base.btnGhost].filter(Boolean).join(" ")}
             onClick={() => setPreviewDevice(previewDevice ? null : "mobile")}
@@ -491,6 +496,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           האתר עדיין לא מפורסם — האורחים לא יראו אותו עד שתלחצו "פרסמו אתר" למעלה.
         </Banner>
       )}
+      {gate}
     </div>
   );
 }
