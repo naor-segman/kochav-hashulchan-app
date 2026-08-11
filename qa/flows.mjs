@@ -163,13 +163,35 @@ await p.goto(BASE + '/events/e1/checkin', { waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(900);
 await p.locator('input').first().fill('טל');
 await p.waitForTimeout(600);
-const arriveBtn = p.locator('button', { hasText: /צ׳ק אין|הגיע/ }).first();
+// This CHECK was stale, not the code. It looked for the first button matching
+// /צ׳ק אין|הגיע/, which since the entrance rebuild matches "אורח שהגיע" — the
+// WALK-IN button, which sits above the results and opens a sheet. It was
+// clicking the wrong control and then reporting the product broken. Anchor on
+// the result row's own button instead.
+const arriveBtn = p.locator('button', { hasText: /^כולם הגיעו/ }).first();
 if (await arriveBtn.count()) {
   await arriveBtn.click();
   await p.waitForTimeout(700);
   const ev7 = await readEvent();
   check('an arrival is persisted', ev7.guests.some(g => g.arrived));
+  // Arrival is per-person now: a row of 2 must record BOTH seats, not a
+  // single boolean that silently means "everyone".
+  const g1 = ev7.guests.find(g => g.id === 'g1');
+  check('the whole party is marked, seat by seat',
+    Array.isArray(g1?.arrivedSeats) && g1.arrivedSeats.length === 2,
+    JSON.stringify(g1?.arrivedSeats));
+  check('nobody else was marked', !ev7.guests.find(g => g.id === 'g4')?.arrived);
 } else check('arrival control present', false);
+
+// Partial arrival — the aunt is here, her four are not. The row-level boolean
+// used to be the only state, so marking her marked all five.
+const partialBtn = p.locator('button', { hasText: /^\d+\/\d+$/ }).first();
+if (await partialBtn.count()) {
+  await partialBtn.click();
+  await p.waitForTimeout(500);
+  const perPerson = p.locator('button', { hasText: /טל שוורץ|מקום 1/ }).first();
+  check('per-person marking is reachable from the row', await perPerson.count() > 0);
+} else check('partial-arrival control present', false);
 
 console.log('\n═══ JS errors during flows ═══');
 const u = [...new Set(errs)];
