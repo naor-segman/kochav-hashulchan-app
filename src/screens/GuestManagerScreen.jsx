@@ -180,7 +180,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const rows    = allRows.slice(0, slotsLeft);
     const skipped = allRows.length - rows.length;
     const newGuests = rows.map(r => ({
-      id: uid(), name: r.name, count: 1, side: listSide, group: listGroup,
+      id: uid(), name: r.name, count: 0, side: listSide, group: listGroup,
       phone: r.phone, notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
     }));
     patchEvent(e => Object.assign({}, e, { guests: e.guests.concat(newGuests) }));
