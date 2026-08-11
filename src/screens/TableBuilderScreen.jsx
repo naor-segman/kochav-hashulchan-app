@@ -8,6 +8,7 @@ import Field from "../components/ui/Field.jsx";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import FloorPlanEditor from "../components/floorplan/FloorPlanEditor.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
+import { buildStep, nextBuildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
@@ -23,6 +24,10 @@ const TABS = [
 ];
 
 export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  // Position in the build order, from src/data/eventAreas.js — never a literal.
+  const step = buildStep("tables");
+  const next = nextBuildStep("tables");
+
   const { confirm, prompt, dialog } = useConfirm();
   const [tab,     setTab]     = useState("list");
   const [batch,   setBatch]   = useState({ prefix: "", capacity: "10", count: "1", type: "regular", shape: DEFAULT_TABLE_SHAPE });
@@ -176,8 +181,13 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       />
 
       <div className={base.stepGuide}>
-        <span className={base.stepBadge}>שלב 2 מתוך 5 — שולחנות</span>
-        <span className={base.stepText}>הגדירו כמה שולחנות יש באולם ומה הקיבולת שלהם. לאחר מכן המשיכו לרשימת האורחים. כל שינוי נשמר אוטומטית.</span>
+        {/* Read from the model, never spelled out. This badge said "שלב 2"
+            and pointed at the guest list long after the order changed to put
+            the list first — a literal cannot be re-ordered. */}
+        <span className={base.stepBadge}>
+          {"שלב " + step.num + " מתוך " + BUILD_STEP_COUNT + " — " + step.label}
+        </span>
+        <span className={base.stepText}>הגדירו כמה שולחנות יש באולם ומה הקיבולת שלהם. אחר כך ממשיכים לאילוצים. כל שינוי נשמר אוטומטית.</span>
       </div>
 
       {gap < 0 && totalGuestSeats > 0 && (
@@ -392,9 +402,11 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       <NextStep
-        label="המשיכו לרשימת האורחים"
-        hint={ev.guests.length > 0 ? (ev.guests.length + " אורחים רשומים") : "עדיין לא נוספו אורחים"}
-        onClick={() => go("guests")}
+        label={"המשיכו ל" + next.label}
+        hint={ev.constraints.length === 0 ? "אופציונלי — מי חייב לשבת יחד ומי בשום אופן לא"
+          : ev.constraints.length === 1 ? "אילוץ אחד מוגדר"
+          : ev.constraints.length + " אילוצים מוגדרים"}
+        onClick={() => go(next.id)}
       />
     </div>
   );

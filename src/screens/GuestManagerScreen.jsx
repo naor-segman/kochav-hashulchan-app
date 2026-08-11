@@ -16,6 +16,7 @@ import { canAddGuest, guestSlotsLeft } from "../utils/featureGates.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
+import { buildStep, nextBuildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
@@ -27,6 +28,10 @@ import styles from "./GuestManagerScreen.module.css";
 
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+  // Position in the build order, from src/data/eventAreas.js — never a literal.
+  const step = buildStep("guests");
+  const next = nextBuildStep("guests");
+
   const { confirm, prompt, dialog } = useConfirm();
   // Corporate events use a business group set + default; everyone else the
   // family-oriented one. Custom groups (below) work regardless of type.
@@ -328,8 +333,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       <div className={base.stepGuide}>
-        <span className={base.stepBadge}>שלב 3 מתוך 5 — אורחים</span>
-        <span className={base.stepText}>בחרו למטה איך להכניס את המוזמנים: להקליד אחד-אחד, להדביק רשימה שכבר יש לכם, או לשלוח קישור שהמשפחה תמלא במקומכם. אחר כך ממשיכים לאילוצים. הכל נשמר לבד.</span>
+        {/* From the model — see the note in TableBuilderScreen. */}
+        <span className={base.stepBadge}>
+          {"שלב " + step.num + " מתוך " + BUILD_STEP_COUNT + " — " + step.label}
+        </span>
+        <span className={base.stepText}>בחרו למטה איך להכניס את המוזמנים: להקליד אחד-אחד, להדביק רשימה שכבר יש לכם, או לשלוח קישור שהמשפחה תמלא במקומכם. אחר כך ממשיכים לשולחנות. הכל נשמר לבד.</span>
       </div>
 
       {/* ── Guest limit upgrade tip ── */}
@@ -760,11 +768,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       <NextStep
-        label="המשיכו להגדרת אילוצים"
-        hint={ev.constraints.length > 0
-          ? (ev.constraints.length + " אילוצים מוגדרים")
-          : "אופציונלי — הגדירו מי חייב / לא יכול לשבת יחד"}
-        onClick={() => go("constraints")}
+        label={"המשיכו ל" + next.label}
+        hint={ev.tables.length === 0 ? "כמה שולחנות יש באולם ומה הקיבולת שלהם"
+          : ev.tables.length === 1 ? "שולחן אחד מוגדר"
+          : ev.tables.length + " שולחנות מוגדרים"}
+        onClick={() => go(next.id)}
       />
     </div>
   );

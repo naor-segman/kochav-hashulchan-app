@@ -15,7 +15,7 @@ import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
 import { getSideLabel, getSideLabels, seatingTotals } from "../utils/eventHelpers.js";
-import { arrivalTotals, arrivedCountOf, setRowArrived } from "../utils/arrival.js";
+import { arrivalTotals } from "../utils/arrival.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import { buildGuestCardUrl } from "../utils/guestCard.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -86,9 +86,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const [seatingHistory, setSeatingHistory] = useState([]);
   const [printMode, setPrintMode]           = useState("full");
   const [printing,  setPrinting]            = useState(false);
-  const [daySearch, setDaySearch]           = useState("");
-  const [checkInMode, setCheckInMode]       = useState(false);
-  const [checkInSearch, setCheckInSearch]   = useState("");
   // Bumped every time the plan is computed. Used as a React key on the table
   // glyphs so they remount and replay their fill — the one moment in this
   // product where something genuinely happens, and until now it just appeared.
@@ -181,12 +178,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const tableGuests = tid => guestsByTable.get(tid) || [];
 
-  // Was a third, drifted copy of the phone normaliser: it did not strip a "00"
-  // prefix (00972… became wa.me/9720972…, a dead link) and had no minimum
-  // length, so "050" produced wa.me/97250. whatsappLink() in messageSequence.js
-  // is the one that is tested; use it.
-  const whatsappUrl = (phone) => whatsappLink(phone, "");
-
   const buildWhatsAppTableMsg = (g) => {
     const tid   = ev.seating[g.id];
     if (!tid) return null;
@@ -213,13 +204,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     ev.seating[g.id] && g.phone && g.phone.replace(/\D/g, "")
   ).length;
 
-  const daySearchTrim = daySearch.trim();
-  const daySearchResults = daySearchTrim.length >= 2
-    ? ev.guests.filter(g =>
-        g.name.includes(daySearchTrim) ||
-        (g.phone && g.phone.replace(/\D/g, "").includes(daySearchTrim.replace(/\D/g, "")))
-      )
-    : [];
   const tableSeats  = tid => seatsByTable.get(tid) || 0;
 
   const violatedTables = useMemo(() => new Set(
@@ -357,17 +341,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   }, [patchEvent]);
 
 
-  const toggleGuestArrived = (guestId) => {
-    // Arrival is per-person now (`arrivedSeats`), and one tap here is still the
-    // whole row: nobody in yet -> everyone is in, anyone in -> everyone out.
-    // Routed through arrival.js so the boolean mirror and the seat list are
-    // written by the code that owns that invariant, not re-derived here.
-    patchEvent(e => ({
-      ...e,
-      guests: e.guests.map(g => g.id === guestId ? setRowArrived(g, arrivedCountOf(g) === 0) : g),
-    }));
-  };
-
   /* The counters below the "הגיעו" label used to count ROWS on both sides, and
      a row is a GROUP: at a real event with sixty people in the room this panel
      read "0 / 39". Both sides are SEATS now, with the denominator coming from
@@ -375,14 +348,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
      cannot disagree about what "everyone" means. */
   const arrival     = useMemo(() => arrivalTotals(ev.guests, ev.seating), [ev.guests, ev.seating]);
   const totalGifts  = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
-  const nGiftRecorded = ev.guests.filter(g => g.arrived && g.giftAmount != null && g.giftAmount > 0).length;
-
-  const setGuestGift = (guestId, amount) => {
-    patchEvent(e => ({
-      ...e,
-      guests: e.guests.map(g => g.id === guestId ? { ...g, giftAmount: amount } : g),
-    }));
-  };
 
   const toggleTableLock = useCallback((tableId) => {
     patchEvent(e => {
@@ -628,20 +593,15 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     <Icon name="cards" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />כרטיסי שולחן
                   </button>
                 </div>
+                {/* Was two buttons — "צ׳ק אין" opening a panel on this screen,
+                    and "מסך כניסה" opening another one. One door. */}
                 <div className={styles.runActionsGroup}>
                   <button
-                    className={[base.btnSm, checkInMode ? base.btnPrimary : base.btnGhost].join(" ")}
-                    onClick={() => { setCheckInMode(m => !m); setCheckInSearch(""); }}
-                    title="מצב צ׳ק אין — רשימה אלפביתית לאנשי הכניסה"
-                  >
-                    <Icon name="check" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />{checkInMode ? "סגרו צ׳ק אין" : "צ׳ק אין"}
-                  </button>
-                  <button
                     className={[base.btnSm, base.btnGhost].join(" ")}
-                    onClick={() => navigate("/events/" + ev.id + "/checkin")}
-                    title="פתחו מסך צ׳ק אין מלא — לשימוש על טאבלט בכניסה לאירוע"
+                    onClick={() => navigate("/events/" + ev.id + "/entrance")}
+                    title="פתחו את עמדת הכניסה — לשימוש על טאבלט או טלפון בכניסה לאירוע"
                   >
-                    <Icon name="phone" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />מסך כניסה
+                    <Icon name="phone" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />עמדת כניסה
                   </button>
                 </div>
                 <button
@@ -745,129 +705,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             />
           )}
 
-          {nAssigned > 0 && (
-            <div className={styles.daySearchCard}>
-              <div className={styles.daySearchLabel}><Icon name="search" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />חיפוש אורח — יום האירוע</div>
-              <input
-                className={base.input}
-                value={daySearch}
-                onChange={e => setDaySearch(e.target.value)}
-                placeholder="חפשו לפי שם או מספר טלפון..."
-              />
-              {daySearchTrim.length >= 2 && daySearchResults.length === 0 && (
-                <div className={styles.daySearchEmpty}>אורח לא נמצא</div>
-              )}
-              {daySearchResults.length > 0 && (
-                <div className={styles.daySearchResults}>
-                  {daySearchResults.map(g => {
-                    const tid   = ev.seating[g.id];
-                    const table = tid ? ev.tables.find(t => t.id === tid) : null;
-                    return (
-                      <div key={g.id} className={[styles.daySearchRow, g.arrived ? styles.daySearchRowArrived : ""].filter(Boolean).join(" ")}>
-                        <SideDot side={g.side} />
-                        <span className={styles.daySearchName}>{g.name}</span>
-                        {table
-                          ? <span className={styles.daySearchTable}>{tableLabel(table)}</span>
-                          : <span className={styles.daySearchUnseated}>לא שובץ</span>
-                        }
-                        {g.phone && whatsappUrl(g.phone) && (
-                          <a
-                            href={whatsappUrl(g.phone)}
-                            className={styles.daySearchWa}
-                            target="_blank"
-                            rel="noreferrer"
-                            onPointerDown={e => e.stopPropagation()}
-                          >
-                            <Icon name="chat" size={16} />
-                          </a>
-                        )}
-                        <button
-                          className={[styles.dayCheckInBtn, g.arrived ? styles.dayCheckInBtnDone : ""].filter(Boolean).join(" ")}
-                          onClick={() => toggleGuestArrived(g.id)}
-                          title={g.arrived ? "בטלו צ׳ק אין" : "סמנו כהגיע/ה"}
-                        >
-                          {g.arrived ? <><Icon name="check" size={13} /> הגיע/ה</> : "צ׳ק אין"}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {checkInMode && (
-            <div className={styles.checkInPanel}>
-              <div className={styles.checkInHeader}>
-                <span className={styles.checkInTitle}><Icon name="check" /> מצב צ׳ק אין</span>
-                <div className={styles.checkInHeaderRight}>
-                  <span className={styles.checkInProgress}>
-                    {arrival.arrivedSeats} / {arrival.totalSeats} הגיעו
-                  </span>
-                  {totalGifts > 0 && (
-                    <span className={styles.checkInGiftTotal}>
-                      <Icon name="money" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />₪{totalGifts.toLocaleString("he-IL")} — {nGiftRecorded} מתנות
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className={styles.checkInProgressBar}>
-                <div
-                  className={styles.checkInProgressFill}
-                  style={{ width: arrival.pct + "%" }}
-                />
-              </div>
-              <input
-                className={base.input}
-                value={checkInSearch}
-                onChange={e => setCheckInSearch(e.target.value)}
-                placeholder="חפשו אורח לצ׳ק אין..."
-                autoFocus
-              />
-              <div className={styles.checkInList}>
-                {ev.guests
-                  .filter(g => g.rsvp !== "declined")
-                  .filter(g => !checkInSearch || g.name.includes(checkInSearch) || (g.phone && g.phone.includes(checkInSearch)))
-                  .sort((a, b) => a.name.localeCompare(b.name, "he"))
-                  .map(g => {
-                    const tid   = ev.seating[g.id];
-                    const table = tid ? ev.tables.find(t => t.id === tid) : null;
-                    return (
-                      <div key={g.id} className={[styles.checkInRow, g.arrived ? styles.checkInRowDone : ""].filter(Boolean).join(" ")}>
-                        <div className={styles.checkInRowInfo}>
-                          <SideDot side={g.side} />
-                          <span className={styles.checkInName}>{g.name}</span>
-                          {table
-                            ? <span className={styles.checkInTable}>{tableLabel(table)}</span>
-                            : <span className={styles.checkInUnseated}>לא שובץ</span>
-                          }
-                          {g.count > 1 && <span className={styles.checkInCount}>×{g.count}</span>}
-                        </div>
-                        <button
-                          className={[styles.checkInBtn, g.arrived ? styles.checkInBtnDone : ""].filter(Boolean).join(" ")}
-                          onClick={() => toggleGuestArrived(g.id)}
-                        >
-                          {g.arrived ? <><Icon name="check" size={13} /> הגיע/ה</> : "צ׳ק אין"}
-                        </button>
-                        {g.arrived && (
-                          <input
-                            className={styles.checkInGiftInput}
-                            type="number"
-                            min="0"
-                            step="50"
-                            placeholder="₪ מתנה"
-                            value={g.giftAmount || ""}
-                            onPointerDown={e => e.stopPropagation()}
-                            onChange={e => setGuestGift(g.id, e.target.value ? Math.max(0, parseInt(e.target.value) || 0) : 0)}
-                          />
-                        )}
-                      </div>
-                    );
-                  })
-                }
-              </div>
-            </div>
-          )}
+          {/* The "חיפוש אורח — יום האירוע" card and the "מצב צ׳ק אין" panel
+              used to live here. They were the second and third copies of the
+              door, and this screen is not the door: arrival is per-person now
+              (`arrivedSeats`), and neither panel could express "the aunt is
+              here, her four are not" — both wrote the row-level boolean, which
+              silently means everyone. עמדת הכניסה does that, plus walk-ins,
+              by-table search and companion search, on a dark ground that does
+              not blind a greeter in a dark hall. One door, one screen. */}
 
           {(unassigned.length > 0 || !!activeId) && (
             <DroppableWrapper id="unassigned">

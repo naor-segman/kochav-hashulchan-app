@@ -105,6 +105,18 @@ export function stepChainAfter(id) {
   return BUILD_STEPS.slice(i + 1).map(s => s.label).join(" ← ");
 }
 
+/**
+ * The numbered step a screen id IS, or null if it is not one of the five.
+ *
+ * Screens used to spell their own position into a string — "שלב 2 מתוך 5 —
+ * שולחנות". When the order changed so that guests come before tables, two
+ * screens kept announcing the old numbers and pointing at the old next step,
+ * because a literal cannot be re-ordered. Read it from here instead.
+ */
+export function buildStep(id) {
+  return BUILD_STEPS.find(s => s.id === id) || null;
+}
+
 /** The step that follows `id` in the default order, or null at the end. */
 export function nextBuildStep(id) {
   const i = BUILD_STEPS.findIndex(s => s.id === id);
