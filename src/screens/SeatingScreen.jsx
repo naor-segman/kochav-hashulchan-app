@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, Fragment } from "react";
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, Fragment } from "react";
 import { flushSync } from "react-dom";
 import { messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
