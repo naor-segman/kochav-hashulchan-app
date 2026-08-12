@@ -15,6 +15,7 @@ vi.mock("../lib/supabase.js", () => ({
 
 const {
   fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift,
+  upsertCollabGuest,
 } = await import("./publicTokens.js");
 
 const ok   = data  => rpc.mockResolvedValue({ data, error: null });
@@ -196,5 +197,59 @@ describe("fetchGiftWall", () => {
     const rows = [{ id: "1", donor_name: "דנה", message: "מזל טוב", created_at: "2026-07-01" }];
     ok(rows);
     expect(await fetchGiftWall("tok")).toEqual(rows);
+  });
+});
+
+// ── The shared table's notes column (12.8) ───────────────────────────────────
+//
+// The wire has to be able to say three different things, and the difference
+// between two of them is the difference between "keep it" and "delete it":
+//   * a string      → that is the answer, and "" clears the note;
+//   * no key at all → no opinion, the database keeps what it has.
+// A client that predates this column sends no key. If that arrived as NULL,
+// every old tab and every cached PWA would quietly wipe notes typed by someone
+// on a newer build — the exact shape of the bug that destroyed eight companion
+// names in August, one column over.
+describe("upsertCollabGuest — notes", () => {
+  const row = { id: "r1", name: "יעל", phone: "050", side: "bride", guest_group: "משפחה", guests_count: 1, companions: [] };
+
+  it("sends the note the caller holds", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", { ...row, notes: "אלרגיה לאגוזים" });
+    expect(sent().row_data.notes).toBe("אלרגיה לאגוזים");
+  });
+
+  it("sends an EMPTY string when the box was emptied — that is a real clear", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", { ...row, notes: "" });
+    expect(sent().row_data).toHaveProperty("notes", "");
+  });
+
+  it("OMITS the key entirely when the caller has no note field at all", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", row);
+    expect("notes" in sent().row_data).toBe(false);
+  });
+
+  it("omits it for null/undefined too — never sends null, which reads as a clear", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", { ...row, notes: null });
+    expect("notes" in sent().row_data).toBe(false);
+    await upsertCollabGuest("token123", { ...row, notes: undefined });
+    expect("notes" in sent().row_data).toBe(false);
+  });
+
+  it("still carries every other field of the row", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", { ...row, guests_count: 3, companions: ["בעל", "חבר"], updated_by: "רונית" });
+    const d = sent().row_data;
+    expect(d.id).toBe("r1");
+    expect(d.name).toBe("יעל");
+    expect(d.phone).toBe("050");
+    expect(d.side).toBe("bride");
+    expect(d.guest_group).toBe("משפחה");
+    expect(d.guests_count).toBe(3);
+    expect(d.companions).toEqual(["בעל", "חבר"]);
+    expect(d.updated_by).toBe("רונית");
   });
 });

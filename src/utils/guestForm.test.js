@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   applyGuestForm, guestToForm, setCompanionAt, companionsForCount,
   normalizeCompanions, newGuestFromForm, moneyOrUndefined, seatCount,
+  missingCompanionSeats, companionNamesComplete, COMPANION_NAME_HINT,
 } from "./guestForm.js";
 
 // The row from the owner's real event: one guest, eight named companions.
@@ -175,5 +176,58 @@ describe("small pure helpers", () => {
     expect(moneyOrUndefined("abc")).toBeUndefined();
     expect(moneyOrUndefined("-5")).toBe(0);
     expect(moneyOrUndefined("500")).toBe(500);
+  });
+});
+
+// ── Every extra seat must carry a name (owner, 12.8) ─────────────────────────
+//
+// "if they don't know the name, let them write 'בעל' or 'אישה' or 'חבר' — but
+// something has to be there, otherwise the same person gets counted twice in
+// the seating, in the check-in and everywhere else."
+//
+// This is the ONE definition of that rule. The guest form blocks on it, the
+// shared table's completeness predicate includes it, and the RSVP form shows it
+// without blocking — but none of them may re-implement it.
+describe("missingCompanionSeats — a chair with nobody on it", () => {
+  it("a single-seat row has nothing to name", () => {
+    expect(missingCompanionSeats([], 1)).toEqual([]);
+    expect(missingCompanionSeats(undefined, 1)).toEqual([]);
+    expect(companionNamesComplete(undefined, 1)).toBe(true);
+  });
+
+  it("reports every unnamed extra seat, 1-based to match the input labels", () => {
+    // count 4 → three boxes, "שם 1".."שם 3"; only the second is filled.
+    expect(missingCompanionSeats(["", "רונית"], 4)).toEqual([1, 3]);
+  });
+
+  it("a row with no companions array at all is missing every extra seat", () => {
+    expect(missingCompanionSeats(undefined, 3)).toEqual([1, 2]);
+    expect(companionNamesComplete(undefined, 3)).toBe(false);
+  });
+
+  it("whitespace is not a name", () => {
+    expect(missingCompanionSeats(["   ", "\n"], 3)).toEqual([1, 2]);
+  });
+
+  it("accepts a relationship word — that is the whole point", () => {
+    expect(missingCompanionSeats(["בעל"], 2)).toEqual([]);
+    expect(companionNamesComplete(["אישה", "חבר"], 3)).toBe(true);
+  });
+
+  it("ignores names for seats the row no longer has", () => {
+    // Count lowered from 9 to 2: the other seven names are still stored (they
+    // are never deleted — see normalizeCompanions) but they are not "missing".
+    expect(missingCompanionSeats(EIGHT, 2)).toEqual([]);
+  });
+
+  it("counts a seat added after the names as missing", () => {
+    expect(missingCompanionSeats(["רונית"], 3)).toEqual([2]);
+  });
+
+  it("the hint tells the person what to type and never says they erred", () => {
+    expect(COMPANION_NAME_HINT).toContain("בעל");
+    expect(COMPANION_NAME_HINT).toContain("אישה");
+    expect(COMPANION_NAME_HINT).toContain("חבר");
+    expect(COMPANION_NAME_HINT).not.toMatch(/שגיא|חובה|לא ניתן|אסור/);
   });
 });

@@ -27,7 +27,7 @@ import { useShareGate } from "../components/share/useShareGate.jsx";
  * one screen with one name, and two ways in:
  *
  *   mode="owner"  /events/:eventId/entrance  — the host's own device. Arrival,
- *                 gifts, walk-ins, and the switch that opens the door link.
+ *                 walk-ins, and the switch that opens the door link.
  *   mode="token"  /entrance/:token           — a hired greeter's phone, no
  *                 account. Arrival only, enforced in SQL, not here.
  *
@@ -41,12 +41,14 @@ import { useShareGate } from "../components/share/useShareGate.jsx";
 //
 // Hoisted to module scope ON PURPOSE. Declared inside EntranceScreen this was a
 // NEW component type on every render, so React unmounted and remounted the whole
-// row subtree each time — and the gift <input> lives inside it. Every keystroke
-// re-rendered the parent, the input node was destroyed and recreated, and focus
-// was lost after the FIRST character: a host typing "300" banked ₪3. Everything
-// the row used from the closure arrives as `ui` now.
+// row subtree each time. That used to be a data bug as well as a slow one: the
+// gift <input> lived in this row, and every keystroke destroyed and recreated
+// the node, so focus was lost after the FIRST character and a host typing "300"
+// banked ₪3. The field has since been removed from this screen — the remount is
+// still wrong, on a phone with a queue at the door — so the hoist stays, and
+// everything the row uses from the closure arrives as `ui`.
 function GuestRow({ g, matchLabel, compact, declined, ui }) {
-  const { canManage, canWrite, expanded, isToken, lastChecked, markCount, markRow, markSeat, setExpanded, setGift, sideLabel, tableOf } = ui;
+  const { canWrite, expanded, isToken, lastChecked, markCount, markRow, markSeat, setExpanded, sideLabel, tableOf } = ui;
   const seats   = seatsOf(g);
   const here    = arrivedCountOf(g);
   const full    = here === seats;
@@ -85,7 +87,7 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
         </div>
         {table
           ? <span className={styles.rowTable}>{tableLabel(table)}</span>
-          : <span className={styles.rowNoTable}>לא שובץ</span>}
+          : <span className={styles.rowNoTable}>טרם שובץ לשולחן</span>}
       </div>
 
       {/* The whole point of the screen: one full-width tap = the whole row is
@@ -150,24 +152,11 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
         </div>
       )}
 
-      {canManage && here > 0 && (
-        <div className={styles.giftRow}>
-          <label className={styles.giftLabel} htmlFor={`gift-${g.id}`}>
-            <Icon name="money" size={15} /> מתנה
-          </label>
-          <input
-            id={`gift-${g.id}`}
-            className={styles.giftInput}
-            type="number" min="0" step="50" inputMode="numeric"
-            placeholder="₪"
-            value={g.giftAmount || ""}
-            onChange={e => setGift(g.id, e.target.value ? Math.max(0, parseInt(e.target.value) || 0) : 0)}
-          />
-          {g.giftAmount > 0 && (
-            <span className={styles.giftDone}>₪{g.giftAmount.toLocaleString("he-IL")}</span>
-          )}
-        </div>
-      )}
+      {/* The gift amount used to be a field on this row. It is gone from THIS
+          screen — nobody announces what is in their envelope to the person
+          holding the door, so the greeter had a field they could never fill.
+          `giftAmount` itself is untouched: the data model, the seating screen's
+          מתנות pill and the Excel gift report all still read it. */}
     </div>
   );
 }
@@ -254,7 +243,7 @@ export default function EntranceScreen({
     : localEvent;
 
   const canWrite  = isToken ? !!remote?.writesOpen : true;
-  const canManage = !isToken;   // gifts, walk-ins, the door-link switch
+  const canManage = !isToken;   // walk-ins, by-table browse, the door-link switch
 
   // ── UI state ───────────────────────────────────────────────────────────────
   const [search, setSearch]           = useState("");
@@ -351,14 +340,6 @@ export default function EntranceScreen({
     }));
   }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId]);
 
-  const setGift = useCallback((guestId, amount) => {
-    if (!canManage) return;
-    patchEventById(eventId, e => ({
-      ...e,
-      guests: e.guests.map(g => (g.id === guestId ? { ...g, giftAmount: amount } : g)),
-    }));
-  }, [canManage, patchEventById, eventId]);
-
   const handleScan = useCallback((raw) => {
     const id = parseScanPayload(raw);
     if (!id) { setScanMsg("קוד לא מזוהה — נסו שוב או חפשו לפי שם"); return; }
@@ -386,11 +367,6 @@ export default function EntranceScreen({
   );
 
   const freeTables = availability.filter(a => a.free > 0);
-
-  const totalGifts = useMemo(
-    () => (ev?.guests || []).reduce((s, g) => s + (g.giftAmount || 0), 0),
-    [ev?.guests],
-  );
 
   // ── Bail-outs — every hook above this line, on every render ────────────────
   if (isToken && remoteState !== "ready") {
@@ -471,8 +447,8 @@ export default function EntranceScreen({
   // return above, so a hook here would be conditional. It costs a re-render of
   // the visible rows per render — exactly what happened before the hoist — and
   // the bug that mattered was the REMOUNT, which the hoist alone fixes.
-  const rowUi = { canManage, canWrite, expanded, isToken, lastChecked, markCount,
-                  markRow, markSeat, setExpanded, setGift, sideLabel, tableOf };
+  const rowUi = { canWrite, expanded, isToken, lastChecked, markCount,
+                  markRow, markSeat, setExpanded, sideLabel, tableOf };
 
   return (
     <div className={styles.root}>
@@ -503,9 +479,6 @@ export default function EntranceScreen({
             <span className={styles.counterPartial}>{totals.partialRecords} משפחות הגיעו חלקית</span>
           )}
         </div>
-        {canManage && totalGifts > 0 && (
-          <span className={styles.giftTotal}><Icon name="money" size={14} /> ₪{totalGifts.toLocaleString("he-IL")}</span>
-        )}
       </div>
       <div className={styles.progress}>
         <div className={styles.progressFill} style={{ width: totals.pct + "%" }} />

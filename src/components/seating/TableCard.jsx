@@ -111,7 +111,7 @@ function estimateBodyHeight(guests, canAdd) {
  *    moves content the host is looking at.
  */
 function TableCard({
-  table, guests, seats, expanded, locked, hasViolation, runKey,
+  table, cardKey, guests, seats, expanded, locked, hasViolation, runKey,
   tables, unassigned, seatsByTable, lockedGuests,
   activeId, draggedSeats,
   sideLabel,
@@ -202,7 +202,9 @@ function TableCard({
           className={styles.tCardToggle}
           aria-expanded={expanded}
           aria-label={(expanded ? "סגרו את " : "פתחו את ") + table.name}
-          onClick={() => onToggle(table.id)}
+          /* The CARD's key, not the table's id — see tableCardKeys(). Everything
+             else on this card still addresses the table by table.id. */
+          onClick={() => onToggle(cardKey)}
         />
         <div className={styles.tCardLeft}>
           {/* The table drawn as it is, with a seat per place and the taken ones

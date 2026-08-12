@@ -149,16 +149,6 @@
   flex-basis: 100%;
 }
 
-.giftTotal {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--step--1);
-  font-weight: 700;
-  color: var(--nav-muted);
-  white-space: nowrap;
-}
-
 .progress {
   height: 6px;
   margin: 0 16px 12px;
@@ -545,41 +535,6 @@
 .chipOn { background: var(--green); border-color: var(--green); color: #FFFFFF; }
 .chipOn:hover:not(:disabled) { background: var(--green-light); border-color: var(--green-light); }
 
-/* ── Gift ── */
-.giftRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--nav-border);
-}
-
-.giftLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--step--2);
-  font-weight: 700;
-  color: var(--nav-muted);
-}
-
-.giftInput {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid var(--nav-border);
-  border-radius: var(--radius-md);
-  background: var(--nav-bg);
-  color: var(--nav-text);
-  font-family: inherit;
-  font-size: var(--step-0);
-  font-weight: 600;
-}
-
-.giftInput:focus { outline: none; border-color: var(--accent-on-dark); }
-.giftDone { font-size: var(--step--1); font-weight: 800; color: var(--green-light); white-space: nowrap; }
 
 /* ── Free seats ── */
 .freeStrip {

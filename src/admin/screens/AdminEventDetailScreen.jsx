@@ -396,7 +396,7 @@ export default function AdminEventDetailScreen() {
                       <td className={styles.guestSeated}>
                         {tName
                           ? <span className={styles.seatedAt}>{tName}</span>
-                          : <span className={styles.notSeated}>לא שובץ</span>
+                          : <span className={styles.notSeated}>טרם שובץ לשולחן</span>
                         }
                       </td>
                     </tr>

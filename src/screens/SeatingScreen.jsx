@@ -14,7 +14,7 @@ import {
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
-import { getSideLabel, getSideLabels, seatingTotals } from "../utils/eventHelpers.js";
+import { getSideLabel, getSideLabels, guestCompanionNames, seatingTotals } from "../utils/eventHelpers.js";
 import { arrivalTotals } from "../utils/arrival.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import { buildGuestCardUrl } from "../utils/guestCard.js";
@@ -27,6 +27,7 @@ import DraggableGuestRow from "../components/seating/DraggableGuestRow.jsx";
 import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
 import TableCard from "../components/seating/TableCard.jsx";
 import { tableLabel } from "../components/seating/tableLabel.js";
+import { tableCardKeys } from "../components/seating/tableCardKeys.js";
 import { buildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
@@ -286,17 +287,23 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   }, [ev.seating, patchEvent]);
 
   // ── Expansion, one card at a time ─────────────────────────────────────────
-  const toggleTable = useCallback((tableId) => {
+  // Keyed on the CARD, not on `table.id`. Two tables carrying one id is data
+  // this screen can be handed (a cloud round-trip, an import, a hand-edited
+  // store — nothing in the app mints it), and keyed on the id those two cards
+  // shared one entry in this Set and opened and closed as one. See
+  // tableCardKeys().
+  const cardKeys = useMemo(() => tableCardKeys(ev.tables), [ev.tables]);
+  const toggleTable = useCallback((cardKey) => {
     setExpandedIds(prev => {
       const next = new Set(prev);
-      if (next.has(tableId)) next.delete(tableId);
-      else next.add(tableId);
+      if (next.has(cardKey)) next.delete(cardKey);
+      else next.add(cardKey);
       return next;
     });
   }, []);
-  const expandAllTables   = () => setExpandedIds(new Set(ev.tables.map(t => t.id)));
+  const expandAllTables   = () => setExpandedIds(new Set(cardKeys));
   const collapseAllTables = () => setExpandedIds(new Set());
-  const nExpanded  = ev.tables.filter(t => expandedIds.has(t.id)).length;
+  const nExpanded  = cardKeys.filter(k => expandedIds.has(k)).length;
   const allExpanded  = ev.tables.length > 0 && nExpanded === ev.tables.length;
   const noneExpanded = nExpanded === 0;
 
@@ -840,13 +847,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
           {ev.tables.length > 0 && (
             <div className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}>
-              {ev.tables.map(t => (
+              {ev.tables.map((t, i) => (
                 <TableCard
-                  key={t.id}
+                  key={cardKeys[i]}
+                  cardKey={cardKeys[i]}
                   table={t}
                   guests={guestsByTable.get(t.id) || EMPTY_GUESTS}
                   seats={seatsByTable.get(t.id) || 0}
-                  expanded={expandedIds.has(t.id)}
+                  expanded={expandedIds.has(cardKeys[i])}
                   locked={lockedTablesSet.has(t.id)}
                   hasViolation={violatedTables.has(t.name)}
                   runKey={runKey}
@@ -1029,6 +1037,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     {tg.map(g => (
                       <div key={g.id} className={styles.pvCardGuest}>
                         {g.name}{(g.count || 1) > 1 ? ` (${g.count})` : ""}
+                        {guestCompanionNames(g).length > 0 && (
+                          <span className={styles.pvCardGuestSeats}>
+                            {guestCompanionNames(g).join(" · ")}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>

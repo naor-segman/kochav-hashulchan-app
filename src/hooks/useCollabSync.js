@@ -33,7 +33,7 @@ const normPhone = (p) => {
 // extra seat must be named (12.8) — the copy here would have started syncing
 // rows that the public screen was, at that same second, telling a relative are
 // not synced. A badge that lies is worse than a missing badge.
-const collabComplete = (r) => collabRowMissing(r).length === 0;
+export const collabComplete = (r) => collabRowMissing(r).length === 0;
 
 // Which existing guest a collab row should merge into: the same shared id, or
 // else a guest matching on BOTH phone and name. Requiring both prevents merging
@@ -58,15 +58,22 @@ const compSig = (arr) => (Array.isArray(arr) ? arr.map((c) => norm(c)).join("~")
 
 // Signature of the shared fields — same string ⇒ no real change.
 //
+// Exported (with the two mappers below) for the same reason matchExistingGuest
+// and pickCompanions are: a mutation run showed that dropping `notes` from
+// either signature, or from either mapper, passed the entire test suite — four
+// separate silent-data-loss edits, none of them noticed. That is the third bug
+// class in CLAUDE.md, and the only defence against it is a test that reads the
+// mapper output field by field.
+//
 // `notes` is IN the signature, and it has to be: the signature is the only
 // thing that decides whether an owner edit is pushed to the table at all. A
 // host who opens a guest and types "אלרגיה לאגוזים" changes nothing else about
 // the row, so a signature without notes reads "unchanged" and the note never
 // leaves the app. That is the same shape as the three fields that have already
 // been lost on this project by being absent from a mapper.
-const sigCollab = (r) =>
+export const sigCollab = (r) =>
   `${norm(r.name)}|${norm(r.phone)}|${sideOf(r.side)}|${norm(r.guest_group)}|${r.guests_count || 1}|${compSig(clampComp(r.companions, r.guests_count))}|${norm(r.notes)}`;
-const sigGuest = (g) =>
+export const sigGuest = (g) =>
   `${norm(g.name)}|${norm(g.phone)}|${sideOf(g.side)}|${norm(g.group)}|${g.count || 1}|${compSig(clampComp(g.companions, g.count))}|${norm(g.notes)}`;
 
 /**
@@ -151,7 +158,7 @@ export function pickNotes(r, existing) {
 }
 
 // Build/merge a guest row from a collab row, preserving app-only fields.
-function guestFromCollab(r, existing) {
+export function guestFromCollab(r, existing) {
   return {
     ...(existing || {}),
     id:    r.id,
@@ -170,7 +177,7 @@ function guestFromCollab(r, existing) {
     companions: pickCompanions(r, existing),
   };
 }
-const guestToCollab = (g) => ({
+export const guestToCollab = (g) => ({
   id: g.id, name: norm(g.name), phone: norm(g.phone),
   side: sideOf(g.side), guest_group: norm(g.group),
   guests_count: Math.min(50, Math.max(1, g.count || 1)), // DB CHECK caps at 50

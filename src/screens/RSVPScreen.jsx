@@ -3,6 +3,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP } from "../utils/publicTokens.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
+import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
 import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
@@ -349,17 +350,38 @@ export default function RSVPScreen() {
                 />
               </div>
 
+              {/* Every extra seat should carry a name (12.8) — but this form is
+                  NOT where that is enforced, and that is a decision, not an
+                  oversight.
+
+                  Everywhere else the person typing knows the answer: the host
+                  is building their own list, and the relative filling in the
+                  shared table invited these people. Here the person is a
+                  stranger on a phone who opened a WhatsApp link, and who may
+                  genuinely not know yet who is coming with them. A hard block
+                  turns "I'll fill it in later" into a closed tab, and a refused
+                  RSVP is not a corrected RSVP — it is a lost one, and the host
+                  is then missing the whole party rather than one name.
+
+                  So: ask properly, offer the words that make it answerable
+                  ("בעל", "אישה", "חבר"), show which boxes are still empty, and
+                  accept whatever comes back. A missing name here costs a "+1"
+                  on a seating chart the host can fix in their own form, which
+                  DOES block. Losing the RSVP costs the head count itself. */}
               {answer === "yes" && guestsCount > 1 && (
                 <div className={styles.field}>
-                  <label className={styles.fieldLabel}>שמות המגיעים איתכם (אופציונלי)</label>
-                  <p className={styles.fieldHelp}>נוכל להושיב אתכם יחד באותו שולחן.</p>
+                  <label className={styles.fieldLabel}>מי מגיע איתכם?</label>
+                  <p className={styles.fieldHelp}>
+                    {COMPANION_NAME_HINT}. כך נושיב אתכם יחד, ובכניסה יזהו את כולם בלי לחפש.
+                  </p>
                   {Array.from({ length: guestsCount - 1 }).map((_, i) => (
                     <input
                       key={i}
                       className={styles.input}
                       style={{ marginBottom: 8 }}
                       value={companions[i] || ""}
-                      placeholder={`מלווה ${i + 1}`}
+                      placeholder={`שם ${i + 1} — או ״בעל״ / ״חבר״`}
+                      aria-label={`שם המצטרף ${i + 1}`}
                       disabled={submitting}
                       onChange={e => {
                         const arr = [...companions];
@@ -368,6 +390,16 @@ export default function RSVPScreen() {
                       }}
                     />
                   ))}
+                  {/* role="status", not "alert": this is a reminder of what is
+                      still open, not an error the guest committed. The submit
+                      button stays enabled underneath it. */}
+                  {missingCompanionSeats(companions, guestsCount).length > 0 && (
+                    <p className={styles.fieldHelp} role="status">
+                      {missingCompanionSeats(companions, guestsCount).length === guestsCount - 1
+                        ? "אפשר גם לשלוח בלי השמות — נשמח להשלים אותם אחר כך."
+                        : "נשארו מקומות בלי שם — אפשר לשלוח כך, ולהשלים אחר כך."}
+                    </p>
+                  )}
                 </div>
               )}
 

@@ -185,6 +185,17 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
           <p className={base.fieldHint} style={{ marginTop: 12 }}>
             הרשומות המלאות כבר ברשימת האורחים שלכם — הכל מתעדכן אוטומטית בשני הכיוונים.
           </p>
+          {/* The host is the one who has to chase whatever is missing, so the
+              screen has to say what "ממתינה להשלמה" actually means — otherwise
+              a row that stalled on an unnamed seat looks identical to a row
+              that stalled on a phone number, and the host asks for the wrong
+              thing. The exported sheet spells out the specific field per row. */}
+          {rows.length - completeCount > 0 && (
+            <p className={base.fieldHint}>
+              רשומה ממתינה כשחסר בה שם, טלפון, צד, קבוצה — או שם לאחד המקומות שהוזמנו.
+              בלי שם, הכיסא הזה לא ניתן להושבה ולא ניתן לזיהוי בכניסה.
+            </p>
+          )}
           <div style={{ marginTop: 14 }}>
             <button className={base.btnSecondary} onClick={() => go("guests")}><Icon name="arrowLeft" size={15} /> לרשימת האורחים</button>
           </div>

@@ -67,6 +67,7 @@ const AnnouncementScreen        = lazy(() => import("./screens/AnnouncementScree
 const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
 const CollabReviewScreen  = lazy(() => import("./screens/CollabReviewScreen.jsx"));
 const EventSiteEditorScreen = lazy(() => import("./screens/EventSiteEditorScreen.jsx"));
+const ShareLinksScreen      = lazy(() => import("./screens/ShareLinksScreen.jsx"));
 // Legal / policy pages — lazy, rarely visited
 const HelpScreen          = lazy(() => import("./screens/HelpScreen.jsx"));
 const PrivacyScreen       = lazy(() => import("./screens/PrivacyScreen.jsx"));
@@ -138,6 +139,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
         <Route path="constraints" element={<Suspense fallback={<Loading />}><ConstraintsScreen {...sp} /></Suspense>} />
         <Route path="seating"     element={<Suspense fallback={<Loading />}><SeatingScreen {...sp} /></Suspense>} />
         <Route path="site"        element={<Suspense fallback={<Loading />}><EventSiteEditorScreen {...sp} /></Suspense>} />
+        <Route path="share"       element={<Suspense fallback={<Loading />}><ShareLinksScreen {...sp} /></Suspense>} />
         <Route path="rsvps"       element={<Suspense fallback={<Loading />}><RSVPResponsesScreen {...sp} /></Suspense>} />
         <Route path="collab"      element={<Suspense fallback={<Loading />}><CollabReviewScreen {...sp} /></Suspense>} />
         <Route path="costs"       element={<Suspense fallback={<Loading />}><CostScreen key={activeEvent.id} activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />

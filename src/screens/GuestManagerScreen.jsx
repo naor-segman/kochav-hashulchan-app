@@ -6,7 +6,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
-import { parseGuestList, countWithPhone } from "../utils/parseGuestList.js";
+import { parseGuestList, countWithPhone, countSeats } from "../utils/parseGuestList.js";
 import {
   emptyGuestForm, guestToForm, applyGuestForm, newGuestFromForm,
   companionsForCount, setCompanionAt, companionSlots,
@@ -179,6 +179,9 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   // how many phones were detected, which is the point of the paste.
   const parsedList      = useMemo(() => parseGuestList(listText), [listText]);
   const parsedWithPhone = countWithPhone(parsedList);
+  // Rows and SEATS are different numbers the moment a line says "+1", and the
+  // seats are what the tables have to hold — so the button says both.
+  const parsedSeats     = countSeats(parsedList);
 
   const addFromList = () => {
     // Reads a name AND a phone per line, so a WhatsApp/spreadsheet paste lands
@@ -195,14 +198,21 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const rows    = allRows.slice(0, slotsLeft);
     const skipped = allRows.length - rows.length;
     const newGuests = rows.map(r => ({
-      id: uid(), name: r.name, count: 1, side: listSide, group: listGroup,
+      // "עמיר סגמן+1 (יובל סגמן)" is ONE row of TWO seats — count is the seats
+      // and companions the other names, exactly as the edit form stores them.
+      // Hard-coding count: 1 here is what threw every "+1" in a pasted list
+      // away, silently, along with the companion's name.
+      id: uid(), name: r.name, count: r.count || 1, side: listSide, group: listGroup,
       phone: r.phone, notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
+      companions: r.companions || [],
     }));
     patchEvent(e => Object.assign({}, e, { guests: e.guests.concat(newGuests) }));
     const withPhone = countWithPhone(rows);
+    const seats     = countSeats(rows);
     showToast(
       "נוספו " + newGuests.length + " אורחים" +
-      (withPhone ? ` (${withPhone} עם טלפון)` : "") +
+      (seats > newGuests.length ? ` · ${seats} מקומות` : "") +
+      (withPhone ? ` · ${withPhone} עם טלפון` : "") +
       (skipped ? ` · ${skipped} לא נוספו — מגבלת ${maxGuests} רשומות בתוכנית` : "") + " ✓",
       skipped ? "warn" : undefined
     );
@@ -379,7 +389,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               onClick={() => { setAddWay("manual"); setTimeout(() => nameRef.current && nameRef.current.focus(), 50); }}
             >
               <span className={styles.wayIcon}><Icon name="edit" size={18} /></span>
-              <span className={styles.wayTitle}>להקליד בעצמכם, שורה-שורה</span>
+              <span className={styles.wayTitle}>פשוט להקליד בעצמכם</span>
               <span className={styles.wayText}>
                 אתם ממלאים שם, טלפון וכמה מקומות לשמור. הצד והקבוצה נשארים כפי שבחרתם,
                 כך שאפשר להזין משפחה שלמה ברצף.
@@ -427,14 +437,15 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           <div className={styles.listAddPanel}>
             <p className={styles.listAddHint}>
               שם אחד בכל שורה. אם יש בשורה גם מספר טלפון — הוא ייקלט לשדה הטלפון לבד,
-              לא צריך לסדר כלום מראש. בחרו למטה לאיזה צד ולאיזו קבוצה כולם שייכים;
-              אפשר לשנות לכל אחד בנפרד אחר כך.
+              לא צריך לסדר כלום מראש. גם "+1" נקלט: כתבו <bdi>עמיר סגמן+1 (יובל סגמן)</bdi>{" "}
+              ותקבלו שורה אחת עם שני מקומות ושני השמות. בחרו למטה לאיזה צד ולאיזו קבוצה
+              כולם שייכים; אפשר לשנות לכל אחד בנפרד אחר כך.
             </p>
             <textarea
               className={[base.input, styles.listAddTextarea].join(" ")}
               value={listText}
               onChange={e => setListText(e.target.value)}
-              placeholder={"דוד לוי\nשרה כהן, 050-1234567\n~משפחת אברהם\t0521234567\n..."}
+              placeholder={"דוד לוי\nשרה כהן, 050-1234567\nעמיר סגמן+1 (יובל סגמן)\n~משפחת אברהם\t0521234567\n..."}
               rows={6}
               autoFocus
               aria-label="הדביקו כאן את רשימת השמות"
@@ -469,7 +480,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                 disabled={parsedList.length === 0}
               >
                 + הוסיפו {parsedList.length} אורחים
-                {parsedWithPhone > 0 ? ` (${parsedWithPhone} עם טלפון)` : ""}
+                {parsedSeats > parsedList.length ? ` · ${parsedSeats} מקומות` : ""}
+                {parsedWithPhone > 0 ? ` · ${parsedWithPhone} עם טלפון` : ""}
               </button>
               <button className={base.btnSecondary} onClick={() => setAddWay("manual")}>ביטול</button>
             </div>
@@ -749,7 +761,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                       <span className={base.tagFlexibleText}>{t.name}</span>
                     </span>
                   )
-                  : <span className={base.tagUnseated}>לא שובץ</span>
+                  : <span className={base.tagUnseated}>טרם שובץ לשולחן</span>
                 }
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   {g.phone && (

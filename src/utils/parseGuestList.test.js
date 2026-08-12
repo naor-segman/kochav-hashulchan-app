@@ -324,3 +324,66 @@ describe("countSeats", () => {
     expect(countSeats(undefined)).toBe(0);
   });
 });
+
+// ── Closing the survivors of the mutation run ────────────────────────────────
+// Each of these was a mutation the suite above did not catch. Every one turned
+// out to be a real input, not a hypothetical.
+
+describe("numbers that are ALMOST a phone number", () => {
+  it("rejects an extra digit in FRONT of an otherwise valid number", () => {
+    // The mirror image of the trailing-digit case. Without the leading digit
+    // boundary this matched its last ten digits and stored a stranger's number.
+    expect(parseGuestList("עמיר סגמן 10501234567")).toEqual([
+      { name: "עמיר סגמן 10501234567", phone: "" },
+    ]);
+  });
+
+  it("rejects a zero-less mobile with one digit too many", () => {
+    expect(parseGuestList("עמיר סגמן 5012345678")).toEqual([
+      { name: "עמיר סגמן 5012345678", phone: "" },
+    ]);
+  });
+
+  it('reads "+972 (0)52…" — the business-card form — as one number', () => {
+    // normalizePhone has handled this for a long time; the parser never fed it
+    // one, so the whole thing used to stay in the name.
+    expect(parseGuestList("עמיר סגמן +972 (0)52-123-4567")).toEqual([
+      { name: "עמיר סגמן", phone: "0521234567" },
+    ]);
+  });
+
+  it("never reads a country code as a companion count", () => {
+    // "+972" left on its own must not become "+97" → 98 seats.
+    expect(parseGuestList("משפחת כהן +972")).toEqual([
+      { name: "משפחת כהן +972", phone: "" },
+    ]);
+  });
+});
+
+describe("vav-initial names, which look exactly like a conjunction", () => {
+  it("keeps a vav SURNAME intact when +N says it is one person", () => {
+    // וקנין / וייס / ולדמן are ordinary Israeli surnames. Splitting on the vav
+    // would turn יובל וקנין into two guests, יובל and קנין.
+    expect(parseGuestList("עמיר סגמן +1 (יובל וקנין)")[0].companions).toEqual(["יובל וקנין"]);
+  });
+
+  it("keeps a vav FIRST name intact when the list is comma-separated", () => {
+    expect(parseGuestList("משפחת לוי (ורד, דני)")).toEqual([
+      { name: "משפחת לוי", phone: "", count: 3, companions: ["ורד", "דני"] },
+    ]);
+  });
+
+  it("still splits when the vav really is the conjunction", () => {
+    expect(parseGuestList("משפחת לוי (ורד ודני)")[0].companions).toEqual(["ורד", "דני"]);
+  });
+});
+
+describe("a repeated bracket", () => {
+  it("removes the bracket it actually read, not an identical earlier one", () => {
+    // The last bracket is the companion list; String.replace would have cut the
+    // first one and left the read-from text in the name.
+    expect(parseGuestList("דוד לוי (דני ורונית) חברים (דני ורונית)")).toEqual([
+      { name: "דוד לוי (דני ורונית) חברים", phone: "", count: 3, companions: ["דני", "רונית"] },
+    ]);
+  });
+});

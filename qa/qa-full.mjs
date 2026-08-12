@@ -55,6 +55,7 @@ const ROUTES = [
   ['/events/e1/constraints',   'אילוצים'],
   ['/events/e1/seating',       'הושבה'],
   ['/events/e1/site',          'אתר האירוע'],
+  ['/events/e1/share',         'קישורים לאורחים'],
   ['/events/e1/rsvps',         'אישורי הגעה'],
   ['/events/e1/collab',        'טבלה שיתופית'],
   ['/events/e1/costs',         'תקציב'],

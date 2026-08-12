@@ -1,0 +1,159 @@
+/* ShareLinksScreen — the public links, one per row.
+
+   The rows carry three things: which link it is (the mark), what the person
+   receiving it will DO (the line the host reads to decide which one to paste),
+   and the address itself. The mark sits in its own column so the eight rows
+   scan down as a list rather than as eight paragraphs. */
+
+.intro {
+  font-size: var(--step--1);
+  color: var(--text2);
+  line-height: 1.6;
+  margin: 0 0 16px;
+  max-width: 62ch;
+}
+
+/* Guest mode. Not a --warn banner: nothing is wrong, the account simply does
+   not exist yet. --accent-bg is a tint, so the text on it is measured against
+   the tint and not against white — --text2 is 6.9:1 there. */
+.guestNote {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.guestTitle {
+  margin: 0 0 4px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--accent-text);
+}
+
+.guestBody {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.row:last-child { border-bottom: none; }
+
+.rowMark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  margin-block-start: 1px;
+}
+
+.rowBody {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rowLabel {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* The line that earns the screen. --text2 is 7.57:1 on --surface. */
+.rowSay {
+  font-size: var(--step--2);
+  color: var(--text2);
+  line-height: 1.55;
+}
+
+.linkRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-block-start: 4px;
+}
+
+/* dir="ltr" is set on the element itself — a URL is an LTR string and reads
+   scrambled inside an RTL field. text-align keeps it anchored to the start of
+   the RTL row so the boxes still line up down the column. */
+.linkInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--step--2);
+  color: var(--muted);
+  font-family: monospace;
+  text-align: right;
+}
+
+/* Nine of these down the screen. As filled --cta buttons they would be nine
+   primary actions competing with each other, so they take the quiet hairline
+   skin. Doubled class name so it beats .btnSm's fill on specificity rather
+   than on CSS-module bundling order. */
+.copyBtn.copyBtn {
+  flex-shrink: 0;
+  min-width: 60px;
+  background: var(--surface);
+  border-color: var(--border2);
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.copyBtn.copyBtn:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--text2);
+}
+
+/* Guest mode: the link is withheld, not shown-and-blocked. Showing a URL that
+   resolves to nothing would be the lie — the public pages look the token up in
+   the cloud, and an event created without an account has no cloud row. */
+.locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: var(--step--2);
+  color: var(--text2);
+}
+
+.jumpRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .row {
+    gap: 8px;
+  }
+  .rowMark {
+    width: 28px;
+    height: 28px;
+  }
+}

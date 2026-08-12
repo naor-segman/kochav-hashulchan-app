@@ -250,6 +250,14 @@
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
   margin-top: 6px;
+  /* A grid item stretches to the height of its ROW by default, and a row is as
+     tall as its tallest item. At 1280px that is two cards per row — so opening
+     the first card grew the second card's BOX from 77px to 628px while it
+     stayed collapsed, with 551px of empty surface under its header. That is
+     what "the top two cards open and close as one" was: one card opening, and
+     its neighbour being stretched by the same grid row. Measured, both ways.
+     `start` makes every card as tall as its own content. */
+  align-items: start;
 }
 
 @media (max-width: 480px) {
@@ -1198,6 +1206,8 @@
   padding: 2px 10px;
   border-bottom: 1px solid var(--border);
   gap: 8px;
+  /* So the companions line can take a row of its own under the name. */
+  flex-wrap: wrap;
 }
 
 .pvGuest:last-child {
@@ -1225,6 +1235,17 @@
   color: var(--muted);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* The other people on the booking. A whole row of its own — the names are the
+   point of printing the sheet, so they wrap rather than being clipped. */
+.pvGuestSeats {
+  flex: 0 0 100%;
+  font-size: var(--step--3);
+  color: var(--text2);
+  line-height: 1.4;
+  padding-inline-start: 10px;
+  overflow-wrap: anywhere;
 }
 
 .pvEmpty {
@@ -1315,9 +1336,19 @@
   font-weight: 500;
   color: var(--text);
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Was nowrap + ellipsis. The venue staff sheet exists to be read off, and a
+     row whose companions are cut off with "…" is the guessing the host
+     complained about. */
+  overflow-wrap: anywhere;
+}
+
+.pvCompactSeats {
+  display: block;
+  font-size: var(--step--3);
+  font-weight: 500;
+  color: var(--text2);
+  line-height: 1.35;
+  padding-inline-start: 8px;
 }
 
 .pvCompactGuest:last-child {
@@ -1500,6 +1531,15 @@
   font-size: var(--step--2);
   color: var(--text);
   padding: 2px 0;
+}
+
+/* On the card that sits ON the table, the people at it are the whole content. */
+.pvCardGuestSeats {
+  display: block;
+  font-size: var(--step--3);
+  color: var(--text2);
+  line-height: 1.35;
+  padding-inline-start: 10px;
 }
 
 .pvCardFooter {

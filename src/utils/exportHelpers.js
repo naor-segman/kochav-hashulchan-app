@@ -1,4 +1,4 @@
-import { guestSeatNames } from "./eventHelpers.js";
+import { guestCompanionNames, guestSeatNames } from "./eventHelpers.js";
 import { missingCompanionSeats } from "./guestForm.js";
 import { TABLE_TYPES } from "../data/constants.js";
 // Shared with the app rather than re-implemented. The local copy pushed the ISO
@@ -97,11 +97,7 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
     // downloads it and finds "9" with nobody named has been handed a number,
     // not a guest list. Clamped to the extra seats exactly as the app clamps
     // them, so a stale longer array can't print people who have no chair.
-    const companions = (Array.isArray(r.companions) ? r.companions : [])
-      .slice(0, Math.max(0, count - 1))
-      .map(c => (c || "").toString().trim())
-      .filter(Boolean)
-      .join(", ");
+    const companions = guestCompanionNames({ count, companions: r.companions }).join(", ");
     const missing = collabRowMissing(r);
     aoa.push([
       r.name || "",
@@ -147,7 +143,8 @@ export async function exportToExcel(ev, sideLabel, violations) {
 
   rows.push([
     "שולחן", "קיבולת", "סוג שולחן", "שובצו/קיבולת",
-    "שם אורח", "צד", "קבוצה", "כמות", "RSVP", "מנה", "טלפון", "הערות",
+    "שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים",
+    "RSVP", "מנה", "טלפון", "הערות",
   ]);
 
   ev.tables.forEach(t => {
@@ -157,7 +154,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const occupied     = seatedSeats + " / " + t.capacity;
 
     if (tGuests.length === 0) {
-      rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", "", "", ""]);
+      rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", "", "", "", ""]);
     } else {
       tGuests.forEach((g, i) => {
         rows.push([
@@ -169,6 +166,11 @@ export async function exportToExcel(ev, sideLabel, violations) {
           sideLabel(g.side),
           g.group || "",
           g.count || 1,
+          // Same column the shared table has, for the same reason: a plan that
+          // says "טל שוורץ · 4" and names nobody hands the host a number, not a
+          // guest list. Clamped to the seats the row has, so a stale companions
+          // array cannot seat people who have no chair.
+          guestCompanionNames(g).join(", "),
           rsvpHe(g.rsvp),
           mealHe(g.meal),
           g.phone || "",
@@ -183,7 +185,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
   const ws1 = XLSX.utils.aoa_to_sheet(rows);
   ws1["!cols"] = [
     { wch: 16 }, { wch: 8  }, { wch: 12 }, { wch: 14 },
-    { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 6  },
+    { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 6  }, { wch: 34 },
     { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 },
   ];
   XLSX.utils.book_append_sheet(wb, ws1, "סידור הושבה");
@@ -194,12 +196,13 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const uRows = [
       ["ממתינים לשיבוץ — " + (ev.name || "")],
       [],
-      ["שם אורח", "צד", "קבוצה", "כמות", "RSVP", "מנה", "טלפון", "הערות"],
+      ["שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים", "RSVP", "מנה", "טלפון", "הערות"],
       ...unassigned.map(g => [
         g.name  || "",
         sideLabel(g.side),
         g.group || "",
         g.count || 1,
+        guestCompanionNames(g).join(", "),
         rsvpHe(g.rsvp),
         mealHe(g.meal),
         g.phone || "",
@@ -209,7 +212,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const ws2 = XLSX.utils.aoa_to_sheet(uRows);
     ws2["!cols"] = [
       { wch: 20 }, { wch: 14 }, { wch: 14 },
-      { wch: 6  }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 },
+      { wch: 6  }, { wch: 34 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 },
     ];
     XLSX.utils.book_append_sheet(wb, ws2, "ממתינים לשיבוץ");
   }

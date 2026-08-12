@@ -44,7 +44,13 @@ const BIDI_RE = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
 // ELSE'S number stored as fact, and the leftover "8" was appended to their name.
 // A number that is not exactly a phone number now matches nothing and stays
 // visible in the name, where the host can see it and fix it.
-const PHONE_RE = /(?<!\d)(?:(?:\+|00)?972[-.\s]?|0)\(?(?:[23489]|5\d|7\d)\)?(?:[-.\s]?\d){7}(?!\d)/;
+//
+// The `\(?0?\)?` is the redundant trunk zero in "+972 (0)52-123-4567" — how an
+// Israeli writes their own number on a business card, and what a contacts
+// export produces. normalizePhone has handled that form for a long time and has
+// its own test for it; the parser never actually fed it one, so the line landed
+// with the digits still in the guest's name.
+const PHONE_RE = /(?<!\d)(?:(?:\+|00)?972[-.\s]?\(?0?\)?[-.\s]?|0)\(?(?:[23489]|5\d|7\d)\)?(?:[-.\s]?\d){7}(?!\d)/;
 
 // Excel treats a phone column as a number and eats the leading zero, so half
 // the lists people paste carry "501234567" instead of "0501234567". Nine digits
@@ -199,8 +205,11 @@ function parseOnePerson(segment) {
   // With no "+N" to say otherwise, a single-item bracket is a NOTE, not a
   // person: "דוד לוי (החבר מהעבודה)" is one guest. Only a bracket that clearly
   // lists more than one name is read as companions.
+  // Cut by INDEX, not by String.replace: replace() would delete the FIRST
+  // bracket with that text while `paren` is the LAST one, which on a repeated
+  // bracket removes the wrong half of the line.
   const usesParen = paren && (declared != null || companions.length >= 2);
-  if (usesParen) rest = rest.replace(paren[0], " ");
+  if (usesParen) rest = rest.slice(0, paren.index) + " " + rest.slice(paren.index + paren[0].length);
   else companions = [];
 
   const name = cleanName(rest.replace(/[,;|]+/g, " "));
