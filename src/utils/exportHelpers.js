@@ -151,7 +151,14 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const tGuests      = ev.guests.filter(g => ev.seating[g.id] === t.id);
     const typeHe       = TABLE_TYPE_HE[t.type] || t.type;
     const seatedSeats  = tGuests.reduce((s, g) => s + (g.count || 1), 0);
-    const occupied     = seatedSeats + " / " + t.capacity;
+    // "5 מתוך 12", not "5 / 12". The workbook is opened RTL
+    // (`wb.Workbook.Views[0].RTL`), and a spaced slash between two numbers with
+    // no strong RTL character has its two number runs swapped by bidi rule N1 —
+    // measured: DOM "5 / 12" lays out as 12 then 5, so a table with 5 of 12
+    // seats taken reads as massively overbooked under the שובצו/קיבולת header.
+    // The Hebrew word sits BETWEEN the numbers, which is the form that anchors
+    // them; a Hebrew word after the pair does not.
+    const occupied     = seatedSeats + " מתוך " + t.capacity;
 
     if (tGuests.length === 0) {
       rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", "", "", "", ""]);

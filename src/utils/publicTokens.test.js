@@ -20,7 +20,7 @@ vi.mock("../lib/supabase.js", () => ({
 
 const {
   fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift,
-  upsertCollabGuest, fetchCollabGuestsOwner,
+  upsertCollabGuest, fetchCollabGuestsOwner, upsertCollabGuestOwner,
 } = await import("./publicTokens.js");
 
 const ok   = data  => rpc.mockResolvedValue({ data, error: null });
@@ -305,5 +305,77 @@ describe("fetchCollabGuestsOwner tolerates a database without the notes column",
       ? { data: null, error: { code: "42703", message: "column does not exist" } }
       : { data: null, error: { code: "08006", message: "connection failure" } });
     await expect(fetchCollabGuestsOwner("e1")).rejects.toMatchObject({ code: "08006" });
+  });
+});
+
+// The WRITE side had the same intent expressed as a guard — `typeof row.notes
+// === "string"` — and the guard never fired, because `guestToCollab` normalises
+// notes to "" and it is therefore ALWAYS a string. So the read degraded
+// gracefully against a pre-migration database while the write 400'd on every
+// row: the family's table kept reaching the host, and nothing the host typed
+// ever reached the family. These tests fail on the pre-fix code.
+describe("upsertCollabGuestOwner tolerates a database without the notes column", () => {
+  let sentPayloads;
+
+  const answering = (behaviour) => {
+    sentPayloads = [];
+    fromFn.mockReset();
+    fromFn.mockImplementation(() => ({
+      upsert: async (p) => { sentPayloads.push(p); return behaviour(p); },
+    }));
+  };
+
+  const row = { id: "r1", name: "יעל", count: 2, companions: ["דנה"], notes: "צמחונית" };
+
+  it("sends notes first, and that is the only call when it works", async () => {
+    answering(() => ({ error: null }));
+    await upsertCollabGuestOwner("e1", row);
+    expect(sentPayloads).toHaveLength(1);
+    expect(sentPayloads[0].notes).toBe("צמחונית");
+  });
+
+  it("retries without notes when the column is not there yet — PGRST204", async () => {
+    // PostgREST answers a WRITE to an unknown column with PGRST204, not with
+    // Postgres' own 42703. Matching only 42703 would have left the write path
+    // broken while the test suite looked green.
+    answering(p => "notes" in p
+      ? { error: { code: "PGRST204", message: "Could not find the 'notes' column of 'collab_guests' in the schema cache" } }
+      : { error: null });
+    await upsertCollabGuestOwner("e1", row);
+    expect(sentPayloads).toHaveLength(2);
+    expect(sentPayloads[1]).not.toHaveProperty("notes");
+    // Everything else still has to arrive — a fallback that also drops the
+    // companions would be a quieter version of the same data loss.
+    expect(sentPayloads[1]).toMatchObject({ id: "r1", name: "יעל", guests_count: 2, companions: ["דנה"] });
+  });
+
+  it("retries on 42703 too", async () => {
+    answering(p => "notes" in p
+      ? { error: { code: "42703", message: "column \"notes\" does not exist" } }
+      : { error: null });
+    await upsertCollabGuestOwner("e1", row);
+    expect(sentPayloads).toHaveLength(2);
+  });
+
+  it("does NOT retry a real failure", async () => {
+    answering(() => ({ error: { code: "42501", message: "permission denied" } }));
+    await expect(upsertCollabGuestOwner("e1", row)).rejects.toMatchObject({ code: "42501" });
+    expect(sentPayloads).toHaveLength(1);
+  });
+
+  it("does not loop when the row never carried notes in the first place", async () => {
+    // Without the `payload === base` guard this would retry the identical
+    // payload and report the second, identical failure.
+    answering(() => ({ error: { code: "PGRST204", message: "Could not find the 'name' column" } }));
+    const { notes, ...noNotes } = row;   // eslint-disable-line no-unused-vars
+    await expect(upsertCollabGuestOwner("e1", noNotes)).rejects.toMatchObject({ code: "PGRST204" });
+    expect(sentPayloads).toHaveLength(1);
+  });
+
+  it("surfaces a failure on the retry too", async () => {
+    answering(p => "notes" in p
+      ? { error: { code: "PGRST204", message: "Could not find the 'notes' column" } }
+      : { error: { code: "08006", message: "connection failure" } });
+    await expect(upsertCollabGuestOwner("e1", row)).rejects.toMatchObject({ code: "08006" });
   });
 });

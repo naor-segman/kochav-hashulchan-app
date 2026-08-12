@@ -268,8 +268,26 @@ export function duplicateEvent(ev) {
     // messagesSent is keyed by GUEST id, and the copy has new guest ids — a
     // carried-over map would match nobody and never be pruned. Start clean.
     messagesSent: {},
+    // Vendors carry over — the same DJ and the same photographer are usually
+    // the point of duplicating an event — but their BOOKING state does not.
+    // Copying them verbatim gave the new event a DJ already "booked" and
+    // ₪9,000 already "paid", which is the same class of lie as copying
+    // `arrived`: state that belongs to the event that actually happened.
+    // They also shared the original's array AND object identity, so this was
+    // the one place the comment below was untrue.
+    // The agreed PRICE is kept — it is the reference the host duplicated the
+    // event for. What is dropped is what was actually settled with them.
+    vendors: (ev.vendors ?? []).map(v => ({
+      ...v,
+      id:      uid(),
+      status:  "lead",     // VENDOR_STATUSES[0] — "בבירור"
+      paid:    "",
+      payment: "none",     // PAYMENT_STATUSES[0] — "לא שולם"
+    })),
     // Deep-copy the remaining nested collections so editing the duplicate never
     // mutates the original (Object.assign only shallow-copies these).
+    announcements:    ev.announcements ? JSON.parse(JSON.stringify(ev.announcements)) : (ev.announcements ?? null),
+    messageTemplates: ev.messageTemplates ? JSON.parse(JSON.stringify(ev.messageTemplates)) : (ev.messageTemplates ?? null),
     customGroups:     Array.isArray(ev.customGroups) ? [...ev.customGroups] : [],
     customTableTypes: Array.isArray(ev.customTableTypes) ? [...ev.customTableTypes] : [],
     sideLabels:       ev.sideLabels ? { ...ev.sideLabels } : (ev.sideLabels ?? null),

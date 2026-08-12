@@ -108,6 +108,29 @@ function moveBreaksTogether(guestId, toTableId, seating, togetherPairs) {
   return false;
 }
 
+/**
+ * Would SEATING a currently-unassigned guest at `toTableId` separate them from
+ * a "together" partner who is already sitting somewhere else?
+ *
+ * `moveBreaksTogether` cannot answer this and never could: it returns false on
+ * its first line for a guest with no current table, which is every guest this
+ * question is about. So the `together_pending` one-click fix — whose entire
+ * purpose is to satisfy a "together" constraint — could satisfy one and break
+ * another while advertising violationDelta: 0. Measured, with
+ * together(אמא,סבתא) + together(אמא,אבא) seated apart: 0 violations before,
+ * 1 critical violation after, quality 93 → 81.
+ */
+function seatingBreaksTogether(guestId, toTableId, seating, togetherPairs) {
+  for (const key of togetherPairs) {
+    const [a, b] = key.split("___");
+    if (a !== guestId && b !== guestId) continue;
+    const other = a === guestId ? b : a;
+    const otherTid = seating[other];
+    if (otherTid && otherTid !== toTableId) return true;
+  }
+  return false;
+}
+
 function swapBreaksTogether(gA, tidA, gB, tidB, seating, togetherPairs) {
   return moveBreaksTogether(gA.id, tidB, seating, togetherPairs)
       || moveBreaksTogether(gB.id, tidA, seating, togetherPairs);
@@ -230,7 +253,12 @@ export function generateSuggestions(
     // and together(B,D), moving B to A's table separated it from C and D and
     // the panel still printed "הפרה אחת פחות" beside the button. Sections 5, 9
     // and 10 already check both; this one was missed.
-    const canMove   = remaining >= (gb.count || 1) && !isGuestLocked(gb.id) && !isTableLocked(ta)
+    // Both tables, not just the destination. The lock tooltip says "לא יוצעו
+    // שינויים לשולחן זה" without qualification, and a host who locks a table is
+    // saying "this one is settled" — pulling somebody OUT of it breaks that
+    // promise exactly as much as putting somebody in.
+    const canMove   = remaining >= (gb.count || 1) && !isGuestLocked(gb.id)
+                      && !isTableLocked(ta) && !isTableLocked(tb)
                       && !moveViolatesApart(gb.id, ta, tableGuests, apartPairs)
                       && !moveBreaksTogether(gb.id, ta, seating, togetherPairs);
     suggestions.push({
@@ -299,13 +327,22 @@ export function generateSuggestions(
     const canSit = room
       && !isGuestLocked(first.waiting.id)
       && !isTableLocked(first.tid)
-      && !moveViolatesApart(first.waiting.id, first.tid, tableGuests, apartPairs);
+      && !moveViolatesApart(first.waiting.id, first.tid, tableGuests, apartPairs)
+      && !seatingBreaksTogether(first.waiting.id, first.tid, seating, togetherPairs);
     const many = togetherPending.length > 1;
     suggestions.push({
       id:                "together_pending",
       type:              "together_pending",
       severity:          "warning",
-      section:           "warnings",
+      // "warnings" is not a section SuggestionsPanel renders — it builds its
+      // groups from ["critical","fixes","opportunities"] only. So this entire
+      // suggestion was generated, COUNTED in the header badge, and never shown:
+      // the badge promised two recommendations and the panel listed one. Worse,
+      // severity "warning" puts it in `problemSig`, so the panel kept re-opening
+      // itself for an item nobody could see. ~20% of events emit it.
+      // The sort hid the typo too — `sectionOrder[a.section] ?? 1` maps the
+      // unknown string onto the "fixes" rank, so the ORDER always looked right.
+      section:           "fixes",
       explanation:       many
         ? `${togetherPending.length} אילוצי "יחד" ממתינים — בכל אחד מהם אדם אחד כבר יושב והשני עדיין לא שובץ`
         : `${first.seated.name} כבר יושב ב${tableMap[first.tid]?.name || "שולחן"}, ו${first.waiting.name} עדיין לא שובץ`,
@@ -348,7 +385,9 @@ export function generateSuggestions(
     // Unassigning is a move to "nowhere", so it separates gb from every
     // together partner currently at their table. This checked only the lock,
     // which meant the one-click fix regularly traded one violation for two.
-    const canUnassign = !isGuestLocked(gb.id)
+    // `ta` is the table they are being pulled OUT of — a locked table is a
+    // source as well as a destination.
+    const canUnassign = !isGuestLocked(gb.id) && !isTableLocked(ta)
                         && !moveBreaksTogether(gb.id, null, seating, togetherPairs);
     suggestions.push({
       id:                `apart_${ga.id}_${gb.id}`,
@@ -418,7 +457,13 @@ export function generateSuggestions(
       .filter(g => !anchoredIds.has(g.id) && !isGuestLocked(g.id)
                    && !moveBreaksTogether(g.id, null, seating, togetherPairs))
       .sort((a, b) => (a.count || 1) - (b.count || 1));
-    const safeGuest = evictable.find(g => (g.count || 1) >= excess);
+    // A locked table is a source too: evicting from it is still "a change to
+    // this table", which is precisely what the lock promises not to suggest.
+    // The overloaded table can be locked and over capacity at the same time —
+    // the host may have locked it BECAUSE they intend to sort it out by hand.
+    const safeGuest = isTableLocked(t.id)
+      ? undefined
+      : evictable.find(g => (g.count || 1) >= excess);
 
     suggestions.push({
       id:                `overloaded_${t.id}`,
@@ -481,6 +526,7 @@ export function generateSuggestions(
       const [bestTid, bestMembers] = bestEntry;
       const canMove = tableSpace(bestTid) >= (g.count || 1)
         && !isTableLocked(bestTid)
+        && !isTableLocked(myTid)          // the table they are being taken OUT of
         && !moveViolatesApart(g.id, bestTid, tableGuests, apartPairs)
         && !moveBreaksTogether(g.id, bestTid, seating, togetherPairs);
 
@@ -647,6 +693,9 @@ export function generateSuggestions(
       if (swapCount >= 2) break;
       if (!gA.group || isGuestLocked(gA.id)) continue;
       const tidA       = seating[gA.id];
+      // A swap changes BOTH tables. tidB was checked below and tidA was not, so
+      // a locked table could still lose a guest to a swap.
+      if (isTableLocked(tidA)) continue;
       const aAtA       = groupAtTable[gA.group]?.[tidA] || 0;
 
       // Find where most of gA's group sits (not at tidA)

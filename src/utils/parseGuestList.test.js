@@ -387,3 +387,24 @@ describe("a repeated bracket", () => {
     ]);
   });
 });
+
+describe("count and companions cannot disagree, however absurd the line", () => {
+  it("clamps companions with count at MAX_SEATS", () => {
+    // The only invariant breach found in 60,000 fuzzed pastes: `count` was
+    // clamped to 50 and `companions` was not, so a bracket holding 60 names
+    // produced companions.length 60 against count 50 — the one shape the rest
+    // of the app treats as impossible. Every reader re-clamps, so nothing
+    // broke; that is not the same as the gateway being right.
+    const names = Array.from({ length: 60 }, (_, i) => "מלווה " + i);
+    const [row] = parseGuestList(`ראש המשפחה (${names.join(", ")})`);
+    expect(row.count).toBe(50);
+    expect(row.companions.length).toBeLessThanOrEqual(row.count - 1);
+    expect(row.companions).toHaveLength(49);
+    expect(row.companions[0]).toBe("מלווה 0");
+  });
+
+  it("leaves an ordinary line completely alone", () => {
+    const [row] = parseGuestList("עמיר סגמן+1 (יובל סגמן)");
+    expect(row).toMatchObject({ name: "עמיר סגמן", count: 2, companions: ["יובל סגמן"] });
+  });
+});

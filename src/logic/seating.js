@@ -62,7 +62,12 @@ function seatedCount(tState_entry, guestMap) {
  *   of asking someone to upload their venue sketch.
  */
 function assignOnce(guests, tables, constraints, lockedSeating = {}, positions = null) {
-  if (!guests.length || !tables.length) return lockedSeating;
+  // A COPY, never the caller's object. Returning `lockedSeating` itself made
+  // `ev.seating` and the "new" seating the same reference all the way up to
+  // SeatingScreen's `patchEvent({ seating: newSeating })` — no live mutation
+  // today, but an aliasing bug waiting for the first writer that mutates in
+  // place, in the file where that would be least recoverable.
+  if (!guests.length || !tables.length) return { ...lockedSeating };
   const guestMap = Object.fromEntries(guests.map(g => [g.id, g]));
   const apartSet = buildApartSet(constraints);
 

@@ -313,3 +313,59 @@ describe("exportToExcel — translations", () => {
     expect(all).toContain("רגיל");  // unknown meal falls back
   });
 });
+
+// ── From the 12.8 logic review ───────────────────────────────────────────────
+describe("the occupancy cell — seats, and in an order a Hebrew reader can trust", () => {
+  const ev = () => ({
+    name: "e",
+    guests: [g("a", { count: 5 })],
+    tables: [t("t1", 12)],
+    seating: { a: "t1" },
+    constraints: [],
+  });
+
+  it("counts SEATS, not rows", async () => {
+    // Mutant M21 — counting rows instead of `guestSeats` — survived the whole
+    // suite. One row of five people would have reported the table as holding
+    // one seat of twelve.
+    await exportToExcel(ev(), sideLabel, []);
+    const rows = sheetNamed("סידור הושבה").rows;
+    const cell = rows.find(r => String(r[0]) === "t1")[3];
+    expect(String(cell)).toContain("5");
+    expect(String(cell)).not.toMatch(/^1 /);
+  });
+
+  it("uses 'מתוך' rather than a spaced slash, which the RTL workbook reverses", async () => {
+    // The workbook is opened RTL (`wb.Workbook.Views[0].RTL`). Measured: a DOM
+    // of "5 / 12" lays its two number runs out as 12 then 5, so a table with 5
+    // of 12 seats taken read as massively overbooked. A Hebrew word BETWEEN
+    // the numbers is the form that anchors them.
+    await exportToExcel(ev(), sideLabel, []);
+    const rows = sheetNamed("סידור הושבה").rows;
+    const cell = String(rows.find(r => String(r[0]) === "t1")[3]);
+    expect(cell).toBe("5 מתוך 12");
+    expect(cell).not.toContain(" / ");
+  });
+});
+
+describe("the entrance sheet is the door list, so a refusal must not be on it", () => {
+  it("excludes declined guests", async () => {
+    // Mutant M22 — dropping the `declined` filter — survived the suite, and
+    // the comment above that filter describes a real reconciliation bug it was
+    // added to fix. A greeter handed a list with a refusal on it either checks
+    // in somebody who is not coming, or stands at the door arguing about it.
+    const ev = {
+      name: "e",
+      guests: [g("בא", { count: 1 }), g("לא בא", { rsvp: "declined" })],
+      tables: [t("t1")],
+      seating: { "בא": "t1", "לא בא": "t1" },
+      constraints: [],
+    };
+    await exportToExcel(ev, sideLabel, []);
+    const entrance = sheetNamed("רשימת כניסה א׳-ב׳");
+    expect(entrance).toBeTruthy();
+    const text = entrance.rows.flat().join(" | ");
+    expect(text).toContain("בא");
+    expect(text).not.toContain("לא בא");
+  });
+});

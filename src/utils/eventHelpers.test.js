@@ -448,3 +448,70 @@ describe("guestCompanionNames — the on-screen companions line", () => {
     expect(guestCompanionNames(guest({ count: 1, companions: ["רונית"] }))).toEqual([]);
   });
 });
+
+// ── From the 12.8 logic review ───────────────────────────────────────────────
+describe("guestSeatNames never prints more names than the row has seats", () => {
+  it("clamps a stale companions array to count", () => {
+    // The shared table and RSVP can both leave `companions` longer than `count`
+    // after someone lowers the number of chairs, and this function feeds the
+    // printed place cards — uncapped it would print a card for a person with
+    // no seat.
+    //
+    // The review reported the trailing `.slice(0, count)` as an untested guard
+    // and gave this exact row as a case where removing it yields four names.
+    // It does not: executed both ways, the `names.length < count` guard inside
+    // the loop already caps it, and the two agree on every integer count. The
+    // slice only bites on a FRACTIONAL count (2.5 → 3 names without it), which
+    // no writer produces. So this test pins the behaviour; it does not kill a
+    // mutant, because there is no reachable mutant to kill.
+    const row = { name: "טל שוורץ", count: 2, companions: ["רונית", "דנה", "גיל"] };
+    expect(guestSeatNames(row)).toEqual(["טל שוורץ", "רונית (טל שוורץ)"]);
+    expect(guestSeatNames(row)).toHaveLength(2);
+  });
+
+  it("still pads unnamed seats up to count", () => {
+    expect(guestSeatNames({ name: "משפחת לוי", count: 3, companions: [] }))
+      .toEqual(["משפחת לוי", "משפחת לוי +1", "משפחת לוי +2"]);
+  });
+});
+
+describe("duplicateEvent leaves the previous event's commitments behind", () => {
+  const ev = () => ({
+    id: "e1", name: "גאלה 2025", guests: [], tables: [], constraints: [], seating: {},
+    vendors: [
+      { id: "v1", name: "DJ", category: "music", status: "booked", price: "9000", paid: "9000", payment: "paid" },
+      { id: "v2", name: "צלם", category: "photographer", status: "quoted", price: "4000", paid: "1000", payment: "deposit" },
+    ],
+    announcements: { save: { headline: "שמרו את התאריך" } },
+    messageTemplates: { invitation: "היי" },
+  });
+
+  it("keeps the vendor and the agreed price, drops the booking and the payment", () => {
+    // The same defect as copying `arrived`: state that belongs to the event
+    // that actually happened. Duplicating last year's gala handed you a copy
+    // where the DJ was already booked and ₪9,000 already paid.
+    const dup = duplicateEvent(ev());
+    expect(dup.vendors).toHaveLength(2);
+    expect(dup.vendors[0]).toMatchObject({ name: "DJ", price: "9000", status: "lead", paid: "", payment: "none" });
+    expect(dup.vendors[1]).toMatchObject({ name: "צלם", price: "4000", status: "lead", paid: "", payment: "none" });
+  });
+
+  it("gives every vendor a fresh id and does not share arrays or objects", () => {
+    const original = ev();
+    const dup = duplicateEvent(original);
+    expect(dup.vendors.map(v => v.id)).not.toContain("v1");
+    expect(dup.vendors).not.toBe(original.vendors);
+    expect(dup.vendors[0]).not.toBe(original.vendors[0]);
+    // The function's own comment claims the remaining nested collections are
+    // deep-copied. These two were not.
+    expect(dup.announcements).not.toBe(original.announcements);
+    expect(dup.messageTemplates).not.toBe(original.messageTemplates);
+    dup.announcements.save.headline = "שונה";
+    expect(original.announcements.save.headline).toBe("שמרו את התאריך");
+  });
+
+  it("survives an event with no vendors at all", () => {
+    const { vendors, ...noVendors } = ev();   // eslint-disable-line no-unused-vars
+    expect(duplicateEvent(noVendors).vendors).toEqual([]);
+  });
+});

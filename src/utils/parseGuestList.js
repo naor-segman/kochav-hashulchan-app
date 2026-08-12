@@ -221,7 +221,12 @@ function parseOnePerson(segment) {
   // three seats. A "+2" with no names is three seats and no names to show.
   const count = Math.min(MAX_SEATS, 1 + Math.max(declared || 0, companions.length));
   const row = { name, phone };
-  if (count > 1) { row.count = count; row.companions = companions; }
+  // `count` is clamped to MAX_SEATS; `companions` has to be clamped WITH it, or
+  // a bracket holding 60 names produces companions.length 60 against count 50 —
+  // the one shape the rest of the app treats as impossible
+  // (companions.length <= count - 1). Absurd input, but every downstream reader
+  // re-clamping is not the same as the gateway being right.
+  if (count > 1) { row.count = count; row.companions = companions.slice(0, count - 1); }
   return row;
 }
 
