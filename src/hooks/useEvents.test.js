@@ -119,11 +119,30 @@ describe("mergeCloudWithLocal — arrivals marked at the door", () => {
     expect(out.guests[0].arrivedSeats).toEqual([4]);
   });
 
-  it("never adds or removes a guest row", () => {
+  // DELIBERATELY CHANGED, 12.8. This used to assert that a cloud-only row is
+  // NOT added — "never adds or removes a guest row". That is the right contract
+  // for `mergeArrivals`, which only ever touches two fields on rows both sides
+  // already have, and it is still true of that function. It was the wrong
+  // contract for the merge as a whole: it is what silently deleted 37 guests
+  // added on a second device (see the union tests at the bottom of this file).
+  // A row present only in the cloud is another device's work, not an intruder.
+  it("brings over a row that exists only in the cloud, arrivals and all", () => {
     const local = [withArrivals({ updatedAt: 20_320, cloudId: "c1" })];
     const cloud = [cloudSide()];
-    cloud[0].guests.push({ id: "g9", name: "פולשת", side: "bride", group: "אחר", count: 1,
-      arrivedSeats: [0], arrived: true });
+    cloud[0].guests.push({ id: "g9", name: "אורחת שנוספה בטלפון", side: "bride", group: "אחר",
+      count: 1, arrivedSeats: [0], arrived: true });
+    const [out] = mergeCloudWithLocal(local, cloud);
+    expect(out.guests.map(g => g.id)).toEqual(["g1", "g2", "g9"]);
+    // …and it is not seated, because `seating` stays local. A newly imported
+    // guest belongs in "ממתינים לשיבוץ", which is where the host looks for one.
+    expect(out.seating.g9).toBeUndefined();
+  });
+
+  it("still never REMOVES a row the local copy has", () => {
+    // The half of the old contract that was always right.
+    const local = [withArrivals({ updatedAt: 20_320, cloudId: "c1" })];
+    const cloud = [cloudSide()];
+    cloud[0].guests = [cloud[0].guests[0]];         // the cloud is missing g2
     const [out] = mergeCloudWithLocal(local, cloud);
     expect(out.guests.map(g => g.id)).toEqual(["g1", "g2"]);
   });
@@ -208,5 +227,119 @@ describe("mergeCloudWithLocal — a rotated token is not resurrected", () => {
     expect(out.tokens.collab).toBe("new-token");
     expect(out.tokens.rsvp).toBe("R");
     expect(out.tokens.album).toBe("A");
+  });
+});
+
+// ── From the 12.8 data-integrity review ──────────────────────────────────────
+describe("mergeCloudWithLocal — rows another device added are not thrown away", () => {
+  // Reproduced end to end before the fix. Both devices hold cloud v5. The phone
+  // adds 37 guests at 20:00 and pushes → cloud v6. The laptop edits the venue
+  // at 20:05, its push conflicts (correctly — that is the version check doing
+  // its job), it re-fetches, and THIS function decided the laptop's 20:05 beat
+  // the phone's 20:00 and kept the laptop's copy whole. 37 guests gone from
+  // screen and localStorage, syncedVersion advanced to 6, and the laptop's next
+  // edit wrote 3 guests over the cloud unopposed.
+  const phone = () => ({
+    ...ev({ updatedAt: 20_000, cloudId: "c1", version: 6, syncedVersion: 6 }),
+    guests: guests(40),
+  });
+  const laptop = () => ({
+    ...ev({ updatedAt: 20_500, cloudId: "c1", version: 6, syncedVersion: 5, venue: "אולם ב" }),
+    guests: guests(3),
+  });
+
+  it("keeps the 37 guests the other device added, and the local edit too", () => {
+    const [out] = mergeCloudWithLocal([laptop()], [phone()]);
+    expect(out.venue).toBe("אולם ב");                 // this tab's edit still wins
+    expect(out.guests).toHaveLength(40);
+    for (let i = 0; i < 40; i++) {
+      expect(out.guests.some(g => g.id === "g" + i)).toBe(true);
+    }
+  });
+
+  it("does not duplicate a row both sides already have", () => {
+    const [out] = mergeCloudWithLocal([laptop()], [phone()]);
+    expect(new Set(out.guests.map(g => g.id)).size).toBe(out.guests.length);
+  });
+
+  it("the local copy of a shared row wins — it is the newer one", () => {
+    const local = { ...laptop() };
+    local.guests = [{ ...guests(1)[0], name: "השם החדש" }];
+    const [out] = mergeCloudWithLocal([local], [phone()]);
+    expect(out.guests.find(g => g.id === "g0").name).toBe("השם החדש");
+  });
+
+  it("keeps tables the other device added, without touching the local seating", () => {
+    const local = { ...laptop(), tables: [{ id: "t1", name: "שולחן 1", capacity: 10 }], seating: { g0: "t1" } };
+    const cloud = { ...phone(), tables: [
+      { id: "t1", name: "שולחן 1", capacity: 10 },
+      { id: "t2", name: "שולחן 2", capacity: 12 },
+    ] };
+    const [out] = mergeCloudWithLocal([local], [cloud]);
+    expect(out.tables.map(t => t.id).sort()).toEqual(["t1", "t2"]);
+    expect(out.seating).toEqual({ g0: "t1" });
+  });
+
+  it("still keeps the greeter's arrivals on a row the union just brought over", () => {
+    // The two merges answer different questions and neither subsumes the other:
+    // one keeps ROWS, the other keeps two FIELDS on rows that already exist.
+    const cloud = { ...phone() };
+    cloud.guests = cloud.guests.map((g, i) =>
+      i === 39 ? { ...g, arrivedSeats: [0], arrived: true } : g);
+    const [out] = mergeCloudWithLocal([laptop()], [cloud]);
+    const brought = out.guests.find(g => g.id === "g39");
+    expect(brought.arrived).toBe(true);
+    expect(brought.arrivedSeats).toEqual([0]);
+  });
+
+  it("changes nothing when the cloud has no rows the local copy is missing", () => {
+    const local = { ...laptop(), guests: guests(40) };
+    const [out] = mergeCloudWithLocal([local], [phone()]);
+    expect(out.guests).toHaveLength(40);
+  });
+});
+
+describe("mergeCloudWithLocal — the union runs in BOTH directions", () => {
+  // The asymmetric version is a second, worse bug. `useCollabSync` holds its
+  // `applied` map in a ref that survives a merge and computes its delete list
+  // as `applied − activeEvent.guests`. So a cloud copy predating the family's
+  // shared-table rows made the app conclude the HOST had deleted them, and it
+  // issued a real delete against the shared table — the one part of this
+  // product that cannot be reconstructed from anywhere else.
+  const local = () => ({
+    ...ev({ updatedAt: 1_000, cloudId: "c1" }),
+    guests: [
+      { id: "r1", name: "דודה רחל", side: "bride", group: "משפחה", count: 2 },
+      { id: "r2", name: "משה כהן",  side: "groom", group: "חברים", count: 1 },
+    ],
+    tables: [{ id: "t9", name: "שולחן מקומי", capacity: 8 }],
+  });
+  const cloudNewerButOlderContent = () => ({
+    ...ev({ updatedAt: 9_000, cloudId: "c1", venue: "אולם מהענן" }),
+    guests: [{ id: "r3", name: "יעל", side: "bride", group: "משפחה", count: 1 }],
+    tables: [],
+  });
+
+  it("keeps the local-only rows even when the cloud wins the event", () => {
+    const [out] = mergeCloudWithLocal([local()], [cloudNewerButOlderContent()]);
+    expect(out.venue).toBe("אולם מהענן");                     // the cloud still wins
+    expect(out.guests.map(g => g.id).sort()).toEqual(["r1", "r2", "r3"]);
+    expect(out.tables.map(t => t.id)).toEqual(["t9"]);
+  });
+
+  it("leaves the ordinary fresh-device pull completely alone", () => {
+    // Local has nothing, so the union has nothing to contribute and the cloud
+    // copy must come through untouched.
+    const cloud = cloudNewerButOlderContent();
+    const [out] = mergeCloudWithLocal([], [cloud]);
+    expect(out.guests.map(g => g.id)).toEqual(["r3"]);
+    expect(out.tables).toEqual([]);
+  });
+
+  it("does not duplicate rows both sides hold", () => {
+    const cloud = { ...cloudNewerButOlderContent() };
+    cloud.guests = [...cloud.guests, { id: "r1", name: "דודה רחל", side: "bride", group: "משפחה", count: 2 }];
+    const [out] = mergeCloudWithLocal([local()], [cloud]);
+    expect(new Set(out.guests.map(g => g.id)).size).toBe(out.guests.length);
   });
 });

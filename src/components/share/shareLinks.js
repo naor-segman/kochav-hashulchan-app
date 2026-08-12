@@ -72,6 +72,19 @@ export const SHARE_GROUPS = [
         mark: "gifts",
         say: "האורח משאיר לכם ברכה, ורואה איך להעביר מתנה.",
       },
+      {
+        // Orphaned until now: `album` was in TOKEN_KEYS, it had a route, it had
+        // fetchAlbumPhotos/uploadAlbumPhoto and its own storage bucket, and
+        // /album/:token rendered a working upload screen — but it appeared in
+        // no share group and nowhere else in src/, so there was no way for a
+        // host to reach the link. A finished feature with no door on it.
+        key: "album",
+        tokenKey: "album",
+        path: "/album/",
+        label: "אלבום משותף",
+        mark: "album",
+        say: "האורחים מעלים את התמונות שהם צילמו, והכל נאסף למקום אחד במקום להסתובב בין עשרים צ׳אטים.",
+      },
     ],
   },
   {

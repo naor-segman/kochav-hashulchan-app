@@ -57,6 +57,41 @@ function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRo
  * A guest missing from either side is left alone; this never adds or removes a
  * row, only two keys on rows that exist on both.
  */
+/**
+ * Rows the OTHER device added, which whole-event last-write-wins throws away.
+ *
+ * THE FAILURE THIS EXISTS FOR — reproduced end to end:
+ *   Both devices hold cloud v5. The phone adds 37 guests at 20:00 and pushes;
+ *   the cloud is now v6. The laptop edits the venue name at 20:05 — its local
+ *   version is also 6, its syncedVersion is still 5, so `eq(version, 5)` misses
+ *   and the push raises CloudConflictError. That is the mechanism WORKING. But
+ *   the recovery re-fetches and hands the row to this merge, which sees the
+ *   laptop's 20:05 as newer than the phone's 20:00 and keeps the laptop's copy
+ *   WHOLE. The 37 guests vanish from the laptop's screen and its localStorage,
+ *   `syncedVersion` is set to 6, and the laptop's next edit writes 3 guests
+ *   over the cloud unopposed. Nothing re-pushes, and hydration runs once per
+ *   login, so nothing ever corrects it.
+ *
+ * So: whichever side's SCALARS win, a row that exists only on the other side is
+ * kept. Local wins every id both sides have — this tab's edits are still newer,
+ * which is the whole reason it won.
+ *
+ * THE TRADE, STATED PLAINLY. Without tombstones, a union cannot tell "the other
+ * device added this" from "I deleted this and my delete has not landed yet", so
+ * a guest deleted locally before the push lands can come back on the next pull.
+ * That is the right way round: a resurrected row is visible and takes one click
+ * to remove again, and 37 silently deleted guests are gone for good. If it ever
+ * becomes a real complaint the answer is deletion tombstones, not reverting
+ * this.
+ */
+function unionById(localRows, cloudRows) {
+  if (!Array.isArray(cloudRows) || !cloudRows.length) return localRows;
+  if (!Array.isArray(localRows)) return cloudRows;
+  const localIds = new Set(localRows.map(r => r?.id).filter(Boolean));
+  const extras   = cloudRows.filter(r => r?.id && !localIds.has(r.id));
+  return extras.length ? [...localRows, ...extras] : localRows;
+}
+
 function mergeArrivals(localGuests, cloudGuests) {
   if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
   const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
@@ -100,7 +135,16 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
         // host edits the venue at 20:32, their copy is newer by definition, and
         // three people the greeter checked in at 20:31 are dropped and then
         // pushed back over the cloud. Measured: exactly that.
-        guests: mergeArrivals(localMatch.guests, ce.guests),
+        // Two different merges, for two different failures. `unionById` keeps
+        // ROWS the other device added; `mergeArrivals` keeps two FIELDS on rows
+        // both sides already have. Neither subsumes the other.
+        guests: mergeArrivals(unionById(localMatch.guests, ce.guests), ce.guests),
+        // Tables too: a second device adding tables is the same shape of loss,
+        // and an unseated guest is recoverable while a deleted table is not.
+        // `seating` stays local — it references this tab's own ids, and a cloud
+        // guest arrives unseated, which is exactly where the host expects a
+        // newly imported row to be.
+        tables: unionById(localMatch.tables, ce.tables),
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
         // The concurrency base always comes from the row we just read, whichever
         // side's CONTENT wins — otherwise the next push compares against a
@@ -116,6 +160,32 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
     }
 
     let result = normalized;
+
+    // The cloud won on scalars — but a row it has never heard of is still this
+    // tab's work, so the union runs in BOTH directions. Symmetry is not tidiness
+    // here; the asymmetric version is a second, worse bug:
+    //
+    //   `useCollabSync` keeps `applied` in a ref, which survives a merge, and
+    //   computes its delete list as `applied − activeEvent.guests`. So the
+    //   moment hydration replaced `guests` with a cloud copy predating the
+    //   family's rows, the app concluded the HOST had deleted them and issued a
+    //   real `deleteCollabGuestsOwner`. Driven through a rendered hook:
+    //   `[["r1","r2","r3"]]` — three relatives' rows deleted out of the shared
+    //   table, from the one part of the product that cannot be reconstructed
+    //   from anywhere else.
+    //
+    // Keeping the rows means there is nothing for that pass to conclude was
+    // deleted. Same trade as the other direction and the same reasoning: no
+    // tombstones, so a delete that has not landed yet can come back, and that
+    // is the recoverable failure of the two.
+    if (localMatch) {
+      const guestsUnion = unionById(result.guests, localMatch.guests);
+      const tablesUnion = unionById(result.tables, localMatch.tables);
+      if (guestsUnion !== result.guests || tablesUnion !== result.tables) {
+        result = { ...result, guests: guestsUnion, tables: tablesUnion };
+      }
+    }
+
     if (localMatch?.floorPlan?.image && !result.floorPlan?.image) {
       // Cloud has no floor plan (positions never synced) but local does. Spread
       // guards against result.floorPlan being null, and tablePositions falls back
