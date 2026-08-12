@@ -56,8 +56,13 @@ export function useAppUpdate() {
       // hundreds of people. `registration.update()` is cheap — one conditional
       // request for the service worker file.
       const ask = () => { registration.update().catch(() => {}); };
-      const timer = setInterval(ask, CHECK_EVERY_MS);
-      registration.__kochavTimer = timer;
+      // Clear first. The unmount cleanup below already clears this timer — a
+      // review reported it as never cleared, which is not what the code does —
+      // but nothing stops `onRegisteredSW` from firing twice for the same
+      // registration, and the second call would orphan the first interval with
+      // no handle left to clear it.
+      if (registration.__kochavTimer) clearInterval(registration.__kochavTimer);
+      registration.__kochavTimer = setInterval(ask, CHECK_EVERY_MS);
     },
     onRegisterError() {},
   });

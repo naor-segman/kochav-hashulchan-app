@@ -79,7 +79,7 @@ const AccessibilityScreen = lazy(() => import("./screens/AccessibilityScreen.jsx
 // Reads eventId from the URL, validates it, provides patchEvent/go/showToast
 // to child screens using the same prop API they already use.
 
-function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
+function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, ready }) {
   const { eventId } = useParams();
   const navigate    = useNavigate();
   const location    = useLocation();
@@ -113,7 +113,17 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
     // A bookmarked event URL on a fresh device waits here for the cloud pull.
     // That was a blank white page for as long as the fetch took — on venue wifi,
     // seconds — with nothing to say the app was working.
-    if (syncStatus === SYNC_STATUS.SYNCING) return <Loading label="טוענים את האירוע…" />;
+    //
+    // `ready` is the half that was missing, and without it this guard fired on
+    // EVERY full page load of an event screen for a LOGGED-IN host. syncStatus
+    // starts LOCAL_ONLY, `supabase.auth.getSession()` is async, and until it
+    // resolves `events` still holds the guest bucket — so `activeEvent` was
+    // undefined and the host landed on the dashboard. Measured: /seating,
+    // /share and 14 more bounced to /app; /entrance and /checkin did not, and
+    // the only difference between them was that those two were already being
+    // handed the auth-loading flag. Refresh, a bookmark, a PWA cold start and
+    // a link mailed to yourself all hit it.
+    if (!ready || syncStatus === SYNC_STATUS.SYNCING) return <Loading label="טוענים את האירוע…" />;
     return <Navigate to="/app" replace />;
   }
 
@@ -196,7 +206,7 @@ export default function App() {
 
 function AppRoutes() {
   const { user, loading: authLoading }                                  = useAuth();
-  const { events, addEvent, removeEvent, patchEventById, syncStatus }  = useEvents(user);
+  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady } = useEvents(user);
   const { toast, showToast }                                            = useToast();
   const { plan }                                                        = usePlan();
   const navigate                                                        = useNavigate();
@@ -393,6 +403,7 @@ function AppRoutes() {
             showToast={showToast}
             toast={toast}
             syncStatus={syncStatus}
+            ready={!authLoading && eventsReady}
           />
         }
       />

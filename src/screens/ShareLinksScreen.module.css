@@ -167,4 +167,25 @@
     width: 28px;
     height: 28px;
   }
+
+  /* On a phone the input, the copy button and the QR button shared one 342px
+     line, which left the field 174px wide against a 545px URL: measured, every
+     one of the eight rows showed only "http://localhost:5174" and they were
+     pixel-identical to each other. The label above each row still said which
+     link it was, so this was legibility rather than a wrong send — but a host
+     about to paste a link into a family WhatsApp group should be able to SEE
+     which one. Giving the field its own line takes it to ~342px, and the
+     buttons drop underneath where they are also easier to hit.
+     Measured after: 174px → 290px, hidden 68% → 47%, and the PATH segment is
+     now on screen, which is the half that says which link this is.
+     Not fixed here: at 1280 the field is exactly full (620/620) at the dev
+     origin, so a production origin — 9 characters longer — will hide a little
+     of the end on desktop too. The row label names the link either way, so
+     that is legibility at the margin rather than the same defect. */
+  .linkRow {
+    flex-wrap: wrap;
+  }
+  .linkInput.linkInput {
+    flex: 1 1 100%;
+  }
 }

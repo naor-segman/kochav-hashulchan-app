@@ -174,6 +174,16 @@ export function useEvents(user) {
     (loadState().events || []).map(normalizeEvent).filter(Boolean).filter(e => !e.cloudId)
   );
   const [syncStatus, setSyncStatus] = useState(SYNC_STATUS.LOCAL_ONLY);
+  // Which account `events` has actually been loaded FOR. `undefined` until the
+  // hydration effect below has run once. See `eventsReady` at the bottom for
+  // why a route guard needs this and cannot use syncStatus instead.
+  //
+  // State and not a ref, even though `ownerRef` below already holds this value:
+  // reading a ref during render is a lint ERROR here (`react-hooks/refs`), not
+  // a warning. Both writes sit beside `setEvents` calls that were already
+  // there, so the `react-hooks/set-state-in-effect` count is unchanged at 20 —
+  // measured, not assumed.
+  const [hydratedFor, setHydratedFor] = useState(undefined);
 
   // Refs let callbacks read the latest values without stale-closure issues.
   const eventsRef    = useRef(events);
@@ -225,6 +235,7 @@ export function useEvents(user) {
         ownerRef.current = null;
         setEvents(load(userStorageKey(null)).filter(e => !e.cloudId));
         setSyncStatus(SYNC_STATUS.LOCAL_ONLY);
+        setHydratedFor(null);
       }
       return;
     }
@@ -251,6 +262,7 @@ export function useEvents(user) {
     // Show THIS user's own data immediately (optimistic local-first) — never the
     // pre-login view.
     setEvents(seeded);
+    setHydratedFor(userId);
 
     // No cloud configured → auth never yields a user, so this path is unreachable.
     if (!isSupabaseConfigured) return;
@@ -449,5 +461,22 @@ export function useEvents(user) {
     }, 1500);
   }, [pushUpdate]);
 
-  return { events, addEvent, removeEvent, patchEventById, syncStatus };
+  /**
+   * Is `events` the list a route guard is allowed to draw conclusions from?
+   *
+   * A guard cannot use `syncStatus` alone. It starts LOCAL_ONLY, and between
+   * "auth resolved a user" and "the hydration effect swapped in that user's
+   * bucket" there is at least one render where a logged-in host's own events
+   * are simply not in state yet — `events` still holds the pre-login guest
+   * view. A guard that redirects in that window sends every bookmarked event
+   * URL to the dashboard. Measured: /events/:id/seating, /share and 14 more did
+   * exactly that on every full page load; /entrance and /checkin did not, and
+   * the only difference was that those two were already given the auth flag.
+   *
+   * Logged out, this is simply true: there is nothing left to wait for, and the
+   * guest bucket is already in state from the initial `useState`.
+   */
+  const eventsReady = userId ? hydratedFor === userId : true;
+
+  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady };
 }

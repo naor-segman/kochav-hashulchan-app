@@ -243,6 +243,16 @@
 
 .searchInput::placeholder { color: var(--nav-muted); font-weight: 500; }
 
+/* `type="search"` gives Chromium its own clear glyph, which landed right beside
+   the app's own נקו חיפוש button — two clear controls, ~2px apart, on the screen
+   a greeter is stabbing at with one thumb while a queue waits. Ours stays: it
+   is 44px, it is labelled, and it returns focus to the field. */
+.searchInput::-webkit-search-cancel-button,
+.searchInput::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .searchInput:focus {
   outline: none;
   border-color: var(--accent-on-dark);

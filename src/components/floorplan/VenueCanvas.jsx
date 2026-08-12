@@ -1,4 +1,5 @@
 import TableGlyph from "../ui/TableGlyph.jsx";
+import { glyphLabel } from "../../utils/glyphLabel.js";
 import styles from "./VenueCanvas.module.css";
 
 /**
@@ -58,13 +59,19 @@ export default function VenueCanvas({ tables = [], guests = [], seating = {}, ma
           const cy = pad + row * cell + cell / 2;
           return (
             <g key={t.id} transform={`translate(${cx - 38} ${cy - 38})`}>
+              {/* The full name lives here, where it can be as long as the host
+                  likes. Inside the glyph it becomes a number — which is how a
+                  real floor plan identifies a table, and the only thing that
+                  fits in 76px. Passing `t.name` straight in overlapped three
+                  tables into each other; measured. */}
+              <title>{t.name}</title>
               <foreignObject width="76" height="76">
                 <TableGlyph
                   shape={t.shape}
                   capacity={t.capacity}
                   taken={seatsAt(t.id)}
                   size={76}
-                  label={t.name}
+                  label={glyphLabel(t.name, i)}
                 />
               </foreignObject>
             </g>
