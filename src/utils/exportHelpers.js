@@ -151,13 +151,26 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const tGuests      = ev.guests.filter(g => ev.seating[g.id] === t.id);
     const typeHe       = TABLE_TYPE_HE[t.type] || t.type;
     const seatedSeats  = tGuests.reduce((s, g) => s + (g.count || 1), 0);
-    // "5 מתוך 12", not "5 / 12". The workbook is opened RTL
-    // (`wb.Workbook.Views[0].RTL`), and a spaced slash between two numbers with
-    // no strong RTL character has its two number runs swapped by bidi rule N1 —
-    // measured: DOM "5 / 12" lays out as 12 then 5, so a table with 5 of 12
-    // seats taken reads as massively overbooked under the שובצו/קיבולת header.
-    // The Hebrew word sits BETWEEN the numbers, which is the form that anchors
-    // them; a Hebrew word after the pair does not.
+    // "5 מתוך 12", not "5 / 12" — and the honest reason, which is NOT the one
+    // this comment first claimed.
+    //
+    // The workbook opens RTL (`wb.Workbook.Views[0].RTL`). I first wrote that
+    // "5 / 12" has its numbers swapped and reads as overbooked. Measured token
+    // positions do not support that:
+    //
+    //   "5 / 12"     read right-to-left: 5 · / · 12     glyphs left-to-right: 12 · / · 5
+    //   "5 מתוך 12"  read right-to-left: 5 · מתוך · 12  glyphs left-to-right: 12 · מתוך · 5
+    //
+    // The two are geometrically IDENTICAL, and in both the reader meets the 5
+    // first. So this is not a bidi defect.
+    //
+    // What it is: a slash between two numbers invites being read as a fraction,
+    // left to right — and the glyph cluster on screen is "12 / 5", which read
+    // that way says twelve of five. A Hebrew word between the numbers makes
+    // that misreading impossible, because מתוך cannot be part of an LTR
+    // fraction. That is a typographic choice, consistent with the standing
+    // decision in CLAUDE.md, not a measured failure — and it must not be cited
+    // to justify rewriting every `{a} / {b}` in the codebase.
     const occupied     = seatedSeats + " מתוך " + t.capacity;
 
     if (tGuests.length === 0) {

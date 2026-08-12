@@ -576,13 +576,19 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
               </div>
               <div className={styles.runCardStats}>
-                {/* No spaces around the slash. Measured: "7 / 8 מקומות" puts the 8
-                    to the LEFT of the 7 — bidi N1 resolves the spaced neutrals as
-                    RTL and swaps the runs. The trailing Hebrew word does not anchor
-                    it; only a Hebrew word BETWEEN the numbers would. Unspaced, the
-                    slash is a common separator between two EN runs (W4) and the pair
-                    stays a single LTR token — which is why the sibling below was
-                    already right. */}
+                {/* No spaces around the slash — and the accurate reason, which is
+                    narrower than the one I first wrote here.
+                    Measured in an RTL line:
+                      "7 / 8 מקומות"  glyphs left-to-right: מקומות · 8 · / · 7
+                      "7/8 מקומות"    glyphs left-to-right: מקומות · 7/8
+                    Read right-to-left, token by token, BOTH are correct — the 7
+                    comes first either way. The problem is only that a slash
+                    invites being read as a fraction, and the spaced form puts
+                    "8 / 7" on screen for a reader who does that. Unspaced, W4
+                    folds the slash into one European-number run, so the cluster
+                    renders "7/8" and there is nothing left to misread. Cheap, and
+                    it matches the sibling on this same line that was already
+                    unspaced and already right. */}
                 {nAssignedSeats}/{totalSeats} מקומות שובצו · {nActiveAssigned}/{activeGuests.length} רשומות פעילות · {totalCap} קיבולת האולם
                 {declinedGuests.length > 0 && ` · ${declinedGuests.length} סירבו (לא משובצים)`}
               </div>
@@ -1078,9 +1084,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       </div>
                     ))}
                   </div>
-                  {/* Unspaced for the same reason as the run-card stats above — and
-                      here it went to PAPER: "3 / 6 מקומות" printed as 6 / 3, a card
-                      on the table telling the staff it seats 6 of 3. */}
+                  {/* Unspaced for the same reason as the run-card stats above, and
+                      it matters more here because it goes to PAPER: the printed
+                      cluster was "6 / 3", which anyone reading the slash as a
+                      fraction takes for a table seating six of three. */}
                   <div className={styles.pvCardFooter}>{tg.reduce((s, g) => s + (g.count || 1), 0)}/{t.capacity} מקומות</div>
                 </div>
               );

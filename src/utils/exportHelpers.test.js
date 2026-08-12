@@ -335,11 +335,12 @@ describe("the occupancy cell — seats, and in an order a Hebrew reader can trus
     expect(String(cell)).not.toMatch(/^1 /);
   });
 
-  it("uses 'מתוך' rather than a spaced slash, which the RTL workbook reverses", async () => {
-    // The workbook is opened RTL (`wb.Workbook.Views[0].RTL`). Measured: a DOM
-    // of "5 / 12" lays its two number runs out as 12 then 5, so a table with 5
-    // of 12 seats taken read as massively overbooked. A Hebrew word BETWEEN
-    // the numbers is the form that anchors them.
+  it("uses 'מתוך' rather than a spaced slash in the RTL workbook", async () => {
+    // See the comment at the call site: the two forms are geometrically
+    // identical and the reading order of "5 / 12" was never wrong. What the
+    // Hebrew word buys is that the cluster on screen — "12 מתוך 5" — cannot be
+    // mistaken for an LTR fraction the way "12 / 5" can. A convention, pinned
+    // so it does not drift back, not a measured defect.
     await exportToExcel(ev(), sideLabel, []);
     const rows = sheetNamed("סידור הושבה").rows;
     const cell = String(rows.find(r => String(r[0]) === "t1")[3]);

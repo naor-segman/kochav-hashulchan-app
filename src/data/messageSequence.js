@@ -10,11 +10,19 @@
  *
  * Templates use {{placeholders}} filled from the event and the guest.
  *
- * `when` uses a plain HYPHEN-MINUS in ranges, never an en-dash. Measured in the
- * browser: "3–6 חודשים לפני" puts the 6 to the LEFT of the 3 — an en-dash is an
- * Other Neutral, so bidi N1 resolves it RTL between two European numbers and
- * swaps them. A hyphen-minus is a European Separator, W4 folds it into a single
- * number run, and "3-6" stays in order. Same class as the spaced slash.
+ * `when` uses a plain HYPHEN-MINUS in ranges, never an en-dash.
+ *
+ * This one is a plain defect rather than a judgement call — unlike the spaced
+ * slash elsewhere in the codebase, where the reading order turns out to be fine
+ * and only the fraction reading breaks. Measured in the browser:
+ *
+ *   "3–6 חודשים לפני"   the cluster renders 6–3
+ *   "3-6 חודשים לפני"   the cluster renders 3-6
+ *
+ * There is no reading of "6–3" under which it means three to six. An en-dash is
+ * an Other Neutral, so N1 resolves it RTL between two European numbers and
+ * swaps them; a hyphen-minus is a European Separator, W4 folds the three into a
+ * single number run, and the range survives.
  */
 
 export const MESSAGE_STAGES = [
