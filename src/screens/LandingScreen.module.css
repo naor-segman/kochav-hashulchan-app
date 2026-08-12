@@ -1458,3 +1458,60 @@
     height: 44px;
   }
 }
+
+/* ── The problem, before the promise ─────────────────────────────────────────
+   AIDA's Interest step. Deliberately the quietest band on the page: it is the
+   reader's own situation being described back to them, and any decoration here
+   would read as a sales device rather than recognition. The turn at the end is
+   the only line that raises its voice. */
+.problem {
+  background: var(--surface);
+  padding: clamp(56px, 9vw, 96px) 0;
+  scroll-margin-top: 84px;
+}
+
+.problemGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: 34px;
+}
+
+.problemItem {
+  background: var(--surface);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.problemWhere {
+  margin: 0;
+  font-size: var(--step-0);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.problemWhat {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* The one line that turns the section. Left-bordered rather than centred, so it
+   reads as a consequence of the list above it and not as a pull quote. */
+.problemTurn {
+  margin: 26px 0 0;
+  padding-inline-start: 16px;
+  border-inline-start: 3px solid var(--accent);
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--text);
+  max-width: 40rem;
+}
