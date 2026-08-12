@@ -5,6 +5,32 @@ export const EVENT_TYPES = [
   "אירוע משפחתי","אירוע עסקי","יום הולדת","אחר",
 ];
 
+/* The question each event type is asked on the opening screen.
+ *
+ * Keyed by the HEBREW strings in EVENT_TYPES, because that is what an event
+ * actually stores. An English key here would match nothing and fall through to
+ * the default without throwing — bug class 1 in CLAUDE.md.
+ *
+ * The screen used to ask "על מי האירוע, ומתי?" for eight of the nine types.
+ * That is a form asking you to file yourself. Someone opening this is planning
+ * the best day of their year; the heading can say so without turning into a
+ * greeting card. `eventTypeHeading()` falls back for admin-created template
+ * types, which are free text and will never all be listed here.
+ */
+export const EVENT_TYPE_HEADINGS = {
+  "חתונה":        "מי הזוג המאושר?",
+  "אירוס":        "מי הזוג שאמר כן?",
+  "חינה":         "לכבוד מי החינה?",
+  "בר מצווה":     "מי חוגג בר מצווה?",
+  "בת מצווה":     "מי חוגגת בת מצווה?",
+  "יום הולדת":    "למי אנחנו חוגגים?",
+  "אירוע משפחתי": "איזו משפחה מתכנסת?",
+  "אירוע עסקי":   "מי החברה שמארחת?",
+  "אחר":          "לכבוד מי האירוע?",
+};
+
+export const eventTypeHeading = t => EVENT_TYPE_HEADINGS[t] || EVENT_TYPE_HEADINGS["אחר"];
+
 export const GROUP_OPTIONS = [
   "הורים","אחים ואחיות","סבים וסבתות","דודים ודודות",
   "בני דודים","חברים","חברים מהלימודים","חברים מהצבא",

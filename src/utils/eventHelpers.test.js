@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { normalizeEvent, duplicateEvent, seatingTotals, TOKEN_KEYS, rotateEventToken } from "./eventHelpers.js";
+import { normalizeEvent, duplicateEvent, seatingTotals, TOKEN_KEYS, rotateEventToken,
+         guestSeatNames, guestCompanionNames } from "./eventHelpers.js";
 
 describe("normalizeEvent — timestamps", () => {
   it("defaults updatedAt to createdAt (never epoch 0) when both are missing", () => {
@@ -403,5 +404,47 @@ describe("rotateEventToken", () => {
     const n = normalizeEvent(rotated);
     expect(n.tokens.collab).toBe(rotated.tokens.collab);
     expect(n.tokensRotatedAt).toBe(5_000);
+  });
+});
+
+describe("guestCompanionNames — the on-screen companions line", () => {
+  const guest = (extra = {}) => ({ id: "g1", name: "טל שוורץ", count: 2, ...extra });
+
+  it("drops the parenthetical guestSeatNames adds for the printed card", () => {
+    const g = guest({ companions: ["רונית"] });
+    // What the place card needs — the name is meaningful alone on a plate.
+    expect(guestSeatNames(g)).toEqual(["טל שוורץ", "רונית (טל שוורץ)"]);
+    // What the table card needs — "טל שוורץ" is already the line above.
+    expect(guestCompanionNames(g)).toEqual(["רונית"]);
+  });
+
+  it("returns nothing when the extra seats have no names on them", () => {
+    // guestSeatNames pads these with "טל שוורץ +1", i.e. the row's own name
+    // for a third time. There is nothing to show, so nothing is shown.
+    expect(guestSeatNames(guest({ count: 3 }))).toEqual(["טל שוורץ", "טל שוורץ +1", "טל שוורץ +2"]);
+    expect(guestCompanionNames(guest({ count: 3 }))).toEqual([]);
+  });
+
+  it("clamps to the seats the row actually has, like the shared table does", () => {
+    // A stale companions array longer than the count must not print people
+    // who have no chair.
+    const g = guest({ count: 2, companions: ["רונית", "יעל", "אבי"] });
+    expect(guestCompanionNames(g)).toEqual(["רונית"]);
+  });
+
+  it("skips blank and whitespace-only companions, and trims the rest", () => {
+    const g = guest({ count: 4, companions: ["  רונית  ", "", "   ", "יעל"] });
+    expect(guestCompanionNames(g)).toEqual(["רונית", "יעל"]);
+  });
+
+  it("is safe on a row that predates companions, and on no row at all", () => {
+    expect(guestCompanionNames({ id: "g", name: "טל", count: 2 })).toEqual([]);
+    expect(guestCompanionNames({ id: "g", name: "טל", count: 2, companions: "רונית" })).toEqual([]);
+    expect(guestCompanionNames(null)).toEqual([]);
+    expect(guestCompanionNames(undefined)).toEqual([]);
+  });
+
+  it("returns nothing for a single-seat row even if a companion was left behind", () => {
+    expect(guestCompanionNames(guest({ count: 1, companions: ["רונית"] }))).toEqual([]);
   });
 });

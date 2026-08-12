@@ -394,6 +394,32 @@ export function guestSeatNames(g) {
   while (names.length < count) names.push(`${base} +${extra++}`);
   return names.slice(0, count);
 }
+
+/**
+ * The companions of a row, by their own names — nothing else.
+ *
+ * guestSeatNames() suffixes every companion with the row's name ("רונית (טל
+ * שוורץ)") and pads the unnamed seats with "טל שוורץ +1". That is right on a
+ * PRINTED place card, which is read alone on a plate with no context. Inside a
+ * table card the row already says "טל שוורץ" one line above, so the suffix is
+ * the same name twice and the padding is the row's own name a third time —
+ * which is exactly what the host asked about.
+ *
+ * So: only companions who HAVE a name, clamped to the seats the row actually
+ * has (`count - 1`), exactly the way the shared table clamps them. An empty
+ * array means there is nothing worth showing — the row's "· N מקומות" already
+ * says how many chairs there are.
+ *
+ * @returns {string[]} 0..count-1 companion names, in the order they were entered.
+ */
+export function guestCompanionNames(g) {
+  if (!g) return [];
+  const count = Math.max(1, g.count || 1);
+  return (Array.isArray(g.companions) ? g.companions : [])
+    .map(c => (c || "").toString().trim())
+    .filter(Boolean)
+    .slice(0, count - 1);
+}
 //
 // EventSetupScreen uses these to show the right personal fields for each
 // event type without embedding business logic in the component.
@@ -403,26 +429,31 @@ export function guestSeatNames(g) {
  * Returns the personal-fields config for a given event type.
  * kind: "wedding" | "bar" | "bat" | "business" | "owner"
  */
+// `divider` is a section heading a host reads while filling the form, not a
+// database field name. Five of the seven branches said "פרטים אישיים", which
+// tells a bat mitzvah mother nothing she did not already know. Each one now
+// names who the section is actually about, in the same voice as the opening
+// screen's EVENT_TYPE_HEADINGS.
 export function getEventPersonalConfig(type) {
   if (type === "חתונה" || type === "אירוס" || type === "חינה") {
-    return { kind: "wedding", divider: "שמות בני הזוג" };
+    return { kind: "wedding", divider: "שמות בעלי השמחה" };
   }
   if (type === "בר מצווה") {
-    return { kind: "bar", divider: "פרטים אישיים", label: "שם הבר מצווה", placeholder: "לדוגמה: עידו" };
+    return { kind: "bar", divider: "מי חוגג בר מצווה", label: "שם הבר מצווה", placeholder: "לדוגמה: עידו" };
   }
   if (type === "בת מצווה") {
-    return { kind: "bat", divider: "פרטים אישיים", label: "שם הבת מצווה", placeholder: "לדוגמה: תמר" };
+    return { kind: "bat", divider: "מי חוגגת בת מצווה", label: "שם הבת מצווה", placeholder: "לדוגמה: תמר" };
   }
   if (type === "אירוע עסקי") {
-    return { kind: "business", divider: "פרטי הארגון" };
+    return { kind: "business", divider: "הארגון שמארח" };
   }
   if (type === "יום הולדת") {
-    return { kind: "owner", divider: "פרטים אישיים", label: "שם המחוגג/ת", placeholder: "לדוגמה: דניאל" };
+    return { kind: "owner", divider: "למי חוגגים", label: "שם המחוגג/ת", placeholder: "לדוגמה: דניאל" };
   }
   if (type === "אירוע משפחתי") {
-    return { kind: "owner", divider: "פרטים אישיים", label: "שם הגיבור/ה של האירוע", placeholder: "לדוגמה: משפחת כהן" };
+    return { kind: "owner", divider: "המשפחה שמתכנסת", label: "שם הגיבור/ה של האירוע", placeholder: "לדוגמה: משפחת כהן" };
   }
-  return { kind: "owner", divider: "פרטים אישיים", label: "שם הגיבור/ה", placeholder: "שם הגיבור/ה של האירוע" };
+  return { kind: "owner", divider: "לכבוד מי האירוע", label: "שם הגיבור/ה", placeholder: "שם הגיבור/ה של האירוע" };
 }
 
 /**

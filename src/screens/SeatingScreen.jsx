@@ -551,7 +551,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               {/* ── Primary: calculate / clear / undo ── */}
               <div className={styles.runActionsMain}>
                 <button className={styles.runBtn} onClick={runAuto} disabled={noTables || noGuests}>
-                  {nAssigned > 0 ? "חשבו מחדש" : "חשבו הושבה"}
+                  {/* "חשבו הושבה" reads as a description of the screen, not as
+                      something to press. The host asked for the button to say
+                      what pressing it does. */}
+                  {nAssigned > 0 ? "חשבו מחדש" : "לחצו להושבה אוטומטית"}
                 </button>
                 {nAssigned > 0 && (
                   <button
@@ -939,6 +942,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                               <span className={styles.pvGuestMeta}>
                                 {sideLabel(g.side)}{g.group ? " · " + g.group : ""}
                               </span>
+                              {/* Everyone else on the booking, by name. The
+                                  printed sheet used to say "טל שוורץ ×2" and
+                                  leave the second chair to be guessed. */}
+                              {guestCompanionNames(g).length > 0 && (
+                                <span className={styles.pvGuestSeats}>
+                                  {guestCompanionNames(g).join(" · ")}
+                                </span>
+                              )}
                             </div>
                           ))
                       }
@@ -983,6 +994,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       : tg.map(g => (
                           <div key={g.id} className={styles.pvCompactGuest}>
                             {g.name}{(g.count || 1) > 1 ? " ×" + g.count : ""}
+                            {guestCompanionNames(g).length > 0 && (
+                              <span className={styles.pvCompactSeats}>
+                                {guestCompanionNames(g).join(" · ")}
+                              </span>
+                            )}
                           </div>
                         ))
                     }

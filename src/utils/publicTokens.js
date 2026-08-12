@@ -255,6 +255,12 @@ export async function upsertCollabGuest(token, row) {
       guest_group:  row.guest_group ?? row.group ?? null,
       guests_count: Number(row.guests_count ?? row.count) || 1,
       companions:   Array.isArray(row.companions) ? row.companions : [],
+      // The key is OMITTED, not sent as null, when the caller holds no string.
+      // `collab_upsert_by_token` keeps the stored note when the key is absent,
+      // so a row this client loaded from a database that predates the notes
+      // column cannot write its own ignorance over someone else's note. An
+      // explicit "" is a person who emptied the box, and it does clear it.
+      ...(typeof row.notes === "string" ? { notes: row.notes } : {}),
       updated_by:   row.updated_by ?? null,
     },
   });
@@ -294,7 +300,7 @@ export async function fetchCollabGuestsOwner(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
   const { data, error } = await supabase
     .from("collab_guests")
-    .select("id, name, phone, side, guest_group, guests_count, companions, updated_at, updated_by")
+    .select("id, name, phone, side, guest_group, guests_count, companions, notes, updated_at, updated_by")
     .eq("event_id", eventCloudId);
   if (error) throw error;
   return data ?? [];
@@ -312,6 +318,10 @@ export async function upsertCollabGuestOwner(eventCloudId, row) {
     guest_group:  row.guest_group ?? row.group ?? null,
     guests_count: Number(row.guests_count ?? row.count) || 1,
     companions:   Array.isArray(row.companions) ? row.companions : [],
+    // Same rule on the owner's direct-table path: a column that is not in the
+    // payload is not in PostgREST's ON CONFLICT DO UPDATE SET list, so omitting
+    // `notes` leaves the stored note alone instead of nulling it.
+    ...(typeof row.notes === "string" ? { notes: row.notes } : {}),
     updated_at:   new Date().toISOString(),
   });
   if (error) throw error;

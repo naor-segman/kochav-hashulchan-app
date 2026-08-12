@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { EVENT_TYPES } from "../data/constants.js";
+import { EVENT_TYPES, eventTypeHeading } from "../data/constants.js";
 import { AREAS } from "../data/eventAreas.js";
 import { getEventPersonalConfig } from "../utils/eventHelpers.js";
 import { useTemplates } from "../hooks/useTemplates.js";
@@ -136,11 +136,13 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
       {/* ── The two facts that are true on day one ── */}
       <form className={styles.card} onSubmit={submit}>
         <p className={styles.cardEyebrow}>נתחיל בקטן</p>
-        <h2 className={styles.cardTitle}>
-          {two ? "מי מתחתן, ומתי?" : "על מי האירוע, ומתי?"}
-        </h2>
+        {/* One heading per event type, from EVENT_TYPE_HEADINGS. Two branches
+            on `two` covered nine types with two sentences, and the one a
+            birthday host got — "על מי האירוע, ומתי?" — is a form asking them
+            to file themselves. */}
+        <h2 className={styles.cardTitle}>{eventTypeHeading(type)}</h2>
         <p className={styles.cardSub}>
-          זה כל מה שצריך כדי להתחיל. אולם, רשימות, תקציב — נשלים תוך כדי.
+          שם, ותאריך אם כבר יש. כל השאר — אולם, רשימות, תקציב — נשלים תוך כדי.
         </p>
 
         <div className={styles.fields}>
@@ -192,7 +194,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
           >
             {types.map(t => <option key={t}>{t}</option>)}
           </select>
-          <span className={styles.typeNote}>ניתן לשנות בכל רגע</span>
+          <span className={styles.typeNote}>אפשר לשנות בכל רגע</span>
         </div>
 
         {derived && (

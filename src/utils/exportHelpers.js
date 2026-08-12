@@ -1,4 +1,5 @@
 import { guestSeatNames } from "./eventHelpers.js";
+import { missingCompanionSeats } from "./guestForm.js";
 import { TABLE_TYPES } from "../data/constants.js";
 // Shared with the app rather than re-implemented. The local copy pushed the ISO
 // string through `new Date()`, which parses it as UTC — so west of Greenwich the
@@ -46,20 +47,37 @@ const COLLAB_FIELDS = [
  * Which required fields a shared-table row is still missing, in Hebrew.
  * Empty array = the row is complete and syncs into the guest list.
  * `guests_count` is never listed: it always defaults to 1, so it is never
- * missing. Exported so the screen badge and the exported סטטוס column can never
- * disagree about what "complete" means.
+ * missing. Exported so the screen badge, the exported סטטוס column AND the sync
+ * engine can never disagree about what "complete" means.
+ *
+ * Since 12.8 the names of the extra seats are part of "complete" (owner: a seat
+ * with no name is counted twice — once as a chair, once as the person it turns
+ * out to be). This is deliberately expressed HERE rather than as a new
+ * mechanism: the shared table saves as you type, so blocking a keystroke would
+ * make it unusable. What happens instead is exactly what already happens to a
+ * row with no phone — it is saved, it is visibly incomplete, and it does not
+ * enter the host's guest list until it is finished.
  */
 export function collabRowMissing(row) {
-  return COLLAB_FIELDS
+  const missing = COLLAB_FIELDS
     .filter(([k]) => !((row?.[k] ?? "").toString().trim()))
     .map(([, label]) => label);
+  const seats = missingCompanionSeats(row?.companions, row?.guests_count);
+  if (seats.length) {
+    // Numbered to match the inputs the screens render ("שם 1", "שם 2") and
+    // their aria-labels, so "חסר: שם המצטרף 2" points at one specific box.
+    missing.push(seats.length === 1
+      ? `שם המצטרף ${seats[0]}`
+      : `שמות המצטרפים (${seats.join(", ")})`);
+  }
+  return missing;
 }
 
 /**
  * Download the shared collaborative table as a workbook.
  *
  * @param {object[]} rows       collab rows: { name, phone, side, guest_group,
- *                              guests_count, companions, updated_by }
+ *                              guests_count, companions, notes, updated_by }
  * @param {object}   opts
  * @param {string}   opts.eventName   used for the filename only
  * @param {object}   opts.sideLabels  { bride, groom } — already localised
@@ -70,7 +88,7 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
   const list  = Array.isArray(rows) ? rows : [];
 
   const aoa = [[
-    "שם מלא", "טלפון", "צד", "קבוצה", "כמות", "שמות המצטרפים", "נוסף/עודכן ע״י", "סטטוס",
+    "שם מלא", "טלפון", "צד", "קבוצה", "כמות", "שמות המצטרפים", "הערות", "נוסף/עודכן ע״י", "סטטוס",
   ]];
 
   list.forEach(r => {
@@ -92,6 +110,11 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
       r.guest_group || "",
       count,
       companions,
+      // The whole point of the notes column: the dietary need / accessibility /
+      // "sits with the grandparents" the relative typed reaches the host in the
+      // same file as the name, instead of in a separate WhatsApp message the
+      // host has to go and ask for.
+      (r.notes || "").toString().trim(),
       r.updated_by || "",
       missing.length ? "חסר: " + missing.join(", ") : "מלאה — מסונכרנת",
     ]);
@@ -100,7 +123,7 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"] = [
     { wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 },
-    { wch: 7 }, { wch: 34 }, { wch: 16 }, { wch: 24 },
+    { wch: 7 }, { wch: 34 }, { wch: 30 }, { wch: 16 }, { wch: 24 },
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "טבלה שיתופית");

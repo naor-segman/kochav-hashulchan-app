@@ -10,6 +10,7 @@ import { parseGuestList, countWithPhone } from "../utils/parseGuestList.js";
 import {
   emptyGuestForm, guestToForm, applyGuestForm, newGuestFromForm,
   companionsForCount, setCompanionAt, companionSlots,
+  missingCompanionSeats, COMPANION_NAME_HINT,
 } from "../utils/guestForm.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { canAddGuest, guestSlotsLeft } from "../utils/featureGates.js";
@@ -52,6 +53,9 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const [filter, setFilter]       = useState({ side: "all", group: "all", rsvp: "all", search: "" });
   const [customGroupInput, setCustomGroupInput] = useState("");
   const nameRef                   = useRef(null);
+  // One ref per companion box, so a refused save can put the cursor in the
+  // empty one instead of leaving the host to hunt for it.
+  const companionRefs             = useRef([]);
   const setF = (k, v) => setForm(p => Object.assign({}, p, { [k]: v }));
 
   // All group options: standard + event-level custom + any already on guests (legacy compat).
@@ -110,6 +114,17 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const { group, newCustom } = resolveGroup();
     if (form.group === "אחר" && !customGroupInput.trim()) {
       showToast("יש להזין שם לקבוצה החדשה", "err"); return;
+    }
+    // Every extra seat needs a name (12.8). This form has an explicit save, so
+    // it is the ONE place where the rule can be a real block without risking
+    // anybody's typing — the shared table auto-saves and the RSVP form belongs
+    // to a stranger, so both of those are handled differently and on purpose.
+    // The message says what to type; it never says the host did something wrong.
+    const unnamed = missingCompanionSeats(form.companions, form.count);
+    if (unnamed.length) {
+      showToast(COMPANION_NAME_HINT, "err");
+      companionRefs.current[unnamed[0] - 1]?.focus();
+      return;
     }
     if (editId) {
       if (!ev.guests.some(g => g.id === editId)) {
@@ -544,15 +559,20 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             label={companionSlots(form.count) === 1
               ? `מי האדם שמצטרף ${form.name.trim() ? "ל" + form.name.trim() : "לרשומה הזו"}?`
               : `מי ${companionSlots(form.count)} האנשים שמצטרפים ${form.name.trim() ? "ל" + form.name.trim() : "לרשומה הזו"}?`}
-            hint="אפשר לדלג — אבל שם על כל כיסא הוא מה שמאפשר לשבת אותם נכון, ולדיילת בכניסה לזהות אותם. בלי שם הכיסא יופיע כ״+1״."
+            /* No longer "אפשר לדלג": a chair with no name cannot be seated on
+               purpose and cannot be checked in as a person, so the hint now
+               says what to type when the host does not know the name. */
+            hint={`${COMPANION_NAME_HINT}. שם על כל כיסא הוא מה שמאפשר לשבת אותם נכון, ולדיילת בכניסה לזהות אותם.`}
+            required
           >
             <div className={styles.companionsGrid}>
               {companionsForCount(form.companions, form.count).map((val, i) => (
                 <input
                   key={i}
+                  ref={el => { companionRefs.current[i] = el; }}
                   className={base.input}
                   value={val}
-                  placeholder={`שם ${i + 1}`}
+                  placeholder={`שם ${i + 1} — או ״בעל״ / ״חבר״`}
                   aria-label={`שם המצטרף ${i + 1}`}
                   /* One name at a time: setCompanionAt keeps every other
                      position exactly as it was. */

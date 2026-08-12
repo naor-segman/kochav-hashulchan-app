@@ -47,7 +47,9 @@ export const AREAS = [
       { id: "tables",      label: "שולחנות",      num: 3, hint: "כמה שולחנות יש באולם ומה הקיבולת" },
       { id: "constraints", label: "אילוצים",      num: 4, hint: "מי חייב לשבת יחד ומי בשום אופן לא" },
       { id: "seating",     label: "הושבה",        num: 5, hint: "לחיצה אחת — והשולחנות מסתדרים" },
-      { id: "rsvps",  label: "אישורי הגעה",  short: "אישורים", mark: "rsvp",   hint: "מי אישר, מי סירב, מי עוד לא ענה" },
+      // No `short`: "אישורים" on its own can be read as approvals of anything.
+      // The full name is what the owner asked to see in both places.
+      { id: "rsvps",  label: "אישורי הגעה",  mark: "rsvp",   hint: "מי אישר, מי סירב, מי עוד לא ענה" },
       { id: "collab", label: "טבלה שיתופית", mark: "collab", hint: "המשפחה מוסיפה אורחים בעצמה" },
     ],
   },
@@ -63,6 +65,12 @@ export const AREAS = [
       { id: "vendors",  label: "ספקים",       mark: "vendors",       hint: "אולם, צלם, די-ג׳יי — ומה סוכם" },
       { id: "announce", label: "הזמנות",      mark: "announcements", hint: "שמרו את התאריך והזמנה דיגיטלית" },
       { id: "site",     label: "אתר האירוע",  mark: "site",          hint: "עמוד לאורחים עם כל הפרטים" },
+      // Every public link the event has, in one place. They used to be a card
+      // at the bottom of פרטי האירוע — a form about the host's own details —
+      // so the eight things the GUESTS actually receive were filed under the
+      // one screen that is not about them. `short` because "קישורים לאורחים"
+      // does not fit the phone rail.
+      { id: "share",    label: "קישורים לאורחים", short: "קישורים", mark: "invite", hint: "מה ששולחים לאורחים — ומה שהם עושים איתו" },
       { id: "messages", label: "הודעות",      mark: "messages",      hint: "וואטסאפ לאורחים — תזכורות ועדכונים" },
     ],
   },

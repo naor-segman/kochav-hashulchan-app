@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { MEAL_DEFAULT } from "../data/constants.js";
 import { createRetryQueue } from "../utils/retryQueue.js";
+import { collabRowMissing } from "../utils/exportHelpers.js";
 import {
   fetchCollabGuestsOwner, upsertCollabGuestOwner,
   deleteCollabGuestsOwner, subscribeCollabGuests,
@@ -25,8 +26,14 @@ const normPhone = (p) => {
 };
 
 // A collab row is complete enough to become a real guest.
-const collabComplete = (r) =>
-  !!(norm(r.name) && norm(r.phone) && r.side && norm(r.guest_group));
+//
+// ONE definition, shared with the badge on the public table and with the סטטוס
+// column of the export (utils/exportHelpers.js). It used to be a fourth
+// hand-maintained copy, and the moment the rule grew a fifth clause — every
+// extra seat must be named (12.8) — the copy here would have started syncing
+// rows that the public screen was, at that same second, telling a relative are
+// not synced. A badge that lies is worse than a missing badge.
+const collabComplete = (r) => collabRowMissing(r).length === 0;
 
 // Which existing guest a collab row should merge into: the same shared id, or
 // else a guest matching on BOTH phone and name. Requiring both prevents merging
@@ -50,10 +57,17 @@ const clampComp = (arr, count) =>
 const compSig = (arr) => (Array.isArray(arr) ? arr.map((c) => norm(c)).join("~") : "");
 
 // Signature of the shared fields — same string ⇒ no real change.
+//
+// `notes` is IN the signature, and it has to be: the signature is the only
+// thing that decides whether an owner edit is pushed to the table at all. A
+// host who opens a guest and types "אלרגיה לאגוזים" changes nothing else about
+// the row, so a signature without notes reads "unchanged" and the note never
+// leaves the app. That is the same shape as the three fields that have already
+// been lost on this project by being absent from a mapper.
 const sigCollab = (r) =>
-  `${norm(r.name)}|${norm(r.phone)}|${sideOf(r.side)}|${norm(r.guest_group)}|${r.guests_count || 1}|${compSig(clampComp(r.companions, r.guests_count))}`;
+  `${norm(r.name)}|${norm(r.phone)}|${sideOf(r.side)}|${norm(r.guest_group)}|${r.guests_count || 1}|${compSig(clampComp(r.companions, r.guests_count))}|${norm(r.notes)}`;
 const sigGuest = (g) =>
-  `${norm(g.name)}|${norm(g.phone)}|${sideOf(g.side)}|${norm(g.group)}|${g.count || 1}|${compSig(clampComp(g.companions, g.count))}`;
+  `${norm(g.name)}|${norm(g.phone)}|${sideOf(g.side)}|${norm(g.group)}|${g.count || 1}|${compSig(clampComp(g.companions, g.count))}|${norm(g.notes)}`;
 
 /**
  * Which companion names win when a collab row meets an existing guest.
@@ -102,6 +116,40 @@ export function pickCompanions(r, existing) {
   return clampComp(r.companions, count);
 }
 
+/**
+ * Which note wins when a collab row meets an existing guest.
+ *
+ * The same ONE rule as pickCompanions above, applied to a scalar:
+ *
+ *   A `notes` STRING on the wire is the shared table's answer and wins,
+ *   INCLUDING an empty one. Only an ABSENT (or non-string) value means "no
+ *   opinion", and then whatever the app already holds survives.
+ *
+ * The two halves of that rule are not symmetric by accident:
+ *   * `undefined` is what a database that has not run
+ *     20260812000000_collab_notes.sql yet returns for every row — the column is
+ *     simply not in the RPC's jsonb. Reading that silence as "the relative
+ *     cleared the note" would delete the host's own notes on the first pull.
+ *     Silence is never an instruction to delete; that is exactly how eight
+ *     companion names were destroyed in August.
+ *   * `""` is a person who selected the text in the notes box and pressed
+ *     backspace. That IS an instruction, and refusing to honour it would give
+ *     the field the private exemption that broke companion deletion — the note
+ *     would come back on the next poll and the relative would watch their own
+ *     edit be undone.
+ *
+ * The write side is what makes the distinction real: publicTokens.js omits the
+ * key entirely unless the caller holds a string, and the RPC keeps the stored
+ * value when the key is absent (`row_data ? 'notes'`). So an old client that
+ * has never heard of notes cannot blank a note it does not know exists — which
+ * is the hole this file's companion comment flagged and could not fix without
+ * a migration. This field is born with it closed.
+ */
+export function pickNotes(r, existing) {
+  if (typeof r?.notes !== "string") return existing?.notes ?? "";
+  return r.notes.trim();
+}
+
 // Build/merge a guest row from a collab row, preserving app-only fields.
 function guestFromCollab(r, existing) {
   return {
@@ -114,7 +162,11 @@ function guestFromCollab(r, existing) {
     count: r.guests_count || 1,
     meal:       existing?.meal       ?? MEAL_DEFAULT,
     rsvp:       existing?.rsvp       ?? "pending",
-    notes:      existing?.notes      ?? "",
+    // No longer app-only. "הערות" is where the dietary need, the wheelchair and
+    // the "יושבים עם הסבים" live, and a relative filling in the shared table
+    // had nowhere to put any of it — so the host had to chase it by phone,
+    // which is the one thing the shared table exists to prevent.
+    notes:      pickNotes(r, existing),
     companions: pickCompanions(r, existing),
   };
 }
@@ -123,6 +175,7 @@ const guestToCollab = (g) => ({
   side: sideOf(g.side), guest_group: norm(g.group),
   guests_count: Math.min(50, Math.max(1, g.count || 1)), // DB CHECK caps at 50
   companions: clampComp(g.companions, g.count || 1),
+  notes: norm(g.notes),
 });
 
 export function useCollabSync(activeEvent, patchEvent, showToast) {
