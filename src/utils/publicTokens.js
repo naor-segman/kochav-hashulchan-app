@@ -295,15 +295,35 @@ export function subscribeCollabGuests(eventId, onChange) {
   return () => { supabase.removeChannel(channel); };
 }
 
-/** Owner: read the shared table for an owned event (RLS-guarded, direct). */
+const COLLAB_COLS      = "id, name, phone, side, guest_group, guests_count, companions, notes, updated_at, updated_by";
+const COLLAB_COLS_PRE_NOTES = "id, name, phone, side, guest_group, guests_count, companions, updated_at, updated_by";
+
+/**
+ * Owner: read the shared table for an owned event (RLS-guarded, direct).
+ *
+ * Falls back to the pre-notes column list when the database has not run
+ * 20260812000000_collab_notes.sql yet. Without this, the ORDER of the deploy
+ * and the migration decides whether the shared table works: new code against
+ * an old database asks for a column that is not there, PostgREST answers 400,
+ * and the host's whole shared-table sync goes dark with an offline banner and
+ * no clue why. Migrations here are run by hand by one person, so "just deploy
+ * them in the right order" is a footgun, not a plan.
+ *
+ * The fallback costs one extra round trip exactly once per outdated database,
+ * and nothing at all afterwards.
+ */
 export async function fetchCollabGuestsOwner(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
-  const { data, error } = await supabase
-    .from("collab_guests")
-    .select("id, name, phone, side, guest_group, guests_count, companions, notes, updated_at, updated_by")
-    .eq("event_id", eventCloudId);
-  if (error) throw error;
-  return data ?? [];
+  const read = (cols) => supabase.from("collab_guests").select(cols).eq("event_id", eventCloudId);
+  const { data, error } = await read(COLLAB_COLS);
+  if (!error) return data ?? [];
+  // 42703 is "undefined column". Anything else is a real failure and must not
+  // be swallowed into a silently degraded read.
+  const missingColumn = error.code === "42703" || /column .* does not exist/i.test(error.message ?? "");
+  if (!missingColumn) throw error;
+  const retry = await read(COLLAB_COLS_PRE_NOTES);
+  if (retry.error) throw retry.error;
+  return retry.data ?? [];
 }
 
 /** Owner: push one guest row into the shared table (app→table sync). */

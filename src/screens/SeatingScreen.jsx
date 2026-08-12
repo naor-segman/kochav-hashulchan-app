@@ -464,6 +464,32 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     showToast((t?.name || "השולחן") + " פונה — " + guests.length + " רשומות חזרו לממתינים");
   }, [guestsByTable, ev.seating, ev.tables, patchEvent, showToast]);
 
+  /* ── The board must not move under the finger that is dragging ─────────────
+     When everyone is seated the "ממתינים לשיבוץ" panel is not on the page: it
+     is mounted BY the drag, because it is also the "put this one back" target.
+     It mounts ABOVE the table cards, so at the moment the drag activates every
+     card below it dropped 116px — measured — while the pointer stayed where it
+     was. The card the host was aiming at was no longer under their thumb, and
+     releasing there did nothing at all.
+
+     This was always true; it was hidden while a collapsed card was stretched to
+     236px by its grid row and could absorb the shift. Cards size to their own
+     content now (see .tableCards), so 116px is enough to miss a 73px card.
+
+     Scroll by exactly what was inserted, so nothing visible moves. Nothing to
+     compensate at the top of the page — there the panel simply appears, and the
+     host can see it happen. */
+  const waitingRef    = useRef(null);
+  const waitingHeight = useRef(0);
+  useLayoutEffect(() => {
+    const el = waitingRef.current;
+    const h  = el ? el.getBoundingClientRect().height + parseFloat(getComputedStyle(el).marginBottom || 0) : 0;
+    const delta = h - waitingHeight.current;
+    waitingHeight.current = h;
+    if (!delta || window.scrollY <= 0) return;
+    window.scrollBy(0, delta);
+  }, [activeId, unassigned.length]);
+
   const handleDragStart  = ({ active }) => setActiveId(active.id);
   const handleDragCancel = () => setActiveId(null);
 
@@ -731,7 +757,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             <DroppableWrapper id="unassigned">
               {({ ref, isOver: isDragOver }) => (
                 <div
-                  ref={ref}
+                  ref={node => { ref(node); waitingRef.current = node; }}
                   className={[
                     styles.unassignedCard,
                     activeId && !isDragOver ? styles.unassignedDropReady : "",

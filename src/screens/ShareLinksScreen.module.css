@@ -95,15 +95,26 @@
   margin-block-start: 4px;
 }
 
-/* dir="ltr" is set on the element itself — a URL is an LTR string and reads
-   scrambled inside an RTL field. text-align keeps it anchored to the start of
-   the RTL row so the boxes still line up down the column. */
-.linkInput {
+/* MEASURED, because the obvious story about this is wrong. A URL is not
+   scrambled by an RTL field: every character in it is strong-LTR and it carries
+   no leading or trailing neutral, so bidi resolves the whole thing as one LTR
+   run and it renders identically in an rtl box and an ltr box — checked with
+   Range rects on both, same order (https · kochav.app · save-the-date · i1).
+   The one case that is NOT safe is a trailing neutral: "…/rsvp/" with a missing
+   token ends on a slash, which takes the PARAGRAPH direction and jumps to the
+   far end of the line.
+   So `direction` is set here rather than left to the dir="ltr" attribute —
+   .input in screenBase sets `direction: rtl` and a class beats an attribute
+   selector, which made the attribute alone a silent no-op. Doubled class name
+   to win on specificity without !important, the same way .copyBtn does.
+   text-align stays `right` so the boxes line up with every other field. */
+.linkInput.linkInput {
   flex: 1 1 auto;
   min-width: 0;
   font-size: var(--step--2);
   color: var(--muted);
   font-family: monospace;
+  direction: ltr;
   text-align: right;
 }
 

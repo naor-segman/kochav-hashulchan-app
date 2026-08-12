@@ -24,10 +24,9 @@ import styles from "./ShareLinksScreen.module.css";
  *   • the QR for every link, for printing on signage, on the invitation and at
  *     the door.
  *
- * `dir="ltr"` on the URL boxes is new and is a fix: a URL is a left-to-right
- * string of neutrals and slashes, and inside an RTL field the browser is free
- * to reorder its segments on screen. The host copies the right thing either way
- * — value is not display — but they were reading a scrambled address.
+ * The URL boxes are LTR. That is enforced in the stylesheet, not by this
+ * attribute alone — see the note on .linkInput for what was measured and why
+ * the attribute on its own does nothing here.
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {

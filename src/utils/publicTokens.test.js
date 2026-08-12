@@ -8,14 +8,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // shape it fails to defend turns into a crash on a page that a stranger opened
 // from a WhatsApp link.
 const rpc = vi.fn();
+// The owner-side reads go through `.from(...)`, not through an RPC.
+const fromFn = vi.fn();
 vi.mock("../lib/supabase.js", () => ({
-  supabase: { rpc: (...args) => rpc(...args) },
+  supabase: {
+    rpc: (...args) => rpc(...args),
+    from: (...args) => fromFn(...args),
+  },
   isSupabaseConfigured: true,
 }));
 
 const {
   fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift,
-  upsertCollabGuest,
+  upsertCollabGuest, fetchCollabGuestsOwner,
 } = await import("./publicTokens.js");
 
 const ok   = data  => rpc.mockResolvedValue({ data, error: null });
@@ -251,5 +256,54 @@ describe("upsertCollabGuest — notes", () => {
     expect(d.guests_count).toBe(3);
     expect(d.companions).toEqual(["בעל", "חבר"]);
     expect(d.updated_by).toBe("רונית");
+  });
+});
+
+// ── The deploy order must not decide whether the product works ───────────────
+// Migrations here are run by hand, by one person, in a browser. "Ship the
+// migration before the code" is a footgun, not a plan: new code asking a
+// pre-migration database for `notes` gets a 400, and the host's entire shared
+// table goes dark behind an offline banner with no clue why.
+describe("fetchCollabGuestsOwner tolerates a database without the notes column", () => {
+  const rows = [{ id: "r1", name: "יעל", companions: [] }];
+  let cols;
+
+  const answering = (behaviour) => {
+    cols = [];
+    fromFn.mockReset();
+    fromFn.mockImplementation(() => ({
+      select: (c) => { cols.push(c); return { eq: async () => behaviour(c) }; },
+    }));
+  };
+
+  it("asks for notes first, and that is the only call when it works", async () => {
+    answering(() => ({ data: rows, error: null }));
+    expect(await fetchCollabGuestsOwner("e1")).toEqual(rows);
+    expect(cols).toHaveLength(1);
+    expect(cols[0]).toContain("notes");
+  });
+
+  it("retries without notes when the column is missing", async () => {
+    answering(c => c.includes("notes")
+      ? { data: null, error: { code: "42703", message: "column collab_guests.notes does not exist" } }
+      : { data: rows, error: null });
+    expect(await fetchCollabGuestsOwner("e1")).toEqual(rows);
+    expect(cols).toHaveLength(2);
+    expect(cols[1]).not.toContain("notes");
+  });
+
+  it("does NOT swallow a real failure into a degraded read", async () => {
+    // Retrying without a column would turn "you are not allowed to read this"
+    // into "there is nothing here", which is the worse of the two lies.
+    answering(() => ({ data: null, error: { code: "42501", message: "permission denied" } }));
+    await expect(fetchCollabGuestsOwner("e1")).rejects.toMatchObject({ code: "42501" });
+    expect(cols).toHaveLength(1);
+  });
+
+  it("surfaces a failure on the retry too", async () => {
+    answering(c => c.includes("notes")
+      ? { data: null, error: { code: "42703", message: "column does not exist" } }
+      : { data: null, error: { code: "08006", message: "connection failure" } });
+    await expect(fetchCollabGuestsOwner("e1")).rejects.toMatchObject({ code: "08006" });
   });
 });
