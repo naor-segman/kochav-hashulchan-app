@@ -137,10 +137,10 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
           התאריך עורכים במסך ההזמנות; את מה שהאורח רואה באתר — במסך אתר האירוע.
         </p>
         <div className={styles.jumpRow}>
-          <button className={base.btnSm} type="button" onClick={() => go("announce")}>
+          <button className={[base.btnSm, base.btnGhost].join(" ")} type="button" onClick={() => go("announce")}>
             להזמנות <Icon name="arrowLeft" size={13} />
           </button>
-          <button className={base.btnSm} type="button" onClick={() => go("site")}>
+          <button className={[base.btnSm, base.btnGhost].join(" ")} type="button" onClick={() => go("site")}>
             לאתר האירוע <Icon name="arrowLeft" size={13} />
           </button>
         </div>
