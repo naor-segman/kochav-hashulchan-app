@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, lazy, Suspense } from "react";
-import { useRegisterSW } from "virtual:pwa-register/react";
+import { useAppUpdate } from "./hooks/useAppUpdate.js";
 import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
@@ -200,17 +200,10 @@ function AppRoutes() {
   const navigate                                                        = useNavigate();
   const migration = useMigration(events, patchEventById, user);
 
-  // PWA update — auto-apply the new service worker and notify the user
-  const { needRefresh, updateServiceWorker } = useRegisterSW({
-    onRegistered() {},
-    onRegisterError() {},
-  });
-  useEffect(() => {
-    if (needRefresh[0]) {
-      updateServiceWorker(true);
-      showToast("האפליקציה עודכנה לגרסה החדשה ✓");
-    }
-  }, [needRefresh, updateServiceWorker, showToast]);
+  // Keep this tab on the deployed build. See useAppUpdate — the browser's own
+  // update check is far too lazy for a link handed to hundreds of guests, and
+  // the reload waits for a moment when it will not interrupt anyone.
+  useAppUpdate();
 
   // Show a one-time toast whenever a cloud sync error occurs.
   const prevSyncRef = useRef(null);
