@@ -9,6 +9,12 @@
  * connection, not a project.
  *
  * Templates use {{placeholders}} filled from the event and the guest.
+ *
+ * `when` uses a plain HYPHEN-MINUS in ranges, never an en-dash. Measured in the
+ * browser: "3–6 חודשים לפני" puts the 6 to the LEFT of the 3 — an en-dash is an
+ * Other Neutral, so bidi N1 resolves it RTL between two European numbers and
+ * swaps them. A hyphen-minus is a European Separator, W4 folds it into a single
+ * number run, and "3-6" stays in order. Same class as the spaced slash.
  */
 
 export const MESSAGE_STAGES = [
@@ -16,7 +22,7 @@ export const MESSAGE_STAGES = [
     key: "saveTheDate",
     label: "Save the Date",
     icon: "calendar",
-    when: "3–6 חודשים לפני",
+    when: "3-6 חודשים לפני",
     audience: "all",
     body: "היי {{שם}} 👋\n\nשומרים לכם את התאריך!\n{{אירוע}} — {{תאריך}}\n\nהפרטים המלאים בקרוב 💛\n{{קישור}}",
   },
@@ -24,7 +30,7 @@ export const MESSAGE_STAGES = [
     key: "invitation",
     label: "הזמנה",
     icon: "mail",
-    when: "4–6 שבועות לפני",
+    when: "4-6 שבועות לפני",
     audience: "all",
     body: "היי {{שם}} 👋\n\nאתם מוזמנים ל{{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n\nנשמח שתאשרו הגעה:\n{{קישור}}",
   },
@@ -50,7 +56,7 @@ export const MESSAGE_STAGES = [
     key: "details",
     label: "פרטי הגעה",
     icon: "pin",
-    when: "2–3 ימים לפני",
+    when: "2-3 ימים לפני",
     // Only the people who are actually coming need directions and a table.
     audience: "confirmed",
     body: "היי {{שם}} 👋\n\nמתרגשים לקראת {{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n\n{{שולחן}}\nנתראה! 🎉",
@@ -59,7 +65,7 @@ export const MESSAGE_STAGES = [
     key: "thanks",
     label: "תודה אחרי האירוע",
     icon: "heart",
-    when: "1–2 ימים אחרי",
+    when: "1-2 ימים אחרי",
     audience: "arrived",
     body: "היי {{שם}} 💛\n\nתודה ענקית שהייתם איתנו ב{{אירוע}} — זה לא היה אותו דבר בלעדיכם!",
   },

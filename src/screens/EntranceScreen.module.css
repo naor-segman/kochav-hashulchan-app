@@ -442,11 +442,14 @@
   transition: background var(--transition), color var(--transition);
 }
 
-.markBtn:hover { background: #FFFFFF; }
+.markBtn:hover { background: var(--white); }
 .markBtn:disabled { opacity: .45; cursor: not-allowed; }
 
-.markBtnDone { background: var(--green); color: #FFFFFF; }
-.markBtnDone:hover { background: var(--green-light); }
+.markBtnDone { background: var(--green); color: var(--on-accent); }
+/* Darker on hover, not lighter. --green-light under white is 3.22:1, and on a
+   phone :hover STICKS after a tap until the next touch elsewhere — so the door
+   screen's main button would have spent most of the evening below contrast. */
+.markBtnDone:hover { background: var(--green-dark); }
 
 .partialBtn {
   display: inline-flex;
@@ -532,8 +535,8 @@
 .chip:hover:not(:disabled) { background: rgba(var(--nav-text-rgb), .1); }
 .chip:disabled { opacity: .45; cursor: not-allowed; }
 
-.chipOn { background: var(--green); border-color: var(--green); color: #FFFFFF; }
-.chipOn:hover:not(:disabled) { background: var(--green-light); border-color: var(--green-light); }
+.chipOn { background: var(--green); border-color: var(--green); color: var(--on-accent); }
+.chipOn:hover:not(:disabled) { background: var(--green-dark); border-color: var(--green-dark); }
 
 
 /* ── Free seats ── */
@@ -712,7 +715,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(0, 0, 0, .6);
+  background: var(--scrim-60);
   padding: 0;
 }
 

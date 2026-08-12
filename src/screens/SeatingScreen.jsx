@@ -576,7 +576,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
               </div>
               <div className={styles.runCardStats}>
-                {nAssignedSeats} / {totalSeats} מקומות שובצו · {nActiveAssigned}/{activeGuests.length} רשומות פעילות · {totalCap} קיבולת האולם
+                {/* No spaces around the slash. Measured: "7 / 8 מקומות" puts the 8
+                    to the LEFT of the 7 — bidi N1 resolves the spaced neutrals as
+                    RTL and swaps the runs. The trailing Hebrew word does not anchor
+                    it; only a Hebrew word BETWEEN the numbers would. Unspaced, the
+                    slash is a common separator between two EN runs (W4) and the pair
+                    stays a single LTR token — which is why the sibling below was
+                    already right. */}
+                {nAssignedSeats}/{totalSeats} מקומות שובצו · {nActiveAssigned}/{activeGuests.length} רשומות פעילות · {totalCap} קיבולת האולם
                 {declinedGuests.length > 0 && ` · ${declinedGuests.length} סירבו (לא משובצים)`}
               </div>
             </div>
@@ -1071,7 +1078,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       </div>
                     ))}
                   </div>
-                  <div className={styles.pvCardFooter}>{tg.reduce((s, g) => s + (g.count || 1), 0)} / {t.capacity} מקומות</div>
+                  {/* Unspaced for the same reason as the run-card stats above — and
+                      here it went to PAPER: "3 / 6 מקומות" printed as 6 / 3, a card
+                      on the table telling the staff it seats 6 of 3. */}
+                  <div className={styles.pvCardFooter}>{tg.reduce((s, g) => s + (g.count || 1), 0)}/{t.capacity} מקומות</div>
                 </div>
               );
             })}

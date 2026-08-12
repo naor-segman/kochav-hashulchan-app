@@ -340,7 +340,10 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
                   <div className={styles.usageSection}>
                     <div className={styles.usageRow}>
                       <span className={styles.usageLabel}>אירועים בשימוש</span>
-                      <span className={styles.usageVal}>
+                      {/* dir="ltr": a spaced slash between two numbers with no strong
+                          RTL character anywhere reverses them (bidi N1) — this line
+                          rendered "10 / 3" for 3 of 10. Same fix as the admin chip. */}
+                      <span className={styles.usageVal} dir="ltr">
                         {eventCount}
                         {" / "}
                         {maxEvents === Infinity ? "∞" : maxEvents}
