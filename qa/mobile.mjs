@@ -43,6 +43,7 @@ const ROUTES = [
   ['/events/e1/collab', 'טבלה שיתופית'], ['/events/e1/site', 'אתר האירוע'],
   ['/events/e1/costs', 'תקציב'], ['/events/e1/tasks', 'משימות'],
   ['/events/e1/announce', 'הזמנות'], ['/events/e1/vendors', 'ספקים'],
+  ['/events/e1/share', 'קישורים לאורחים'],
   ['/events/e1/messages', 'הודעות'], ['/events/e1/nametags', 'כרטיסי שם'],
   ['/events/e1/checkin', 'צ׳ק אין'], ['/account', 'חשבון'], ['/help', 'עזרה'],
   ['/rsvp/r1', 'RSVP לאורח'], ['/invite/i1', 'אתר לאורח'], ['/gift/gi1', 'מתנה'],

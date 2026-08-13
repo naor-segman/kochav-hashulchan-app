@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, Fragment } from "react";
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, Fragment } from "react";
 import { flushSync } from "react-dom";
 import { messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
@@ -14,7 +14,7 @@ import {
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
-import { getSideLabel, getSideLabels, seatingTotals } from "../utils/eventHelpers.js";
+import { getSideLabel, getSideLabels, guestCompanionNames, seatingTotals } from "../utils/eventHelpers.js";
 import { arrivalTotals } from "../utils/arrival.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import { buildGuestCardUrl } from "../utils/guestCard.js";
@@ -27,6 +27,7 @@ import DraggableGuestRow from "../components/seating/DraggableGuestRow.jsx";
 import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
 import TableCard from "../components/seating/TableCard.jsx";
 import { tableLabel } from "../components/seating/tableLabel.js";
+import { tableCardKeys } from "../components/seating/tableCardKeys.js";
 import { buildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
@@ -286,17 +287,23 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   }, [ev.seating, patchEvent]);
 
   // ── Expansion, one card at a time ─────────────────────────────────────────
-  const toggleTable = useCallback((tableId) => {
+  // Keyed on the CARD, not on `table.id`. Two tables carrying one id is data
+  // this screen can be handed (a cloud round-trip, an import, a hand-edited
+  // store — nothing in the app mints it), and keyed on the id those two cards
+  // shared one entry in this Set and opened and closed as one. See
+  // tableCardKeys().
+  const cardKeys = useMemo(() => tableCardKeys(ev.tables), [ev.tables]);
+  const toggleTable = useCallback((cardKey) => {
     setExpandedIds(prev => {
       const next = new Set(prev);
-      if (next.has(tableId)) next.delete(tableId);
-      else next.add(tableId);
+      if (next.has(cardKey)) next.delete(cardKey);
+      else next.add(cardKey);
       return next;
     });
   }, []);
-  const expandAllTables   = () => setExpandedIds(new Set(ev.tables.map(t => t.id)));
+  const expandAllTables   = () => setExpandedIds(new Set(cardKeys));
   const collapseAllTables = () => setExpandedIds(new Set());
-  const nExpanded  = ev.tables.filter(t => expandedIds.has(t.id)).length;
+  const nExpanded  = cardKeys.filter(k => expandedIds.has(k)).length;
   const allExpanded  = ev.tables.length > 0 && nExpanded === ev.tables.length;
   const noneExpanded = nExpanded === 0;
 
@@ -457,6 +464,32 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     showToast((t?.name || "השולחן") + " פונה — " + guests.length + " רשומות חזרו לממתינים");
   }, [guestsByTable, ev.seating, ev.tables, patchEvent, showToast]);
 
+  /* ── The board must not move under the finger that is dragging ─────────────
+     When everyone is seated the "ממתינים לשיבוץ" panel is not on the page: it
+     is mounted BY the drag, because it is also the "put this one back" target.
+     It mounts ABOVE the table cards, so at the moment the drag activates every
+     card below it dropped 116px — measured — while the pointer stayed where it
+     was. The card the host was aiming at was no longer under their thumb, and
+     releasing there did nothing at all.
+
+     This was always true; it was hidden while a collapsed card was stretched to
+     236px by its grid row and could absorb the shift. Cards size to their own
+     content now (see .tableCards), so 116px is enough to miss a 73px card.
+
+     Scroll by exactly what was inserted, so nothing visible moves. Nothing to
+     compensate at the top of the page — there the panel simply appears, and the
+     host can see it happen. */
+  const waitingRef    = useRef(null);
+  const waitingHeight = useRef(0);
+  useLayoutEffect(() => {
+    const el = waitingRef.current;
+    const h  = el ? el.getBoundingClientRect().height + parseFloat(getComputedStyle(el).marginBottom || 0) : 0;
+    const delta = h - waitingHeight.current;
+    waitingHeight.current = h;
+    if (!delta || window.scrollY <= 0) return;
+    window.scrollBy(0, delta);
+  }, [activeId, unassigned.length]);
+
   const handleDragStart  = ({ active }) => setActiveId(active.id);
   const handleDragCancel = () => setActiveId(null);
 
@@ -543,7 +576,20 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                   : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
               </div>
               <div className={styles.runCardStats}>
-                {nAssignedSeats} / {totalSeats} מקומות שובצו · {nActiveAssigned}/{activeGuests.length} רשומות פעילות · {totalCap} קיבולת האולם
+                {/* No spaces around the slash — and the accurate reason, which is
+                    narrower than the one I first wrote here.
+                    Measured in an RTL line:
+                      "7 / 8 מקומות"  glyphs left-to-right: מקומות · 8 · / · 7
+                      "7/8 מקומות"    glyphs left-to-right: מקומות · 7/8
+                    Read right-to-left, token by token, BOTH are correct — the 7
+                    comes first either way. The problem is only that a slash
+                    invites being read as a fraction, and the spaced form puts
+                    "8 / 7" on screen for a reader who does that. Unspaced, W4
+                    folds the slash into one European-number run, so the cluster
+                    renders "7/8" and there is nothing left to misread. Cheap, and
+                    it matches the sibling on this same line that was already
+                    unspaced and already right. */}
+                {nAssignedSeats}/{totalSeats} מקומות שובצו · {nActiveAssigned}/{activeGuests.length} רשומות פעילות · {totalCap} קיבולת האולם
                 {declinedGuests.length > 0 && ` · ${declinedGuests.length} סירבו (לא משובצים)`}
               </div>
             </div>
@@ -551,7 +597,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               {/* ── Primary: calculate / clear / undo ── */}
               <div className={styles.runActionsMain}>
                 <button className={styles.runBtn} onClick={runAuto} disabled={noTables || noGuests}>
-                  {nAssigned > 0 ? "חשבו מחדש" : "חשבו הושבה"}
+                  {/* "חשבו הושבה" reads as a description of the screen, not as
+                      something to press. The host asked for the button to say
+                      what pressing it does. */}
+                  {nAssigned > 0 ? "חשבו מחדש" : "לחצו להושבה אוטומטית"}
                 </button>
                 {nAssigned > 0 && (
                   <button
@@ -721,7 +770,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             <DroppableWrapper id="unassigned">
               {({ ref, isOver: isDragOver }) => (
                 <div
-                  ref={ref}
+                  ref={node => { ref(node); waitingRef.current = node; }}
                   className={[
                     styles.unassignedCard,
                     activeId && !isDragOver ? styles.unassignedDropReady : "",
@@ -837,13 +886,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
           {ev.tables.length > 0 && (
             <div className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}>
-              {ev.tables.map(t => (
+              {ev.tables.map((t, i) => (
                 <TableCard
-                  key={t.id}
+                  key={cardKeys[i]}
+                  cardKey={cardKeys[i]}
                   table={t}
                   guests={guestsByTable.get(t.id) || EMPTY_GUESTS}
                   seats={seatsByTable.get(t.id) || 0}
-                  expanded={expandedIds.has(t.id)}
+                  expanded={expandedIds.has(cardKeys[i])}
                   locked={lockedTablesSet.has(t.id)}
                   hasViolation={violatedTables.has(t.name)}
                   runKey={runKey}
@@ -939,6 +989,14 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                               <span className={styles.pvGuestMeta}>
                                 {sideLabel(g.side)}{g.group ? " · " + g.group : ""}
                               </span>
+                              {/* Everyone else on the booking, by name. The
+                                  printed sheet used to say "טל שוורץ ×2" and
+                                  leave the second chair to be guessed. */}
+                              {guestCompanionNames(g).length > 0 && (
+                                <span className={styles.pvGuestSeats}>
+                                  {guestCompanionNames(g).join(" · ")}
+                                </span>
+                              )}
                             </div>
                           ))
                       }
@@ -983,6 +1041,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       : tg.map(g => (
                           <div key={g.id} className={styles.pvCompactGuest}>
                             {g.name}{(g.count || 1) > 1 ? " ×" + g.count : ""}
+                            {guestCompanionNames(g).length > 0 && (
+                              <span className={styles.pvCompactSeats}>
+                                {guestCompanionNames(g).join(" · ")}
+                              </span>
+                            )}
                           </div>
                         ))
                     }
@@ -1013,10 +1076,19 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     {tg.map(g => (
                       <div key={g.id} className={styles.pvCardGuest}>
                         {g.name}{(g.count || 1) > 1 ? ` (${g.count})` : ""}
+                        {guestCompanionNames(g).length > 0 && (
+                          <span className={styles.pvCardGuestSeats}>
+                            {guestCompanionNames(g).join(" · ")}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
-                  <div className={styles.pvCardFooter}>{tg.reduce((s, g) => s + (g.count || 1), 0)} / {t.capacity} מקומות</div>
+                  {/* Unspaced for the same reason as the run-card stats above, and
+                      it matters more here because it goes to PAPER: the printed
+                      cluster was "6 / 3", which anyone reading the slash as a
+                      fraction takes for a table seating six of three. */}
+                  <div className={styles.pvCardFooter}>{tg.reduce((s, g) => s + (g.count || 1), 0)}/{t.capacity} מקומות</div>
                 </div>
               );
             })}

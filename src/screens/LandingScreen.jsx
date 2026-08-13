@@ -81,6 +81,17 @@ const HERO_MEDIA = {
   posterMobile: "/hero/hero-portrait.jpg",
 };
 
+// The five places a guest list actually lives today. Written as a list of
+// PLACES, not of problems, because the recognition has to be instant — anyone
+// who has produced an event has all five open at once.
+const PROBLEM = [
+  { where: "גיליון אקסל",        what: "שמישהו אחר ערך, ואף אחד לא זוכר מתי" },
+  { where: "קבוצת וואטסאפ",      what: "עם מאתיים הודעות ושלושה אישורים שאבדו בהן" },
+  { where: "רשימה על נייר",      what: "שנמצאת בכניסה, ורק אצל מי שמחזיק אותה" },
+  { where: "שיחות טלפון",        what: "לכל מי שלא ענה, פעמיים" },
+  { where: "סידור על מפית",      what: "בשתיים בלילה, שבוע לפני" },
+];
+
 const FEATURES = [
   { icon: "seating", title: "הושבה אוטומטית",
     desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרתם" },
@@ -247,15 +258,19 @@ export default function LandingScreen() {
           <div className={styles.heroInner}>
             <div className={styles.heroBadge}>
               <span className={styles.heroBadgeDot} />
-              סידור הושבה אוטומטי לאירועים בישראל
+              כל ההפקה של האירוע במקום אחד
             </div>
             <h1 className={styles.heroHeadline}>
               כל האורחים<br />
               <span className={styles.heroGold}>במקום הנכון</span>
             </h1>
+            {/* AIDA — Attention. The old line was a feature list, and a feature
+                list is something the reader has to work through before they know
+                whether it is for them. This says the thesis: one place instead of
+                five, and the hard part solves itself. */}
             <p className={styles.heroSub}>
-              סידור הושבה אוטומטי, ניהול אורחים חכם, אישורי הגעה בוואטסאפ —
-              הכל במקום אחד, לאירוע שתמיד חלמתם עליו
+              אירוע אחד — לא חמישה ערוצים. רשימת האורחים, אישורי ההגעה
+              וסידור השולחנות במקום אחד, וההושבה מסתדרת לבד.
             </p>
             <div className={styles.heroActions}>
               <Link to="/signup" className={styles.heroCta}>התחילו חינם ←</Link>
@@ -322,6 +337,35 @@ export default function LandingScreen() {
         </div>
       </div>
 
+      {/* AIDA — Interest. The page went straight from the promise to the
+          features, which asks the reader to recognise their own problem in a
+          list of solutions. This names the problem first, in the words anyone
+          who has produced an event would use, and it is the owner's own
+          description of why he built this: everything in one place instead of
+          working across several channels at once. */}
+      <section className={styles.problem} id="problem">
+        <div className={styles.sectionInner}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionTag}>למי שכבר הפיק אירוע</span>
+            <h2 className={styles.sectionTitle}>הרשימה נמצאת בחמישה מקומות שונים</h2>
+            <p className={styles.sectionSub}>
+              וכל אחד מהם מעודכן ליום אחר
+            </p>
+          </div>
+          <div className={styles.problemGrid}>
+            {PROBLEM.map(p => (
+              <div key={p.where} className={styles.problemItem}>
+                <p className={styles.problemWhere}>{p.where}</p>
+                <p className={styles.problemWhat}>{p.what}</p>
+              </div>
+            ))}
+          </div>
+          <p className={styles.problemTurn}>
+            ואז מישהו מבטל שלושה ימים לפני, ומתחילים את סידור השולחנות מהתחלה.
+          </p>
+        </div>
+      </section>
+
       {/* ── Product showcase — real screenshots of the running app ── */}
       {SHOWCASE.map((sc, i) => (
         <section key={sc.title}
@@ -366,10 +410,13 @@ export default function LandingScreen() {
       <section className={styles.features} id="features">
         <div className={styles.sectionInner}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>מה יש בפנים</span>
-            <h2 className={styles.sectionTitle}>כל מה שצריך לאירוע מושלם</h2>
+            {/* AIDA — Desire. "כל מה שצריך לאירוע מושלם" could sit on any
+                product in this category. This says what the reader stops doing. */}
+            <span className={styles.sectionTag}>מה נכנס למקום אחד</span>
+            <h2 className={styles.sectionTitle}>הכל מדבר עם הכל</h2>
             <p className={styles.sectionSub}>
-              פלטפורמה מלאה שמחליפה מסמכי Excel, וואטסאפ קבוצתי, ורשימות נייר
+              אישור הגעה שנכנס לרשימה לבד, רשימה שיודעת כמה שולחנות צריך,
+              ושולחנות שמסתדרים לפי מי שבאמת מגיע
             </p>
           </div>
           <div className={styles.featuresGrid}>
@@ -475,7 +522,7 @@ export default function LandingScreen() {
       <section className={styles.ctaBanner}>
         <div className={styles.ctaBannerInner}>
           <div className={styles.ctaStar} aria-hidden="true">✦</div>
-          <h2 className={styles.ctaTitle}>מוכנים להתחיל?</h2>
+          <h2 className={styles.ctaTitle}>האירוע הבא שלכם, בלי חמישה מקומות</h2>
           <p className={styles.ctaSub}>
             בלי התקנה ובלי כרטיס אשראי — נכנסים, מזינים אורחים, ומקבלים סידור.
           </p>

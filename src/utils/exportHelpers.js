@@ -1,4 +1,5 @@
-import { guestSeatNames } from "./eventHelpers.js";
+import { guestCompanionNames, guestSeatNames } from "./eventHelpers.js";
+import { missingCompanionSeats } from "./guestForm.js";
 import { TABLE_TYPES } from "../data/constants.js";
 // Shared with the app rather than re-implemented. The local copy pushed the ISO
 // string through `new Date()`, which parses it as UTC — so west of Greenwich the
@@ -46,20 +47,37 @@ const COLLAB_FIELDS = [
  * Which required fields a shared-table row is still missing, in Hebrew.
  * Empty array = the row is complete and syncs into the guest list.
  * `guests_count` is never listed: it always defaults to 1, so it is never
- * missing. Exported so the screen badge and the exported סטטוס column can never
- * disagree about what "complete" means.
+ * missing. Exported so the screen badge, the exported סטטוס column AND the sync
+ * engine can never disagree about what "complete" means.
+ *
+ * Since 12.8 the names of the extra seats are part of "complete" (owner: a seat
+ * with no name is counted twice — once as a chair, once as the person it turns
+ * out to be). This is deliberately expressed HERE rather than as a new
+ * mechanism: the shared table saves as you type, so blocking a keystroke would
+ * make it unusable. What happens instead is exactly what already happens to a
+ * row with no phone — it is saved, it is visibly incomplete, and it does not
+ * enter the host's guest list until it is finished.
  */
 export function collabRowMissing(row) {
-  return COLLAB_FIELDS
+  const missing = COLLAB_FIELDS
     .filter(([k]) => !((row?.[k] ?? "").toString().trim()))
     .map(([, label]) => label);
+  const seats = missingCompanionSeats(row?.companions, row?.guests_count);
+  if (seats.length) {
+    // Numbered to match the inputs the screens render ("שם 1", "שם 2") and
+    // their aria-labels, so "חסר: שם המצטרף 2" points at one specific box.
+    missing.push(seats.length === 1
+      ? `שם המצטרף ${seats[0]}`
+      : `שמות המצטרפים (${seats.join(", ")})`);
+  }
+  return missing;
 }
 
 /**
  * Download the shared collaborative table as a workbook.
  *
  * @param {object[]} rows       collab rows: { name, phone, side, guest_group,
- *                              guests_count, companions, updated_by }
+ *                              guests_count, companions, notes, updated_by }
  * @param {object}   opts
  * @param {string}   opts.eventName   used for the filename only
  * @param {object}   opts.sideLabels  { bride, groom } — already localised
@@ -70,7 +88,7 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
   const list  = Array.isArray(rows) ? rows : [];
 
   const aoa = [[
-    "שם מלא", "טלפון", "צד", "קבוצה", "כמות", "שמות המצטרפים", "נוסף/עודכן ע״י", "סטטוס",
+    "שם מלא", "טלפון", "צד", "קבוצה", "כמות", "שמות המצטרפים", "הערות", "נוסף/עודכן ע״י", "סטטוס",
   ]];
 
   list.forEach(r => {
@@ -79,11 +97,7 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
     // downloads it and finds "9" with nobody named has been handed a number,
     // not a guest list. Clamped to the extra seats exactly as the app clamps
     // them, so a stale longer array can't print people who have no chair.
-    const companions = (Array.isArray(r.companions) ? r.companions : [])
-      .slice(0, Math.max(0, count - 1))
-      .map(c => (c || "").toString().trim())
-      .filter(Boolean)
-      .join(", ");
+    const companions = guestCompanionNames({ count, companions: r.companions }).join(", ");
     const missing = collabRowMissing(r);
     aoa.push([
       r.name || "",
@@ -92,6 +106,11 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
       r.guest_group || "",
       count,
       companions,
+      // The whole point of the notes column: the dietary need / accessibility /
+      // "sits with the grandparents" the relative typed reaches the host in the
+      // same file as the name, instead of in a separate WhatsApp message the
+      // host has to go and ask for.
+      (r.notes || "").toString().trim(),
       r.updated_by || "",
       missing.length ? "חסר: " + missing.join(", ") : "מלאה — מסונכרנת",
     ]);
@@ -100,7 +119,7 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"] = [
     { wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 },
-    { wch: 7 }, { wch: 34 }, { wch: 16 }, { wch: 24 },
+    { wch: 7 }, { wch: 34 }, { wch: 30 }, { wch: 16 }, { wch: 24 },
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "טבלה שיתופית");
@@ -124,17 +143,38 @@ export async function exportToExcel(ev, sideLabel, violations) {
 
   rows.push([
     "שולחן", "קיבולת", "סוג שולחן", "שובצו/קיבולת",
-    "שם אורח", "צד", "קבוצה", "כמות", "RSVP", "מנה", "טלפון", "הערות",
+    "שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים",
+    "RSVP", "מנה", "טלפון", "הערות",
   ]);
 
   ev.tables.forEach(t => {
     const tGuests      = ev.guests.filter(g => ev.seating[g.id] === t.id);
     const typeHe       = TABLE_TYPE_HE[t.type] || t.type;
     const seatedSeats  = tGuests.reduce((s, g) => s + (g.count || 1), 0);
-    const occupied     = seatedSeats + " / " + t.capacity;
+    // "5 מתוך 12", not "5 / 12" — and the honest reason, which is NOT the one
+    // this comment first claimed.
+    //
+    // The workbook opens RTL (`wb.Workbook.Views[0].RTL`). I first wrote that
+    // "5 / 12" has its numbers swapped and reads as overbooked. Measured token
+    // positions do not support that:
+    //
+    //   "5 / 12"     read right-to-left: 5 · / · 12     glyphs left-to-right: 12 · / · 5
+    //   "5 מתוך 12"  read right-to-left: 5 · מתוך · 12  glyphs left-to-right: 12 · מתוך · 5
+    //
+    // The two are geometrically IDENTICAL, and in both the reader meets the 5
+    // first. So this is not a bidi defect.
+    //
+    // What it is: a slash between two numbers invites being read as a fraction,
+    // left to right — and the glyph cluster on screen is "12 / 5", which read
+    // that way says twelve of five. A Hebrew word between the numbers makes
+    // that misreading impossible, because מתוך cannot be part of an LTR
+    // fraction. That is a typographic choice, consistent with the standing
+    // decision in CLAUDE.md, not a measured failure — and it must not be cited
+    // to justify rewriting every `{a} / {b}` in the codebase.
+    const occupied     = seatedSeats + " מתוך " + t.capacity;
 
     if (tGuests.length === 0) {
-      rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", "", "", ""]);
+      rows.push([t.name, t.capacity, typeHe, occupied, "", "", "", "", "", "", "", "", ""]);
     } else {
       tGuests.forEach((g, i) => {
         rows.push([
@@ -146,6 +186,11 @@ export async function exportToExcel(ev, sideLabel, violations) {
           sideLabel(g.side),
           g.group || "",
           g.count || 1,
+          // Same column the shared table has, for the same reason: a plan that
+          // says "טל שוורץ · 4" and names nobody hands the host a number, not a
+          // guest list. Clamped to the seats the row has, so a stale companions
+          // array cannot seat people who have no chair.
+          guestCompanionNames(g).join(", "),
           rsvpHe(g.rsvp),
           mealHe(g.meal),
           g.phone || "",
@@ -160,7 +205,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
   const ws1 = XLSX.utils.aoa_to_sheet(rows);
   ws1["!cols"] = [
     { wch: 16 }, { wch: 8  }, { wch: 12 }, { wch: 14 },
-    { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 6  },
+    { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 6  }, { wch: 34 },
     { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 },
   ];
   XLSX.utils.book_append_sheet(wb, ws1, "סידור הושבה");
@@ -171,12 +216,13 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const uRows = [
       ["ממתינים לשיבוץ — " + (ev.name || "")],
       [],
-      ["שם אורח", "צד", "קבוצה", "כמות", "RSVP", "מנה", "טלפון", "הערות"],
+      ["שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים", "RSVP", "מנה", "טלפון", "הערות"],
       ...unassigned.map(g => [
         g.name  || "",
         sideLabel(g.side),
         g.group || "",
         g.count || 1,
+        guestCompanionNames(g).join(", "),
         rsvpHe(g.rsvp),
         mealHe(g.meal),
         g.phone || "",
@@ -186,7 +232,7 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const ws2 = XLSX.utils.aoa_to_sheet(uRows);
     ws2["!cols"] = [
       { wch: 20 }, { wch: 14 }, { wch: 14 },
-      { wch: 6  }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 },
+      { wch: 6  }, { wch: 34 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 },
     ];
     XLSX.utils.book_append_sheet(wb, ws2, "ממתינים לשיבוץ");
   }

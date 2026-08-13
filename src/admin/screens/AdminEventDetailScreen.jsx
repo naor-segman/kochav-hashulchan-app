@@ -308,10 +308,16 @@ export default function AdminEventDetailScreen() {
               {/* 250 of 300 rendered as "300 / 250" — the biggest number on the
                   page, reading as 20% overbooked. Nothing in "250 / 300" is a
                   strong LTR character, so bidi rule N1 resolved the neutrals
-                  around the slash as RTL and swapped the two number runs. The
-                  Hebrew phrasings further down the page ("250 מתוך 300",
-                  "4 / 12 מקומות") are correct only because the Hebrew word
-                  anchors the resolution. dir="ltr" states it outright. */}
+                  around the slash as RTL, so the glyphs on screen were
+                  "300 / 250" — and a slash between two numbers gets read as a
+                  fraction, left to right, which makes that twenty percent
+                  overbooked.
+                  Measured since, and worth being precise about: the token
+                  READING order (right to left) is correct in every one of these
+                  forms, with or without a Hebrew word, so this is about how a
+                  slash is read and not about the numbers being swapped. The
+                  other sites were unspaced instead — cheaper, same result.
+                  dir="ltr" states it outright. */}
               <span className={styles.statChipValue} dir="ltr">
                 {seatedGuestCount} / {totalGuestCount}
               </span>
@@ -396,7 +402,7 @@ export default function AdminEventDetailScreen() {
                       <td className={styles.guestSeated}>
                         {tName
                           ? <span className={styles.seatedAt}>{tName}</span>
-                          : <span className={styles.notSeated}>לא שובץ</span>
+                          : <span className={styles.notSeated}>טרם שובץ לשולחן</span>
                         }
                       </td>
                     </tr>

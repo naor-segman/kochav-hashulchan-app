@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { whatsappLink } from "../../data/messageSequence.js";
-import { guestSeatNames } from "../../utils/eventHelpers.js";
+import { guestCompanionNames } from "../../utils/eventHelpers.js";
 import CapBar from "../ui/CapBar.jsx";
 import Icon from "../ui/Icon.jsx";
 import SideDot from "../ui/SideDot.jsx";
@@ -23,9 +23,9 @@ const waUrl = (phone) => whatsappLink(phone, "");
    These numbers are a FALLBACK for the first estimate of a session, not the
    answer. The real heights are measured off the first body that actually
    renders (measureBody below) and cached, because no hardcoded number can be
-   right at two viewport widths: a single-line row is 56px everywhere, but a
-   multi-seat row is 96-114px at 1280 and 258-312px at 390, where the
-   companions line wraps. The fallbacks below are the 1280px measurements, and
+   right at two viewport widths: a single-line row is 56px everywhere, but a row
+   that carries a companions line is 96-114px at 1280 and 258-312px at 390,
+   where that line wraps. The fallbacks below are the 1280px measurements, and
    `node qa/seatingPerf.mjs` prints both them and the live placeholder-vs-real
    error, so the comment is checkable instead of being a promise.
 
@@ -38,7 +38,7 @@ const FALLBACK_GEOM = {
   empty:    36,   // .emptyInline, the "table is empty" line (35.5 measured)
   add:      62,   // the "add a guest to this table" row, incl. its 6px margin
   row:      56,   // .tGuestRow, single line
-  rowSeats: 100,  // .tGuestRow that also carries the companions line
+  rowSeats: 100,  // .tGuestRow that also carries the named-companions line
 };
 
 let geom = FALLBACK_GEOM;
@@ -84,7 +84,12 @@ function measureBody(el) {
 
 function estimateBodyHeight(guests, canAdd) {
   let h = geom.border + geom.padding + (guests.length > 0 ? geom.actions : geom.empty);
-  for (const g of guests) h += (g.count || 1) > 1 ? geom.rowSeats : geom.row;
+  // The tall-row test has to be the SAME test the render uses. It used to be
+  // `count > 1`, and the render's is now "does this row have named companions" —
+  // a party of four with nobody named renders one line, so estimating it at
+  // rowSeats would promise a placeholder ~44px too tall at 1280 and ~230px too
+  // tall at 390, on every such card. qa/seatingPerf.mjs measures that error.
+  for (const g of guests) h += guestCompanionNames(g).length > 0 ? geom.rowSeats : geom.row;
   return h + (canAdd ? geom.add : 0);
 }
 
@@ -106,7 +111,7 @@ function estimateBodyHeight(guests, canAdd) {
  *    moves content the host is looking at.
  */
 function TableCard({
-  table, guests, seats, expanded, locked, hasViolation, runKey,
+  table, cardKey, guests, seats, expanded, locked, hasViolation, runKey,
   tables, unassigned, seatsByTable, lockedGuests,
   activeId, draggedSeats,
   sideLabel,
@@ -197,7 +202,9 @@ function TableCard({
           className={styles.tCardToggle}
           aria-expanded={expanded}
           aria-label={(expanded ? "סגרו את " : "פתחו את ") + table.name}
-          onClick={() => onToggle(table.id)}
+          /* The CARD's key, not the table's id — see tableCardKeys(). Everything
+             else on this card still addresses the table by table.id. */
+          onClick={() => onToggle(cardKey)}
         />
         <div className={styles.tCardLeft}>
           {/* The table drawn as it is, with a seat per place and the taken ones
@@ -339,9 +346,13 @@ function TableCard({
                   <span className={base.gMeta}>
                     {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
                   </span>
-                  {(g.count || 1) > 1 && (
+                  {/* Companions by their own names. guestSeatNames() — which
+                      the print and place-card paths still use — would repeat
+                      "טל שוורץ" inside every entry of a row whose first line
+                      IS "טל שוורץ". See guestCompanionNames(). */}
+                  {guestCompanionNames(g).length > 0 && (
                     <span className={styles.seatNames}>
-                      {guestSeatNames(g).slice(1).join("  ·  ")}
+                      {guestCompanionNames(g).join("  ·  ")}
                     </span>
                   )}
                 </div>

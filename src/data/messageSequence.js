@@ -9,6 +9,20 @@
  * connection, not a project.
  *
  * Templates use {{placeholders}} filled from the event and the guest.
+ *
+ * `when` uses a plain HYPHEN-MINUS in ranges, never an en-dash.
+ *
+ * This one is a plain defect rather than a judgement call — unlike the spaced
+ * slash elsewhere in the codebase, where the reading order turns out to be fine
+ * and only the fraction reading breaks. Measured in the browser:
+ *
+ *   "3–6 חודשים לפני"   the cluster renders 6–3
+ *   "3-6 חודשים לפני"   the cluster renders 3-6
+ *
+ * There is no reading of "6–3" under which it means three to six. An en-dash is
+ * an Other Neutral, so N1 resolves it RTL between two European numbers and
+ * swaps them; a hyphen-minus is a European Separator, W4 folds the three into a
+ * single number run, and the range survives.
  */
 
 export const MESSAGE_STAGES = [
@@ -16,7 +30,7 @@ export const MESSAGE_STAGES = [
     key: "saveTheDate",
     label: "Save the Date",
     icon: "calendar",
-    when: "3–6 חודשים לפני",
+    when: "3-6 חודשים לפני",
     audience: "all",
     body: "היי {{שם}} 👋\n\nשומרים לכם את התאריך!\n{{אירוע}} — {{תאריך}}\n\nהפרטים המלאים בקרוב 💛\n{{קישור}}",
   },
@@ -24,7 +38,7 @@ export const MESSAGE_STAGES = [
     key: "invitation",
     label: "הזמנה",
     icon: "mail",
-    when: "4–6 שבועות לפני",
+    when: "4-6 שבועות לפני",
     audience: "all",
     body: "היי {{שם}} 👋\n\nאתם מוזמנים ל{{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n\nנשמח שתאשרו הגעה:\n{{קישור}}",
   },
@@ -50,7 +64,7 @@ export const MESSAGE_STAGES = [
     key: "details",
     label: "פרטי הגעה",
     icon: "pin",
-    when: "2–3 ימים לפני",
+    when: "2-3 ימים לפני",
     // Only the people who are actually coming need directions and a table.
     audience: "confirmed",
     body: "היי {{שם}} 👋\n\nמתרגשים לקראת {{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n\n{{שולחן}}\nנתראה! 🎉",
@@ -59,7 +73,7 @@ export const MESSAGE_STAGES = [
     key: "thanks",
     label: "תודה אחרי האירוע",
     icon: "heart",
-    when: "1–2 ימים אחרי",
+    when: "1-2 ימים אחרי",
     audience: "arrived",
     body: "היי {{שם}} 💛\n\nתודה ענקית שהייתם איתנו ב{{אירוע}} — זה לא היה אותו דבר בלעדיכם!",
   },

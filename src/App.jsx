@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, lazy, Suspense } from "react";
-import { useRegisterSW } from "virtual:pwa-register/react";
+import { useAppUpdate } from "./hooks/useAppUpdate.js";
 import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
@@ -67,6 +67,7 @@ const AnnouncementScreen        = lazy(() => import("./screens/AnnouncementScree
 const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
 const CollabReviewScreen  = lazy(() => import("./screens/CollabReviewScreen.jsx"));
 const EventSiteEditorScreen = lazy(() => import("./screens/EventSiteEditorScreen.jsx"));
+const ShareLinksScreen      = lazy(() => import("./screens/ShareLinksScreen.jsx"));
 // Legal / policy pages — lazy, rarely visited
 const HelpScreen          = lazy(() => import("./screens/HelpScreen.jsx"));
 const PrivacyScreen       = lazy(() => import("./screens/PrivacyScreen.jsx"));
@@ -78,7 +79,7 @@ const AccessibilityScreen = lazy(() => import("./screens/AccessibilityScreen.jsx
 // Reads eventId from the URL, validates it, provides patchEvent/go/showToast
 // to child screens using the same prop API they already use.
 
-function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
+function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, ready }) {
   const { eventId } = useParams();
   const navigate    = useNavigate();
   const location    = useLocation();
@@ -112,7 +113,17 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
     // A bookmarked event URL on a fresh device waits here for the cloud pull.
     // That was a blank white page for as long as the fetch took — on venue wifi,
     // seconds — with nothing to say the app was working.
-    if (syncStatus === SYNC_STATUS.SYNCING) return <Loading label="טוענים את האירוע…" />;
+    //
+    // `ready` is the half that was missing, and without it this guard fired on
+    // EVERY full page load of an event screen for a LOGGED-IN host. syncStatus
+    // starts LOCAL_ONLY, `supabase.auth.getSession()` is async, and until it
+    // resolves `events` still holds the guest bucket — so `activeEvent` was
+    // undefined and the host landed on the dashboard. Measured: /seating,
+    // /share and 14 more bounced to /app; /entrance and /checkin did not, and
+    // the only difference between them was that those two were already being
+    // handed the auth-loading flag. Refresh, a bookmark, a PWA cold start and
+    // a link mailed to yourself all hit it.
+    if (!ready || syncStatus === SYNC_STATUS.SYNCING) return <Loading label="טוענים את האירוע…" />;
     return <Navigate to="/app" replace />;
   }
 
@@ -138,6 +149,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus }) {
         <Route path="constraints" element={<Suspense fallback={<Loading />}><ConstraintsScreen {...sp} /></Suspense>} />
         <Route path="seating"     element={<Suspense fallback={<Loading />}><SeatingScreen {...sp} /></Suspense>} />
         <Route path="site"        element={<Suspense fallback={<Loading />}><EventSiteEditorScreen {...sp} /></Suspense>} />
+        <Route path="share"       element={<Suspense fallback={<Loading />}><ShareLinksScreen {...sp} /></Suspense>} />
         <Route path="rsvps"       element={<Suspense fallback={<Loading />}><RSVPResponsesScreen {...sp} /></Suspense>} />
         <Route path="collab"      element={<Suspense fallback={<Loading />}><CollabReviewScreen {...sp} /></Suspense>} />
         <Route path="costs"       element={<Suspense fallback={<Loading />}><CostScreen key={activeEvent.id} activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
@@ -194,23 +206,16 @@ export default function App() {
 
 function AppRoutes() {
   const { user, loading: authLoading }                                  = useAuth();
-  const { events, addEvent, removeEvent, patchEventById, syncStatus }  = useEvents(user);
+  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady } = useEvents(user);
   const { toast, showToast }                                            = useToast();
   const { plan }                                                        = usePlan();
   const navigate                                                        = useNavigate();
   const migration = useMigration(events, patchEventById, user);
 
-  // PWA update — auto-apply the new service worker and notify the user
-  const { needRefresh, updateServiceWorker } = useRegisterSW({
-    onRegistered() {},
-    onRegisterError() {},
-  });
-  useEffect(() => {
-    if (needRefresh[0]) {
-      updateServiceWorker(true);
-      showToast("האפליקציה עודכנה לגרסה החדשה ✓");
-    }
-  }, [needRefresh, updateServiceWorker, showToast]);
+  // Keep this tab on the deployed build. See useAppUpdate — the browser's own
+  // update check is far too lazy for a link handed to hundreds of guests, and
+  // the reload waits for a moment when it will not interrupt anyone.
+  useAppUpdate();
 
   // Show a one-time toast whenever a cloud sync error occurs.
   const prevSyncRef = useRef(null);
@@ -398,6 +403,7 @@ function AppRoutes() {
             showToast={showToast}
             toast={toast}
             syncStatus={syncStatus}
+            ready={!authLoading && eventsReady}
           />
         }
       />

@@ -77,14 +77,26 @@ export function isFullyArrived(g) {
  * thank-you message goes to a family that came, and the seating screen's row
  * counter still counts rows.
  */
-export function withArrivedSeats(g, seats) {
+export function withArrivedSeats(g, seats, now = Date.now()) {
   const n = seatsOf(g);
   const clean = [...new Set(
     (seats || [])
       .map(toSeatIndex)
       .filter(i => i !== null && i < n),
   )].sort((a, b) => a - b);
-  return { ...g, arrivedSeats: clean, arrived: clean.length > 0 };
+  // `arrivedAt` is what lets the merge tell two writers apart.
+  //
+  // Arrivals are the only field on a guest written by SOMEONE ELSE, on a device
+  // this tab never sees. The merge used to ask "has the local copy expressed an
+  // opinion?" — which cannot distinguish an opinion from a value it COPIED from
+  // the cloud a minute earlier. So after the first merge, every later update to
+  // that row was dropped: a family arriving in two waves lost the second wave,
+  // and a greeter correcting "2 of 4" to "3 of 4" watched it revert.
+  //
+  // With a timestamp the question becomes "who wrote last", which is the right
+  // question and the only one that has a correct answer. The server stamps the
+  // same field for the greeter's RPC (20260813000000_arrival_timestamps.sql).
+  return { ...g, arrivedSeats: clean, arrived: clean.length > 0, arrivedAt: now };
 }
 
 /** One tap at the door: everybody in this row is here (or nobody is). */

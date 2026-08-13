@@ -111,6 +111,81 @@ describe("exportToExcel — seat expansion (entrance list)", () => {
   });
 });
 
+// The seating sheet is one row per PARTY — that is the right shape for a plan
+// you read table by table. But it printed "טל · 4" and named nobody, so the
+// host got a number where they needed a guest list, exactly the complaint the
+// shared table's export already answered. Same column, same clamp.
+describe("exportToExcel — companions on the seating sheet", () => {
+  const seatingRows = () => sheetNamed("סידור הושבה").rows;
+  // The preamble is variable — the date and venue rows only exist when the
+  // event has them — so the header is found, not counted to.
+  const headIndex = () => seatingRows().findIndex(r => r[0] === "שולחן");
+  const headerRow = () => seatingRows()[headIndex()];
+  const col = label => headerRow().indexOf(label);
+
+  it("has a companions column, and it names them", async () => {
+    await exportToExcel(
+      {
+        name: "e",
+        guests: [g("טל", { count: 3, companions: ["רונית", "יעל"] })],
+        tables: [t("t1")], seating: { "טל": "t1" }, constraints: [],
+      },
+      sideLabel, []
+    );
+    const c = col("שמות המצטרפים");
+    expect(c).toBeGreaterThan(-1);
+    const guestRow = seatingRows().find(r => r[col("שם אורח")] === "טל");
+    expect(guestRow[c]).toBe("רונית, יעל");
+  });
+
+  it("never names a companion who has no chair", async () => {
+    await exportToExcel(
+      {
+        name: "e",
+        guests: [g("טל", { count: 2, companions: ["רונית", "יוסי", "דנה"] })],
+        tables: [t("t1")], seating: { "טל": "t1" }, constraints: [],
+      },
+      sideLabel, []
+    );
+    const guestRow = seatingRows().find(r => r[col("שם אורח")] === "טל");
+    expect(guestRow[col("שמות המצטרפים")]).toBe("רונית");
+  });
+
+  // A row shorter than the header does not fail loudly — it silently shifts
+  // every column after it, which is how a workbook lies.
+  it("keeps every seating row as wide as the header, empty tables included", async () => {
+    await exportToExcel(
+      {
+        name: "e",
+        guests: [g("טל", { count: 2, companions: ["רונית"] })],
+        tables: [t("t1"), t("t2")], seating: { "טל": "t1" }, constraints: [],
+      },
+      sideLabel, []
+    );
+    const width = headerRow().length;
+    const body  = seatingRows().slice(headIndex() + 1).filter(r => r.length > 0);
+    expect(body.length).toBeGreaterThan(1);
+    for (const r of body) expect(r.length).toBe(width);
+  });
+
+  it("carries the same column on the waiting-list sheet", async () => {
+    await exportToExcel(
+      {
+        name: "e",
+        guests: [g("טל", { count: 2, companions: ["רונית"] })],
+        tables: [t("t1")], seating: {}, constraints: [],
+      },
+      sideLabel, []
+    );
+    const rows = sheetNamed("ממתינים לשיבוץ").rows;
+    const head = rows.find(r => r[0] === "שם אורח");
+    const row  = rows.find(r => r[0] === "טל");
+    expect(head).toContain("שמות המצטרפים");
+    expect(row[head.indexOf("שמות המצטרפים")]).toBe("רונית");
+    expect(row.length).toBe(head.length);
+  });
+});
+
 // The shared collaborative table. Both screens that offer to download it now go
 // through this one builder — the whole point is that they cannot drift into
 // exporting different datasets under the same label again.
@@ -119,7 +194,8 @@ describe("exportCollabTableToExcel", () => {
   const opts = { eventName: "חתונת נועה וטל", sideLabels };
   const collabRows = [
     { id: "r1", name: "יעל כהן", phone: "0501112222", side: "bride", guest_group: "משפחה קרובה",
-      guests_count: 9, companions: ["אבי", "בני", "גילי", "דנה", "הדס", "ורד", "זהר", "חן"], updated_by: "רונית" },
+      guests_count: 9, companions: ["אבי", "בני", "גילי", "דנה", "הדס", "ורד", "זהר", "חן"],
+      notes: "אלרגיה לאגוזים", updated_by: "רונית" },
     { id: "r2", name: "משה לוי", phone: "", side: null, guest_group: null, guests_count: 1, companions: [] },
   ];
   const rowsOf = () => sheetNamed("טבלה שיתופית").rows;
@@ -142,14 +218,24 @@ describe("exportCollabTableToExcel", () => {
   it("says which rows are still incomplete instead of printing them as equals", async () => {
     await exportCollabTableToExcel(collabRows, opts);
     const [, complete, incomplete] = rowsOf();
-    expect(complete[7]).toBe("מלאה — מסונכרנת");
-    expect(incomplete[7]).toBe("חסר: טלפון, צד, קבוצה");
+    expect(complete[8]).toBe("מלאה — מסונכרנת");
+    expect(incomplete[8]).toBe("חסר: טלפון, צד, קבוצה");
+  });
+
+  // The column the host used to have to ask for in a separate WhatsApp message.
+  // It sits with the guest's own data (right after the companion names), which
+  // is why the status column moved from index 7 to 8.
+  it("carries the note the relative left", async () => {
+    await exportCollabTableToExcel(collabRows, opts);
+    expect(rowsOf()[0][6]).toBe("הערות");
+    expect(rowsOf()[1][6]).toBe("אלרגיה לאגוזים");
+    expect(rowsOf()[2][6]).toBe("");
   });
 
   it("carries who added the row, and the localised side", async () => {
     await exportCollabTableToExcel(collabRows, opts);
     expect(rowsOf()[1][2]).toBe("צד הכלה");
-    expect(rowsOf()[1][6]).toBe("רונית");
+    expect(rowsOf()[1][7]).toBe("רונית");
   });
 
   it("sets workbook RTL, so a Hebrew sheet does not open left-to-right", async () => {
@@ -171,14 +257,39 @@ describe("exportCollabTableToExcel", () => {
 });
 
 describe("collabRowMissing", () => {
+  const full = { name: "א", phone: "05", side: "bride", guest_group: "חברים" };
+
   it("lists exactly the four fields the sync requires", () => {
     expect(collabRowMissing({})).toEqual(["שם", "טלפון", "צד", "קבוצה"]);
   });
   it("never reports the seat count, which always defaults to 1", () => {
-    expect(collabRowMissing({ name: "א", phone: "05", side: "bride", guest_group: "חברים" })).toEqual([]);
+    expect(collabRowMissing(full)).toEqual([]);
   });
   it("treats whitespace-only values as missing", () => {
-    expect(collabRowMissing({ name: "   ", phone: "05", side: "bride", guest_group: "חברים" })).toEqual(["שם"]);
+    expect(collabRowMissing({ ...full, name: "   " })).toEqual(["שם"]);
+  });
+
+  // 12.8 — a seat with no name is counted twice: once as a chair, once as the
+  // person it turns out to be. The row is still SAVED to the shared table (it
+  // auto-saves as you type); what it does not do is enter the host's guest list.
+  it("a named seat count of 1 needs no companion names", () => {
+    expect(collabRowMissing({ ...full, guests_count: 1 })).toEqual([]);
+  });
+  it("names the specific empty box, matching the input labels", () => {
+    expect(collabRowMissing({ ...full, guests_count: 2, companions: [] }))
+      .toEqual(["שם המצטרף 1"]);
+    expect(collabRowMissing({ ...full, guests_count: 4, companions: ["", "רונית"] }))
+      .toEqual(["שמות המצטרפים (1, 3)"]);
+  });
+  it("a relationship word completes the row — that is the point", () => {
+    expect(collabRowMissing({ ...full, guests_count: 2, companions: ["בעל"] })).toEqual([]);
+  });
+  it("does not demand names for seats the row no longer has", () => {
+    expect(collabRowMissing({ ...full, guests_count: 1, companions: ["רונית", "טל"] })).toEqual([]);
+  });
+  it("reports the missing fields and the missing names together", () => {
+    expect(collabRowMissing({ name: "א", guests_count: 2 }))
+      .toEqual(["טלפון", "צד", "קבוצה", "שם המצטרף 1"]);
   });
 });
 
@@ -200,5 +311,62 @@ describe("exportToExcel — translations", () => {
     expect(all).toContain("טבעוני");
     expect(all).toContain("ממתין"); // unknown rsvp falls back
     expect(all).toContain("רגיל");  // unknown meal falls back
+  });
+});
+
+// ── From the 12.8 logic review ───────────────────────────────────────────────
+describe("the occupancy cell — seats, and in an order a Hebrew reader can trust", () => {
+  const ev = () => ({
+    name: "e",
+    guests: [g("a", { count: 5 })],
+    tables: [t("t1", 12)],
+    seating: { a: "t1" },
+    constraints: [],
+  });
+
+  it("counts SEATS, not rows", async () => {
+    // Mutant M21 — counting rows instead of `guestSeats` — survived the whole
+    // suite. One row of five people would have reported the table as holding
+    // one seat of twelve.
+    await exportToExcel(ev(), sideLabel, []);
+    const rows = sheetNamed("סידור הושבה").rows;
+    const cell = rows.find(r => String(r[0]) === "t1")[3];
+    expect(String(cell)).toContain("5");
+    expect(String(cell)).not.toMatch(/^1 /);
+  });
+
+  it("uses 'מתוך' rather than a spaced slash in the RTL workbook", async () => {
+    // See the comment at the call site: the two forms are geometrically
+    // identical and the reading order of "5 / 12" was never wrong. What the
+    // Hebrew word buys is that the cluster on screen — "12 מתוך 5" — cannot be
+    // mistaken for an LTR fraction the way "12 / 5" can. A convention, pinned
+    // so it does not drift back, not a measured defect.
+    await exportToExcel(ev(), sideLabel, []);
+    const rows = sheetNamed("סידור הושבה").rows;
+    const cell = String(rows.find(r => String(r[0]) === "t1")[3]);
+    expect(cell).toBe("5 מתוך 12");
+    expect(cell).not.toContain(" / ");
+  });
+});
+
+describe("the entrance sheet is the door list, so a refusal must not be on it", () => {
+  it("excludes declined guests", async () => {
+    // Mutant M22 — dropping the `declined` filter — survived the suite, and
+    // the comment above that filter describes a real reconciliation bug it was
+    // added to fix. A greeter handed a list with a refusal on it either checks
+    // in somebody who is not coming, or stands at the door arguing about it.
+    const ev = {
+      name: "e",
+      guests: [g("בא", { count: 1 }), g("לא בא", { rsvp: "declined" })],
+      tables: [t("t1")],
+      seating: { "בא": "t1", "לא בא": "t1" },
+      constraints: [],
+    };
+    await exportToExcel(ev, sideLabel, []);
+    const entrance = sheetNamed("רשימת כניסה א׳-ב׳");
+    expect(entrance).toBeTruthy();
+    const text = entrance.rows.flat().join(" | ");
+    expect(text).toContain("בא");
+    expect(text).not.toContain("לא בא");
   });
 });

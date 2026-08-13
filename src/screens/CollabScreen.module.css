@@ -111,6 +111,11 @@
 .companionsWhy { font-size: var(--step--1); color: var(--muted); line-height: 1.55; }
 .companionInput { font-size: var(--font-size-base); }
 
+/* The note a relative can now leave. Full width like the phone box, and
+   visually quieter than the required fields — it is optional, and dressing it
+   like a required one is how a form starts feeling long. */
+.notesInput { font-size: var(--step-0); }
+
 /* "Did it save?" has to be answerable without squinting, so the two answers
    are chips on their semantic grounds rather than 12px of coloured text. */
 .rowOk, .rowWarn {
@@ -120,6 +125,16 @@
 }
 .rowOk   { color: var(--green); background: var(--green-bg); }
 .rowWarn { color: var(--warn);  background: var(--warn-bg); }
+
+/* What to type when a seat has no name. Same colour as the chip it sits in —
+   deliberately NOT --muted, which is 4.4:1 on the warm tint (bug class 5): the
+   only line on the card that tells someone how to get unstuck must not be the
+   hardest one to read. Weight is what separates it from the headline, not
+   colour. */
+.rowWarnHint {
+  display: block; margin-top: 3px;
+  font-size: var(--step--1); font-weight: 600;
+}
 
 .byLine  { font-size: var(--step--1); color: var(--muted); }
 

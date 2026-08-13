@@ -1,8 +1,7 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { EVENT_TYPES } from "../data/constants.js";
 import { BUILD_STEP_COUNT, stepChainAfter, nextBuildStep } from "../data/eventAreas.js";
-import { useShareGate } from "../components/share/useShareGate.jsx";
 import { getEventPersonalConfig, getEventNamePlaceholder, getSideLabels, COUPLE_TYPES } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Divider from "../components/ui/Divider.jsx";
@@ -10,20 +9,9 @@ import Icon from "../components/ui/Icon.jsx";
 import Field from "../components/ui/Field.jsx";
 import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
-import QrCode from "../components/ui/QrCode.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
-import SectionMark from "../components/ui/SectionMark.jsx";
 import styles from "./EventSetupScreen.module.css";
-
-const SHARE_LINKS = [
-  { key: "rsvp",    label: "RSVP אישור הגעה",  path: "/rsvp/",    mark: "rsvp" },
-  { key: "invite",  label: "הזמנה דיגיטלית",   path: "/invite/",  mark: "invite" },
-  { key: "card",    tokenKey: "invite", label: "כרטיס הזמנה + QR", path: "/card/", mark: "nameTags" },
-  { key: "gift",    label: "מתנה דיגיטלית",    path: "/gift/",    mark: "gifts" },
-  { key: "hostess", label: "מצב דיילות",        path: "/hostess/", mark: "hostess" },
-  { key: "collab",  label: "הוספת אורחים (למשפחה)", path: "/collab/", mark: "collab" },
-];
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [form, setForm] = useState({
@@ -50,20 +38,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
-  const [copiedKey, setCopiedKey] = useState(null);
   const nameRef = useRef(null);
-  // Sharing is the moment guest mode stops being free — see useShareGate.
-  const { guard, gate, isGuest } = useShareGate();
-
-  const copyLink = useCallback(async (key, url) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(k => k === key ? null : k), 2000);
-    } catch {
-      showToast("לא ניתן להעתיק — העתיקו ידנית", "err");
-    }
-  }, [showToast]);
 
   const set = (k, v) => {
     setForm(p => Object.assign({}, p, { [k]: v }));
@@ -117,7 +92,6 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     go(next.id);
   };
 
-  const BASE_URL        = window.location.origin;
   const personal        = getEventPersonalConfig(form.type);
   const namePlaceholder = getEventNamePlaceholder(form.type);
   const isNew           = !ev.name;
@@ -132,8 +106,8 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         title={isNew ? "אירוע חדש" : "פרטי האירוע"}
         mark="setup"
         sub={isNew
-          ? "הזינו שם לאירוע — שדה חובה לפני המשך. שאר הפרטים אפשר להשלים בכל עת."
-          : "עדכנו את פרטי האירוע. תוכלו לשנות הכל בכל שלב."
+          ? "רק השם חובה כדי להמשיך. תאריך, מקום והשמות — אפשר להשלים מתי שנוח."
+          : "כל מה שכתוב כאן מתעדכן בכל שאר המסכים. אפשר לשנות בכל שלב."
         }
       />
 
@@ -150,7 +124,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         <p className={styles.requiredNote}>* שדה חובה — נדרש לפני המעבר לשלב הבא</p>
 
         <div className={base.grid2}>
-          <Field label="שם האירוע" required hint="ישמש לזיהוי לאורך כל המערכת">
+          <Field label="שם האירוע" required hint="כך תזהו אותו ברשימה, וכך הוא ייקרא בכל מה שהאורחים יראו">
             <input
               ref={nameRef}
               className={[base.input, errors.name ? base.inputError : ""].filter(Boolean).join(" ")}
@@ -170,7 +144,10 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           <Field label="תאריך האירוע">
             <input className={base.input} type="date" value={form.date} onChange={e => set("date", e.target.value)} />
           </Field>
-          <Field label="שם האולם">
+          {/* Not every event is in a hall — a brit is in a shul, a birthday is
+              often at home, a corporate evening is at an office. The label
+              names both, and the hint says the address is a legitimate answer. */}
+          <Field label="שם האולם/מיקום" hint="אולם, גן אירועים, או פשוט הכתובת">
             <input
               className={base.input}
               value={form.venue}
@@ -185,7 +162,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         {personal.kind === "wedding" && (
           <>
             <Divider label={personal.divider} />
-            <Field label="בני הזוג" hint="נתאים את התיוג בכל המערכת בהתאם">
+            <Field label="בני הזוג" hint="לפי זה ייקראו שני הצדדים בכל המסכים">
               <div className={base.seg}>
                 {COUPLE_TYPES.map(c => (
                   <button
@@ -199,8 +176,16 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
                 ))}
               </div>
             </Field>
+            {/* Bug class 7. This line used to read
+                  ("{bride}" / "{groom}")
+                — a slash and two spaces between two quoted values, with no
+                strong character of its own. It happens to resolve correctly
+                while both sides are Hebrew, but a side named in Latin letters
+                or digits (a host may type anything here) flips the pair on
+                screen. "ו" is a strong Hebrew character and anchors the order
+                no matter what the host types. */}
             <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              ישמשו לתיוג אורחים ("{effectiveLabels.bride}" / "{effectiveLabels.groom}") לאורך כל המערכת.
+              כל אורח ישויך לצד אחד — "{effectiveLabels.bride}" או "{effectiveLabels.groom}" — בכל המסכים.
             </p>
             <div className={base.grid2}>
               <Field label={coupleCfg.brideLabel}>
@@ -227,7 +212,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           <>
             <Divider label={personal.divider} />
             <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              ישמש לזיהוי האירוע ולתיוג האורחים לאורך כל המערכת.
+              השם הזה יופיע בכותרת האירוע ובהזמנה שהאורחים יקבלו.
             </p>
             <div className={base.grid2}>
               <Field label={personal.label}>
@@ -246,7 +231,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           <>
             <Divider label={personal.divider} />
             <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              ישמשו לזיהוי האירוע ולתיוג בכל המערכת.
+              אלה יופיעו בכותרת האירוע ובהזמנה שהמוזמנים יקבלו.
             </p>
             <div className={base.grid2}>
               <Field label="שם הארגון / חברה">
@@ -273,7 +258,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           <>
             <Divider label={personal.divider} />
             <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              ישמש לזיהוי האירוע ולתיוג בכל המערכת.
+              השם הזה יופיע בכותרת האירוע ובהזמנה שהאורחים יקבלו.
             </p>
             <div className={base.grid2}>
               <Field label={personal.label}>
@@ -290,10 +275,11 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
 
         {/* ── Custom side names — available for every event type ── */}
         <Divider label="שמות הצדדים (אופציונלי)" />
+        {/* The example pair here carried the same bidi hazard as the wedding
+            hint above — "צד הכלה" / "צד החתן" — and is now joined by "או". */}
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-          כל אורח משויך לאחד משני "צדדים" — כך המערכת מאזנת את ההושבה בין שני הצדדים.
-          כאן אפשר לתת לצדדים שם משלכם (למשל "צד הכלה" / "צד החתן"). השאירו ריק כדי להשתמש
-          בברירת המחדל שרואים בשדות למטה.
+          כל אורח שייך לאחד משני צדדים, וכך ההושבה מתאזנת ביניהם. כאן אפשר לקרוא לצדדים
+          בשם שלכם — למשל "צד הכלה" או "צד החתן". השאירו ריק ונשתמש בשמות שמופיעים למטה.
         </p>
         <div className={base.grid2}>
           <Field label={<>צד ראשון <InfoTip text="כל אורח משויך לאחד משני צדדים כדי שההושבה תתאזן ביניהם. השאירו ריק לשימוש בברירת המחדל." /></>}>
@@ -327,64 +313,19 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         </div>
       </div>
 
-      {/* ── Sharing links card ── */}
+      {/* The links themselves are not here any more — they are what the GUESTS
+          receive, and this screen is the host's own details. This is the
+          pointer, so nobody who knew them by their old address is left
+          hunting. */}
       <div className={base.card}>
-        <SectionLabel>שיתוף האירוע</SectionLabel>
+        <SectionLabel>הקישורים לאורחים</SectionLabel>
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-          לינקים ייחודיים לשיתוף עם האורחים
+          ההזמנה, אישור ההגעה, אתר האירוע, המתנה, הטבלה השיתופית ועמדת הכניסה —
+          כולם יושבים במסך אחד, עם שורה על מה שכל אחד עושה אצל האורח.
         </p>
-        {SHARE_LINKS.map(sl => {
-          const token = ev.tokens?.[sl.tokenKey || sl.key] || "";
-          const url = BASE_URL + sl.path + token;
-          return (
-            <div key={sl.key} className={styles.shareRow}>
-              <span className={styles.shareLabel}><SectionMark name={sl.mark} size={20} /> {sl.label}</span>
-              {isGuest ? (
-                // The link is WITHHELD rather than shown-and-blocked, because
-                // showing it would be a lie: the public page resolves the token
-                // against the cloud, and a guest-mode event has no cloud row.
-                <div className={styles.shareInputRow}>
-                  <span className={styles.shareLocked}>
-                    <Icon name="lock" size={13} /> הקישור נפתח אחרי פתיחת חשבון
-                  </span>
-                  <button
-                    className={[base.btnSm, styles.copyBtn].join(" ")}
-                    onClick={() => guard(sl.label)}
-                    type="button"
-                  >
-                    למה?
-                  </button>
-                </div>
-              ) : (
-                <div className={styles.shareInputRow}>
-                  <input
-                    className={[base.input, styles.shareInput].join(" ")}
-                    readOnly
-                    value={url}
-                    aria-label={`קישור ל${sl.label}`}
-                  />
-                  <button
-                    className={[base.btnSm, styles.copyBtn].join(" ")}
-                    onClick={() => guard(sl.label, () => copyLink(sl.key, url))}
-                    type="button"
-                  >
-                    {copiedKey === sl.key ? <>הועתק <Icon name="check" size={13} /></> : "העתיקו"}
-                  </button>
-                  {token && <QrCode url={url} label={sl.label} filename={"qr-" + sl.key} />}
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {isGuest ? (
-          <p className={base.fieldHint}>
-            האירוע הזה שמור רק בדפדפן הזה, ולכן קישור שתשלחו לא ייפתח אצל האורחים.
-            פתיחת חשבון היא חינם, לוקחת חצי דקה, וכל מה שבניתם עובר איתכם.
-          </p>
-        ) : (
-          <p className={base.fieldHint}>קוד QR (▦) לכל קישור — להדפסה על שילוט בכניסה, בעמדת הדיילות או בהזמנה.</p>
-        )}
-
+        <button className={base.btnSecondary} type="button" onClick={() => go("share")}>
+          לקישורים לאורחים <Icon name="arrowLeft" size={15} />
+        </button>
       </div>
 
       <NextStep
@@ -392,7 +333,6 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         hint={ev.guests.length > 0 ? (ev.guests.length + " רשומות ברשימה") : "הרשימה היא הדבר שמשתנה הכי הרבה — ממנה נגזר כמה שולחנות צריך"}
         onClick={goNext}
       />
-      {gate}
     </div>
   );
 }

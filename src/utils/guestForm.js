@@ -21,6 +21,9 @@
  *      mean "the host cleared them".
  *   3. A single companion can be changed on its own. Positions are stable, so
  *      "מלווה 2" is always the second seat.
+ *   4. Every extra seat a row declares must carry a name before the row is
+ *      saved (missingCompanionSeats). A nameless seat is a "+1": it cannot be
+ *      seated on purpose and cannot be checked in as a person.
  */
 
 import { MEAL_DEFAULT } from "../data/constants.js";
@@ -83,6 +86,48 @@ export function normalizeCompanions(companions, count) {   // eslint-disable-lin
   while (out.length && out[out.length - 1] === "") out.pop();
   return out;
 }
+
+/**
+ * The one sentence every screen says when a seat has no name.
+ *
+ * It is the owner's own wording, and it is deliberately an INSTRUCTION, not a
+ * complaint: the person filling this in is usually a relative doing the host a
+ * favour, and "שדה חובה" tells them they did something wrong without telling
+ * them what to type. A relationship word is a perfectly good answer.
+ *
+ * Exported as one constant so the guest form, the shared table and the RSVP
+ * form cannot drift into three different sentences about one rule.
+ */
+export const COMPANION_NAME_HINT =
+  "אפשר לכתוב ״בעל״, ״אישה״ או ״חבר״ — העיקר שיהיה שם לכל מקום";
+
+/**
+ * Which extra seats of a row still have no name.
+ *
+ * Returns 1-based positions matching the input labels the screens render
+ * ("שם 1", "שם 2"), so a message can point at the box that is empty.
+ *
+ * The rule (owner, 12.8): a row that declares more than one seat must name
+ * every extra seat. Without a name the seat is a "+1" — it cannot be seated
+ * deliberately, cannot be checked in as a person, and the same human ends up
+ * counted twice when they also appear as a guest of their own.
+ *
+ * Only positions the row actually HAS are checked: `count` seats means
+ * `count - 1` names. A stored list longer than the seat count is ignored here
+ * exactly as it is ignored everywhere else (see normalizeCompanions) — those
+ * names belong to seats the row no longer has, and they are not missing.
+ */
+export function missingCompanionSeats(companions, count) {
+  const slots = companionSlots(count);
+  const src = Array.isArray(companions) ? companions : [];
+  const out = [];
+  for (let i = 0; i < slots; i++) if (!str(src[i]).trim()) out.push(i + 1);
+  return out;
+}
+
+/** True when every extra seat of a `count`-seat row carries a name. */
+export const companionNamesComplete = (companions, count) =>
+  missingCompanionSeats(companions, count).length === 0;
 
 /** "" / null / gibberish → undefined; otherwise a non-negative integer. */
 export function moneyOrUndefined(v) {

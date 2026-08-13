@@ -127,7 +127,11 @@
 
   /* Semantic state — green (success) */
   --green:        #0F7350;
-  --green-light:  #2AA274;   /* 5.6:1 on the near-black nav — the only green legible there */
+  --green-light:  #2AA274;   /* 5.6:1 on the near-black nav — the only green legible there.
+                                FOREGROUND ONLY. As a background under white it is 3.22:1
+                                and fails; that is what --green-dark is for. */
+  --green-dark:   #0B5B3F;   /* 8.13:1 under white — the pressed/hover ground for a filled
+                                green button. 1.39:1 against --green, so the change is seen. */
   --green-bg:     #E3F4ED;
   --green-border: #A6DFC8;
 
@@ -341,4 +345,5 @@
   --scrim-45:  rgba(0, 0, 0, .45);
   --scrim-50:  rgba(0, 0, 0, .5);
   --scrim-55:  rgba(0, 0, 0, .55);
+  --scrim-60:  rgba(0, 0, 0, .60);
 }

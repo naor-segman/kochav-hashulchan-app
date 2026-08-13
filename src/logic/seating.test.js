@@ -650,3 +650,101 @@ describe("autoAssign — the sketch never costs a seat (fuzz)", () => {
     expect(losses).toEqual([]);
   });
 });
+
+// ── Holes found by the 12.8 mutation run ─────────────────────────────────────
+// Both of these mutants survived the whole 751-test suite. They are not new
+// bugs — they are the two rules the room-aware rewrite was built around, with
+// no test standing behind either of them.
+
+describe("the room-aware pass — the rules that had no test", () => {
+  const at = (x, y) => ({ x, y });
+
+  it("a tie goes to the room-aware pass, because there proximity is free", () => {
+    // The documented tie-break. Mutating `>=` to `>` — handing ties to the
+    // plain pass — changed the output of 28 of 40,000 fuzzed events and no
+    // test noticed. The whole value of asking for a venue sketch is that when
+    // two arrangements seat the SAME number of people, the one that puts
+    // relatives near each other wins.
+    //
+    // This exact fixture was found by running the mutant against the real
+    // engine and keeping the first case where they disagree ON A TIE. My first
+    // attempt at this test was a hand-built "obvious" tie that both versions
+    // resolved identically — it passed against the mutant and proved nothing.
+    const guests = [g("g0", { count: 4 }), g("g1", { count: 3 }), g("g2", { count: 1 }),
+                    g("g3", { count: 3 }), g("g4", { count: 4 })];
+    const tables = [t("t0", 3), t("t1", 4), t("t2", 3)];
+    const constraints = [together("g0", "g3")];
+    const positions = { t0: at(420, 261), t1: at(325, 70), t2: at(208, 72) };
+
+    const withRoom = autoAssign(guests, tables, constraints, {}, positions);
+    const plain    = autoAssign(guests, tables, constraints, {}, null);
+    const seats = s => guests.reduce((n, x) => n + (s[x.id] ? (x.count || 1) : 0), 0);
+
+    expect(seats(withRoom)).toBe(10);
+    expect(seats(plain)).toBe(10);                    // a genuine tie, both ways
+
+    // g0 sits at t1 either way. Its "together" partner g3 does not fit beside
+    // it, so it overflows — and t2 is 117px from t1 while t0 is 213px away.
+    const d = (a, b) => Math.hypot(positions[a].x - positions[b].x, positions[a].y - positions[b].y);
+    expect(d("t1", "t2")).toBeLessThan(d("t1", "t0"));
+    expect(withRoom.g0).toBe("t1");
+    expect(withRoom.g3).toBe("t2");                   // the NEAR table
+    expect(plain.g3).toBe("t0");                      // the emptiest one
+  });
+
+  it("never seats fewer people because a sketch exists", () => {
+    // The guarantee the wrapper exists to provide, pinned directly.
+    for (let seed = 0; seed < 200; seed++) {
+      const n = 2 + (seed % 6);
+      const guests = Array.from({ length: n }, (_, i) => g("g" + i, { count: 1 + ((seed + i) % 4) }));
+      const tables = Array.from({ length: 2 + (seed % 3) }, (_, i) => t("t" + i, 3 + ((seed * (i + 1)) % 8)));
+      const positions = Object.fromEntries(
+        tables.map((tb, i) => [tb.id, at((i * 37 + seed) % 500, (i * 91 + seed) % 500)])
+      );
+      const seats = s => guests.reduce((acc, x) => acc + (s[x.id] ? (x.count || 1) : 0), 0);
+      expect(seats(autoAssign(guests, tables, [], {}, positions)))
+        .toBeGreaterThanOrEqual(seats(autoAssign(guests, tables, [], {}, null)));
+    }
+  });
+
+  it("a cluster pinned across TWO tables by locks follows both, not just the first", () => {
+    // Mutant: `pinnedTables = [seating[pinned[0]]]` — follow only the first
+    // pinned member's table. It survived the whole 751-test suite, and it is
+    // NOT equivalent: with the host having locked two relatives to different
+    // tables and the rest of the family chained between them, the real engine
+    // sends the middle of the chain to join the second locked relative, while
+    // the mutant parks them at a table with nobody from the family at all.
+    //
+    // Found by targeted search — the random generator never built a cluster
+    // pinned to two tables and reported "no discriminating case", which would
+    // have been a false all-clear.
+    const guests = [
+      g("p1", { count: 2 }), g("p2", { count: 1 }),
+      g("c0", { count: 2 }), g("c1", { count: 2 }), g("c2", { count: 2 }), g("c3", { count: 1 }),
+      g("x0", { count: 2 }),
+    ];
+    const tables = [t("t0", 7), t("t1", 5), t("t2", 7), t("t3", 4)];
+    const constraints = [
+      together("p1", "c0"), together("c0", "c1"), together("c1", "c2"),
+      together("c2", "c3"), together("c3", "p2"),
+    ];
+    const s = autoAssign(guests, tables, constraints, { p1: "t0", p2: "t2" });
+
+    expect(s.p1).toBe("t0");                  // locks are never moved
+    expect(s.p2).toBe("t2");
+    // The chain's middle joins the SECOND pinned table rather than scattering
+    // to a table holding none of them. The mutant puts c1 and c2 at t1.
+    expect(s.c1).toBe("t2");
+    expect(s.c2).toBe("t2");
+  });
+
+  it("does not hand back the caller's own lockedSeating object", () => {
+    // `assignOnce` returned the argument itself on the empty-input path, so
+    // SeatingScreen's `patchEvent({ seating: newSeating })` could be storing
+    // the very object it read.
+    const locked = { a: "t1" };
+    const out = autoAssign([], [], [], locked);
+    expect(out).toEqual(locked);
+    expect(out).not.toBe(locked);
+  });
+});

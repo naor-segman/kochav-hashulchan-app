@@ -1,4 +1,5 @@
 import styles from "./TableGlyph.module.css";
+import { glyphFontSize } from "../../utils/glyphLabel.js";
 
 /**
  * The one shape this product owns.
@@ -159,7 +160,17 @@ export default function TableGlyph({
       )}
 
       {label != null && (
-        <text x={c} y={c} className={styles.label} dominantBaseline="central" textAnchor="middle">
+        // The size is computed, not fixed. The CSS `font-size: var(--step-3)`
+        // is 28 user units with nothing stopping it, and a caller that passed a
+        // NAME rather than a number blew the label 77 units out of each side of
+        // the glyph and straight through its neighbours. A one or two character
+        // label still gets exactly 28, so every screen that already uses this is
+        // pixel-identical.
+        <text
+          x={c} y={c} className={styles.label}
+          style={{ fontSize: `${glyphFontSize(String(label))}px` }}
+          dominantBaseline="central" textAnchor="middle"
+        >
           {label}
         </text>
       )}

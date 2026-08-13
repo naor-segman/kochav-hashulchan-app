@@ -255,6 +255,12 @@ export async function upsertCollabGuest(token, row) {
       guest_group:  row.guest_group ?? row.group ?? null,
       guests_count: Number(row.guests_count ?? row.count) || 1,
       companions:   Array.isArray(row.companions) ? row.companions : [],
+      // The key is OMITTED, not sent as null, when the caller holds no string.
+      // `collab_upsert_by_token` keeps the stored note when the key is absent,
+      // so a row this client loaded from a database that predates the notes
+      // column cannot write its own ignorance over someone else's note. An
+      // explicit "" is a person who emptied the box, and it does clear it.
+      ...(typeof row.notes === "string" ? { notes: row.notes } : {}),
       updated_by:   row.updated_by ?? null,
     },
   });
@@ -289,21 +295,57 @@ export function subscribeCollabGuests(eventId, onChange) {
   return () => { supabase.removeChannel(channel); };
 }
 
-/** Owner: read the shared table for an owned event (RLS-guarded, direct). */
+const COLLAB_COLS      = "id, name, phone, side, guest_group, guests_count, companions, notes, updated_at, updated_by";
+const COLLAB_COLS_PRE_NOTES = "id, name, phone, side, guest_group, guests_count, companions, updated_at, updated_by";
+
+/**
+ * Owner: read the shared table for an owned event (RLS-guarded, direct).
+ *
+ * Falls back to the pre-notes column list when the database has not run
+ * 20260812000000_collab_notes.sql yet. Without this, the ORDER of the deploy
+ * and the migration decides whether the shared table works: new code against
+ * an old database asks for a column that is not there, PostgREST answers 400,
+ * and the host's whole shared-table sync goes dark with an offline banner and
+ * no clue why. Migrations here are run by hand by one person, so "just deploy
+ * them in the right order" is a footgun, not a plan.
+ *
+ * The fallback costs one extra round trip exactly once per outdated database,
+ * and nothing at all afterwards.
+ */
 export async function fetchCollabGuestsOwner(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
-  const { data, error } = await supabase
-    .from("collab_guests")
-    .select("id, name, phone, side, guest_group, guests_count, companions, updated_at, updated_by")
-    .eq("event_id", eventCloudId);
-  if (error) throw error;
-  return data ?? [];
+  const read = (cols) => supabase.from("collab_guests").select(cols).eq("event_id", eventCloudId);
+  const { data, error } = await read(COLLAB_COLS);
+  if (!error) return data ?? [];
+  // Anything that is not "the column is not there yet" is a real failure and
+  // must not be swallowed into a silently degraded read.
+  if (!isMissingColumnError(error)) throw error;
+  const retry = await read(COLLAB_COLS_PRE_NOTES);
+  if (retry.error) throw retry.error;
+  return retry.data ?? [];
+}
+
+/**
+ * Is this error PostgREST telling us the column does not exist yet?
+ *
+ * Two different codes, because reads and writes fail differently: a SELECT of
+ * an unknown column comes back as Postgres 42703, while an INSERT names the
+ * column in its schema cache first and comes back as PGRST204.
+ */
+function isMissingColumnError(error) {
+  return error?.code === "42703"
+      || error?.code === "PGRST204"
+      || /column .* does not exist/i.test(error?.message ?? "")
+      || /could not find the .* column/i.test(error?.message ?? "");
 }
 
 /** Owner: push one guest row into the shared table (app→table sync). */
 export async function upsertCollabGuestOwner(eventCloudId, row) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return;
-  const { error } = await supabase.from("collab_guests").upsert({
+  // Same rule on the owner's direct-table path as on the RPC: a column that is
+  // not in the payload is not in PostgREST's ON CONFLICT DO UPDATE SET list, so
+  // omitting `notes` leaves the stored note alone instead of nulling it.
+  const base = {
     id:           row.id,
     event_id:     eventCloudId,
     name:         row.name ?? "",
@@ -313,8 +355,26 @@ export async function upsertCollabGuestOwner(eventCloudId, row) {
     guests_count: Number(row.guests_count ?? row.count) || 1,
     companions:   Array.isArray(row.companions) ? row.companions : [],
     updated_at:   new Date().toISOString(),
-  });
-  if (error) throw error;
+  };
+  const payload = typeof row.notes === "string" ? { ...base, notes: row.notes } : base;
+
+  const { error } = await supabase.from("collab_guests").upsert(payload);
+  if (!error) return;
+
+  // The READ path has had this fallback since the notes migration was written;
+  // the WRITE path did not, and the guard that was supposed to provide it never
+  // fires — `guestToCollab` normalises `notes` to "" , so it is ALWAYS a string
+  // and the key is always sent. Against a database that has not run
+  // 20260812000000_collab_notes.sql the upsert 400s, the retry queue burns its
+  // budget on every guest in turn, and the entire app→table direction goes dark
+  // while the table→app direction keeps working — which looks like the shared
+  // table ignoring the host rather than like a failed deploy.
+  //
+  // Migrations here are run by hand, by one person, so the window between
+  // "deployed" and "migrated" is real and has to survive.
+  if (!isMissingColumnError(error) || payload === base) throw error;
+  const retry = await supabase.from("collab_guests").upsert(base);
+  if (retry.error) throw retry.error;
 }
 
 /** Owner: delete rows from the shared table by id (app→table sync). */

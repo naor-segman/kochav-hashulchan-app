@@ -340,7 +340,12 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
                   <div className={styles.usageSection}>
                     <div className={styles.usageRow}>
                       <span className={styles.usageLabel}>אירועים בשימוש</span>
-                      <span className={styles.usageVal}>
+                      {/* dir="ltr": the glyphs came out "10 / 3" for 3 of 10, and a
+                          slash between two numbers is read as a fraction, left to
+                          right. (The token reading order was never wrong — measured.
+                          It is the fraction reading that breaks.) Same fix as the
+                          admin chip; the ∞ makes unspacing read worse here. */}
+                      <span className={styles.usageVal} dir="ltr">
                         {eventCount}
                         {" / "}
                         {maxEvents === Infinity ? "∞" : maxEvents}

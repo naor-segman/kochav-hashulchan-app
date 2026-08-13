@@ -104,6 +104,12 @@
   padding: 22px 16px;
   min-height: 130px;
   text-align: center;
+  /* The tent clips (overflow:hidden, and it must, or the fold line stops
+     meaning anything). So the face has to be the thing that keeps its content
+     inside it: min-height:0 lets the names block shrink instead of pushing the
+     number out of the card. */
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Rotated so the fold puts it the right way up on the far side. */
@@ -119,22 +125,50 @@
   color: var(--text);
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  /* It is a flex item in a column: without these a long name sets its own
+     width, wraps into a block three lines tall and shoves everything else out
+     of a card that clips. */
+  max-width: 100%;
+  flex: 0 0 auto;
+  overflow-wrap: anywhere;
 }
+
+/* ── How big the label is allowed to be ──────────────────────────────────────
+   One hardcoded size served a two-digit number and a five-word table name
+   equally badly. The tier comes from utils/tableCardLabel.js — character count,
+   because that is what drives the width — and the millimetres stay here with
+   the rest of the print geometry. Screen sizes are the preview of the same
+   decision, so what the host approves on screen is what leaves the printer. */
+.tentBig_xl { font-size: var(--step-5); }
+.tentBig_lg { font-size: var(--step-4); }
+.tentBig_md { font-size: var(--step-3); }
+.tentBig_sm { font-size: var(--step-2); }
 
 .tentFull {
   font-family: var(--font-family-serif);
   font-size: var(--step-1);
   font-weight: 700;
   color: var(--text);
+  max-width: 100%;
+  flex: 0 0 auto;
+  overflow-wrap: anywhere;
 }
 
-/* Secondary by design — a guest confirms with it, nobody navigates by it. */
+/* Secondary to the number — but the guest standing at the table reads THIS to
+   know they are in the right seat, so it has to actually be on the paper. */
 .tentNames {
   font-size: var(--step--2);
   color: var(--muted);
   line-height: 1.6;
   max-width: 46ch;
   overflow-wrap: anywhere;
+  /* If a table ever holds more names than the face can take, this block is the
+     one that gives — never the number, and never by spilling over the fold
+     line. It clips ITSELF, so what is lost is the tail of the list rather than
+     the top of the card. */
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .card {
@@ -206,12 +240,31 @@
     height: 138mm;
   }
 
-  .tentFace  { flex: 1; padding: 10mm 8mm; min-height: 0; }
+  .tentFace  { flex: 1; padding: 6mm 8mm; min-height: 0; gap: 2.5mm; }
   /* A solid fold line: the person folding 30 of these is following it by eye. */
   .tentFold  { border-top: 1px solid #999; }
-  .tentBig   { color: #000; font-size: 46mm; }
-  .tentFull  { color: #000; font-size: 7mm; }
-  .tentNames { color: #444; font-size: 3.4mm; }
+
+  /* The face is 138mm/2 less its padding — 57mm of usable height and 163mm of
+     usable width, i.e. 215 × 616 px at 96dpi. Every size below is measured
+     against that box, with the twelve names of a full table given their room
+     FIRST and the number taking what is left:
+       xl  "12"              28mm tall — a 2.8cm digit, read across a hall
+       lg  "1234"            22mm
+       md  "הורים"           14mm
+       sm  "שולחן הורי הכלה" 10mm, one line, names still print
+     46mm was not a bigger number, it was a card with nothing else on it: at
+     46mm the face ran 103px over on "12" and 426px over on a named table, and
+     `overflow: hidden` threw the guest list away. */
+  .tentBig    { color: #000; font-size: 28mm; }
+  .tentBig_xl { font-size: 28mm; }
+  .tentBig_lg { font-size: 22mm; }
+  .tentBig_md { font-size: 14mm; }
+  .tentBig_sm { font-size: 10mm; }
+
+  .tentFull  { color: #000; font-size: 4.5mm; }
+  /* 3.4mm is 9.6pt — under the 10pt floor for something read standing up, in a
+     hall, by someone who has just arrived. */
+  .tentNames { color: #333; font-size: 4.2mm; line-height: 1.4; max-width: 100%; }
 }
 
 @media (max-width: 600px) {

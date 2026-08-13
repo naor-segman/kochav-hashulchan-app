@@ -226,7 +226,7 @@ export function duplicateEvent(ev) {
     // with it. Stripping only the boolean left the copy with
     // `arrivedSeats: [0,1]` — nobody reads as arrived in the summary while the
     // entrance screen shows two of them already inside.
-    const { arrived, arrivedSeats, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
+    const { arrived, arrivedSeats, arrivedAt, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
     return Object.assign({}, rest, { id: newId });
   });
 
@@ -268,8 +268,26 @@ export function duplicateEvent(ev) {
     // messagesSent is keyed by GUEST id, and the copy has new guest ids — a
     // carried-over map would match nobody and never be pruned. Start clean.
     messagesSent: {},
+    // Vendors carry over — the same DJ and the same photographer are usually
+    // the point of duplicating an event — but their BOOKING state does not.
+    // Copying them verbatim gave the new event a DJ already "booked" and
+    // ₪9,000 already "paid", which is the same class of lie as copying
+    // `arrived`: state that belongs to the event that actually happened.
+    // They also shared the original's array AND object identity, so this was
+    // the one place the comment below was untrue.
+    // The agreed PRICE is kept — it is the reference the host duplicated the
+    // event for. What is dropped is what was actually settled with them.
+    vendors: (ev.vendors ?? []).map(v => ({
+      ...v,
+      id:      uid(),
+      status:  "lead",     // VENDOR_STATUSES[0] — "בבירור"
+      paid:    "",
+      payment: "none",     // PAYMENT_STATUSES[0] — "לא שולם"
+    })),
     // Deep-copy the remaining nested collections so editing the duplicate never
     // mutates the original (Object.assign only shallow-copies these).
+    announcements:    ev.announcements ? JSON.parse(JSON.stringify(ev.announcements)) : (ev.announcements ?? null),
+    messageTemplates: ev.messageTemplates ? JSON.parse(JSON.stringify(ev.messageTemplates)) : (ev.messageTemplates ?? null),
     customGroups:     Array.isArray(ev.customGroups) ? [...ev.customGroups] : [],
     customTableTypes: Array.isArray(ev.customTableTypes) ? [...ev.customTableTypes] : [],
     sideLabels:       ev.sideLabels ? { ...ev.sideLabels } : (ev.sideLabels ?? null),
@@ -323,7 +341,7 @@ export function getSideLabels(ev) {
       groom: ev?.groomName ? "צד " + ev.groomName : roles.groom,
     };
   }
-  if (type === "בר מצווה" || type === "בת מצווה") {
+  if (type === "בר מצווה" || type === "בת מצווה" || type === "ברית" || type === "בריתה") {
     return { bride: "משפחת האם", groom: "משפחת האב" };
   }
   if (type === "אירוע עסקי") {
@@ -394,6 +412,32 @@ export function guestSeatNames(g) {
   while (names.length < count) names.push(`${base} +${extra++}`);
   return names.slice(0, count);
 }
+
+/**
+ * The companions of a row, by their own names — nothing else.
+ *
+ * guestSeatNames() suffixes every companion with the row's name ("רונית (טל
+ * שוורץ)") and pads the unnamed seats with "טל שוורץ +1". That is right on a
+ * PRINTED place card, which is read alone on a plate with no context. Inside a
+ * table card the row already says "טל שוורץ" one line above, so the suffix is
+ * the same name twice and the padding is the row's own name a third time —
+ * which is exactly what the host asked about.
+ *
+ * So: only companions who HAVE a name, clamped to the seats the row actually
+ * has (`count - 1`), exactly the way the shared table clamps them. An empty
+ * array means there is nothing worth showing — the row's "· N מקומות" already
+ * says how many chairs there are.
+ *
+ * @returns {string[]} 0..count-1 companion names, in the order they were entered.
+ */
+export function guestCompanionNames(g) {
+  if (!g) return [];
+  const count = Math.max(1, g.count || 1);
+  return (Array.isArray(g.companions) ? g.companions : [])
+    .map(c => (c || "").toString().trim())
+    .filter(Boolean)
+    .slice(0, count - 1);
+}
 //
 // EventSetupScreen uses these to show the right personal fields for each
 // event type without embedding business logic in the component.
@@ -403,26 +447,40 @@ export function guestSeatNames(g) {
  * Returns the personal-fields config for a given event type.
  * kind: "wedding" | "bar" | "bat" | "business" | "owner"
  */
+// `divider` is a section heading a host reads while filling the form, not a
+// database field name. Five of the seven branches said "פרטים אישיים", which
+// tells a bat mitzvah mother nothing she did not already know. Each one now
+// names who the section is actually about, in the same voice as the opening
+// screen's EVENT_TYPE_HEADINGS.
 export function getEventPersonalConfig(type) {
   if (type === "חתונה" || type === "אירוס" || type === "חינה") {
-    return { kind: "wedding", divider: "שמות בני הזוג" };
+    return { kind: "wedding", divider: "שמות בעלי השמחה" };
   }
   if (type === "בר מצווה") {
-    return { kind: "bar", divider: "פרטים אישיים", label: "שם הבר מצווה", placeholder: "לדוגמה: עידו" };
+    return { kind: "bar", divider: "מי חוגג בר מצווה", label: "שם הבר מצווה", placeholder: "לדוגמה: עידו" };
   }
   if (type === "בת מצווה") {
-    return { kind: "bat", divider: "פרטים אישיים", label: "שם הבת מצווה", placeholder: "לדוגמה: תמר" };
+    return { kind: "bat", divider: "מי חוגגת בת מצווה", label: "שם הבת מצווה", placeholder: "לדוגמה: תמר" };
+  }
+  // "owner" is the single-name shape EventSetupScreen already renders, so a
+  // brit needs no screen change — only the right word for the one name there
+  // is. The parents are the two SIDES, not the celebrant.
+  if (type === "ברית") {
+    return { kind: "owner", divider: "מי נולד", label: "שם התינוק", placeholder: "לדוגמה: איתי" };
+  }
+  if (type === "בריתה") {
+    return { kind: "owner", divider: "מי נולדה", label: "שם התינוקת", placeholder: "לדוגמה: אלה" };
   }
   if (type === "אירוע עסקי") {
-    return { kind: "business", divider: "פרטי הארגון" };
+    return { kind: "business", divider: "הארגון שמארח" };
   }
   if (type === "יום הולדת") {
-    return { kind: "owner", divider: "פרטים אישיים", label: "שם המחוגג/ת", placeholder: "לדוגמה: דניאל" };
+    return { kind: "owner", divider: "למי חוגגים", label: "שם המחוגג/ת", placeholder: "לדוגמה: דניאל" };
   }
   if (type === "אירוע משפחתי") {
-    return { kind: "owner", divider: "פרטים אישיים", label: "שם הגיבור/ה של האירוע", placeholder: "לדוגמה: משפחת כהן" };
+    return { kind: "owner", divider: "המשפחה שמתכנסת", label: "שם הגיבור/ה של האירוע", placeholder: "לדוגמה: משפחת כהן" };
   }
-  return { kind: "owner", divider: "פרטים אישיים", label: "שם הגיבור/ה", placeholder: "שם הגיבור/ה של האירוע" };
+  return { kind: "owner", divider: "לכבוד מי האירוע", label: "שם הגיבור/ה", placeholder: "שם הגיבור/ה של האירוע" };
 }
 
 /**
@@ -436,6 +494,8 @@ export function getEventNamePlaceholder(type) {
     "חינה":           "לדוגמה: חינה של נועה",
     "בר מצווה":       "לדוגמה: בר המצווה של עידו",
     "בת מצווה":       "לדוגמה: בת המצווה של תמר",
+    "ברית":           "לדוגמה: הברית של איתי",
+    "בריתה":          "לדוגמה: הבריתה של אלה",
     "אירוע עסקי":    "לדוגמה: כנס שנתי 2025",
     "אירוע משפחתי":  "לדוגמה: חגיגת יובל למשפחת כהן",
     "יום הולדת":     "לדוגמה: יום הולדת 40 לדניאל",

@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { normalizeEvent, duplicateEvent, seatingTotals, TOKEN_KEYS, rotateEventToken } from "./eventHelpers.js";
+import { normalizeEvent, duplicateEvent, seatingTotals, TOKEN_KEYS, rotateEventToken,
+         guestSeatNames, guestCompanionNames,
+         getSideLabels, getEventPersonalConfig, getEventNamePlaceholder } from "./eventHelpers.js";
+import { EVENT_TYPES } from "../data/constants.js";
+import { defaultEventSite } from "../data/eventSiteTemplates.js";
+import { normalizeAnnouncements } from "../data/announcementTemplates.js";
+import { starterTasks } from "../data/taskTemplates.js";
 
 describe("normalizeEvent — timestamps", () => {
   it("defaults updatedAt to createdAt (never epoch 0) when both are missing", () => {
@@ -403,5 +409,161 @@ describe("rotateEventToken", () => {
     const n = normalizeEvent(rotated);
     expect(n.tokens.collab).toBe(rotated.tokens.collab);
     expect(n.tokensRotatedAt).toBe(5_000);
+  });
+});
+
+describe("guestCompanionNames — the on-screen companions line", () => {
+  const guest = (extra = {}) => ({ id: "g1", name: "טל שוורץ", count: 2, ...extra });
+
+  it("drops the parenthetical guestSeatNames adds for the printed card", () => {
+    const g = guest({ companions: ["רונית"] });
+    // What the place card needs — the name is meaningful alone on a plate.
+    expect(guestSeatNames(g)).toEqual(["טל שוורץ", "רונית (טל שוורץ)"]);
+    // What the table card needs — "טל שוורץ" is already the line above.
+    expect(guestCompanionNames(g)).toEqual(["רונית"]);
+  });
+
+  it("returns nothing when the extra seats have no names on them", () => {
+    // guestSeatNames pads these with "טל שוורץ +1", i.e. the row's own name
+    // for a third time. There is nothing to show, so nothing is shown.
+    expect(guestSeatNames(guest({ count: 3 }))).toEqual(["טל שוורץ", "טל שוורץ +1", "טל שוורץ +2"]);
+    expect(guestCompanionNames(guest({ count: 3 }))).toEqual([]);
+  });
+
+  it("clamps to the seats the row actually has, like the shared table does", () => {
+    // A stale companions array longer than the count must not print people
+    // who have no chair.
+    const g = guest({ count: 2, companions: ["רונית", "יעל", "אבי"] });
+    expect(guestCompanionNames(g)).toEqual(["רונית"]);
+  });
+
+  it("skips blank and whitespace-only companions, and trims the rest", () => {
+    const g = guest({ count: 4, companions: ["  רונית  ", "", "   ", "יעל"] });
+    expect(guestCompanionNames(g)).toEqual(["רונית", "יעל"]);
+  });
+
+  it("is safe on a row that predates companions, and on no row at all", () => {
+    expect(guestCompanionNames({ id: "g", name: "טל", count: 2 })).toEqual([]);
+    expect(guestCompanionNames({ id: "g", name: "טל", count: 2, companions: "רונית" })).toEqual([]);
+    expect(guestCompanionNames(null)).toEqual([]);
+    expect(guestCompanionNames(undefined)).toEqual([]);
+  });
+
+  it("returns nothing for a single-seat row even if a companion was left behind", () => {
+    expect(guestCompanionNames(guest({ count: 1, companions: ["רונית"] }))).toEqual([]);
+  });
+});
+
+// ── From the 12.8 logic review ───────────────────────────────────────────────
+describe("guestSeatNames never prints more names than the row has seats", () => {
+  it("clamps a stale companions array to count", () => {
+    // The shared table and RSVP can both leave `companions` longer than `count`
+    // after someone lowers the number of chairs, and this function feeds the
+    // printed place cards — uncapped it would print a card for a person with
+    // no seat.
+    //
+    // The review reported the trailing `.slice(0, count)` as an untested guard
+    // and gave this exact row as a case where removing it yields four names.
+    // It does not: executed both ways, the `names.length < count` guard inside
+    // the loop already caps it, and the two agree on every integer count. The
+    // slice only bites on a FRACTIONAL count (2.5 → 3 names without it), which
+    // no writer produces. So this test pins the behaviour; it does not kill a
+    // mutant, because there is no reachable mutant to kill.
+    const row = { name: "טל שוורץ", count: 2, companions: ["רונית", "דנה", "גיל"] };
+    expect(guestSeatNames(row)).toEqual(["טל שוורץ", "רונית (טל שוורץ)"]);
+    expect(guestSeatNames(row)).toHaveLength(2);
+  });
+
+  it("still pads unnamed seats up to count", () => {
+    expect(guestSeatNames({ name: "משפחת לוי", count: 3, companions: [] }))
+      .toEqual(["משפחת לוי", "משפחת לוי +1", "משפחת לוי +2"]);
+  });
+});
+
+describe("duplicateEvent leaves the previous event's commitments behind", () => {
+  const ev = () => ({
+    id: "e1", name: "גאלה 2025", guests: [], tables: [], constraints: [], seating: {},
+    vendors: [
+      { id: "v1", name: "DJ", category: "music", status: "booked", price: "9000", paid: "9000", payment: "paid" },
+      { id: "v2", name: "צלם", category: "photographer", status: "quoted", price: "4000", paid: "1000", payment: "deposit" },
+    ],
+    announcements: { save: { headline: "שמרו את התאריך" } },
+    messageTemplates: { invitation: "היי" },
+  });
+
+  it("keeps the vendor and the agreed price, drops the booking and the payment", () => {
+    // The same defect as copying `arrived`: state that belongs to the event
+    // that actually happened. Duplicating last year's gala handed you a copy
+    // where the DJ was already booked and ₪9,000 already paid.
+    const dup = duplicateEvent(ev());
+    expect(dup.vendors).toHaveLength(2);
+    expect(dup.vendors[0]).toMatchObject({ name: "DJ", price: "9000", status: "lead", paid: "", payment: "none" });
+    expect(dup.vendors[1]).toMatchObject({ name: "צלם", price: "4000", status: "lead", paid: "", payment: "none" });
+  });
+
+  it("gives every vendor a fresh id and does not share arrays or objects", () => {
+    const original = ev();
+    const dup = duplicateEvent(original);
+    expect(dup.vendors.map(v => v.id)).not.toContain("v1");
+    expect(dup.vendors).not.toBe(original.vendors);
+    expect(dup.vendors[0]).not.toBe(original.vendors[0]);
+    // The function's own comment claims the remaining nested collections are
+    // deep-copied. These two were not.
+    expect(dup.announcements).not.toBe(original.announcements);
+    expect(dup.messageTemplates).not.toBe(original.messageTemplates);
+    dup.announcements.save.headline = "שונה";
+    expect(original.announcements.save.headline).toBe("שמרו את התאריך");
+  });
+
+  it("survives an event with no vendors at all", () => {
+    const { vendors, ...noVendors } = ev();   // eslint-disable-line no-unused-vars
+    expect(duplicateEvent(noVendors).vendors).toEqual([]);
+  });
+});
+
+// ── ברית / בריתה (added 12.8, at the owner's request) ────────────────────────
+// The picker offered neither, so a host planning one had to pick "אחר" and lose
+// every piece of wording the product would otherwise get right — while the
+// app's own grammar table already listed both words. Adding a type is only real
+// if every map keyed on type answers for it; these check the ones that fall
+// back SILENTLY rather than failing, which is what made the gap invisible.
+describe("ברית and בריתה are real event types, not 'אחר'", () => {
+  const OTHER = "אחר";
+
+  it.each(["ברית", "בריתה"])("%s is selectable at all", (type) => {
+    expect(EVENT_TYPES).toContain(type);
+  });
+
+  it.each(["ברית", "בריתה"])("%s names the two families, not צד א׳/צד ב׳", (type) => {
+    expect(getSideLabels({ type })).toEqual({ bride: "משפחת האם", groom: "משפחת האב" });
+  });
+
+  it("asks for the baby's name, in the right gender", () => {
+    expect(getEventPersonalConfig("ברית")).toMatchObject({ kind: "owner", label: "שם התינוק" });
+    expect(getEventPersonalConfig("בריתה")).toMatchObject({ kind: "owner", label: "שם התינוקת" });
+  });
+
+  it.each(["ברית", "בריתה"])("%s has an event-name example of its own", (type) => {
+    expect(getEventNamePlaceholder(type)).not.toBe(getEventNamePlaceholder(OTHER));
+  });
+
+  it.each(["ברית", "בריתה"])("%s gets its own event-site hero", (type) => {
+    expect(defaultEventSite(type).heroEn).not.toBe(defaultEventSite(OTHER).heroEn);
+  });
+
+  it.each(["ברית", "בריתה"])("%s gets its own announcement wording", (type) => {
+    expect(JSON.stringify(normalizeAnnouncements(undefined, type)))
+      .not.toBe(JSON.stringify(normalizeAnnouncements(undefined, OTHER)));
+  });
+
+  it("gets a checklist measured in DAYS, not months", () => {
+    // The whole reason "אחר" was not an acceptable answer: every other list
+    // opens with "לסגור מקום ותאריך" around 90 days out, for an event that
+    // happens on the eighth day.
+    const tasks = starterTasks("ברית");
+    expect(tasks).not.toEqual(starterTasks(OTHER));
+    expect(Math.max(...tasks.map(t => t.offset))).toBeLessThanOrEqual(14);
+    expect(tasks.some(t => t.title.includes("מוהל"))).toBe(true);
+    expect(starterTasks("בריתה")).toEqual(tasks);
   });
 });

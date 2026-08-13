@@ -10,6 +10,7 @@ import { uid } from "../utils/uid.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
 import { hostsLabel } from "../utils/hostsLabel.js";
 import { collabRowMissing, exportCollabTableToExcel } from "../utils/exportHelpers.js";
+import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
 import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 
@@ -20,6 +21,16 @@ const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתו�
 // is present. Count always defaults to 1, so it's never "missing".
 // The predicate itself lives next to the export that prints it as a status
 // column — one definition of "complete", not one per screen.
+//
+// WHAT "SAVED" MEANS HERE, now that a seat with no name is incomplete (12.8):
+// this table auto-saves 600ms after a keystroke, and there is no save button to
+// refuse. Blocking the write would mean a relative types a name, the row is
+// rejected mid-word, and their typing is the thing at risk — on the one screen
+// in the product where the data cannot be reconstructed. So the row is ALWAYS
+// saved to the shared table, and "incomplete" is a state it can sit in, exactly
+// like a row with no phone has always been able to. What incompleteness costs
+// is the sync into the host's guest list — enforced in useCollabSync via this
+// same predicate, so the badge and the behaviour cannot disagree.
 const isComplete = (r) => collabRowMissing(r).length === 0;
 
 export default function CollabScreen() {
@@ -168,7 +179,7 @@ export default function CollabScreen() {
   };
 
   const addRow = () => {
-    const row = { id: uid(), name: "", phone: "", side: "bride", guest_group: "", guests_count: 1, companions: [] };
+    const row = { id: uid(), name: "", phone: "", side: "bride", guest_group: "", guests_count: 1, companions: [], notes: "" };
     setRows(prev => [row, ...prev]);
   };
 
@@ -277,8 +288,13 @@ export default function CollabScreen() {
                         ? <>מי האדם שמצטרף {r.name?.trim() ? "ל" + r.name.trim() : "לשורה הזו"}?</>
                         : <>מי {(r.guests_count || 1) - 1} האנשים שמצטרפים {r.name?.trim() ? "ל" + r.name.trim() : "לשורה הזו"}?</>}
                     </span>
+                    {/* Was "אפשר לדלג". It is no longer possible to skip and
+                        still have the row count, so the copy says what to type
+                        instead of what is forbidden — a relationship word is a
+                        real answer, and it is a far better one than a chair
+                        with nobody on it. */}
                     <span className={styles.companionsWhy}>
-                      אפשר לדלג, אבל שם על כל כיסא הוא מה שמאפשר להושיב אותם נכון —
+                      {COMPANION_NAME_HINT}. שם על כל מקום הוא מה שמאפשר להושיב אותם נכון,
                       ובכניסה לזהות אותם בלי לחפש.
                     </span>
                     {Array.from({ length: (r.guests_count || 1) - 1 }, (_, i) => (
@@ -286,7 +302,7 @@ export default function CollabScreen() {
                         key={i}
                         className={[styles.input, styles.companionInput].join(" ")}
                         value={(r.companions && r.companions[i]) || ""}
-                        placeholder={`שם ${i + 1}`}
+                        placeholder={`שם ${i + 1} — או ״בעל״ / ״חבר״`}
                         aria-label={`שם המצטרף ${i + 1}`}
                         onChange={e => editCompanion(r, i, e.target.value)}
                       />
@@ -294,9 +310,31 @@ export default function CollabScreen() {
                   </div>
                 )}
 
+                {/* The field the host has had all along and the family did not.
+                    Free text, one line: allergies, accessibility, "יושבים עם
+                    הסבים". It syncs into the guest's own הערות. */}
+                <input
+                  className={[styles.input, styles.notesInput].join(" ")}
+                  value={r.notes || ""}
+                  maxLength={500}
+                  placeholder="הערות — אלרגיה, נגישות, ״יושבים עם הסבים״ (לא חובה)"
+                  aria-label="הערות"
+                  onChange={e => editRow(r.id, { notes: e.target.value })}
+                />
+
                 {complete
                   ? <div className={styles.rowOk}><Icon name="check" size={13} /> מלאה — מסונכרנת לרשימה</div>
-                  : <div className={styles.rowWarn}><Icon name="alert" size={13} /> חסר: {miss.join(", ")} — לא תסתנכרן עד שיושלם</div>}
+                  : (
+                    <div className={styles.rowWarn}>
+                      <Icon name="alert" size={13} /> חסר: {miss.join(", ")} — לא תסתנכרן עד שיושלם
+                      {/* Never a scolding, always an instruction: the one case
+                          where a person can be genuinely stuck is not knowing
+                          the name, so say what to write. */}
+                      {missingCompanionSeats(r.companions, r.guests_count).length > 0 && (
+                        <span className={styles.rowWarnHint}>{COMPANION_NAME_HINT}</span>
+                      )}
+                    </div>
+                  )}
                 {r.updated_by && <div className={styles.byLine}>עודכן ע"י {r.updated_by}</div>}
               </div>
             );

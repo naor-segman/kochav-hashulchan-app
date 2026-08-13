@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { guestSeatNames } from "../utils/eventHelpers.js";
+import { bigLabel, bigLabelTier } from "../utils/tableCardLabel.js";
 import { seatsOf } from "../utils/arrival.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -40,15 +41,34 @@ const SIZES = [
   { key: "small", label: "מדבקה קטנה",   perPage: 16, note: "מדבקות / כרטיסיות קטנות" },
 ];
 
-/**
- * The number a guest scans the room for. Most tables are called "שולחן 12", and
- * on a card read from four metres the word is noise — the digits are the whole
- * message. A table with a real name ("שולחן הורי הכלה") keeps its name, because
- * for that one the name IS the number.
- */
-function bigLabel(t) {
-  const m = String(t?.name || "").match(/(\d+)\s*$/);
-  return m ? m[1] : (t?.name || "").trim() || "—";
+// bigLabel/bigLabelTier moved to utils/tableCardLabel.js — they are pure, and
+// the size a label is set at is now the thing that decides whether the card
+// prints or is clipped, so it is tested rather than eyeballed.
+
+/* Written out rather than composed as `styles["tentBig_" + tier]`, so
+   qa/cssmod.mjs can see all four class names and tell us when one is renamed
+   away — a computed lookup returns undefined silently and the card prints at
+   the default size. */
+const BIG_TIER = {
+  xl: styles.tentBig_xl,
+  lg: styles.tentBig_lg,
+  md: styles.tentBig_md,
+  sm: styles.tentBig_sm,
+};
+
+/** One side of the tent. Both sides are identical; only one is rotated. */
+function TentFace({ card, showNames, flip = false }) {
+  return (
+    <div className={[styles.tentFace, flip ? styles.tentFaceFlip : ""].filter(Boolean).join(" ")}>
+      <span className={[styles.tentBig, BIG_TIER[card.tier] || BIG_TIER.xl].join(" ")}>
+        {card.big}
+      </span>
+      {card.full !== card.big && <span className={styles.tentFull}>{card.full}</span>}
+      {showNames && card.names.length > 0 && (
+        <span className={styles.tentNames}>{card.names.join(" · ")}</span>
+      )}
+    </div>
+  );
 }
 
 export default function NameTagsScreen({ activeEvent: ev }) {
@@ -88,9 +108,14 @@ export default function NameTagsScreen({ activeEvent: ev }) {
     return (ev.tables || [])
       .map(t => {
         const rows = active.filter(g => ev.seating?.[g.id] === t.id);
+        const big  = bigLabel(t);
         return {
           key: t.id,
-          big: bigLabel(t),
+          big,
+          // How large that label may be set — a number gets the whole card, a
+          // name gets the size that keeps it on one line and leaves the guests
+          // their room. See utils/tableCardLabel.js.
+          tier: bigLabelTier(big),
           full: tableLabel(t),
           seats: rows.reduce((s, g) => s + seatsOf(g), 0),
           // Every person at the table by name, in the same order the place
@@ -210,21 +235,9 @@ export default function NameTagsScreen({ activeEvent: ev }) {
             <div key={c.key} className={styles.tent}>
               {/* Upper half, upside-down: once folded it faces the other side of
                   the table. Two halves, one sheet, one fold. */}
-              <div className={[styles.tentFace, styles.tentFaceFlip].join(" ")}>
-                <span className={styles.tentBig}>{c.big}</span>
-                {c.full !== c.big && <span className={styles.tentFull}>{c.full}</span>}
-                {showNames && c.names.length > 0 && (
-                  <span className={styles.tentNames}>{c.names.join(" · ")}</span>
-                )}
-              </div>
+              <TentFace card={c} showNames={showNames} flip />
               <div className={styles.tentFold} aria-hidden="true" />
-              <div className={styles.tentFace}>
-                <span className={styles.tentBig}>{c.big}</span>
-                {c.full !== c.big && <span className={styles.tentFull}>{c.full}</span>}
-                {showNames && c.names.length > 0 && (
-                  <span className={styles.tentNames}>{c.names.join(" · ")}</span>
-                )}
-              </div>
+              <TentFace card={c} showNames={showNames} />
             </div>
           ))}
         </div>

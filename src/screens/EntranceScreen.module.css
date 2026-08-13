@@ -149,16 +149,6 @@
   flex-basis: 100%;
 }
 
-.giftTotal {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--step--1);
-  font-weight: 700;
-  color: var(--nav-muted);
-  white-space: nowrap;
-}
-
 .progress {
   height: 6px;
   margin: 0 16px 12px;
@@ -252,6 +242,16 @@
 }
 
 .searchInput::placeholder { color: var(--nav-muted); font-weight: 500; }
+
+/* `type="search"` gives Chromium its own clear glyph, which landed right beside
+   the app's own נקו חיפוש button — two clear controls, ~2px apart, on the screen
+   a greeter is stabbing at with one thumb while a queue waits. Ours stays: it
+   is 44px, it is labelled, and it returns focus to the field. */
+.searchInput::-webkit-search-cancel-button,
+.searchInput::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
 
 .searchInput:focus {
   outline: none;
@@ -452,11 +452,14 @@
   transition: background var(--transition), color var(--transition);
 }
 
-.markBtn:hover { background: #FFFFFF; }
+.markBtn:hover { background: var(--white); }
 .markBtn:disabled { opacity: .45; cursor: not-allowed; }
 
-.markBtnDone { background: var(--green); color: #FFFFFF; }
-.markBtnDone:hover { background: var(--green-light); }
+.markBtnDone { background: var(--green); color: var(--on-accent); }
+/* Darker on hover, not lighter. --green-light under white is 3.22:1, and on a
+   phone :hover STICKS after a tap until the next touch elsewhere — so the door
+   screen's main button would have spent most of the evening below contrast. */
+.markBtnDone:hover { background: var(--green-dark); }
 
 .partialBtn {
   display: inline-flex;
@@ -542,44 +545,9 @@
 .chip:hover:not(:disabled) { background: rgba(var(--nav-text-rgb), .1); }
 .chip:disabled { opacity: .45; cursor: not-allowed; }
 
-.chipOn { background: var(--green); border-color: var(--green); color: #FFFFFF; }
-.chipOn:hover:not(:disabled) { background: var(--green-light); border-color: var(--green-light); }
+.chipOn { background: var(--green); border-color: var(--green); color: var(--on-accent); }
+.chipOn:hover:not(:disabled) { background: var(--green-dark); border-color: var(--green-dark); }
 
-/* ── Gift ── */
-.giftRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--nav-border);
-}
-
-.giftLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--step--2);
-  font-weight: 700;
-  color: var(--nav-muted);
-}
-
-.giftInput {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid var(--nav-border);
-  border-radius: var(--radius-md);
-  background: var(--nav-bg);
-  color: var(--nav-text);
-  font-family: inherit;
-  font-size: var(--step-0);
-  font-weight: 600;
-}
-
-.giftInput:focus { outline: none; border-color: var(--accent-on-dark); }
-.giftDone { font-size: var(--step--1); font-weight: 800; color: var(--green-light); white-space: nowrap; }
 
 /* ── Free seats ── */
 .freeStrip {
@@ -757,7 +725,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(0, 0, 0, .6);
+  background: var(--scrim-60);
   padding: 0;
 }
 

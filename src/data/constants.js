@@ -1,9 +1,46 @@
 // V1 constants — copied verbatim from legacy/v1-seating-app.jsx
 
+// ⚠ These Hebrew STRINGS are the event type. `ev.type === "wedding"` matches
+// nothing and falls through to the "אחר" defaults — the most repeated bug in
+// this codebase. Every map keyed on type is keyed on these exact strings.
+//
+// ברית and בריתה are separate entries on purpose: they are different events
+// with a different word for the baby, and the app's own grammar table
+// (messageSequence.js ARTICLE_NOUNS) already listed both while the picker
+// offered neither — so a host planning one had to choose "אחר" and lose every
+// piece of wording the product would otherwise get right.
 export const EVENT_TYPES = [
-  "חתונה","בר מצווה","בת מצווה","חינה","אירוס",
+  "חתונה","בר מצווה","בת מצווה","ברית","בריתה","חינה","אירוס",
   "אירוע משפחתי","אירוע עסקי","יום הולדת","אחר",
 ];
+
+/* The question each event type is asked on the opening screen.
+ *
+ * Keyed by the HEBREW strings in EVENT_TYPES, because that is what an event
+ * actually stores. An English key here would match nothing and fall through to
+ * the default without throwing — bug class 1 in CLAUDE.md.
+ *
+ * The screen used to ask "על מי האירוע, ומתי?" for eight of the nine types.
+ * That is a form asking you to file yourself. Someone opening this is planning
+ * the best day of their year; the heading can say so without turning into a
+ * greeting card. `eventTypeHeading()` falls back for admin-created template
+ * types, which are free text and will never all be listed here.
+ */
+export const EVENT_TYPE_HEADINGS = {
+  "חתונה":        "מי הזוג המאושר?",
+  "אירוס":        "מי הזוג שאמר כן?",
+  "חינה":         "לכבוד מי החינה?",
+  "בר מצווה":     "מי חוגג בר מצווה?",
+  "בת מצווה":     "מי חוגגת בת מצווה?",
+  "ברית":         "איך קוראים לתינוק?",
+  "בריתה":        "איך קוראים לתינוקת?",
+  "יום הולדת":    "למי אנחנו חוגגים?",
+  "אירוע משפחתי": "איזו משפחה מתכנסת?",
+  "אירוע עסקי":   "מי החברה שמארחת?",
+  "אחר":          "לכבוד מי האירוע?",
+};
+
+export const eventTypeHeading = t => EVENT_TYPE_HEADINGS[t] || EVENT_TYPE_HEADINGS["אחר"];
 
 export const GROUP_OPTIONS = [
   "הורים","אחים ואחיות","סבים וסבתות","דודים ודודות",

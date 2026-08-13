@@ -57,15 +57,70 @@ function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRo
  * A guest missing from either side is left alone; this never adds or removes a
  * row, only two keys on rows that exist on both.
  */
+/**
+ * Rows the OTHER device added, which whole-event last-write-wins throws away.
+ *
+ * THE FAILURE THIS EXISTS FOR — reproduced end to end:
+ *   Both devices hold cloud v5. The phone adds 37 guests at 20:00 and pushes;
+ *   the cloud is now v6. The laptop edits the venue name at 20:05 — its local
+ *   version is also 6, its syncedVersion is still 5, so `eq(version, 5)` misses
+ *   and the push raises CloudConflictError. That is the mechanism WORKING. But
+ *   the recovery re-fetches and hands the row to this merge, which sees the
+ *   laptop's 20:05 as newer than the phone's 20:00 and keeps the laptop's copy
+ *   WHOLE. The 37 guests vanish from the laptop's screen and its localStorage,
+ *   `syncedVersion` is set to 6, and the laptop's next edit writes 3 guests
+ *   over the cloud unopposed. Nothing re-pushes, and hydration runs once per
+ *   login, so nothing ever corrects it.
+ *
+ * So: whichever side's SCALARS win, a row that exists only on the other side is
+ * kept. Local wins every id both sides have — this tab's edits are still newer,
+ * which is the whole reason it won.
+ *
+ * THE TRADE, STATED PLAINLY. Without tombstones, a union cannot tell "the other
+ * device added this" from "I deleted this and my delete has not landed yet", so
+ * a guest deleted locally before the push lands can come back on the next pull.
+ * That is the right way round: a resurrected row is visible and takes one click
+ * to remove again, and 37 silently deleted guests are gone for good. If it ever
+ * becomes a real complaint the answer is deletion tombstones, not reverting
+ * this.
+ */
+function unionById(localRows, cloudRows) {
+  if (!Array.isArray(cloudRows) || !cloudRows.length) return localRows;
+  if (!Array.isArray(localRows)) return cloudRows;
+  const localIds = new Set(localRows.map(r => r?.id).filter(Boolean));
+  const extras   = cloudRows.filter(r => r?.id && !localIds.has(r.id));
+  return extras.length ? [...localRows, ...extras] : localRows;
+}
+
 function mergeArrivals(localGuests, cloudGuests) {
   if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
   const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
+  const take = c => ({ arrivedSeats: c.arrivedSeats, arrived: c.arrived, arrivedAt: c.arrivedAt });
+  const stamp = g => (Number.isFinite(g?.arrivedAt) ? g.arrivedAt : null);
+  const silent = g => g?.arrivedSeats === undefined && !g?.arrived;
+
   return localGuests.map(g => {
-    const untouched = g.arrivedSeats === undefined && !g.arrived;
-    if (!untouched) return g;
     const c = cloudById.get(g.id);
-    if (!c || (c.arrivedSeats === undefined && !c.arrived)) return g;
-    return { ...g, arrivedSeats: c.arrivedSeats, arrived: c.arrived };
+    if (!c || silent(c)) return g;
+
+    // The rule, once both sides carry a stamp: whoever wrote last wins. That is
+    // the only question about arrivals with a correct answer, because the two
+    // writers are different PEOPLE — the host on their phone and the greeter at
+    // the door — and neither is authoritative over the other.
+    const ls = stamp(g), cs = stamp(c);
+    if (ls !== null && cs !== null) return cs > ls ? { ...g, ...take(c) } : g;
+    if (cs !== null && ls === null) return { ...g, ...take(c) };
+    if (ls !== null && cs === null) return g;
+
+    // NEITHER side is stamped: rows written before this shipped, or by a client
+    // that has not updated. Fall back to the old rule exactly — the local copy
+    // wins if it has said anything at all — so nothing about existing data
+    // changes behaviour until it is next touched.
+    //
+    // The old rule is wrong (it cannot tell a local opinion from a value it
+    // copied from the cloud), and this is the shape of being wrong that loses
+    // the SECOND update rather than the first. Kept only as the legacy path.
+    return silent(g) ? { ...g, ...take(c) } : g;
   });
 }
 
@@ -100,7 +155,16 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
         // host edits the venue at 20:32, their copy is newer by definition, and
         // three people the greeter checked in at 20:31 are dropped and then
         // pushed back over the cloud. Measured: exactly that.
-        guests: mergeArrivals(localMatch.guests, ce.guests),
+        // Two different merges, for two different failures. `unionById` keeps
+        // ROWS the other device added; `mergeArrivals` keeps two FIELDS on rows
+        // both sides already have. Neither subsumes the other.
+        guests: mergeArrivals(unionById(localMatch.guests, ce.guests), ce.guests),
+        // Tables too: a second device adding tables is the same shape of loss,
+        // and an unseated guest is recoverable while a deleted table is not.
+        // `seating` stays local — it references this tab's own ids, and a cloud
+        // guest arrives unseated, which is exactly where the host expects a
+        // newly imported row to be.
+        tables: unionById(localMatch.tables, ce.tables),
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
         // The concurrency base always comes from the row we just read, whichever
         // side's CONTENT wins — otherwise the next push compares against a
@@ -116,6 +180,32 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
     }
 
     let result = normalized;
+
+    // The cloud won on scalars — but a row it has never heard of is still this
+    // tab's work, so the union runs in BOTH directions. Symmetry is not tidiness
+    // here; the asymmetric version is a second, worse bug:
+    //
+    //   `useCollabSync` keeps `applied` in a ref, which survives a merge, and
+    //   computes its delete list as `applied − activeEvent.guests`. So the
+    //   moment hydration replaced `guests` with a cloud copy predating the
+    //   family's rows, the app concluded the HOST had deleted them and issued a
+    //   real `deleteCollabGuestsOwner`. Driven through a rendered hook:
+    //   `[["r1","r2","r3"]]` — three relatives' rows deleted out of the shared
+    //   table, from the one part of the product that cannot be reconstructed
+    //   from anywhere else.
+    //
+    // Keeping the rows means there is nothing for that pass to conclude was
+    // deleted. Same trade as the other direction and the same reasoning: no
+    // tombstones, so a delete that has not landed yet can come back, and that
+    // is the recoverable failure of the two.
+    if (localMatch) {
+      const guestsUnion = unionById(result.guests, localMatch.guests);
+      const tablesUnion = unionById(result.tables, localMatch.tables);
+      if (guestsUnion !== result.guests || tablesUnion !== result.tables) {
+        result = { ...result, guests: guestsUnion, tables: tablesUnion };
+      }
+    }
+
     if (localMatch?.floorPlan?.image && !result.floorPlan?.image) {
       // Cloud has no floor plan (positions never synced) but local does. Spread
       // guards against result.floorPlan being null, and tablePositions falls back
@@ -174,6 +264,16 @@ export function useEvents(user) {
     (loadState().events || []).map(normalizeEvent).filter(Boolean).filter(e => !e.cloudId)
   );
   const [syncStatus, setSyncStatus] = useState(SYNC_STATUS.LOCAL_ONLY);
+  // Which account `events` has actually been loaded FOR. `undefined` until the
+  // hydration effect below has run once. See `eventsReady` at the bottom for
+  // why a route guard needs this and cannot use syncStatus instead.
+  //
+  // State and not a ref, even though `ownerRef` below already holds this value:
+  // reading a ref during render is a lint ERROR here (`react-hooks/refs`), not
+  // a warning. Both writes sit beside `setEvents` calls that were already
+  // there, so the `react-hooks/set-state-in-effect` count is unchanged at 20 —
+  // measured, not assumed.
+  const [hydratedFor, setHydratedFor] = useState(undefined);
 
   // Refs let callbacks read the latest values without stale-closure issues.
   const eventsRef    = useRef(events);
@@ -225,6 +325,7 @@ export function useEvents(user) {
         ownerRef.current = null;
         setEvents(load(userStorageKey(null)).filter(e => !e.cloudId));
         setSyncStatus(SYNC_STATUS.LOCAL_ONLY);
+        setHydratedFor(null);
       }
       return;
     }
@@ -251,6 +352,7 @@ export function useEvents(user) {
     // Show THIS user's own data immediately (optimistic local-first) — never the
     // pre-login view.
     setEvents(seeded);
+    setHydratedFor(userId);
 
     // No cloud configured → auth never yields a user, so this path is unreachable.
     if (!isSupabaseConfigured) return;
@@ -449,5 +551,22 @@ export function useEvents(user) {
     }, 1500);
   }, [pushUpdate]);
 
-  return { events, addEvent, removeEvent, patchEventById, syncStatus };
+  /**
+   * Is `events` the list a route guard is allowed to draw conclusions from?
+   *
+   * A guard cannot use `syncStatus` alone. It starts LOCAL_ONLY, and between
+   * "auth resolved a user" and "the hydration effect swapped in that user's
+   * bucket" there is at least one render where a logged-in host's own events
+   * are simply not in state yet — `events` still holds the pre-login guest
+   * view. A guard that redirects in that window sends every bookmarked event
+   * URL to the dashboard. Measured: /events/:id/seating, /share and 14 more did
+   * exactly that on every full page load; /entrance and /checkin did not, and
+   * the only difference was that those two were already given the auth flag.
+   *
+   * Logged out, this is simply true: there is nothing left to wait for, and the
+   * guest bucket is already in state from the initial `useState`.
+   */
+  const eventsReady = userId ? hydratedFor === userId : true;
+
+  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady };
 }

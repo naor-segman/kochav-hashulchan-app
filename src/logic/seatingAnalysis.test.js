@@ -483,3 +483,172 @@ describe("applying a suggestion never makes the plan worse", () => {
     expect(pending.applyAction).toMatchObject({ type: "moveGuest", guestId: "B", toTableId: "t1" });
   });
 });
+
+// ── From the logic review (12.8) ──────────────────────────────────────────────
+// Everything below fails on the pre-fix code. Each one is a bug the 751-test
+// suite was green through.
+
+const together = (a, b) => ({ id: `tog-${a}-${b}`, type: "together", guestA: a, guestB: b });
+
+describe("a suggestion the panel cannot render is a suggestion that does not exist", () => {
+  // SuggestionsPanel builds its groups from exactly these three strings
+  // (SuggestionsPanel.jsx: `["critical", "fixes", "opportunities"]`). Any other
+  // value produces an item that is generated, COUNTED IN THE HEADER BADGE, and
+  // never displayed — the badge said "2 המלצות" and the panel listed one.
+  //
+  // The sort hid it: `sectionOrder[a.section] ?? 1` maps an unknown string onto
+  // the "fixes" rank, so the ORDER of the list stayed correct while one of its
+  // items was invisible. `together_pending` shipped as section "warnings" and
+  // ~20% of events emitted it.
+  const RENDERED = ["critical", "fixes", "opportunities"];
+
+  // A battery wide enough to reach every branch that pushes a suggestion.
+  const scenarios = [
+    ["unassigned",        [g("a"), g("b")], [t("t1", 10)], [], { a: "t1" }],
+    ["together pending",  [g("A"), g("B")], [t("t1", 10)], [together("A", "B")], { A: "t1" }],
+    ["together violated", [g("A"), g("B")], [t("t1", 10), t("t2", 10)], [together("A", "B")], { A: "t1", B: "t2" }],
+    ["apart violated",    [g("A"), g("B")], [t("t1", 10)], [apart("A", "B")], { A: "t1", B: "t1" }],
+    ["overloaded",        [g("A", { count: 8 }), g("B", { count: 8 })], [t("t1", 10)], [], { A: "t1", B: "t1" }],
+    ["isolated",          [g("A"), g("B"), g("C", { group: "חברים" })],
+                          [t("t1", 10), t("t2", 10)], [], { A: "t1", B: "t1", C: "t1" }],
+    ["underfilled",       [g("A")], [t("t1", 12), t("t2", 12)], [], { A: "t1" }],
+  ];
+
+  for (const [label, guests, tables, constraints, seating] of scenarios) {
+    it(`every section is one the panel renders — ${label}`, () => {
+      const s = generateSuggestions(guests, tables, constraints, seating);
+      const bad = s.filter(x => x.section && !RENDERED.includes(x.section));
+      expect(bad.map(x => `${x.type}:${x.section}`)).toEqual([]);
+    });
+  }
+});
+
+describe("together_pending — the one-click fix must not create the violation it is fixing", () => {
+  // Measured before the fix: 0 violations and quality 93 before applying,
+  // 1 critical violation and quality 81 after, with violationDelta advertised
+  // as 0. `moveBreaksTogether` cannot catch this — it returns false on its
+  // first line for a guest who has no current table, which is every guest this
+  // suggestion is about.
+  const scene = () => ({
+    guests: [g("סבתא"), g("אמא"), g("אבא")],
+    tables: [t("t1", 6), t("t2", 6)],
+    constraints: [together("אמא", "סבתא"), together("אמא", "אבא")],
+    seating: { "סבתא": "t1", "אבא": "t2" },   // אמא waiting
+  });
+
+  it("refuses to seat the waiting guest when another partner sits elsewhere", () => {
+    const { guests, tables, constraints, seating } = scene();
+    const pending = find(generateSuggestions(guests, tables, constraints, seating), "together_pending");
+    expect(pending).toBeDefined();
+    expect(pending.canApply).toBe(false);
+    expect(pending.applyAction).toBeNull();
+  });
+
+  it("and the arrangement it refused to create really is worse", () => {
+    // The proof that the refusal is right, not merely cautious.
+    const { guests, tables, constraints, seating } = scene();
+    const before = computeViolations(guests, tables, constraints, seating).length;
+    const after  = computeViolations(guests, tables, constraints, { ...seating, "אמא": "t1" }).length;
+    expect(before).toBe(0);
+    expect(after).toBe(1);
+  });
+
+  it("still offers the fix when the waiting guest has no OTHER seated partner", () => {
+    // The guard must not make the whole feature useless.
+    const guests = [g("סבתא"), g("אמא")];
+    const s = generateSuggestions(guests, [t("t1", 6)], [together("אמא", "סבתא")], { "סבתא": "t1" });
+    expect(find(s, "together_pending").canApply).toBe(true);
+  });
+
+  it("detects the pair in BOTH directions", () => {
+    // The branch `!ta && tb` had no coverage at all: half the feature could be
+    // deleted and the suite stayed green.
+    const guests = [g("A"), g("B")];
+    const tables = [t("t1", 6)];
+    const cons   = [together("A", "B")];
+    // seated is guestB
+    expect(find(generateSuggestions(guests, tables, cons, { B: "t1" }), "together_pending"))
+      .toBeDefined();
+    // seated is guestA
+    expect(find(generateSuggestions(guests, tables, cons, { A: "t1" }), "together_pending"))
+      .toBeDefined();
+  });
+});
+
+describe("a locked table is locked as a SOURCE too", () => {
+  // TableCard's own tooltip: "נעלו שולחן — לא יוצעו שינויים לשולחן זה", with no
+  // qualification. Five suggestion types checked the lock on the DESTINATION
+  // only, so the one-click button happily pulled a guest OUT of a table the
+  // host had declared settled. Section 10 (side_swap) already checked both —
+  // that was the intent the other five missed.
+  const locked = ids => ({ lockedTableIds: ids });
+
+  it("together_violated will not move a guest out of a locked table", () => {
+    const guests = [g("A"), g("B")];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const cons   = [together("A", "B")];
+    const seat   = { A: "t1", B: "t2" };
+    expect(find(generateSuggestions(guests, tables, cons, seat, null, {}), "together_violated").canApply).toBe(true);
+    // B sits at t2 and would be moved to t1. Locking t2 must stop it.
+    expect(find(generateSuggestions(guests, tables, cons, seat, null, locked(["t2"])), "together_violated").canApply).toBe(false);
+  });
+
+  it("apart_violated will not unassign out of a locked table", () => {
+    const guests = [g("A"), g("B")];
+    const tables = [t("t1", 10)];
+    const cons   = [apart("A", "B")];
+    const seat   = { A: "t1", B: "t1" };
+    expect(find(generateSuggestions(guests, tables, cons, seat, null, {}), "apart_violated").canApply).toBe(true);
+    expect(find(generateSuggestions(guests, tables, cons, seat, null, locked(["t1"])), "apart_violated").canApply).toBe(false);
+  });
+
+  it("overloaded will not evict from a locked table", () => {
+    // A table can be locked AND over capacity at once — the host may have
+    // locked it precisely because they intend to sort it out by hand.
+    const guests = [g("A", { count: 8 }), g("B", { count: 8 })];
+    const tables = [t("t1", 10)];
+    const seat   = { A: "t1", B: "t1" };
+    expect(find(generateSuggestions(guests, tables, [], seat, null, {}), "overloaded").canApply).toBe(true);
+    expect(find(generateSuggestions(guests, tables, [], seat, null, locked(["t1"])), "overloaded").canApply).toBe(false);
+  });
+
+  it("isolated_guest will not move a guest out of a locked table", () => {
+    const guests = [g("A"), g("B"), g("C", { group: "חברים" })];
+    const tables = [t("t1", 10), t("t2", 10)];
+    const seat   = { A: "t1", B: "t2", C: "t2" };   // A alone from משפחה at t1
+    const base = find(generateSuggestions(guests, tables, [], seat, null, {}), "isolated_guest");
+    expect(base?.canApply).toBe(true);
+    // t1 is where A currently sits — the source.
+    expect(find(generateSuggestions(guests, tables, [], seat, null, locked(["t1"])), "isolated_guest").canApply).toBe(false);
+  });
+});
+
+describe("the quality score's weights are part of the contract", () => {
+  // Both of these survived the mutation run: the penalty could be re-weighted,
+  // and the unassigned cap removed, with the suite still green.
+  const guests = [g("A"), g("B")];
+  const tables = [t("t1", 10), t("t2", 10)];
+
+  it("a broken together constraint costs exactly 15", () => {
+    const cons = [together("A", "B")];
+    const seat = { A: "t1", B: "t2" };
+    const viol = computeViolations(guests, tables, cons, seat);
+    expect(viol).toHaveLength(1);
+    expect(computeQualityScore(guests, tables, cons, seat, viol)).toBe(
+      computeQualityScore(guests, tables, [], seat, []) - 15
+    );
+  });
+
+  it("the unassigned penalty is capped at 20 however many are waiting", () => {
+    // Uncapped, 10 waiting seats would take 30 points. The cap is what keeps a
+    // half-finished arrangement from reading as a disaster.
+    const many = [g("seated"), ...Array.from({ length: 10 }, (_, i) => g("w" + i))];
+    const seat = { seated: "t1" };
+    const capped = computeQualityScore(many, tables, [], seat, []);
+    const few = [g("seated"), g("w0"), g("w1")];
+    const small = computeQualityScore(few, tables, [], { seated: "t1" }, []);
+    // 2 waiting seats = 6 points; 10 waiting seats would be 30 uncapped.
+    expect(small).toBeGreaterThan(capped);
+    expect(100 - capped).toBeLessThanOrEqual(20 + 8);   // + the underfill cap
+  });
+});

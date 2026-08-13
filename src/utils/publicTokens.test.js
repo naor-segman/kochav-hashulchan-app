@@ -8,13 +8,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // shape it fails to defend turns into a crash on a page that a stranger opened
 // from a WhatsApp link.
 const rpc = vi.fn();
+// The owner-side reads go through `.from(...)`, not through an RPC.
+const fromFn = vi.fn();
 vi.mock("../lib/supabase.js", () => ({
-  supabase: { rpc: (...args) => rpc(...args) },
+  supabase: {
+    rpc: (...args) => rpc(...args),
+    from: (...args) => fromFn(...args),
+  },
   isSupabaseConfigured: true,
 }));
 
 const {
   fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift,
+  upsertCollabGuest, fetchCollabGuestsOwner, upsertCollabGuestOwner,
 } = await import("./publicTokens.js");
 
 const ok   = data  => rpc.mockResolvedValue({ data, error: null });
@@ -196,5 +202,180 @@ describe("fetchGiftWall", () => {
     const rows = [{ id: "1", donor_name: "דנה", message: "מזל טוב", created_at: "2026-07-01" }];
     ok(rows);
     expect(await fetchGiftWall("tok")).toEqual(rows);
+  });
+});
+
+// ── The shared table's notes column (12.8) ───────────────────────────────────
+//
+// The wire has to be able to say three different things, and the difference
+// between two of them is the difference between "keep it" and "delete it":
+//   * a string      → that is the answer, and "" clears the note;
+//   * no key at all → no opinion, the database keeps what it has.
+// A client that predates this column sends no key. If that arrived as NULL,
+// every old tab and every cached PWA would quietly wipe notes typed by someone
+// on a newer build — the exact shape of the bug that destroyed eight companion
+// names in August, one column over.
+describe("upsertCollabGuest — notes", () => {
+  const row = { id: "r1", name: "יעל", phone: "050", side: "bride", guest_group: "משפחה", guests_count: 1, companions: [] };
+
+  it("sends the note the caller holds", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", { ...row, notes: "אלרגיה לאגוזים" });
+    expect(sent().row_data.notes).toBe("אלרגיה לאגוזים");
+  });
+
+  it("sends an EMPTY string when the box was emptied — that is a real clear", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", { ...row, notes: "" });
+    expect(sent().row_data).toHaveProperty("notes", "");
+  });
+
+  it("OMITS the key entirely when the caller has no note field at all", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", row);
+    expect("notes" in sent().row_data).toBe(false);
+  });
+
+  it("omits it for null/undefined too — never sends null, which reads as a clear", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", { ...row, notes: null });
+    expect("notes" in sent().row_data).toBe(false);
+    await upsertCollabGuest("token123", { ...row, notes: undefined });
+    expect("notes" in sent().row_data).toBe(false);
+  });
+
+  it("still carries every other field of the row", async () => {
+    ok(null);
+    await upsertCollabGuest("token123", { ...row, guests_count: 3, companions: ["בעל", "חבר"], updated_by: "רונית" });
+    const d = sent().row_data;
+    expect(d.id).toBe("r1");
+    expect(d.name).toBe("יעל");
+    expect(d.phone).toBe("050");
+    expect(d.side).toBe("bride");
+    expect(d.guest_group).toBe("משפחה");
+    expect(d.guests_count).toBe(3);
+    expect(d.companions).toEqual(["בעל", "חבר"]);
+    expect(d.updated_by).toBe("רונית");
+  });
+});
+
+// ── The deploy order must not decide whether the product works ───────────────
+// Migrations here are run by hand, by one person, in a browser. "Ship the
+// migration before the code" is a footgun, not a plan: new code asking a
+// pre-migration database for `notes` gets a 400, and the host's entire shared
+// table goes dark behind an offline banner with no clue why.
+describe("fetchCollabGuestsOwner tolerates a database without the notes column", () => {
+  const rows = [{ id: "r1", name: "יעל", companions: [] }];
+  let cols;
+
+  const answering = (behaviour) => {
+    cols = [];
+    fromFn.mockReset();
+    fromFn.mockImplementation(() => ({
+      select: (c) => { cols.push(c); return { eq: async () => behaviour(c) }; },
+    }));
+  };
+
+  it("asks for notes first, and that is the only call when it works", async () => {
+    answering(() => ({ data: rows, error: null }));
+    expect(await fetchCollabGuestsOwner("e1")).toEqual(rows);
+    expect(cols).toHaveLength(1);
+    expect(cols[0]).toContain("notes");
+  });
+
+  it("retries without notes when the column is missing", async () => {
+    answering(c => c.includes("notes")
+      ? { data: null, error: { code: "42703", message: "column collab_guests.notes does not exist" } }
+      : { data: rows, error: null });
+    expect(await fetchCollabGuestsOwner("e1")).toEqual(rows);
+    expect(cols).toHaveLength(2);
+    expect(cols[1]).not.toContain("notes");
+  });
+
+  it("does NOT swallow a real failure into a degraded read", async () => {
+    // Retrying without a column would turn "you are not allowed to read this"
+    // into "there is nothing here", which is the worse of the two lies.
+    answering(() => ({ data: null, error: { code: "42501", message: "permission denied" } }));
+    await expect(fetchCollabGuestsOwner("e1")).rejects.toMatchObject({ code: "42501" });
+    expect(cols).toHaveLength(1);
+  });
+
+  it("surfaces a failure on the retry too", async () => {
+    answering(c => c.includes("notes")
+      ? { data: null, error: { code: "42703", message: "column does not exist" } }
+      : { data: null, error: { code: "08006", message: "connection failure" } });
+    await expect(fetchCollabGuestsOwner("e1")).rejects.toMatchObject({ code: "08006" });
+  });
+});
+
+// The WRITE side had the same intent expressed as a guard — `typeof row.notes
+// === "string"` — and the guard never fired, because `guestToCollab` normalises
+// notes to "" and it is therefore ALWAYS a string. So the read degraded
+// gracefully against a pre-migration database while the write 400'd on every
+// row: the family's table kept reaching the host, and nothing the host typed
+// ever reached the family. These tests fail on the pre-fix code.
+describe("upsertCollabGuestOwner tolerates a database without the notes column", () => {
+  let sentPayloads;
+
+  const answering = (behaviour) => {
+    sentPayloads = [];
+    fromFn.mockReset();
+    fromFn.mockImplementation(() => ({
+      upsert: async (p) => { sentPayloads.push(p); return behaviour(p); },
+    }));
+  };
+
+  const row = { id: "r1", name: "יעל", count: 2, companions: ["דנה"], notes: "צמחונית" };
+
+  it("sends notes first, and that is the only call when it works", async () => {
+    answering(() => ({ error: null }));
+    await upsertCollabGuestOwner("e1", row);
+    expect(sentPayloads).toHaveLength(1);
+    expect(sentPayloads[0].notes).toBe("צמחונית");
+  });
+
+  it("retries without notes when the column is not there yet — PGRST204", async () => {
+    // PostgREST answers a WRITE to an unknown column with PGRST204, not with
+    // Postgres' own 42703. Matching only 42703 would have left the write path
+    // broken while the test suite looked green.
+    answering(p => "notes" in p
+      ? { error: { code: "PGRST204", message: "Could not find the 'notes' column of 'collab_guests' in the schema cache" } }
+      : { error: null });
+    await upsertCollabGuestOwner("e1", row);
+    expect(sentPayloads).toHaveLength(2);
+    expect(sentPayloads[1]).not.toHaveProperty("notes");
+    // Everything else still has to arrive — a fallback that also drops the
+    // companions would be a quieter version of the same data loss.
+    expect(sentPayloads[1]).toMatchObject({ id: "r1", name: "יעל", guests_count: 2, companions: ["דנה"] });
+  });
+
+  it("retries on 42703 too", async () => {
+    answering(p => "notes" in p
+      ? { error: { code: "42703", message: "column \"notes\" does not exist" } }
+      : { error: null });
+    await upsertCollabGuestOwner("e1", row);
+    expect(sentPayloads).toHaveLength(2);
+  });
+
+  it("does NOT retry a real failure", async () => {
+    answering(() => ({ error: { code: "42501", message: "permission denied" } }));
+    await expect(upsertCollabGuestOwner("e1", row)).rejects.toMatchObject({ code: "42501" });
+    expect(sentPayloads).toHaveLength(1);
+  });
+
+  it("does not loop when the row never carried notes in the first place", async () => {
+    // Without the `payload === base` guard this would retry the identical
+    // payload and report the second, identical failure.
+    answering(() => ({ error: { code: "PGRST204", message: "Could not find the 'name' column" } }));
+    const { notes, ...noNotes } = row;   // eslint-disable-line no-unused-vars
+    await expect(upsertCollabGuestOwner("e1", noNotes)).rejects.toMatchObject({ code: "PGRST204" });
+    expect(sentPayloads).toHaveLength(1);
+  });
+
+  it("surfaces a failure on the retry too", async () => {
+    answering(p => "notes" in p
+      ? { error: { code: "PGRST204", message: "Could not find the 'notes' column" } }
+      : { error: { code: "08006", message: "connection failure" } });
+    await expect(upsertCollabGuestOwner("e1", row)).rejects.toMatchObject({ code: "08006" });
   });
 });
