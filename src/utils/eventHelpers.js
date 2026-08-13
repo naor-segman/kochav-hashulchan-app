@@ -341,7 +341,7 @@ export function getSideLabels(ev) {
       groom: ev?.groomName ? "צד " + ev.groomName : roles.groom,
     };
   }
-  if (type === "בר מצווה" || type === "בת מצווה") {
+  if (type === "בר מצווה" || type === "בת מצווה" || type === "ברית" || type === "בריתה") {
     return { bride: "משפחת האם", groom: "משפחת האב" };
   }
   if (type === "אירוע עסקי") {
@@ -462,6 +462,15 @@ export function getEventPersonalConfig(type) {
   if (type === "בת מצווה") {
     return { kind: "bat", divider: "מי חוגגת בת מצווה", label: "שם הבת מצווה", placeholder: "לדוגמה: תמר" };
   }
+  // "owner" is the single-name shape EventSetupScreen already renders, so a
+  // brit needs no screen change — only the right word for the one name there
+  // is. The parents are the two SIDES, not the celebrant.
+  if (type === "ברית") {
+    return { kind: "owner", divider: "מי נולד", label: "שם התינוק", placeholder: "לדוגמה: איתי" };
+  }
+  if (type === "בריתה") {
+    return { kind: "owner", divider: "מי נולדה", label: "שם התינוקת", placeholder: "לדוגמה: אלה" };
+  }
   if (type === "אירוע עסקי") {
     return { kind: "business", divider: "הארגון שמארח" };
   }
@@ -485,6 +494,8 @@ export function getEventNamePlaceholder(type) {
     "חינה":           "לדוגמה: חינה של נועה",
     "בר מצווה":       "לדוגמה: בר המצווה של עידו",
     "בת מצווה":       "לדוגמה: בת המצווה של תמר",
+    "ברית":           "לדוגמה: הברית של איתי",
+    "בריתה":          "לדוגמה: הבריתה של אלה",
     "אירוע עסקי":    "לדוגמה: כנס שנתי 2025",
     "אירוע משפחתי":  "לדוגמה: חגיגת יובל למשפחת כהן",
     "יום הולדת":     "לדוגמה: יום הולדת 40 לדניאל",

@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { normalizeEvent, duplicateEvent, seatingTotals, TOKEN_KEYS, rotateEventToken,
-         guestSeatNames, guestCompanionNames } from "./eventHelpers.js";
+         guestSeatNames, guestCompanionNames,
+         getSideLabels, getEventPersonalConfig, getEventNamePlaceholder } from "./eventHelpers.js";
+import { EVENT_TYPES } from "../data/constants.js";
+import { defaultEventSite } from "../data/eventSiteTemplates.js";
+import { normalizeAnnouncements } from "../data/announcementTemplates.js";
+import { starterTasks } from "../data/taskTemplates.js";
 
 describe("normalizeEvent — timestamps", () => {
   it("defaults updatedAt to createdAt (never epoch 0) when both are missing", () => {
@@ -513,5 +518,52 @@ describe("duplicateEvent leaves the previous event's commitments behind", () => 
   it("survives an event with no vendors at all", () => {
     const { vendors, ...noVendors } = ev();   // eslint-disable-line no-unused-vars
     expect(duplicateEvent(noVendors).vendors).toEqual([]);
+  });
+});
+
+// ── ברית / בריתה (added 12.8, at the owner's request) ────────────────────────
+// The picker offered neither, so a host planning one had to pick "אחר" and lose
+// every piece of wording the product would otherwise get right — while the
+// app's own grammar table already listed both words. Adding a type is only real
+// if every map keyed on type answers for it; these check the ones that fall
+// back SILENTLY rather than failing, which is what made the gap invisible.
+describe("ברית and בריתה are real event types, not 'אחר'", () => {
+  const OTHER = "אחר";
+
+  it.each(["ברית", "בריתה"])("%s is selectable at all", (type) => {
+    expect(EVENT_TYPES).toContain(type);
+  });
+
+  it.each(["ברית", "בריתה"])("%s names the two families, not צד א׳/צד ב׳", (type) => {
+    expect(getSideLabels({ type })).toEqual({ bride: "משפחת האם", groom: "משפחת האב" });
+  });
+
+  it("asks for the baby's name, in the right gender", () => {
+    expect(getEventPersonalConfig("ברית")).toMatchObject({ kind: "owner", label: "שם התינוק" });
+    expect(getEventPersonalConfig("בריתה")).toMatchObject({ kind: "owner", label: "שם התינוקת" });
+  });
+
+  it.each(["ברית", "בריתה"])("%s has an event-name example of its own", (type) => {
+    expect(getEventNamePlaceholder(type)).not.toBe(getEventNamePlaceholder(OTHER));
+  });
+
+  it.each(["ברית", "בריתה"])("%s gets its own event-site hero", (type) => {
+    expect(defaultEventSite(type).heroEn).not.toBe(defaultEventSite(OTHER).heroEn);
+  });
+
+  it.each(["ברית", "בריתה"])("%s gets its own announcement wording", (type) => {
+    expect(JSON.stringify(normalizeAnnouncements(undefined, type)))
+      .not.toBe(JSON.stringify(normalizeAnnouncements(undefined, OTHER)));
+  });
+
+  it("gets a checklist measured in DAYS, not months", () => {
+    // The whole reason "אחר" was not an acceptable answer: every other list
+    // opens with "לסגור מקום ותאריך" around 90 days out, for an event that
+    // happens on the eighth day.
+    const tasks = starterTasks("ברית");
+    expect(tasks).not.toEqual(starterTasks(OTHER));
+    expect(Math.max(...tasks.map(t => t.offset))).toBeLessThanOrEqual(14);
+    expect(tasks.some(t => t.title.includes("מוהל"))).toBe(true);
+    expect(starterTasks("בריתה")).toEqual(tasks);
   });
 });

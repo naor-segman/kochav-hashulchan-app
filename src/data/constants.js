@@ -1,7 +1,16 @@
 // V1 constants — copied verbatim from legacy/v1-seating-app.jsx
 
+// ⚠ These Hebrew STRINGS are the event type. `ev.type === "wedding"` matches
+// nothing and falls through to the "אחר" defaults — the most repeated bug in
+// this codebase. Every map keyed on type is keyed on these exact strings.
+//
+// ברית and בריתה are separate entries on purpose: they are different events
+// with a different word for the baby, and the app's own grammar table
+// (messageSequence.js ARTICLE_NOUNS) already listed both while the picker
+// offered neither — so a host planning one had to choose "אחר" and lose every
+// piece of wording the product would otherwise get right.
 export const EVENT_TYPES = [
-  "חתונה","בר מצווה","בת מצווה","חינה","אירוס",
+  "חתונה","בר מצווה","בת מצווה","ברית","בריתה","חינה","אירוס",
   "אירוע משפחתי","אירוע עסקי","יום הולדת","אחר",
 ];
 
@@ -23,6 +32,8 @@ export const EVENT_TYPE_HEADINGS = {
   "חינה":         "לכבוד מי החינה?",
   "בר מצווה":     "מי חוגג בר מצווה?",
   "בת מצווה":     "מי חוגגת בת מצווה?",
+  "ברית":         "איך קוראים לתינוק?",
+  "בריתה":        "איך קוראים לתינוקת?",
   "יום הולדת":    "למי אנחנו חוגגים?",
   "אירוע משפחתי": "איזו משפחה מתכנסת?",
   "אירוע עסקי":   "מי החברה שמארחת?",

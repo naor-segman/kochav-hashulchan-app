@@ -21,6 +21,13 @@ export const EVENT_TEMPLATES = [
     desc:  "אירוע גיל המצוות לבת",
   },
   {
+    id:   "brit",
+    icon: "heart",
+    label: "ברית",
+    type:  "ברית",
+    desc:  "אירוע קצר — רשימה של ימים, לא של חודשים",
+  },
+  {
     id:   "henna",
     icon: "leaf",
     label: "חינה",

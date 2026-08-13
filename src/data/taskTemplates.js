@@ -75,12 +75,29 @@ const SOCIAL = [
   { title: "לסיים סידורי הושבה",       offset:  5, priority: "normal" },
 ];
 
+// A brit is the one event here that is not planned for months. The date is set
+// by the birth, it happens on the eighth day, and the parents are organising it
+// on almost no sleep. Every other list would have opened with "לסגור מקום
+// ותאריך, 90 יום לפני" for an event eight days away — which is exactly why
+// "אחר" was not an acceptable answer for it.
+const BRIT = [
+  { title: "לתאם מוהל",                          offset: 6, priority: "high"   },
+  { title: "לסגור מקום — בית / בית כנסת / אולם", offset: 5, priority: "high"   },
+  { title: "להודיע למשפחה ולחברים",              offset: 5, priority: "high"   },
+  { title: "להזמין כיבוד / קייטרינג",            offset: 3, priority: "high"   },
+  { title: "לוודא סנדק וכיבודים",                offset: 3, priority: "normal" },
+  { title: "לאסוף אישורי הגעה",                  offset: 2, priority: "normal" },
+  { title: "לסדר ישיבה למבוגרים ולהורים",        offset: 1, priority: "normal" },
+];
+
 const BY_TYPE = {
   "חתונה":         WEDDING,
   "חינה":          WEDDING,
   "אירוס":         WEDDING,
   "בר מצווה":      MITZVAH,
   "בת מצווה":      MITZVAH,
+  "ברית":          BRIT,
+  "בריתה":         BRIT,
   "אירוע עסקי":    BUSINESS,
   "יום הולדת":     SOCIAL,
   "אירוע משפחתי":  SOCIAL,

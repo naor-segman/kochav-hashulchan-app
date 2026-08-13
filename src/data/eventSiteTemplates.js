@@ -142,6 +142,8 @@ export const EVENT_TYPE_TEMPLATES = {
   "חינה":         base("sand",  "HENNA NIGHT"),
   "בר מצווה":     base("sky",   "BAR MITZVAH"),
   "בת מצווה":     base("rose",  "BAT MITZVAH"),
+  "ברית":         base("sky",   "BRIT MILAH"),
+  "בריתה":        base("rose",  "BABY NAMING"),
   "יום הולדת":    base("sky",   "BIRTHDAY"),
   "אירוע משפחתי": base("olive", "FAMILY EVENT"),
   "אירוע עסקי":   base("night", "OUR EVENT"),

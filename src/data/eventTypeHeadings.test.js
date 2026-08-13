@@ -24,7 +24,7 @@ describe("EVENT_TYPE_HEADINGS", () => {
     }
   });
 
-  it("gives each type its own question — not one generic line nine times", () => {
+  it("gives each type its own question — not one generic line for every type", () => {
     const headings = EVENT_TYPES.map(eventTypeHeading);
     // "אחר" is the deliberate catch-all and shares its wording with the
     // fallback; every other type must be distinct from every other type.
