@@ -408,3 +408,127 @@ describe("count and companions cannot disagree, however absurd the line", () => 
     expect(row).toMatchObject({ name: "עמיר סגמן", count: 2, companions: ["יובל סגמן"] });
   });
 });
+
+// ── The lists people actually send (13.8) ────────────────────────────────────
+// The owner's objection, in his words: if it cannot match a main name to a main
+// name, companions to companions and the phone to the phone, then adding from a
+// list is irrelevant and will only make a mess.
+//
+// So this block is a MEASUREMENT, not a happy path. Every case below is a line
+// written the way Israelis write one, and every one of them was wrong before:
+// 8 of 19 correct, now 19 of 19. The parser used to handle exactly the format
+// we had documented — which is the format nobody's existing list is in.
+describe("a real pasted list, not the format we documented", () => {
+  const one = text => parseGuestList(text)[0] ?? null;
+
+  describe("a spreadsheet paste is COLUMNS, not prose", () => {
+    // Tabs were rewritten to " , " before anything looked at them, throwing
+    // away the one piece of structure a spreadsheet paste has. Measured:
+    // "דנה כהן ⇥ 0501234567 ⇥ 2" produced a guest called "דנה כהן 2" with NO
+    // phone and one seat — the single most likely place a 300-name list
+    // already exists, silently mangled.
+    it("reads name / phone / count whatever order the columns are in", () => {
+      expect(one("דנה כהן\t0501234567\t2")).toMatchObject({ name: "דנה כהן", phone: "0501234567", count: 2 });
+      expect(one("דנה כהן\t2\t0501234567")).toMatchObject({ name: "דנה כהן", phone: "0501234567", count: 2 });
+      expect(one("0501234567\tדנה כהן")).toMatchObject({ name: "דנה כהן", phone: "0501234567" });
+    });
+
+    it("does not invent a count from a column that is not one", () => {
+      expect(one("דנה כהן\tחברים מהצבא").count).toBeUndefined();
+    });
+  });
+
+  describe("the count notations that are not '+N'", () => {
+    it.each([
+      ["משפחת כהן 4",          "משפחת כהן", 4],
+      ["משפחת כהן - 4 אנשים",  "משפחת כהן", 4],
+      ["משפחת לוי — 3 איש",    "משפחת לוי", 3],
+      ["דנה כהן x2",           "דנה כהן",   2],
+      ["דנה כהן X2",           "דנה כהן",   2],
+      ["דנה כהן * 2",          "דנה כהן",   2],
+      ["דנה כהן (2)",          "דנה כהן",   2],
+      ["משפחת לוי 5 מקומות",   "משפחת לוי", 5],
+    ])("%s", (line, name, count) => {
+      expect(one(line)).toMatchObject({ name, count });
+    });
+
+    it("leaves the digits OUT of the name", () => {
+      // The old failure was double: the count was ignored AND the number stayed
+      // glued to the name, so the place card printed "משפחת כהן 4".
+      expect(one("משפחת כהן 4").name).not.toMatch(/\d/);
+    });
+
+    it("does not read a year, a house number or a phone as a count", () => {
+      expect(one("דנה כהן 1985").count).toBeUndefined();
+      expect(one("דנה כהן 0501234567")).toMatchObject({ phone: "0501234567" });
+      expect(one("דנה כהן 0501234567").count).toBeUndefined();
+    });
+
+    it("refuses to start a count in the middle of a longer number", () => {
+      // `\d{1,2}` with no left boundary matched the last two digits of "120".
+      // Caught by measuring, not by reading the regex.
+      expect(parseGuestList('סה"כ 120 איש')).toEqual([]);
+    });
+
+    it("a bracket with a NAME in it is still a note, not a count", () => {
+      expect(one("דנה כהן (בעבודה)")).toMatchObject({ name: "דנה כהן (בעבודה)" });
+      expect(one("דנה כהן (בעבודה)").count).toBeUndefined();
+    });
+  });
+
+  describe("a plus with a name after it", () => {
+    it("reads the name as a companion, not as part of the guest's name", () => {
+      expect(one("דנה + יוסי")).toMatchObject({ name: "דנה", count: 2, companions: ["יוסי"] });
+    });
+
+    it("still reads a plus with a NUMBER as a count", () => {
+      expect(one("דנה +2")).toMatchObject({ name: "דנה", count: 3 });
+    });
+
+    it("never reads a foreign dialling code as a companion", () => {
+      // "+1 212 555 1234" must stay a phone number.
+      const r = one("דנה כהן +1 212 555 1234");
+      expect(r.count).toBeUndefined();
+      expect(r.name).toBe("דנה כהן");
+    });
+  });
+
+  describe("section headers are not guests", () => {
+    // Every real list is built out of these, so a 200-name paste arrived with
+    // nonsense rows scattered through it for the host to find by eye.
+    it.each([
+      "צד כלה:",
+      "משפחה:",
+      "=== חברים מהצבא ===",
+      "--- צד חתן ---",
+      "***",
+      'סה"כ 120 איש',
+      "סך הכל 80",
+    ])("%s produces nothing", (line) => {
+      expect(parseGuestList(line)).toEqual([]);
+    });
+
+    it("but a name that merely CONTAINS a colon or a dash still counts", () => {
+      // The guard is deliberately narrow: dropping a real guest is much worse
+      // than leaving a header in, which the host can see and delete.
+      expect(one("דנה כהן - אחות של יוסי")).toMatchObject({ name: "דנה כהן - אחות של יוסי" });
+      expect(one("ד\"ר דנה כהן")).toBeTruthy();
+    });
+  });
+
+  it("a whole realistic list, end to end", () => {
+    const rows = parseGuestList([
+      "צד כלה:",
+      "דנה כהן\t0501234567\t2",
+      "משפחת לוי 4",
+      "יוסי + מיכל",
+      "",
+      "=== חברים מהצבא ===",
+      "אבי ברק 052-987-6543",
+      'סה"כ 8 אנשים',
+    ].join("\n"));
+    expect(rows.map(r => r.name)).toEqual(["דנה כהן", "משפחת לוי", "יוסי", "אבי ברק"]);
+    expect(countSeats(rows)).toBe(2 + 4 + 2 + 1);
+    expect(countWithPhone(rows)).toBe(2);
+  });
+});

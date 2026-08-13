@@ -181,6 +181,131 @@ function splitPeople(line) {
   return segs.filter(s => s.trim());
 }
 
+/**
+ * A line that is not a guest.
+ *
+ * MEASURED, on 21 lines written the way people actually send them: three of
+ * the failures were section headers becoming guests — "צד כלה:" and
+ * "=== חברים מהצבא ===" and "סה״כ 120 איש" each landed in the list as a person.
+ * Every real Israeli guest list is built out of exactly these, so a paste of
+ * 200 names arrived with a handful of nonsense rows scattered through it, and
+ * the host had to find them by eye.
+ *
+ * Kept deliberately narrow — a line only counts as noise when it CANNOT be a
+ * name. Dropping a real guest is far worse than leaving a header in, and the
+ * review step downstream can show a header the host disagrees with.
+ */
+function isNoiseLine(line) {
+  const t = line.trim();
+  if (!t) return true;
+  // Nothing but punctuation, dashes, equals signs, dots.
+  if (!/[\p{L}\d]/u.test(t)) return true;
+  // A heading: ends in a colon and carries no digits ("צד כלה:", "משפחה:").
+  if (/:\s*$/.test(t) && !/\d/.test(t)) return true;
+  // Wrapped in decoration: "=== חברים ===", "--- צד חתן ---", "*** ***".
+  if (/^[=\-*_~#•]{2,}/.test(t) && /[=\-*_~#•]{2,}\s*$/.test(t)) return true;
+  // A total, not a person.
+  if (/^(סה["״']?כ|סך הכל|בסך הכל|total)(?=[\s:.,-]|$)/i.test(t)) return true;
+  return false;
+}
+
+/**
+ * How many seats this line asks for, written the way Israelis write it.
+ *
+ * The "+N" form was the only one the parser knew, and it is not the common one.
+ * Measured, all of these were ignored AND left their digits glued into the
+ * name — "משפחת כהן 4" became a guest called "משפחת כהן 4" with one seat:
+ *
+ *   משפחת כהן 4          משפחת כהן - 4 אנשים        דנה כהן x2
+ *   דנה כהן (2)          דנה כהן * 2                 משפחת לוי — 3 איש
+ *
+ * Returns { count, rest } with the notation removed, or null when the line
+ * says nothing about a count. A bare trailing number is only read as a count
+ * when it is small: a line ending in "1985" is a year or a house number, and
+ * a line ending in a long run of digits is a phone this function never sees
+ * (the phone is pulled off before we get here).
+ */
+const COUNT_FORMS = [
+  // "x2" / "X2" / "×2" / "*2", with or without a space
+  /[\sxX×*]\s*(?<!\d)(\d{1,2})\s*$/,
+  // "(2)" — a bracket holding ONLY a number is a count, never a note
+  /\(\s*(?<!\d)(\d{1,2})\s*\)\s*$/,
+  // "- 4 אנשים" / "— 3 איש" / "4 אנשים" / "2 מקומות"
+  /[-–—]?\s*(?<!\d)(\d{1,2})\s*(?:אנשים|איש|נפשות|מקומות|כיסאות)\s*$/,
+  // a bare small number at the end of the line
+  /\s(?<!\d)(\d{1,2})\s*$/,
+];
+
+function readCount(rest) {
+  for (const re of COUNT_FORMS) {
+    const m = rest.match(re);
+    if (!m) continue;
+    const n = parseInt(m[1], 10);
+    if (!Number.isFinite(n) || n < 2) continue;   // "1" adds nothing; 0 is not a count
+    const stripped = rest.slice(0, m.index) + " " + rest.slice(m.index + m[0].length);
+    // Never let the count eat the whole line: "4 אנשים" with no name is not a
+    // guest, and returning an empty name here would drop a row the host can
+    // still see and fix.
+    if (!/\p{L}/u.test(stripped)) continue;
+    return { count: n, rest: stripped };
+  }
+  return null;
+}
+
+/**
+ * "דנה + יוסי" — a plus followed by a NAME, not a number.
+ *
+ * The existing PLUS_RE only reads "+2". This is the same thought written the
+ * other way round, and it is at least as common in a phone's notes app. The
+ * name after the plus becomes a companion, which is exactly what the host
+ * meant and what the printed place card needs.
+ */
+const PLUS_NAME_RE = /\s\+\s*([\p{L}][\p{L}\s'"״׳-]{0,40})$/u;
+
+/**
+ * One tab-separated line from a spreadsheet.
+ *
+ * MEASURED as completely broken: "דנה כהן ⇥ 0501234567 ⇥ 2" produced a guest
+ * called "דנה כהן 2" with no phone and one seat. Tabs were being rewritten to
+ * " , " before anything looked at them, which threw away the one piece of
+ * structure a spreadsheet paste actually has — that each field means one
+ * thing. Excel is the single most likely place a 300-name list already exists,
+ * so this path is worth reading as COLUMNS rather than as prose.
+ *
+ * No header row is required and no column order is assumed: a field that is a
+ * phone is the phone, a field that is a small bare number is the count, and
+ * the longest remaining field with letters in it is the name. Anything it
+ * cannot place is left for the ordinary path.
+ */
+function parseColumns(line) {
+  const cells = line.split("\t").map(c => c.trim()).filter(Boolean);
+  if (cells.length < 2) return null;
+
+  let phone = "", count = null, nameCell = "", extra = [];
+  for (const cell of cells) {
+    const pm = cell.match(PHONE_RE) || cell.match(INTL_PHONE_RE) || cell.match(BARE_MOBILE_RE);
+    if (!phone && pm && pm[0].trim() === cell.trim()) { phone = normalizePhone(pm[0]); continue; }
+    if (count == null && /^\d{1,2}$/.test(cell)) {
+      const n = parseInt(cell, 10);
+      if (n >= 1 && n <= MAX_SEATS) { count = n; continue; }
+    }
+    if (!/\p{L}/u.test(cell)) continue;          // a stray number column
+    if (cell.length > nameCell.length) { if (nameCell) extra.push(nameCell); nameCell = cell; }
+    else extra.push(cell);
+  }
+
+  const name = cleanName(nameCell);
+  if (!name) return null;
+
+  const row = { name, phone };
+  // A count column and a "+N" in the name cell say the same thing; take the
+  // larger, the same way the names win over the number everywhere else.
+  const inline = nameCell.match(PLUS_RE);
+  const seats = Math.max(count || 1, inline ? 1 + parseInt(inline[1], 10) : 1);
+  if (seats > 1) { row.count = Math.min(MAX_SEATS, seats); row.companions = []; }
+  return row;
+}
+
 /** One person / group. Returns null when there is nobody to seat. */
 function parseOnePerson(segment) {
   // Israeli form first — it is the common case and the more specific pattern.
@@ -195,7 +320,17 @@ function parseOnePerson(segment) {
 
   const plus = rest.match(PLUS_RE);
   if (plus) rest = rest.replace(plus[0], " ");
-  const declared = plus ? parseInt(plus[1], 10) : null;
+  let declared = plus ? parseInt(plus[1], 10) : null;
+
+  // "דנה + יוסי" — the plus with a name after it rather than a number.
+  let plusNames = [];
+  if (declared == null) {
+    const pn = rest.match(PLUS_NAME_RE);
+    if (pn) {
+      plusNames = splitCompanions(pn[1], null).filter(Boolean);
+      if (plusNames.length) rest = rest.slice(0, pn.index) + " " + rest.slice(pn.index + pn[0].length);
+    }
+  }
 
   // The LAST "(…)" on the line — "דוד (מהעבודה) +1 (שרה)" means שרה.
   const parens = [...rest.matchAll(/\(([^)]*)\)/g)];
@@ -211,6 +346,14 @@ function parseOnePerson(segment) {
   const usesParen = paren && (declared != null || companions.length >= 2);
   if (usesParen) rest = rest.slice(0, paren.index) + " " + rest.slice(paren.index + paren[0].length);
   else companions = [];
+
+  // Only look for the other count notations once the "+N" and the bracket are
+  // gone, so "+1 (שרה)" is never re-read as a trailing number.
+  if (declared == null && !companions.length) {
+    const c = readCount(rest);
+    if (c) { declared = c.count - 1; rest = c.rest; }
+  }
+  if (plusNames.length) companions = companions.concat(plusNames);
 
   const name = cleanName(rest.replace(/[,;|]+/g, " "));
   if (!name) return null;
@@ -240,9 +383,22 @@ export function parseGuestList(text) {
   const seen = new Set();
 
   for (const rawLine of String(text || "").split(/\r?\n/)) {
-    // Tabs and multiple spaces are column separators from spreadsheets.
-    const line = rawLine.replace(BIDI_RE, "").replace(/\t/g, " , ").trim();
-    if (!line) continue;
+    const raw = rawLine.replace(BIDI_RE, "").trim();
+    if (!raw || isNoiseLine(raw)) continue;
+
+    // A spreadsheet paste is COLUMNS. Read it as columns first; only if that
+    // cannot make sense of the line do we flatten the tabs and read it as
+    // prose, which is what always used to happen and is what lost the phone.
+    if (raw.includes("\t")) {
+      const row = parseColumns(raw);
+      if (row) {
+        const key = `${row.name.toLowerCase()}|${row.phone}`;
+        if (!seen.has(key)) { seen.add(key); out.push(row); }
+        continue;
+      }
+    }
+
+    const line = raw.replace(/\t/g, " , ");
 
     for (const segment of splitPeople(line)) {
       const row = parseOnePerson(segment);
