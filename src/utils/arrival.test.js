@@ -286,3 +286,35 @@ describe("setArrivedCount preserves identities, not just the count", () => {
     expect(setArrivedCount(g({ arrivedSeats: [3] }), 0).arrived).toBe(false);
   });
 });
+
+// ── The stamp (12.8) ─────────────────────────────────────────────────────────
+// Without it the cloud merge is back to asking "has the local copy said
+// anything", which cannot tell a local opinion from a value it copied from the
+// cloud — and a family arriving in two cars loses the second one.
+describe("every arrival write carries the moment it happened", () => {
+  const g = { id: "g1", name: "משפחת לוי", count: 4 };
+
+  it("withArrivedSeats stamps arrivedAt", () => {
+    expect(withArrivedSeats(g, [0], 1234).arrivedAt).toBe(1234);
+  });
+
+  it("un-marking is stamped too — it is an edit, not an absence of one", () => {
+    // Whoever un-marked last must win, so [] needs a time like anything else.
+    expect(withArrivedSeats(g, [], 1234)).toMatchObject({
+      arrivedSeats: [], arrived: false, arrivedAt: 1234,
+    });
+  });
+
+  it("the stamp reaches every caller, not just the direct one", () => {
+    expect(setRowArrived(g, true).arrivedAt).toEqual(expect.any(Number));
+    expect(toggleSeat(g, 1).arrivedAt).toEqual(expect.any(Number));
+    expect(setArrivedCount(g, 2).arrivedAt).toEqual(expect.any(Number));
+  });
+
+  it("defaults to now when no clock is passed", () => {
+    const before = Date.now();
+    const out = withArrivedSeats(g, [0]);
+    expect(out.arrivedAt).toBeGreaterThanOrEqual(before);
+    expect(out.arrivedAt).toBeLessThanOrEqual(Date.now());
+  });
+});

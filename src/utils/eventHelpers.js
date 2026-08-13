@@ -226,7 +226,7 @@ export function duplicateEvent(ev) {
     // with it. Stripping only the boolean left the copy with
     // `arrivedSeats: [0,1]` — nobody reads as arrived in the summary while the
     // entrance screen shows two of them already inside.
-    const { arrived, arrivedSeats, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
+    const { arrived, arrivedSeats, arrivedAt, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
     return Object.assign({}, rest, { id: newId });
   });
 

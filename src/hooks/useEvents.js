@@ -95,12 +95,32 @@ function unionById(localRows, cloudRows) {
 function mergeArrivals(localGuests, cloudGuests) {
   if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
   const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
+  const take = c => ({ arrivedSeats: c.arrivedSeats, arrived: c.arrived, arrivedAt: c.arrivedAt });
+  const stamp = g => (Number.isFinite(g?.arrivedAt) ? g.arrivedAt : null);
+  const silent = g => g?.arrivedSeats === undefined && !g?.arrived;
+
   return localGuests.map(g => {
-    const untouched = g.arrivedSeats === undefined && !g.arrived;
-    if (!untouched) return g;
     const c = cloudById.get(g.id);
-    if (!c || (c.arrivedSeats === undefined && !c.arrived)) return g;
-    return { ...g, arrivedSeats: c.arrivedSeats, arrived: c.arrived };
+    if (!c || silent(c)) return g;
+
+    // The rule, once both sides carry a stamp: whoever wrote last wins. That is
+    // the only question about arrivals with a correct answer, because the two
+    // writers are different PEOPLE — the host on their phone and the greeter at
+    // the door — and neither is authoritative over the other.
+    const ls = stamp(g), cs = stamp(c);
+    if (ls !== null && cs !== null) return cs > ls ? { ...g, ...take(c) } : g;
+    if (cs !== null && ls === null) return { ...g, ...take(c) };
+    if (ls !== null && cs === null) return g;
+
+    // NEITHER side is stamped: rows written before this shipped, or by a client
+    // that has not updated. Fall back to the old rule exactly — the local copy
+    // wins if it has said anything at all — so nothing about existing data
+    // changes behaviour until it is next touched.
+    //
+    // The old rule is wrong (it cannot tell a local opinion from a value it
+    // copied from the cloud), and this is the shape of being wrong that loses
+    // the SECOND update rather than the first. Kept only as the legacy path.
+    return silent(g) ? { ...g, ...take(c) } : g;
   });
 }
 

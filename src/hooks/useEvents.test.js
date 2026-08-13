@@ -343,3 +343,88 @@ describe("mergeCloudWithLocal — the union runs in BOTH directions", () => {
     expect(new Set(out.guests.map(g => g.id)).size).toBe(out.guests.length);
   });
 });
+
+// ── The second wave (12.8) ───────────────────────────────────────────────────
+// Arrivals are the only field on a guest written by SOMEONE ELSE, from a device
+// this tab never sees. The old rule asked "has the local copy said anything
+// about this guest?" — which cannot tell a local opinion from a value the
+// client COPIED FROM THE CLOUD a minute earlier. So after the first merge the
+// local copy was never silent again, every later cloud update for that row was
+// dropped, and the drop was then pushed back over the cloud.
+describe("mergeCloudWithLocal — a party that arrives in two waves", () => {
+  const row = (over = {}) => ({ id: "g1", name: "משפחת לוי", side: "bride", group: "משפחה", count: 4, ...over });
+  const local = (guest, updatedAt = 20_500) => [{ ...ev({ updatedAt, cloudId: "c1" }), guests: [guest] }];
+  const cloud = (guest, updatedAt = 20_000) => [{ ...ev({ updatedAt, cloudId: "c1" }), guests: [guest] }];
+
+  it("takes the greeter's LATER marking over the copy this tab already holds", () => {
+    // Wave 1 was merged in at t=100, so the local copy is no longer silent.
+    // Wave 2 lands in the cloud at t=200 and must win.
+    const [out] = mergeCloudWithLocal(
+      local(row({ arrivedSeats: [0],    arrived: true, arrivedAt: 100 })),
+      cloud(row({ arrivedSeats: [0, 1], arrived: true, arrivedAt: 200 })),
+    );
+    expect(out.guests[0].arrivedSeats).toEqual([0, 1]);
+    expect(out.guests[0].arrivedAt).toBe(200);
+  });
+
+  it("keeps the host's marking when THEIRS is the later one", () => {
+    const [out] = mergeCloudWithLocal(
+      local(row({ arrivedSeats: [0, 1, 2], arrived: true, arrivedAt: 300 })),
+      cloud(row({ arrivedSeats: [0],       arrived: true, arrivedAt: 200 })),
+    );
+    expect(out.guests[0].arrivedSeats).toEqual([0, 1, 2]);
+  });
+
+  it("lets a later un-marking win too — it is an edit like any other", () => {
+    // [] is an opinion ("nobody from this row"), and with a stamp it no longer
+    // needs a special case to survive.
+    const [out] = mergeCloudWithLocal(
+      local(row({ arrivedSeats: [0, 1], arrived: true, arrivedAt: 100 })),
+      cloud(row({ arrivedSeats: [],     arrived: false, arrivedAt: 200 })),
+    );
+    expect(out.guests[0].arrivedSeats).toEqual([]);
+    expect(out.guests[0].arrived).toBe(false);
+  });
+
+  it("takes a stamped cloud value over an UNstamped local one", () => {
+    // The upgrade path: the greeter's phone has the new build, the host's tab
+    // is holding a row written before this shipped.
+    const [out] = mergeCloudWithLocal(
+      local(row({ arrivedSeats: [0], arrived: true })),
+      cloud(row({ arrivedSeats: [0, 1, 2], arrived: true, arrivedAt: 200 })),
+    );
+    expect(out.guests[0].arrivedSeats).toEqual([0, 1, 2]);
+  });
+
+  it("keeps a stamped local value over an UNstamped cloud one", () => {
+    const [out] = mergeCloudWithLocal(
+      local(row({ arrivedSeats: [0, 1], arrived: true, arrivedAt: 200 })),
+      cloud(row({ arrivedSeats: [0],    arrived: true })),
+    );
+    expect(out.guests[0].arrivedSeats).toEqual([0, 1]);
+  });
+
+  it("falls back to exactly the old rule when NEITHER side is stamped", () => {
+    // Nothing about existing data changes behaviour until it is next touched.
+    const silentLocal = mergeCloudWithLocal(
+      local(row({})),
+      cloud(row({ arrivedSeats: [0, 1], arrived: true })),
+    )[0];
+    expect(silentLocal.guests[0].arrivedSeats).toEqual([0, 1]);   // silence yields
+
+    const opinionated = mergeCloudWithLocal(
+      local(row({ arrivedSeats: [], arrived: false })),
+      cloud(row({ arrivedSeats: [0, 1], arrived: true })),
+    )[0];
+    expect(opinionated.guests[0].arrivedSeats).toEqual([]);       // an opinion holds
+  });
+
+  it("leaves a guest the cloud says nothing about completely alone", () => {
+    const [out] = mergeCloudWithLocal(
+      local(row({ arrivedSeats: [0], arrived: true, arrivedAt: 100 })),
+      cloud(row({})),
+    );
+    expect(out.guests[0].arrivedSeats).toEqual([0]);
+    expect(out.guests[0].arrivedAt).toBe(100);
+  });
+});
