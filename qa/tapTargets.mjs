@@ -47,7 +47,14 @@ const b = await chromium.launch({
   executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args:['--no-proxy-server'],
 });
-const page = await b.newPage({ viewport:{ width:390, height:844 } });
+// isMobile + hasTouch is what makes `pointer: coarse` match. Without them the
+// page reports a fine pointer and every coarse-pointer override in the codebase
+// is inert — so the first run of this script measured the DESKTOP sizes and
+// called them phone defects.
+const page = await b.newPage({
+  viewport: { width: 390, height: 844 },
+  isMobile: true, hasTouch: true, deviceScaleFactor: 3,
+});
 await page.goto(BASE + '/app', { waitUntil:'domcontentloaded' });
 await page.evaluate(e => localStorage.setItem('kochav_hashulchan_v1',
   JSON.stringify({ events:[e], activeEventId:'e1' })), EVENT);

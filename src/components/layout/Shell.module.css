@@ -324,10 +324,21 @@
 }
 
 @media (pointer: coarse) {
+  /* 44, not 40. These three sit in the header on every screen in the product,
+     so they are the most-touched controls it has, and the codebase's own
+     coarse-pointer minimum is 44px in a dozen other places. 40 was measured on
+     18 routes. */
   .accountBtn,
   .signupBtn,
   .homeBtn {
-    min-height: 40px;
+    min-height: 44px;
+  }
+
+  /* The home link is icon-only below 480px (its label is dropped so the event
+     name can be seen), which left it 31px wide. */
+  .homeBtn {
+    min-width: 44px;
+    justify-content: center;
   }
 }
 
@@ -645,5 +656,17 @@
 @media (pointer: coarse) {
   .breadcrumb {
     min-height: 44px;
+  }
+
+  /* And the WIDTH, which the note above did not reach. `overflow: hidden`
+     clips a pseudo-element horizontally just as readily as vertically, so
+     `.bcBack::after { min-width: 44px }` measured 35px effective and `.logo`
+     43px. Sizing the BUTTON instead of a child it paints inside is what makes
+     the clip irrelevant — and now that the back link is icon-only on a phone,
+     its own box is only 30px, so this is the whole target. */
+  .bcBack,
+  .logo {
+    min-width: 44px;
+    justify-content: center;
   }
 }

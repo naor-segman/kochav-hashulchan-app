@@ -102,6 +102,11 @@
   font-size: var(--step-0);
   font-weight: 700;
   padding: 8px 20px;
+  /* The primary call to action on the page that sells, measured at 39px tall on
+     a phone. Every other coarse-pointer control in this codebase is 44. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   border-radius: var(--radius);
   box-shadow: var(--shadow-accent);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
@@ -119,9 +124,15 @@
   display: none;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   gap: 4px;
-  width: 40px;
-  height: 40px;
+  /* 44, not 40. This is the ONLY navigation on the landing page below the
+     breakpoint, and the first control a prospective customer touches — and it
+     was the one place in the app with no `pointer: coarse` override, measured
+     at 38x40 effective. Everywhere else in this codebase the coarse-pointer
+     minimum is 44px. */
+  width: 44px;
+  height: 44px;
   padding: 8px;
   background: transparent;
   border: none;
@@ -1158,6 +1169,11 @@
 
   .navBurger {
     display: flex;
+    /* The width/height above are 44px, but `display: none` there means the
+       flex box only materialises here — and padding:8px on a 44px box left the
+       measured hit area at 38 wide. Belt and braces on the axis that failed. */
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .hero {

@@ -113,20 +113,18 @@
    and it grows the link itself, so there is no dead gap between two live
    targets. */
 @media (pointer: coarse) {
+  /* 8px, and NO pseudo-element. The note above had the principle right and the
+     arithmetic one step short: 6px put the centres 41.5px apart while the
+     ::after was still 44px tall, so each target overhung its neighbour by about
+     a pixel and a half at each end — and the later sibling paints on top, so
+     the bottom of every link belonged to the one below it. Measured per pixel
+     around each centre: "תכונות" owned 41 of its 44px, and from 19px below the
+     centre the tap opened "איך זה עובד" instead.
+     Padding grows the link itself, so once the pitch clears 44px the
+     pseudo-element has nothing left to add and can only re-create the overlap.
+     32 instances across the six public pages. */
   .colLink {
-    padding-block: 6px;
-    position: relative;
-  }
-
-  .colLink::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    min-width: 44px;
-    height: 44px;
+    padding-block: 8px;
   }
 
   .logo {

@@ -47,6 +47,18 @@
 }
 .check input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
 
+/* The label is the tap target — the 16px box alone is impossible to hit — and
+   the row had no min-height at all, measuring 328 x 19.5px: the smallest
+   interactive control in the product. AnnouncementsEditorScreen's .toggle is
+   the same pattern with padding and gets 37.5px; this goes the rest of the way.
+   The label is block-level here, so growing it costs nothing beside it. */
+@media (pointer: coarse) {
+  .check {
+    min-height: 44px;
+    padding-block: 4px;
+  }
+}
+
 .foldNote {
   display: flex;
   align-items: flex-start;
