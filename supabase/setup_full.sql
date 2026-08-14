@@ -60,6 +60,29 @@
 -- =============================================================================
 
 
+-- ── profiles ─────────────────────────────────────────────────────────────────
+--
+-- One row per Supabase Auth user. Created automatically via trigger.
+-- The `role` column is the single source of truth for admin access.
+
+CREATE TABLE public.profiles (
+  id          uuid        PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+  email       text        NOT NULL,
+  full_name   text,
+  role        text        NOT NULL DEFAULT 'user'
+                          CHECK (role IN ('user', 'admin')),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- NOTE ON ORDER: this helper is defined AFTER public.profiles, not before.
+-- It was the other way round, and with check_function_bodies on (the
+-- PostgreSQL and Supabase default) the body is validated at CREATE time:
+--   ERROR:  relation "public.profiles" does not exist
+-- The Supabase SQL Editor runs a pasted script in ONE transaction, so
+-- setup_full.sql rolled the whole thing back and a fresh project came up
+-- with zero tables. Reproduced on PostgreSQL 16; the ordering was the sole
+-- cause. That file is the disaster-recovery path, so it has to be runnable.
 -- ── Helper: is_admin() ───────────────────────────────────────────────────────
 --
 -- Used in every RLS policy that gates on admin role.
@@ -78,22 +101,6 @@ AS $$
     WHERE id = auth.uid() AND role = 'admin'
   );
 $$;
-
-
--- ── profiles ─────────────────────────────────────────────────────────────────
---
--- One row per Supabase Auth user. Created automatically via trigger.
--- The `role` column is the single source of truth for admin access.
-
-CREATE TABLE public.profiles (
-  id          uuid        PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
-  email       text        NOT NULL,
-  full_name   text,
-  role        text        NOT NULL DEFAULT 'user'
-                          CHECK (role IN ('user', 'admin')),
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  updated_at  timestamptz NOT NULL DEFAULT now()
-);
 
 COMMENT ON TABLE  public.profiles          IS 'One profile per auth user. role drives admin access.';
 COMMENT ON COLUMN public.profiles.role     IS 'user | admin — only admins or direct SQL can promote.';
@@ -149,6 +156,7 @@ CREATE POLICY "profiles: admins update all"
   ON public.profiles
   FOR UPDATE
   USING (public.is_admin());
+
 
 
 -- ── events ────────────────────────────────────────────────────────────────────
@@ -597,29 +605,23 @@ CREATE POLICY "events: public token read"
     hostess_token IS NOT NULL
   );
 
--- ── 2. Length constraints on rsvp_responses ───────────────────────────────────
-
-ALTER TABLE public.rsvp_responses
-  ADD CONSTRAINT IF NOT EXISTS ck_rsvp_guest_name_nonempty
-    CHECK (char_length(guest_name) > 0),
-  ADD CONSTRAINT IF NOT EXISTS ck_rsvp_guest_name_len
-    CHECK (char_length(guest_name) <= 200),
-  ADD CONSTRAINT IF NOT EXISTS ck_rsvp_phone_len
-    CHECK (phone IS NULL OR char_length(phone) <= 20),
-  ADD CONSTRAINT IF NOT EXISTS ck_rsvp_guests_count_range
-    CHECK (guests_count >= 0 AND guests_count <= 50);
-
--- ── 3. Length and amount constraints on gifts ─────────────────────────────────
-
-ALTER TABLE public.gifts
-  ADD CONSTRAINT IF NOT EXISTS ck_gift_donor_name_nonempty
-    CHECK (char_length(donor_name) > 0),
-  ADD CONSTRAINT IF NOT EXISTS ck_gift_donor_name_len
-    CHECK (char_length(donor_name) <= 200),
-  ADD CONSTRAINT IF NOT EXISTS ck_gift_message_len
-    CHECK (message IS NULL OR char_length(message) <= 500),
-  ADD CONSTRAINT IF NOT EXISTS ck_gift_amount_range
-    CHECK (amount >= 5000 AND amount <= 10000000);  -- ₪50 min, ₪100,000 max
+-- ── 2-3. Length constraints on rsvp_responses and gifts ──────────────────────
+--
+-- REMOVED, not relocated. These were eight `ALTER TABLE … ADD CONSTRAINT IF NOT
+-- EXISTS` clauses, and PostgreSQL has no such form:
+--
+--   ERROR:  syntax error at or near "NOT"
+--   LINE 2:   ADD CONSTRAINT IF NOT EXISTS ck_rsvp_guest_name_nonempty
+--
+-- So they never applied, on any database, ever -- which is what
+-- 20260811030000_fix_length_constraints.sql was written to discover and repair,
+-- and that migration adds every one of them properly, guarded on pg_constraint.
+--
+-- They are deleted here rather than left as documentation because this file is
+-- concatenated into supabase/setup_full.sql, and the Supabase SQL Editor runs a
+-- pasted script in ONE transaction: a single syntax error rolled the entire
+-- fresh-project build back to zero tables. Reproduced on PostgreSQL 16.
+-- Removing dead statements changes no existing database, because they never ran.
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 20260721000000_public_pages_v2.sql
@@ -2896,3 +2898,296 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.collab_upsert_by_token(text, jsonb) FROM public;
 GRANT EXECUTE ON FUNCTION public.collab_upsert_by_token(text, jsonb) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260813000000_arrival_timestamps.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- A timestamp on every arrival, so two people marking the same list can be
+-- told apart.
+--
+-- THE BUG THIS FIXES (found by the data-integrity review, 12.8)
+-- Arrivals are the only field on a guest row written by SOMEONE ELSE, from a
+-- device the host's tab never sees: the greeter, through the entrance token.
+-- The client merge asked "has the local copy expressed an opinion about this
+-- guest?" and kept the local value if so. That question cannot distinguish a
+-- local opinion from a value the client COPIED FROM THE CLOUD a minute earlier
+-- — so after the first merge, the local copy was never silent again and every
+-- later cloud update for that row was dropped, then pushed back over the cloud.
+--
+-- Measured, before the fix:
+--   after wave 1 merge, local arrivedSeats = [0]
+--   cloud arrivedSeats after wave 2        = [0,1]
+--   after wave 2 merge, local arrivedSeats = [0]
+--   cloud after the host's next push       = [0]      <-- seat 1 lost
+--
+-- In the hall that is a family arriving in two cars, or a greeter correcting
+-- "2 of 4" to "3 of 4" and watching it revert.
+--
+-- THE FIX: whoever wrote LAST wins. That is the only question about arrivals
+-- with a correct answer, because the two writers are two different people and
+-- neither is authoritative over the other. It needs a timestamp on the row, and
+-- the greeter's write happens HERE, in the database, so the database has to
+-- stamp it. The client stamps its own writes in src/utils/arrival.js
+-- (withArrivedSeats), which is the single choke point for all of them.
+--
+-- Epoch MILLISECONDS, to match JavaScript's Date.now() on the other side — a
+-- seconds-based timestamp would compare as "always older" against every client
+-- value and hand the host permanent priority, which is the bug again with the
+-- sign flipped.
+--
+-- WHY THIS IS ALSO A FULL REDEFINITION
+-- Postgres does not merge function bodies. The definition below is the CURRENT
+-- one from 20260811000000_entrance_scoped_writes.sql, carried over line for
+-- line — the active-switch guard, the ≥8-char token check, the seat-count
+-- ceiling, the regex-inside-the-CASE guard and the version bump — with
+-- `arrivedAt` added and nothing else changed. If you are writing the next
+-- migration that touches this function: copy from here, not from an older file.
+-- (Doing the opposite is how companion support was silently reverted once
+-- already — see 20260811010000_collab_companions_restore.sql.)
+--
+-- Idempotent: safe to run more than once. Adds no column — `arrivedAt` lives
+-- inside the guest object in `payload`, exactly like `arrivedSeats`.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.hostess_mark_arrival_by_token(
+  token_value text,
+  guest_id    text,
+  seats       jsonb
+)
+RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  ev_id      uuid;
+  seat_count int;
+  clean      jsonb;
+  stamp_ms   bigint;
+BEGIN
+  SELECT e.id INTO ev_id
+  FROM public.events e
+  WHERE token_value IS NOT NULL
+    AND char_length(token_value) >= 8
+    AND e.hostess_token = token_value
+    AND public.hostess_writes_active(e)
+  LIMIT 1;
+  IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
+
+  IF guest_id IS NULL OR char_length(guest_id) = 0 OR char_length(guest_id) > 64 THEN
+    RAISE EXCEPTION 'guest id required';
+  END IF;
+
+  -- The row's own seat count is the ceiling. A caller cannot invent seats for
+  -- a party of two and inflate the number the host gives the caterer.
+  SELECT greatest(1, COALESCE((g->>'count')::int, 1))
+    INTO seat_count
+  FROM public.events e,
+       jsonb_array_elements(COALESCE(e.payload->'guests', '[]'::jsonb)) g
+  WHERE e.id = ev_id AND g->>'id' = guest_id
+  LIMIT 1;
+  IF seat_count IS NULL THEN RAISE EXCEPTION 'guest not found'; END IF;
+
+  -- Deduped, sorted, integers only, inside [0, seat_count).
+  --
+  -- The regex is inside the CASE, not in a WHERE beside the cast: Postgres does
+  -- not promise to evaluate a subquery's WHERE before its select list, and is
+  -- free to push the cast down — so `["abc"]` would raise "invalid input syntax
+  -- for type integer" instead of being quietly ignored, which is the exact
+  -- failure this guard exists to prevent. Non-matching entries become NULL, and
+  -- the outer predicate drops them (NULL >= 0 is NULL, not true).
+  SELECT COALESCE(jsonb_agg(DISTINCT v ORDER BY v), '[]'::jsonb)
+    INTO clean
+  FROM (
+    SELECT CASE WHEN x ~ '^[0-9]{1,3}$' THEN x::int END AS v
+    FROM jsonb_array_elements_text(
+           CASE WHEN jsonb_typeof(seats) = 'array' THEN seats ELSE '[]'::jsonb END
+         ) AS x
+  ) s
+  WHERE v >= 0 AND v < seat_count;
+
+  -- Milliseconds since the epoch, the same unit Date.now() produces. Taken once
+  -- so every guest touched in one call carries the identical stamp.
+  stamp_ms := (extract(epoch from clock_timestamp()) * 1000)::bigint;
+
+  UPDATE public.events e
+  SET payload = jsonb_set(
+        e.payload,
+        '{guests}',
+        COALESCE((
+          SELECT jsonb_agg(
+            CASE WHEN t.g->>'id' = guest_id
+              THEN t.g
+                   || jsonb_build_object('arrivedSeats', clean)
+                   || jsonb_build_object('arrived', to_jsonb(jsonb_array_length(clean) > 0))
+                   || jsonb_build_object('arrivedAt', to_jsonb(stamp_ms))
+              ELSE t.g
+            END
+            ORDER BY t.ord
+          )
+          FROM jsonb_array_elements(COALESCE(e.payload->'guests', '[]'::jsonb))
+               WITH ORDINALITY AS t(g, ord)
+        ), '[]'::jsonb)
+      ),
+      -- Bump the version so the owner's next optimistic push conflicts and
+      -- re-pulls instead of silently overwriting arrivals marked at the door.
+      version    = COALESCE(e.version, 1) + 1,
+      updated_at = now()
+  WHERE e.id = ev_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.hostess_mark_arrival_by_token(text, text, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION public.hostess_mark_arrival_by_token(text, text, jsonb) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260814000000_collab_parents_type.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ============================================================================
+-- collab_event_by_token — carry parentsType to the shared guest table
+--
+-- A bar mitzvah, a bat mitzvah and a brit split the room into the celebrant's
+-- two families, and the app now lets the host say what those families are
+-- (two mothers, two fathers, a single parent) instead of hard-coding
+-- "משפחת האם" / "משפחת האב".
+--
+-- The collab screen — the one the extended family opens from a WhatsApp link
+-- to add names — renders its side labels with the same getSideLabels(ev) as the
+-- app. Without parents_type in this RPC's result, that screen keeps showing the
+-- old hard-coded pair: the host corrects the wording in the app, and every
+-- relative still sees the version the picker exists to avoid.
+--
+-- The value already reaches the database on its own: it lives inside the events
+-- payload jsonb, which cloudSync writes wholesale. Only the read needed
+-- widening, so this is a function redefinition and touches no table.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.collab_event_by_token(token_value text)
+RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT jsonb_build_object(
+    'id',           e.id,
+    'name',         e.name,
+    'type',         e.type,
+    'bride_name',   e.payload->>'brideName',
+    'groom_name',   e.payload->>'groomName',
+    'couple_type',  e.payload->>'coupleType',
+    'parents_type', e.payload->>'parentsType',
+    'side_labels',  e.payload->'sideLabels'
+  )
+  FROM public.events e
+  WHERE token_value IS NOT NULL
+    AND char_length(token_value) >= 8
+    AND e.collab_token = token_value
+    AND public.collab_is_active(e)
+  LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.collab_event_by_token(text) FROM public;
+GRANT EXECUTE ON FUNCTION public.collab_event_by_token(text) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260814010000_fix_rsvp_companions_type.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ============================================================================
+-- submit_rsvp_by_token — every RSVP submission was failing at the database
+--
+-- rsvp_responses.companions is jsonb (20260723000001_companions.sql:8), and the
+-- function inserted `COALESCE(companions,'{}')::text[]` into it. PostgreSQL has
+-- no assignment cast from text[] to jsonb, so the INSERT raised on EVERY call —
+-- not only when a guest listed companions, but on the ordinary empty case too:
+--
+--   INSERT INTO rsvp_responses (guest_name, companions)
+--   VALUES ('רון', COALESCE(NULL::text[], '{}')::text[]);
+--   ERROR:  column "companions" is of type jsonb but expression is of type text[]
+--
+-- Executed on PostgreSQL 16 against this exact column definition, both with
+-- names and with none. The 7-argument forwarder PERFORMs the 8-argument body,
+-- so both signatures were dead.
+--
+-- What a guest saw: they tapped אישור הגעה, the RPC raised, submitRSVP threw,
+-- and the page showed a generic try-again that could never succeed. Nothing was
+-- ever written. The meal and shuttle totals the host orders catering and buses
+-- from were empty for the truest of reasons — there were no rows at all.
+--
+-- The JS tests did not catch it because they mock Supabase and only assert the
+-- argument shaping on the client side; nothing exercised the SQL. That is the
+-- same shape as the cloudSync mutation result recorded in CLAUDE.md.
+--
+-- to_jsonb(text[]) is the correct conversion and produces a jsonb array of
+-- strings, which is what every reader of this column already expects:
+--   to_jsonb(ARRAY['רונית','טל']) -> ["רונית", "טל"]
+--
+-- While here: bound companions and shuttle_id. Every sibling write path bounds
+-- its free-form input and this one bounded neither — with the type error fixed,
+-- 500 entries of 10KB each and a 100KB shuttle_id both become reachable. The
+-- ceiling matches collab_upsert_by_token exactly (49 entries, 80 chars each),
+-- because a row can hold at most 50 seats.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.submit_rsvp_by_token(
+  token_value   text,
+  guest_name    text,
+  phone         text,
+  status        text,
+  guests_count  int,
+  companions    text[],
+  shuttle_id    text,
+  meal          text
+) RETURNS void LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  ev_id uuid;
+  n     int;
+  comp  jsonb;
+BEGIN
+  IF token_value IS NULL OR char_length(token_value) < 8 THEN
+    RAISE EXCEPTION 'invalid token';
+  END IF;
+
+  SELECT e.id INTO ev_id
+    FROM public.events e
+   WHERE e.rsvp_token = token_value
+   LIMIT 1;
+
+  IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
+
+  IF COALESCE(trim(guest_name), '') = '' THEN
+    RAISE EXCEPTION 'name required';
+  END IF;
+
+  -- Same ceiling submit_guest_by_token uses. A real event does not have 5000
+  -- responses; anything past it is someone hammering the endpoint.
+  SELECT count(*) INTO n FROM public.rsvp_responses WHERE event_id = ev_id;
+  IF n >= 5000 THEN RAISE EXCEPTION 'limit reached'; END IF;
+
+  -- Bounded jsonb array of ≤80-char strings, order preserved so "מלווה 2"
+  -- stays the second seat. Identical to collab_upsert_by_token.
+  comp := (
+    SELECT COALESCE(jsonb_agg(left(COALESCE(elem, ''), 80) ORDER BY ord), '[]'::jsonb)
+    FROM unnest(COALESCE(companions, '{}'::text[])) WITH ORDINALITY AS a(elem, ord)
+    WHERE ord <= 49
+  );
+
+  INSERT INTO public.rsvp_responses
+    (event_id, guest_name, phone, attending, guests_count, status, companions, shuttle_id, meal)
+  VALUES (
+    ev_id,
+    left(trim(guest_name), 200),
+    nullif(left(trim(COALESCE(phone, '')), 40), ''),
+    status = 'yes',
+    greatest(0, least(50, COALESCE(guests_count, 1))),
+    CASE WHEN status IN ('yes', 'no', 'maybe') THEN status ELSE 'yes' END,
+    comp,
+    nullif(left(trim(COALESCE(shuttle_id, '')), 64), ''),
+    -- Bounded server-side like every other free-form field here. A guest who
+    -- is not coming has no meal.
+    CASE WHEN status = 'no' THEN NULL
+         ELSE nullif(left(trim(COALESCE(meal, '')), 40), '') END
+  );
+END; $$;
+
+REVOKE ALL ON FUNCTION public.submit_rsvp_by_token(text, text, text, text, int, text[], text, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.submit_rsvp_by_token(text, text, text, text, int, text[], text, text) TO anon, authenticated;
