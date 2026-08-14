@@ -143,6 +143,15 @@ Deno.serve(async (req: Request) => {
     }
 
     const result = await anthropicResponse.json() as any;
+
+    // The only place the real cost of a detection is visible. An image's token
+    // count depends on its pixel dimensions, so it cannot be predicted from the
+    // code — without this line every cost figure is an estimate.
+    const u = result.usage ?? {};
+    console.log("detect-floor-plan usage:", JSON.stringify({
+      input: u.input_tokens ?? null, output: u.output_tokens ?? null,
+    }));
+
     const rawText: string = result.content?.[0]?.text ?? "";
 
     let parsed: any;
