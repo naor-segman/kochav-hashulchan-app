@@ -308,7 +308,6 @@ export async function exportToExcel(ev, sideLabel, violations) {
       });
 
     if (giftGuests.length > 0 || ev.guests.some(g => arrivedCountOf(g) > 0)) {
-      const allArrived   = ev.guests.filter(g => arrivedCountOf(g) > 0);
       // The number the host reconciles gifts against the morning after, and
       // the one place it has to be right. It said "סה״כ הגיעו: 2" while the
       // app's door counter said 3 of 9 people were in the room, because it
