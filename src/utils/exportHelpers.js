@@ -6,6 +6,10 @@ import { TABLE_TYPES } from "../data/constants.js";
 // exported sheet showed a different date than the screen, and a New Year's Eve
 // event exported as the previous year.
 import { fmtDate } from "./dateFormat.js";
+// Arrival is PER PERSON. `arrived` is only a truthful "someone on this row came"
+// mirror, and reading it as if it meant the whole row is what made this report
+// disagree with the app's own door counter.
+import { arrivedCountOf, arrivalTotals } from "./arrival.js";
 
 // Derived from the source of truth. The hand-written map covered 3 of the 5
 // real types and carried a 'head' key the UI can never produce, so 'knight',
@@ -297,14 +301,19 @@ export async function exportToExcel(ev, sideLabel, violations) {
     const tableMap   = Object.fromEntries(ev.tables.map(t => [t.id, t]));
     const giftAmt    = g => Number(g.giftAmount) || 0;
     const giftGuests = ev.guests
-      .filter(g => g.arrived || giftAmt(g) > 0)
+      .filter(g => arrivedCountOf(g) > 0 || giftAmt(g) > 0)
       .sort((a, b) => {
         if (giftAmt(b) !== giftAmt(a)) return giftAmt(b) - giftAmt(a);
         return (a.name || '').localeCompare(b.name || '', "he");
       });
 
-    if (giftGuests.length > 0 || ev.guests.some(g => g.arrived)) {
-      const allArrived   = ev.guests.filter(g => g.arrived);
+    if (giftGuests.length > 0 || ev.guests.some(g => arrivedCountOf(g) > 0)) {
+      const allArrived   = ev.guests.filter(g => arrivedCountOf(g) > 0);
+      // The number the host reconciles gifts against the morning after, and
+      // the one place it has to be right. It said "סה״כ הגיעו: 2" while the
+      // app's door counter said 3 of 9 people were in the room, because it
+      // counted ROWS. On a real list the two diverge by hundreds.
+      const arrivedSeatCount = arrivalTotals(ev.guests, ev.seating).arrivedSeats;
       const giftTotal    = ev.guests.reduce((s, g) => s + giftAmt(g), 0);
       const giftCount    = ev.guests.filter(g => giftAmt(g) > 0).length;
       const avgGift      = giftCount > 0 ? Math.round(giftTotal / giftCount) : 0;
@@ -312,13 +321,13 @@ export async function exportToExcel(ev, sideLabel, violations) {
       const gRows = [
         ["דוח מתנות — " + (ev.name || "")],
         [],
-        ["סיכום:", "", "סה״כ הגיעו:", allArrived.length, "סה״כ מתנות:", "₪" + giftTotal.toLocaleString("he-IL"), "ממוצע:", avgGift > 0 ? "₪" + avgGift.toLocaleString("he-IL") : "—"],
+        ["סיכום:", "", "סה״כ הגיעו:", arrivedSeatCount, "סה״כ מתנות:", "₪" + giftTotal.toLocaleString("he-IL"), "ממוצע:", avgGift > 0 ? "₪" + avgGift.toLocaleString("he-IL") : "—"],
         [],
         ["שם אורח", "שולחן", "כמות", "הגיע/ה", "סכום מתנה (₪)"],
         ...[...ev.guests]
           .sort((a, b) => {
-            const aArrived = a.arrived ? 0 : 1;
-            const bArrived = b.arrived ? 0 : 1;
+            const aArrived = arrivedCountOf(a) > 0 ? 0 : 1;
+            const bArrived = arrivedCountOf(b) > 0 ? 0 : 1;
             if (aArrived !== bArrived) return aArrived - bArrived;
             return giftAmt(b) - giftAmt(a);
           })
@@ -326,7 +335,12 @@ export async function exportToExcel(ev, sideLabel, violations) {
             g.name || "",
             tableMap[ev.seating[g.id]]?.name || "",
             g.count || 1,
-            g.arrived ? "✓" : "",
+            // "כמות 4" beside a bare ✓ reads as "all four came". It is the
+            // arrived-of-total pair everywhere else in the product, so it is
+            // that here too; a full row still reads ✓.
+            arrivedCountOf(g) === 0 ? ""
+              : arrivedCountOf(g) >= (g.count || 1) ? "✓"
+              : `${arrivedCountOf(g)} מתוך ${g.count || 1}`,
             giftAmt(g) > 0 ? giftAmt(g) : "",
           ]),
         [],

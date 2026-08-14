@@ -80,16 +80,41 @@ export function existingKeysOf(guests) {
  * person.
  */
 export function buildImportRows(parsed, existingGuests = []) {
+  return recomputeWarnings((parsed || []).map((r, i) => ({
+    id:         `imp-${i}`,
+    name:       r.name ?? "",
+    phone:      r.phone ?? "",
+    count:      r.count || 1,
+    companions: Array.isArray(r.companions) ? [...r.companions] : [],
+  })), existingGuests);
+}
+
+/**
+ * Warnings for the whole set, because a duplicate is a relationship between two
+ * rows and not a property of one.
+ *
+ * `existingKeysOf` looks only at the guest list as it already stands, so the one
+ * shape the parser deliberately lets through went unflagged: it de-dupes on
+ * `name|phone` (spouses share a household line), which means the same person
+ * once bare and once with a number — exactly what a WhatsApp export produces for
+ * an unsaved versus a saved contact — arrives as two rows with no warning at
+ * all. Measured: both were marked ready, and both became guests. A phantom
+ * person and a phantom seat, in the meal count the caterer is given.
+ *
+ * The keys accumulate as the list is walked, so the FIRST occurrence is clean
+ * and each later one is flagged — the same rule as against the existing list.
+ * Two real families called "משפחת כהן" therefore raise a flag, which is correct:
+ * this screen exists so the host looks, and a duplicate has never been a block.
+ */
+function recomputeWarnings(rows, existingGuests = []) {
   const keys = existingKeysOf(existingGuests);
-  return (parsed || []).map((r, i) => {
-    const row = {
-      id:         `imp-${i}`,
-      name:       r.name ?? "",
-      phone:      r.phone ?? "",
-      count:      r.count || 1,
-      companions: Array.isArray(r.companions) ? [...r.companions] : [],
-    };
-    return { ...row, warnings: warningsFor(row, keys) };
+  return (rows || []).map(row => {
+    const marked = { ...row, warnings: warningsFor(row, keys) };
+    const phone = digits(row.phone);
+    if (phone) keys.phones.add(phone);
+    const nk = nameKey(row.name);
+    if (nk) keys.names.add(nk);
+    return marked;
   });
 }
 
@@ -104,8 +129,7 @@ export function buildImportRows(parsed, existingGuests = []) {
  * the way in.
  */
 export function editImportRow(rows, id, patch, existingGuests = []) {
-  const keys = existingKeysOf(existingGuests);
-  return (rows || []).map(r => {
+  const edited = (rows || []).map(r => {
     if (r.id !== id) return r;
     const next = { ...r, ...patch };
 
@@ -124,13 +148,22 @@ export function editImportRow(rows, id, patch, existingGuests = []) {
       next.companions = list.slice(0, 49);
       next.count = Math.max(next.count || 1, next.companions.filter(Boolean).length + 1);
     }
-    return { ...next, warnings: warningsFor(next, keys) };
+    return next;
   });
+  // The whole set, not just this row: renaming row 3 to match row 1 makes row 3
+  // a duplicate, and renaming it back makes it clean again.
+  return recomputeWarnings(edited, existingGuests);
 }
 
-/** Drop a row the host does not want — a header we misread, a duplicate. */
-export function removeImportRow(rows, id) {
-  return (rows || []).filter(r => r.id !== id);
+/**
+ * Drop a row the host does not want — a header we misread, a duplicate.
+ *
+ * Recomputed for the same reason as an edit, in the other direction: removing
+ * the FIRST of two identical rows must clear the warning from the second, or
+ * the host is left staring at a duplicate flag on the only copy that remains.
+ */
+export function removeImportRow(rows, id, existingGuests = []) {
+  return recomputeWarnings((rows || []).filter(r => r.id !== id), existingGuests);
 }
 
 /**

@@ -236,10 +236,29 @@ const COUNT_FORMS = [
   /\s(?<!\d)(\d{1,2})\s*$/,
 ];
 
+// A street line ends in a HOUSE number, not a seat count. Israeli guest lists
+// carry addresses, because the same note doubles as the list for the driver, and
+// "רחוב הרצל 15" parsed as fifteen seats — fifteen phantom chairs and fifteen
+// phantom meals from one line.
+//
+// The word boundary here is a lookahead, NOT \b. `\w` stays ASCII even under
+// /u, so ב is a non-word character and `\b` after a Hebrew letter never
+// matches — measured: /^רחוב\b/u.test("רחוב הרצל 15") is false. That is the
+// same trap that once stopped the "סה״כ" noise guard from ever firing.
+const ADDRESS_START = /^\s*(?:רחוב|רח['\u05F3]?|שדרות|שד['\u05F3]?|דרך|סמטת|סמטה|כביש|שכונת)(?=\s|$)/u;
+
+// A count is only unambiguous when the line SAYS it is one: an explicit
+// multiplier, brackets, or a seat noun. COUNT_FORMS[0] accepts a plain space as
+// its separator, so "the bare trailing number" is not one form but two — which
+// is why this guard is keyed on the matched TEXT and not on the form index.
+const EXPLICIT_COUNT = /[xX\u00D7*()]|אנשים|איש|נפשות|מקומות|כיסאות/u;
+
 function readCount(rest) {
+  const isAddress = ADDRESS_START.test(rest);
   for (const re of COUNT_FORMS) {
     const m = rest.match(re);
     if (!m) continue;
+    if (isAddress && !EXPLICIT_COUNT.test(m[0])) continue;
     const n = parseInt(m[1], 10);
     if (!Number.isFinite(n) || n < 2) continue;   // "1" adds nothing; 0 is not a count
     const stripped = rest.slice(0, m.index) + " " + rest.slice(m.index + m[0].length);

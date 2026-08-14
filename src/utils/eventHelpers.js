@@ -228,7 +228,18 @@ export function duplicateEvent(ev) {
     // `arrivedSeats: [0,1]` — nobody reads as arrived in the summary while the
     // entrance screen shows two of them already inside.
     const { arrived, arrivedSeats, arrivedAt, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
-    return Object.assign({}, rest, { id: newId });
+    // `companions` is the one field on a guest row that is an ARRAY, and the
+    // rest-spread copies the reference. The comment further down lists six
+    // nested collections deep-copied "so editing the duplicate never mutates
+    // the original" and this was not among them — measured: pushing a name onto
+    // the copy's array changed the original's. Nothing writes in place today
+    // (every writer builds a new array), so this is a trap rather than a live
+    // bug, and it is the one field here the host typed by hand and nothing can
+    // reconstruct.
+    return Object.assign({}, rest, {
+      id: newId,
+      companions: Array.isArray(g.companions) ? [...g.companions] : g.companions,
+    });
   });
 
   const constraints = ev.constraints.map(c => Object.assign({}, c, {

@@ -532,3 +532,40 @@ describe("a real pasted list, not the format we documented", () => {
     expect(countWithPhone(rows)).toBe(2);
   });
 });
+
+// Israeli guest lists carry addresses, because the same note doubles as the
+// list for the driver. "רחוב הרצל 15" parsed as fifteen seats — fifteen phantom
+// chairs and fifteen phantom meals from one line.
+describe("a street number is a house number, not a seat count", () => {
+  it.each([
+    ["רחוב הרצל 15",     "רחוב הרצל 15"],
+    ["רח' ביאליק 8",     "רח' ביאליק 8"],
+    ["שדרות רוטשילד 22", "שדרות רוטשילד 22"],
+    ["דרך השלום 3",      "דרך השלום 3"],
+  ])("%s keeps its number", (line, name) => {
+    const [row] = parseGuestList(line);
+    expect(row.name).toBe(name);
+    expect(row.count).toBeUndefined();
+  });
+
+  // The guard is narrow on purpose: only the ambiguous bare-number form is
+  // suppressed, because a street line CAN still declare seats explicitly.
+  it("still reads an explicit count on a line that opens with a street word", () => {
+    expect(parseGuestList("רחוב הרצל x2")[0].count).toBe(2);
+    expect(parseGuestList("רחוב הרצל (3)")[0].count).toBe(3);
+    expect(parseGuestList("רחוב הרצל 4 אנשים")[0].count).toBe(4);
+  });
+
+  it("does not touch an ordinary name with a trailing count", () => {
+    expect(parseGuestList("דוד לוי 4")[0].count).toBe(4);
+    expect(parseGuestList("משפחת כהן 6")[0].count).toBe(6);
+  });
+
+  // The reason the first version of this guard did nothing: \b after a Hebrew
+  // letter never matches, because \w stays ASCII even under /u. Same trap that
+  // once stopped the "סה״כ" noise guard from firing.
+  it("matches the street word at a real boundary, not via \\b", () => {
+    expect(/^רחוב\b/u.test("רחוב הרצל 15")).toBe(false);
+    expect(parseGuestList("רחובות 5")[0].count).toBe(5);   // a CITY, not a street
+  });
+});

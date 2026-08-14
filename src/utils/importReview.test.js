@@ -157,3 +157,59 @@ describe("existingKeysOf", () => {
     expect(keys.names.has("dana cohen")).toBe(true);
   });
 });
+
+// parseGuestList de-dupes on `name|phone` deliberately — spouses share a
+// household line — so the one shape it lets through is the same person once
+// bare and once with a number, which is exactly what a WhatsApp export produces
+// for an unsaved versus a saved contact. That arrived at the review screen with
+// no warning at all, and both rows became guests: a phantom person and a
+// phantom seat in the count the caterer is given.
+describe("duplicates INSIDE one paste, not just against the existing list", () => {
+  const parsed = [
+    { name: "דוד לוי",  phone: "" },
+    { name: "רונית כהן", phone: "0501111111" },
+    { name: "דוד לוי",  phone: "0502222222" },
+  ];
+
+  it("flags the second occurrence and leaves the first clean", () => {
+    const rows = buildImportRows(parsed, []);
+    expect(rows[0].warnings).not.toContain("duplicate");
+    expect(rows[1].warnings).not.toContain("duplicate");
+    expect(rows[2].warnings).toContain("duplicate");
+  });
+
+  it("flags a repeated phone even when the names differ", () => {
+    const rows = buildImportRows([
+      { name: "משפחת כהן", phone: "050-111-1111" },
+      { name: "יוסי כהן",  phone: "0501111111" },
+    ], []);
+    expect(rows[0].warnings).not.toContain("duplicate");
+    expect(rows[1].warnings).toContain("duplicate");
+  });
+
+  it("still flags against guests already in the event", () => {
+    const rows = buildImportRows([{ name: "דוד לוי", phone: "" }],
+                                 [{ id: "g1", name: "דוד לוי", phone: "" }]);
+    expect(rows[0].warnings).toContain("duplicate");
+  });
+
+  // Removing the FIRST of two identical rows must clear the flag from the one
+  // that remains, or the host is left staring at a duplicate warning on the
+  // only copy there is.
+  it("clears the flag when the row it duplicated is removed", () => {
+    const rows = buildImportRows(parsed, []);
+    expect(rows[2].warnings).toContain("duplicate");
+    const after = removeImportRow(rows, rows[0].id, []);
+    expect(after).toHaveLength(2);
+    expect(after.find(r => r.name === "דוד לוי").warnings).not.toContain("duplicate");
+  });
+
+  // And the other direction: an edit can create a duplicate that did not exist.
+  it("raises the flag when an edit makes two rows the same", () => {
+    const rows = buildImportRows(parsed.slice(0, 2), []);
+    const after = editImportRow(rows, rows[1].id, { name: "דוד לוי" }, []);
+    expect(after[1].warnings).toContain("duplicate");
+    const back = editImportRow(after, after[1].id, { name: "רונית כהן" }, []);
+    expect(back[1].warnings).not.toContain("duplicate");
+  });
+});
