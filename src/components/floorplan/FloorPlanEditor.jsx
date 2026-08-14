@@ -362,6 +362,14 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         showToast(failure.note || "יותר מדי בקשות זיהוי. נסו שוב בעוד שעה.", "warn");
         return;
       }
+      // Same reasoning: a hall too big for one answer is a limit with a next
+      // step, not a fault of the host's. Prefixing it with "שגיאה בזיהוי" — which
+      // is what the throw below would do — reads as "your image is bad" and
+      // buries the one sentence that says what to do instead.
+      if (failure?.code === "too_many_tables") {
+        showToast(failure.note || "האולם גדול מכדי לזהות אותו בבת אחת. נסו לצלם אותו בחלקים.", "warn");
+        return;
+      }
       if (failure) throw new Error(functionFailureMessage(failure));
       if (!data?.tables?.length) {
         showToast("לא זוהו שולחנות. נסו תמונה ברורה יותר.", "warn");

@@ -61,6 +61,21 @@ describe("readFunctionFailure", () => {
     expect(functionFailureMessage(f)).toBe("לא זוהו שולחנות");
   });
 
+  // A hall past ~55 tables overran max_tokens, came back as cut-off JSON, and
+  // reached the host as "Could not parse detection result" — which sends them
+  // looking at their photo when the answer simply did not fit. The function now
+  // reports the real reason, and it only arrives if the body is read: 422 is a
+  // non-2xx, so `data` is null and only `error.context` carries it.
+  it("surfaces a hall that is too big as its own reason, not as a bad image", async () => {
+    const f = await readFunctionFailure(httpError(422, {
+      error: "too_many_tables",
+      note: "האולם גדול מכדי לזהות אותו בבת אחת. אפשר לצלם אותו בחלקים ולזהות כל חלק בנפרד.",
+    }));
+    expect(f.code).toBe("too_many_tables");
+    expect(f.status).toBe(422);
+    expect(functionFailureMessage(f)).toContain("לצלם אותו בחלקים");
+  });
+
   it("never returns an empty sentence to show somebody", async () => {
     expect(functionFailureMessage(await readFunctionFailure(httpError(500, { error: "" })))).toBeTruthy();
     expect(functionFailureMessage(null)).toBe("");

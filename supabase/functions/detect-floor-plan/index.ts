@@ -122,7 +122,14 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model:      "claude-haiku-4-5-20251001",
-        max_tokens: 2048,
+        // A ceiling, not a reservation — output tokens are billed as generated,
+        // so raising this costs nothing on the small halls that are the normal
+        // case. At 2048 the response was truncated somewhere around 55 tables:
+        // the JSON came back cut mid-object, JSON.parse threw, and the host got
+        // "Could not parse detection result" with no way to know that the only
+        // problem was the size of their venue. A 2,500-person event is ~200
+        // tables, which needs roughly 8k.
+        max_tokens: 8192,
         messages: [{
           role: "user",
           content: [
@@ -151,6 +158,16 @@ Deno.serve(async (req: Request) => {
     console.log("detect-floor-plan usage:", JSON.stringify({
       input: u.input_tokens ?? null, output: u.output_tokens ?? null,
     }));
+
+    // Truncation has to be caught before the parse, because it does not look
+    // like truncation by the time it gets there — it looks like malformed JSON,
+    // and reporting it that way sends the host looking for a problem with their
+    // image when the problem is that the answer did not fit.
+    if (result.stop_reason === "max_tokens") {
+      console.error("detect-floor-plan truncated at max_tokens", u.output_tokens);
+      return json({ error: "too_many_tables",
+                    note: "האולם גדול מכדי לזהות אותו בבת אחת. אפשר לצלם אותו בחלקים ולזהות כל חלק בנפרד." }, 422);
+    }
 
     const rawText: string = result.content?.[0]?.text ?? "";
 
