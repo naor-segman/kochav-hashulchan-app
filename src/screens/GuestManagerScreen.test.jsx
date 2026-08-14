@@ -218,13 +218,22 @@ describe("GuestManagerScreen — editing a guest must not blank what the form ne
 });
 
 describe("GuestManagerScreen — adding guests", () => {
+  // The paste no longer commits on one click. It goes through a review step —
+  // "this is what I understood" — because no parser on free text is ever 100%
+  // and the fix for that is not a better guess, it is letting the host see the
+  // guess before it becomes their guest list. These walk the real two steps.
+  const pasteAndReview = (text) => {
+    fireEvent.click(screen.getByText("להדביק רשימה שכבר יש לכם"));
+    const box = screen.getByLabelText("הדביקו כאן את רשימת השמות");
+    fireEvent.change(box, { target: { value: text } });
+    fireEvent.click(screen.getByText(/בדקו .* לפני ההוספה/));
+  };
+
   it("adds a pasted list as one row per line, each row one seat", () => {
     // parseGuestList is tested on its own; this pins that the screen turns each
     // parsed line into a ROW with count 1, rather than folding them together.
     const { applyLast } = renderGuests({ guests: [] });
-    fireEvent.click(screen.getByText("להדביק רשימה שכבר יש לכם"));
-    const box = screen.getByLabelText("הדביקו כאן את רשימת השמות");
-    fireEvent.change(box, { target: { value: "דנה כהן, 050-1234567\nיוסי לוי\nרותי" } });
+    pasteAndReview("דנה כהן, 050-1234567\nיוסי לוי\nרותי");
     fireEvent.click(screen.getByText(/הוסיפו 3 אורחים/));
 
     const out = applyLast().guests;
@@ -232,6 +241,38 @@ describe("GuestManagerScreen — adding guests", () => {
     expect(out.map(g => g.count)).toEqual([1, 1, 1]);
     expect(out[0].name).toBe("דנה כהן");
     expect(out[0].phone).toBe("0501234567");   // parseGuestList strips separators
+  });
+
+  it("nothing reaches the guest list until the host confirms", () => {
+    // The whole point. Pasting used to BE importing.
+    const { patchEvent } = renderGuests({ guests: [] });
+    pasteAndReview("דנה כהן\nיוסי לוי");
+    expect(patchEvent).not.toHaveBeenCalled();
+    expect(screen.getByText("ככה הבנתי את הרשימה")).toBeTruthy();
+  });
+
+  it("a row the host corrects is imported as CORRECTED", () => {
+    const { applyLast } = renderGuests({ guests: [] });
+    pasteAndReview("דנה כהן\nיוסי לוי");
+    fireEvent.change(screen.getByLabelText("שם, שורה 1"), { target: { value: "דנה לוי" } });
+    fireEvent.click(screen.getByText(/הוסיפו 2 אורחים/));
+    expect(applyLast().guests.map(g => g.name)).toEqual(["דנה לוי", "יוסי לוי"]);
+  });
+
+  it("a row the host removes is not imported at all", () => {
+    const { applyLast } = renderGuests({ guests: [] });
+    pasteAndReview("דנה כהן\nיוסי לוי");
+    fireEvent.click(screen.getByLabelText("הסירו את דנה כהן מהייבוא"));
+    fireEvent.click(screen.getByText(/הוסיפו 1 אורחים/));
+    expect(applyLast().guests.map(g => g.name)).toEqual(["יוסי לוי"]);
+  });
+
+  it("cancelling the review goes back to the paste box, list intact", () => {
+    const { patchEvent } = renderGuests({ guests: [] });
+    pasteAndReview("דנה כהן");
+    fireEvent.click(screen.getByText("חזרה לרשימה"));
+    expect(screen.getByLabelText("הדביקו כאן את רשימת השמות").value).toBe("דנה כהן");
+    expect(patchEvent).not.toHaveBeenCalled();
   });
 
   it("carries real CSS Modules classes on the guest rows", () => {

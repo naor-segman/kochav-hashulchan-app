@@ -7,6 +7,8 @@ import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } fro
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import { parseGuestList, countWithPhone, countSeats } from "../utils/parseGuestList.js";
+import { buildImportRows, readyImportRows } from "../utils/importReview.js";
+import ImportReview from "../components/guests/ImportReview.jsx";
 import {
   emptyGuestForm, guestToForm, applyGuestForm, newGuestFromForm,
   companionsForCount, setCompanionAt, companionSlots,
@@ -48,6 +50,9 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const [addWay, setAddWay]         = useState("manual"); // "manual" | "list"
   const showList                    = addWay === "list";
   const [listText, setListText]     = useState("");
+  // null = still pasting. An array = the host is looking at what we understood.
+  // Nothing reaches ev.guests while this is set.
+  const [reviewRows, setReviewRows] = useState(null);
   const [listSide, setListSide]     = useState("bride");
   const [listGroup, setListGroup]   = useState(defaultGroup);
   const [filter, setFilter]       = useState({ side: "all", group: "all", rsvp: "all", search: "" });
@@ -183,10 +188,27 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   // seats are what the tables have to hold — so the button says both.
   const parsedSeats     = countSeats(parsedList);
 
+  /**
+   * Paste -> REVIEW, never paste -> guests.
+   *
+   * The import used to commit blind, which is what made a wrong guess into a
+   * mess the host found a week later. Now the parse result is shown first and
+   * nothing touches ev.guests until they confirm it.
+   */
+  const reviewFromList = () => {
+    const parsed = parseGuestList(listText);
+    if (parsed.length === 0) return;
+    if (atCap) {
+      showToast(`הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
+      return;
+    }
+    setReviewRows(buildImportRows(parsed, ev.guests));
+  };
+
   const addFromList = () => {
-    // Reads a name AND a phone per line, so a WhatsApp/spreadsheet paste lands
-    // complete instead of leaving hundreds of numbers to type by hand.
-    const allRows = parseGuestList(listText);
+    // Whatever the host left in the review is what gets added — their
+    // corrections, not our guesses.
+    const allRows = readyImportRows(reviewRows || []);
     if (allRows.length === 0) return;
     if (atCap) {
       showToast(`הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
@@ -217,6 +239,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       skipped ? "warn" : undefined
     );
     setListText("");
+    setReviewRows(null);
     setAddWay("manual");
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
@@ -441,6 +464,17 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               ותקבלו שורה אחת עם שני מקומות ושני השמות. בחרו למטה לאיזה צד ולאיזו קבוצה
               כולם שייכים; אפשר לשנות לכל אחד בנפרד אחר כך.
             </p>
+            {reviewRows ? (
+              <ImportReview
+                rows={reviewRows}
+                existingGuests={ev.guests}
+                onChange={setReviewRows}
+                onConfirm={addFromList}
+                onCancel={() => setReviewRows(null)}
+                disabled={atCap}
+              />
+            ) : (
+            <>
             <textarea
               className={[base.input, styles.listAddTextarea].join(" ")}
               value={listText}
@@ -476,15 +510,17 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             <div className={base.formActions}>
               <button
                 className={base.btnPrimary}
-                onClick={addFromList}
+                onClick={reviewFromList}
                 disabled={parsedList.length === 0}
               >
-                + הוסיפו {parsedList.length} אורחים
+                בדקו {parsedList.length} אורחים לפני ההוספה
                 {parsedSeats > parsedList.length ? ` · ${parsedSeats} מקומות` : ""}
                 {parsedWithPhone > 0 ? ` · ${parsedWithPhone} עם טלפון` : ""}
               </button>
               <button className={base.btnSecondary} onClick={() => setAddWay("manual")}>ביטול</button>
             </div>
+            </>
+            )}
           </div>
         ) : (
         <>

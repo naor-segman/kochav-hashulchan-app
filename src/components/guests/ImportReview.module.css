@@ -1,0 +1,185 @@
+/* "This is what I understood" — the review step before a pasted list lands.
+   A card per row, not a table: this is read on a phone, and four columns at
+   390px is four unreadable columns. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: var(--step-1);
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.sub {
+  font-size: var(--step--1);
+  color: var(--text2);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* --warn is the token for "look at this", and it is 4.5:1 on --surface.
+   --accent is a fill colour at 3.8:1 and must never carry a sentence. */
+.flagged {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* A 300-name paste is 300 cards. Cap the panel and let it scroll inside
+     itself, so the confirm button never ends up a thousand pixels down the
+     page where nobody scrolls to find it. */
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-inline-end: 4px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* The marker bar sits on the INLINE start, so it stays on the reading edge in
+   an RTL document without a second rule. */
+.rowWarn {
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+  border-inline-start: 3px solid var(--warn);
+}
+
+.rowTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.num {
+  flex-shrink: 0;
+  min-width: 22px;
+  font-size: var(--step--2);
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.nameInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.removeBtn {
+  flex-shrink: 0;
+  /* 44px, because this is the one destructive control on a card the host is
+     tapping through at speed on a phone. */
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.removeBtn:hover {
+  color: var(--red);
+  border-color: var(--red-border);
+  background: var(--red-bg);
+}
+
+.rowFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-inline-start: 30px;   /* clears the row number */
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.fieldWide {
+  flex: 2 1 200px;
+}
+
+.fieldLabel {
+  font-size: var(--step--3);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.fieldHint {
+  color: var(--text2);
+  font-weight: 400;
+}
+
+.smallInput {
+  font-size: var(--step--1);
+}
+
+.seatsInput {
+  font-size: var(--step--1);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-inline-start: 30px;
+}
+
+.flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--step--3);
+  font-weight: 700;
+  color: var(--warn);
+  background: var(--surface);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+}
+
+@media (max-width: 520px) {
+  /* The number column earns its place on a wide screen and costs 30px of a
+     390px one, where the fields need every pixel. */
+  .rowFields,
+  .flags {
+    padding-inline-start: 0;
+  }
+  .field {
+    flex: 1 1 100%;
+  }
+}

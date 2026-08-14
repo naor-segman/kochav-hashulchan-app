@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import Icon from "../ui/Icon.jsx";
 import { canUseAI } from "../../utils/featureGates.js";
+import { readFunctionFailure, functionFailureMessage } from "../../utils/functionError.js";
 import { usePlan } from "../../hooks/usePlan.js";
 import {
   DndContext, DragOverlay,
@@ -347,15 +348,21 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       const { data, error } = await supabase.functions.invoke("detect-floor-plan", {
         body: { imageBase64: base64, mimeType: "image/jpeg" },
       });
-      if (error) throw error;
+      // NOT `if (error) throw error`. supabase-js wraps every non-2xx in a
+      // FunctionsHttpError whose message is always the same useless sentence
+      // and hides the body — which is the only part that says what happened.
+      // See utils/functionError.js: this cost days of a broken detect button
+      // that was only ever a mistyped API key.
+      const failure = await readFunctionFailure(error, data);
       // The server's own ceiling, not the client-side plan gate above it. That
       // gate is a UI affordance and this is the limit — say so in words rather
       // than surfacing "rate_limited" to a host who has done nothing wrong.
-      if (data?.error === "rate_limited") {
-        showToast(data.note || "יותר מדי בקשות זיהוי. נסו שוב בעוד שעה.", "warn");
+      // It arrives as a 429, so it only became reachable once the body was read.
+      if (failure?.code === "rate_limited") {
+        showToast(failure.note || "יותר מדי בקשות זיהוי. נסו שוב בעוד שעה.", "warn");
         return;
       }
-      if (data?.error) throw new Error(data.error);
+      if (failure) throw new Error(functionFailureMessage(failure));
       if (!data?.tables?.length) {
         showToast("לא זוהו שולחנות. נסו תמונה ברורה יותר.", "warn");
         return;
