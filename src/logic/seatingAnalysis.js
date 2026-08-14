@@ -270,8 +270,8 @@ export function generateSuggestions(
       whyMatters:        "ייתכן שמדובר בבני זוג, הורה וילד, או אורחים שחשוב להם לשבת יחד — כדאי לכבד בקשה זו",
       impact:            `${tableMap[ta]?.name || "?"} ו${tableMap[tb]?.name || "?"} — שני שולחנות נפרדים`,
       recommendedAction: canMove
-        ? `העבר את ${gb.name} ל${tableMap[ta]?.name || "שולחן של " + ga.name}`
-        : 'העבר אחד מהם לשולחן השני, או הפעל "חשב מחדש"',
+        ? `העבירו את ${gb.name} ל${tableMap[ta]?.name || "שולחן של " + ga.name}`
+        : 'העבירו אחד מהם לשולחן השני, או הפעילו "חשבו מחדש"',
       canApply:    canMove,
       applyAction: canMove ? {
         type:          "moveGuest",
@@ -294,7 +294,7 @@ export function generateSuggestions(
       explanation:       `${togetherViol.length} זוגות אורחים שובצו בנפרד בניגוד לאילוצי "יחד"`,
       whyMatters:        "לכל אחד מהזוגות הוגדר ידנית שחשוב לו לשבת עם מישהו מסוים — בקשות אלו חשוב לכבד",
       impact:            `${togetherViol.length} אילוצים מופרים בסידור הנוכחי`,
-      recommendedAction: 'הפעל "חשב מחדש" לתיקון אוטומטי של כל האילוצים',
+      recommendedAction: 'הפעילו "חשבו מחדש" לתיקון אוטומטי של כל האילוצים',
       canApply:          false,
       applyAction:       null,
       score:             togetherViol.length * 15,
@@ -344,12 +344,12 @@ export function generateSuggestions(
       // unknown string onto the "fixes" rank, so the ORDER always looked right.
       section:           "fixes",
       explanation:       many
-        ? `${togetherPending.length} אילוצי "יחד" ממתינים — בכל אחד מהם אדם אחד כבר יושב והשני עדיין לא שובץ`
-        : `${first.seated.name} כבר יושב ב${tableMap[first.tid]?.name || "שולחן"}, ו${first.waiting.name} עדיין לא שובץ`,
+        ? `${togetherPending.length} אילוצי "יחד" ממתינים — בכל אחד מהם צד אחד כבר משובץ והשני עדיין לא`
+        : `${first.seated.name} כבר ב${tableMap[first.tid]?.name || "שולחן"}, ו${first.waiting.name} עדיין ללא שולחן`,
       whyMatters:        "האילוץ לא יתקיים עד ששניהם ישבו — וכל עוד אחד מהם ממתין, השולחן עלול להתמלא במישהו אחר",
       impact:            many
         ? `${togetherPending.length} זוגות ממתינים להשלמה`
-        : `${first.waiting.name} ממתין לשיבוץ`,
+        : `${first.waiting.name} — ללא שולחן`,
       recommendedAction: canSit
         ? `שבצו את ${first.waiting.name} ל${tableMap[first.tid]?.name || "אותו שולחן"}`
         : 'שבצו את מי שממתין לשולחן של בן הזוג שלו, או הפעילו "חשבו מחדש"',
@@ -399,7 +399,7 @@ export function generateSuggestions(
       impact:            `שניהם שובצו ל${tableMap[ta]?.name || "אותו שולחן"}`,
       recommendedAction: canUnassign
         ? `החזר את ${gb.name} לרשימת הממתינים ושבצו לשולחן אחר`
-        : 'העבר אחד מהם ידנית לשולחן אחר',
+        : 'העבירו אחד מהם ידנית לשולחן אחר',
       canApply:    canUnassign,
       applyAction: canUnassign ? {
         type:      "unassignGuest",
@@ -420,7 +420,7 @@ export function generateSuggestions(
       explanation:       `${apartViol.length} זוגות עם אילוץ "בנפרד" שובצו לאותו שולחן`,
       whyMatters:        "כל אחד מהזוגות הוגדר ידנית כ'לא יכולים לשבת יחד' — ישיבה משותפת עלולה לגרום לאי-נוחות",
       impact:            `${apartViol.length} אילוצים מופרים בסידור הנוכחי`,
-      recommendedAction: 'הפעל "חשב מחדש" לתיקון אוטומטי',
+      recommendedAction: 'הפעילו "חשבו מחדש" לתיקון אוטומטי',
       canApply:          false,
       applyAction:       null,
       score:             apartViol.length * 15,
@@ -475,7 +475,7 @@ export function generateSuggestions(
       impact:            `חריגה של ${excess} ${excess === 1 ? "מושב" : "מושבים"}`,
       recommendedAction: safeGuest
         ? `החזר את ${safeGuest.name} לרשימת הממתינים ושבצו לשולחן עם מקום פנוי`
-        : "העבר אורחים ידנית לשולחן עם מקום פנוי",
+        : "העבירו אורחים ידנית לשולחן עם מקום פנוי",
       canApply:    !!safeGuest,
       applyAction: safeGuest ? {
         type:      "unassignGuest",
@@ -537,12 +537,12 @@ export function generateSuggestions(
         type:              "isolated_guest",
         severity:          "warning",
         section:           "fixes",
-        explanation:       `${g.name} יושב לבד מ${g.group} ב${tableMap[myTid]?.name || "שולחן"}`,
-        whyMatters:        `שאר קבוצת "${g.group}" יושבת בשולחן אחר — ייתכן ש${g.name} יהנה להיות עם מכריו`,
+        explanation:       `ב${tableMap[myTid]?.name || "שולחן"} יש רק את ${g.name} מ${g.group}`,
+        whyMatters:        `שאר קבוצת "${g.group}" יושבת בשולחן אחר — עדיף לשבת עם אנשים מוכרים`,
         impact:            `${bestMembers.length} מ${g.group} יושבים ב${tableMap[bestTid]?.name || "שולחן אחר"}`,
         recommendedAction: canMove
-          ? `העבר את ${g.name} ל${tableMap[bestTid]?.name || "שולחן"} עם שאר ${g.group}`
-          : `שקול לפנות מקום ב${tableMap[bestTid]?.name || "שולחן"} עבור ${g.name}`,
+          ? `העבירו את ${g.name} ל${tableMap[bestTid]?.name || "שולחן"} עם שאר ${g.group}`
+          : `שקלו לפנות מקום ב${tableMap[bestTid]?.name || "שולחן"} עבור ${g.name}`,
         canApply:    canMove,
         applyAction: canMove ? {
           type:          "moveGuest",
@@ -580,7 +580,7 @@ export function generateSuggestions(
           explanation:       `${t.name} מאוכלס בחלקו — ${used} מתוך ${t.capacity} מקומות (${Math.round(pct * 100)}%)`,
           whyMatters:        "ניתן לנצל את המקומות הפנויים לאורחים הממתינים לשיבוץ",
           impact:            `${t.capacity - used} ${t.capacity - used === 1 ? "מקום פנוי" : "מקומות פנויים"} בשולחן`,
-          recommendedAction: "העבר אורחים מהממתינים לשולחן זה, או פזר חלק ממנו לשולחנות אחרים",
+          recommendedAction: "העבירו אורחים מהממתינים לשולחן זה, או פזרו חלק ממנו לשולחנות אחרים",
           canApply:          false,
           applyAction:       null,
           score:             2,
@@ -627,7 +627,7 @@ export function generateSuggestions(
           explanation:       `ניתן לאחד את ${tA.name} (${sA}/${tA.capacity}) ו${tB.name} (${sB}/${tB.capacity})`,
           whyMatters:        "שני שולחנות חצי ריקים יוצרים תחושה של אירוע דליל — איחוד משפר את האווירה",
           impact:            `${sA + sB} מקומות יתאחדו ב${larger.name} (${larger.capacity} מקומות)`,
-          recommendedAction: `פנה את ${smaller.name} והעבר את ${sB < sA ? sB : sA} אורחיו ל${larger.name}`,
+          recommendedAction: `פנו את ${smaller.name} והעבירו את ${sB < sA ? sB : sA} אורחיו ל${larger.name}`,
           canApply:          false,
           applyAction:       null,
           score:             3,
@@ -664,7 +664,7 @@ export function generateSuggestions(
           explanation:       `קבוצת "${group}" מפוזרת על ${tableSet.size} שולחנות שונים`,
           whyMatters:        "אנשים מאותה קבוצה בדרך כלל מכירים זה את זה ויהנו מישיבה משותפת",
           impact:            `${count} רשומות מאותה קבוצה מפוצלות`,
-          recommendedAction: "שקול לאחד חלק מהקבוצה לשולחן גדול יותר",
+          recommendedAction: "שקלו לאחד חלק מהקבוצה לשולחן גדול יותר",
           canApply:          false,
           applyAction:       null,
           score:             3,
@@ -736,10 +736,10 @@ export function generateSuggestions(
           type:              "swap_guests",
           severity:          "info",
           section:           "fixes",
-          explanation:       `החלף בין ${gA.name} (${tableMap[tidA]?.name}) ל${gB.name} (${tableMap[tidB]?.name}) לשיפור לכידות קבוצתית`,
+          explanation:       `החליפו בין ${gA.name} (${tableMap[tidA]?.name}) ל${gB.name} (${tableMap[tidB]?.name}) לשיפור לכידות קבוצתית`,
           whyMatters:        `${gA.name} מ${gA.group} יהיה קרוב יותר לחבריו, ו${gB.name} מ${gB.group} ישב עם מכריו`,
           impact:            `שני האורחים יעברו לשולחן שבו יש יותר מחבריהם`,
-          recommendedAction: `החלף בין ${gA.name} ל${gB.name}`,
+          recommendedAction: `החליפו בין ${gA.name} ל${gB.name}`,
           canApply:          true,
           applyAction:       {
             type:       "swapGuests",
@@ -808,10 +808,10 @@ export function generateSuggestions(
             type:              "swap_guests",
             severity:          "info",
             section:           "fixes",
-            explanation:       `החלף ${gA.name} מ${tBride.name} עם ${gB.name} מ${tGroom.name} לאיזון צדדים`,
+            explanation:       `החליפו ${gA.name} מ${tBride.name} עם ${gB.name} מ${tGroom.name} לאיזון צדדים`,
             whyMatters:        `${tBride.name} מטה ל${brideLabel} ו${tGroom.name} מטה ל${groomLabel} — החלפה תאזן את האווירה`,
             impact:            `${tBride.name} ו${tGroom.name} יהיו מאוזנים יותר בין הצדדים`,
-            recommendedAction: `החלף בין ${gA.name} (${brideLabel}) ל${gB.name} (${groomLabel})`,
+            recommendedAction: `החליפו בין ${gA.name} (${brideLabel}) ל${gB.name} (${groomLabel})`,
             canApply:          true,
             applyAction:       {
               type:       "swapGuests",
@@ -860,7 +860,7 @@ export function generateSuggestions(
         explanation:       `${t.name}: ${Math.round(dominantPct * 100)}% מצד ${dominant}`,
         whyMatters:        `${minSide} אורחים מצד ${minority} עלולים להרגיש "חיצוניים" בשולחן זה`,
         impact:            `חוסר איזון בין ${dominant} ל${minority} בשולחן אחד`,
-        recommendedAction: `שקול לשבץ את ${minSide} אורחי צד ${minority} עם בני ביתם בשולחן אחר`,
+        recommendedAction: `שקלו לשבץ את ${minSide} אורחי צד ${minority} עם בני ביתם בשולחן אחר`,
         canApply:          false,
         applyAction:       null,
         score:             2,
@@ -885,7 +885,7 @@ export function generateSuggestions(
       impact:            qualityScore < 60
         ? "טיפול בבעיות הקריטיות ישפר משמעותית את חוויית האורחים"
         : "שיפורים קטנים יעלו את הציון ל-80 ומעלה",
-      recommendedAction: 'טפל בבעיות הקריטיות תחילה, לאחר מכן הפעל "חשב מחדש"',
+      recommendedAction: 'טפלו בבעיות הקריטיות תחילה, לאחר מכן הפעילו "חשבו מחדש"',
       canApply:          false,
       applyAction:       null,
       score:             0,

@@ -79,7 +79,7 @@ function heDate(str) {
 }
 
 function hostsLabel(ev) {
-  if (ev.brideName && ev.groomName) return `${ev.brideName} & ${ev.groomName}`;
+  if (ev.brideName && ev.groomName) return `${ev.brideName} ו${ev.groomName}`;
   return ev.celebrantName || ev.organizationName || ev.ownerName || ev.name || "";
 }
 

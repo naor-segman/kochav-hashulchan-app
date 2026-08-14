@@ -1,3 +1,5 @@
+import { hasDefiniteArticle } from "../utils/hebrewPrefix.js";
+
 /**
  * The message sequence a host actually sends.
  *
@@ -106,21 +108,6 @@ export function reachable(guests) {
  * Unknown placeholders are removed rather than left as literal {{…}} in a
  * message a guest will read.
  */
-// The nouns the app itself renders with a definite article. A value starting
-// with one of these carries a real ה that an attached prefix letter absorbs;
-// anything else — "הילה", "הדר", "היכל התרבות" — keeps its ה.
-const ARTICLE_NOUNS = [
-  "חתונה", "חינה", "אירוסין", "אירוס", "בר מצווה", "בת מצווה",
-  "ברית", "בריתה", "יום הולדת", "אירוע", "מסיבה", "ערב", "טקס",
-];
-
-function hasDefiniteArticle(value) {
-  const v = String(value || "");
-  if (!v.startsWith("ה")) return false;
-  const rest = v.slice(1);
-  return ARTICLE_NOUNS.some(n => rest === n || rest.startsWith(n + " "));
-}
-
 export function renderTemplate(body, { event, guest, table, link }) {
   // Null-prototype: a plain object resolves {{constructor}} and {{toString}}
   // through Object.prototype, which would put "function Object() { [native
@@ -135,7 +122,29 @@ export function renderTemplate(body, { event, guest, table, link }) {
   });
   const get = key => (Object.hasOwn(map, key) ? map[key] : "");
 
-  return String(body || "")
+  // A line that existed only to carry a placeholder must LEAVE when the
+  // placeholder is empty. The date and the venue are not required fields —
+  // EventSetupScreen marks only the name required — so an invitation sent
+  // before the hall is booked went out as:
+  //
+  //     אתם מוזמנים לחתונה של דנה ואורי!
+  //     📅
+  //     📍
+  //
+  // The blank-line collapse below cannot catch that, because the line is not
+  // blank: it still holds the emoji. Measured on the real templates.
+  //
+  // Only lines that HELD a placeholder are eligible, so a decorative line the
+  // host wrote themselves is never removed; and a line is dropped only when
+  // nothing with a letter or a digit survived in it.
+  const dropEmptied = (rendered, original) => {
+    const out = rendered.split("\n"), src = original.split("\n");
+    if (out.length !== src.length) return rendered;   // a value carried a newline
+    return out.filter((line, i) =>
+      !(/\{\{/.test(src[i]) && !/[\p{L}\p{N}]/u.test(line))).join("\n");
+  };
+
+  const filled = String(body || "")
     // In Hebrew an attached prefix letter absorbs the definite article, so
     // "אתם מוזמנים ל" + "החתונה של דנה" has to read "לחתונה של דנה".
     //
@@ -152,7 +161,9 @@ export function renderTemplate(body, { event, guest, table, link }) {
       const v = get(key);
       return prefix + (hasDefiniteArticle(v) ? v.slice(1) : v);
     })
-    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => get(key))
+    .replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, key) => get(key));
+
+  return dropEmptied(filled, String(body || ""))
     // A removed placeholder can leave a stranded blank line.
     .replace(/\n{3,}/g, "\n\n")
     .trim();

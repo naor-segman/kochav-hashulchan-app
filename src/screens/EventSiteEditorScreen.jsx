@@ -8,6 +8,7 @@ import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventSiteEditorScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
+import { prefixed } from "../utils/hebrewPrefix.js";
 
 // Compress an uploaded cover photo to a reasonable data URL for the site.
 // Kept modest (stored in payload JSONB + served via the public RPC) — a future
@@ -188,7 +189,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
             הודעות מוכנות לשליחה בוואטסאפ — עם קישור לאתר האירוע. העתיקו או שלחו ישירות.
           </p>
           {[
-            { key: "invite", label: "הזמנה", text: `היי! אתם מוזמנים ל${ev.name || "אירוע שלנו"} 💛\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}` },
+            { key: "invite", label: "הזמנה", text: `היי! אתם מוזמנים ${prefixed("ל", ev.name) || "לאירוע שלנו"} 💛\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}` },
             { key: "remind", label: "תזכורת", text: `רק תזכורת קטנה — ${ev.name || "האירוע"} מתקרב! 🎉\nפרטים ואישור הגעה:\n${siteUrl}` },
             { key: "thanks", label: "תודה", text: `תודה מכל הלב שחגגתם איתנו! 💛\nהייתם חלק מהרגעים הכי מרגשים שלנו.` },
           ].map(m => (
