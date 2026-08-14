@@ -428,3 +428,121 @@ describe("mergeCloudWithLocal — a party that arrives in two waves", () => {
     expect(out.guests[0].arrivedAt).toBe(100);
   });
 });
+
+// The union that saves rows the other device added was written for guests, then
+// extended to tables — and stopped there. Five other collections stayed on
+// whole-event last-write-wins, so the partner who spent an evening entering the
+// eleven "must sit together" rules on their phone lost all of them the moment
+// the host renamed the venue on the laptop. Measured on the code before the
+// fix: constraints 0, tasks 0, vendors 0, costs {}, messagesSent {}.
+describe("mergeCloudWithLocal — every collection, not just guests and tables", () => {
+  const full = over => ev({
+    tasks: [], vendors: [], costs: {}, messagesSent: {}, messageTemplates: {}, ...over,
+  });
+
+  // The other device pushed one of everything; this device then edited a scalar.
+  const otherDevice = {
+    guests:      [{ id: "g1", name: "דוד", side: "bride", group: "משפחה", count: 1 }],
+    tables:      [{ id: "t1", name: "שולחן 1", capacity: 10, type: "regular" }],
+    constraints: [{ id: "c1", type: "together", guestA: "g1", guestB: "g2" }],
+    tasks:       [{ id: "k1", title: "לסגור צלם", done: false }],
+    vendors:     [{ id: "v1", name: "צלם", phone: "0501111111" }],
+    costs:       { categories: [{ id: "dj", name: "תקליטן", budget: 9000, actual: 0 }] },
+    messagesSent:     { invitation: { g1: 1700 } },
+    messageTemplates: { invitation: "שלום {{שם}}" },
+  };
+
+  // Both directions: whichever side happens to be newer, nothing is dropped.
+  for (const [label, localAt, cloudAt] of [
+    ["local is newer", 3000, 2000],
+    ["cloud is newer", 2000, 3000],
+  ]) {
+    it(`keeps rows the other device added when ${label}`, () => {
+      const [out] = mergeCloudWithLocal(
+        [full({ updatedAt: localAt, venue: "אולם ב" })],
+        [full({ ...otherDevice, updatedAt: cloudAt, cloudId: "c1" })],
+      );
+      expect(out.constraints, "constraints").toHaveLength(1);
+      expect(out.tasks,       "tasks").toHaveLength(1);
+      expect(out.vendors,     "vendors").toHaveLength(1);
+      expect(out.costs.categories, "costs").toHaveLength(1);
+      expect(out.messageTemplates.invitation, "templates").toBe("שלום {{שם}}");
+      expect(out.messagesSent.invitation?.g1, "sent").toBe(1700);
+    });
+  }
+
+  // Both sides hold rows the other has never seen. This is the case that
+  // actually pins the union: asserting only that the WINNER's rows survive
+  // passes even with the loser's union deleted, which a mutation run caught —
+  // dropping the cloud-branch union left the suite green until this test
+  // existed in both directions.
+  for (const [label, localAt, cloudAt] of [
+    ["local is newer", 3000, 2000],
+    ["cloud is newer", 2000, 3000],
+  ]) {
+    it(`unions rows from BOTH devices when ${label}`, () => {
+      const [out] = mergeCloudWithLocal(
+        [full({ updatedAt: localAt,
+                constraints: [{ id: "mine", type: "apart", guestA: "a", guestB: "b" }],
+                tasks:       [{ id: "kx", title: "שלי", done: false }],
+                vendors:     [{ id: "vx", name: "דיג׳יי", phone: "0502222222" }],
+                messageTemplates: { reminder1: "תזכורת ששיניתי" } })],
+        [full({ ...otherDevice, updatedAt: cloudAt, cloudId: "c1" })],
+      );
+      expect(out.constraints.map(c => c.id).sort()).toEqual(["c1", "mine"]);
+      expect(out.tasks.map(t => t.id).sort()).toEqual(["k1", "kx"]);
+      expect(out.vendors.map(v => v.id).sort()).toEqual(["v1", "vx"]);
+      // A template the host rewrote on one device and a different stage they
+      // rewrote on the other: both are hand-written text nothing can rebuild.
+      expect(Object.keys(out.messageTemplates).sort()).toEqual(["invitation", "reminder1"]);
+    });
+  }
+
+  // A send is a fact about the world — the guest's phone buzzed. Losing the
+  // record means the host re-sends the invitation to everyone who already got
+  // it, which is the one mistake this product cannot apologise its way out of.
+  for (const [label, localAt, cloudAt] of [
+    ["local is newer", 3000, 2000],
+    ["cloud is newer", 2000, 3000],
+  ]) {
+    it(`unions who was already messaged, keeping the earliest stamp — ${label}`, () => {
+      const [out] = mergeCloudWithLocal(
+        [full({ updatedAt: localAt,
+                messagesSent: { invitation: { g1: 900 }, reminder1: { g2: 50 } } })],
+        [full({ updatedAt: cloudAt, cloudId: "c1",
+                messagesSent: { invitation: { g1: 700, g3: 800 } } })],
+      );
+      expect(out.messagesSent.invitation.g1).toBe(700);  // the send that really happened first
+      expect(out.messagesSent.invitation.g3).toBe(800);  // only the other device knew about g3
+      expect(out.messagesSent.reminder1.g2).toBe(50);    // and only this one knew about g2
+    });
+  }
+
+  // The budget is edited as a whole by CostScreen, so merging it category by
+  // category would build a budget neither device ever saw. Only the total loss
+  // is prevented.
+  it("never lets an empty budget overwrite a filled one, in either direction", () => {
+    const filled = { categories: [{ id: "dj", name: "תקליטן", budget: 9000, actual: 0 }] };
+    const [a] = mergeCloudWithLocal([full({ updatedAt: 3000 })],
+                                    [full({ updatedAt: 2000, cloudId: "c1", costs: filled })]);
+    expect(a.costs.categories).toHaveLength(1);
+    const [b] = mergeCloudWithLocal([full({ updatedAt: 2000, costs: filled })],
+                                    [full({ updatedAt: 3000, cloudId: "c1" })]);
+    expect(b.costs.categories).toHaveLength(1);
+  });
+
+  // mergeArrivals ran in the local-wins branch only. The greeter's marks live
+  // in `guests`, so the cloud-wins branch took the cloud array whole and threw
+  // away check-ins made at the door that had not been pushed yet — even though
+  // those rows carried the newer arrivedAt and the merge would have kept them.
+  it("keeps door check-ins even when the cloud copy is the newer one", () => {
+    const row = extra => ({ id: "g1", name: "משפחת כהן", side: "bride",
+                            group: "משפחה", count: 4, ...extra });
+    const [out] = mergeCloudWithLocal(
+      [full({ updatedAt: 2000, guests: [row({ arrivedSeats: [0, 1], arrived: true, arrivedAt: 999 })] })],
+      [full({ updatedAt: 3000, cloudId: "c1", guests: [row({ arrivedSeats: [], arrived: false, arrivedAt: 100 })] })],
+    );
+    expect(out.guests[0].arrivedSeats).toEqual([0, 1]);
+    expect(out.guests[0].arrivedAt).toBe(999);
+  });
+});

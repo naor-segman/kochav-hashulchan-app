@@ -4,6 +4,8 @@ import QRCode from "qrcode";
 import { fetchEventByToken } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { readGuestCardParams, guestScanPayload } from "../utils/guestCard.js";
+import { tableLabel } from "../components/seating/tableLabel.js";
+import { prefixed } from "../utils/hebrewPrefix.js";
 import styles from "./InviteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 
@@ -88,7 +90,11 @@ export default function InviteScreen() {
       try {
         await navigator.share({
           title: event?.name ?? "הזמנה לאירוע",
-          text:  `אתם מוזמנים ל${event?.name ?? "האירוע"}`,
+          // prefixed(), not `ל${…}`. This is the text a guest FORWARDS to other
+          // guests, and an event called "החתונה של דנה" went out of it as
+          // "מוזמנים להחתונה של דנה" — the doubled article renderTemplate
+          // already knew how to avoid.
+          text:  `אתם מוזמנים ${prefixed("ל", event?.name) || "לאירוע"}`,
           url,
         });
       } catch {
@@ -182,7 +188,12 @@ export default function InviteScreen() {
       <main className={styles.main}>
         <article className={styles.card}>
           {/* Event type tag */}
-          <div className={styles.tag}>הזמנה ל{eventType}</div>
+          {/* "אחר" is a real, selectable event type, and "הזמנה לאחר" is not a
+              sentence. TasksScreen:114 and announcementTemplates already guard
+              this value; four guest-facing surfaces did not. */}
+          <div className={styles.tag}>
+            {eventType && eventType !== "אחר" ? `הזמנה ל${eventType}` : "הזמנה לאירוע"}
+          </div>
 
           {/* Hosts — a couple, a single celebrant, or nothing at all */}
           {isCouple ? (
@@ -244,8 +255,14 @@ export default function InviteScreen() {
           {personal && (
             <div className={styles.personalBox}>
               {personal.name && <p className={styles.personalName}>{personal.name}</p>}
+              {/* tableLabel, not `שולחן {name}`. The default names from
+                  nextTableNames() already ARE "שולחן 1", "שולחן 2", so this
+                  line printed "שולחן שולחן 2" — the exact bug tableLabel.js
+                  was written to remove from six other call sites, surviving in
+                  the one place a stranger reads it. The WhatsApp message that
+                  carries this link gets it right, one tap earlier. */}
               {personal.table
-                ? <p className={styles.personalTable}>שולחן <b>{personal.table}</b></p>
+                ? <p className={styles.personalTable}><b>{tableLabel({ name: personal.table })}</b></p>
                 : <p className={styles.personalTableNone}>מספר השולחן יעודכן בהמשך</p>}
             </div>
           )}

@@ -34,26 +34,21 @@ CREATE POLICY "events: public token read"
     hostess_token IS NOT NULL
   );
 
--- ── 2. Length constraints on rsvp_responses ───────────────────────────────────
+-- ── 2-3. Length constraints on rsvp_responses and gifts ──────────────────────
+--
+-- REMOVED, not relocated. These were eight `ALTER TABLE … ADD CONSTRAINT IF NOT
+-- EXISTS` clauses, and PostgreSQL has no such form:
+--
+--   ERROR:  syntax error at or near "NOT"
+--   LINE 2:   ADD CONSTRAINT IF NOT EXISTS ck_rsvp_guest_name_nonempty
+--
+-- So they never applied, on any database, ever -- which is what
+-- 20260811030000_fix_length_constraints.sql was written to discover and repair,
+-- and that migration adds every one of them properly, guarded on pg_constraint.
+--
+-- They are deleted here rather than left as documentation because this file is
+-- concatenated into supabase/setup_full.sql, and the Supabase SQL Editor runs a
+-- pasted script in ONE transaction: a single syntax error rolled the entire
+-- fresh-project build back to zero tables. Reproduced on PostgreSQL 16.
+-- Removing dead statements changes no existing database, because they never ran.
 
-ALTER TABLE public.rsvp_responses
-  ADD CONSTRAINT IF NOT EXISTS ck_rsvp_guest_name_nonempty
-    CHECK (char_length(guest_name) > 0),
-  ADD CONSTRAINT IF NOT EXISTS ck_rsvp_guest_name_len
-    CHECK (char_length(guest_name) <= 200),
-  ADD CONSTRAINT IF NOT EXISTS ck_rsvp_phone_len
-    CHECK (phone IS NULL OR char_length(phone) <= 20),
-  ADD CONSTRAINT IF NOT EXISTS ck_rsvp_guests_count_range
-    CHECK (guests_count >= 0 AND guests_count <= 50);
-
--- ── 3. Length and amount constraints on gifts ─────────────────────────────────
-
-ALTER TABLE public.gifts
-  ADD CONSTRAINT IF NOT EXISTS ck_gift_donor_name_nonempty
-    CHECK (char_length(donor_name) > 0),
-  ADD CONSTRAINT IF NOT EXISTS ck_gift_donor_name_len
-    CHECK (char_length(donor_name) <= 200),
-  ADD CONSTRAINT IF NOT EXISTS ck_gift_message_len
-    CHECK (message IS NULL OR char_length(message) <= 500),
-  ADD CONSTRAINT IF NOT EXISTS ck_gift_amount_range
-    CHECK (amount >= 5000 AND amount <= 10000000);  -- ₪50 min, ₪100,000 max

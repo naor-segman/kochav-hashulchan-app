@@ -370,3 +370,60 @@ describe("the entrance sheet is the door list, so a refusal must not be on it", 
     expect(text).not.toContain("לא בא");
   });
 });
+
+// arrival.js was rewritten so arrival is per PERSON (`arrivedSeats`), keeping
+// `arrived` as a truthful "someone on this row came" mirror. Sheet 6 kept
+// reading that boolean as if it meant the whole row, and this is the report the
+// host reconciles gifts against the morning after — the one place the number
+// has to be right. Same defect CLAUDE.md records for the door header, which
+// showed 0/6 at an event with sixty people in the room.
+describe("the gift report counts PEOPLE in the room, not rows with someone in them", () => {
+  const family = (id, count, arrivedSeats, gift) =>
+    g(id, { count, arrivedSeats, arrived: arrivedSeats.length > 0, giftAmount: gift });
+
+  // 2 of 4 in, 1 of 4 in, 0 of 1 in → three people are in the room.
+  const ev = {
+    name: "החתונה", date: "2027-06-01",
+    guests: [family("משפחת כהן", 4, [0, 1], 1000),
+             family("משפחת לוי", 4, [0],    500),
+             family("דודה רחל",  1, [],       0)],
+    tables: [t("t1", 12)],
+    seating: { "משפחת כהן": "t1", "משפחת לוי": "t1", "דודה רחל": "t1" },
+    constraints: [],
+  };
+
+  const giftSheet = () => sheets.find(s => /מתנ/.test(s.name));
+
+  it("puts the seat count in the summary, not the row count", async () => {
+    await exportToExcel(ev, sideLabel, []);
+    const summary = giftSheet().rows.find(r => r.includes("סה״כ הגיעו:"));
+    // Rows with someone in them: 2. People actually in the room: 3.
+    expect(summary[summary.indexOf("סה״כ הגיעו:") + 1]).toBe(3);
+  });
+
+  // "כמות 4" beside a bare ✓ reads as "all four came" for a family where one
+  // did — on one line, in the column the host scans.
+  it("shows arrived-of-total for a partly arrived family, and ✓ only for a full one", async () => {
+    await exportToExcel(ev, sideLabel, []);
+    const rows = giftSheet().rows;
+    const row = name => rows.find(r => r[0] === name);
+    expect(row("משפחת כהן")[3]).toBe("2 מתוך 4");
+    expect(row("משפחת לוי")[3]).toBe("1 מתוך 4");
+    expect(row("דודה רחל")[3]).toBe("");
+  });
+
+  it("still writes a plain ✓ when every seat on the row arrived", async () => {
+    await exportToExcel({ ...ev, guests: [family("זוג שלם", 2, [0, 1], 0)] }, sideLabel, []);
+    expect(giftSheet().rows.find(r => r[0] === "זוג שלם")[3]).toBe("✓");
+  });
+
+  // Legacy rows written before arrivedSeats existed carry only the boolean.
+  it("understands a legacy row that has arrived but no arrivedSeats", async () => {
+    await exportToExcel({
+      ...ev, guests: [g("ישן", { count: 3, arrived: true, giftAmount: 200 })],
+    }, sideLabel, []);
+    const summary = giftSheet().rows.find(r => r.includes("סה״כ הגיעו:"));
+    expect(summary[summary.indexOf("סה״כ הגיעו:") + 1]).toBe(3);
+    expect(giftSheet().rows.find(r => r[0] === "ישן")[3]).toBe("✓");
+  });
+});

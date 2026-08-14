@@ -29,7 +29,10 @@ export default function ImportReview({ rows, existingGuests, onChange, onConfirm
   const summary = useMemo(() => importSummary(readyImportRows(rows)), [rows]);
 
   const edit   = (id, patch) => onChange(editImportRow(rows, id, patch, existingGuests));
-  const remove = (id)        => onChange(removeImportRow(rows, id));
+  // existingGuests here too: removing the first of two identical rows has to
+  // clear the duplicate flag from the second, and that means re-deriving the
+  // warnings against the same baseline the build used.
+  const remove = (id)        => onChange(removeImportRow(rows, id, existingGuests));
 
   if (!rows.length) return null;
 

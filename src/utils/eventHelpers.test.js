@@ -639,3 +639,32 @@ describe("parentsType — the two families are not always a mother and a father"
       .toBe("father-father");
   });
 });
+
+// The comment in duplicateEvent lists six nested collections deep-copied "so
+// editing the duplicate never mutates the original". A guest's `companions` was
+// not among them, and it is the one field on a guest row that is an array — and
+// the one field in this product the host types by hand and nothing can rebuild.
+describe("duplicateEvent — the copy shares nothing with the original", () => {
+  const withCompanions = () => normalizeEvent({
+    id: "e1", name: "אירוע",
+    guests: [{ id: "g1", name: "משפחת לוי", side: "bride", group: "משפחה",
+               count: 3, companions: ["רונית", "דן"] }],
+    tables: [], seating: {}, constraints: [],
+  });
+
+  it("gives the copy its own companions array", () => {
+    const base = withCompanions();
+    const copy = duplicateEvent(base);
+    expect(copy.guests[0].companions).toEqual(["רונית", "דן"]);
+    expect(copy.guests[0].companions).not.toBe(base.guests[0].companions);
+  });
+
+  // Nothing writes in place today — every writer builds a new array — so this
+  // is a trap rather than a live bug. Pinning it is what keeps it that way.
+  it("does not let a write through the copy reach the original", () => {
+    const base = withCompanions();
+    const copy = duplicateEvent(base);
+    copy.guests[0].companions.push("שונה");
+    expect(base.guests[0].companions).toEqual(["רונית", "דן"]);
+  });
+});

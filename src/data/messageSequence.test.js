@@ -186,3 +186,48 @@ describe("renderTemplate — the article rule after a conjunction", () => {
       .toBe("בהיכל התרבות");
   });
 });
+
+// The date and the venue are not required fields — EventSetupScreen marks only
+// the name required — so an invitation sent before the hall is booked went out
+// with a bare calendar and a bare pin:
+//     אתם מוזמנים לחתונה של דנה ואורי!
+//     📅
+//     📍
+// The blank-line collapse could not catch it, because the line is not blank.
+describe("renderTemplate — a line whose only content was a placeholder", () => {
+  const ev = { name: "החתונה של דנה ואורי", date: "", venue: "" };
+  const render = body => renderTemplate(body, {
+    event: ev, guest: { name: "משפחת לוי" }, table: null, link: "https://k.co/i/abc",
+  });
+
+  it("drops the emoji line rather than sending a dangling 📅", () => {
+    const out = render("היי {{שם}} 👋\n\nאתם מוזמנים ל{{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n\nנשמח שתאשרו הגעה:\n{{קישור}}");
+    expect(out).not.toMatch(/📅/);
+    expect(out).not.toMatch(/📍/);
+    expect(out).toContain("אתם מוזמנים לחתונה של דנה ואורי!");
+    expect(out).toContain("https://k.co/i/abc");
+  });
+
+  it("keeps those very lines when the host HAS filled the fields", () => {
+    const out = renderTemplate("📅 {{תאריך}}\n📍 {{מקום}}", {
+      event: { name: "א", date: "1 ביוני 2027", venue: "אולמי הגן" }, guest: {}, table: null, link: "",
+    });
+    expect(out).toBe("📅 1 ביוני 2027\n📍 אולמי הגן");
+  });
+
+  // Only lines that HELD a placeholder are eligible — a decorative line the
+  // host typed themselves is theirs to keep.
+  it("never removes a decorative line the host wrote", () => {
+    const out = renderTemplate("היי {{שם}}\n✦ ✦ ✦\n{{מקום}}", {
+      event: { venue: "" }, guest: { name: "דנה" }, table: null, link: "",
+    });
+    expect(out).toContain("✦ ✦ ✦");
+  });
+
+  it("keeps a line whose placeholder resolved to a number", () => {
+    const out = renderTemplate("📅 {{תאריך}}", {
+      event: { date: "2027" }, guest: {}, table: null, link: "",
+    });
+    expect(out).toBe("📅 2027");
+  });
+});

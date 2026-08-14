@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitGift } from "../utils/publicTokens.js";
 import styles from "./GiftScreen.module.css";
+import { prefixed } from "../utils/hebrewPrefix.js";
 
 const MOCK_EVENT = {
   name: "חתונת נועה וטל",
@@ -195,7 +196,7 @@ export default function GiftScreen() {
                 and a tag that says it does is a promise the screen breaks. */}
             <div className={styles.eventTag}>{ev.type || "חתונה"} · ברכה ומתנה</div>
             <h1 className={styles.eventName}>{ev.name || coupleLabel}</h1>
-            <p className={styles.eventSub}>שלחו מתנה ל{coupleLabel}</p>
+            <p className={styles.eventSub}>שלחו מתנה {prefixed("ל", coupleLabel)}</p>
           </div>
 
           {/* Ornamental gold divider */}
@@ -287,7 +288,7 @@ export default function GiftScreen() {
           <div className={styles.payCard}>
             <div className={styles.payCardTitle}>מה קורה עכשיו?</div>
             <p className={styles.payComing}>
-              הברכה והסכום נרשמים אצל {coupleLabel} ומופיעים בקיר הברכות של האירוע.
+              הברכה והסכום נרשמים ומופיעים בקיר הברכות של האירוע.
               את המתנה עצמה מעניקים ביום האירוע.
             </p>
           </div>

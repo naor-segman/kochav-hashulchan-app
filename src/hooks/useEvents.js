@@ -92,6 +92,57 @@ function unionById(localRows, cloudRows) {
   return extras.length ? [...localRows, ...extras] : localRows;
 }
 
+/**
+ * The two-level record of who has already been messaged:
+ * `{ [stageKey]: { [guestId]: timestamp } }`.
+ *
+ * Whole-object last-write-wins is wrong here in a way that costs real money and
+ * real goodwill. A send is a fact about the world — the guest's phone buzzed —
+ * so a stage the OTHER device sent is not something this device can undo by
+ * having edited the venue afterwards. Losing it means the host re-sends the
+ * invitation to everybody who already got it.
+ *
+ * Union at both levels, earliest stamp kept: if two devices both think they
+ * sent to the same guest, the first one is the one that actually did.
+ */
+function mergeSentMaps(localSent, cloudSent) {
+  const l = (localSent && typeof localSent === "object") ? localSent : {};
+  const c = (cloudSent && typeof cloudSent === "object") ? cloudSent : {};
+  const keys = new Set([...Object.keys(l), ...Object.keys(c)]);
+  if (!keys.size) return localSent;
+  const out = {};
+  for (const k of keys) {
+    const lg = (l[k] && typeof l[k] === "object") ? l[k] : {};
+    const cg = (c[k] && typeof c[k] === "object") ? c[k] : {};
+    const merged = { ...cg, ...lg };
+    for (const gid of Object.keys(merged)) {
+      const a = lg[gid], b = cg[gid];
+      merged[gid] = (Number.isFinite(a) && Number.isFinite(b)) ? Math.min(a, b) : (a ?? b);
+    }
+    out[k] = merged;
+  }
+  return out;
+}
+
+/** Flat `{ key: value }` — union the keys, the winning side's value on a clash. */
+function unionByKey(localMap, cloudMap) {
+  const l = (localMap && typeof localMap === "object") ? localMap : {};
+  const c = (cloudMap && typeof cloudMap === "object") ? cloudMap : {};
+  const extra = Object.keys(c).filter(k => !Object.hasOwn(l, k));
+  return extra.length ? { ...c, ...l } : localMap;
+}
+
+/**
+ * The budget is edited as a whole by CostScreen (`patchEvent({ costs: {
+ * categories } })`), so merging it category by category would build a budget
+ * neither device ever saw. The only failure worth preventing is the total one:
+ * an empty side overwriting a filled one.
+ */
+function keepFilledCosts(winner, loser) {
+  const has = v => Array.isArray(v?.categories) && v.categories.length > 0;
+  return (!has(winner) && has(loser)) ? loser : winner;
+}
+
 function mergeArrivals(localGuests, cloudGuests) {
   if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
   const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
@@ -165,6 +216,24 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
         // guest arrives unseated, which is exactly where the host expects a
         // newly imported row to be.
         tables: unionById(localMatch.tables, ce.tables),
+        // The union was written for guests, then extended to tables, and stopped
+        // there — while five other collections stayed whole-event
+        // last-write-wins. Measured on the code before this line: the other
+        // device adds the eleven "must sit together / must not sit together"
+        // rules on the phone, this device renames the venue on the laptop, and
+        // the merge returns constraints 0, tasks 0, vendors 0, costs {},
+        // messagesSent {}. Nothing warns, and the next push writes the empty
+        // versions to the cloud.
+        //
+        // Same argument as for guests: these are id-keyed rows, there are no
+        // tombstones, so a delete that has not landed yet may come back — and
+        // that is the recoverable failure of the two.
+        constraints: unionById(localMatch.constraints, ce.constraints),
+        tasks:       unionById(localMatch.tasks,       ce.tasks),
+        vendors:     unionById(localMatch.vendors,     ce.vendors),
+        messagesSent:     mergeSentMaps(localMatch.messagesSent, ce.messagesSent),
+        messageTemplates: unionByKey(localMatch.messageTemplates, ce.messageTemplates),
+        costs:            keepFilledCosts(localMatch.costs, ce.costs),
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
         // The concurrency base always comes from the row we just read, whichever
         // side's CONTENT wins — otherwise the next push compares against a
@@ -199,11 +268,30 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
     // tombstones, so a delete that has not landed yet can come back, and that
     // is the recoverable failure of the two.
     if (localMatch) {
-      const guestsUnion = unionById(result.guests, localMatch.guests);
-      const tablesUnion = unionById(result.tables, localMatch.tables);
-      if (guestsUnion !== result.guests || tablesUnion !== result.tables) {
-        result = { ...result, guests: guestsUnion, tables: tablesUnion };
-      }
+      // Every collection the other branch unions, unioned here too. The
+      // asymmetry was itself a bug: the same eleven constraints were lost
+      // whenever the CLOUD copy happened to be the newer one, which is the more
+      // common case of the two (the other device is usually the one that just
+      // pushed).
+      //
+      // mergeArrivals belongs here for the same reason, and its absence was the
+      // sharper half: the greeter's marks live only in `guests`, so taking the
+      // cloud array whole discarded local check-ins that had not been pushed —
+      // measured, 4 seats marked at the door became 0 — even though those rows
+      // carried the NEWER arrivedAt and mergeArrivals would have kept them.
+      // Arguments are (local, cloud) in the other branch; here `result` is the
+      // cloud side, so they swap.
+      result = {
+        ...result,
+        guests: mergeArrivals(unionById(result.guests, localMatch.guests), localMatch.guests),
+        tables:      unionById(result.tables,      localMatch.tables),
+        constraints: unionById(result.constraints, localMatch.constraints),
+        tasks:       unionById(result.tasks,       localMatch.tasks),
+        vendors:     unionById(result.vendors,     localMatch.vendors),
+        messagesSent:     mergeSentMaps(result.messagesSent, localMatch.messagesSent),
+        messageTemplates: unionByKey(result.messageTemplates, localMatch.messageTemplates),
+        costs:            keepFilledCosts(result.costs, localMatch.costs),
+      };
     }
 
     if (localMatch?.floorPlan?.image && !result.floorPlan?.image) {

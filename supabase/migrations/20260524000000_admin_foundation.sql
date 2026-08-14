@@ -26,6 +26,29 @@
 -- =============================================================================
 
 
+-- ── profiles ─────────────────────────────────────────────────────────────────
+--
+-- One row per Supabase Auth user. Created automatically via trigger.
+-- The `role` column is the single source of truth for admin access.
+
+CREATE TABLE public.profiles (
+  id          uuid        PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+  email       text        NOT NULL,
+  full_name   text,
+  role        text        NOT NULL DEFAULT 'user'
+                          CHECK (role IN ('user', 'admin')),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- NOTE ON ORDER: this helper is defined AFTER public.profiles, not before.
+-- It was the other way round, and with check_function_bodies on (the
+-- PostgreSQL and Supabase default) the body is validated at CREATE time:
+--   ERROR:  relation "public.profiles" does not exist
+-- The Supabase SQL Editor runs a pasted script in ONE transaction, so
+-- setup_full.sql rolled the whole thing back and a fresh project came up
+-- with zero tables. Reproduced on PostgreSQL 16; the ordering was the sole
+-- cause. That file is the disaster-recovery path, so it has to be runnable.
 -- ── Helper: is_admin() ───────────────────────────────────────────────────────
 --
 -- Used in every RLS policy that gates on admin role.
@@ -44,22 +67,6 @@ AS $$
     WHERE id = auth.uid() AND role = 'admin'
   );
 $$;
-
-
--- ── profiles ─────────────────────────────────────────────────────────────────
---
--- One row per Supabase Auth user. Created automatically via trigger.
--- The `role` column is the single source of truth for admin access.
-
-CREATE TABLE public.profiles (
-  id          uuid        PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
-  email       text        NOT NULL,
-  full_name   text,
-  role        text        NOT NULL DEFAULT 'user'
-                          CHECK (role IN ('user', 'admin')),
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  updated_at  timestamptz NOT NULL DEFAULT now()
-);
 
 COMMENT ON TABLE  public.profiles          IS 'One profile per auth user. role drives admin access.';
 COMMENT ON COLUMN public.profiles.role     IS 'user | admin — only admins or direct SQL can promote.';
@@ -115,6 +122,7 @@ CREATE POLICY "profiles: admins update all"
   ON public.profiles
   FOR UPDATE
   USING (public.is_admin());
+
 
 
 -- ── events ────────────────────────────────────────────────────────────────────
