@@ -123,8 +123,18 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
         {inEvent && (
           <div className={styles.breadcrumb}>
-            <button className={styles.bcBack} onClick={() => go("dashboard")}>
-              <Icon name="arrowRight" size={14} /> כל האירועים
+            {/* The label is a span so a phone can drop it. It was a bare text
+                node holding this button at a flex-shrink:0 111px, which on every
+                phone width left the event name beside it exactly 12px — its text
+                overflowed the collapsed box, rendered underneath the header's
+                own buttons, and was invisible. Measured at 360/390/430: name box
+                12px, name text 125px, first legible at 768. The arrow alone
+                still says "back", and which event you are in is the more useful
+                of the two. */}
+            <button className={styles.bcBack} onClick={() => go("dashboard")}
+                    aria-label="כל האירועים">
+              <Icon name="arrowRight" size={14} />
+              <span className={styles.bcBackLabel}>כל האירועים</span>
             </button>
             <span className={styles.bcSep}>/</span>
             {/* The event name is the way back to its own map. It used to be

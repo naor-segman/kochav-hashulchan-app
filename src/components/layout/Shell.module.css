@@ -78,6 +78,15 @@
 
 @media (max-width: 480px) {
   .betaBadge { display: none; }
+
+  /* The back link keeps its arrow and gives up its words. It is flex-shrink:0
+     at 111px, and the breadcrumb it shares has only 69–139px on a phone, so it
+     was taking the whole row and leaving the event name a 12px stub whose text
+     spilled out under the header's other buttons — unreadable and, worse,
+     un-tappable, because a tap along the visible name landed on whatever was
+     painted above it. Dropping the label frees ~85px, which is the whole
+     difference between seeing which event you are in and not. */
+  .bcBackLabel { display: none; }
 }
 
 .breadcrumb {
@@ -266,6 +275,17 @@
 }
 
 .homeLabel { display: inline; }
+
+/* Same trade as .bcBackLabel, one step further out: inside an event, a link to
+   the public marketing site is the least useful thing in the bar, and its label
+   costs ~60px of the 360px a small phone has.
+   This block has to sit AFTER the rule above, not up with the other narrow
+   overrides — a media query adds no specificity, so the later `display: inline`
+   was winning and the first version of this fix did nothing at all. Measured
+   both ways. */
+@media (max-width: 480px) {
+  .homeLabel { display: none; }
+}
 
 .accountBtn:hover {
   background: rgba(var(--nav-text-rgb),.12);
