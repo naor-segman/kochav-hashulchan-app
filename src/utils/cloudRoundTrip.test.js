@@ -38,6 +38,7 @@ const MAXIMAL = {
   brideName: "דנה",
   groomName: "יוסי",
   coupleType: "bride-bride",
+  parentsType: "mother-mother",
   sideLabels: { bride: "צד דנה", groom: "צד יוסי" },
   celebrantName: "עידו",
   organizationName: "חברת אלפא",
@@ -192,8 +193,8 @@ describe("full cloud round-trip", () => {
     // Public RPCs and RLS policies select these out of the JSONB. Dropping one
     // breaks a guest-facing page with no client-side error at all.
     const { row } = pipeline(MAXIMAL);
-    for (const k of ["localId", "coupleType", "celebrantName", "organizationName",
-                     "contactName", "ownerName", "albumToken"]) {
+    for (const k of ["localId", "coupleType", "parentsType", "celebrantName",
+                     "organizationName", "contactName", "ownerName", "albumToken"]) {
       expect(row.payload[k], k).toBeTruthy();
     }
   });
@@ -225,6 +226,9 @@ describe("full cloud round-trip", () => {
     expect(n2.floorPlan.tablePositions).toEqual(MAXIMAL.floorPlan.tablePositions);
     expect(n2.noShowPct).toBe(7);
     expect(n2.coupleType).toBe("bride-bride");
+    // Losing this one does not throw — it silently reverts a family with two
+    // mothers to "משפחת האם / משפחת האב" on the next device that syncs.
+    expect(n2.parentsType).toBe("mother-mother");
     // The shared-table switch. It is read by a public RPC out of the payload,
     // so losing it silently re-opens a link the host closed.
     expect(n2.collabActive).toBe(false);

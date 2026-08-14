@@ -4,7 +4,7 @@ import { messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
 import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
-import { getSideLabel } from "../utils/eventHelpers.js";
+import { getSideLabel, guestCompanionNames } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import { parseGuestList, countWithPhone, countSeats } from "../utils/parseGuestList.js";
 import { buildImportRows, readyImportRows } from "../utils/importReview.js";
@@ -458,11 +458,20 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
         {showList && !editId ? (
           <div className={styles.listAddPanel}>
+            {/* One example, not a format spec. A host with a list already in
+                WhatsApp will not rewrite it to match our rules — so the parser
+                stays forgiving and this shows the shape that gets the most out
+                of it, rather than demanding it. The example is wrapped in <bdi>
+                because it mixes Hebrew names with a Latin-digit phone number,
+                and the neutral parentheses between them would otherwise resolve
+                against the surrounding paragraph (bug class 7). */}
             <p className={styles.listAddHint}>
-              שם אחד בכל שורה. אם יש בשורה גם מספר טלפון — הוא ייקלט לשדה הטלפון לבד,
-              לא צריך לסדר כלום מראש. גם "+1" נקלט: כתבו <bdi>עמיר סגמן+1 (יובל סגמן)</bdi>{" "}
-              ותקבלו שורה אחת עם שני מקומות ושני השמות. בחרו למטה לאיזה צד ולאיזו קבוצה
-              כולם שייכים; אפשר לשנות לכל אחד בנפרד אחר כך.
+              שם אחד בכל שורה. הצורה שנקלטת הכי טוב:{" "}
+              <bdi className={styles.listAddSample}>דניאל ישראל (אודליה, מיכאל, אריאל) 0533307300</bdi>{" "}
+              — השם הראשי, מי שמצטרף אליו בסוגריים, והטלפון. תקבלו שורה אחת עם ארבעה
+              מקומות וכל השמות. גם רשימה פשוטה של שמות בלבד עובדת, וגם "+1"; מה שלא
+              יזוהה תוכלו לתקן במסך האישור לפני שמשהו נכנס. בחרו למטה לאיזה צד ולאיזו
+              קבוצה כולם שייכים; אפשר לשנות לכל אחד בנפרד אחר כך.
             </p>
             {reviewRows ? (
               <ImportReview
@@ -479,7 +488,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               className={[base.input, styles.listAddTextarea].join(" ")}
               value={listText}
               onChange={e => setListText(e.target.value)}
-              placeholder={"דוד לוי\nשרה כהן, 050-1234567\nעמיר סגמן+1 (יובל סגמן)\n~משפחת אברהם\t0521234567\n..."}
+              placeholder={"דניאל ישראל (אודליה, מיכאל, אריאל) 0533307300\nשרה כהן, 050-1234567\nדוד לוי\nעמיר סגמן+1 (יובל סגמן)\n..."}
               rows={6}
               autoFocus
               aria-label="הדביקו כאן את רשימת השמות"
@@ -772,6 +781,19 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                     {g.name}
                     {(g.count || 1) > 1 && <span className={base.gCountBadge}>+{(g.count || 1) - 1}</span>}
                   </span>
+                  {/* The names were being stored and never shown. A pasted row
+                      of "דניאל ישראל (אודליה,מיכאל,אריאל) 053…" parsed
+                      correctly — companions and all — and then the list drew
+                      "+3" and nothing else, so the only way to find out whether
+                      the paste had understood anything was to open the edit
+                      form row by row. The seating screen and the table card had
+                      shown these all along; the guest list was the one place
+                      that hadn't. */}
+                  {guestCompanionNames(g).length > 0 && (
+                    <span className={base.gCompanions}>
+                      {guestCompanionNames(g).join(" · ")}
+                    </span>
+                  )}
                   <span className={base.gMeta}>
                     {sideLabel(g.side)} · {g.group}
                     {(g.count || 1) > 1 ? " · " + (g.count) + " מקומות" : ""}

@@ -158,6 +158,18 @@
   line-height: 1.5;
 }
 
+/* The one line a host is meant to copy the shape of. Set apart from the
+   surrounding hint so it reads as a specimen rather than as more prose —
+   --text2 on --bg, which measures 9.7:1. */
+.listAddSample {
+  display: inline-block;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  color: var(--text2);
+}
+
 .listAddTextarea {
   resize: vertical;
   font-family: inherit;

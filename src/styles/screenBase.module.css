@@ -626,6 +626,19 @@
   white-space: nowrap;
 }
 
+/* The other people on this row, by name. Sits between the name and the meta
+   line: darker than --muted because these are names of actual guests rather
+   than metadata about the row, but not as loud as the main name. Truncates on
+   one line — a row of eight companions must not push the list around. */
+.gCompanions {
+  display: block;
+  font-size: var(--step--1);
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Chips / tags / pills ─────────────────────────────────────────────────
    ONE chip. Same box, same radius, same type size; only the ground changes.
 

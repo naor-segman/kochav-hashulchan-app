@@ -29,13 +29,16 @@ export const EVENT_TYPES = [
 export const EVENT_TYPE_HEADINGS = {
   "חתונה":        "מי הזוג המאושר?",
   "אירוס":        "מי הזוג שאמר כן?",
-  "חינה":         "לכבוד מי החינה?",
+  "חינה":         "מי הזוג המאושר?",
   "בר מצווה":     "מי חוגג בר מצווה?",
   "בת מצווה":     "מי חוגגת בת מצווה?",
-  "ברית":         "איך קוראים לתינוק?",
-  "בריתה":        "איך קוראים לתינוקת?",
+  // Not the baby's name: a brit is planned in the days after a birth and the
+  // name is not announced until the ceremony. The old headings asked a question
+  // the host is not allowed to answer yet.
+  "ברית":         "מי ההורים המאושרים?",
+  "בריתה":        "מי ההורים המאושרים?",
   "יום הולדת":    "למי אנחנו חוגגים?",
-  "אירוע משפחתי": "איזו משפחה מתכנסת?",
+  "אירוע משפחתי": "איזו משפחה חוגגת?",
   "אירוע עסקי":   "מי החברה שמארחת?",
   "אחר":          "לכבוד מי האירוע?",
 };
