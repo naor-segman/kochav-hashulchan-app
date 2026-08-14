@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { normalizeEvent, duplicateEvent, seatingTotals, TOKEN_KEYS, rotateEventToken,
          guestSeatNames, guestCompanionNames,
-         getSideLabels, getEventPersonalConfig, getEventNamePlaceholder } from "./eventHelpers.js";
+         getSideLabels, getEventPersonalConfig, getEventNamePlaceholder,
+         PARENT_TYPES, PARENT_EVENT_TYPES } from "./eventHelpers.js";
 import { EVENT_TYPES } from "../data/constants.js";
 import { defaultEventSite } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncements } from "../data/announcementTemplates.js";
@@ -538,9 +539,18 @@ describe("ברית and בריתה are real event types, not 'אחר'", () => {
     expect(getSideLabels({ type })).toEqual({ bride: "משפחת האם", groom: "משפחת האב" });
   });
 
-  it("asks for the baby's name, in the right gender", () => {
-    expect(getEventPersonalConfig("ברית")).toMatchObject({ kind: "owner", label: "שם התינוק" });
-    expect(getEventPersonalConfig("בריתה")).toMatchObject({ kind: "owner", label: "שם התינוקת" });
+  // Was "asks for the baby's name, in the right gender", pinning label "שם
+  // התינוק" / "שם התינוקת". That is a question the host cannot answer: a brit
+  // is booked within days of the birth and the name is not said aloud until the
+  // ceremony. The field is the one that titles the event, so it now asks for
+  // the thing that is always known.
+  it("asks for the family name, not a baby name nobody has announced yet", () => {
+    for (const type of ["ברית", "בריתה"]) {
+      const cfg = getEventPersonalConfig(type);
+      expect(cfg).toMatchObject({ kind: "owner", label: "שם המשפחה" });
+      expect(cfg.label).not.toMatch(/תינוק/);
+      expect(cfg.divider).not.toMatch(/נולד/);
+    }
   });
 
   it.each(["ברית", "בריתה"])("%s has an event-name example of its own", (type) => {
@@ -565,5 +575,67 @@ describe("ברית and בריתה are real event types, not 'אחר'", () => {
     expect(Math.max(...tasks.map(t => t.offset))).toBeLessThanOrEqual(14);
     expect(tasks.some(t => t.title.includes("מוהל"))).toBe(true);
     expect(starterTasks("בריתה")).toEqual(tasks);
+  });
+});
+
+// The wording for the two sides of a bar mitzvah / bat mitzvah / brit was
+// hard-coded to "משפחת האם" / "משפחת האב". A family with two mothers was told,
+// on the first screen of the product, that it had not been expected — and the
+// only way out was an optional side-names field further down the same form,
+// after the wrong words had already been shown. Weddings had solved exactly
+// this with coupleType years of code earlier.
+describe("parentsType — the two families are not always a mother and a father", () => {
+  it("still says מה שאמר קודם for a family that never touches the picker", () => {
+    for (const type of PARENT_EVENT_TYPES) {
+      expect(getSideLabels({ type })).toEqual({ bride: "משפחת האם", groom: "משפחת האב" });
+    }
+  });
+
+  it.each(PARENT_EVENT_TYPES)("%s follows the picker", (type) => {
+    expect(getSideLabels({ type, parentsType: "mother-mother" }))
+      .toEqual({ bride: "משפחת אמא א׳", groom: "משפחת אמא ב׳" });
+    expect(getSideLabels({ type, parentsType: "father-father" }))
+      .toEqual({ bride: "משפחת אבא א׳", groom: "משפחת אבא ב׳" });
+  });
+
+  // Two sides that read the same are two sides nobody can tell apart in the
+  // seating screen, the collab table or the entrance list.
+  it.each(PARENT_TYPES.map(p => p.value))("%s gives two distinguishable sides", (value) => {
+    const { bride, groom } = getSideLabels({ type: "בר מצווה", parentsType: value });
+    expect(bride).toBeTruthy();
+    expect(groom).toBeTruthy();
+    expect(bride).not.toBe(groom);
+  });
+
+  it("a single parent gets one household and its guests, not two households", () => {
+    expect(getSideLabels({ type: "ברית", parentsType: "single" }))
+      .toEqual({ bride: "משפחה", groom: "חברים" });
+  });
+
+  // The whole point of the custom fields is that they win. A host who typed
+  // their own words must not have them overwritten by a picker.
+  it("never overrides side names the host typed", () => {
+    expect(getSideLabels({
+      type: "בר מצווה", parentsType: "mother-mother",
+      sideLabels: { bride: "משפחת לוי", groom: "משפחת כהן" },
+    })).toEqual({ bride: "משפחת לוי", groom: "משפחת כהן" });
+  });
+
+  it("ignores a parentsType on an event type that has no parents", () => {
+    expect(getSideLabels({ type: "חתונה", parentsType: "mother-mother" }))
+      .toEqual({ bride: "צד כלה", groom: "צד חתן" });
+    expect(getSideLabels({ type: "אירוע עסקי", parentsType: "father-father" }))
+      .toEqual({ bride: "הנהלה", groom: "עובדים" });
+  });
+
+  it("falls back rather than rendering nothing for a value it does not know", () => {
+    expect(getSideLabels({ type: "ברית", parentsType: "לא קיים" }))
+      .toEqual({ bride: "משפחת האם", groom: "משפחת האב" });
+  });
+
+  it("normalizeEvent defaults it and preserves it", () => {
+    expect(normalizeEvent({ type: "ברית" }).parentsType).toBe("mother-father");
+    expect(normalizeEvent({ type: "ברית", parentsType: "father-father" }).parentsType)
+      .toBe("father-father");
   });
 });

@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { EVENT_TYPES } from "../data/constants.js";
 import { BUILD_STEP_COUNT, stepChainAfter, nextBuildStep } from "../data/eventAreas.js";
-import { getEventPersonalConfig, getEventNamePlaceholder, getSideLabels, COUPLE_TYPES } from "../utils/eventHelpers.js";
+import { getEventPersonalConfig, getEventNamePlaceholder, getSideLabels, COUPLE_TYPES,
+         PARENT_TYPES, PARENT_EVENT_TYPES } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Divider from "../components/ui/Divider.jsx";
 import Icon from "../components/ui/Icon.jsx";
@@ -22,6 +23,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     brideName:        ev.brideName        || "",
     groomName:        ev.groomName        || "",
     coupleType:       ev.coupleType       || "bride-groom",
+    parentsType:      ev.parentsType      || "mother-father",
     sideLabels: (ev.sideLabels && ev.sideLabels.bride && ev.sideLabels.groom)
       ? { bride: ev.sideLabels.bride, groom: ev.sideLabels.groom }
       : { bride: "", groom: "" },
@@ -270,6 +272,36 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
                 />
               </Field>
             </div>
+          </>
+        )}
+
+        {/* ── Whose two families the sides are ──
+            Gated on the event type rather than personal.kind, because "owner"
+            covers a brit AND a birthday AND "אחר" — and only the first of those
+            has parents to name. */}
+        {PARENT_EVENT_TYPES.includes(form.type) && (
+          <>
+            <Divider label="ההורים" />
+            <Field label="מי ההורים" hint="לפי זה ייקראו שני הצדדים בכל המסכים">
+              <div className={base.seg}>
+                {PARENT_TYPES.map(p => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={[base.segBtn, form.parentsType === p.value ? base.segActive : ""].filter(Boolean).join(" ")}
+                    onClick={() => set("parentsType", p.value)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+            {/* Bug class 7 again: the pair is joined by "או", a strong Hebrew
+                character, so the two side names keep their order on screen even
+                if a host has overridden one of them with Latin letters. */}
+            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+              כל אורח ישויך לצד אחד — "{effectiveLabels.bride}" או "{effectiveLabels.groom}" — בכל המסכים.
+            </p>
           </>
         )}
 

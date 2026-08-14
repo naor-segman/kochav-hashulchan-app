@@ -44,6 +44,7 @@ export function normalizeEvent(ev) {
     // side-role wording so same-sex couples get correct labels.
     // "bride-groom" (default) | "groom-groom" | "bride-bride".
     coupleType:       ev.coupleType       ?? "bride-groom",
+    parentsType:      ev.parentsType      ?? "mother-father",
     // Custom side labels — optional per-event override of the two side names,
     // available for EVERY event type. Both must be non-empty to take effect;
     // otherwise getSideLabels() falls back to the type-based defaults.
@@ -321,6 +322,33 @@ export const COUPLE_TYPES = [
   { value: "bride-bride", label: "כלה וכלה",  brideLabel: "שם הכלה",  groomLabel: "שם הכלה השנייה" },
 ];
 
+// The same problem one life-stage later. A bar mitzvah, a bat mitzvah and a
+// brit all split the room into two extended families, and the wording for that
+// split was hard-coded to "משפחת האם" / "משפחת האב" — which tells a family with
+// two mothers, on the first screen they see, that the product did not expect
+// them. The custom side-name fields could rename it, but only after the wrong
+// words had already been shown, and only if the host went looking for an
+// optional field. Weddings solved this with COUPLE_TYPES; this is that answer
+// applied where it was missing.
+const PARENT_ROLE_WORDS = {
+  "mother-father": { bride: "משפחת האם",    groom: "משפחת האב"    },
+  "mother-mother": { bride: "משפחת אמא א׳", groom: "משפחת אמא ב׳" },
+  "father-father": { bride: "משפחת אבא א׳", groom: "משפחת אבא ב׳" },
+  // A single parent has no second family to balance against, so the two sides
+  // stop being two households and become the split that actually exists.
+  "single":        { bride: "משפחה",        groom: "חברים"        },
+};
+
+export const PARENT_TYPES = [
+  { value: "mother-father", label: "אמא ואבא"   },
+  { value: "mother-mother", label: "שתי אמהות"  },
+  { value: "father-father", label: "שני אבות"   },
+  { value: "single",        label: "הורה יחיד"  },
+];
+
+// The event types whose two sides are the celebrant's parents.
+export const PARENT_EVENT_TYPES = ["בר מצווה", "בת מצווה", "ברית", "בריתה"];
+
 /**
  * Returns both side labels for a given event, keyed by "bride" and "groom"
  * (the internal storage values, preserved for backward compatibility).
@@ -341,8 +369,8 @@ export function getSideLabels(ev) {
       groom: ev?.groomName ? "צד " + ev.groomName : roles.groom,
     };
   }
-  if (type === "בר מצווה" || type === "בת מצווה" || type === "ברית" || type === "בריתה") {
-    return { bride: "משפחת האם", groom: "משפחת האב" };
+  if (PARENT_EVENT_TYPES.includes(type)) {
+    return PARENT_ROLE_WORDS[ev?.parentsType] || PARENT_ROLE_WORDS["mother-father"];
   }
   if (type === "אירוע עסקי") {
     return { bride: "הנהלה", groom: "עובדים" };
@@ -465,11 +493,15 @@ export function getEventPersonalConfig(type) {
   // "owner" is the single-name shape EventSetupScreen already renders, so a
   // brit needs no screen change — only the right word for the one name there
   // is. The parents are the two SIDES, not the celebrant.
-  if (type === "ברית") {
-    return { kind: "owner", divider: "מי נולד", label: "שם התינוק", placeholder: "לדוגמה: איתי" };
-  }
-  if (type === "בריתה") {
-    return { kind: "owner", divider: "מי נולדה", label: "שם התינוקת", placeholder: "לדוגמה: אלה" };
+  //
+  // And the word cannot be the baby's name. A brit is planned in the days after
+  // a birth and the name is not announced until the ceremony itself — asking
+  // "איך קוראים לתינוק?" on the first screen is a question the host is not
+  // allowed to answer yet. The family name is known, always, and doubles as the
+  // event name. A host who does know the given name can still type it here.
+  if (type === "ברית" || type === "בריתה") {
+    return { kind: "owner", divider: "המשפחה שחוגגת", label: "שם המשפחה",
+             placeholder: "לדוגמה: משפחת כהן" };
   }
   if (type === "אירוע עסקי") {
     return { kind: "business", divider: "הארגון שמארח" };

@@ -226,6 +226,12 @@ export async function fetchCollabEvent(token) {
     brideName:  data.bride_name  ?? "",
     groomName:  data.groom_name  ?? "",
     coupleType: data.couple_type ?? "bride-groom",
+    // The collab table calls getSideLabels(ev) too, so without this an aunt
+    // adding names to a two-mother family's bar mitzvah sees "משפחת האם /
+    // משפחת האב" — the exact wording the picker exists to avoid, on the one
+    // screen the extended family actually opens. Needs the RPC to return it:
+    // migration 20260814000000_collab_parents_type.sql.
+    parentsType: data.parents_type ?? "mother-father",
     sideLabels: (data.side_labels && typeof data.side_labels === "object") ? data.side_labels : null,
   };
 }

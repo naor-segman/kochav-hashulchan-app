@@ -24,22 +24,41 @@ describe("EVENT_TYPE_HEADINGS", () => {
     }
   });
 
-  it("gives each type its own question — not one generic line for every type", () => {
+  // Two pairs share a question ON PURPOSE, and the rule has to name them rather
+  // than be dropped — its job is to catch a branch keyed on the KIND alone,
+  // which would quietly give a whole family of types one generic line.
+  //   חתונה / חינה   — a hina is thrown by and for the same couple.
+  //   ברית / בריתה   — neither may ask for a name that is not announced yet, so
+  //                    both ask about the parents; the gendered wording lives
+  //                    in the field label, which does still differ.
+  const SHARED_HEADINGS = [["חתונה", "חינה"], ["ברית", "בריתה"]];
+
+  it("gives each type its own question, apart from the pairs that share one", () => {
     const headings = EVENT_TYPES.map(eventTypeHeading);
     // "אחר" is the deliberate catch-all and shares its wording with the
-    // fallback; every other type must be distinct from every other type.
+    // fallback.
     const named = EVENT_TYPES.filter(t => t !== "אחר").map(eventTypeHeading);
-    expect(new Set(named).size).toBe(named.length);
+    const collapsed = SHARED_HEADINGS.filter(pair => pair.every(t => EVENT_TYPES.includes(t))).length;
+    expect(new Set(named).size).toBe(named.length - collapsed);
     expect(headings.every(h => h.endsWith("?"))).toBe(true);
+  });
+
+  it.each(SHARED_HEADINGS)("%s and %s ask the same question deliberately", (a, b) => {
+    expect(eventTypeHeading(a)).toBe(eventTypeHeading(b));
   });
 
   it("asks a wedding about the couple and a birthday about who is celebrating", () => {
     expect(eventTypeHeading("חתונה")).toBe("מי הזוג המאושר?");
     expect(eventTypeHeading("יום הולדת")).toBe("למי אנחנו חוגגים?");
-    // Same "wedding" kind in getEventPersonalConfig, different question —
-    // a branch keyed on the KIND alone would give all three the same line.
+    // Still the real guard: אירוס is the same "wedding" kind in
+    // getEventPersonalConfig and must NOT inherit the wedding's line.
     expect(eventTypeHeading("אירוס")).not.toBe(eventTypeHeading("חתונה"));
-    expect(eventTypeHeading("חינה")).not.toBe(eventTypeHeading("חתונה"));
+  });
+
+  // The heading a host sees at a brit cannot ask for the baby's name: the name
+  // is not said aloud until the ceremony itself.
+  it.each(["ברית", "בריתה"])("%s does not ask for a name nobody has announced", (type) => {
+    expect(eventTypeHeading(type)).not.toMatch(/תינוק/);
   });
 
   it("falls back for a type it does not know, and for an English key", () => {
