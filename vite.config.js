@@ -5,6 +5,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vite.dev/config/
 export default defineConfig({
   test: {
+    // A background agent may hold a git worktree under .claude/, which is INSIDE
+    // the repo — and Vitest's default exclude covers only node_modules and .git,
+    // so it globbed a second copy of every test and reported 98 files / 1884
+    // tests. A doubled count is not cosmetic: it hides the real one, and it made
+    // two unrelated failures appear out of a tree that was green.
+    exclude: ["**/node_modules/**", "**/.git/**", "**/.claude/**", "**/dist/**", "legacy/**"],
     // The suite is 459 pure-function tests and they stay in the DEFAULT `node`
     // environment — booting jsdom for `parseGuestList` costs ~1s per file and
     // buys nothing. Component tests opt IN, one file at a time, with a

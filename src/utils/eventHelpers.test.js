@@ -282,12 +282,12 @@ describe("floorPlan.elements — venue fixtures", () => {
 
 describe("normalizeEventSite — heading font", () => {
   it("defaults to the serif family for sites that predate the field", () => {
-    const e = normalizeEvent({ id: "x", name: "t", type: "wedding", eventSite: { enabled: true } });
+    const e = normalizeEvent({ id: "x", name: "t", type: "חתונה", eventSite: { enabled: true } });
     expect(e.eventSite.fontKey).toBe("serif");
   });
 
   it("keeps an explicit choice", () => {
-    const e = normalizeEvent({ id: "x", name: "t", type: "wedding", eventSite: { enabled: true, fontKey: "display" } });
+    const e = normalizeEvent({ id: "x", name: "t", type: "חתונה", eventSite: { enabled: true, fontKey: "display" } });
     expect(e.eventSite.fontKey).toBe("display");
   });
 });
@@ -333,11 +333,11 @@ describe("vendors", () => {
 
 describe("customDomain", () => {
   it("defaults to empty for sites that predate it", () => {
-    const e = normalizeEvent({ id: "x", name: "t", type: "wedding", eventSite: { enabled: true } });
+    const e = normalizeEvent({ id: "x", name: "t", type: "חתונה", eventSite: { enabled: true } });
     expect(e.eventSite.customDomain).toBe("");
   });
   it("keeps and trims a configured domain", () => {
-    const e = normalizeEvent({ id: "x", name: "t", type: "wedding", eventSite: { customDomain: "  a.co.il " } });
+    const e = normalizeEvent({ id: "x", name: "t", type: "חתונה", eventSite: { customDomain: "  a.co.il " } });
     expect(e.eventSite.customDomain).toBe("a.co.il");
   });
 });
