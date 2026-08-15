@@ -44,13 +44,15 @@ function json(data: unknown, status = 200) {
 // — so it minted a genuine, real-branded Stripe page that redirected to an
 // attacker's domain. Only origins this deployment actually serves are allowed.
 //
-// APP_ORIGINS is a comma-separated list set per environment; the request's own
-// Origin header is accepted only if it is in that list.
-function safeReturnUrl(raw: string, req: Request): string | null {
+// APP_ORIGINS is a comma-separated list set per environment. It is the whole
+// allow-list: nothing about the incoming request can widen it.
+function safeReturnUrl(raw: string): string | null {
   const allowed = (Deno.env.get("APP_ORIGINS") ?? "")
     .split(",").map(s => s.trim()).filter(Boolean);
-  const origin = req.headers.get("Origin");
-  if (origin && allowed.includes(origin)) allowed.push(origin);
+  // Removed here: `if (origin && allowed.includes(origin)) allowed.push(origin)`
+  // — it re-added a value the list already contained, so it did nothing at all.
+  // Harmless, but it read as if the request's own Origin could widen the
+  // allow-list, which is the opposite of what this function is for.
   try {
     const u = new URL(raw);
     if (u.protocol !== "https:" && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") return null;
@@ -91,7 +93,15 @@ Deno.serve(async (req: Request) => {
 
     // ── Validate plan ─────────────────────────────────────────────────────────
     const { plan, returnUrl } = await req.json() as { plan: string; returnUrl: string };
-    const safeReturn = safeReturnUrl(returnUrl, req);
+    // An unset APP_ORIGINS makes the allow-list EMPTY, which rejects every
+    // checkout with a message that blames the caller's URL. That is the first
+    // thing that will happen the day billing is switched on, and "returnUrl is
+    // not an allowed origin" sends you looking at the wrong end of it.
+    if (!Deno.env.get("APP_ORIGINS")) {
+      console.error("APP_ORIGINS is not set — every checkout will be refused.");
+      return json({ error: "APP_ORIGINS is not configured for this environment." }, 503);
+    }
+    const safeReturn = safeReturnUrl(returnUrl);
     if (!safeReturn) return json({ error: "returnUrl is not an allowed origin" }, 400);
 
     if (!plan || !["pro", "enterprise"].includes(plan)) {

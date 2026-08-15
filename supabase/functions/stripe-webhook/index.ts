@@ -89,7 +89,26 @@ Deno.serve(async (req: Request) => {
   const body = await req.text();
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(
+    // constructEventAsync, not constructEvent.
+    //
+    // NOT MEASURED — there is no Deno runtime in this environment and no
+    // outbound route to fetch one, so this is a reasoned change and I am not
+    // claiming the synchronous form is broken here. What is documented is that
+    // under Deno stripe-node falls back to SubtleCryptoProvider, which cannot
+    // be used from a synchronous call; Stripe's own Deno guidance is the async
+    // form. The async form is correct under BOTH runtimes, so it is the safer
+    // shape either way.
+    //
+    // Why it is worth changing on suspicion: if the sync form does throw here,
+    // every delivery is rejected at the catch below with a 400, no subscriptions
+    // row is ever written, and usePlan() returns "free" to a customer who has
+    // paid — a silent billing failure that looks like nothing at all from
+    // inside the app. Billing is not connected yet, so nothing is in use and
+    // this change cannot break a working path.
+    //
+    // WHEN BILLING IS CONNECTED: check Stripe Dashboard -> Webhooks for 400s on
+    // the first real event. That is the measurement this comment is missing.
+    event = await stripe.webhooks.constructEventAsync(
       body,
       sig,
       Deno.env.get("STRIPE_WEBHOOK_SECRET")!
