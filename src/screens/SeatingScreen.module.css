@@ -477,6 +477,33 @@
   pointer-events: none;
 }
 
+/* On a narrow phone this block is 158px of a 320px screen and it does not
+   shrink, so the table NAME beside it collapsed to nothing: measured at 320px,
+   "שולחן הורי הכלה" rendered in an 8px box and "שולחן 2" in a 0px one — the
+   name simply was not on screen, on the card whose whole job is to say which
+   table this is. Giving it its own row costs one line of height and gives the
+   name the full width back.
+   480px, not 380: the collapse depends on what the card CONTAINS, not only on
+   the screen. A card holding a party of eight carries more chips on the right,
+   and at 390px — the commonest phone width there is — that card's name still
+   measured 14px while its neighbour's was fine. 480 is the breakpoint this
+   codebase already treats as "phone". */
+@media (max-width: 480px) {
+  .tCardHead {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .tCardLeft {
+    flex: 1 1 100%;
+  }
+
+  .tCardRight {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
+
 .tCardCount {
   font-size: var(--step--1);
   font-weight: 700;
