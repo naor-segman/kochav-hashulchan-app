@@ -221,27 +221,29 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
                       placeholder="שם קטגוריה"
                     />
                   </div>
-                  <div className={styles.colAmt}>
+                  <div className={styles.colAmt} data-label="תקציב">
                     <input
                       className={styles.amtInput}
                       type="number"
                       min="0"
                       value={c.budget}
+                      aria-label={"תקציב — " + (c.name || "קטגוריה")}
                       placeholder="0"
                       onChange={e => setField(c.id, "budget", e.target.value)}
                     />
                   </div>
-                  <div className={styles.colAmt}>
+                  <div className={styles.colAmt} data-label="בפועל">
                     <input
                       className={styles.amtInput}
                       type="number"
                       min="0"
                       value={c.actual}
+                      aria-label={"בפועל — " + (c.name || "קטגוריה")}
                       placeholder="0"
                       onChange={e => setField(c.id, "actual", e.target.value)}
                     />
                   </div>
-                  <div className={styles.colDiff}>
+                  <div className={styles.colDiff} data-label="הפרש">
                     {b > 0 || a > 0 ? (
                       <span className={[
                         styles.diffBadge,

@@ -105,6 +105,48 @@
   border-bottom: none;
 }
 
+/* ── The budget table on a phone ──────────────────────────────────────────
+   The grid is min-width: 560px and scrolls sideways inside .tableWrap. At
+   320px that hides 240px of it: measured, only "קטגוריה" and "תקציב" are on
+   screen, so "בפועל" — the column the whole feature exists to collect — is
+   reachable only by a sideways scroll with no affordance suggesting it. A host
+   who never discovers that never records a single real cost.
+   So on a phone the row stops being a table row and becomes a block: the
+   category on its own line, the two amounts side by side beneath it, and the
+   difference and the delete button on a third. Each cell carries its own
+   label, because the header row that used to supply them is hidden. */
+@media (max-width: 480px) {
+  .tableWrap { overflow-x: visible; }
+
+  .table { min-width: 0; }
+
+  /* The header row's only job was to label the columns. */
+  .tableRow.tableHead { display: none; }
+
+  .tableRow {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 10px;
+    padding-block: 12px;
+  }
+
+  .colCat { grid-column: 1 / -1; }
+
+  .colAmt::before,
+  .colDiff::before {
+    content: attr(data-label);
+    display: block;
+    font-size: var(--step--2);
+    color: var(--muted);
+    margin-block-end: 2px;
+  }
+
+  /* The totals row has no labelled cells — it stays one line. */
+  .totalsRow { grid-template-columns: 1fr auto; }
+  .totalsRow .colCat { grid-column: auto; }
+
+  .colDel { justify-self: end; }
+}
+
 /* Header row */
 .tableHead {
   background: var(--bg);
