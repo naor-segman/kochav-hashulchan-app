@@ -716,6 +716,32 @@
 }
 
 /* Hover: reveal drag handle + amber tint */
+/* On a phone this 24px square is the ONLY way to start a drag: the rest of the
+   row is a <select> that stops pointerdown on purpose (qa/seatingFlow.mjs
+   carries the same note), so pressing anywhere else can never begin the
+   gesture. 24px is well under the 44px this codebase uses everywhere else, and
+   this is the product's central interaction.
+   The hit area grows and the glyph does not — the row is dense and inflating
+   the mark itself would push every row apart. Nothing here clips, so the
+   pseudo-element is safe (unlike in the breadcrumb, where overflow: hidden ate
+   one). */
+@media (pointer: coarse) {
+  .dragHandle {
+    position: relative;
+    opacity: 1;
+  }
+
+  .dragHandle::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+  }
+}
+
 .draggableRow:hover .dragHandle {
   opacity: 1;
 }
