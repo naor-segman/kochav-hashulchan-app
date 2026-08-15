@@ -387,6 +387,15 @@ export default function AdminTemplatesScreen() {
 
         {/* ── Templates table ── */}
         {!loading && !error && templates.length > 0 && (
+          <>
+          {/* Eight columns, 693px. At 390 the phone shows four and the פעולות
+              column — ערוך / השבת, the only way to change a template — was
+              entirely off the side. It is pinned now, so the two buttons stay
+              reachable while the rest of the row scrolls under them. */}
+          <p className={styles.scrollHint}>
+            <Icon name="list" size={14} />
+            הטבלה רחבה מהמסך — אפשר לגלול אותה לצדדים. עמודת הפעולות נשארת במקומה.
+          </p>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
@@ -442,6 +451,7 @@ export default function AdminTemplatesScreen() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
       </main>

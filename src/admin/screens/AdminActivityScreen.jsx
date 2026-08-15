@@ -208,6 +208,14 @@ export default function AdminActivityScreen() {
 
             {/* Log table */}
             {filtered.length > 0 && (
+              <>
+              {/* The widest table in the panel: 815px. At 320 the phone shows
+                  זמן and פעולה, cuts שחקן mid-address, and hides סוג ישות /
+                  שם / מטא entirely. */}
+              <p className={styles.scrollHint}>
+                <Icon name="list" size={14} />
+                הטבלה רחבה מהמסך — אפשר לגלול אותה לצדדים.
+              </p>
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
                   <thead>
@@ -273,6 +281,7 @@ export default function AdminActivityScreen() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </>
         )}

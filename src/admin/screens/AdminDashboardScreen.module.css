@@ -107,6 +107,17 @@
   .statsGrid {
     grid-template-columns: 1fr 1fr;
   }
+
+  /* The topbar is `flex-wrap: wrap` on a FIXED 56px height. Below ~600px the
+     brand and the email/logout group need two lines, and the second line has
+     nowhere to go — it lays out from y=63 to y=102 while the header's box
+     still ends at 56, so `main` (which starts at 56) paints straight over it.
+     Measured at 320x568: the logout button's box is 34px tall and its
+     EFFECTIVE hit area was 17px, because the lower half belonged to the page
+     content on top of it.
+     Every other admin screen already carries this line; the dashboard — the
+     one screen you land on first — was the one that missed it. */
+  .topbar { padding: 0 14px; height: auto; padding-block: 10px; }
 }
 
 .statCard {
@@ -341,4 +352,13 @@
   font-size: var(--step--3);
   color: var(--adm-ink-dim);
   margin-inline-start: auto;
+}
+
+/* ── Touch targets ────────────────────────────────────────────────────────────
+   Measured in a real touch context: logout 65x33 and רענן 65x27. The nav rows
+   are already 56px. See AdminUsersScreen.module.css for the idiom — there is no
+   back arrow here, this screen is the top of the panel. */
+@media (pointer: coarse) {
+  .logoutBtn  { min-height: 44px; }
+  .refreshBtn { min-height: 44px; }
 }

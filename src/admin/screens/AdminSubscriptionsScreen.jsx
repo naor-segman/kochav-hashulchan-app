@@ -334,6 +334,13 @@ export default function AdminSubscriptionsScreen() {
 
             {/* Table */}
             {filtered.length > 0 && (
+              <>
+              {/* 550px of columns. At 320 the phone shows two and a half —
+                  נוצר / פג תוקף / גבולות are off the side with no affordance. */}
+              <p className={styles.scrollHint}>
+                <Icon name="list" size={14} />
+                הטבלה רחבה מהמסך — אפשר לגלול אותה לצדדים.
+              </p>
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
                   <thead>
@@ -385,6 +392,7 @@ export default function AdminSubscriptionsScreen() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </>
         )}

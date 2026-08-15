@@ -163,6 +163,37 @@
   border-radius: var(--radius); border: 1px solid var(--adm-line);
   background: var(--adm-surface);
   box-shadow: 0 1px 4px var(--adm-shadow);
+  scrollbar-width: thin;
+  scrollbar-color: var(--adm-line-strong) var(--adm-bg-sunken);
+}
+
+/* Chromium ignores scrollbar-width's sizing for overlay scrollbars, so the
+   track is asked for explicitly — the same opt-out the events table uses. */
+.tableWrap::-webkit-scrollbar { height: 10px; }
+
+.tableWrap::-webkit-scrollbar-track {
+  background: var(--adm-bg-sunken);
+  border-top: 1px solid var(--adm-line);
+}
+
+.tableWrap::-webkit-scrollbar-thumb {
+  background: var(--adm-line-strong);
+  border-radius: var(--radius-pill);
+}
+
+/* Measured 815px with the current columns; .main pads 12px a side on a phone,
+   so it stops fitting just under 860. */
+.scrollHint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--adm-ink-mid);
+}
+
+@media (max-width: 860px) {
+  .scrollHint { display: flex; }
 }
 
 .table {
@@ -246,4 +277,24 @@
   .filters     { flex-direction: column; align-items: stretch; }
   .searchInput { width: 100%; }
   .setupBox    { padding: 28px 16px; }
+}
+
+/* ── Touch targets ────────────────────────────────────────────────────────────
+   Measured in a real touch context: back arrow 26x25, logout 65x33, search 37,
+   action filter 35. See AdminUsersScreen.module.css for the idiom. */
+@media (pointer: coarse) {
+  .backLink { position: relative; }
+  .backLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+  }
+
+  .logoutBtn    { min-height: 44px; }
+  .searchInput  { min-height: 44px; }
+  .filterSelect { min-height: 44px; }
 }

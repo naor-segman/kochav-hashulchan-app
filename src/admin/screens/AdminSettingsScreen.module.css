@@ -233,3 +233,30 @@
   .fieldNarrow { width: 100%; }
   .notConfiguredBox { padding: 28px 20px; }
 }
+
+/* ── Touch targets ────────────────────────────────────────────────────────────
+   Measured in a real touch context: back arrow 26x25, logout 65x33, the text
+   fields 41, the event-type select 37, and the feature-flag rows 39 with a
+   16x16 checkbox inside them. See AdminUsersScreen.module.css for the idiom. */
+@media (pointer: coarse) {
+  .backLink { position: relative; }
+  .backLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+  }
+
+  .logoutBtn { min-height: 44px; }
+  .input,
+  .select,
+  .saveBtn   { min-height: 44px; }
+
+  /* The whole row is the label, so growing the row is what makes the toggle
+     reachable — the 16px box in it never could be. */
+  .flagRow  { min-height: 44px; }
+  .checkbox { width: 20px; height: 20px; }
+}

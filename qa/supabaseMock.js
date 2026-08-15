@@ -70,6 +70,36 @@ const ACTIVITY = [
   created_at: iso(i), profiles: { email: EMAILS[i % EMAILS.length] },
 }));
 
+/* The two tables the panel actually names. `admin_activity` / `activity_log`
+   below were never queried by anything — AdminActivityScreen asks for
+   `activity_logs` and AdminErrorsScreen for `error_reports`, so both screens
+   rendered their empty state and the mobile pass never saw a populated row. */
+const ACTIVITY_LOGS = [
+  ["event_created",        "u0", "event",        "e0", "החתונה של דנה ויוסי", { guests: 312, tables: 28 }],
+  ["user_created",         "u3", "user",         "u3", "שירן אבני",           {}],
+  ["subscription_changed", "u0", "subscription", "s0", "ארגוני",              { from: "pro", to: "enterprise" }],
+  ["event_deleted",        "u2", "event",        "e9", "יום הולדת 60 לאמא",   { guests: 61 }],
+  ["template_created",     "u0", "template",     "t2", "בת מצווה",            { tables: 26 }],
+  ["event_exported",       "u4", "event",        "e4", "כנס לקוחות 2027",     { format: "xlsx", rows: 520 }],
+  ["admin_login",          "u0", "user",         "u0", "admin@kochav-hashulchan.co.il", {}],
+].map(([action, actor, entity_type, entity_id, entity_name, metadata], i) => ({
+  id: "al" + i, action, actor_id: actor, entity_type, entity_id, entity_name,
+  metadata, created_at: iso(i), profiles: { email: EMAILS[i % EMAILS.length] },
+}));
+
+const ERRORS = [
+  ["TypeError: Cannot read properties of undefined (reading 'guests')", "/events/e3/seating", "render",
+   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/605.1",
+   "TypeError: Cannot read properties of undefined (reading 'guests')\n    at seatGuests (seating.js:214:19)\n    at SeatingScreen (SeatingScreen.jsx:88:5)\n    at renderWithHooks (react-dom.js:11121:18)"],
+  ["Failed to fetch", "/events/e1/rsvps", "promise",
+   "Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36",
+   "TypeError: Failed to fetch\n    at cloudSync.js:142:11"],
+  ["ResizeObserver loop completed with undelivered notifications.", "/events/e0/tables", "window",
+   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36", ""],
+].map(([message, route, kind, user_agent, stack], i) => ({
+  id: "er" + i, created_at: iso(i), message, stack, route, user_agent, kind, seen: i === 2,
+}));
+
 const SETTINGS = [
   { key: "product_name", value: "כוכב השולחן" },
   { key: "default_tables", value: "20" },
@@ -84,6 +114,8 @@ const TABLES = {
   subscriptions: SUBSCRIPTIONS,
   admin_activity: ACTIVITY,
   activity_log: ACTIVITY,
+  activity_logs: ACTIVITY_LOGS,
+  error_reports: ERRORS,
   settings: SETTINGS,
   app_settings: SETTINGS,
 };
