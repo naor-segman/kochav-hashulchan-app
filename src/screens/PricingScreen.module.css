@@ -36,8 +36,14 @@
 }
 
 .navLogoMark {
-  /* --accent-text is 2.66:1 on the near-black nav; --accent is 4.84:1. */
-  color: var(--accent);
+  /* --accent-on-dark, the same answer LandingScreen's identical glyph already
+     uses. Two things were wrong here. The token: --accent is a FILL and never
+     the right answer for a glyph (bug class 4). And the measurement in the old
+     comment: "4.84:1" was computed against #14161A, but this nav actually
+     paints #202226 — a tint is a ground (bug class 5). Measured against the
+     ground it really has: --accent 4.19:1, which fails AA at this size;
+     --accent-on-dark 8.18:1. */
+  color: var(--accent-on-dark);
   font-size: var(--step-2);
   line-height: 1;
 }
