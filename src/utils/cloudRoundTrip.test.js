@@ -269,3 +269,36 @@ describe("full cloud round-trip", () => {
     expect(back.tokens.rsvp).toBe("TK-rsvp"); // the columns still carry theirs
   });
 });
+
+// updatedAt is the comparator mergeCloudWithLocal uses to decide which copy of
+// an event survives, so where it is READ from is not a detail. The payload
+// carries the value the app itself stamped when the host last edited; the
+// column is touched by anything server-side. Reading the column in preference
+// makes an untouched cloud row look newer than local work that is genuinely
+// ahead of it — and the merge then discards the local side.
+describe("the timestamps the merge compares come from the payload, not the column", () => {
+  const row = (payloadOver, colOver) => ({
+    id: "cloud-1", user_id: "u1", name: "החתונה", type: "חתונה",
+    version: 3,
+    created_at: new Date(colOver?.created ?? 5_000).toISOString(),
+    updated_at: new Date(colOver?.updated ?? 9_000).toISOString(),
+    payload: { localId: "e1", guests: [], tables: [], seating: {}, constraints: [],
+               createdAt: 1_000, updatedAt: 2_000, ...payloadOver },
+  });
+
+  it("prefers the payload's updatedAt over a server-touched column", () => {
+    expect(mapCloudEventToLocalEvent(row()).updatedAt).toBe(2_000);
+  });
+
+  it("prefers the payload's createdAt too", () => {
+    expect(mapCloudEventToLocalEvent(row()).createdAt).toBe(1_000);
+  });
+
+  // The column is the fallback, not the source — a row written before the app
+  // started stamping the payload still has to produce a usable timestamp.
+  it("falls back to the column when the payload has no stamp", () => {
+    const legacy = mapCloudEventToLocalEvent(row({ updatedAt: undefined, createdAt: undefined }));
+    expect(legacy.updatedAt).toBe(9_000);
+    expect(legacy.createdAt).toBe(5_000);
+  });
+});

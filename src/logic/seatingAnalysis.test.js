@@ -652,3 +652,95 @@ describe("the quality score's weights are part of the contract", () => {
     expect(100 - capped).toBeLessThanOrEqual(20 + 8);   // + the underfill cap
   });
 });
+
+// Seven mutants survived on computeQualityScore — every penalty could be
+// changed or removed with the suite green. The score is the number the host
+// reads to decide whether the arrangement is finished, so an unpinned model is
+// a number that can drift without anyone noticing.
+describe("computeQualityScore — each penalty is worth what it says", () => {
+  const gs = n => Array.from({ length: n }, (_, i) =>
+    ({ id: "g" + i, name: "א" + i, side: "bride", group: "משפחה", count: 1 }));
+  // The 5th argument is the violations list — the caller computes it once and
+  // passes it in, so a test that omits it silently scores against `undefined`.
+  const score = (guests, tables, constraints, seating) =>
+    computeQualityScore(guests, tables, constraints, seating,
+                        computeViolations(guests, tables, constraints, seating));
+
+  it("is null, not a number, when nobody is seated at all", () => {
+    // 91 out of 100 for an empty room is worse than no answer.
+    expect(score(gs(3), [t("t1", 10)], [], {})).toBeNull();
+  });
+
+  it("is 100 for a clean arrangement", () => {
+    const g = gs(5);
+    const seating = Object.fromEntries(g.map(x => [x.id, "t1"]));
+    expect(score(g, [t("t1", 5)], [], seating)).toBe(100);
+  });
+
+  it("charges 15 for a broken apart constraint, the same as a broken together", () => {
+    const g = gs(5);
+    const seating = Object.fromEntries(g.map(x => [x.id, "t1"]));
+    const apart    = [{ id: "c1", type: "apart",    guestA: "g0", guestB: "g1" }];
+    expect(score(g, [t("t1", 5)], apart, seating)).toBe(85);
+
+    const two = [t("t1", 5), t("t2", 5)];
+    const split = { ...seating, g1: "t2" };
+    const together = [{ id: "c1", type: "together", guestA: "g0", guestB: "g1" }];
+    // Same 15, minus whatever the now-underfilled second table costs.
+    expect(score(g, two, together, split)).toBeLessThanOrEqual(85);
+  });
+
+  it("charges 10 for an overbooked table", () => {
+    const g = gs(6);
+    const seating = Object.fromEntries(g.map(x => [x.id, "t1"]));
+    expect(score(g, [t("t1", 5)], [], seating)).toBe(90);
+  });
+
+  it("caps the unseated penalty at 20 however many are left standing", () => {
+    const g = gs(40);
+    const seating = { g0: "t1" };   // one seated, thirty-nine not
+    expect(score(g, [t("t1", 40)], [], seating)).toBe(100 - 20 - 2);
+  });
+
+  // A guest who said no does not need a chair, and must not make the plan look
+  // worse for not having one.
+  it("does not charge for a declined guest having no seat", () => {
+    const g = gs(5).map((x, i) => (i === 4 ? { ...x, rsvp: "declined" } : x));
+    const seating = Object.fromEntries(g.slice(0, 4).map(x => [x.id, "t1"]));
+    expect(score(g, [t("t1", 4)], [], seating)).toBe(100);
+  });
+
+  it("caps the underfilled-table penalty at 8", () => {
+    const g = gs(10);
+    const tables = Array.from({ length: 10 }, (_, i) => t("t" + i, 20));
+    const seating = Object.fromEntries(g.map((x, i) => [x.id, "t" + i]));
+    // Ten tables at 1/20 each: 2 apiece would be 20, capped at 8.
+    expect(score(g, tables, [], seating)).toBe(92);
+  });
+
+  // The threshold matters as much as the penalty. A table at half capacity is
+  // an ordinary table, not a defect — and a fixture that is under BOTH the real
+  // threshold and a widened one cannot tell them apart, which is how the first
+  // version of this block missed it.
+  it("does not charge for a table that is merely half full", () => {
+    const g = gs(5);
+    const seating = Object.fromEntries(g.map(x => [x.id, "t1"]));
+    expect(score(g, [t("t1", 10)], [], seating)).toBe(100);   // 50% — fine
+  });
+
+  it("charges for a table that is nearly empty", () => {
+    const g = gs(2);
+    const seating = Object.fromEntries(g.map(x => [x.id, "t1"]));
+    expect(score(g, [t("t1", 10)], [], seating)).toBe(98);    // 20% — 2 off
+  });
+
+  it("never goes below zero, however broken the plan is", () => {
+    const g = gs(4);
+    const seating = Object.fromEntries(g.map(x => [x.id, "t1"]));
+    const many = Array.from({ length: 10 }, (_, i) =>
+      ({ id: "c" + i, type: "apart", guestA: "g" + (i % 4), guestB: "g" + ((i + 1) % 4) }));
+    const out = score(g, [t("t1", 2)], many, seating);
+    expect(out).toBeGreaterThanOrEqual(0);
+    expect(out).toBe(0);
+  });
+});
