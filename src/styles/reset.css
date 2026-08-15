@@ -96,12 +96,21 @@ h1, h2, h3, h4, h5, h6 {
 /* No !important. This global rule fighting first-party CSS is what forced
    ConstraintsScreen to answer with three !important declarations of its own —
    there is no third party involved on either side of that argument. */
+/* WCAG 1.4.11 wants the focus indicator itself at 3:1 or better. The old ring
+   was 3px of --accent-bg, which measures 1.14:1 against a white card and
+   1.04:1 against the page — it contributed nothing at all, so the entire
+   visible focus state rested on the border changing to --accent, at exactly
+   3.00:1. Sitting on the minimum is not passing it with anything to spare.
+   LoginScreen had already worked this out and fixed it locally; its comment
+   calls the old halo "no visible focus state at all". That fix never reached
+   here, so every other form in the product still shipped what it condemned.
+   --cta against --border is 4.22:1, and the halo now carries real colour. */
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg);
+  border-color: var(--cta);
+  box-shadow: 0 0 0 3px rgba(var(--cta-rgb), .28);
 }
 
 /* ── Focus baseline ───────────────────────────────────────────────────────
