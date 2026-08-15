@@ -748,3 +748,60 @@ describe("the room-aware pass — the rules that had no test", () => {
     expect(out).not.toBe(locked);
   });
 });
+
+// The guards in computeViolations exist because the data reaching it is not
+// always clean — and a mutation run showed both could be removed with the suite
+// still green. Executed against the code with the guard removed, each of these
+// throws and takes the Seating screen down with it.
+describe("computeViolations survives the dirty data it is guarded against", () => {
+  const gs = [g("g1", { name: "אבי" }), g("g2", { name: "בני" })];
+  const ts = [t("t1", 10)];
+
+  it("ignores a null or malformed entry in the constraints array", () => {
+    const dirty = [null, undefined, "לא אובייקט", 7,
+                   { id: "c1", type: "apart", guestA: "g1", guestB: "g2" }];
+    const seating = { g1: "t1", g2: "t1" };
+    expect(() => computeViolations(gs, ts, dirty, seating)).not.toThrow();
+    expect(computeViolations(gs, ts, dirty, seating)).toHaveLength(1);
+  });
+
+  // The sharper one: a guest is deleted but their id is STILL in `seating`.
+  // That is an ordinary stale entry, not a corrupt file, and the existing test
+  // only covered the case where the ghost is absent from seating — which
+  // short-circuits before ever reaching the crash.
+  it("ignores a constraint naming a deleted guest whose seat entry remains", () => {
+    // Both halves matter. The ghost's id must still be IN `seating`, or the
+    // "is either unseated" check short-circuits before the guard is reached —
+    // and the two must sit at DIFFERENT tables, or a `together` constraint is
+    // satisfied and returns before it ever reads the missing guest's name.
+    // Getting either wrong makes this test pass against the unguarded code,
+    // which is exactly what happened on the first attempt.
+    const two  = [t("t1", 10), t("t2", 10)];
+    const cons = [{ id: "c1", type: "together", guestA: "g1", guestB: "ghost" }];
+    const seating = { g1: "t1", ghost: "t2" };
+    expect(() => computeViolations([gs[0]], two, cons, seating)).not.toThrow();
+    expect(computeViolations([gs[0]], two, cons, seating)).toEqual([]);
+  });
+});
+
+// The `together` branch has this test twice. Its `apart` twin had nothing, and
+// removing the guard produced 495 differing events out of 4000 — including the
+// sentence "שניהם שובצו לאותו שולחן" for a pair where NEITHER guest is seated.
+describe("an apart constraint only fires when both guests are actually seated", () => {
+  const gs = [g("g1", { name: "אבי" }), g("g2", { name: "בני" })];
+  const ts = [t("t1", 10)];
+  const apart = [{ id: "c1", type: "apart", guestA: "g1", guestB: "g2" }];
+
+  it("reports nothing when neither is seated", () => {
+    expect(computeViolations(gs, ts, apart, {})).toEqual([]);
+  });
+
+  it("reports nothing when only one is seated", () => {
+    expect(computeViolations(gs, ts, apart, { g1: "t1" })).toEqual([]);
+    expect(computeViolations(gs, ts, apart, { g2: "t1" })).toEqual([]);
+  });
+
+  it("still reports the real violation when both share a table", () => {
+    expect(computeViolations(gs, ts, apart, { g1: "t1", g2: "t1" })).toHaveLength(1);
+  });
+});
