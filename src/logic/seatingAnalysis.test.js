@@ -744,3 +744,41 @@ describe("computeQualityScore — each penalty is worth what it says", () => {
     expect(out).toBe(0);
   });
 });
+
+// buildApartPairs builds its keys with .sort(); every consumer queries sorted.
+// Remove that sort and a constraint stored as (b,a) stops matching — so the
+// engine recommends a move that seats feuding guests together.
+//
+// This took four attempts to pin, and the reason is worth recording: the
+// difference is NOT in the number of suggestions, and it does not appear at all
+// unless a suggestion would actually move someone INTO the other guest's table.
+// With the pair already seated together, no suggestion can unite them; with
+// them merely apart, nothing proposes the move. It needs the isolated-guest
+// shape — one of them alone, the rest of their group (including the other) at a
+// table with room — and then the two versions diverge in the sentence the host
+// is told to act on:
+//
+//   sorted key   -> "שקלו לפנות מקום ב2 עבור zz"
+//   unsorted key -> "העבירו את zz ל2 עם שאר משפחה"   <-- seats them together
+describe("an apart constraint is honoured whichever way round its ids were stored", () => {
+  // Reverse-alphabetical on purpose: "zz" before "aa" is what a host creates
+  // when they pick the second guest first, and it is the only spelling that can
+  // distinguish a sorted key from an unsorted one.
+  const gs = [g("zz"), g("aa"), g("b1"), g("b2"),
+              g("c1", { group: "חברים" }), g("c2", { group: "חברים" }), g("c3", { group: "חברים" })];
+  const ts = [t("t1", 10), t("t2", 10), t("t3", 10)];
+  // zz sits alone; the rest of משפחה — aa among them — is on t2, which has room.
+  const seating = { zz: "t3", aa: "t2", b1: "t2", b2: "t2", c1: "t1", c2: "t1", c3: "t1" };
+
+  it.each([["reversed", apart("zz", "aa")], ["forward", apart("aa", "zz")]])(
+    "does not tell the host to move them together — %s", (_label, constraint) => {
+      const out = generateSuggestions(gs, ts, [constraint], seating);
+      const iso = find(out, "isolated_guest");
+      // Guard against vacuity: with no isolated-guest suggestion this block
+      // would pass while testing nothing, which is how three earlier versions
+      // of it failed to catch the mutant.
+      expect(iso, "no isolated_guest suggestion — the fixture stopped exercising this").toBeTruthy();
+      expect(iso.toTableId, "it proposed moving them into the other's table").not.toBe("t2");
+      expect(iso.recommendedAction).not.toMatch(/העבירו את zz ל/);
+    });
+});
