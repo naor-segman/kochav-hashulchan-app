@@ -668,3 +668,101 @@ describe("duplicateEvent — the copy shares nothing with the original", () => {
     expect(base.guests[0].companions).toEqual(["רונית", "דן"]);
   });
 });
+
+// A mutation run found five untested resets in duplicateEvent and four fields
+// normalizeEvent could silently drop. The fixture these describe blocks use had
+// no constraints, no locks, no budget and no send history, so the resets were
+// never exercised at all.
+describe("normalizeEvent — the fields that survived because nothing checked them", () => {
+  // enabled defaults to FALSE, and normalizeEvent runs on every localStorage
+  // load — so a normalizer that stopped reading the stored value would
+  // unpublish a live event site on the next reload, killing a link the host has
+  // already printed and sent. Nothing asserted it: cloudRoundTrip's fixture
+  // uses `published:`, not `enabled:`.
+  it("keeps a published event site published", () => {
+    expect(normalizeEvent({ eventSite: { enabled: true } }).eventSite.enabled).toBe(true);
+    expect(normalizeEvent({ eventSite: {} }).eventSite.enabled).toBe(false);
+    expect(normalizeEvent({}).eventSite.enabled).toBe(false);
+  });
+
+  // Added to the default template later, these have to appear for events that
+  // predate them, or a section silently does not exist for existing customers.
+  it("fills in site sections an older event never had", () => {
+    const s = normalizeEvent({ eventSite: { enabled: true, sections: {} } }).eventSite;
+    expect(Object.keys(s.sections).length).toBeGreaterThan(0);
+  });
+
+  // The number on the public gift page. Dropping it shows a gift page with no
+  // way to actually send anything.
+  it("preserves the gift destinations rather than blanking them", () => {
+    const e = normalizeEvent({ giftBitPhone: "0501234567", giftPayboxLink: "https://payboxapp.page.link/x" });
+    expect(e.giftBitPhone).toBe("0501234567");
+    expect(e.giftPayboxLink).toBe("https://payboxapp.page.link/x");
+  });
+});
+
+describe("duplicateEvent — what the copy must NOT inherit", () => {
+  const rich = () => normalizeEvent({
+    id: "orig", name: "אירוע", version: 7,
+    guests: [{ id: "g1", name: "א", side: "bride", group: "משפחה", count: 1 },
+             { id: "g2", name: "ב", side: "groom", group: "חברים", count: 1 }],
+    tables: [{ id: "t1", name: "1", capacity: 10, type: "regular" }],
+    seating: { g1: "t1" },
+    constraints: [{ id: "c1", type: "together", guestA: "g1", guestB: "g2" }],
+    lockedGuests: ["g1"], lockedTables: ["t1"],
+    costs: { categories: [{ id: "dj", name: "תקליטן", budget: 90000, actual: 90000 }] },
+    messagesSent: { invitation: { g1: 1700 } },
+  });
+
+  // The ids are remapped, so a constraint that kept the ORIGINAL ids points at
+  // guests that do not exist in the copy — and computeViolations skips a
+  // constraint whose guests it cannot find. Every "must sit together" rule
+  // silently stops working, with the rules still listed on screen.
+  it("remaps constraints onto the copy's own guests", () => {
+    const dup = duplicateEvent(rich());
+    const ids = new Set(dup.guests.map(g => g.id));
+    expect(dup.constraints).toHaveLength(1);
+    for (const c of dup.constraints) {
+      expect(ids.has(c.guestA), "guestA " + c.guestA).toBe(true);
+      expect(ids.has(c.guestB), "guestB " + c.guestB).toBe(true);
+    }
+  });
+
+  it("starts with an empty budget, not last event's ₪90,000", () => {
+    expect(duplicateEvent(rich()).costs).toEqual({});
+  });
+
+  it("carries no locks, no send history, and starts at version 1", () => {
+    const dup = duplicateEvent(rich());
+    expect(dup.lockedGuests).toEqual([]);
+    expect(dup.lockedTables).toEqual([]);
+    expect(dup.messagesSent).toEqual({});
+    expect(dup.version).toBe(1);
+  });
+});
+
+// parentsType has eight tests through getSideLabels; coupleType — the same
+// mechanism, shipped years earlier — had none.
+describe("getSideLabels — the couple's own wording", () => {
+  it.each(["bride-groom", "groom-groom", "bride-bride"])(
+    "%s gives two non-empty, distinguishable sides", (coupleType) => {
+      const { bride, groom } = getSideLabels({ type: "חתונה", coupleType });
+      expect(bride).toBeTruthy();
+      expect(groom).toBeTruthy();
+      expect(bride).not.toBe(groom);
+    });
+
+  it("uses the couple's own words rather than defaulting everyone to כלה/חתן", () => {
+    expect(getSideLabels({ type: "חתונה", coupleType: "groom-groom" }))
+      .toEqual({ bride: "צד חתן א׳", groom: "צד חתן ב׳" });
+    expect(getSideLabels({ type: "חתונה", coupleType: "bride-bride" }))
+      .toEqual({ bride: "צד כלה א׳", groom: "צד כלה ב׳" });
+  });
+
+  // A half-filled override is not an override — it would render one side blank.
+  it("ignores a custom override that has only one side filled", () => {
+    const out = getSideLabels({ type: "חתונה", sideLabels: { bride: "משפחת כהן", groom: "" } });
+    expect(out.groom).toBeTruthy();
+    expect(out.bride).not.toBe("");
+  });
+});

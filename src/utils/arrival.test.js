@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   seatsOf, arrivedSeatsOf, arrivedCountOf, isFullyArrived, withArrivedSeats,
   setRowArrived, toggleSeat, setArrivedCount, arrivalTotals, matchGuest,
-  searchGuests, tableAvailability, norm,
+  searchGuests, tableAvailability, norm, seatChipLabels,
 } from "./arrival.js";
 import { seatingTotals, guestSeatNames, normalizeEvent } from "./eventHelpers.js";
 import { mapLocalEventToCloudPayload, mapCloudEventToLocalEvent } from "./cloudSync.js";
@@ -316,5 +316,56 @@ describe("every arrival write carries the moment it happened", () => {
     const out = withArrivedSeats(g, [0]);
     expect(out.arrivedAt).toBeGreaterThanOrEqual(before);
     expect(out.arrivedAt).toBeLessThanOrEqual(Date.now());
+  });
+});
+
+// seatChipLabels had zero tests — it is imported only by EntranceScreen — and a
+// one-character mutant (comps[i-1] → comps[i]) survived the whole suite. That
+// mutant is not cosmetic: matchGuest returns seat i+1 for companion i, so the
+// chips and the search would disagree and the greeter tapping "seat 1" would
+// check in a different person from the one they are looking at.
+describe("seatChipLabels — the chips the greeter taps at the door", () => {
+  it("puts the main guest first and each companion at its own seat", () => {
+    expect(seatChipLabels({ name: "טל שוורץ", count: 3, companions: ["רון", "מיה"] }))
+      .toEqual(["טל שוורץ", "רון", "מיה"]);
+  });
+
+  // The contract that makes the chips and the search agree.
+  it("puts companion i at index i+1, which is the seat matchGuest returns", () => {
+    const g = { id: "g1", name: "טל", count: 4, companions: ["רון", "מיה", "דן"] };
+    const labels = seatChipLabels(g);
+    g.companions.forEach((name, i) => expect(labels[i + 1]).toBe(name));
+  });
+
+  it("fills unnamed seats with a numbered placeholder rather than a blank chip", () => {
+    expect(seatChipLabels({ name: "משפחת כהן", count: 3, companions: [] }))
+      .toEqual(["משפחת כהן", "אורח 2", "אורח 3"]);
+    expect(seatChipLabels({ name: "משפחת כהן", count: 3, companions: ["רון"] }))
+      .toEqual(["משפחת כהן", "רון", "אורח 3"]);
+  });
+
+  it("never renders a nameless main guest as an empty chip", () => {
+    expect(seatChipLabels({ name: "", count: 2, companions: ["רון"] }))
+      .toEqual(["אורח", "רון"]);
+  });
+
+  it("returns exactly as many chips as the row has seats", () => {
+    for (const count of [1, 2, 5, 12]) {
+      expect(seatChipLabels({ name: "א", count, companions: ["x", "y"] })).toHaveLength(count);
+    }
+  });
+});
+
+// arrivedSeatsOf drops its sort and the suite stayed green — but the chips are
+// rendered in this order, so a greeter who checks in seat 2 before seat 1 sees
+// the names swap around under their finger.
+describe("arrivedSeatsOf returns seats in seat order, whatever order they were marked in", () => {
+  it("sorts marks made out of order", () => {
+    expect(arrivedSeatsOf({ count: 4, arrivedSeats: [2, 0, 3] })).toEqual([0, 2, 3]);
+    expect(arrivedSeatsOf({ count: 3, arrivedSeats: [1, 0] })).toEqual([0, 1]);
+  });
+
+  it("still de-duplicates and drops seats past the row's size", () => {
+    expect(arrivedSeatsOf({ count: 2, arrivedSeats: [1, 1, 0, 7] })).toEqual([0, 1]);
   });
 });
