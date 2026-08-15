@@ -86,7 +86,7 @@ describe("cloudSync token-column NULL fallback", () => {
 describe("cloud round-trip — floor plan fixtures", () => {
   it("carries venue elements to the cloud and back", () => {
     const local = {
-      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      id: "e1", name: "אירוע", type: "חתונה", date: "2026-09-01",
       guests: [], tables: [], seating: {}, constraints: [],
       floorPlan: {
         image: null,
@@ -104,7 +104,7 @@ describe("cloud round-trip — floor plan fixtures", () => {
 
   it("still round-trips a plan that has positions but no fixtures", () => {
     const local = {
-      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      id: "e1", name: "אירוע", type: "חתונה", date: "2026-09-01",
       guests: [], tables: [], seating: {}, constraints: [],
       floorPlan: { image: null, tablePositions: { t1: { x: 0.1, y: 0.1 } }, elements: [] },
     };
@@ -123,7 +123,7 @@ describe("cloud round-trip — tasks", () => {
       { id: "t1", title: "לסגור אולם", note: "", due: "2026-08-01", priority: "high", status: "doing", doneAt: null },
     ];
     const local = {
-      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      id: "e1", name: "אירוע", type: "חתונה", date: "2026-09-01",
       guests: [], tables: [], seating: {}, constraints: [], tasks,
     };
     const back = mapCloudEventToLocalEvent({
@@ -137,7 +137,7 @@ describe("cloud round-trip — tasks", () => {
     const back = mapCloudEventToLocalEvent({
       id: "cloud-1", user_id: "u1", name: "אירוע", event_date: "2026-09-01",
       payload: mapLocalEventToCloudPayload(
-        { id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01", guests: [], tables: [], seating: {}, constraints: [] },
+        { id: "e1", name: "אירוע", type: "חתונה", date: "2026-09-01", guests: [], tables: [], seating: {}, constraints: [] },
         "u1",
       ).payload,
     });
@@ -152,7 +152,7 @@ describe("cloud round-trip — announcements", () => {
       invitation:  { enabled: false, themeKey: "sky", headline: "מוזמנים" },
     };
     const local = {
-      id: "e1", name: "אירוע", type: "wedding", date: "2026-09-01",
+      id: "e1", name: "אירוע", type: "חתונה", date: "2026-09-01",
       guests: [], tables: [], seating: {}, constraints: [], announcements,
     };
     const back = mapCloudEventToLocalEvent({

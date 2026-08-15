@@ -124,7 +124,10 @@
      pseudo-element has nothing left to add and can only re-create the overlap.
      32 instances across the six public pages. */
   .colLink {
-    padding-block: 8px;
+    /* 8px measured at 36px total, not the 44 the arithmetic promised — the
+       line box is 20px here, not the 29.5 the earlier note assumed. 12 gets
+       there, and the pitch grows with it so the links still cannot overlap. */
+    padding-block: 12px;
   }
 
   .logo {

@@ -45,13 +45,14 @@ function json(data: unknown, status = 200) {
 // — so it minted a genuine, real-branded Stripe page that redirected to an
 // attacker's domain. Only origins this deployment actually serves are allowed.
 //
-// APP_ORIGINS is a comma-separated list set per environment; the request's own
-// Origin header is accepted only if it is in that list.
-function safeReturnUrl(raw: string, req: Request): string | null {
+// APP_ORIGINS is a comma-separated list set per environment. It is the whole
+// allow-list: nothing about the incoming request can widen it.
+function safeReturnUrl(raw: string): string | null {
   const allowed = (Deno.env.get("APP_ORIGINS") ?? "")
     .split(",").map(s => s.trim()).filter(Boolean);
-  const origin = req.headers.get("Origin");
-  if (origin && allowed.includes(origin)) allowed.push(origin);
+  // Removed here: `if (origin && allowed.includes(origin)) allowed.push(origin)`
+  // — it re-added a value the list already contained, so it did nothing. Same
+  // dead line as in create-checkout-session; both copies are gone.
   try {
     const u = new URL(raw);
     if (u.protocol !== "https:" && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") return null;
@@ -103,7 +104,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const { returnUrl } = await req.json() as { returnUrl: string };
-    const safeReturn = safeReturnUrl(returnUrl, req);
+    // Same trap as checkout: an unset APP_ORIGINS empties the allow-list and
+    // refuses everything with a message that blames the caller's URL.
+    if (!Deno.env.get("APP_ORIGINS")) {
+      console.error("APP_ORIGINS is not set — every portal session will be refused.");
+      return json({ error: "APP_ORIGINS is not configured for this environment." }, 503);
+    }
+    const safeReturn = safeReturnUrl(returnUrl);
     if (!safeReturn) return json({ error: "returnUrl is not an allowed origin" }, 400);
 
     // ── Create Billing Portal session ─────────────────────────────────────────
