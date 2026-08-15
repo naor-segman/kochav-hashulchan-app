@@ -108,7 +108,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
       <PageHeader
         title="הודעות לאורחים"
         mark="messages"
-        sub="רצף ההודעות מהשמירת-תאריך ועד התודה — עם מעקב מי כבר קיבל מה."
+        sub="רצף ההודעות משמירת התאריך ועד התודה — עם מעקב מי כבר קיבל מה."
         aside={
           <div className={base.pills}>
             <StatPill n={stages.reduce((n, s) => n + s.done, 0)} label="נשלחו" color="var(--green)" />
