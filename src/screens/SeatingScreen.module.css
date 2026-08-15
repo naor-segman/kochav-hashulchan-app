@@ -342,8 +342,14 @@
   pointer-events: none;
 }
 
+/* flex: 1 so the name claims whatever the card has left. Without it this block
+   sizes to content and the name ellipsed at EVERY width — measured 115px for
+   "שולחן הורי הכלה" even on a 1280px screen, because the cards are a
+   repeat(auto-fill, minmax(300px,1fr)) grid and the constraint is the CARD, not
+   the viewport. On a phone the same collapse went all the way to 0px. */
 .tCardMeta {
   min-width: 0;
+  flex: 1;
 }
 
 /* ─── Rename in place ───────────────────────────────────────────────────────
