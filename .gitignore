@@ -40,3 +40,8 @@ pnpm-debug.log*
 
 # QA screenshots — written by qa/shot.mjs and qa/palette.mjs, never committed.
 qa/shots/
+
+# Background agents create git worktrees here — a full second copy of the repo,
+# inside the repo. Never commit one. Scoped to worktrees/ rather than the whole
+# of .claude/ so a real settings file stays trackable.
+.claude/worktrees/
