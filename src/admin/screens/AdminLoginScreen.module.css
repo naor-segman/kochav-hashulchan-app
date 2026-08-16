@@ -154,3 +154,11 @@
   text-align: center;
   margin: 20px 0 0;
 }
+
+/* ── Touch targets ────────────────────────────────────────────────────────────
+   The two fields measure 45px and clear the bar; the floor is stated anyway so
+   a future padding change cannot quietly drop them under it. */
+@media (pointer: coarse) {
+  .input,
+  .btn { min-height: 44px; }
+}

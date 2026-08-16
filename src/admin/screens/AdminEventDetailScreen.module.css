@@ -518,3 +518,21 @@
   font-family: monospace;
   word-break: break-all;
 }
+
+/* ── Touch targets ────────────────────────────────────────────────────────────
+   Measured in a real touch context: back arrow 26x25, logout 65x33. See
+   AdminUsersScreen.module.css for the idiom. */
+@media (pointer: coarse) {
+  .backLink { position: relative; }
+  .backLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+  }
+
+  .logoutBtn { min-height: 44px; }
+}

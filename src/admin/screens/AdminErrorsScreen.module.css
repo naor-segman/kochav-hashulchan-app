@@ -252,3 +252,30 @@
   .page { padding: 16px 14px; }
   .sub  { display: none; }
 }
+
+/* ── Touch targets ────────────────────────────────────────────────────────────
+   Measured in a real touch context: back 33x33, רענון 35 tall, the unread
+   filter row 19 with a 15x15 checkbox in it, and "פירוט טכני" / "סימון כנקרא"
+   — the two actions on every error — 19 tall. See AdminUsersScreen.module.css
+   for why the pad is a pseudo-element and why `left` is physical. */
+@media (pointer: coarse) {
+  .back    { width: 44px; height: 44px; }
+  .refresh { min-height: 44px; }
+
+  /* The label wraps the checkbox, so growing the label is what makes the
+     toggle reachable. */
+  .filter { min-height: 44px; }
+  .filter input { width: 20px; height: 20px; }
+
+  .linkBtn { position: relative; }
+  .linkBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

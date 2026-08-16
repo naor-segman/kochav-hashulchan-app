@@ -336,7 +336,10 @@ function TableCard({
             return (
               <DraggableGuestRow key={g.id} guestId={g.id} className={styles.tGuestRow}>
                 <SideDot side={g.side} />
-                <div className={base.gInfo} style={{ flex: 1 }}>
+                {/* A basis, not `flex: 1`. With flex-basis 0 this block's scaled
+                    shrink factor is 0, so it soaked up every pixel the row was
+                    short and collapsed to 6px — see the note on .tGuestRow. */}
+                <div className={base.gInfo} style={{ flex: "1 1 140px" }}>
                   <span className={base.gName}>
                     {g.name}
                     {isLockedGuest && (

@@ -547,3 +547,40 @@
 
 .actionCol  { text-align: center; }
 .actionCell { text-align: center; }
+
+/* ── Touch targets ────────────────────────────────────────────────────────────
+   Measured in a real touch context with elementFromPoint: back arrow 26x25,
+   logout 65x33, search 41, the type filter 38, "צפה" 49x25 and the owner
+   email link 13px tall. See AdminUsersScreen.module.css for why the pad is a
+   pseudo-element and why `left` is physical here. Rows are 47px, so a 44px pad
+   stays inside the row. */
+@media (pointer: coarse) {
+  .backLink { position: relative; }
+  .backLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+  }
+
+  .logoutBtn    { min-height: 44px; }
+  .searchInput  { min-height: 44px; }
+  .filterSelect { min-height: 44px; }
+
+  .viewLink,
+  .ownerLink { position: relative; }
+  .viewLink::after,
+  .ownerLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateY(-50%) translateX(-50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

@@ -228,6 +228,15 @@ export default function AdminUsersScreen() {
 
         {/* ── Users table ── */}
         {!loading && !error && filtered.length > 0 && (
+          <>
+          {/* Six columns, 688px of them. At 320 the phone shows two — email and
+              name — and תפקיד / תוכנית / אירועים / הצטרף are entirely off the
+              side with nothing to say so. Same affordance the events table
+              already carries. */}
+          <p className={styles.scrollHint}>
+            <Icon name="list" size={14} />
+            הטבלה רחבה מהמסך — אפשר לגלול אותה לצדדים.
+          </p>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
@@ -280,6 +289,7 @@ export default function AdminUsersScreen() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
       </main>

@@ -358,6 +358,20 @@
   box-shadow: var(--shadow-cta-lg);
 }
 
+/* Modifier — a label the code BUILDS from live counts.
+   The family is `white-space: nowrap; flex-shrink: 0`, which is right for a
+   button whose label is a fixed phrase. It is wrong for one assembled at
+   runtime: "+ הוסיפו 8 אורחים · 20 מקומות · 5 עם טלפון" measured 368.5px and
+   "בדקו 8 אורחים לפני ההוספה · 20 מקומות · 5 עם טלפון" measured 436.5px inside
+   a 320px viewport, so the paste flow's own primary action hung off the edge of
+   the screen and dragged the whole page into horizontal scroll (window.scrollX
+   moved 96px and 164px). Combine with a size class, never alone. */
+.btnWrap {
+  white-space: normal;
+  flex-shrink: 1;
+  max-width: 100%;
+}
+
 /* Skin — secondary hairline */
 .btnSecondary {
   background: var(--surface);

@@ -237,16 +237,33 @@
   background: var(--bg);
 }
 
+/* Both shrink, in proportion to their own length.
+   .acName was flex-shrink:0 + nowrap and .acMeta was `flex: 1` — flex-basis 0,
+   so its scaled shrink factor was 0 and it took the whole deficit. On a 320px
+   screen every row with a real Israeli name ("אברהם יצחק בן-שלמה הכהן
+   מזרחי-רוזנבלט") ran off the edge of the list with no ellipsis and the meta
+   line measured 0px — and the meta line is what tells two similar names apart,
+   which is the entire reason this picker shows the side, the group and the
+   phone at all. */
 .acName {
   font-weight: 600;
-  flex-shrink: 0;
+  /* A cap, not a shrink factor. Letting the name shrink proportionally cut
+     "אורי" from 29.5px to 20.6px on a row with room to spare. It keeps its full
+     width up to 60% of the row and ellipsises past that; the meta shrinks
+     instead, which is the right order — the name is what is being picked. */
+  flex: 0 0 auto;
+  max-width: 60%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .acMeta {
   font-size: var(--step--2);
   color: var(--muted);
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

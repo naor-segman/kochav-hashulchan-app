@@ -3,8 +3,11 @@
 .publishRow { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .publishTitle { font-size: var(--step-0); font-weight: 800; color: var(--text); }
 .publishSub { font-size: var(--step--2); color: var(--muted); margin-top: 2px; }
-.shareRow { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
-.shareInput { flex: 1; min-width: 0; font-size: var(--step--2); }
+/* Wraps: the three buttons beside the field are flex-shrink:0 and nowrap, so at
+   320px they pushed the row 35px past the viewport (window.scrollX moved 35)
+   and squeezed the link field — `flex: 1`, i.e. basis 0 — down to 26px. */
+.shareRow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 16px; }
+.shareInput { flex: 1 1 180px; min-width: 0; font-size: var(--step--2); }
 
 /* Share-with-guests message rows */
 .msgRow {
@@ -55,9 +58,13 @@
 .secToggleHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 
 /* Schedule rows */
-.scheduleRow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+/* Wraps, for the same reason as .shareRow: the time (116px) and icon (54px)
+   fields are fixed-width and flex-shrink:0, which left the step's NAME — the
+   only field on the row that carries meaning — at 35px on a 320px screen. */
+.scheduleRow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
 .timeInput { width: 116px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .iconInput { width: 54px; flex-shrink: 0; text-align: center; }
+.schedTitleInput { flex: 1 1 150px; min-width: 0; }
 .dirSelect { width: 90px; flex-shrink: 0; }
 
 /* FAQ edit */

@@ -64,6 +64,23 @@
   color: var(--text);
 }
 
+/* Touch target. Same technique as .bcBack in Shell.module.css and the seating
+   chrome: the 30px box stays exactly where the design put it and only the
+   tappable area grows, so the dialog's corner does not gain a 44px hole.
+   Measured at 30x30 effective before this — the one dismiss control on a modal,
+   under the 44px floor every other control on a phone clears. */
+@media (pointer: coarse) {
+  .close::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* Blush is how this system says "look at this" without spending the accent.
    A destructive action is a real state, so it — and only it — takes red. */
 .mark {

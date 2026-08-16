@@ -118,6 +118,37 @@
   border: 1px solid var(--adm-line);
   background: var(--adm-surface);
   box-shadow: 0 1px 4px var(--adm-shadow);
+  scrollbar-width: thin;
+  scrollbar-color: var(--adm-line-strong) var(--adm-bg-sunken);
+}
+
+/* Chromium ignores scrollbar-width's sizing for overlay scrollbars, so the
+   track is asked for explicitly — the same opt-out the events table uses. */
+.tableWrap::-webkit-scrollbar { height: 10px; }
+
+.tableWrap::-webkit-scrollbar-track {
+  background: var(--adm-bg-sunken);
+  border-top: 1px solid var(--adm-line);
+}
+
+.tableWrap::-webkit-scrollbar-thumb {
+  background: var(--adm-line-strong);
+  border-radius: var(--radius-pill);
+}
+
+/* Measured 693px with the current columns; .main pads 12px a side on a phone,
+   so it stops fitting just under 740. */
+.scrollHint {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--step--2);
+  color: var(--adm-ink-mid);
+}
+
+@media (max-width: 740px) {
+  .scrollHint { display: flex; }
 }
 
 .table {
@@ -230,7 +261,14 @@
   border-radius: var(--radius);
   width: 100%;
   max-width: 480px;
-  max-height: 90vh;
+  /* dvh, not vh. The form is 683px tall and the card is a 511px window onto it
+     at 320x568 — "צור תבנית" sits 172px below the card's own fold and is only
+     reachable by scrolling INSIDE the card. On a phone `100vh` is the LARGE
+     viewport (measured with the URL bar retracted), so 90vh can be taller than
+     what is actually on screen and pushes that submit further out of reach.
+     Nine places in the customer app already use dvh, including the modal in
+     EntranceScreen.module.css. */
+  max-height: 90dvh;
   overflow-y: auto;
   box-shadow: 0 12px 60px var(--adm-shadow-strong);
 }
@@ -385,4 +423,74 @@
   .main    { padding: 16px 12px 40px; }
   .formRow { flex-direction: column; }
   .fieldNarrow { width: 100%; }
+}
+
+/* ── Pinned action column ──────────────────────────────────────────────────
+   Same rule, and the same reason, as the events table: the overflow hides the
+   INLINE END of an RTL table, which is exactly where פעולות sits. Measured
+   before: at 390 the column's cells started 329px past the right edge of the
+   wrapper, so ערוך and השבת were not on the screen at all and nothing said
+   they existed. Pinned to the inline end — the edge the overflow eats. */
+.table td:last-child,
+.table th:last-child {
+  position: sticky;
+  inset-inline-end: 0;
+  background: var(--adm-surface);
+  box-shadow: 6px 0 10px -6px var(--adm-shadow-mid), 1px 0 0 var(--adm-line);
+  z-index: 1;
+}
+
+.table th:last-child { background: var(--adm-bg-alt); z-index: 2; }
+
+.table tbody tr:hover td:last-child { background: var(--adm-bg); }
+
+/* The pinned cell paints its own ground, so the inactive row's sunken tint has
+   to be restated on it or the last column of a disabled row reads as active. */
+.rowInactive td:last-child { background: var(--adm-bg-sunken); }
+
+/* ── Touch targets ────────────────────────────────────────────────────────────
+   Measured in a real touch context: back arrow 26x25, logout 65x33, "תבנית
+   חדשה" 39 tall, and ערוך / השבת 27–28 — the two controls this whole screen
+   exists for. See AdminUsersScreen.module.css for the idiom. Rows are 49px, so
+   a 44px pad fits inside a row and does not extend the table's scroll area. */
+@media (pointer: coarse) {
+  .backLink { position: relative; }
+  .backLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+  }
+
+  .logoutBtn { min-height: 44px; }
+  .newBtn    { min-height: 44px; }
+
+  .editBtn,
+  .deactivateBtn,
+  .activateBtn { position: relative; }
+  .editBtn::after,
+  .deactivateBtn::after,
+  .activateBtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  /* Modal form */
+  .input,
+  .select,
+  .closeBtn,
+  .cancelBtn,
+  .saveBtn { min-height: 44px; }
+
+  .checkbox { width: 20px; height: 20px; }
+  .checkLabel { min-height: 44px; }
 }
