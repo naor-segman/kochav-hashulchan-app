@@ -64,6 +64,36 @@ export async function uploadSitePhoto(eventCloudId, blob, ext = "jpg") {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   if (!eventCloudId) throw new Error("event has no cloud id");
 
+  // The session is checked BEFORE uploading, not inferred from the UI.
+  //
+  // Every storage write is refused unless the caller owns the event, and
+  // supabase-js resolves the caller by calling `auth.getSession()` at request
+  // time — falling back to the ANON key when there is none. So a dead session
+  // does not produce "you are signed out"; it produces
+  // "new row violates row-level security policy", which is true, unhelpful,
+  // and indistinguishable from a wrong path or a missing bucket. Reproduced on
+  // a real Postgres 16 with all three storage migrations applied in order: the
+  // exact insert is ACCEPTED for the owner and refused with precisely that
+  // message when no session is present.
+  //
+  // It matters well beyond photos. useAuth reads the session once at mount and
+  // then only reacts to auth events, so a session that dies without an event
+  // reaching this tab leaves the app showing a signed-in user while every
+  // cloud write is silently refused. This turns the first such write into a
+  // sentence that says what is actually wrong.
+  // A session that RESOLVED as absent is a fact and blocks the upload. A read
+  // that THREW tells us nothing — storage blocked, a locked-down browser — and
+  // must not become the failure itself, so it falls through and lets the real
+  // upload decide. Diagnosis never gets to be the thing that breaks the task.
+  let sessionKnownMissing = false;
+  try {
+    const { data } = await supabase.auth.getSession();
+    sessionKnownMissing = !data?.session;
+  } catch { /* unknown — proceed and let the upload speak */ }
+  if (sessionKnownMissing) {
+    throw new Error("החיבור לחשבון פג — התחברו מחדש כדי לשמור תמונות בענן");
+  }
+
   // Random suffix, not just a timestamp: two photos picked in the same batch
   // land in the same millisecond, and `upsert: false` would make the second
   // one fail rather than overwrite.

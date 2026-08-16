@@ -15,10 +15,20 @@ const getPublicUrl = vi.fn();
 // WHO the refused write was made as — the fact that distinguishes a wrong
 // folder from a request that went out anonymously.
 let session = { user: { id: "aaaaaaaa-1111-2222-3333-444444444444" } };
+let sessionThrows = false;
 vi.mock("../lib/supabase.js", () => ({
   supabase: {
     storage: { from: () => ({ upload, remove, getPublicUrl }) },
-    auth: { getSession: async () => ({ data: { session } }) },
+    auth: {
+      getSession: async () => {
+        // The call itself failing is a DIFFERENT state from it answering
+        // "no session", and the two must not be conflated — one is unknown,
+        // the other is a fact. A mutation that treats a thrown read as
+        // "absent" has to fail, so the test has to be able to make it throw.
+        if (sessionThrows) throw new Error("storage blocked");
+        return { data: { session } };
+      },
+    },
   },
   isSupabaseConfigured: true,
 }));
@@ -113,22 +123,31 @@ describe("uploadSitePhoto", () => {
     await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).rejects.toThrow(/aaaaaaaa/);
   });
 
-  // The case that would explain everything, and the one the message has to
-  // state outright rather than leave to be inferred from a missing id.
-  it("says so plainly when the request is going out with no session at all", async () => {
+  // THE ONE THIS WHOLE INVESTIGATION LANDED ON. Without a session, supabase-js
+  // signs the request with the ANON key, the ownership test cannot pass, and
+  // the server answers "new row violates row-level security policy" — true,
+  // unhelpful, and identical to a wrong path or a missing bucket. Reproduced on
+  // a real Postgres 16 with all three storage migrations applied: accepted for
+  // the owner, refused with exactly that message with no session.
+  //
+  // So it never gets that far. It fails early, in words that name the actual
+  // problem and the actual remedy.
+  it("refuses before uploading when there is no session, and says why", async () => {
     session = null;
-    upload.mockResolvedValue({ error: new Error("new row violates row-level security policy") });
-    await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).rejects.toThrow(/אנונימית/);
+    await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).rejects.toThrow(/התחברו מחדש/);
+    expect(upload, "it must not even attempt the write").not.toHaveBeenCalled();
     session = { user: { id: "aaaaaaaa-1111-2222-3333-444444444444" } };
   });
 
-  // Diagnosis must never become the failure. If reading the session throws,
-  // the real error still has to reach the caller.
-  it("still throws the original error when the session cannot be read", async () => {
-    session = undefined;
-    upload.mockResolvedValue({ error: new Error("boom") });
-    await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).rejects.toThrow("boom");
-    session = { user: { id: "aaaaaaaa-1111-2222-3333-444444444444" } };
+  // A session that RESOLVED as absent is a fact. A read that THREW is not —
+  // storage blocked, a locked-down browser — and blocking on it would turn a
+  // diagnostic into an outage. It proceeds and lets the upload decide.
+  it("still attempts the upload when the session cannot be read at all", async () => {
+    sessionThrows = true;
+    upload.mockResolvedValue({ error: null });
+    await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).resolves.toBeTruthy();
+    expect(upload, "an unreadable session is unknown, not absent").toHaveBeenCalled();
+    sessionThrows = false;
   });
 });
 
