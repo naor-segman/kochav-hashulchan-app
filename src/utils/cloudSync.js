@@ -91,6 +91,14 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       albumToken:         localEvent.tokens?.album ?? null,
       messagesSent:       localEvent.messagesSent ?? {},
       messageTemplates:   localEvent.messageTemplates ?? {},
+      // Tombstones ride in the payload, and they MUST be in both mappers.
+      // A field written locally and missing from either direction here is
+      // silent data loss — it has happened three times in this file. For this
+      // field specifically, dropping it on the way up means the other device
+      // never learns about the delete and resurrects the row; dropping it on
+      // the way down means this device forgets its own delete and does the
+      // same. Covered by cloudRoundTrip.test.js.
+      deletedRows:        localEvent.deletedRows ?? {},
     },
   };
 }
@@ -140,6 +148,7 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     vendors:          Array.isArray(p.vendors) ? p.vendors : [],
     messagesSent:     p.messagesSent ?? {},
     messageTemplates: p.messageTemplates ?? {},
+    deletedRows:      p.deletedRows ?? {},
     // Prefer the scalar token column, but fall back per-token to the payload's
     // tokens object. A column that is NULL (e.g. added by a later migration)
     // must not clobber an already-shared token still held in payload.tokens —

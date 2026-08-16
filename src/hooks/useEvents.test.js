@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mergeCloudWithLocal } from "./useEvents.js";
+import { TOMBSTONE_TTL_MS } from "../utils/eventHelpers.js";
 
 // Hydration decides which copy of an event survives a page load. Getting it
 // wrong is not a display bug — it deletes the customer's work and then persists
@@ -645,5 +646,111 @@ describe("mergeCloudWithLocal — an event created while the fetch was in flight
   it("falls back to deleting only on the cloudId rule when no time is given", () => {
     const anyTime = synced({ updatedAt: Date.now() + 60_000 });
     expect(mergeCloudWithLocal([anyTime], [], { cloudIsAuthoritative: true })).toEqual([]);
+  });
+});
+
+// ── Deleting a GUEST or a TABLE, from either device ─────────────────────────
+//
+// The union above keeps rows the other device added, and before tombstones it
+// could not tell that from a row THIS device deleted — so a deleted guest came
+// back on the next pull, measured in both merge directions. That was the
+// documented trade. A tombstone is the missing half of the sentence: it says
+// "this account deleted this row", so the union can keep additions and honour
+// deletions instead of choosing.
+describe("mergeCloudWithLocal — a deleted row stays deleted", () => {
+  const AUTH = { cloudIsAuthoritative: true, fetchedAt: 9e9 };
+  const g = (id) => ({ id, name: "אורח " + id, side: "bride", group: "משפחה", count: 1 });
+  const t = (id) => ({ id, name: "שולחן " + id, capacity: 10, type: "regular" });
+  const base = (over = {}) => ev({ cloudId: "c-1", syncedVersion: 3, ...over });
+
+  it("a guest deleted here is not resurrected by the cloud copy", () => {
+    const local = base({ guests: [g("g1"), g("g2")], updatedAt: 5000,
+                         deletedRows: { guests: { g3: 4000 } } });
+    const cloud = base({ guests: [g("g1"), g("g2"), g("g3")], updatedAt: 3000 });
+    const [out] = mergeCloudWithLocal([local], [cloud], AUTH);
+    expect(out.guests.map(x => x.id)).toEqual(["g1", "g2"]);
+  });
+
+  // The direction that matters more, because it is the common one: the other
+  // device pushed last, so the cloud wins on scalars — and the delete still has
+  // to survive that.
+  it("even when the CLOUD copy is the newer one", () => {
+    const local = base({ guests: [g("g1"), g("g2")], updatedAt: 3000,
+                         deletedRows: { guests: { g3: 2000 } } });
+    const cloud = base({ guests: [g("g1"), g("g2"), g("g3")], updatedAt: 5000 });
+    const [out] = mergeCloudWithLocal([local], [cloud], AUTH);
+    expect(out.guests.map(x => x.id)).toEqual(["g1", "g2"]);
+  });
+
+  // A tombstone written on the OTHER device arrives through the cloud copy and
+  // has to take effect here, or the delete only works in one direction.
+  it("honours a tombstone the other device recorded", () => {
+    const local = base({ guests: [g("g1"), g("g2"), g("g3")], updatedAt: 5000 });
+    const cloud = base({ guests: [g("g1"), g("g2")], updatedAt: 3000,
+                         deletedRows: { guests: { g3: 4000 } } });
+    const [out] = mergeCloudWithLocal([local], [cloud], AUTH);
+    expect(out.guests.map(x => x.id)).toEqual(["g1", "g2"]);
+  });
+
+  it("does the same for tables, constraints, tasks and vendors", () => {
+    const local = base({
+      tables: [t("t1")], constraints: [], tasks: [], vendors: [], updatedAt: 5000,
+      deletedRows: { tables: { t2: 1 }, constraints: { c9: 1 }, tasks: { k9: 1 }, vendors: { v9: 1 } },
+    });
+    const cloud = base({
+      tables: [t("t1"), t("t2")],
+      constraints: [{ id: "c9", type: "apart", guestA: "g1", guestB: "g2" }],
+      tasks: [{ id: "k9", title: "ישן", done: false }],
+      vendors: [{ id: "v9", name: "ספק ישן", category: "צילום" }],
+      updatedAt: 3000,
+    });
+    const [out] = mergeCloudWithLocal([local], [cloud], AUTH);
+    expect(out.tables.map(x => x.id)).toEqual(["t1"]);
+    expect(out.constraints).toEqual([]);
+    expect(out.tasks).toEqual([]);
+    expect(out.vendors).toEqual([]);
+  });
+
+  // THE CASE THE UNION EXISTS FOR, which tombstones must not break: rows the
+  // other device ADDED and nobody deleted still have to arrive. If this fails,
+  // the fix has traded one silent data loss for another.
+  it("still keeps rows the other device added", () => {
+    const local = base({ guests: [g("g1")], updatedAt: 5000,
+                         deletedRows: { guests: { g3: 4000 } } });
+    const cloud = base({ guests: [g("g1"), g("g2"), g("g3")], updatedAt: 3000 });
+    const [out] = mergeCloudWithLocal([local], [cloud], AUTH);
+    expect(out.guests.map(x => x.id)).toEqual(["g1", "g2"]);  // g2 arrives, g3 stays deleted
+  });
+
+  // Real wall-clock stamps, because normalizeEvent ages tombstones out past
+  // TOMBSTONE_TTL_MS — a fixture stamped `1000` is a delete from 1970 and is
+  // correctly pruned, which is not what these two are asking about.
+  const NOW = Date.now();
+
+  it("carries the merged tombstone set forward so the next push spreads it", () => {
+    const local = base({ guests: [], updatedAt: 5000, deletedRows: { guests: { g1: NOW - 1000 } } });
+    const cloud = base({ guests: [], updatedAt: 3000, deletedRows: { guests: { g2: NOW - 2000 } } });
+    const [out] = mergeCloudWithLocal([local], [cloud], AUTH);
+    expect(Object.keys(out.deletedRows.guests).sort()).toEqual(["g1", "g2"]);
+  });
+
+  // The device that performed the delete holds the true time; a later stamp is
+  // another device noticing.
+  it("keeps the earliest stamp when both sides recorded the same delete", () => {
+    const local = base({ guests: [], updatedAt: 5000, deletedRows: { guests: { g1: NOW - 1000 } } });
+    const cloud = base({ guests: [], updatedAt: 3000, deletedRows: { guests: { g1: NOW - 9000 } } });
+    const [out] = mergeCloudWithLocal([local], [cloud], AUTH);
+    expect(out.deletedRows.guests.g1).toBe(NOW - 9000);
+  });
+
+  // And the ageing itself, since it is what keeps the payload from growing
+  // without bound — every guest ever removed from a 400-person wedding, on
+  // every sync, forever.
+  it("ages a tombstone out once it is older than the TTL", () => {
+    const ancient = base({ guests: [], updatedAt: 5000,
+                           deletedRows: { guests: { g1: NOW - TOMBSTONE_TTL_MS - 1 } } });
+    const cloud   = base({ guests: [], updatedAt: 3000 });
+    const [out] = mergeCloudWithLocal([ancient], [cloud], AUTH);
+    expect(out.deletedRows.guests).toBeUndefined();
   });
 });

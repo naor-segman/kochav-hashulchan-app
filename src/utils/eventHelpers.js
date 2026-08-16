@@ -21,6 +21,49 @@ import { normalizeAnnouncements } from "../data/announcementTemplates.js";
 export const TOKEN_KEYS = ["rsvp", "album", "invite", "gift", "hostess", "collab"];
 
 /**
+ * The id-keyed collections a row can be deleted from, and therefore the ones a
+ * tombstone can name. `seating` is keyed by guest id but is a map, not rows —
+ * it follows its guests and needs no tombstone of its own.
+ */
+export const TOMBSTONED_COLLECTIONS = ["guests", "tables", "constraints", "tasks", "vendors"];
+
+/**
+ * How long a tombstone is kept: 180 days.
+ *
+ * A tombstone only has to outlive the slowest device that still holds the
+ * deleted row. Keeping them forever would grow the event payload without
+ * bound — every guest ever removed from a 400-person wedding, on every sync,
+ * for the life of the account. Half a year is far longer than the gap between
+ * a phone and a laptop opening the same event, and an event is over within
+ * weeks of its date.
+ */
+export const TOMBSTONE_TTL_MS = 180 * 24 * 60 * 60 * 1000;
+
+/**
+ * Coerce whatever came out of storage or the cloud into
+ * `{ collection: { rowId: timestamp } }`, dropping anything expired or
+ * malformed. Runs inside normalizeEvent, so it is the single gateway for this
+ * field exactly like every other one.
+ */
+export function normalizeDeletedRows(raw, now = Date.now()) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out = {};
+  for (const key of TOMBSTONED_COLLECTIONS) {
+    const bucket = raw[key];
+    if (!bucket || typeof bucket !== "object" || Array.isArray(bucket)) continue;
+    const kept = {};
+    for (const [rowId, at] of Object.entries(bucket)) {
+      // A non-finite stamp cannot be aged out, so it would live forever.
+      if (!rowId || !Number.isFinite(at)) continue;
+      if (now - at > TOMBSTONE_TTL_MS) continue;
+      kept[rowId] = at;
+    }
+    if (Object.keys(kept).length) out[key] = kept;
+  }
+  return out;
+}
+
+/**
  * Ensure an event has all required fields.
  * Safe to run on events loaded from localStorage that predate this schema.
  * Never overwrites existing valid values — only fills gaps.
@@ -99,6 +142,15 @@ export function normalizeEvent(ev) {
     // host edited. Both survive an automated-sending switch untouched.
     messagesSent:     (ev.messagesSent && typeof ev.messagesSent === "object") ? ev.messagesSent : {},
     messageTemplates: (ev.messageTemplates && typeof ev.messageTemplates === "object") ? ev.messageTemplates : {},
+    // Which rows this account has DELETED, as `{ collection: { rowId: when } }`.
+    //
+    // The merge unions id-keyed collections in both directions, which is what
+    // stops a laptop edit wiping 37 guests added on a phone. The cost was that
+    // it cannot tell "the other device added this" from "I deleted this", so a
+    // deleted guest or table came back on the next pull — measured, in both
+    // directions. A tombstone is the missing half of that sentence, and it
+    // makes the union strictly better rather than trading one loss for another.
+    deletedRows: normalizeDeletedRows(ev.deletedRows),
     // Save-the-Date + designed invitation. Both ride on the invite token,
     // so adding them needed no migration and no new public RPC.
     announcements: normalizeAnnouncements(ev.announcements, ev.type),

@@ -524,3 +524,70 @@ describe("two devices on one account", () => {
     expect(device.result.current.events.map(e => e.name)).toEqual(["חינה"]);
   });
 });
+
+// ── Deleting a row, through the real hook ────────────────────────────────────
+//
+// The merge tests above hand mergeCloudWithLocal a tombstone that already
+// exists. These check the half that has to happen first: that deleting a guest
+// through the app RECORDS one. Tombstones are derived centrally in
+// patchEventById from the before/after diff, rather than at each of the dozen
+// delete sites, so what is asserted here is that funnel.
+describe("deleting a row records a tombstone", () => {
+  const withGuests = (ids) => ev("a", {
+    cloudId: "c1", syncedVersion: 1,
+    guests: ids.map(id => ({ id, name: "אורח " + id, side: "bride", group: "משפחה", count: 1 })),
+  });
+
+  it("records the guest that was removed, and only that one", async () => {
+    seed(userKey("u1"), [withGuests(["g1", "g2", "g3"])]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+
+    act(() => {
+      result.current.patchEventById("a", e => ({ ...e, guests: e.guests.filter(g => g.id !== "g2") }));
+    });
+
+    const out = result.current.events[0];
+    expect(out.guests.map(g => g.id)).toEqual(["g1", "g3"]);
+    expect(Object.keys(out.deletedRows?.guests ?? {})).toEqual(["g2"]);
+  });
+
+  it("records nothing when the patch does not remove anything", async () => {
+    seed(userKey("u1"), [withGuests(["g1", "g2"])]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+
+    act(() => { result.current.patchEventById("a", { venue: "היכל" }); });
+    act(() => {
+      result.current.patchEventById("a", e => ({
+        ...e, guests: [...e.guests, { id: "g9", name: "חדש", side: "bride", group: "משפחה", count: 1 }],
+      }));
+    });
+    expect(result.current.events[0].deletedRows?.guests).toBeUndefined();
+  });
+
+  // A patch that never mentions `guests` must not be read as deleting all of
+  // them — that would tombstone the entire list on a venue rename.
+  it("does not tombstone a collection the patch never touched", async () => {
+    seed(userKey("u1"), [withGuests(["g1", "g2"])]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { result.current.patchEventById("a", { venue: "היכל" }); });
+    expect(result.current.events[0].deletedRows ?? {}).toEqual({});
+    expect(result.current.events[0].guests).toHaveLength(2);
+  });
+
+  it("accumulates across separate deletes and survives to localStorage", async () => {
+    seed(userKey("u1"), [withGuests(["g1", "g2", "g3"])]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+
+    act(() => { result.current.patchEventById("a", e => ({ ...e, guests: e.guests.filter(g => g.id !== "g1") })); });
+    act(() => { result.current.patchEventById("a", e => ({ ...e, guests: e.guests.filter(g => g.id !== "g3") })); });
+    await settle();
+
+    expect(Object.keys(result.current.events[0].deletedRows.guests).sort()).toEqual(["g1", "g3"]);
+    const persisted = stored(userKey("u1"))[0];
+    expect(Object.keys(persisted.deletedRows.guests).sort()).toEqual(["g1", "g3"]);
+  });
+});
