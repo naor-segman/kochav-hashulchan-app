@@ -82,7 +82,24 @@ export async function uploadSitePhoto(eventCloudId, blob, ext = "jpg") {
   // event id from a missing grant from a session the storage service never
   // received. Saying it here turns one more round trip into none.
   if (error) {
-    error.message = `${error.message} [ניסיתי לכתוב אל: ${BUCKET}/${path}]`;
+    // The policy that refused this compares the path's first folder against an
+    // event the caller OWNS, so the refusal has exactly two possible causes:
+    // the wrong folder, or no caller. The path alone proved the folder was
+    // right — it matched the events row exactly — which leaves identity, and
+    // that is invisible from the message the server sends back.
+    //
+    // So the session is read at the moment of failure. `getSession()` is local
+    // (it reads the stored session, it does not call the network), so this
+    // costs nothing and cannot itself fail the upload. Only the first segment
+    // of the id is shown: enough to compare against the events row, not enough
+    // to be a credential in a screenshot.
+    let who = "לא ידוע";
+    try {
+      const { data } = await supabase.auth.getSession();
+      const uid = data?.session?.user?.id;
+      who = uid ? `${uid.slice(0, 8)}…` : "אין סשן — הבקשה יוצאת אנונימית";
+    } catch { /* diagnosis must never mask the real error */ }
+    error.message = `${error.message} [נתיב: ${BUCKET}/${path}] [משתמש: ${who}]`;
     throw error;
   }
 
