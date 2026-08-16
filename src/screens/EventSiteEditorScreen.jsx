@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { uid } from "../utils/uid.js";
+import { uploadSitePhoto, deleteSitePhoto } from "../utils/sitePhotos.js";
 import { SITE_THEME_LIST, SITE_FONTS, DEFAULT_SITE_FONT } from "../data/eventSiteTemplates.js";
 import Banner from "../components/feedback/Banner.jsx";
 import Field from "../components/ui/Field.jsx";
@@ -10,9 +11,12 @@ import styles from "./EventSiteEditorScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
 import { prefixed } from "../utils/hebrewPrefix.js";
 
-// Compress an uploaded cover photo to a reasonable data URL for the site.
-// Kept modest (stored in payload JSONB + served via the public RPC) — a future
-// improvement is to move covers to Supabase Storage and sync only a URL.
+// Compress an uploaded photo and hand back a BLOB.
+//
+// It used to resolve a data URL, because the bytes went straight into the event
+// payload. They now go to Storage, which wants a blob — and the blob is also
+// what the fallback path needs, since `blobToDataUrl` below can always make the
+// old shape from it but not the other way round without a decode.
 async function compressImage(file, maxPx = 1200, quality = 0.72) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -26,7 +30,14 @@ async function compressImage(file, maxPx = 1200, quality = 0.72) {
         const c = document.createElement("canvas");
         c.width = w; c.height = h;
         c.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(c.toDataURL("image/jpeg", quality));
+        // toBlob, not toDataURL: a data URL is base64, which is a third larger
+        // than the bytes it encodes, and it would only be decoded again to
+        // upload.
+        c.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error("compression produced nothing")),
+          "image/jpeg",
+          quality
+        );
       } catch (e) { reject(e); }
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("load failed")); };
@@ -34,12 +45,34 @@ async function compressImage(file, maxPx = 1200, quality = 0.72) {
   });
 }
 
-// The event lives in localStorage, which is a per-origin budget of roughly 5MB
-// in Safari — shared by EVERY event the host has. A 400-guest wedding with a
-// full gallery measured 2.52MB on its own, so two of them overflowed the quota
-// and `persist` then failed for the WHOLE `{events}` blob, not just the large
-// one: every event silently reverted to its last good snapshot on reload.
-// Six photos is the cap that keeps a realistic wedding comfortably inside it.
+/**
+ * The old shape, for an event that has no cloud row yet.
+ *
+ * Guest mode and the window before the first sync have nowhere to upload to —
+ * the Storage policy keys on an event id the server can see. Those keep the
+ * base64 behaviour rather than losing the photo, and the next upload after the
+ * event syncs writes a URL. Both render identically.
+ */
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload  = () => resolve(r.result);
+    r.onerror = () => reject(r.error || new Error("read failed"));
+    r.readAsDataURL(blob);
+  });
+}
+
+// Six was the cap that kept a 400-guest wedding inside Safari's ~5MB per-origin
+// budget, back when each photo was base64 inside the event: a full gallery
+// measured 3.03MB on its own, two events overflowed, and `persist` then failed
+// for the WHOLE `{events}` blob rather than the large one — every event
+// silently reverting to its last good snapshot on reload.
+//
+// That reason is gone. A stored photo is a URL of about 120 bytes, so the same
+// wedding is now ~204KB whatever the gallery holds. The cap stays at six only
+// because it is a PRODUCT question now — how heavy the page a guest opens on
+// mobile data should be — and that is not a decision to make silently while
+// fixing a storage bug. It can be raised whenever the owner wants it raised.
 const GALLERY_MAX = 6;
 
 export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, showToast }) {
@@ -52,6 +85,22 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
   const site = ev.eventSite;
   const fileRef = useRef(null);
   const [copied, setCopied] = useState(false);
+
+  /**
+   * Put the bytes where they belong and return what the event should store.
+   *
+   * Storage when the event has a cloud row, base64 when it does not — and
+   * base64 again if the upload fails, because a host on venue wifi losing the
+   * photo they just picked is a worse outcome than an event that is briefly
+   * heavier. Either way the caller gets a string for <img src>.
+   */
+  const storeOrEmbed = useCallback(async (blob) => {
+    if (ev.cloudId) {
+      try { return await uploadSitePhoto(ev.cloudId, blob); }
+      catch { showToast("ההעלאה לענן נכשלה — התמונה נשמרה מקומית", "err"); }
+    }
+    return blobToDataUrl(blob);
+  }, [ev.cloudId, showToast]);
 
   // Patch a shallow field on eventSite.
   const set = useCallback((patch) => {
@@ -78,7 +127,17 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
 
   const onCover = async (file) => {
     if (!file || !file.type.startsWith("image/")) { showToast("יש לבחור קובץ תמונה", "err"); return; }
-    try { set({ coverPhoto: await compressImage(file) }); showToast("תמונת הרקע הועלתה ✓"); }
+    try {
+      const blob = await compressImage(file);
+      const prev = site.coverPhoto;
+      set({ coverPhoto: await storeOrEmbed(blob) });
+      // The photo it replaced is unreachable the moment the field changes, so
+      // it is removed rather than left to sit in the bucket forever. Best
+      // effort: a host who swaps a cover is not made to care that the old file
+      // could not be reached.
+      deleteSitePhoto(prev);
+      showToast("תמונת הרקע הועלתה ✓");
+    }
     catch { showToast("שגיאה בעיבוד התמונה", "err"); }
   };
 
@@ -86,7 +145,9 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     const imgs = [...files].filter(f => f.type.startsWith("image/")).slice(0, GALLERY_MAX);
     if (!imgs.length) { showToast("יש לבחור קובצי תמונה", "err"); return; }
     try {
-      const compressed = await Promise.all(imgs.map(f => compressImage(f, 1000, 0.7)));
+      const compressed = await Promise.all(
+        imgs.map(async f => storeOrEmbed(await compressImage(f, 1000, 0.7)))
+      );
       // Read the current gallery INSIDE the patch. `site` was captured before
       // the await, so two overlapping batches lost one of them — and slicing a
       // list whose head is the existing gallery drops the NEW photos while the
@@ -103,7 +164,10 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       else                  showToast(`נוספו ${added} תמונות ✓`);
     } catch { showToast("שגיאה בעיבוד התמונות", "err"); }
   };
-  const delGalleryPhoto = (i) => set({ gallery: (site.gallery || []).filter((_, idx) => idx !== i) });
+  const delGalleryPhoto = (i) => {
+    deleteSitePhoto((site.gallery || [])[i]);
+    set({ gallery: (site.gallery || []).filter((_, idx) => idx !== i) });
+  };
 
   const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
   const copyLink = async () => {
@@ -306,7 +370,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
               {site.coverPhoto ? "החליפו תמונת רקע" : "העלו תמונת רקע"}
             </button>
             {site.coverPhoto && (
-              <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => set({ coverPhoto: null })}>הסירו</button>
+              <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => { deleteSitePhoto(site.coverPhoto); set({ coverPhoto: null }); }}>הסירו</button>
             )}
           </div>
         </div>
