@@ -82,6 +82,20 @@ async function upload(startWith, files = 1) {
   return { ...out, errs };
 }
 
+// NOT COVERED HERE, deliberately: the upload-FAILURE path.
+//
+// It needs `ev.cloudId` set, and useEvents drops a cloud-backed event from the
+// guest bucket for a signed-out user — correctly, so a stranger on a shared
+// browser never sees a synced event. There is no Supabase session in this
+// environment, so seeding one just redirects to the home screen. A DEV-only
+// "force the upload to throw" hook was written to get around that and then
+// removed: it would have been scaffolding in the shipped module so that a test
+// could assert against its own mock.
+//
+// What the three cases below DO cover is that the success path emits exactly
+// one toast — which is the half of the fix that is testable here, since the
+// bug was a second toast overwriting the first.
+
 console.log('── one photo into an empty gallery');
 {
   const r = await upload([], 1);
