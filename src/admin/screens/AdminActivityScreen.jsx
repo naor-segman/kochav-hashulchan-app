@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import Icon from "../../components/ui/Icon.jsx";
 import {
@@ -14,6 +14,7 @@ import {
   metaFull,
 } from "../lib/activityConfig.js";
 import { getPlanLabel } from "../lib/planConfig.js";
+import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { formatDateTime } from "../lib/adminFormat.js";
 import styles from "./AdminActivityScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
@@ -41,7 +42,7 @@ async function loadActivityData() {
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function AdminActivityScreen() {
-  const navigate = useNavigate();
+  const handleLogout = useAdminLogout();
 
   const [adminEmail,    setAdminEmail]    = useState(null);
   const [logs,          setLogs]          = useState(null);   // null = loading
@@ -80,10 +81,6 @@ export default function AdminActivityScreen() {
 
   useEffect(() => { loadLogs(); }, [loadLogs]);
 
-  const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
-    navigate("/admin/login", { replace: true });
-  };
 
   // ── Filtering ──────────────────────────────────────────────────────────────
 

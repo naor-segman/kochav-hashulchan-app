@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import { invalidateTemplateCache } from "../../utils/templateHelpers.js";
 import { EVENT_TYPES } from "../../data/constants.js";
@@ -9,6 +9,7 @@ import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
 import { useConfirm } from "../../components/ui/useConfirm.jsx";
 import { formatDate } from "../lib/adminFormat.js";
+import { useAdminLogout } from "../lib/useAdminLogout.js";
 
 const FORM_DEFAULTS = {
   name:        "",
@@ -182,7 +183,7 @@ function TemplateForm({ initial, onSave, onClose, saving, formError }) {
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function AdminTemplatesScreen() {
-  const navigate = useNavigate();
+  const handleLogout = useAdminLogout();
 
   const [adminEmail,  setAdminEmail]  = useState(null);
   const [templates,   setTemplates]   = useState(null);   // null = loading
@@ -215,10 +216,6 @@ export default function AdminTemplatesScreen() {
 
   useEffect(() => { loadTemplates(); }, [loadTemplates]);
 
-  const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
-    navigate("/admin/login", { replace: true });
-  };
 
   // ── CRUD handlers ───────────────────────────────────────────────────────────
 
