@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
+  CLOUD_EVENTS_LIMIT,
   createCloudEvent,
   updateCloudEvent,
   deleteCloudEvent,
@@ -179,7 +180,25 @@ function mergeArrivals(localGuests, cloudGuests) {
 // Local-only events (no cloudId, not present in cloud) are kept as-is.
 // Exported for tests: this function decides which copy of an event survives,
 // so a silent regression here is unrecoverable customer data loss.
-export function mergeCloudWithLocal(localEvents, cloudEvents) {
+// `cloudIsAuthoritative` says the caller read the account's COMPLETE event list
+// and the read succeeded — which is what makes an event's ABSENCE meaningful
+// rather than merely unknown. It is opt-in, and off by default, because a
+// caller that guesses wrong here deletes real events: a failed fetch, a
+// truncated page, or a fetch for a different account must never reach this
+// function claiming authority. See the loop at the bottom.
+//
+// `fetchedAt` is the moment that read was ISSUED, and it closes the race the
+// authority flag alone leaves open: an event created on this device while the
+// fetch was already in flight is missing from the response because the query
+// ran before it existed, not because anyone deleted it. Without this, a create
+// that lands mid-hydration is deleted locally while its cloud row survives —
+// the orphan is invisible to the user until the next device syncs. Both
+// timestamps come from this device's own clock, so server skew is irrelevant.
+export function mergeCloudWithLocal(
+  localEvents,
+  cloudEvents,
+  { cloudIsAuthoritative = false, fetchedAt = Infinity } = {},
+) {
   const cloudLocalIds = new Set(cloudEvents.map(e => e.id));
   const cloudIds      = new Set(cloudEvents.map(e => e.cloudId).filter(Boolean));
 
@@ -324,7 +343,36 @@ export function mergeCloudWithLocal(localEvents, cloudEvents) {
 
   for (const le of localEvents) {
     const inCloud = cloudLocalIds.has(le.id) || (le.cloudId && cloudIds.has(le.cloudId));
-    if (!inCloud) merged.push(normalizeEvent(le));
+    if (inCloud) continue;
+
+    // A local event carrying a cloudId HAS been in this account's cloud — that
+    // id was minted by the server on its first push. So when a COMPLETE fetch
+    // of the account comes back without it, there is only one explanation: it
+    // was deleted, on another device, by this same person.
+    //
+    // Keeping it did two things, and the second is worse than the first: the
+    // event reappeared on this device, AND the next debounced push recreated
+    // the cloud row — so the delete was undone on the device that performed
+    // it too. Deleting an event on the laptop and finding it back on the phone
+    // is exactly what was reported.
+    //
+    // This is deliberately NOT the same trade as the row-level unions above.
+    // There, resurrecting a guest or a table is the recoverable failure and
+    // losing one is not. Here the choice is between honouring an explicit
+    // delete and making delete not work at all, on either device.
+    //
+    // `cloudId` is the whole distinction: an event without one has never been
+    // pushed (drafted offline, or before signing in), so its absence from the
+    // cloud says nothing and it is kept and synced up.
+    //
+    // And the fetch can only speak for what existed when it ran: an event
+    // touched after that moment is newer than the answer, so the answer says
+    // nothing about it either.
+    const olderThanTheFetch =
+      Math.max(le.updatedAt ?? 0, le.createdAt ?? 0) < fetchedAt;
+    if (cloudIsAuthoritative && le.cloudId && olderThanTheFetch) continue;
+
+    merged.push(normalizeEvent(le));
   }
 
   return merged;
@@ -456,9 +504,18 @@ export function useEvents(user) {
     (async () => {
       setSyncStatus(SYNC_STATUS.SYNCING);
       try {
+        // Stamped BEFORE the request goes out: anything created after this
+        // moment is newer than the answer coming back.
+        const fetchedAt = Date.now();
         const cloudEvents = await fetchCloudEvents(userId);
         if (cancelled || ownerRef.current !== userId) return;
-        setEvents(prev => mergeCloudWithLocal(prev, cloudEvents));
+        setEvents(prev => mergeCloudWithLocal(prev, cloudEvents, {
+          // The fetch resolved, so it did not error, and it came back short of
+          // the page limit, so nothing was cut off the end. Both have to hold
+          // before an event missing from this list can be read as deleted.
+          cloudIsAuthoritative: cloudEvents.length < CLOUD_EVENTS_LIMIT,
+          fetchedAt,
+        }));
         setSyncStatus(SYNC_STATUS.SYNCED);
       } catch {
         if (cancelled) return;
@@ -486,9 +543,13 @@ export function useEvents(user) {
     } catch (err) {
       if (err instanceof CloudConflictError) {
         try {
+          const fetchedAt = Date.now();
           const cloudEvents = await fetchCloudEvents(uid);
           if (ownerRef.current !== uid) return;
-          setEvents(prev => mergeCloudWithLocal(prev, cloudEvents));
+          setEvents(prev => mergeCloudWithLocal(prev, cloudEvents, {
+            cloudIsAuthoritative: cloudEvents.length < CLOUD_EVENTS_LIMIT,
+            fetchedAt,
+          }));
           setSyncStatus(SYNC_STATUS.SYNCED);
         } catch {
           setSyncStatus(SYNC_STATUS.ERROR);

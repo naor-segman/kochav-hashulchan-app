@@ -546,3 +546,104 @@ describe("mergeCloudWithLocal — every collection, not just guests and tables",
     expect(out.guests[0].arrivedAt).toBe(999);
   });
 });
+
+// ── Deleting an event, from either device ────────────────────────────────────
+//
+// Reported from a real account: events deleted on the desktop were still on the
+// phone. The merge kept every local event the cloud did not return, which both
+// resurrected it here AND let the next debounced push recreate the cloud row —
+// so the delete was undone on the device that performed it, too.
+//
+// The rule these pin: a `cloudId` means the server has seen this event, so its
+// absence from a COMPLETE fetch means it was deleted. No cloudId means it was
+// never pushed, so its absence says nothing.
+describe("mergeCloudWithLocal — a delete on one device reaches the other", () => {
+  const AUTH = { cloudIsAuthoritative: true };
+  const synced = (over = {}) => ev({ cloudId: "c-1", syncedVersion: 3, ...over });
+
+  it("drops a synced event the cloud no longer has", () => {
+    expect(mergeCloudWithLocal([synced()], [], AUTH)).toEqual([]);
+  });
+
+  it("drops only the deleted one, keeping the account's other events", () => {
+    const kept = synced({ id: "e2", cloudId: "c-2" });
+    const out = mergeCloudWithLocal([synced(), kept], [kept], AUTH);
+    expect(out.map(e => e.id)).toEqual(["e2"]);
+  });
+
+  // The other half of the rule, and the one that loses work if it breaks:
+  // an event drafted offline or before signing in has no cloudId, and the
+  // cloud has never heard of it because it was never pushed — not because
+  // anyone deleted it.
+  it("keeps an event that was never pushed, even when the cloud is empty", () => {
+    const draft = ev({ id: "draft", cloudId: null, syncedVersion: null });
+    expect(mergeCloudWithLocal([draft], [], AUTH).map(e => e.id)).toEqual(["draft"]);
+  });
+
+  it("keeps unsynced drafts while dropping deleted synced events, in one pass", () => {
+    const draft = ev({ id: "draft", cloudId: null });
+    const out = mergeCloudWithLocal([synced(), draft], [], AUTH);
+    expect(out.map(e => e.id)).toEqual(["draft"]);
+  });
+
+  // Authority is opt-in precisely so that a caller who cannot prove the fetch
+  // was complete cannot delete anything. A failed or truncated read must leave
+  // the local copy alone.
+  it("deletes NOTHING when the caller does not claim the fetch was complete", () => {
+    expect(mergeCloudWithLocal([synced()], []).map(e => e.id)).toEqual(["e1"]);
+    expect(mergeCloudWithLocal([synced()], [], { cloudIsAuthoritative: false }).map(e => e.id))
+      .toEqual(["e1"]);
+  });
+
+  // A local event whose id is in the cloud under a different cloudId, or whose
+  // cloudId matches, is present either way — matching on both is what stops a
+  // freshly-created row being read as deleted in the window before its cloudId
+  // is written back locally.
+  it("recognises the event by local id even when the cloudId has not landed yet", () => {
+    const local = ev({ cloudId: null });
+    const cloud = ev({ cloudId: "c-1", updatedAt: 2000 });
+    expect(mergeCloudWithLocal([local], [cloud], AUTH).map(e => e.id)).toEqual(["e1"]);
+  });
+
+  it("recognises the event by cloudId even if the local id differs", () => {
+    const local = synced({ id: "local-id" });
+    const cloud = ev({ id: "server-id", cloudId: "c-1", updatedAt: 2000 });
+    expect(mergeCloudWithLocal([local], [cloud], AUTH)).toHaveLength(1);
+  });
+});
+
+// A fetch can only speak for what existed when it RAN. This is the race the
+// authority flag alone leaves open: hydration issues the read, the host taps
+// "אירוע חדש" while it is in flight, the create lands in the cloud, and the
+// response — queried before any of that — comes back without it. Read as a
+// deletion, that wipes the new event locally while its cloud row survives: an
+// orphan nobody sees until the next device syncs.
+describe("mergeCloudWithLocal — an event created while the fetch was in flight", () => {
+  const at = (t) => ({ cloudIsAuthoritative: true, fetchedAt: t });
+  const synced = (over = {}) => ev({ cloudId: "c-1", syncedVersion: 3, ...over });
+
+  it("keeps an event touched after the read was issued", () => {
+    const justCreated = synced({ createdAt: 5000, updatedAt: 5000 });
+    expect(mergeCloudWithLocal([justCreated], [], at(4000)).map(e => e.id)).toEqual(["e1"]);
+  });
+
+  it("still deletes one that predates the read", () => {
+    const old = synced({ createdAt: 1000, updatedAt: 2000 });
+    expect(mergeCloudWithLocal([old], [], at(4000))).toEqual([]);
+  });
+
+  // createdAt is checked alongside updatedAt because a freshly created event
+  // that has not been edited since carries the older of the two in updatedAt
+  // on some paths; the newer of the pair is what the fetch has to beat.
+  it("uses whichever of createdAt/updatedAt is newer", () => {
+    const created = synced({ createdAt: 5000, updatedAt: 0 });
+    expect(mergeCloudWithLocal([created], [], at(4000))).toHaveLength(1);
+  });
+
+  // Without a fetchedAt the caller is making no claim about timing, so the
+  // guard must not silently start deleting on the strength of a default.
+  it("falls back to deleting only on the cloudId rule when no time is given", () => {
+    const anyTime = synced({ updatedAt: Date.now() + 60_000 });
+    expect(mergeCloudWithLocal([anyTime], [], { cloudIsAuthoritative: true })).toEqual([]);
+  });
+});

@@ -53,7 +53,22 @@ const stored = (key) => JSON.parse(localStorage.getItem(key) || '{"events":[]}')
 beforeEach(() => {
   localStorage.clear();
   vi.useFakeTimers();
-  cloud.fetchCloudEvents.mockReset().mockResolvedValue([]);
+  // A real cloud holds exactly the events that have been pushed to it, so the
+  // default mirrors the seeded bucket rather than returning a flat [].
+  //
+  // This is not tidiness. Since hydration honours a remote delete, "the local
+  // bucket has a SYNCED event and the cloud returns nothing" is no longer a
+  // neutral fixture — it is the exact shape of "another device deleted this",
+  // and every case below that seeds `cloudId: "c1"` was accidentally asserting
+  // against that. A test whose setup describes a state the product treats as a
+  // deletion cannot also be a test about debouncing.
+  //
+  // Read lazily inside the mock: `seed()` runs after this, in the test body.
+  cloud.fetchCloudEvents.mockReset().mockImplementation(async (uid) => {
+    const raw = localStorage.getItem(userKey(uid));
+    const evs = raw ? (JSON.parse(raw).events || []) : [];
+    return evs.filter(e => e.cloudId);
+  });
   cloud.createCloudEvent.mockReset().mockResolvedValue({ cloudId: "c-new", version: 1 });
   cloud.updateCloudEvent.mockReset().mockResolvedValue(2);
   cloud.deleteCloudEvent.mockReset().mockResolvedValue(undefined);
@@ -405,5 +420,107 @@ describe("useEvents — switching user", () => {
     rerender({ u: { id: "u1" } });
 
     expect(cloud.fetchCloudEvents).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Two devices, one account ─────────────────────────────────────────────────
+//
+// Reported from the owner's own account: events deleted on the desktop were
+// still on the phone, and the phone then offered to sync them back.
+//
+// Everything above drives ONE device. This drives two against a shared cloud,
+// because that is where the bug lived — not in either device's behaviour on its
+// own, but in what the second one concludes from the first one's delete. The
+// cloud here is a plain array: whatever deleteCloudEvent removes from it is
+// what the other device's fetch does not find.
+describe("two devices on one account", () => {
+  let cloudRows;   // the shared "server"
+
+  const asDevice = (localBucket) => {
+    localStorage.clear();
+    if (localBucket) seed(userKey("u1"), localBucket);
+  };
+
+  beforeEach(() => {
+    cloudRows = [];
+    cloud.fetchCloudEvents.mockReset().mockImplementation(async () => cloudRows.map(r => ({ ...r })));
+    cloud.deleteCloudEvent.mockReset().mockImplementation(async (cloudId) => {
+      cloudRows = cloudRows.filter(r => r.cloudId !== cloudId);
+    });
+    cloud.createCloudEvent.mockReset().mockImplementation(async (e) => {
+      cloudRows.push({ ...e, cloudId: "c-" + e.id, syncedVersion: 1 });
+      return { cloudId: "c-" + e.id, version: 1 };
+    });
+    cloud.updateCloudEvent.mockReset().mockResolvedValue(2);
+  });
+
+  it("a delete on the desktop removes it from the phone too", async () => {
+    // The event exists on both devices and in the cloud.
+    const shared = ev("wedding", { cloudId: "c-wedding", syncedVersion: 1 });
+    cloudRows = [shared];
+
+    // DESKTOP: loads it, deletes it.
+    asDevice([shared]);
+    const desktop = renderHook(() => useEvents(USER));
+    await settle();
+    expect(desktop.result.current.events).toHaveLength(1);
+    act(() => { desktop.result.current.removeEvent("wedding"); });
+    await settle();
+    expect(desktop.result.current.events).toEqual([]);
+    expect(cloudRows).toEqual([]);           // the cloud row is gone
+    desktop.unmount();
+
+    // PHONE: still holds its own copy — nothing ever told it about the delete.
+    asDevice([shared]);
+    const phone = renderHook(() => useEvents(USER));
+    await settle();
+    expect(phone.result.current.events.map(e => e.id)).toEqual([]);
+  });
+
+  it("and does not take the unsynced draft on the phone down with it", async () => {
+    const shared = ev("wedding", { cloudId: "c-wedding", syncedVersion: 1 });
+    const draft  = ev("draft", { cloudId: null });
+    cloudRows = [];                          // desktop already deleted the shared one
+
+    asDevice([shared, draft]);
+    const phone = renderHook(() => useEvents(USER));
+    await settle();
+    expect(phone.result.current.events.map(e => e.id)).toEqual(["draft"]);
+  });
+
+  it("an event added on the phone shows up on the desktop", async () => {
+    asDevice([]);
+    const phone = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { phone.result.current.addEvent({ name: "בר מצווה של איתי", type: "בר מצווה" }); });
+    await settle();
+    expect(cloudRows).toHaveLength(1);
+    phone.unmount();
+
+    asDevice([]);
+    const desktop = renderHook(() => useEvents(USER));
+    await settle();
+    expect(desktop.result.current.events.map(e => e.name)).toEqual(["בר מצווה של איתי"]);
+  });
+
+  // The failure the delete fix could have introduced: hydration reads the
+  // cloud, the host creates an event before the answer arrives, and the answer
+  // — which predates the create — is read as "it was deleted".
+  it("does not delete an event created while hydration was still in flight", async () => {
+    asDevice([]);
+    let release;
+    cloud.fetchCloudEvents.mockImplementation(
+      () => new Promise(res => { release = () => res([]); })
+    );
+
+    const device = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { device.result.current.addEvent({ name: "חינה", type: "חינה" }); });
+    await settle();
+    expect(device.result.current.events).toHaveLength(1);
+
+    // Now the in-flight hydration finally answers, with a list from before it.
+    await act(async () => { release(); await vi.advanceTimersByTimeAsync(0); });
+    expect(device.result.current.events.map(e => e.name)).toEqual(["חינה"]);
   });
 });

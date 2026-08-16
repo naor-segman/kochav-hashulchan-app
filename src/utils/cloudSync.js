@@ -277,6 +277,21 @@ export async function deleteCloudEvent(cloudId, userId) {
 }
 
 /**
+ * The ceiling on one fetch of an account's events.
+ *
+ * It exists so that "this row is not in the cloud" can be trusted. The merge
+ * treats a synced event missing from a fetch as deleted on another device — a
+ * TRUNCATED fetch would therefore delete real events. There was no explicit
+ * limit here before, which meant PostgREST's server-side default silently
+ * decided where the list stopped.
+ *
+ * A caller that needs to trust an absence must check
+ * `rows.length < CLOUD_EVENTS_LIMIT` before doing so. No real account is near
+ * this; the guard is for the case where one is.
+ */
+export const CLOUD_EVENTS_LIMIT = 500;
+
+/**
  * Fetch all cloud events for the given user.
  * Returns an empty array if Supabase is not configured.
  *
@@ -290,7 +305,8 @@ export async function fetchCloudEvents(userId) {
     .from("events")
     .select("*")
     .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .limit(CLOUD_EVENTS_LIMIT);
 
   if (error) throw error;
   return (data ?? []).map(mapCloudEventToLocalEvent);
