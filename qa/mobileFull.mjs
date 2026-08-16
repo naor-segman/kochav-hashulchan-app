@@ -23,7 +23,7 @@ import { mkdirSync, writeFileSync } from 'fs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 
-const BASE = 'http://127.0.0.1:5188';
+const BASE = process.env.APP_BASE || 'http://127.0.0.1:5188';
 const OUT  = '/tmp/claude-0/-home-user-kochav-hashulchan-app/94fef7cd-f944-597e-9253-a6fe3d65a52a/scratchpad/audit/mob';
 mkdirSync(OUT, { recursive: true });
 

@@ -1159,6 +1159,18 @@
 }
 
 @media (max-width: 600px) {
+  /* 40px of gap twice, plus 48px of padding, is 128px of whitespace in a 390px
+     bar. The logo is flex-shrink:0 and the burger has a 44px floor, so the
+     deficit had nowhere to go and pushed the burger 15px off the inline-end
+     edge of the screen: a 44px box with 28px of it actually reachable, on the
+     only navigation control the page that SELLS has below this breakpoint.
+     `margin-inline-start: auto` on .navActions already does the separating,
+     so the large gap was never load-bearing here. */
+  .navInner {
+    gap: 12px;
+    padding: 0 16px;
+  }
+
   .navLinks {
     display: none;
   }
@@ -1169,6 +1181,7 @@
 
   .navBurger {
     display: flex;
+    flex-shrink: 0;
     /* The width/height above are 44px, but `display: none` there means the
        flex box only materialises here — and padding:8px on a 44px box left the
        measured hit area at 38 wide. Belt and braces on the axis that failed. */
@@ -1190,6 +1203,21 @@
 }
 
 @media (max-width: 400px) {
+  /* At 320 the bar still needed 343px: 32 of padding, a 126px logo that does
+     not shrink, a 117px CTA, and the 44px burger. The burger sat 21px off the
+     inline-end edge, and because the row overflowed its container the opened
+     menu's links stretched past the screen with it. Nothing is hidden and
+     nothing truncates — 12px comes off the bar and 16px off the CTA's own
+     padding, which is 28px against a 23px deficit. The CTA is the control that
+     earns money on this page, so it keeps its 44px height and its label. */
+  .navInner {
+    padding: 0 10px;
+  }
+
+  .navCta {
+    padding-inline: 12px;
+  }
+
   .heroHeadline {
     font-size: 2.4rem;
   }

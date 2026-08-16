@@ -295,4 +295,15 @@
   .row {
     row-gap: 20px;
   }
+
+  /* And the same collision sideways. .iconBtn already carries a 44px ::after,
+     but edit and delete are 26px boxes 4px apart — centres 30px apart, so the
+     phantoms overlap and each ends up with 29px of effective width. 7px of
+     margin per side plus the row's 4px gap puts the centres 44px apart.
+     Margin on the button rather than gap on the container, so the status chip
+     beside them is not pushed onto its own line — that is how the same fix on
+     the tasks screen created a new collision. */
+  .iconBtn {
+    margin-inline: 7px;
+  }
 }

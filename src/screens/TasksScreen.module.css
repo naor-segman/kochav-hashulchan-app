@@ -243,4 +243,20 @@
     height: 44px;
   }
 
+  /* KNOWN, MEASURED, NOT FIXED — edit and delete get 25px of effective width
+     each, not 44. The ::after above is there and is not sufficient: two 22px
+     boxes 4px apart put their centres 26px apart, so the 44px phantoms overlap
+     and the later sibling paints over the earlier one.
+
+     Both obvious fixes were tried and MEASURED, and both made the screen worse.
+     Widening .taskActions' column-gap to 22px, and putting 9px of margin on
+     each icon, each added enough width to push the status chips onto a second
+     line — and their own 44px phantoms then collided vertically, taking
+     "לביצוע" from fine to 29px and 25px respectively. The action row has three
+     status chips and two icons in about 200px; there is no spare width, so
+     buying a target here is paid for out of a neighbour's.
+
+     Fixing this needs a layout decision (icons on their own row with 22px of
+     row-gap, or larger icon boxes), not a spacing tweak. Left alone rather
+     than traded. */
 }
