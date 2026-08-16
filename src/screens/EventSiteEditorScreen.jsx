@@ -92,15 +92,33 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
    * Storage when the event has a cloud row, base64 when it does not — and
    * base64 again if the upload fails, because a host on venue wifi losing the
    * photo they just picked is a worse outcome than an event that is briefly
-   * heavier. Either way the caller gets a string for <img src>.
+   * heavier. Either way `src` is a string for <img src>.
+   *
+   * It REPORTS rather than toasts. Toasting here fired an error and then the
+   * caller's success toast replaced it a few milliseconds later, so a failing
+   * upload looked like a red flash the host could not read followed by a green
+   * tick — reported exactly that way: "it flashes an error for a split second
+   * and then uploads the photo anyway". The one message that explained what
+   * went wrong was the one guaranteed to be overwritten.
+   *
+   * `reason` carries the server's own words. A failure here is a bucket that
+   * does not exist, a policy that refused the path, or a MIME type the bucket
+   * rejects — four different fixes that all look identical without it.
    */
   const storeOrEmbed = useCallback(async (blob) => {
-    if (ev.cloudId) {
-      try { return await uploadSitePhoto(ev.cloudId, blob); }
-      catch { showToast("ההעלאה לענן נכשלה — התמונה נשמרה מקומית", "err"); }
+    // NOT the same thing, and conflating them cried wolf: an event with no
+    // cloud row has nowhere to upload to and never did — that is guest mode
+    // working, not a failure — while an upload that was attempted and threw is
+    // a real problem the host has to hear about. The first version of this
+    // reported both as "ההעלאה לענן נכשלה", so every photo added without an
+    // account raised a red alarm about a failure that never happened.
+    if (!ev.cloudId) return { src: await blobToDataUrl(blob), failed: false };
+    try {
+      return { src: await uploadSitePhoto(ev.cloudId, blob), failed: false };
+    } catch (e) {
+      return { src: await blobToDataUrl(blob), failed: true, reason: e?.message || String(e) };
     }
-    return blobToDataUrl(blob);
-  }, [ev.cloudId, showToast]);
+  }, [ev.cloudId]);
 
   // Patch a shallow field on eventSite.
   const set = useCallback((patch) => {
@@ -130,13 +148,19 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     try {
       const blob = await compressImage(file);
       const prev = site.coverPhoto;
-      set({ coverPhoto: await storeOrEmbed(blob) });
+      const r = await storeOrEmbed(blob);
+      set({ coverPhoto: r.src });
       // The photo it replaced is unreachable the moment the field changes, so
       // it is removed rather than left to sit in the bucket forever. Best
       // effort: a host who swaps a cover is not made to care that the old file
       // could not be reached.
       deleteSitePhoto(prev);
-      showToast("תמונת הרקע הועלתה ✓");
+      showToast(
+        r.failed
+          ? `תמונת הרקע נשמרה על המכשיר הזה בלבד — ההעלאה לענן נכשלה: ${r.reason}`
+          : "תמונת הרקע הועלתה ✓",
+        r.failed ? "err" : undefined
+      );
     }
     catch { showToast("שגיאה בעיבוד התמונה", "err"); }
   };
@@ -175,9 +199,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     const dropped = picked.length - imgs.length;
 
     try {
-      const stored = await Promise.all(
+      const results = await Promise.all(
         imgs.map(async f => storeOrEmbed(await compressImage(f, 1000, 0.7)))
       );
+      const stored = results.map(r => r.src);
+      const failed = results.filter(r => r.failed);
       // The slice stays inside the patch as the guarantee: `room` was computed
       // from the rendered gallery, and a second batch started in the same
       // render would not see it. The cap is enforced against whatever the
@@ -191,11 +217,22 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         } };
       });
 
+      // ONE toast, after everything is known — never a success that overwrites
+      // a failure. When anything fell back, that is the headline, because a
+      // photo living only on this device is the thing the host has to know.
       const n = stored.length;
-      showToast(
-        (n === 1 ? "נוספה תמונה אחת ✓" : `נוספו ${n} תמונות ✓`) +
-        (dropped ? ` (${dropped} לא נכנסו — הגלריה מוגבלת ל-${GALLERY_MAX})` : "")
-      );
+      if (failed.length) {
+        showToast(
+          `${failed.length === n ? "התמונה נשמרה" : `${failed.length} מתוך ${n} נשמרו`} ` +
+          `על המכשיר הזה בלבד — ההעלאה לענן נכשלה: ${failed[0].reason}`,
+          "err"
+        );
+      } else {
+        showToast(
+          (n === 1 ? "נוספה תמונה אחת ✓" : `נוספו ${n} תמונות ✓`) +
+          (dropped ? ` (${dropped} לא נכנסו — הגלריה מוגבלת ל-${GALLERY_MAX})` : "")
+        );
+      }
     } catch { showToast("שגיאה בעיבוד התמונות", "err"); }
   };
   const delGalleryPhoto = (i) => {
