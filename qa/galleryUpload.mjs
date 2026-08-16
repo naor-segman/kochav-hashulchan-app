@@ -79,11 +79,19 @@ async function upload(startWith, files = 1) {
   await inputs.nth(idx).setInputFiles(Array(files).fill(FILE));
   await p.waitForTimeout(2500);
 
-  const out = await p.evaluate(() => ({
-    gallery: JSON.parse(localStorage.getItem('kochav_hashulchan_v1')).events[0].eventSite.gallery.length,
-    toasts: [...document.querySelectorAll('[class*="toast"],[role=alert]')]
-      .map(t => (t.textContent || '').trim()).filter(Boolean),
-  }));
+  const out = await p.evaluate(() => {
+    const g = JSON.parse(localStorage.getItem('kochav_hashulchan_v1')).events[0].eventSite.gallery;
+    return {
+      gallery: g.length,
+      // The event has no cloud row here, so what lands in the gallery is a data
+      // URL — and its mime type is the compressor's actual output format,
+      // read back from storage rather than assumed from the source.
+      formats: g.filter(s => typeof s === 'string' && s.startsWith('data:'))
+                .map(s => s.slice(5, s.indexOf(';'))),
+      toasts: [...document.querySelectorAll('[class*="toast"],[role=alert]')]
+        .map(t => (t.textContent || '').trim()).filter(Boolean),
+    };
+  });
   await p.close();
   return { ...out, errs };
 }
@@ -108,6 +116,12 @@ console.log('── one photo into an empty gallery');
   ok(!r.toasts.join(' ').includes('מלאה'), 'does not say the gallery is full', r.toasts.join(' | '));
   ok(r.gallery === 1, 'the photo is actually stored', `gallery = ${r.gallery}`);
   ok(r.errs.length === 0, 'no page error', r.errs[0] || '');
+  // The format is asserted from the STORED bytes, not from the mime type the
+  // code asked toBlob for. canvas.toBlob answers an unsupported type with a
+  // PNG instead of failing, so "we requested WebP" proves nothing — and a PNG
+  // here would be several times LARGER than the JPEG this replaced, i.e. the
+  // change would have made the thing it exists to shrink worse, silently.
+  ok(r.formats[0] === 'image/webp', 'the photo is encoded as WebP', r.formats.join(',') || '(none)');
 }
 
 console.log('\n── one photo into a gallery already at the cap');

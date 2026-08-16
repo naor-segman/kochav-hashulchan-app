@@ -13,50 +13,19 @@ import Icon from "../components/ui/Icon.jsx";
 import styles from "./AnnouncementsEditorScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
 import { uploadSitePhoto, deleteSitePhoto } from "../utils/sitePhotos.js";
+import { compressImage, blobToDataUrl } from "../utils/imageCompress.js";
 
-/** Downscale + compress in the browser, returning a BLOB.
- *
- *  It used to resolve a data URL, and that data URL went into the event payload
- *  — so a 5MB phone photo became base64 inside the row and was re-uploaded to
- *  Postgres on every subsequent edit of the event. The bytes now go to Storage
- *  once, exactly as the event-site gallery does, and the event carries a URL. */
-function compress(file, maxW = 1400, quality = 0.82) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        const scale = Math.min(1, maxW / img.width);
-        const c = document.createElement("canvas");
-        c.width  = Math.round(img.width  * scale);
-        c.height = Math.round(img.height * scale);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        // toBlob, not toDataURL: base64 is a third larger than the bytes it
-        // encodes, and it would only be decoded again to upload.
-        c.toBlob(
-          (blob) => blob ? resolve(blob) : reject(new Error("compression produced nothing")),
-          "image/jpeg",
-          quality
-        );
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-/** The old shape, for an event with no cloud row to upload against. */
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload  = () => resolve(r.result);
-    r.onerror = () => reject(r.error || new Error("read failed"));
-    r.readAsDataURL(blob);
-  });
-}
-
+// The local `compress`/`blobToDataUrl` pair moved to utils/imageCompress.js,
+// shared with the event-site cover and gallery. Two things changed in the move,
+// beyond the format:
+//
+//   The limit is now the LONGEST EDGE, not the width. This copy constrained
+//   width alone, so a 3000×4000 portrait invitation came out 1400×1867 — taller
+//   and heavier than any landscape photo the same code was meant to cap.
+//
+//   The decode goes through an object URL instead of a FileReader data URL,
+//   which skips base64-ing a 5MB phone photo into a string just to hand it to
+//   an <img>.
 export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent, showToast }) {
   // Sharing is the moment guest mode stops being free. A guest event has no
   // cloud row, so the link resolves to nothing for everyone it is sent to —
@@ -97,7 +66,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
   const pickPhoto = async (file) => {
     if (!file) return;
     try {
-      const blob = await compress(file);
+      const { blob, ext } = await compressImage(file, 1400, 0.82);
       const prev = ann.photo;
 
       // Storage when the event has a cloud row; base64 when it does not, and
@@ -107,7 +76,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
       // reporting it as one raises a red alarm about nothing.
       let src, failed = false, reason = "";
       if (ev.cloudId) {
-        try { src = await uploadSitePhoto(ev.cloudId, blob); }
+        try { src = await uploadSitePhoto(ev.cloudId, blob, ext); }
         catch (e) { src = await blobToDataUrl(blob); failed = true; reason = e?.message || String(e); }
       } else {
         src = await blobToDataUrl(blob);
