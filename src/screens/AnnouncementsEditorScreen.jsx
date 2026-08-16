@@ -12,9 +12,14 @@ import base from "../styles/screenBase.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import styles from "./AnnouncementsEditorScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
+import { uploadSitePhoto, deleteSitePhoto } from "../utils/sitePhotos.js";
 
-/** Downscale + compress in the browser — a 5MB phone photo would otherwise be
- *  base64'd straight into the event payload and pushed to the cloud on save. */
+/** Downscale + compress in the browser, returning a BLOB.
+ *
+ *  It used to resolve a data URL, and that data URL went into the event payload
+ *  — so a 5MB phone photo became base64 inside the row and was re-uploaded to
+ *  Postgres on every subsequent edit of the event. The bytes now go to Storage
+ *  once, exactly as the event-site gallery does, and the event carries a URL. */
 function compress(file, maxW = 1400, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -28,11 +33,27 @@ function compress(file, maxW = 1400, quality = 0.82) {
         c.width  = Math.round(img.width  * scale);
         c.height = Math.round(img.height * scale);
         c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        resolve(c.toDataURL("image/jpeg", quality));
+        // toBlob, not toDataURL: base64 is a third larger than the bytes it
+        // encodes, and it would only be decoded again to upload.
+        c.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error("compression produced nothing")),
+          "image/jpeg",
+          quality
+        );
       };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
+  });
+}
+
+/** The old shape, for an event with no cloud row to upload against. */
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload  = () => resolve(r.result);
+    r.onerror = () => reject(r.error || new Error("read failed"));
+    r.readAsDataURL(blob);
   });
 }
 
@@ -76,8 +97,32 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
   const pickPhoto = async (file) => {
     if (!file) return;
     try {
-      set({ photo: await compress(file) });
-      showToast("התמונה הוחלפה ✓");
+      const blob = await compress(file);
+      const prev = ann.photo;
+
+      // Storage when the event has a cloud row; base64 when it does not, and
+      // base64 again if the upload fails — losing the photo a host just picked
+      // is worse than an event that is briefly heavier. `failed` and "never
+      // synced" are kept apart on purpose: guest mode is not a failure, and
+      // reporting it as one raises a red alarm about nothing.
+      let src, failed = false, reason = "";
+      if (ev.cloudId) {
+        try { src = await uploadSitePhoto(ev.cloudId, blob); }
+        catch (e) { src = await blobToDataUrl(blob); failed = true; reason = e?.message || String(e); }
+      } else {
+        src = await blobToDataUrl(blob);
+      }
+
+      set({ photo: src });
+      // The photo it replaced is unreachable the moment the field changes.
+      // Best effort — a host swapping an image is not made to care that the
+      // old file could not be removed.
+      deleteSitePhoto(prev);
+
+      showToast(
+        failed ? `התמונה נשמרה על המכשיר הזה בלבד — ההעלאה לענן נכשלה: ${reason}` : "התמונה הוחלפה ✓",
+        failed ? "err" : undefined
+      );
     } catch {
       showToast("לא הצלחנו לקרוא את התמונה", "err");
     }
