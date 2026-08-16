@@ -25,7 +25,32 @@ export default function ConfirmDialog({
   placeholder = "",
   defaultValue = "",
   onClose,
+  ...unknown
 }) {
+  // A prop this component does not understand is dropped on the floor, and the
+  // drop is invisible: React renders, nothing throws, and the caller believes
+  // the option took effect.
+  //
+  // That is not hypothetical. The "delete local data" dialog passed its warning
+  // as `body`, which is not a prop here — this component splits `message` on
+  // newlines — so an irreversible action asked for confirmation showing nothing
+  // but its headline and two buttons. Measured in the browser before it was
+  // found. It went unnoticed because there was no signal at all.
+  //
+  // Dev only: it costs nothing in production and must never break a dialog the
+  // customer is looking at, which is why it warns rather than throws.
+  if (import.meta.env.DEV) {
+    const extra = Object.keys(unknown);
+    if (extra.length) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `ConfirmDialog: ignoring unknown prop(s) ${extra.join(", ")}. ` +
+        "Nothing will render for them. Multi-line text goes in `message` — " +
+        "it is split on newlines."
+      );
+    }
+  }
+
   const [value, setValue] = useState(defaultValue);
   const cardRef = useRef(null);
   const firstRef = useRef(null);
