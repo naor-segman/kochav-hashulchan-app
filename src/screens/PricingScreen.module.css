@@ -112,6 +112,13 @@
   font-size: var(--step-0);
   font-weight: 700;
   padding: 8px 20px;
+  /* Measured at 39px tall on a phone. The landing page's own .navCta was given
+     these three lines for exactly this reason; the pricing page has a separate
+     copy of the rule and never got them, so the button people press to start
+     paying was the short one. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   border-radius: var(--radius);
   box-shadow: var(--shadow-accent);
   transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
