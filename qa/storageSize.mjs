@@ -26,7 +26,7 @@ const HEB = "אבגדהוזחטיכלמנסעפצקרשת";
 const name = (i) => `${HEB[i % HEB.length]}${HEB[(i * 7) % HEB.length]}${HEB[(i * 3) % HEB.length]} ` +
                     `${HEB[(i * 5) % HEB.length]}${HEB[(i * 11) % HEB.length]}${HEB[(i * 2) % HEB.length]}${HEB[(i * 13) % HEB.length]}`;
 
-function buildEvent({ guests, tables, gallery, galleryKb, floorPlanKb }) {
+function buildEvent({ guests, tables, gallery, galleryKb, floorPlanKb, stored = false }) {
   const g = Array.from({ length: guests }, (_, i) => ({
     id: `g${i}`, name: name(i), side: i % 2 ? "bride" : "groom",
     group: ["משפחה", "חברים", "עבודה", "משפחה רחוקה"][i % 4],
@@ -56,8 +56,9 @@ function buildEvent({ guests, tables, gallery, galleryKb, floorPlanKb }) {
     messagesSent: Object.fromEntries(["save-the-date", "invite", "reminder"].map(k =>
       [k, Object.fromEntries(g.slice(0, Math.floor(guests * 0.8)).map(x => [x.id, 1755300000000]))])),
     eventSite: {
-      gallery: Array.from({ length: gallery }, () => photo(galleryKb)),
-      coverPhoto: gallery ? photo(galleryKb) : null,
+      gallery: Array.from({ length: gallery }, (_, i) =>
+        stored ? storedUrl(i) : photo(galleryKb)),
+      coverPhoto: gallery ? (stored ? storedUrl(99) : photo(galleryKb)) : null,
       story: "הכרנו לפני שבע שנים בטיול בצפון. ".repeat(8),
       shuttles: [{ id: "s1", from: "תל אביב", time: "18:00", seats: 50 }],
     },
@@ -67,6 +68,11 @@ function buildEvent({ guests, tables, gallery, galleryKb, floorPlanKb }) {
   };
 }
 
+// What a stored photo costs the event: a public URL, ~120 bytes.
+const storedUrl = (i) =>
+  `https://xyzcompanyref.supabase.co/storage/v1/object/public/event-site/` +
+  `11111111-1111-1111-1111-111111111111/175530000000${i}-ab12cd.jpg`;
+
 const SCENARIOS = [
   { label: "80 אורחים, בלי תמונות",        guests: 80,  tables: 10, gallery: 0,  galleryKb: 0,   floorPlanKb: 0 },
   { label: "200 אורחים, בלי תמונות",       guests: 200, tables: 20, gallery: 0,  galleryKb: 0,   floorPlanKb: 0 },
@@ -75,6 +81,9 @@ const SCENARIOS = [
   { label: "400 + 6 תמונות גלריה",         guests: 400, tables: 34, gallery: 6,  galleryKb: 150, floorPlanKb: 400 },
   { label: "400 + 12 תמונות גלריה",        guests: 400, tables: 34, gallery: 12, galleryKb: 150, floorPlanKb: 400 },
   { label: "400 + 15 תמונות גלריה",        guests: 400, tables: 34, gallery: 15, galleryKb: 150, floorPlanKb: 400 },
+  // The same wedding once the photos live in Storage and the event holds URLs.
+  { label: "400 + 6 תמונות ← Storage",     guests: 400, tables: 34, gallery: 6,  galleryKb: 150, floorPlanKb: 400, stored: true },
+  { label: "400 + 15 תמונות ← Storage",    guests: 400, tables: 34, gallery: 15, galleryKb: 150, floorPlanKb: 400, stored: true },
 ];
 
 const b = await chromium.launch({
