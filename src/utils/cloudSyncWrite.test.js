@@ -36,6 +36,7 @@ const builder = {
   select(cols) { chain.push(["select", cols]); return this; },
   eq(col, val) { chain.push(["eq", col, val]); return this; },
   order(c, o)  { chain.push(["order", c, o]);  return this; },
+  limit(n)     { chain.push(["limit", n]);     return this; },
   single()     { chain.push(["single"]);       return this; },
   then(res, rej) { return Promise.resolve(response).then(res, rej); },
 };
@@ -45,7 +46,7 @@ vi.mock("../lib/supabase.js", () => ({
   isSupabaseConfigured: true,
 }));
 
-const { updateCloudEvent, deleteCloudEvent, fetchCloudEvents, CloudConflictError } =
+const { updateCloudEvent, deleteCloudEvent, fetchCloudEvents, CLOUD_EVENTS_LIMIT, CloudConflictError } =
   await import("./cloudSync.js");
 
 const eq = col => chain.find(c => c[0] === "eq" && c[1] === col);
@@ -132,5 +133,19 @@ describe("fetchCloudEvents", () => {
     const ord = chain.find(c => c[0] === "order");
     expect(ord[1]).toBe("updated_at");
     expect(ord[2]).toEqual({ ascending: false });
+  });
+
+  // The page size is not a detail here. mergeCloudWithLocal reads an event's
+  // ABSENCE from this list as "deleted on another device", so where the list
+  // stops decides what gets deleted. Without an explicit limit that decision
+  // belonged to PostgREST's server-side default — a number this code does not
+  // set, cannot see, and would silently delete past.
+  it("bounds the page explicitly, so a caller can tell a full read from a cut-off one", async () => {
+    response = { data: [], error: null };
+    await fetchCloudEvents("user-1");
+    const lim = chain.find(c => c[0] === "limit");
+    expect(lim, "no explicit limit — an absence from this fetch cannot be trusted").toBeTruthy();
+    expect(lim[1]).toBe(CLOUD_EVENTS_LIMIT);
+    expect(CLOUD_EVENTS_LIMIT).toBeGreaterThan(0);
   });
 });
