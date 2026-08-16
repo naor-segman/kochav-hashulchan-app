@@ -11,8 +11,15 @@ const upload = vi.fn();
 const remove = vi.fn();
 const getPublicUrl = vi.fn();
 
+// `auth` is part of the mock because the failure path reads the session to say
+// WHO the refused write was made as — the fact that distinguishes a wrong
+// folder from a request that went out anonymously.
+let session = { user: { id: "aaaaaaaa-1111-2222-3333-444444444444" } };
 vi.mock("../lib/supabase.js", () => ({
-  supabase: { storage: { from: () => ({ upload, remove, getPublicUrl }) } },
+  supabase: {
+    storage: { from: () => ({ upload, remove, getPublicUrl }) },
+    auth: { getSession: async () => ({ data: { session } }) },
+  },
   isSupabaseConfigured: true,
 }));
 
@@ -95,6 +102,33 @@ describe("uploadSitePhoto", () => {
   it("surfaces an upload failure instead of returning a broken URL", async () => {
     upload.mockResolvedValue({ error: new Error("network down") });
     await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).rejects.toThrow("network down");
+  });
+
+  // A refusal names the path and the caller, because "new row violates
+  // row-level security policy" is true and says neither — and those are the
+  // only two things the policy actually looks at.
+  it("names the path and the signed-in user when the write is refused", async () => {
+    upload.mockResolvedValue({ error: new Error("new row violates row-level security policy") });
+    await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).rejects.toThrow(/event-site\/11111111/);
+    await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).rejects.toThrow(/aaaaaaaa/);
+  });
+
+  // The case that would explain everything, and the one the message has to
+  // state outright rather than leave to be inferred from a missing id.
+  it("says so plainly when the request is going out with no session at all", async () => {
+    session = null;
+    upload.mockResolvedValue({ error: new Error("new row violates row-level security policy") });
+    await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).rejects.toThrow(/אנונימית/);
+    session = { user: { id: "aaaaaaaa-1111-2222-3333-444444444444" } };
+  });
+
+  // Diagnosis must never become the failure. If reading the session throws,
+  // the real error still has to reach the caller.
+  it("still throws the original error when the session cannot be read", async () => {
+    session = undefined;
+    upload.mockResolvedValue({ error: new Error("boom") });
+    await expect(uploadSitePhoto(EVENT, new Blob(["x"]))).rejects.toThrow("boom");
+    session = { user: { id: "aaaaaaaa-1111-2222-3333-444444444444" } };
   });
 });
 
