@@ -216,8 +216,13 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
                               : <><Icon name="arrowLeft" size={13} /> {s.label}</>}
                           </button>
                         ))}
-                        <button className={styles.iconBtn} onClick={() => startEdit(t)} aria-label="עריכה"><Icon name="edit" size={15} /></button>
-                        <button className={styles.iconBtn} onClick={() => remove(t.id)} aria-label="מחיקה"><Icon name="close" size={15} /></button>
+                        {/* Their own element so the touch stylesheet can give them
+                            a line of their own — see .taskIcons. On a mouse this
+                            is a plain flex child and changes nothing. */}
+                        <div className={styles.taskIcons}>
+                          <button className={styles.iconBtn} onClick={() => startEdit(t)} aria-label="עריכה"><Icon name="edit" size={15} /></button>
+                          <button className={styles.iconBtn} onClick={() => remove(t.id)} aria-label="מחיקה"><Icon name="close" size={15} /></button>
+                        </div>
                       </div>
                     </div>
                   );

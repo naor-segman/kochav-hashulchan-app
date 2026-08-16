@@ -163,10 +163,21 @@
 .taskActions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px dashed var(--border);
+}
+
+/* The pair of icon buttons. Needs its own display:flex at the BASE, not only
+   in the touch block below: .iconBtn is `display: flex`, so inside a plain
+   block div the two buttons stack vertically. Measured on a mouse after the
+   first version of this — the wrapper came out 22px wide instead of 48. */
+.taskIcons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .moveBtn {
@@ -243,20 +254,32 @@
     height: 44px;
   }
 
-  /* KNOWN, MEASURED, NOT FIXED — edit and delete get 25px of effective width
-     each, not 44. The ::after above is there and is not sufficient: two 22px
-     boxes 4px apart put their centres 26px apart, so the 44px phantoms overlap
-     and the later sibling paints over the earlier one.
+  /* The layout decision this needed, rather than the spacing tweak it kept
+     getting.
 
-     Both obvious fixes were tried and MEASURED, and both made the screen worse.
-     Widening .taskActions' column-gap to 22px, and putting 9px of margin on
-     each icon, each added enough width to push the status chips onto a second
-     line — and their own 44px phantoms then collided vertically, taking
-     "לביצוע" from fine to 29px and 25px respectively. The action row has three
-     status chips and two icons in about 200px; there is no spare width, so
-     buying a target here is paid for out of a neighbour's.
+     Edit and delete are 22px boxes 4px apart, so their centres sit 26px apart
+     and the 44px ::after phantoms above overlap — the later sibling paints on
+     top and each control ended up with 25px of effective width. Two attempts
+     to buy that back out of the same row were measured and BOTH made the
+     screen worse: widening .taskActions' column-gap, and putting margin on
+     each icon, each pushed the status chips onto a second line where THEIR
+     phantoms then collided vertically, taking "לביצוע" from fine to 29px and
+     then 25px. Three chips and two icons in ~200px has no spare width, so a
+     target bought there is always paid for out of a neighbour's.
 
-     Fixing this needs a layout decision (icons on their own row with 22px of
-     row-gap, or larger icon boxes), not a spacing tweak. Left alone rather
-     than traded. */
+     So the icons get a line of their own instead of a bigger share of a full
+     one. flex-basis: 100% forces the break; the row-gap is what keeps the two
+     lines' phantoms apart — a 23px chip and a 22px icon need their centres
+     44px apart, which is 22px of gap, not the 4px the mouse layout uses.
+     Touch only: on a mouse the row is unchanged and stays one line. */
+  .taskActions {
+    row-gap: 22px;
+  }
+
+  .taskIcons {
+    /* Forces the break onto a line of its own; display/align come from the
+       base rule. 22px between two 22px boxes puts their centres 44px apart. */
+    flex-basis: 100%;
+    gap: 22px;
+  }
 }

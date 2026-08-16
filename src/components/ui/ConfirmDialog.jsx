@@ -42,7 +42,6 @@ export default function ConfirmDialog({
   if (import.meta.env.DEV) {
     const extra = Object.keys(unknown);
     if (extra.length) {
-      // eslint-disable-next-line no-console
       console.warn(
         `ConfirmDialog: ignoring unknown prop(s) ${extra.join(", ")}. ` +
         "Nothing will render for them. Multi-line text goes in `message` — " +
