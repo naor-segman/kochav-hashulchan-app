@@ -142,26 +142,60 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
   };
 
   const onGallery = async (files) => {
-    const imgs = [...files].filter(f => f.type.startsWith("image/")).slice(0, GALLERY_MAX);
-    if (!imgs.length) { showToast("יש לבחור קובצי תמונה", "err"); return; }
+    const picked = [...files].filter(f => f.type.startsWith("image/"));
+    if (!picked.length) { showToast("יש לבחור קובצי תמונה", "err"); return; }
+
+    // Decide how many fit BEFORE uploading anything.
+    //
+    // This used to be decided inside the patch, with the count assigned to a
+    // variable that the next line read:
+    //
+    //     let added = 0;
+    //     patchEvent(e => { …; added = …; });
+    //     if (added === 0) showToast("הגלריה מלאה");
+    //
+    // React only runs that updater during render, so `added` was still 0 when
+    // the toast was chosen. It appeared to work because React evaluates an
+    // updater eagerly WHEN THE QUEUE IS EMPTY — and the queue is empty right up
+    // until something else sets state first. `storeOrEmbed` does exactly that
+    // when an upload fails: it shows a toast. So on a configured account whose
+    // first upload failed, the eager path was skipped, `added` stayed 0, and
+    // "הגלריה מלאה" fired on an EMPTY gallery — replacing the upload-failure
+    // toast that would have said what actually went wrong. Reported on the
+    // first real upload.
+    //
+    // Deciding here also stops uploading photos that cannot fit: the old order
+    // compressed and UPLOADED all six, then threw away whatever exceeded the
+    // cap, leaving paid-for objects in the bucket that nothing would ever
+    // reference or clean.
+    const room = Math.max(0, GALLERY_MAX - (site.gallery?.length ?? 0));
+    if (room === 0) { showToast(`הגלריה מלאה — אפשר עד ${GALLERY_MAX} תמונות`, "err"); return; }
+
+    const imgs    = picked.slice(0, room);
+    const dropped = picked.length - imgs.length;
+
     try {
-      const compressed = await Promise.all(
+      const stored = await Promise.all(
         imgs.map(async f => storeOrEmbed(await compressImage(f, 1000, 0.7)))
       );
-      // Read the current gallery INSIDE the patch. `site` was captured before
-      // the await, so two overlapping batches lost one of them — and slicing a
-      // list whose head is the existing gallery drops the NEW photos while the
-      // toast counts what was compressed rather than what actually landed.
-      let added = 0;
+      // The slice stays inside the patch as the guarantee: `room` was computed
+      // from the rendered gallery, and a second batch started in the same
+      // render would not see it. The cap is enforced against whatever the
+      // event actually holds at apply time, so the DATA is right even when the
+      // count above is optimistic.
       patchEvent(e => {
-        const cur  = e.eventSite?.gallery || [];
-        const room = Math.max(0, GALLERY_MAX - cur.length);
-        added = Math.min(room, compressed.length);
-        return { ...e, eventSite: { ...e.eventSite, gallery: [...cur, ...compressed.slice(0, room)] } };
+        const cur = e.eventSite?.gallery || [];
+        return { ...e, eventSite: {
+          ...e.eventSite,
+          gallery: [...cur, ...stored.slice(0, Math.max(0, GALLERY_MAX - cur.length))],
+        } };
       });
-      if (added === 0)      showToast(`הגלריה מלאה (${GALLERY_MAX} תמונות)`, "err");
-      else if (added === 1) showToast("נוספה תמונה אחת ✓");
-      else                  showToast(`נוספו ${added} תמונות ✓`);
+
+      const n = stored.length;
+      showToast(
+        (n === 1 ? "נוספה תמונה אחת ✓" : `נוספו ${n} תמונות ✓`) +
+        (dropped ? ` (${dropped} לא נכנסו — הגלריה מוגבלת ל-${GALLERY_MAX})` : "")
+      );
     } catch { showToast("שגיאה בעיבוד התמונות", "err"); }
   };
   const delGalleryPhoto = (i) => {
