@@ -42,7 +42,10 @@
   word-break: break-all;
 }
 
-.statOver  { color: var(--red); }
+/* --red-text, not --red: this number sits on --blush inside .statPrimary,
+   where --red is 3.99:1 and the mobile override renders it at 17px — under the
+   large-text threshold, so it needs the full 4.5. */
+.statOver  { color: var(--red-text); }
 .statUnder { color: var(--green); }
 
 .statLabel {
