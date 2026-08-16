@@ -74,7 +74,17 @@ export async function uploadSitePhoto(eventCloudId, blob, ext = "jpg") {
     // A year of cache: the path is unique per upload, so a changed photo is a
     // new URL and there is nothing to invalidate.
     .upload(path, blob, { cacheControl: "31536000", upsert: false, contentType: blob.type || "image/jpeg" });
-  if (error) throw error;
+
+  // The policy this write has to satisfy compares the FIRST FOLDER of the path
+  // against an event the caller owns. When it refuses, "new row violates
+  // row-level security policy" is true and useless — it does not say which
+  // folder was tried, and that is the only fact that distinguishes a wrong
+  // event id from a missing grant from a session the storage service never
+  // received. Saying it here turns one more round trip into none.
+  if (error) {
+    error.message = `${error.message} [ניסיתי לכתוב אל: ${BUCKET}/${path}]`;
+    throw error;
+  }
 
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
