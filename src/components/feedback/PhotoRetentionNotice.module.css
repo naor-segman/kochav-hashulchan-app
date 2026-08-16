@@ -1,0 +1,50 @@
+/* The warning sits inside Banner, which is already a flex row with wrap. This
+   only handles the sentence-plus-action shape: the text takes what it needs and
+   the button stays whole rather than being squeezed to two words per line. */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.row > span {
+  flex: 1 1 12rem;
+}
+
+/* The action that stops a deletion, so it has to look like a control and not
+   like a link inside a sentence.
+
+   --warn-bg is the banner's own ground, so the button cannot use it. A surface
+   fill with the warning colour as its edge separates the two planes without
+   introducing a second accent: --text on --surface is the same near-black the
+   banner already carries, at full contrast, rather than the 4.7:1 a coloured
+   label would have been. */
+.keep {
+  flex: 0 0 auto;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  /* 44px is the tap floor this project holds elsewhere; the padding above puts
+     the drawn box under it, so the minimum is stated rather than hoped for. */
+  min-height: 44px;
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition);
+}
+
+.keep:hover {
+  background: var(--warn-bg);
+}
+
+.keep:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}

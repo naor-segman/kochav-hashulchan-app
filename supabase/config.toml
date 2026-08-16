@@ -26,3 +26,14 @@ verify_jwt = true
 
 [functions.detect-floor-plan]
 verify_jwt = true
+
+# Called by a SCHEDULER, not by a signed-in user, so there is no JWT to verify.
+# With the platform default it would be rejected 401 before Deno.serve ran, and
+# the only symptom would be photos that quietly never expire — the same silent
+# shape that broke stripe-webhook above.
+#
+# It is not unauthenticated: the handler requires a shared secret in
+# `x-purge-secret`, compared in constant time, and refuses every request when
+# PURGE_SECRET is unset rather than accepting every request.
+[functions.purge-event-photos]
+verify_jwt = false

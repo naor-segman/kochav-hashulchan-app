@@ -4,6 +4,7 @@ import { uploadSitePhoto, deleteSitePhoto } from "../utils/sitePhotos.js";
 import { compressImage, blobToDataUrl } from "../utils/imageCompress.js";
 import { SITE_THEME_LIST, SITE_FONTS, DEFAULT_SITE_FONT } from "../data/eventSiteTemplates.js";
 import Banner from "../components/feedback/Banner.jsx";
+import PhotoRetentionNotice from "../components/feedback/PhotoRetentionNotice.jsx";
 import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -224,6 +225,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         mark="site"
         sub="בנו את אתר האירוע שלכם — הוא נבנה אוטומטית ונשלח לאורחים. מלאו פרטים, בחרו עיצוב, ופרסמו."
       />
+
+      {/* `showPurged` only here: this is the screen where an empty gallery is
+          otherwise unexplained. On the hub it would be a permanent notice about
+          something already finished. */}
+      <PhotoRetentionNotice ev={ev} patchEvent={patchEvent} showToast={showToast} showPurged />
 
       {/* ── Publish + share ── */}
       <div className={[base.card, site.enabled ? "" : base.cardDirty].filter(Boolean).join(" ")}>
