@@ -123,7 +123,7 @@ export default function ImportReview({ rows, existingGuests, onChange, onConfirm
 
       <div className={base.formActions}>
         <button
-          className={base.btnPrimary}
+          className={[base.btnPrimary, base.btnWrap].join(" ")}
           onClick={onConfirm}
           disabled={disabled || summary.rows === 0}
         >

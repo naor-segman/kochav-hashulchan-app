@@ -518,7 +518,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             </div>
             <div className={base.formActions}>
               <button
-                className={base.btnPrimary}
+                className={[base.btnPrimary, base.btnWrap].join(" ")}
                 onClick={reviewFromList}
                 disabled={parsedList.length === 0}
               >

@@ -197,6 +197,12 @@
 .toggle input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
 .toggle:hover { border-color: var(--border2); }
 
+/* The label IS the tap target (the box inside it is 16px). It measured 37.5px
+   tall on a phone — the row is wide, so only the vertical axis was short. */
+@media (pointer: coarse) {
+  .toggle { min-height: 44px; }
+}
+
 /* The copy button beside a read-only URL. It arrives as a filled --cta from the
    shared button family, which makes "copy a link" look like the primary action
    on a screen whose primary action is publish. Adjacent-sibling selector so

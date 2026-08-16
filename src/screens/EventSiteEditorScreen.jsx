@@ -379,7 +379,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
               onChange={e => editSchedule(item.id, { time: e.target.value })} />
             <input className={[base.input, styles.iconInput].join(" ")} value={item.icon} placeholder="💍"
               aria-label="אייקון" onChange={e => editSchedule(item.id, { icon: e.target.value })} />
-            <input className={base.input} value={item.title} placeholder="חופה"
+            <input className={[base.input, styles.schedTitleInput].join(" ")} value={item.title} placeholder="חופה"
               aria-label="שם השלב" onChange={e => editSchedule(item.id, { title: e.target.value })} />
             <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delSchedule(item.id)}
               aria-label={`מחקו את השלב ${item.title || item.time || ""}`.trim()}>✕</button>
