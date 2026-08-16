@@ -71,6 +71,12 @@ const MAXIMAL = {
               contact: "אבי", note: "כולל הגברה" }],
   costs: { catering: { planned: 90000, actual: 88000 } },
   messagesSent: { g1: { invite: 1700000000000 } },
+  // Tombstones. Stamped relative to NOW because normalizeEvent ages them out
+  // past TOMBSTONE_TTL_MS — a fixed 2023 constant here would be pruned by the
+  // normalizer and the assertion would pass for the wrong reason, which is
+  // precisely the failure mode this file exists to catch.
+  deletedRows: { guests: { gDeleted: Date.now() - 1000 },
+                 tables: { tDeleted: Date.now() - 2000 } },
   messageTemplates: { invite: "בואו לחגוג {{אירוע}}" },
   collabActive: false,
   hostessWriteActive: false,
@@ -216,6 +222,10 @@ describe("full cloud round-trip", () => {
     expect(n2.vendors).toEqual(MAXIMAL.vendors);
     expect(n2.tasks).toEqual(MAXIMAL.tasks);
     expect(n2.messagesSent).toEqual(MAXIMAL.messagesSent);
+    // Dropped from the UP mapper, the other device never hears about the
+    // delete and resurrects the row; dropped from the DOWN mapper, this device
+    // forgets its own delete and does the same. Either way it is silent.
+    expect(n2.deletedRows).toEqual(MAXIMAL.deletedRows);
     expect(n2.messageTemplates).toEqual(MAXIMAL.messageTemplates);
     expect(n2.costs).toEqual(MAXIMAL.costs);
     expect(n2.lockedGuests).toEqual(["g1"]);

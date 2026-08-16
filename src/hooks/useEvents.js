@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { loadState, persist, userStorageKey } from "../utils/storage.js";
-import { normalizeEvent, updateEventTimestamp, TOKEN_KEYS } from "../utils/eventHelpers.js";
+import { normalizeEvent, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import {
   SYNC_STATUS,
@@ -85,12 +85,102 @@ function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRo
  * becomes a real complaint the answer is deletion tombstones, not reverting
  * this.
  */
-function unionById(localRows, cloudRows) {
-  if (!Array.isArray(cloudRows) || !cloudRows.length) return localRows;
-  if (!Array.isArray(localRows)) return cloudRows;
+function unionById(localRows, cloudRows, tombstones) {
+  // The trade in the paragraph above, closed. A tombstone is this account
+  // saying "I deleted this row", so a copy of it arriving from the other side
+  // is not a row that device ADDED — it is a device that has not heard yet.
+  // Without this, a guest deleted on the laptop came back from the phone's
+  // copy, and a table with it; measured, in both merge directions.
+  //
+  // BOTH sides are filtered, not just the incoming extras. Whichever side won
+  // on scalars becomes the base array here, and when that is the cloud copy it
+  // still contains the row this device deleted — filtering only the extras let
+  // it straight through, which is exactly how the first version of this passed
+  // the local-wins case and failed the cloud-wins one.
+  const drop = (rows) => tombstones && Object.keys(tombstones).length
+    ? rows.filter(r => !r?.id || !tombstones[r.id])
+    : rows;
+
+  if (!Array.isArray(cloudRows) || !cloudRows.length) {
+    return Array.isArray(localRows) ? drop(localRows) : localRows;
+  }
+  if (!Array.isArray(localRows)) return drop(cloudRows);
+
+  const base     = drop(localRows);
   const localIds = new Set(localRows.map(r => r?.id).filter(Boolean));
-  const extras   = cloudRows.filter(r => r?.id && !localIds.has(r.id));
-  return extras.length ? [...localRows, ...extras] : localRows;
+  const extras   = cloudRows.filter(r =>
+    r?.id && !localIds.has(r.id) && !tombstones?.[r.id]);
+  return extras.length ? [...base, ...extras] : base;
+}
+
+/**
+ * Union two tombstone maps for one collection, keeping the EARLIEST stamp.
+ *
+ * Earliest, because the stamp answers "when was this deleted", and the device
+ * that did it holds the true answer; a later stamp is another device noticing.
+ * It also has to be a union rather than last-write-wins for the same reason
+ * every other collection here does: a tombstone the other device recorded is a
+ * fact this one has not learned yet, and dropping it un-deletes the row.
+ */
+/**
+ * Record a tombstone for every id-keyed row this patch REMOVED.
+ *
+ * Derived here rather than at each delete site on purpose. There are a dozen
+ * places that remove a guest, a table, a constraint, a task or a vendor —
+ * GuestManagerScreen, the import review, TableBuilder, the seating screen's
+ * quick-remove, the collab reconciler, bulk delete — and asking each of them to
+ * remember to also write a tombstone is a rule that gets followed until someone
+ * adds the thirteenth. Every one of them goes through patchEventById, so the
+ * diff is taken once, here, and a delete site added next year is covered
+ * without knowing this exists.
+ *
+ * A row is tombstoned only when the collection was actually PRESENT before and
+ * after: a patch that does not mention `guests` must not be read as deleting
+ * all of them, and neither must one that sets it to something that is not an
+ * array.
+ */
+function withTombstones(before, after, now = Date.now()) {
+  let added = null;
+  for (const key of TOMBSTONED_COLLECTIONS) {
+    const was = before?.[key], is = after?.[key];
+    if (!Array.isArray(was) || !Array.isArray(is)) continue;
+    if (is.length >= was.length) {
+      // Fast path: nothing can have been removed without the length dropping,
+      // because ids are unique within a collection.
+      continue;
+    }
+    const stillThere = new Set(is.map(r => r?.id).filter(Boolean));
+    for (const row of was) {
+      if (!row?.id || stillThere.has(row.id)) continue;
+      added ??= {};
+      (added[key] ??= {})[row.id] = now;
+    }
+  }
+  if (!added) return after;
+
+  const prev = (after?.deletedRows && typeof after.deletedRows === "object") ? after.deletedRows : {};
+  const next = { ...prev };
+  for (const [key, rows] of Object.entries(added)) next[key] = { ...(prev[key] ?? {}), ...rows };
+  return { ...after, deletedRows: next };
+}
+
+function mergeTombstoneMaps(localTombs, cloudTombs) {
+  const l = (localTombs && typeof localTombs === "object") ? localTombs : {};
+  const c = (cloudTombs && typeof cloudTombs === "object") ? cloudTombs : {};
+  const keys = new Set([...Object.keys(l), ...Object.keys(c)]);
+  if (!keys.size) return localTombs ?? {};
+  const out = {};
+  for (const k of keys) {
+    const lb = (l[k] && typeof l[k] === "object") ? l[k] : {};
+    const cb = (c[k] && typeof c[k] === "object") ? c[k] : {};
+    const merged = { ...cb, ...lb };
+    for (const rowId of Object.keys(merged)) {
+      const a = lb[rowId], b = cb[rowId];
+      merged[rowId] = (Number.isFinite(a) && Number.isFinite(b)) ? Math.min(a, b) : (a ?? b);
+    }
+    out[k] = merged;
+  }
+  return out;
 }
 
 /**
@@ -209,6 +299,12 @@ export function mergeCloudWithLocal(
     const localMatch = localEvents.find(le =>
       le.id === ce.id || (le.cloudId && le.cloudId === ce.cloudId)
     );
+    // Both sides' tombstones, before either branch decides who wins on scalars.
+    // A deletion recorded on either device is a deletion, and the branch that
+    // loses on scalars still has to have its deletes honoured — otherwise which
+    // device happened to edit the venue last would decide whether a guest the
+    // OTHER device removed stays removed.
+    const tombs = mergeTombstoneMaps(localMatch?.deletedRows, ce.deletedRows);
 
     // The cloud row is NOT automatically the truth. A write can fail (venue
     // wifi) or simply not have fired yet — the push is debounced 1500ms, so
@@ -228,13 +324,17 @@ export function mergeCloudWithLocal(
         // Two different merges, for two different failures. `unionById` keeps
         // ROWS the other device added; `mergeArrivals` keeps two FIELDS on rows
         // both sides already have. Neither subsumes the other.
-        guests: mergeArrivals(unionById(localMatch.guests, ce.guests), ce.guests),
+        // The tombstone set both sides know about, computed once and applied to
+        // every collection below. It has to be the UNION: a row the other
+        // device deleted is deleted, whichever side won on scalars.
+        deletedRows: tombs,
+        guests: mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests),
         // Tables too: a second device adding tables is the same shape of loss,
         // and an unseated guest is recoverable while a deleted table is not.
         // `seating` stays local — it references this tab's own ids, and a cloud
         // guest arrives unseated, which is exactly where the host expects a
         // newly imported row to be.
-        tables: unionById(localMatch.tables, ce.tables),
+        tables: unionById(localMatch.tables, ce.tables, tombs.tables),
         // The union was written for guests, then extended to tables, and stopped
         // there — while five other collections stayed whole-event
         // last-write-wins. Measured on the code before this line: the other
@@ -247,9 +347,9 @@ export function mergeCloudWithLocal(
         // Same argument as for guests: these are id-keyed rows, there are no
         // tombstones, so a delete that has not landed yet may come back — and
         // that is the recoverable failure of the two.
-        constraints: unionById(localMatch.constraints, ce.constraints),
-        tasks:       unionById(localMatch.tasks,       ce.tasks),
-        vendors:     unionById(localMatch.vendors,     ce.vendors),
+        constraints: unionById(localMatch.constraints, ce.constraints, tombs.constraints),
+        tasks:       unionById(localMatch.tasks,       ce.tasks,       tombs.tasks),
+        vendors:     unionById(localMatch.vendors,     ce.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(localMatch.messagesSent, ce.messagesSent),
         messageTemplates: unionByKey(localMatch.messageTemplates, ce.messageTemplates),
         costs:            keepFilledCosts(localMatch.costs, ce.costs),
@@ -302,11 +402,12 @@ export function mergeCloudWithLocal(
       // cloud side, so they swap.
       result = {
         ...result,
-        guests: mergeArrivals(unionById(result.guests, localMatch.guests), localMatch.guests),
-        tables:      unionById(result.tables,      localMatch.tables),
-        constraints: unionById(result.constraints, localMatch.constraints),
-        tasks:       unionById(result.tasks,       localMatch.tasks),
-        vendors:     unionById(result.vendors,     localMatch.vendors),
+        deletedRows: tombs,
+        guests: mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests),
+        tables:      unionById(result.tables,      localMatch.tables,      tombs.tables),
+        constraints: unionById(result.constraints, localMatch.constraints, tombs.constraints),
+        tasks:       unionById(result.tasks,       localMatch.tasks,       tombs.tasks),
+        vendors:     unionById(result.vendors,     localMatch.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(result.messagesSent, localMatch.messagesSent),
         messageTemplates: unionByKey(result.messageTemplates, localMatch.messageTemplates),
         costs:            keepFilledCosts(result.costs, localMatch.costs),
@@ -639,7 +740,7 @@ export function useEvents(user) {
       const patched = typeof patch === "function"
         ? patch(e)
         : Object.assign({}, e, patch);
-      return updateEventTimestamp(patched);
+      return updateEventTimestamp(withTombstones(e, patched));
     }));
 
     // Debounce cloud writes so rapid-fire patches (e.g. typing in a field)
