@@ -21,7 +21,7 @@
 // actually run. It was written, it timed out on every upload case, and it was
 // deleted rather than mocked into passing.
 import { createRequire } from 'module';
-import { writeFileSync } from 'fs';
+import { writeFileSync, readFileSync } from 'fs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 
@@ -34,7 +34,13 @@ writeFileSync(FILE, Buffer.from(
   'HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAA' +
   'AAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==', 'base64'));
 
-const CAP = 6;
+// Read from the source, not restated here — a harness carrying its own copy of
+// the cap passes happily after the cap changes and proves nothing.
+const CAP = Number(
+  readFileSync('src/screens/EventSiteEditorScreen.jsx', 'utf8')
+    .match(/GALLERY_MAX\s*=\s*(\d+)/)[1]
+);
+console.log(`(cap read from source: ${CAP})\n`);
 const ev = (gallery) => ({
   id: 'e1', name: 'החתונה של דנה ויוסי', type: 'חתונה', date: '2027-06-01',
   guests: [], tables: [], seating: {}, constraints: [], tasks: [], vendors: [], costs: {},
