@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import Icon from "../../components/ui/Icon.jsx";
 import { EVENT_TYPES } from "../../data/constants.js";
 import styles from "./AdminSettingsScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
+import { useAdminLogout } from "../lib/useAdminLogout.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ function formToPayload(form) {
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function AdminSettingsScreen() {
-  const navigate = useNavigate();
+  const handleLogout = useAdminLogout();
 
   const [adminEmail,   setAdminEmail]   = useState(null);
   const [loading,      setLoading]      = useState(true);
@@ -129,10 +130,6 @@ export default function AdminSettingsScreen() {
 
   useEffect(() => { loadSettings(); }, [loadSettings]);
 
-  const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
-    navigate("/admin/login", { replace: true });
-  };
 
   const set = (field) => (e) =>
     setForm((prev) => ({

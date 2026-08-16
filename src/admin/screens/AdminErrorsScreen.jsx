@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import {Link} from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import Icon from "../../components/ui/Icon.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";

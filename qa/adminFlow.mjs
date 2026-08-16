@@ -148,6 +148,36 @@ if (await field.count()) {
      'a settings field is editable and holds what was typed', v);
 } else ok(false, 'the settings screen has an editable field');
 
+// Signing out is skipped in the per-control sweep above — it would end the
+// session for every screen after it. It is checked here instead, last, and on
+// EVERY screen that carries the button: eight of them used to hold their own
+// copy of the handler, so "it works on the dashboard" said nothing about the
+// other seven.
+console.log('\n── signing out, from every screen that offers it');
+for (const [name, path] of ROUTES) {
+  if (name === 'login') continue;
+  const p2 = await b.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const e2 = [];
+  p2.on('pageerror', e => e2.push(e.message.slice(0, 120)));
+  await p2.goto(BASE + path, { waitUntil: 'domcontentloaded' });
+  await p2.waitForTimeout(1300);
+  const btn = p2.locator('button', { hasText: /^יציאה$/ }).first();
+  if (!(await btn.count())) {
+    // AdminErrorsScreen has different chrome — a back link to the dashboard,
+    // no topbar and therefore no logout. Not a failure (one tap gets the
+    // operator somewhere that has one) but an inconsistency worth printing
+    // rather than passing over in silence.
+    console.log(`  note ${name}: no logout button — this screen has a back link instead`);
+    await p2.close();
+    continue;
+  }
+  await btn.click().catch(err => e2.push('click: ' + String(err).slice(0, 60)));
+  await p2.waitForTimeout(1200);
+  ok(p2.url().endsWith('/admin/login') && e2.length === 0, `${name} → /admin/login`,
+     `${p2.url().replace(BASE, '')}${e2.length ? '; ' + e2[0] : ''}`);
+  await p2.close();
+}
+
 await b.close();
 console.log(`\n${fails} failing checks`);
 process.exit(fails ? 1 : 0);

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventsScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
 import { formatDate, formatRelative } from "../lib/adminFormat.js";
+import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { deriveEventStatus } from "../lib/eventStatus.js";
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
@@ -44,7 +45,7 @@ async function loadEventsData() {
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function AdminEventsScreen() {
-  const navigate = useNavigate();
+  const handleLogout = useAdminLogout();
   const [searchParams]  = useSearchParams();
 
   const [adminEmail, setAdminEmail] = useState(null);
@@ -75,10 +76,6 @@ export default function AdminEventsScreen() {
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
-  const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
-    navigate("/admin/login", { replace: true });
-  };
 
   // Collect distinct event types for the filter dropdown.
   const eventTypes = useMemo(() => {

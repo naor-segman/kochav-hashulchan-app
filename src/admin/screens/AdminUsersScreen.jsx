@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import { getPlanLabel } from "../lib/planConfig.js";
+import { useAdminLogout } from "../lib/useAdminLogout.js";
 import styles from "./AdminUsersScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
@@ -84,7 +85,7 @@ async function loadUsersData() {
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function AdminUsersScreen() {
-  const navigate = useNavigate();
+  const handleLogout = useAdminLogout();
 
   const [adminEmail, setAdminEmail] = useState(null);
   const [users,      setUsers]      = useState(null);   // null = loading
@@ -112,10 +113,6 @@ export default function AdminUsersScreen() {
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
-  const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
-    navigate("/admin/login", { replace: true });
-  };
 
   // Client-side search — fast enough for admin datasets.
   const filtered = useMemo(() => {

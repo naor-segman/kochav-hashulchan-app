@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, Fragment } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import {
   getPlanMeta,
@@ -14,6 +14,7 @@ import {
   STATUS_KEYS,
 } from "../lib/planConfig.js";
 import { formatDate, countPhrase } from "../lib/adminFormat.js";
+import { useAdminLogout } from "../lib/useAdminLogout.js";
 import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSubscriptionsScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
@@ -129,7 +130,7 @@ function PlanLimitsPanel({ plan }) {
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function AdminSubscriptionsScreen() {
-  const navigate = useNavigate();
+  const handleLogout = useAdminLogout();
 
   const [adminEmail,     setAdminEmail]     = useState(null);
   const [subs,           setSubs]           = useState(null);   // null = loading
@@ -172,10 +173,6 @@ export default function AdminSubscriptionsScreen() {
 
   useEffect(() => { loadSubs(); }, [loadSubs]);
 
-  const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
-    navigate("/admin/login", { replace: true });
-  };
 
   // ── Derived filtered list ──────────────────────────────────────────────────
 

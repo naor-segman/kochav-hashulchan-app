@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import TableGlyph from "../../components/ui/TableGlyph.jsx";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminEventDetailScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import { formatDate, formatRelative } from "../lib/adminFormat.js";
+import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { deriveEventStatus } from "../lib/eventStatus.js";
 
 const SIDE_LABEL = { bride: "כלה", groom: "חתן" };
@@ -49,7 +50,7 @@ const GUESTS_DISPLAY_LIMIT = 100;
 
 export default function AdminEventDetailScreen() {
   const { eventId }  = useParams();
-  const navigate     = useNavigate();
+  const handleLogout = useAdminLogout();
 
   const [adminEmail, setAdminEmail] = useState(null);
   const [event,      setEvent]      = useState(null);   // null = loading
@@ -82,10 +83,6 @@ export default function AdminEventDetailScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
-    navigate("/admin/login", { replace: true });
-  };
 
   // ── Derived payload data ────────────────────────────────────────────────────
 

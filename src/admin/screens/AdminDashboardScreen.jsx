@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import styles from "./AdminDashboardScreen.module.css";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
+import { useAdminLogout } from "../lib/useAdminLogout.js";
 
 // Stat tile definitions — key maps to the stats object returned by fetchStats().
 // `mark` is a key into components/ui/SectionMark — the same drawings the
@@ -53,7 +54,7 @@ async function fetchStats() {
 }
 
 export default function AdminDashboardScreen() {
-  const navigate = useNavigate();
+  const handleLogout = useAdminLogout();
 
   const [adminEmail,    setAdminEmail]    = useState(null);
   const [stats,         setStats]         = useState(null);   // null = loading
@@ -89,10 +90,6 @@ export default function AdminDashboardScreen() {
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
-    navigate("/admin/login", { replace: true });
-  };
 
   const loading = stats === null;
 

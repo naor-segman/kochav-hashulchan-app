@@ -154,13 +154,32 @@ class Query {
 
 export const isSupabaseConfigured = true;
 
+/* signOut has to actually END the session, or the panel cannot be checked.
+   With it as a no-op, pressing "יציאה" navigated to /admin/login, AdminGuard
+   still saw a session, and bounced straight back to the dashboard — which is
+   indistinguishable from the logout doing nothing at all. Now the guard denies
+   and the operator lands on the login screen, as in production. */
+let signedIn = true;
+const listeners = new Set();
+
 export const supabase = {
   from: (table) => new Query(table),
   rpc: () => Promise.resolve({ data: [], error: null }),
   auth: {
-    getSession: () => Promise.resolve({ data: { session: { user: { id: "u0" } } } }),
-    getUser: () => Promise.resolve({ data: { user: { id: "u0", email: "admin@kochav-hashulchan.co.il" } } }),
-    signOut: () => Promise.resolve({ error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+    getSession: () => Promise.resolve({
+      data: { session: signedIn ? { user: { id: "u0" } } : null },
+    }),
+    getUser: () => Promise.resolve({
+      data: { user: signedIn ? { id: "u0", email: "admin@kochav-hashulchan.co.il" } : null },
+    }),
+    signOut: () => {
+      signedIn = false;
+      for (const cb of listeners) cb("SIGNED_OUT", null);
+      return Promise.resolve({ error: null });
+    },
+    onAuthStateChange: (cb) => {
+      listeners.add(cb);
+      return { data: { subscription: { unsubscribe() { listeners.delete(cb); } } } };
+    },
   },
 };
