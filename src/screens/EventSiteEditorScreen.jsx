@@ -68,12 +68,26 @@ function blobToDataUrl(blob) {
 // for the WHOLE `{events}` blob rather than the large one — every event
 // silently reverting to its last good snapshot on reload.
 //
-// That reason is gone. A stored photo is a URL of about 120 bytes, so the same
-// wedding is now ~204KB whatever the gallery holds. The cap stays at six only
-// because it is a PRODUCT question now — how heavy the page a guest opens on
-// mobile data should be — and that is not a decision to make silently while
-// fixing a storage bug. It can be raised whenever the owner wants it raised.
-const GALLERY_MAX = 6;
+// Both reasons to keep it low are gone, and the second was measured rather
+// than assumed:
+//
+//   STORAGE — a stored photo is a URL of about 120 bytes, so the same wedding
+//   is ~204KB whatever the gallery holds.
+//
+//   MONEY — the free tier bills UNCACHED egress, and every uploaded object
+//   carries a one-year cache header, so the first fetch is charged and the
+//   other 299 guests are served from cache into a separate quota. A first
+//   estimate here put a 300-guest wedding at 0.47GB and was wrong by about two
+//   orders of magnitude: it counted every guest as an origin fetch. The real
+//   figure is ~1.6MB of billable egress per event at six photos, against a
+//   5GB monthly allowance.
+//
+// What is left is the only thing that was ever a real trade: how heavy the
+// page is for a guest opening it on mobile data. Ten photos at 271KB each is
+// ~2.7MB — a few seconds on a normal connection, and enough that a gallery
+// reads as a gallery. Raised at the owner's decision, with those numbers in
+// front of him.
+const GALLERY_MAX = 10;
 
 export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, showToast }) {
   // Sharing is the moment guest mode stops being free. A guest event has no
