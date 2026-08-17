@@ -105,8 +105,9 @@ export default function PricingScreen({ user }) {
             <span className={styles.navLogoName}>כוכב השולחן</span>
           </Link>
           <div className={styles.navLinks}>
-            <Link to="/#features" className={styles.navLink}>תכונות</Link>
-            <Link to="/#how" className={styles.navLink}>איך זה עובד</Link>
+            {/* /home, not / — see the note in Footer.jsx. */}
+            <Link to="/home#features" className={styles.navLink}>תכונות</Link>
+            <Link to="/home#how" className={styles.navLink}>איך זה עובד</Link>
             <Link to="/pricing" className={[styles.navLink, styles.navLinkActive].join(" ")}>מחירים</Link>
           </div>
           <div className={styles.navActions}>

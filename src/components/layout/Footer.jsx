@@ -21,8 +21,13 @@ export default function Footer() {
         <div className={styles.cols}>
           <div className={styles.col}>
             <div className={styles.colTitle}>מוצר</div>
-            <a href="/#features" className={styles.colLink}>תכונות</a>
-            <a href="/#how" className={styles.colLink}>איך זה עובד</a>
+            {/* /home, not / — App.jsx sends a signed-in user from / straight to
+                /app, so these two dropped every logged-in visitor on the
+                dashboard. /home renders the landing page unconditionally.
+                Kept as <Link> so it is a client-side navigation: a full reload
+                would re-download the app to scroll to a section. */}
+            <Link to="/home#features" className={styles.colLink}>תכונות</Link>
+            <Link to="/home#how" className={styles.colLink}>איך זה עובד</Link>
             <Link to="/pricing" className={styles.colLink}>מחירים</Link>
           </div>
           <div className={styles.col}>

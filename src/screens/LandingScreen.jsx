@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./LandingScreen.module.css";
@@ -160,6 +160,34 @@ const PRICING_PLANS = [
 export default function LandingScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+
+  // ── Arriving with a #hash ───────────────────────────────────────────────────
+  //
+  // The browser's own hash scrolling does not work on this page, and only
+  // measuring finds that out: loading /#features fresh leaves scrollY at 0 while
+  // the section sits at y=3320. The browser looks for the element while parsing
+  // the HTML shell, long before React has rendered anything, finds nothing, and
+  // never tries again.
+  //
+  // So every link into a section was broken for EVERY visitor, not only for the
+  // signed-in ones who got redirected to /app — "תכונות" and "איך זה עובד" in
+  // the pricing nav and in the footer simply dropped you at the top of the page.
+  //
+  // Keyed on `hash` rather than running once on mount: a footer link clicked
+  // while already on this page changes the hash without remounting anything.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    // decodeURIComponent because a Hebrew id would arrive percent-encoded. These
+    // ids are ASCII today; the next one added might not be.
+    const id = decodeURIComponent(hash.slice(1));
+    // Two frames, not zero: the section sits below the hero, whose height
+    // settles after its media lays out. Scrolling immediately lands short.
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
+    return () => cancelAnimationFrame(raf);
+  }, [hash]);
 
   const hasHeroMedia = Boolean(HERO_MEDIA.video || HERO_MEDIA.poster);
   // Decided once, in the initializer, rather than in an effect — an effect would
