@@ -2,7 +2,7 @@
  *
  * This list used to be six rows at the bottom of EventSetupScreen, a form about
  * the HOST's own details — names, date, venue. The links are the opposite: they
- * are the only part of the product a guest ever sees. Two of the eight
+ * are the only part of the product a guest ever sees. Two of them
  * (Save the Date and the designed invitation) were not on that list at all;
  * they were reachable only from inside the announcements editor, so a host
  * looking for "the thing I send people" had to know which of two screens to
@@ -147,3 +147,24 @@ export const SHARE_GROUPS = [
 
 /** Flat list, for anything that wants the links without the grouping. */
 export const SHARE_LINKS = SHARE_GROUPS.flatMap(g => g.links);
+
+/**
+ * The address a host copies, for one link.
+ *
+ * This lives here rather than inline in ShareLinksScreen because a test that
+ * re-implements the concatenation proves nothing about the screen. It was
+ * inline, and the test asserted `path + token + suffix` on its own — so
+ * deleting `+ (sl.suffix || "")` from the screen left all 1109 tests green
+ * while sending every host to the gift FORM instead of the projection wall.
+ * Measured, not argued: the mutation was applied and the suite passed.
+ *
+ * One function, used by the screen and by the test, is the only arrangement
+ * where the assertion is about the thing that ships.
+ *
+ * @param {object} link   a row from SHARE_LINKS
+ * @param {string} origin window.location.origin
+ * @param {string} token  the event's token for link.tokenKey
+ */
+export function shareUrl(link, origin, token) {
+  return origin + link.path + token + (link.suffix || "");
+}

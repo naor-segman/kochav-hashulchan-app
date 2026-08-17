@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
-import { SHARE_GROUPS, SHARE_LINKS } from "./shareLinks.js";
+import { SHARE_GROUPS, SHARE_LINKS, shareUrl } from "./shareLinks.js";
 import { TOKEN_KEYS } from "../../utils/eventHelpers.js";
 
 // ── The door test ─────────────────────────────────────────────────────────────
@@ -48,11 +48,14 @@ const NO_LINK_BY_DESIGN = {
 };
 
 describe("every public page has a door", () => {
-  it("finds the route table at all", () => {
-    // If this ever returns nothing, the regex stopped matching and every
-    // assertion below would pass vacuously — which is exactly the shape of
-    // failure this file is about.
-    expect(publicTokenRoutes().length).toBeGreaterThan(8);
+  it("accounts for every route it finds, exactly", () => {
+    // Not `> 8`. An inequality tolerates the regex silently narrowing — and
+    // orphan detection is one-directional, so a route dropping out of the sweep
+    // is always a quiet pass, never a failure. The exact identity also catches a
+    // typo in a `path`, which would otherwise add a bogus `covered` entry and
+    // hide a real orphan behind it.
+    const covered = new Set(SHARE_LINKS.map(l => l.path + ":token" + (l.suffix || "")));
+    expect(publicTokenRoutes().length).toBe(covered.size + Object.keys(NO_LINK_BY_DESIGN).length);
   });
 
   it("gives every public token route a share link, or an argued exemption", () => {
@@ -94,6 +97,12 @@ describe("the shape every consumer relies on", () => {
       }
       expect(l.path.startsWith("/"), `${l.key}.path`).toBe(true);
       expect(l.path.endsWith("/"), `${l.key}.path must end in / — the token is appended raw`).toBe(true);
+      // The new field is the whole point of the change and was the one field
+      // with no shape rule: it is appended straight after the token.
+      if (l.suffix !== undefined) {
+        expect(l.suffix.startsWith("/"), `${l.key}.suffix must start with /`).toBe(true);
+        expect(l.suffix.endsWith("/"), `${l.key}.suffix must not end with /`).toBe(false);
+      }
     }
   });
 
@@ -102,13 +111,21 @@ describe("the shape every consumer relies on", () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it("builds the blessing wall's address correctly", () => {
-    // The one link that is not prefix+token. Asserted concretely because a
-    // dropped suffix would silently send the host to the gift FORM instead of
-    // the projection wall — a working page, wrong page, no error.
+  it("builds the blessing wall's address through the code the screen uses", () => {
+    // Through shareUrl, NOT by re-concatenating here. The first version of this
+    // test did the arithmetic itself, so deleting the suffix from
+    // ShareLinksScreen left all 1109 tests green while every host was sent to
+    // the gift FORM instead of the projection wall. Verified by applying that
+    // exact mutation and watching the suite pass.
     const wall = SHARE_LINKS.find(l => l.key === "giftWall");
     expect(wall).toBeDefined();
-    expect("https://x.test" + wall.path + "TK" + (wall.suffix || "")).toBe("https://x.test/gift/TK/wall");
+    expect(shareUrl(wall, "https://x.test", "TK")).toBe("https://x.test/gift/TK/wall");
+  });
+
+  it("leaves every other address at prefix+token", () => {
+    for (const l of SHARE_LINKS.filter(l => l.key !== "giftWall")) {
+      expect(shareUrl(l, "https://x.test", "TK"), l.key).toBe("https://x.test" + l.path + "TK");
+    }
   });
 
   it("has no suffix on any other link", () => {

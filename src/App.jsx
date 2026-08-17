@@ -357,7 +357,10 @@ function AppRoutes() {
         }
       />
       {/* ── Public token-based pages — no auth required ── */}
-      {/* /gift/:token/wall MUST precede /gift/:token — React Router first-match */}
+      {/* /gift/:token/wall is listed first for readability, NOT because it must
+          be. React Router 7 ranks by specificity, not declaration order, so the
+          wall wins either way — the old comment here claimed the ordering was
+          load-bearing and would have misled anyone reordering these. */}
       <Route path="/gift/:token/wall" element={<Suspense fallback={<Loading />}><GiftWallScreen /></Suspense>} />
       <Route path="/gift/:token"      element={<Suspense fallback={<Loading />}><GiftScreen /></Suspense>} />
       <Route path="/rsvp/:token"      element={<Suspense fallback={<Loading />}><RSVPScreen /></Suspense>} />
