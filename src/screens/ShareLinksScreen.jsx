@@ -76,7 +76,10 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
           <ul className={styles.list}>
             {group.links.map(sl => {
               const token = ev.tokens?.[sl.tokenKey] || "";
-              const url   = origin + sl.path + token;
+              // `suffix` is empty for every link but the blessing wall, whose
+              // address is /gift/:token/wall — the one public page that hangs
+              // off a token instead of ending at it.
+              const url   = origin + sl.path + token + (sl.suffix || "");
               return (
                 <li key={sl.key} className={styles.row}>
                   <span className={styles.rowMark}>

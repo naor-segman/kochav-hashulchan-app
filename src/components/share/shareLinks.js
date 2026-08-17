@@ -110,7 +110,7 @@ export const SHARE_GROUPS = [
   {
     id: "day",
     title: "ביום האירוע",
-    sub: "לפתוח בטלפון של מי שעומד בדלת.",
+    sub: "אחד לטלפון של מי שעומד בדלת, אחד למסך באולם.",
     links: [
       {
         key: "entrance",
@@ -119,6 +119,27 @@ export const SHARE_GROUPS = [
         label: "עמדת הכניסה",
         mark: "checkin",
         say: "מי שבדלת מחפש שם, מסמן שהגיע, ורואה לאיזה שולחן לשלוח.",
+      },
+      {
+        // The same orphaning that hid the album, one screen over and never
+        // fixed: /gift/:token/wall has a route, a screen, and its own RPC that
+        // returns blessings without amounts — and it appeared in no share
+        // group and nowhere else in src/, so its only mention outside the
+        // screen itself was the route definition. A host who wanted to project
+        // the blessing wall at the venue had no way to obtain the URL.
+        //
+        // It sits here rather than with the guest links because nobody sends
+        // it to a guest: it is opened once, on the screen in the hall.
+        key: "giftWall",
+        tokenKey: "gift",
+        path: "/gift/",
+        // The only link whose address is not prefix+token. `suffix` exists for
+        // this one row; the alternative was a second `path` convention that
+        // every consumer would have to know about.
+        suffix: "/wall",
+        label: "קיר הברכות",
+        mark: "gifts",
+        say: "הברכות שהאורחים השאירו, מוקרנות על מסך באולם. בלי סכומים — רק מה שכתבו.",
       },
     ],
   },
