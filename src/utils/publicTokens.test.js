@@ -21,6 +21,7 @@ vi.mock("../lib/supabase.js", () => ({
 const {
   fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift,
   upsertCollabGuest, fetchCollabGuestsOwner, upsertCollabGuestOwner,
+  fetchEventGifts,
 } = await import("./publicTokens.js");
 
 const ok   = data  => rpc.mockResolvedValue({ data, error: null });
@@ -377,5 +378,107 @@ describe("upsertCollabGuestOwner tolerates a database without the notes column",
       ? { error: { code: "PGRST204", message: "Could not find the 'notes' column" } }
       : { error: { code: "08006", message: "connection failure" } });
     await expect(upsertCollabGuestOwner("e1", row)).rejects.toMatchObject({ code: "08006" });
+  });
+});
+
+
+// ── fetchEventGifts — the host's half of the gift page ────────────────────────
+//
+// A guest declares an amount, it saves, and until this function existed it
+// reached nobody: `.from("gifts")` had zero callers in the whole app while the
+// budget screen's "actual income" summed a field with no writer.
+//
+// Three traps, and each of them fails SILENTLY — a wrong number on a budget
+// screen looks exactly like a right one.
+describe("fetchEventGifts", () => {
+  let captured;
+  const answering = (result) => {
+    captured = { table: null, cols: null, eq: null, order: null };
+    fromFn.mockReset();
+    fromFn.mockImplementation((table) => {
+      captured.table = table;
+      return {
+        select: (c) => {
+          captured.cols = c;
+          return {
+            eq: (col, val) => {
+              captured.eq = [col, val];
+              return { order: async (col2, opts) => { captured.order = [col2, opts]; return result; } };
+            },
+          };
+        },
+      };
+    });
+  };
+
+  it("converts agorot to shekels — the unit the rest of the app speaks", async () => {
+    // submitGift multiplies by 100 on the way in. Skip the divide and a ₪500
+    // gift reads as ₪50,000 on the budget screen, which is not a rounding error,
+    // it is a different event.
+    answering({ data: [{ id: "g1", donor_name: "משפחת כהן", amount: 50000, message: "מזל טוב", created_at: "2026-08-01T10:00:00Z" }], error: null });
+    const [g] = await fetchEventGifts("e1");
+    expect(g.amountILS).toBe(500);
+    expect(g.donorName).toBe("משפחת כהן");
+  });
+
+  it("does NOT filter on `paid` — nothing in the codebase ever sets it true", async () => {
+    // submit_gift_by_token hardcodes paid=false and no webhook, migration or
+    // function ever flips it. An `.eq("paid", true)` here would read ₪0 forever
+    // while looking like a working feature.
+    answering({ data: [], error: null });
+    await fetchEventGifts("e1");
+    expect(captured.cols).not.toContain("paid");
+    expect(captured.eq).toEqual(["event_id", "e1"]);
+  });
+
+  it("scopes to the one event and reads the right table", async () => {
+    answering({ data: [], error: null });
+    await fetchEventGifts("e1");
+    expect(captured.table).toBe("gifts");
+    expect(captured.order[0]).toBe("created_at");
+    expect(captured.order[1]).toEqual({ ascending: false });
+  });
+
+  it("survives a missing or unparseable amount instead of poisoning the total", async () => {
+    // One NaN in a reduce makes the WHOLE sum NaN, and the budget screen renders
+    // "₪NaN" off a single malformed row.
+    //
+    // `null` is deliberately NOT the case that proves this: `null / 100` is 0 in
+    // JavaScript, so a bare divide passes a null test and this assertion caught
+    // nothing. The first version of it used null and the mutation survived.
+    // ABSENT and non-numeric are the shapes that actually produce NaN.
+    answering({ data: [
+      { id: "g1", donor_name: "א", created_at: "x" },                    // no amount key
+      { id: "g2", donor_name: "ב", amount: "לא מספר", created_at: "x" },  // not a number
+      { id: "g3", donor_name: "ג", amount: null, created_at: "x" },      // null, for completeness
+    ], error: null });
+    const rows = await fetchEventGifts("e1");
+    for (const g of rows) {
+      expect(Number.isNaN(g.amountILS), `${g.donorName} produced NaN`).toBe(false);
+      expect(g.amountILS).toBe(0);
+    }
+    // And the thing that actually breaks the screen: the total stays a number.
+    expect(rows.reduce((s2, g) => s2 + g.amountILS, 0)).toBe(0);
+  });
+
+  it("returns [] without a cloud id rather than querying", async () => {
+    answering({ data: [], error: null });
+    expect(await fetchEventGifts(null)).toEqual([]);
+    expect(await fetchEventGifts("")).toEqual([]);
+    expect(fromFn).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a failure instead of reporting an empty gift list", async () => {
+    // "No gifts yet" and "we could not read your gifts" are different sentences
+    // and the host acts differently on each. The caller decides; this throws.
+    answering({ data: null, error: { code: "42501", message: "permission denied" } });
+    await expect(fetchEventGifts("e1")).rejects.toMatchObject({ code: "42501" });
+  });
+
+  it("defaults the text fields so a row never renders as undefined", async () => {
+    answering({ data: [{ id: "g1", amount: 20000, created_at: "x" }], error: null });
+    const [g] = await fetchEventGifts("e1");
+    expect(g.donorName).toBe("");
+    expect(g.message).toBe("");
   });
 });

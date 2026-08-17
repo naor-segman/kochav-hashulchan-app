@@ -196,6 +196,58 @@ export async function submitGift(token, gift) {
 }
 
 /**
+ * Host: the gifts declared on the gift page, WITH the amounts.
+ *
+ * The counterpart to fetchGiftWall, and the reason both exist. The wall is
+ * projected on a screen in a hall, so its RPC returns donor_name and message and
+ * deliberately omits `amount` — that is not an oversight to be fixed, it is the
+ * feature. This read is the private half: the host, signed in, on their budget.
+ *
+ * No new migration was needed. `gifts_owner_select` has been live since
+ * 20260716000000 — `event_id IN (SELECT id FROM events WHERE user_id =
+ * auth.uid())` — and only `anon` had SELECT revoked, so a signed-in owner could
+ * always have read this. Nothing ever did: `.from("gifts")` had zero callers in
+ * the whole app, which is why a guest could declare a sum, watch it save, and
+ * have it reach nobody.
+ *
+ * THREE TRAPS, all load-bearing:
+ *
+ *   `amount` is stored in AGOROT — submitGift multiplies by 100. Every
+ *   host-facing number in this app is shekels, so the division happens here,
+ *   once, rather than at each call site.
+ *
+ *   `paid` is hardcoded false by submit_gift_by_token and NOTHING ever sets it
+ *   true — no Stripe webhook, no migration. A `.eq("paid", true)` here would
+ *   read zero forever and look like a working feature.
+ *
+ *   A gift row carries NO link to a guest — no guest_id, no phone, only the
+ *   free-text name the donor typed. So this totals per EVENT and never claims to
+ *   attribute per guest. The app's own sample blessings say why: "משפחת כהן",
+ *   "צוות המשרד", "סבתא מרים" are none of them a guest-row name.
+ *
+ * @param {string} eventCloudId
+ * @returns {{id, donorName, amountILS, message, createdAt}[]} newest first
+ */
+export async function fetchEventGifts(eventCloudId) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
+  const { data, error } = await supabase
+    .from("gifts")
+    .select("id, donor_name, amount, message, created_at")
+    .eq("event_id", eventCloudId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(r => ({
+    id:        r.id,
+    donorName: r.donor_name || "",
+    // Number(...) || 0 rather than a bare divide: one null amount would make the
+    // whole total NaN, and a NaN total renders as "₪NaN" on a budget screen.
+    amountILS: (Number(r.amount) || 0) / 100,
+    message:   r.message || "",
+    createdAt: r.created_at,
+  }));
+}
+
+/**
  * Fetch the public gift wall (blessings only — no amounts) by gift token.
  * Realtime is not used here: RLS hides unpaid gift rows from anon SELECT, so
  * postgres_changes would never deliver them. Callers poll this instead.
@@ -443,4 +495,3 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader)
   }
   return path;
 }
-

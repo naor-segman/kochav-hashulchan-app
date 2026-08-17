@@ -4,6 +4,7 @@ import Icon from "../components/ui/Icon.jsx";
 import styles from "./CostScreen.module.css";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
+import { fetchEventGifts } from "../utils/publicTokens.js";
 
 const DEFAULT_CATEGORIES = [
   { id: "venue",        name: "אולם",           budget: 0, actual: 0 },
@@ -39,6 +40,11 @@ function fmtNet(n) {
 export default function CostScreen({ activeEvent: ev, patchEvent }) {
   const [cats, setCats]    = useState(() => initCategories(ev));
   const [bulkGift, setBulkGift] = useState("");
+  // Gifts a guest declared on the public gift page. Read here and nowhere else
+  // in the app — until now nothing read them at all, so a guest could fill in an
+  // amount, watch it save, and have it reach no one.
+  const [declaredGifts, setDeclaredGifts] = useState([]);
+  const [giftsState, setGiftsState] = useState("idle"); // idle | loading | ready | error
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
 
@@ -104,6 +110,28 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
     (ev?.guests ?? []).reduce((s, g) => s + (g.giftAmount || 0), 0), [ev]);
   const netExpected  = estIncome - totalBudget;
   const netActual    = actualIncome - totalActual;
+
+  // One read per mount. Not realtime and not polled: a gift arriving while the
+  // host stares at the budget screen is not worth a subscription, and the number
+  // refreshes by opening the screen again.
+  const cloudId = ev?.cloudId;
+  useEffect(() => {
+    if (!cloudId) { setDeclaredGifts([]); setGiftsState("idle"); return; }
+    let cancelled = false;
+    setGiftsState("loading");
+    fetchEventGifts(cloudId)
+      .then(rows => { if (!cancelled) { setDeclaredGifts(rows); setGiftsState("ready"); } })
+      // Swallowed on purpose: this is one section of a budget screen that works
+      // without it. A failed read must not blank the categories, the totals or
+      // the chart — it shows its own line and nothing else changes.
+      .catch(() => { if (!cancelled) { setDeclaredGifts([]); setGiftsState("error"); } });
+    return () => { cancelled = true; };
+  }, [cloudId]);
+
+  const declaredTotal = useMemo(
+    () => declaredGifts.reduce((sum, g) => sum + (g.amountILS || 0), 0),
+    [declaredGifts],
+  );
 
   // Convenience: set a per-person estimate on every attending guest at once
   // (host can then fine-tune individuals in the guest list).
@@ -383,7 +411,8 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
         <SectionLabel>הכנסה צפויה ותמונת נטו</SectionLabel>
         <p className={base.fieldHint}>
           "הכנסה צפויה" מסכמת את המתנה המשוערת שהזנתם לכל אורח (במסך האורחים).
-          "הכנסה בפועל" מתמלאת מהמתנות שנרשמות בצ׳ק-אין.
+          {" "}"נרשמו בדף המתנה" הוא מה שאורחים הצהירו עליו בעצמם בקישור המתנה —
+          הצהרה, לא כסף שנספר.
         </p>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", margin: "8px 0 16px" }}>
           <div style={{ flex: "1 1 160px", minWidth: 0 }}>
@@ -411,6 +440,26 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
             <span className={styles.statNum}>{actualIncome > 0 ? fmtILS(actualIncome) : "—"}</span>
             <span className={styles.statLabel}>הכנסה בפועל (מתנות)</span>
           </div>
+          {/* Deliberately NOT folded into "הכנסה בפועל", for two reasons that
+              both had to hold:
+
+              A declared gift is a DECLARATION, not a receipt. `paid` is false on
+              every row and nothing in the codebase ever sets it true — no card
+              was charged. Calling it actual income would be the product
+              overstating what it knows.
+
+              And a gift row carries no link to a guest, only the free-text name
+              the donor typed, so it can never be reconciled against a per-guest
+              figure. Merging the two sums would be a double count with no way to
+              detect it. */}
+          {giftsState === "ready" && declaredGifts.length > 0 && (
+            <div className={styles.stat}>
+              <span className={styles.statNum}>{fmtILS(declaredTotal)}</span>
+              <span className={styles.statLabel}>
+                נרשמו בדף המתנה ({declaredGifts.length})
+              </span>
+            </div>
+          )}
           <div className={styles.stat}>
             <span className={[styles.statNum, netExpected < 0 ? styles.statOver : ""].join(" ")}>
               {(estIncome > 0 || totalBudget > 0) ? fmtNet(netExpected) : "—"}
@@ -424,6 +473,27 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
             <span className={styles.statLabel}>נטו בפועל</span>
           </div>
         </div>
+
+        {/* Who declared what. A total on its own gives the host a number; this
+            tells them whether אמא already sent hers. The amount is the point of
+            the list — this is the one place in the product where it appears, and
+            it is deliberately absent from the blessing wall, which is projected
+            in a room full of people. */}
+        {giftsState === "ready" && declaredGifts.length > 0 && (
+          <ul className={styles.giftList}>
+            {declaredGifts.map(g => (
+              <li key={g.id} className={styles.giftRow}>
+                <span className={styles.giftName}>{g.donorName}</span>
+                <span className={styles.giftAmt}>{fmtILS(g.amountILS)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {giftsState === "error" && (
+          <p className={base.fieldHint}>
+            לא הצלחנו לטעון את המתנות שנרשמו בדף המתנה. שאר המסך מעודכן — נסו לרענן.
+          </p>
+        )}
 
         {/* Income vs expenses — visual coverage */}
         {(estIncome > 0 || totalBudget > 0) && (

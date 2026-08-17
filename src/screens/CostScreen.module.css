@@ -452,3 +452,47 @@
     height: 44px;
   }
 }
+
+/* ── Gifts declared on the public gift page ───────────────────────────────────
+   Read-only, so no row affordances and no hover state: nothing here is
+   clickable and a hover would promise otherwise. Amounts are tabular so a
+   column of them lines up, which is the only way a host scans for the large
+   one. */
+
+.giftList {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.giftRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--step--1);
+}
+
+.giftRow:last-child { border-bottom: none; }
+
+.giftName {
+  color: var(--text);
+  /* A donor types their own name and it can be long ("משפחת כהן מירושלים"). It
+     yields the row rather than pushing the amount off the edge. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.giftAmt {
+  color: var(--text);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
