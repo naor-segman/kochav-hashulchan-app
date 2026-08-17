@@ -200,6 +200,37 @@ Check for these first — each has bitten more than once:
   `TZ=Asia/Jerusalem` because every date bug here is invisible at offset zero —
   was reported as `'process' is not defined`.
 
+## The method for every task in WORKPLAN's checklist
+
+This applies to task 1 and to task 68 alike. The owner asked for it once; it
+does not need asking again.
+
+**Never work on autopilot.** Before writing a line, establish four things and say
+them: what the task connects to, where it sits in the product, where it sits in
+the code, and which other checklist items it touches. A task done in isolation
+is how a fix lands on top of something already broken.
+
+**Use the subagents.** Fan out an Explore agent when the answer means reading
+across files. Do not sweep the tree by hand and call it thorough.
+
+**Verify after every task, not at the end of the day.** The gate is: `npx vitest
+run` (and the exit code, not just the summary line), `npm run build`, `npx eslint
+src` at 0 errors, `node qa/cssmod.mjs`, plus a real browser harness whenever the
+change is visible to a user. Read the value back out of the DOM or localStorage
+— never from the code that wrote it.
+
+**Prove the test would fail.** A new assertion is worth nothing until the change
+it guards has been reverted and the test observed failing. Restore from bytes
+held in memory, never `git checkout --`.
+
+**One task, one commit, in checklist order.** The commit message names the item
+number. WORKPLAN's checklist is the only surface that gets updated — tick the
+row, do not open a parallel list.
+
+**Say what you did not do.** If a task turned out to be bigger than its line, or
+half of it is blocked, that goes in the report and in the row. Partial work
+described as finished is the failure this project has recorded most often.
+
 ## Commit message format
 ```
 type(scope): short description
