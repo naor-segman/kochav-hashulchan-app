@@ -30,13 +30,18 @@ import { prefixed } from "../utils/hebrewPrefix.js";
 //   STORAGE — a stored photo is a URL of about 120 bytes, so the same wedding
 //   is ~204KB whatever the gallery holds.
 //
-//   MONEY — the free tier bills UNCACHED egress, and every uploaded object
-//   carries a one-year cache header, so the first fetch is charged and the
-//   other 299 guests are served from cache into a separate quota. A first
-//   estimate here put a 300-guest wedding at 0.47GB and was wrong by about two
-//   orders of magnitude: it counted every guest as an origin fetch. The real
-//   figure is ~1.6MB of billable egress per event at six photos, against a
-//   5GB monthly allowance.
+//   MONEY — measured against the real Supabase meters, after two wrong
+//   answers. The first put a 300-guest wedding at 0.47GB of billable egress by
+//   counting every guest as an origin fetch. The second corrected that to
+//   ~1.6MB by noting the one-year cache header — and was also wrong, because
+//   CACHED egress is metered too, on its own 5GB monthly quota. That quota is
+//   the binding one: a 300-guest event with ten photos delivers ~0.94GB, so the
+//   free tier carries about FIVE events a month.
+//
+//   It still is not a reason to keep the cap at six. On Pro's 250GB the same
+//   number is ~265 events a month, and beyond that cached egress is $0.03/GB —
+//   about three agorot per additional event. The photos are not what decides
+//   the bill.
 //
 // What is left is the only thing that was ever a real trade: how heavy the
 // page is for a guest opening it on mobile data. Ten photos at 271KB each is
