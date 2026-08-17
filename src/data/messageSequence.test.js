@@ -140,9 +140,28 @@ describe("whatsappLink", () => {
 
 describe("estimateCost", () => {
   it("prices a full run so 'unlimited' can't hide the bill", () => {
-    expect(estimateCost(2000)).toBe(240);
+    // 2,000 messages is the documented worst case — 650 guests over three
+    // rounds. ₪260 at the measured marketing rate, not ₪240 at the old guess.
+    expect(estimateCost(2000)).toBe(260);
     expect(estimateCost(0)).toBe(0);
   });
+
+  it("defaults to Meta's MARKETING rate for Israel, not a guess", () => {
+    // Was 0.12 with a comment calling it "a realistic mid-market figure". The
+    // official rate card (972/IL, effective 2026-07-01) is $0.0353 marketing,
+    // which is ₪0.13 at ~3.7₪/$. The guess was close; it was still a guess, and
+    // this is the number a message package gets priced from.
+    expect(estimateCost(100)).toBe(13);
+  });
+
+  it("takes the utility rate when asked, which is 6.7x cheaper", () => {
+    // $0.0053 → ₪0.02. Whether an event invitation can be approved as utility
+    // rather than marketing is the largest single lever in the messaging
+    // feature; this is the arithmetic behind that claim.
+    expect(estimateCost(100, 0.02)).toBe(2);
+    expect(estimateCost(2000, 0.02)).toBe(40);
+  });
+
   it("respects a different per-message rate", () => {
     expect(estimateCost(100, 0.2)).toBe(20);
   });

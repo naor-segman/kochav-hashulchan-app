@@ -191,11 +191,28 @@ export function whatsappLink(phone, text) {
 /**
  * What an automated send would cost.
  *
- * Surfaced before anything is connected because "unlimited messages" is how a
- * package quietly loses money: 650 guests over three rounds is ~2,000 sends.
- * Rate is per message and provider-dependent; 0.12₪ is a realistic mid-market
- * figure for Israeli WhatsApp/SMS traffic.
+ * Kept because "unlimited messages" is how a package quietly loses money: 650
+ * guests over three rounds is ~2,000 sends. It is NOT rendered to the host any
+ * more — our own cost structure is not something a customer needs on their
+ * screen, and the full analysis lives in WORKPLAN instead. This is the number
+ * that will price a message package (checklist item 33).
+ *
+ * THE RATE IS NOW MEASURED, NOT GUESSED. It used to be 0.12 with a comment
+ * calling it "a realistic mid-market figure" — a guess that turned out close.
+ * Meta's official rate card for Israel (972/IL, effective 2026-07-01) is
+ * $0.0353 per MARKETING template and $0.0053 per UTILITY template. At ~3.7₪/$
+ * that is ₪0.13 and ₪0.02.
+ *
+ * The default is the marketing rate because a ceiling should assume the
+ * expensive case, and because an event invitation is a business-initiated
+ * message to someone who never opted in — which is what Meta classifies as
+ * marketing. The 6.7x gap between the two is the single largest lever in the
+ * whole messaging feature; see WORKPLAN.
+ *
+ * Only TEMPLATES are charged. Replies from a guest, and anything sent inside
+ * the 24-hour window their reply opens, are free — so a bot conversation costs
+ * nothing beyond the message that started it.
  */
-export function estimateCost(messageCount, perMessage = 0.12) {
+export function estimateCost(messageCount, perMessage = 0.13) {
   return Math.round(messageCount * perMessage * 100) / 100;
 }
