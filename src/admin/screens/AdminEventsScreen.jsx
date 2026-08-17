@@ -8,25 +8,41 @@ import Icon from "../../components/ui/Icon.jsx";
 import { formatDate, formatRelative } from "../lib/adminFormat.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { deriveEventStatus } from "../lib/eventStatus.js";
+import { attachWindowMeta } from "../lib/listWindow.js";
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
 //
 // Single query: events + embedded profiles(email) via FK events.user_id → profiles.id.
 // PostgREST resolves the many-to-one automatically; profiles comes back as an object.
 
-async function loadEventsData() {
-  const { data, error } = await supabase
-    .from("events")
-    .select(
-      "id, user_id, name, type, date, venue, guest_count, table_count, seated_pct," +
-      " created_at, updated_at, profiles!user_id(email)"
-    )
-    .order("updated_at", { ascending: false })
-    .limit(500);
+// The window this screen loads. It was the bare literal 500 inside the query
+// and appeared nowhere in the UI, so the 501st event did not exist as far as
+// the panel was concerned — and worse, the count beside the search box printed
+// the WINDOW as if it were the total. "500 אירועים" on a table holding 1,240 is
+// not a rounding error, it is a wrong answer to the only question this screen
+// is asked. Same cap and same treatment as USERS_PAGE in AdminUsersScreen.
+const EVENTS_PAGE = 500;
 
+async function loadEventsData() {
+  const [listRes, totalRes] = await Promise.all([
+    supabase
+      .from("events")
+      .select(
+        "id, user_id, name, type, date, venue, guest_count, table_count, seated_pct," +
+        " created_at, updated_at, profiles!user_id(email)"
+      )
+      .order("updated_at", { ascending: false })
+      .limit(EVENTS_PAGE),
+    // The TRUE row count. Without it the screen cannot tell a full window from
+    // a complete table — `rows.length === 500` means "500 events" and "at least
+    // 500 events" equally, and it was reading it as the first.
+    supabase.from("events").select("id", { count: "exact", head: true }),
+  ]);
+
+  const { data, error } = listRes;
   if (error) throw error;
 
-  return (data || []).map((ev) => ({
+  const rows = (data || []).map((ev) => ({
     id:          ev.id,
     user_id:     ev.user_id,
     name:        ev.name || "—",
@@ -40,6 +56,12 @@ async function loadEventsData() {
     created_at:  ev.created_at,
     updated_at:  ev.updated_at,
   }));
+
+  // `total` / `truncated` carried on the array itself, the shape
+  // AdminUsersScreen established. The decision is in admin/lib/listWindow.js
+  // because three more admin screens still need it — and because the obvious
+  // test for it (`rows.length >= limit`) is wrong at exactly `limit` rows.
+  return attachWindowMeta(rows, EVENTS_PAGE, totalRes.count);
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -77,7 +99,12 @@ export default function AdminEventsScreen() {
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
 
-  // Collect distinct event types for the filter dropdown.
+  // Collect distinct event types for the filter dropdown. Derived from the
+  // LOADED WINDOW, so past the cap a type that only appears on older events is
+  // missing from the dropdown entirely. Not worth a second query — the type
+  // list is five Hebrew strings from constants.js and the notice beside the
+  // count already says the list is a window — but it is a real limit, not an
+  // oversight, and it should be read as one.
   const eventTypes = useMemo(() => {
     if (!events) return [];
     return [...new Set(events.map((e) => e.type).filter(Boolean))].sort();
@@ -184,10 +211,21 @@ export default function AdminEventsScreen() {
           {!loading && !error && (
             <span className={styles.resultCount}>
               {filtered.length.toLocaleString()}
-              {events && filtered.length !== events.length
-                ? ` מתוך ${events.length.toLocaleString()}`
+              {/* Against the TRUE total, not the loaded window. Comparing to
+                  `events.length` meant that at 1,240 events the screen read
+                  "500 אירועים" with nothing else on it — the window presented
+                  as the whole table. */}
+              {events && filtered.length !== (events.total ?? events.length)
+                ? ` מתוך ${(events.total ?? events.length).toLocaleString()}`
                 : ""
               } אירועים
+              {/* Deliberately NOT the users screen's wording. That one says
+                  "500 הראשונים" while ordering by created_at DESC, i.e. it
+                  shows the newest and calls them the first. This list is
+                  ordered by updated_at DESC, so it says which 500 it is. */}
+              {events?.truncated && (
+                <span className={styles.truncNote}> · מוצגים {EVENTS_PAGE} שעודכנו לאחרונה</span>
+              )}
             </span>
           )}
         </div>
@@ -201,7 +239,21 @@ export default function AdminEventsScreen() {
         {!loading && !error && filtered.length === 0 && (
           <div className={styles.stateBox}>
             {hasFilters
-              ? <><p className={styles.emptyTitle}>לא נמצאו תוצאות</p><p className={styles.emptyHint}>נסה לשנות את פילטרי החיפוש</p></>
+              ? <>
+                  <p className={styles.emptyTitle}>לא נמצאו תוצאות</p>
+                  {/* This is the case the truncation actually bites in, and it
+                      is why the notice could not live in the toolbar alone.
+                      AdminUsersScreen links here as ?owner=<email>. The search
+                      runs client-side over the loaded window, so a customer
+                      whose events all sit outside it produced "לא נמצאו
+                      תוצאות" — which reads as "this customer has no events",
+                      not as "we did not look at all of them". */}
+                  <p className={styles.emptyHint}>
+                    {events?.truncated
+                      ? `החיפוש רץ על ${EVENTS_PAGE} האירועים שעודכנו לאחרונה, מתוך ${(events.total ?? events.length).toLocaleString()} — אירוע שלא עודכן זמן רב לא נכלל בו.`
+                      : "נסה לשנות את פילטרי החיפוש"}
+                  </p>
+                </>
               : <><p className={styles.emptyTitle}>אין אירועים ענן עדיין</p><p className={styles.emptyHint}>כאשר משתמש מחובר יצור אירוע, הוא יסונכרן לענן ויופיע כאן אוטומטית</p></>
             }
           </div>

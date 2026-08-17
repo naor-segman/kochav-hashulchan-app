@@ -107,9 +107,31 @@ const SETTINGS = [
   { key: "system_note", value: "בטא — כל התוכניות פתוחות" },
 ];
 
+/* ?bulk=N pads the events table to N rows.
+ *
+ * The screens cap their queries at 500 and the fixtures hold 8, so the branch
+ * that says "this list is a window, not the table" was unreachable in a
+ * browser — the only way to check it was to read the JSX and believe it. With
+ * ?bulk=1240 the list query returns its 500 and the head-count query returns
+ * 1,240, which is exactly the shape production has and the shape the count
+ * beside the search box used to get wrong. */
+const bulkN = (() => {
+  const m = typeof location !== "undefined" && /[?&]bulk=(\d+)/.exec(location.search);
+  return m ? Number(m[1]) : 0;
+})();
+
+const EVENTS_ALL = bulkN > EVENTS.length
+  ? Array.from({ length: bulkN }, (_, i) => {
+      const base = EVENTS[i % EVENTS.length];
+      // updated_at has to keep descending: the screen orders by it, and the
+      // note it prints names WHICH 500 these are.
+      return { ...base, id: "e" + i, name: `${base.name} ${i}`, updated_at: iso(i % 900) };
+    })
+  : EVENTS;
+
 const TABLES = {
   profiles: PROFILES,
-  events: EVENTS,
+  events: EVENTS_ALL,
   templates: TEMPLATES,
   subscriptions: SUBSCRIPTIONS,
   admin_activity: ACTIVITY,
