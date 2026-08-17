@@ -5,7 +5,10 @@ import {
   createBillingPortalSession,
 } from "../lib/stripe.js";
 
-export { isStripeConfigured };
+// `export { isStripeConfigured }` sat here with no importer anywhere — the hook
+// already hands it back in its return value below, and AccountScreen reads it
+// straight from stripeConfig. (The identical-looking re-export in lib/stripe.js
+// is NOT dead: this file is its consumer.)
 
 // ── useBilling ─────────────────────────────────────────────────────────────────
 //

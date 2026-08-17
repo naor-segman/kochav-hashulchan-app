@@ -1,9 +1,28 @@
 // ── Stripe payment configuration ─────────────────────────────────────────────
 //
-// STATUS: INACTIVE — scaffolding only.
-// No real Stripe calls, checkout sessions, or charges are made yet.
-// This file is the single source of truth for all Stripe constants and helpers
-// once billing is activated in a future phase.
+// STATUS: BUILT, NOT SWITCHED ON.
+//
+// This header used to read "INACTIVE — scaffolding only. No real Stripe calls,
+// checkout sessions, or charges are made yet." That has not been true for some
+// time: src/lib/stripe.js invokes two live Edge Functions
+// (create-checkout-session, create-billing-portal), the stripe-webhook function
+// is deployed, and AccountScreen renders the upgrade and billing-portal
+// buttons through useBilling. The only thing missing is the publishable key —
+// with it unset `isStripeConfigured` is false and the UI hides itself.
+//
+// It stays unset on purpose: pricing is frozen by the owner's decision. That is
+// a business decision, not an unbuilt feature, and a comment that says
+// "scaffolding only" invites someone to rebuild what is already there.
+//
+// NOT the single source of truth for Stripe, which is what this header also
+// used to claim. It holds the publishable key, `isStripeConfigured` and
+// `isPaidPlan`, and nothing else — the price map lives in Edge Function
+// secrets and the status labels in admin/lib/planConfig.js. See the notes
+// further down for what left and why.
+//
+// Despite living under src/admin/, this module is imported by the CUSTOMER
+// app (src/lib/stripe.js, src/screens/AccountScreen.jsx) and therefore ships
+// in the customer bundle. Nothing secret may go in here.
 //
 // ENVIRONMENT VARIABLES
 // ─────────────────────

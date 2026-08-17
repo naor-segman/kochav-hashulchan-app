@@ -11,6 +11,7 @@ import { useOrientation } from "../components/onboarding/useOrientation.js";
 import PhotoRetentionNotice from "../components/feedback/PhotoRetentionNotice.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventHubScreen.module.css";
+import { makeOpenScreen } from "../utils/eventNameGate.js";
 
 /* ── The event's own front page ───────────────────────────────────────────────
  *
@@ -25,17 +26,10 @@ import styles from "./EventHubScreen.module.css";
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showToast }) {
-  // The same guard the rail applies. Without it the identical click was blocked
-  // from the nav ("יש להזין שם לאירוע לפני המשך") and allowed from the hub —
-  // and half the product keys off the event name.
-  const openItem = (id) => {
-    if (id !== "setup" && !ev?.name?.trim()) {
-      showToast?.("יש להזין שם לאירוע לפני המשך", "err");
-      go("setup");
-      return;
-    }
-    go(id);
-  };
+  // The same guard the rail applies, now literally the same function. Without
+  // it the identical click was blocked from the nav and allowed from the hub —
+  // which is how this got written twice in the first place.
+  const openItem = makeOpenScreen(ev, { go, showToast });
   const { user } = useAuth();
   const orientation = useOrientation();
 

@@ -41,10 +41,11 @@ function publicTokenRoutes() {
  * An exemption has to be argued here, in the open, rather than by omission.
  */
 const NO_LINK_BY_DESIGN = {
-  // A compatibility shim. `/entrance/:token` is the canonical address and IS
-  // shared; HostessScreen only exists so older links keep resolving, and its
-  // own docblock says nothing new should be added to it.
-  "/hostess/:token": "shim for /entrance/:token, which is shared",
+  // An alias, not a screen. `/entrance/:token` is the canonical address and IS
+  // shared; this path only stays routed so links already printed on QR codes
+  // keep resolving. It renders the same component in the same mode — the shim
+  // module that used to sit between them is gone.
+  "/hostess/:token": "alias of /entrance/:token, which is shared",
 };
 
 describe("every public page has a door", () => {

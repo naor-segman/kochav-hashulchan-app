@@ -39,9 +39,10 @@ const TableBuilderScreen = lazy(() => import("./screens/TableBuilderScreen.jsx")
 const GuestManagerScreen = lazy(() => import("./screens/GuestManagerScreen.jsx"));
 const ConstraintsScreen  = lazy(() => import("./screens/ConstraintsScreen.jsx"));
 const SeatingScreen      = lazy(() => import("./screens/SeatingScreen.jsx"));
-const CheckInScreen      = lazy(() => import("./screens/CheckInScreen.jsx"));
-// The unified day-of screen. CheckInScreen / HostessScreen are now thin shims
-// over it and stay routed for links already printed on invitations.
+// The one day-of screen. /checkin and /hostess were separate lazy modules that
+// did nothing but render this one in a given mode — two extra chunks for a
+// prop. They are aliases in the route table now; the URLs are unchanged,
+// because they are printed on QR codes already out in the world.
 const EntranceScreen     = lazy(() => import("./screens/EntranceScreen.jsx"));
 const LandingScreen      = lazy(() => import("./screens/LandingScreen.jsx"));
 
@@ -50,7 +51,6 @@ const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
 // Public pages — standalone, no auth, token-based
 const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
 const EventSiteScreen = lazy(() => import("./screens/EventSiteScreen.jsx"));
-const HostessScreen  = lazy(() => import("./screens/HostessScreen.jsx"));
 const CollabScreen   = lazy(() => import("./screens/CollabScreen.jsx"));
 const InviteScreen   = lazy(() => import("./screens/InviteScreen.jsx"));
 const GiftScreen     = lazy(() => import("./screens/GiftScreen.jsx"));
@@ -369,7 +369,7 @@ function AppRoutes() {
       <Route path="/album/:token"     element={<Suspense fallback={<Loading />}><AlbumScreen /></Suspense>} />
       <Route path="/save-the-date/:token" element={<Suspense fallback={<Loading />}><AnnouncementScreen kind="saveTheDate" /></Suspense>} />
       <Route path="/invitation/:token"    element={<Suspense fallback={<Loading />}><AnnouncementScreen kind="invitation" /></Suspense>} />
-      <Route path="/hostess/:token"   element={<Suspense fallback={<Loading />}><HostessScreen /></Suspense>} />
+      <Route path="/hostess/:token"   element={<Suspense fallback={<Loading />}><EntranceScreen mode="token" /></Suspense>} />
       <Route path="/collab/:token"    element={<Suspense fallback={<Loading />}><CollabScreen /></Suspense>} />
       {/* ── עמדת הכניסה — the one day-of screen ──────────────────────────
           Two ways in, one screen: the host's own device (owner) and a hired
@@ -384,9 +384,12 @@ function AppRoutes() {
         path="/entrance/:token"
         element={<Suspense fallback={<Loading />}><EntranceScreen mode="token" /></Suspense>}
       />
+      {/* The alias. Identical to /entrance above — `showToast` used to be
+          threaded through the shim and EntranceScreen never had such a prop,
+          so it was passed to nothing for as long as the shim existed. */}
       <Route
         path="/events/:eventId/checkin"
-        element={<Suspense fallback={<Loading />}><CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
+        element={<Suspense fallback={<Loading />}><EntranceScreen mode="owner" events={events} patchEventById={patchEventById} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
       />
       {/* Host-only draft preview of the event site — renders from local data */}
       <Route
