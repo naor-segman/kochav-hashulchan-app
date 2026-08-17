@@ -72,20 +72,13 @@ const SHOWCASE = [
  * Keep the subject off-centre-right: the text sits over the start (right) edge
  * in RTL, and a face directly behind the headline reads as a mistake.
  */
-// ── The seating card in the hero ──────────────────────────────────────────────
+// The seating card's figures live in src/data/landingMock.js — the reason they
+// are derived rather than typed is written there, next to the array.
 //
-// Decorative (aria-hidden), but the numbers on it were not decorative — they
-// were wrong, and they disagreed with each other in a way a reader can check
-// against the picture right beside them. The head said "58 אורחים" while the
-// foot said "48 מתוך 54 אורחים סודרו": 58 is the CAPACITY of these six tables,
-// 48 is how many of the drawn seats are filled, and 54 matched nothing at all.
-//
-// Every figure is now derived from this one array, so the card cannot contradict
-// its own glyphs again. Only the guest count is a free number, because nothing
-// in the drawing implies it — and it is pinned to the two derived ones by the
-// invariants in LandingScreen.test.js: 48 seated ≤ 54 guests ≤ 58 seats. A
-// seating plan where more people are seated than exist, or where the guests
-// cannot fit, is not a plan.
+// This paragraph used to be that explanation, and it stayed here when the
+// constants moved out: fifteen lines about "this one array" with no array
+// anywhere near them, directly above HERO_MEDIA. It survived in the same commit
+// whose subject was removing two comments that had stopped being true.
 const HERO_MEDIA = {
   video:        "/hero/hero.mp4",
   poster:       "/hero/hero.jpg",
@@ -188,21 +181,38 @@ export default function LandingScreen() {
   // signed-in ones who got redirected to /app — "תכונות" and "איך זה עובד" in
   // the pricing nav and in the footer simply dropped you at the top of the page.
   //
-  // Keyed on `hash` rather than running once on mount: a footer link clicked
-  // while already on this page changes the hash without remounting anything.
-  const { hash } = useLocation();
+  // Keyed on `key` as well as `hash`, and both are load-bearing:
+  //
+  //   hash — a footer link clicked while already on this page changes the hash
+  //          without remounting anything.
+  //   key  — react-router mints a new one PER NAVIGATION. Without it, clicking
+  //          the same anchor twice was a dead click: the second click produces
+  //          a new location object carrying the identical hash string, the
+  //          dependency array does not change, and nothing scrolls. Measured:
+  //          first click landed at y=3324, scroll back to 0, second click left
+  //          it at 0.
+  const { hash, key } = useLocation();
   useEffect(() => {
     if (!hash) return;
-    // decodeURIComponent because a Hebrew id would arrive percent-encoded. These
-    // ids are ASCII today; the next one added might not be.
-    const id = decodeURIComponent(hash.slice(1));
+    // decodeURIComponent throws URIError on a lone `%` — and a throw in an
+    // effect reaches the root ErrorBoundary, so `/home#50%` white-screened the
+    // PUBLIC MARKETING PAGE with "אירעה שגיאה בלתי צפויה". Measured before this
+    // guard on all of `#50%`, `#%E0` and `#utm_x%`. That is one mangled or
+    // tracking-suffixed link away from being what a visitor sees.
+    //
+    // The decode itself was added for a Hebrew id that does not exist yet, so
+    // the raw hash is the right fallback: it is what the browser would have
+    // matched anyway.
+    let id;
+    try { id = decodeURIComponent(hash.slice(1)); }
+    catch { id = hash.slice(1); }
     // Two frames, not zero: the section sits below the hero, whose height
     // settles after its media lays out. Scrolling immediately lands short.
     const raf = requestAnimationFrame(() => requestAnimationFrame(() => {
       document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }));
     return () => cancelAnimationFrame(raf);
-  }, [hash]);
+  }, [hash, key]);
 
   const hasHeroMedia = Boolean(HERO_MEDIA.video || HERO_MEDIA.poster);
   // Decided once, in the initializer, rather than in an effect — an effect would

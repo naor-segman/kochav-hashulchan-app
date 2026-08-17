@@ -36,7 +36,12 @@ async function loadEventsData() {
     // The TRUE row count. Without it the screen cannot tell a full window from
     // a complete table — `rows.length === 500` means "500 events" and "at least
     // 500 events" equally, and it was reading it as the first.
-    supabase.from("events").select("id", { count: "exact", head: true }),
+    // `.catch` and not just the `error` field: `attachWindowMeta` degrades
+    // gracefully for count: null, but only if the promise RESOLVES. A rejection
+    // from the auxiliary count would reject the pair and take the events list
+    // down with it — a screen that used to work when only this query failed.
+    supabase.from("events").select("id", { count: "exact", head: true })
+      .then(r => r, () => ({ count: null })),
   ]);
 
   const { data, error } = listRes;
@@ -208,23 +213,42 @@ export default function AdminEventsScreen() {
             ))}
           </select>
 
-          {!loading && !error && (
+          {/* Three different sentences, because there are three different
+              truths and the first version of this fix only told two of them.
+              A filter SEARCHES THE WINDOW, so its denominator is the window —
+              "152 מתוך 1,240" read as "152 of the 1,240 events match", when
+              the search never saw 740 of them and the real answer across the
+              table was closer to 380. That is the same class of wrong answer
+              this whole row set out to remove, in the very `?owner=` flow it
+              called the case that actually misleads: an owner with 8 events,
+              3 of them inside the window, read "3 מתוך 1,240".
+
+              The wording is deliberately NOT the users screen's. That one says
+              "500 הראשונים" while ordering by created_at DESC — it shows the
+              newest and calls them the first. */}
+          {!loading && !error && events && (
             <span className={styles.resultCount}>
-              {filtered.length.toLocaleString()}
-              {/* Against the TRUE total, not the loaded window. Comparing to
-                  `events.length` meant that at 1,240 events the screen read
-                  "500 אירועים" with nothing else on it — the window presented
-                  as the whole table. */}
-              {events && filtered.length !== (events.total ?? events.length)
-                ? ` מתוך ${(events.total ?? events.length).toLocaleString()}`
-                : ""
-              } אירועים
-              {/* Deliberately NOT the users screen's wording. That one says
-                  "500 הראשונים" while ordering by created_at DESC, i.e. it
-                  shows the newest and calls them the first. This list is
-                  ordered by updated_at DESC, so it says which 500 it is. */}
-              {events?.truncated && (
-                <span className={styles.truncNote}> · מוצגים {EVENTS_PAGE} שעודכנו לאחרונה</span>
+              {hasFilters ? (
+                events.truncated ? (
+                  <>
+                    {filtered.length.toLocaleString()} מתוך {EVENTS_PAGE.toLocaleString()} שנטענו
+                    <span className={styles.truncNote}>
+                      {" · "}מתוך {(events.total ?? events.length).toLocaleString()} סה״כ
+                    </span>
+                  </>
+                ) : (
+                  <>{filtered.length.toLocaleString()} מתוך {events.length.toLocaleString()} אירועים</>
+                )
+              ) : (
+                <>
+                  {filtered.length.toLocaleString()}
+                  {filtered.length !== (events.total ?? events.length)
+                    ? ` מתוך ${(events.total ?? events.length).toLocaleString()}`
+                    : ""} אירועים
+                  {events.truncated && (
+                    <span className={styles.truncNote}> · מוצגים {EVENTS_PAGE} שעודכנו לאחרונה</span>
+                  )}
+                </>
               )}
             </span>
           )}

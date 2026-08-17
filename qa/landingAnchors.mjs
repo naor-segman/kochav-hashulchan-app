@@ -102,6 +102,49 @@ console.log('\n── no link points at / any more');
   await p.close();
 }
 
+
+console.log('\n── a malformed hash must not take the marketing page down');
+// FOUND BY AN ADVERSARIAL REVIEW OF THE FIX ABOVE, and it was the fix's own
+// doing: `decodeURIComponent` throws URIError on a lone `%`, and a throw in an
+// effect reaches the root ErrorBoundary. Three URLs white-screened /home with
+// "אירעה שגיאה בלתי צפויה" — the PUBLIC page — and this harness never drove a
+// hash that was not a valid anchor, so it passed the whole time.
+for (const bad of ['#50%', '#%E0', '#utm_x%', '#%%%']) {
+  const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
+  await p.goto(BASE + '/home' + bad, { waitUntil: 'load' });
+  await p.waitForTimeout(1500);
+  const t = await p.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').trim());
+  const ok = !/אירעה שגיאה בלתי צפויה|Something went wrong/.test(t) && /תכונות/.test(t);
+  if (!ok) fails++;
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} /home${bad.padEnd(9)} still renders the landing page  ${ok ? '' : '— ' + t.slice(0, 45)}`);
+  await p.close();
+}
+
+console.log('\n── the same anchor clicked twice must scroll twice');
+// Also from that review. The effect was keyed on `hash` alone, so the second
+// click produced a new location object with the identical hash string, the
+// dependency array did not change, and nothing moved. Every footer anchor was
+// one-shot per hash value; this harness clicked each exactly once.
+{
+  const p = await b.newPage({ viewport: { width: 1280, height: 800 } });
+  await p.goto(BASE + '/pricing', { waitUntil: 'domcontentloaded' });
+  await p.waitForTimeout(900);
+  const click = () => p.evaluate(() =>
+    [...document.querySelectorAll('a')].find(a => a.getAttribute('href') === '/home#features')?.click());
+  await click();
+  await p.waitForTimeout(2000);
+  const first = await p.evaluate(() => Math.round(window.scrollY));
+  await p.evaluate(() => window.scrollTo(0, 0));
+  await p.waitForTimeout(400);
+  await click();
+  await p.waitForTimeout(2000);
+  const second = await p.evaluate(() => Math.round(window.scrollY));
+  const ok = first > 500 && second > 500;
+  if (!ok) fails++;
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} first click y=${first}, second click y=${second}  (0 on the second = dead click)`);
+  await p.close();
+}
+
 await b.close();
 console.log(`\n${fails} failing checks`);
 process.exit(fails ? 1 : 0);

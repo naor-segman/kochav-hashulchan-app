@@ -197,17 +197,28 @@ export function whatsappLink(phone, text) {
  * screen, and the full analysis lives in WORKPLAN instead. This is the number
  * that will price a message package (checklist item 33).
  *
- * THE RATE IS NOW MEASURED, NOT GUESSED. It used to be 0.12 with a comment
- * calling it "a realistic mid-market figure" — a guess that turned out close.
- * Meta's official rate card for Israel (972/IL, effective 2026-07-01) is
- * $0.0353 per MARKETING template and $0.0053 per UTILITY template. At ~3.7₪/$
- * that is ₪0.13 and ₪0.02.
+ * WHERE THE RATE COMES FROM, stated precisely, because the earlier wording here
+ * ("THE RATE IS NOW MEASURED, NOT GUESSED") claimed more than it could support
+ * and a review was right to call it: outbound HTTP to Meta is blocked from this
+ * environment, so nothing here was fetched or measured.
+ *
+ * It is READ OFF THE RATE CARD THE OWNER SUPPLIED — Meta's official per-country
+ * CSV, Israel (972/IL): $0.0353 per MARKETING template, $0.0053 per UTILITY
+ * template. That is a primary source, and better than the 0.12 it replaced,
+ * which was openly a guess ("a realistic mid-market figure") and landed close.
+ *
+ * The shekel figures are OURS and are the soft part: ~3.7₪/$ is an assumption
+ * nobody has sourced, so ₪0.13 and ₪0.02 move with the exchange rate. Price a
+ * package off the dollar rate, not off these. At the rounded shekel numbers the
+ * marketing:utility gap reads as 6.5x; on the dollars it is 6.7x.
  *
  * The default is the marketing rate because a ceiling should assume the
  * expensive case, and because an event invitation is a business-initiated
  * message to someone who never opted in — which is what Meta classifies as
- * marketing. The 6.7x gap between the two is the single largest lever in the
- * whole messaging feature; see WORKPLAN.
+ * marketing. That gap is the single largest lever in the whole messaging
+ * feature; see WORKPLAN.
+ *
+ * No caller in src/ today — checklist item 33 is the caller.
  *
  * Only TEMPLATES are charged. Replies from a guest, and anything sent inside
  * the 24-hour window their reply opens, are free — so a bot conversation costs

@@ -161,6 +161,52 @@ console.log('\n── 390px: the note doubled the length of that line');
   await p.close();
 }
 
+
+// ── The case the FIRST version of this fix left wrong ────────────────────────
+//
+// Found by an adversarial review of that fix. It handled "no filter" and
+// "filter matched nothing" and left the one in between: a filter searches the
+// WINDOW, so "152 מתוך 1,240" claimed 152 of 1,240 events match when the search
+// never saw 740 of them. Same class of wrong answer, in the ?owner= flow the
+// fix itself called the case that actually misleads.
+console.log('\n── a filter that MATCHES something names the right denominator');
+{
+  const { p, errs } = await open('?bulk=1240');
+  await p.evaluate(() => {
+    const i = document.querySelector('input[type=text]');
+    const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    set.call(i, '7');
+    i.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await p.waitForTimeout(700);
+  const t = await countText(p);
+  const rows = await p.evaluate(() => document.querySelectorAll('tbody tr').length);
+  ok(rows > 0 && rows < 500, 'the filter matched a subset of the window', String(rows));
+  ok(/שנטענו/.test(t || ''), 'the denominator is the WINDOW, not the table', t || '');
+  ok(!/^\d[\d,]* מתוך 1,240 אירועים/.test(t || ''),
+     'it does not claim N of 1,240 matched', t || '');
+  ok(/1,240/.test(t || ''), 'the true total is still on the line', t || '');
+  ok(errs.length === 0, 'no page error', errs[0] || '');
+  await p.close();
+}
+
+// And the same filter on a COMPLETE list must still read the simple way.
+console.log('\n── 8 events, a filter that matches: no window language at all');
+{
+  const { p } = await open('');
+  await p.evaluate(() => {
+    const i = document.querySelector('input[type=text]');
+    const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    set.call(i, 'החתונה');
+    i.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await p.waitForTimeout(700);
+  const t = await countText(p);
+  ok(/מתוך 8 אירועים/.test(t || ''), 'plain "N מתוך 8 אירועים"', t || '');
+  ok(!/שנטענו|מוצגים/.test(t || ''), 'no truncation language on a complete list', t || '');
+  await p.close();
+}
+
 await b.close();
 console.log(`\n${fails} failing checks`);
 process.exit(fails ? 1 : 0);

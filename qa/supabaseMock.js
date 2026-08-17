@@ -123,8 +123,13 @@ const bulkN = (() => {
 const EVENTS_ALL = bulkN > EVENTS.length
   ? Array.from({ length: bulkN }, (_, i) => {
       const base = EVENTS[i % EVENTS.length];
-      // updated_at has to keep descending: the screen orders by it, and the
-      // note it prints names WHICH 500 these are.
+      // `i % 900`, so past row 900 the timestamps repeat rows 0-339 — this
+      // comment used to claim they keep descending, and they do not. It does
+      // not affect any assertion because `order()` in the mock is `return this`
+      // (a no-op), which is itself worth stating out loud: the harness proves
+      // the COUNT and the wording, never the "which 500 these are" ordering
+      // that the wording depends on. That ordering is PostgREST's job and is
+      // untested here.
       return { ...base, id: "e" + i, name: `${base.name} ${i}`, updated_at: iso(i % 900) };
     })
   : EVENTS;
