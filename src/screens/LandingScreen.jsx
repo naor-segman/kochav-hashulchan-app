@@ -71,6 +71,36 @@ const SHOWCASE = [
  * Keep the subject off-centre-right: the text sits over the start (right) edge
  * in RTL, and a face directly behind the headline reads as a mistake.
  */
+// ── The seating card in the hero ──────────────────────────────────────────────
+//
+// Decorative (aria-hidden), but the numbers on it were not decorative — they
+// were wrong, and they disagreed with each other in a way a reader can check
+// against the picture right beside them. The head said "58 אורחים" while the
+// foot said "48 מתוך 54 אורחים סודרו": 58 is the CAPACITY of these six tables,
+// 48 is how many of the drawn seats are filled, and 54 matched nothing at all.
+//
+// Every figure is now derived from this one array, so the card cannot contradict
+// its own glyphs again. Only the guest count is a free number, because nothing
+// in the drawing implies it — and it is pinned to the two derived ones by the
+// invariants in LandingScreen.test.js: 48 seated ≤ 54 guests ≤ 58 seats. A
+// seating plan where more people are seated than exist, or where the guests
+// cannot fit, is not a plan.
+const MOCK_TABLES = [
+  { name: "שולחן 1",   total: 10, filled: 10, shape: "round"  },
+  { name: "שולחן 2",   total: 8,  filled: 7,  shape: "square" },
+  { name: "שולחן 3",   total: 10, filled: 9,  shape: "round"  },
+  { name: "אביר",      total: 12, filled: 8,  shape: "rect"   },
+  { name: "שולחן 5",   total: 10, filled: 6,  shape: "round"  },
+  { name: "שולחן VIP", total: 8,  filled: 8,  shape: "oval"   },
+];
+
+/** Seats drawn across the six tables. */
+export const MOCK_CAPACITY = MOCK_TABLES.reduce((n, t) => n + t.total, 0);
+/** Seats drawn as taken — what "סודרו" counts. */
+export const MOCK_SEATED   = MOCK_TABLES.reduce((n, t) => n + t.filled, 0);
+/** Guests on the list. The one number the picture does not imply. */
+export const MOCK_GUESTS   = 54;
+
 const HERO_MEDIA = {
   video:        "/hero/hero.mp4",
   poster:       "/hero/hero.jpg",
@@ -315,21 +345,10 @@ export default function LandingScreen() {
               <div className={styles.mockCardHead}>
                 <span className={styles.mockCardMark}>✦</span>
                 <span className={styles.mockCardTitle}>תוכנית ישיבה</span>
-                <span className={styles.mockCardStat}>58 אורחים</span>
+                <span className={styles.mockCardStat}>{MOCK_GUESTS} אורחים</span>
               </div>
               <div className={styles.mockTables}>
-                {[
-                  { name: "שולחן 1",   total: 10, filled: 10, shape: "round"  },
-                  { name: "שולחן 2",   total: 8,  filled: 7,  shape: "square" },
-                  { name: "שולחן 3",   total: 10, filled: 9,  shape: "round"  },
-                  { name: "אביר",      total: 12, filled: 8,  shape: "rect"   },
-                  { name: "שולחן 5",   total: 10, filled: 6,  shape: "round"  },
-                  { name: "שולחן VIP", total: 8,  filled: 8,  shape: "oval"   },
-                  // The mock used a flat row of dots per table — a picture of
-                  // nothing in particular. These are the same glyphs the
-                  // product actually draws, so the landing page shows the real
-                  // thing rather than an illustration of it.
-                ].map(t => (
+                {MOCK_TABLES.map(t => (
                   <div key={t.name} className={styles.mockTable}>
                     <TableGlyph shape={t.shape} capacity={t.total} taken={t.filled} size={54} />
                     <span className={styles.mockTableLabel}>{t.name}</span>
@@ -337,7 +356,7 @@ export default function LandingScreen() {
                 ))}
               </div>
               <div className={styles.mockCardFoot}>
-                <span className={styles.mockCardFootBadge}>✓ 48 מתוך 54 אורחים סודרו</span>
+                <span className={styles.mockCardFootBadge}>✓ {MOCK_SEATED} מתוך {MOCK_GUESTS} אורחים סודרו</span>
               </div>
             </div>
           </div>
