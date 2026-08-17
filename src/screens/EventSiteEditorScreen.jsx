@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 import { uid } from "../utils/uid.js";
 import { uploadSitePhoto, deleteSitePhoto } from "../utils/sitePhotos.js";
+import { compressImage, blobToDataUrl } from "../utils/imageCompress.js";
 import { SITE_THEME_LIST, SITE_FONTS, DEFAULT_SITE_FONT } from "../data/eventSiteTemplates.js";
 import Banner from "../components/feedback/Banner.jsx";
+import PhotoRetentionNotice from "../components/feedback/PhotoRetentionNotice.jsx";
 import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -11,56 +13,10 @@ import styles from "./EventSiteEditorScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
 import { prefixed } from "../utils/hebrewPrefix.js";
 
-// Compress an uploaded photo and hand back a BLOB.
-//
-// It used to resolve a data URL, because the bytes went straight into the event
-// payload. They now go to Storage, which wants a blob — and the blob is also
-// what the fallback path needs, since `blobToDataUrl` below can always make the
-// old shape from it but not the other way round without a decode.
-async function compressImage(file, maxPx = 1200, quality = 0.72) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      try {
-        URL.revokeObjectURL(url);
-        let { naturalWidth: w, naturalHeight: h } = img;
-        const scale = Math.min(1, maxPx / Math.max(w, h));
-        w = Math.round(w * scale); h = Math.round(h * scale);
-        const c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        c.getContext("2d").drawImage(img, 0, 0, w, h);
-        // toBlob, not toDataURL: a data URL is base64, which is a third larger
-        // than the bytes it encodes, and it would only be decoded again to
-        // upload.
-        c.toBlob(
-          (blob) => blob ? resolve(blob) : reject(new Error("compression produced nothing")),
-          "image/jpeg",
-          quality
-        );
-      } catch (e) { reject(e); }
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("load failed")); };
-    img.src = url;
-  });
-}
-
-/**
- * The old shape, for an event that has no cloud row yet.
- *
- * Guest mode and the window before the first sync have nowhere to upload to —
- * the Storage policy keys on an event id the server can see. Those keep the
- * base64 behaviour rather than losing the photo, and the next upload after the
- * event syncs writes a URL. Both render identically.
- */
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload  = () => resolve(r.result);
-    r.onerror = () => reject(r.error || new Error("read failed"));
-    r.readAsDataURL(blob);
-  });
-}
+// `compressImage` and `blobToDataUrl` moved to utils/imageCompress.js, where
+// the cover, the gallery and the invitation photo now share one implementation
+// — and where the output format became WebP on browsers that can encode it,
+// measured at 28% smaller on real photographs (qa/webpGain.mjs).
 
 // Six was the cap that kept a 400-guest wedding inside Safari's ~5MB per-origin
 // budget, back when each photo was base64 inside the event: a full gallery
@@ -74,13 +30,18 @@ function blobToDataUrl(blob) {
 //   STORAGE — a stored photo is a URL of about 120 bytes, so the same wedding
 //   is ~204KB whatever the gallery holds.
 //
-//   MONEY — the free tier bills UNCACHED egress, and every uploaded object
-//   carries a one-year cache header, so the first fetch is charged and the
-//   other 299 guests are served from cache into a separate quota. A first
-//   estimate here put a 300-guest wedding at 0.47GB and was wrong by about two
-//   orders of magnitude: it counted every guest as an origin fetch. The real
-//   figure is ~1.6MB of billable egress per event at six photos, against a
-//   5GB monthly allowance.
+//   MONEY — measured against the real Supabase meters, after two wrong
+//   answers. The first put a 300-guest wedding at 0.47GB of billable egress by
+//   counting every guest as an origin fetch. The second corrected that to
+//   ~1.6MB by noting the one-year cache header — and was also wrong, because
+//   CACHED egress is metered too, on its own 5GB monthly quota. That quota is
+//   the binding one: a 300-guest event with ten photos delivers ~0.94GB, so the
+//   free tier carries about FIVE events a month.
+//
+//   It still is not a reason to keep the cap at six. On Pro's 250GB the same
+//   number is ~265 events a month, and beyond that cached egress is $0.03/GB —
+//   about three agorot per additional event. The photos are not what decides
+//   the bill.
 //
 // What is left is the only thing that was ever a real trade: how heavy the
 // page is for a guest opening it on mobile data. Ten photos at 271KB each is
@@ -119,7 +80,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
    * does not exist, a policy that refused the path, or a MIME type the bucket
    * rejects — four different fixes that all look identical without it.
    */
-  const storeOrEmbed = useCallback(async (blob) => {
+  const storeOrEmbed = useCallback(async ({ blob, ext }) => {
     // NOT the same thing, and conflating them cried wolf: an event with no
     // cloud row has nowhere to upload to and never did — that is guest mode
     // working, not a failure — while an upload that was attempted and threw is
@@ -128,7 +89,10 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     // account raised a red alarm about a failure that never happened.
     if (!ev.cloudId) return { src: await blobToDataUrl(blob), failed: false };
     try {
-      return { src: await uploadSitePhoto(ev.cloudId, blob), failed: false };
+      // `ext` travels with the blob so the object key matches the bytes: a
+      // .jpg key holding WebP is served to every guest with the wrong content
+      // type.
+      return { src: await uploadSitePhoto(ev.cloudId, blob, ext), failed: false };
     } catch (e) {
       return { src: await blobToDataUrl(blob), failed: true, reason: e?.message || String(e) };
     }
@@ -160,9 +124,8 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
   const onCover = async (file) => {
     if (!file || !file.type.startsWith("image/")) { showToast("יש לבחור קובץ תמונה", "err"); return; }
     try {
-      const blob = await compressImage(file);
       const prev = site.coverPhoto;
-      const r = await storeOrEmbed(blob);
+      const r = await storeOrEmbed(await compressImage(file));
       set({ coverPhoto: r.src });
       // The photo it replaced is unreachable the moment the field changes, so
       // it is removed rather than left to sit in the bucket forever. Best
@@ -267,6 +230,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         mark="site"
         sub="בנו את אתר האירוע שלכם — הוא נבנה אוטומטית ונשלח לאורחים. מלאו פרטים, בחרו עיצוב, ופרסמו."
       />
+
+      {/* `showPurged` only here: this is the screen where an empty gallery is
+          otherwise unexplained. On the hub it would be a permanent notice about
+          something already finished. */}
+      <PhotoRetentionNotice ev={ev} patchEvent={patchEvent} showToast={showToast} showPurged />
 
       {/* ── Publish + share ── */}
       <div className={[base.card, site.enabled ? "" : base.cardDirty].filter(Boolean).join(" ")}>

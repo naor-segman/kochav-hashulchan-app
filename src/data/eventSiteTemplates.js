@@ -173,9 +173,12 @@ export function defaultEventSite(type) {
     fontKey: DEFAULT_SITE_FONT,
     customDomain: "",
     heroEn: t.heroEn,
-    coverPhoto: null,         // compressed data URL
+    // A Storage URL since the photos moved out of the payload; still a data URL
+    // on events created in guest mode, which have no cloud row to upload
+    // against. Both are strings that render in <img src>.
+    coverPhoto: null,
     story: "",
-    gallery: [],              // array of compressed data URLs (photo gallery)
+    gallery: [],
     countdown: true,          // show a live countdown to the event date
     dressCode: "",            // dress-code note shown to guests
     schedule: t.schedule.map(s => ({ ...s, id: uid() })),
@@ -187,5 +190,10 @@ export function defaultEventSite(type) {
     contactPhone: "",
     rsvpMessage: "",    // personal note from the hosts, shown after RSVP
     sections: { countdown: true, gallery: true, schedule: true, location: true, shuttles: false, dressCode: false, gift: true, blessings: true, faq: true },
+    // Photo retention. Added to normalizeEventSite first and forgotten here —
+    // the exact mistake the comment above this block was written about, caught
+    // by the idempotence test rather than by reading the warning.
+    photosKeepUntil: null,
+    photosPurgedAt: null,
   };
 }

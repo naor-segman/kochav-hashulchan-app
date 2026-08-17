@@ -28,4 +28,16 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
     },
   },
+  {
+    // Tests run under Node, not in a browser. The base config gives every file
+    // `globals.browser` only, so a test that legitimately touches `process`
+    // reported `'process' is not defined` — which is the opposite of true here.
+    //
+    // photoRetention.test.js needs it: the runner's clock is UTC, and every
+    // date bug this project has shipped is invisible at offset zero, so the
+    // file puts the process in Asia/Jerusalem before asserting anything. Both
+    // sets of globals, because these files are also full of DOM.
+    files: ['**/*.test.{js,jsx}', 'qa/**/*.{js,jsx,mjs}'],
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+  },
 ])

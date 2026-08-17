@@ -8,6 +8,7 @@ import SectionMark from "../components/ui/SectionMark.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import Orientation from "../components/onboarding/Orientation.jsx";
 import { useOrientation } from "../components/onboarding/useOrientation.js";
+import PhotoRetentionNotice from "../components/feedback/PhotoRetentionNotice.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventHubScreen.module.css";
 
@@ -23,7 +24,7 @@ import styles from "./EventHubScreen.module.css";
  * is a fact about this event and not a fact about the product.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-export default function EventHubScreen({ activeEvent: ev, go, showToast }) {
+export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   // The same guard the rail applies. Without it the identical click was blocked
   // from the nav ("יש להזין שם לאירוע לפני המשך") and allowed from the hub —
   // and half the product keys off the event name.
@@ -128,6 +129,11 @@ export default function EventHubScreen({ activeEvent: ev, go, showToast }) {
           )}
         </div>
       </header>
+
+      {/* Above the fold on the screen the host actually lands on. A warning
+          about a deletion is only a warning if it is seen before the deletion,
+          and the event site editor is a place they may not open for weeks. */}
+      <PhotoRetentionNotice ev={ev} patchEvent={patchEvent} showToast={showToast} />
 
       {/* The tables as they stand, drawn. A row of numbers says how many; this
           says the SHAPE of the problem before a single label is read. */}

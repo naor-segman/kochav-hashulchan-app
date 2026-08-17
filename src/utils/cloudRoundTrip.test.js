@@ -97,6 +97,13 @@ const MAXIMAL = {
     themeKey: "plum", fontKey: "display", customDomain: "dana-yossi.co.il",
     faq: [{ id: "f1", q: "חניה?", a: "יש" }],
     contactPhone: "0509998877",
+    // Photo retention. `photosKeepUntil` is the host's answer to "your photos
+    // are about to be deleted" — if it does not survive this round trip the
+    // button confirms, the next load forgets, and the server deletes on
+    // schedule anyway. `photosPurgedAt` is the only record that it happened,
+    // so losing it turns an explained empty gallery into an unexplained one.
+    photosKeepUntil: "2027-01-15",
+    photosPurgedAt:  "2026-12-01",
   },
   announcements: {
     invitation: { themeKey: "plum", fontKey: "display", layout: "card",
@@ -217,6 +224,8 @@ describe("full cloud round-trip", () => {
     expect(n2.eventSite.shuttles).toEqual(MAXIMAL.eventSite.shuttles);
     expect(n2.eventSite.schedule).toEqual(MAXIMAL.eventSite.schedule);
     expect(n2.eventSite.customDomain).toBe("dana-yossi.co.il");
+    expect(n2.eventSite.photosKeepUntil).toBe("2027-01-15");
+    expect(n2.eventSite.photosPurgedAt).toBe("2026-12-01");
     expect(n2.announcements.invitation.photo).toBe("data:image/png;base64,PH");
     expect(n2.constraints).toEqual(MAXIMAL.constraints);
     expect(n2.vendors).toEqual(MAXIMAL.vendors);

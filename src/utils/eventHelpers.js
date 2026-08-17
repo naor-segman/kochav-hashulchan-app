@@ -236,6 +236,17 @@ export function normalizeEventSite(site, type) {
     sections: (site.sections && typeof site.sections === "object")
       ? { ...def.sections, ...site.sections }
       : def.sections,
+    // Photo retention. This whitelist is the single migration gateway for every
+    // localStorage round-trip AND every cloud pull, so a field missing here is
+    // dropped on both — the host clicks "keep my photos", the toast confirms,
+    // the next render has forgotten, and the server deletes on schedule. Same
+    // silent-data-loss shape as the cloudSync mappers, which have lost a field
+    // three times.
+    //
+    // Both are "YYYY-MM-DD" or null: photosKeepUntil is the host's
+    // postponement, photosPurgedAt is the server's record of what it did.
+    photosKeepUntil: site.photosKeepUntil ?? null,
+    photosPurgedAt:  site.photosPurgedAt  ?? null,
   };
 }
 
