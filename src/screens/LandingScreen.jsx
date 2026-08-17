@@ -4,6 +4,7 @@ import Footer from "../components/layout/Footer.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./LandingScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
+import { MOCK_TABLES, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
 
 // Four claims a visitor can check for themselves inside the product. They
 // replaced four invented statistics — a new product does not have real numbers
@@ -85,22 +86,6 @@ const SHOWCASE = [
 // invariants in LandingScreen.test.js: 48 seated ≤ 54 guests ≤ 58 seats. A
 // seating plan where more people are seated than exist, or where the guests
 // cannot fit, is not a plan.
-const MOCK_TABLES = [
-  { name: "שולחן 1",   total: 10, filled: 10, shape: "round"  },
-  { name: "שולחן 2",   total: 8,  filled: 7,  shape: "square" },
-  { name: "שולחן 3",   total: 10, filled: 9,  shape: "round"  },
-  { name: "אביר",      total: 12, filled: 8,  shape: "rect"   },
-  { name: "שולחן 5",   total: 10, filled: 6,  shape: "round"  },
-  { name: "שולחן VIP", total: 8,  filled: 8,  shape: "oval"   },
-];
-
-/** Seats drawn across the six tables. */
-export const MOCK_CAPACITY = MOCK_TABLES.reduce((n, t) => n + t.total, 0);
-/** Seats drawn as taken — what "סודרו" counts. */
-export const MOCK_SEATED   = MOCK_TABLES.reduce((n, t) => n + t.filled, 0);
-/** Guests on the list. The one number the picture does not imply. */
-export const MOCK_GUESTS   = 54;
-
 const HERO_MEDIA = {
   video:        "/hero/hero.mp4",
   poster:       "/hero/hero.jpg",

@@ -131,13 +131,19 @@ export default function AdminActivityScreen() {
         {!loading && notConfigured && (
           <div className={styles.setupBox}>
             <div className={styles.setupIcon}><Icon name="bell" size={30} /></div>
-            <h2 className={styles.setupTitle}>יומן הפעילות לא מוגדר עדיין</h2>
+            <h2 className={styles.setupTitle}>יומן הפעילות עדיין לא נבנה</h2>
+            {/* This used to read "הפעל את מיגרציית יומן הפעילות" — an
+                instruction to run a migration that does not exist. There is no
+                `activity_logs` migration in the repo and no code that writes a
+                row to it; this screen is the display half, on its own. Telling
+                the operator to go run something sent them looking for a file
+                nobody ever wrote. */}
             <p className={styles.setupText}>
-              טבלת <code className={styles.inlineCode}>activity_logs</code> לא נמצאה ב-Supabase.
-              הפעל את מיגרציית יומן הפעילות כדי להתחיל לאסוף נתונים.
+              טבלת <code className={styles.inlineCode}>activity_logs</code> לא קיימת ב-Supabase,
+              ואין עדיין קוד שכותב אליה. המסך הזה הוא צד התצוגה בלבד — מנגנון הרישום טרם נבנה.
             </p>
             <p className={styles.setupHint}>
-              כאשר הטבלה תיווצר, יוצגו כאן פעולות כגון יצירת משתמשים, מחיקת אירועים, שינויי מנויים וכניסות מנהל.
+              כשייבנו המיגרציה והרישום, יוצגו כאן פעולות כגון יצירת משתמשים, מחיקת אירועים, שינויי מנויים וכניסות מנהל.
             </p>
             <div className={styles.actionTypeGrid}>
               {ACTION_KEYS.map(key => {

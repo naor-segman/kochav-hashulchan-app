@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
-import { MOCK_CAPACITY, MOCK_SEATED, MOCK_GUESTS } from "./LandingScreen.jsx";
+import { MOCK_CAPACITY, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
 
 // The seating card in the hero is decorative — aria-hidden, no interaction — but
 // its numbers were not. The head read "58 אורחים" and the foot read
