@@ -35,8 +35,32 @@ const PROFILES = EMAILS.map((email, i) => ({
     : [],
 }));
 
+/* A real `payload`, because the detail screen renders everything from it and a
+ * row without one shows "לא הוגדרו שולחנות לאירוע" for every event — so the
+ * table cards, the seating counts and the guest list were unreachable in the
+ * preview. `qa/adminBidi.mjs` needs the table cards specifically: the defect it
+ * measures is a bidi inversion in the seated/capacity fraction, and there is no
+ * way to see it without a table to draw. Mixed counts on purpose, so rows and
+ * seats are never the same number. */
+const payloadFor = (i) => ({
+  tables: [
+    { id: `t${i}a`, name: "שולחן 1",   capacity: 10, shape: "round",  type: "משפחה" },
+    { id: `t${i}b`, name: "שולחן VIP", capacity: 8,  shape: "oval" },
+    { id: `t${i}c`, name: "אביר",      capacity: 12, shape: "rect" },
+  ],
+  guests: [
+    { id: `g${i}1`, name: "טל שוורץ", count: 2, side: "bride", group: "משפחה" },
+    { id: `g${i}2`, name: "רון לוי",  count: 1, side: "groom", group: "חברים" },
+    { id: `g${i}3`, name: "נועה גל",  count: 3, side: "bride", group: "עבודה" },
+  ],
+  seating: { [`g${i}1`]: `t${i}a`, [`g${i}2`]: `t${i}a`, [`g${i}3`]: `t${i}b` },
+  constraints: [{ id: `c${i}`, type: "together", guestA: `g${i}1`, guestB: `g${i}2` }],
+  brideName: "דנה", groomName: "יוסי",
+});
+
 const EVENTS = NAMES.map((name, i) => ({
   id: "e" + i,
+  payload: payloadFor(i),
   user_id: "u" + (i % PROFILES.length),
   name,
   type: TYPES[i % TYPES.length],

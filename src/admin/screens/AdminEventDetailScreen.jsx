@@ -344,11 +344,24 @@ export default function AdminEventDetailScreen() {
                       like what the customer sees. */}
                   <TableGlyph shape={t.shape} capacity={t.capacity ?? 0} taken={seatedHere} size={26} />
                   <span className={styles.tableName}>{t.name || "—"}</span>
+                  {/* dir="ltr" on the fraction, exactly as on the stat chip
+                      thirty lines up. That fix was applied there and missed
+                      here: a spaced slash between two numbers leaves only
+                      NEUTRALS between them, bidi rule N1 resolves the run as
+                      RTL, and a table seating 8 of 10 rendered the glyphs
+                      `10 / 8` — a valid LTR fraction reading the wrong way
+                      round, i.e. an over-capacity table. Measured with Range
+                      rects, not judged by eye.
+
+                      The Hebrew word stays OUTSIDE the isolated span so the
+                      line still reads right-to-left as a whole. */}
                   <span className={styles.tableCapacity}>
-                    {seatedHere > 0
-                      ? `${seatedHere} / ${t.capacity ?? "—"}`
-                      : `${t.capacity ?? "—"}`
-                    } מקומות
+                    <span dir="ltr">
+                      {seatedHere > 0
+                        ? `${seatedHere} / ${t.capacity ?? "—"}`
+                        : `${t.capacity ?? "—"}`}
+                    </span>
+                    {" מקומות"}
                   </span>
                   {t.type && <span className={styles.tableType}>{t.type}</span>}
                 </div>
