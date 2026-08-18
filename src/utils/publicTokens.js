@@ -236,12 +236,15 @@ export async function fetchEventGifts(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
   const { data, error } = await supabase
     .from("gifts")
-    .select("id, donor_name, amount, message, created_at")
+    .select("id, donor_name, amount, message, created_at, hidden")
     .eq("event_id", eventCloudId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(r => ({
     id:        r.id,
+    // The HOST sees hidden rows — hiding is about the projector in the hall,
+    // not about the host's own record of what was declared.
+    hidden:    r.hidden === true,
     donorName: r.donor_name || "",
     // Number(...) || 0 rather than a bare divide: one null amount would make the
     // whole total NaN, and a NaN total renders as "₪NaN" on a budget screen.
@@ -498,4 +501,35 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader)
     throw rowErr;
   }
   return path;
+}
+
+/**
+ * Take a blessing off the public wall, or put it back.
+ *
+ * WHY THIS EXISTS: `submit_gift_by_token` is open to anon, needs only a name
+ * and ₪5, and stores a 1,000-character message — and the wall polls every 30
+ * seconds onto a screen in the hall. Anyone the gift link was forwarded to
+ * could put arbitrary text on it at somebody's wedding, and until now there was
+ * no path anywhere in the product to take it down.
+ *
+ * Hiding rather than deleting is the default action for a reason: moderation
+ * should not destroy the host's own record of a declared gift, and a mistaken
+ * hide has to be reversible while the party is still going.
+ */
+export async function setGiftHidden(giftId, hidden) {
+  if (!isSupabaseConfigured || !supabase || !giftId) return false;
+  const { error } = await supabase
+    .from("gifts")
+    .update({ hidden: !!hidden })
+    .eq("id", giftId);
+  if (error) throw error;
+  return true;
+}
+
+/** Remove a blessing entirely — from the wall AND from the host's list. */
+export async function deleteEventGift(giftId) {
+  if (!isSupabaseConfigured || !supabase || !giftId) return false;
+  const { error } = await supabase.from("gifts").delete().eq("id", giftId);
+  if (error) throw error;
+  return true;
 }

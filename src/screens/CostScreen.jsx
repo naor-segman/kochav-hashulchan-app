@@ -4,7 +4,7 @@ import Icon from "../components/ui/Icon.jsx";
 import styles from "./CostScreen.module.css";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
-import { fetchEventGifts } from "../utils/publicTokens.js";
+import { fetchEventGifts, setGiftHidden } from "../utils/publicTokens.js";
 
 const DEFAULT_CATEGORIES = [
   { id: "venue",        name: "אולם",           budget: 0, actual: 0 },
@@ -37,13 +37,14 @@ function fmtNet(n) {
   return (n < 0 ? "−₪" : "+₪") + abs;
 }
 
-export default function CostScreen({ activeEvent: ev, patchEvent }) {
+export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
   const [cats, setCats]    = useState(() => initCategories(ev));
   const [bulkGift, setBulkGift] = useState("");
   // Gifts a guest declared on the public gift page. Read here and nowhere else
   // in the app — until now nothing read them at all, so a guest could fill in an
   // amount, watch it save, and have it reach no one.
   const [declaredGifts, setDeclaredGifts] = useState([]);
+  const [busyGiftId,    setBusyGiftId]    = useState(null);
   const [giftsState, setGiftsState] = useState("idle"); // idle | loading | ready | error
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
@@ -132,6 +133,31 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
     () => declaredGifts.reduce((sum, g) => sum + (g.amountILS || 0), 0),
     [declaredGifts],
   );
+
+  /* Take one blessing off the public wall, or put it back.
+   *
+   * Optimistic on purpose: the host is standing in a hall watching a projector
+   * with something on it they want gone, and the wall re-polls every 30
+   * seconds. Waiting for a round trip before the row changes reads as the
+   * button not working, and they press it again.
+   *
+   * On failure the row is put back exactly as it was and the host is told —
+   * silently leaving the UI claiming "מוסתר" while the projector still shows
+   * the blessing is the one outcome worse than doing nothing. */
+  const toggleGiftHidden = async (gift) => {
+    const next = !gift.hidden;
+    setBusyGiftId(gift.id);
+    setDeclaredGifts(rows => rows.map(r => (r.id === gift.id ? { ...r, hidden: next } : r)));
+    try {
+      await setGiftHidden(gift.id, next);
+      showToast?.(next ? "הברכה הוסתרה מהקיר" : "הברכה חזרה לקיר", "ok");
+    } catch {
+      setDeclaredGifts(rows => rows.map(r => (r.id === gift.id ? { ...r, hidden: gift.hidden } : r)));
+      showToast?.("לא הצלחנו לעדכן את הקיר — נסו שוב", "err");
+    } finally {
+      setBusyGiftId(null);
+    }
+  };
 
   // Convenience: set a per-person estimate on every attending guest at once
   // (host can then fine-tune individuals in the guest list).
@@ -483,8 +509,29 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
           <ul className={styles.giftList}>
             {declaredGifts.map(g => (
               <li key={g.id} className={styles.giftRow}>
-                <span className={styles.giftName}>{g.donorName}</span>
+                <span className={[styles.giftName, g.hidden ? styles.giftHidden : ""].filter(Boolean).join(" ")}>
+                  {g.donorName}
+                  {g.hidden && <span className={styles.giftHiddenTag}>מוסתר מהקיר</span>}
+                </span>
                 <span className={styles.giftAmt}>{fmtILS(g.amountILS)}</span>
+                {/* The moderation the wall never had. Anyone the gift link was
+                    forwarded to can put 1,000 characters on a screen in the
+                    hall for a declared ₪5, and until now there was no way to
+                    take it down from anywhere in the product.
+
+                    Hide is the primary action and delete is not offered here:
+                    hiding is reversible mid-party and keeps the host's own
+                    record of what was declared, which is what this screen is
+                    for. */}
+                <button
+                  type="button"
+                  className={styles.giftAction}
+                  onClick={() => toggleGiftHidden(g)}
+                  disabled={busyGiftId === g.id}
+                  aria-label={g.hidden ? `החזרה לקיר: ${g.donorName}` : `הסתרה מהקיר: ${g.donorName}`}
+                >
+                  {busyGiftId === g.id ? "…" : (g.hidden ? "החזירו לקיר" : "הסתירו מהקיר")}
+                </button>
               </li>
             ))}
           </ul>

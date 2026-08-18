@@ -496,3 +496,33 @@
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
+
+/* ── Moderating the blessing wall ── */
+/* The host is standing in a hall looking at a projector, so this has to be
+   reachable with a thumb and readable at a glance. 44px is the floor this
+   codebase uses everywhere. */
+.giftAction {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--accent-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.giftAction:disabled { opacity: 0.6; cursor: default; }
+
+/* A hidden blessing stays in the host's list — it is still their record of a
+   declared gift — so it is dimmed rather than removed. */
+.giftHidden { color: var(--muted); }
+
+.giftHiddenTag {
+  margin-inline-start: 8px;
+  font-size: var(--step--3);
+  color: var(--muted);
+  font-weight: 600;
+}
