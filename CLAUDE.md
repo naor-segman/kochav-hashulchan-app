@@ -186,14 +186,18 @@ Check for these first — each has bitten more than once:
   afternoon into "fixing" CSS that was already correct.
 - **Outbound HTTP is blocked** by the proxy for most hosts, including competitor
   sites. Say so rather than inventing findings.
-- **`npm run lint` runs `eslint .` and reports 13 errors** — all pre-existing,
-  in `legacy/` (7), `netlify/` (3), `qa_test.js` (1) and `qa/marksPreview.jsx`
-  (2, `react-refresh/only-export-components`). The count was recorded as 10 for
-  a while, then as 12 with `netlify/` at 2; both had drifted, and `netlify/` has
-  three (`Netlify` twice, `html` once, all `no-undef` in
-  `edge-functions/invite-og.js`). Counted by checking out the previous
-  `eslint.config.js` and re-running, not by memory. `npx eslint src` is the
-  meaningful one and is at 0 errors.
+- **`npm run lint` runs `eslint .` and reports 10 errors** — in `legacy/` (7),
+  `qa_test.js` (1) and `qa/marksPreview.jsx` (2). `npx eslint src` is the
+  meaningful one and is at 0.
+- 🔴 **`netlify/` was in that list until 18.8, and one of its three "errors"
+  was a live bug.** Two were genuinely false — `Netlify` is a real
+  edge-runtime global, now declared in `eslint.config.js`. The third,
+  `'html' is not defined` in `edge-functions/invite-og.js`, meant the
+  invitation's OG rewrite threw on every request and had **never once run**:
+  every WhatsApp preview of an invitation showed the generic site title.
+  Writing three errors off together as "pre-existing" is exactly how it stayed
+  hidden for months. `netlify/` is at 0 now. **Do not dismiss the remaining ten
+  as a group — read each one.**
 - **Test and `qa/` files get Node globals** via a second block in
   `eslint.config.js`. The base config grants `globals.browser` only, so a test
   touching `process` — e.g. `photoRetention.test.js`, which sets
