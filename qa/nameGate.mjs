@@ -134,6 +134,58 @@ console.log('\n── a named event is not gated (the notice must not cry wolf)'
   ok(r.errs.length === 0, 'no page error', r.errs[0] || '');
 }
 
+
+console.log('\n── the "המשיכו מכאן" button, which used to bypass the gate');
+{
+  // Found by an adversarial review of the commit that unified the gate: this
+  // button called `go` directly, so on an unnamed event it opened the very
+  // screen the tile beside it refuses to open. The same nav-vs-hub divergence
+  // the gate module exists to prevent — on one screen, two hundred lines apart.
+  //
+  // A whitespace-only name, because both name inputs trim, so this is the shape
+  // that actually reaches the gate.
+  const r = await clickThrough({
+    name: '   ', path: '/events/e1', label: 'המשיכו מכאן',
+    vp: { width: 390, height: 844 }, sel: 'button[class*=resume]',
+  });
+  ok(r.clicked, 'found the resume button');
+  // NOT asserting a toast, and that is the measurement talking. `done("setup")`
+  // used to be `!!ev.name`, and "   " is truthy — so setup counted as finished,
+  // `nextStep` became "אורחים", and the button opened the screen the tile beside
+  // it refuses to open. With `done` asking the gate module instead, the button
+  // now POINTS at setup, so there is nothing to block and no toast to show.
+  //
+  // Routing it through `openItem` as well is defence in depth: it is what makes
+  // the guarantee independent of `done`'s definition rather than a consequence
+  // of it. The assertion that matters either way is where the host lands.
+  ok(r.url === '/events/e1/setup', 'the host lands on setup, not past it', r.url);
+  // And NO toast, which is what discriminates. Revert `done` to `!!ev.name` and
+  // "   " counts as named: nextStep becomes "אורחים", openItem blocks it, and a
+  // scolding toast appears on a button that should simply have pointed at setup.
+  // The right behaviour is silent — nobody should be told off by a button that
+  // is already doing the right thing.
+  ok(!r.toast.includes(GATE_MSG), 'and is not scolded by a button aimed at setup',
+     r.toast || '(none — correct)');
+  ok(r.errs.length === 0, 'no page error', r.errs[0] || '');
+
+  // NOTE, measured rather than assumed: routing the button through `openItem`
+  // cannot be caught on its own. With `done` fixed, nextStep IS setup, so
+  // `go` and `openItem` are indistinguishable from outside. It stays because it
+  // makes the guarantee independent of `done`'s definition instead of a
+  // consequence of it — but this file does not pretend to prove it.
+}
+
+console.log('\n── and it still works normally on a named event');
+{
+  const r = await clickThrough({
+    name: 'החתונה של דנה ויוסי', path: '/events/e1', label: 'המשיכו מכאן',
+    vp: { width: 390, height: 844 }, sel: 'button[class*=resume]',
+  });
+  ok(r.clicked, 'found it');
+  ok(!r.toast.includes(GATE_MSG), 'no toast', r.toast || '(none — correct)');
+  ok(r.url !== '/events/e1' && r.url !== '/events/e1/setup', 'it opened the next step', r.url);
+}
+
 await b.close();
 console.log(`\n${fails} failing checks`);
 process.exit(fails ? 1 : 0);

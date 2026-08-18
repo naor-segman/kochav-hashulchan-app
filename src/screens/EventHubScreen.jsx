@@ -11,7 +11,7 @@ import { useOrientation } from "../components/onboarding/useOrientation.js";
 import PhotoRetentionNotice from "../components/feedback/PhotoRetentionNotice.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventHubScreen.module.css";
-import { makeOpenScreen } from "../utils/eventNameGate.js";
+import { makeOpenScreen, isNameGated } from "../utils/eventNameGate.js";
 
 /* ── The event's own front page ───────────────────────────────────────────────
  *
@@ -56,7 +56,10 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   // "Done" is deliberately generous — it means "there is something here", not
   // "this is finished". Nothing in this product is ever finished until the day.
   const done = (id) => {
-    if (id === "setup")       return !!ev.name;
+    // `isNameGated` and not `!!ev.name`: a fourth statement of the same rule was
+    // what let the two originals drift, and "   " is not a name. The gate module
+    // owns the question; this asks it.
+    if (id === "setup")       return !isNameGated(ev, "guests");
     if (id === "guests")      return stats.guests > 0;
     if (id === "tables")      return stats.tables > 0;
     if (id === "constraints") return stats.constraints > 0;
@@ -146,8 +149,13 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
         </div>
       )}
 
+      {/* Through the gate, like every tile below it. This button called `go`
+          directly, so on an unnamed event it opened the screen the tiles refuse
+          to open — the exact nav-vs-hub divergence eventNameGate.js exists to
+          prevent, on the same screen, two hundred lines apart. Latent rather
+          than live (both name inputs trim), which is why nothing caught it. */}
       {nextStep && (
-        <button className={styles.resume} onClick={() => go(nextStep.id)}>
+        <button className={styles.resume} onClick={() => openItem(nextStep.id)}>
           <span className={styles.resumeText}>
             <span className={styles.resumeLabel}>המשיכו מכאן</span>
             <span className={styles.resumeStep}>
