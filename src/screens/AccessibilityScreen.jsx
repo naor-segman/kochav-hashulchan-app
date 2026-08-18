@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
+import { supportEmail, supportMailto } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
 
@@ -53,7 +54,7 @@ export default function AccessibilityScreen() {
           <h2 className={styles.sectionTitle}>פנייה בנושא נגישות</h2>
           <p className={styles.text}>
             רכז הנגישות שלנו זמין בכתובת{" "}
-            <a href="mailto:support@kochav-hashulchan.co.il">support@kochav-hashulchan.co.il</a>.
+            <a href={supportMailto()}>{supportEmail()}</a>.
             נשתדל להשיב לכל פנייה בתוך זמן סביר.
           </p>
         </section>

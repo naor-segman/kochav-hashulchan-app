@@ -15,6 +15,7 @@ import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/storage.js";
+import { COMPANY, supportMailto } from "../data/company.js";
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -434,8 +435,7 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
                 const handleCardAction = () => {
                   if (isCurrent || billing.checkoutTarget) return;
                   if (isEnterprise) {
-                    window.location.href =
-                      `mailto:${import.meta.env.VITE_SUPPORT_EMAIL || "support@kochav-hashulchan.co.il"}?subject=Enterprise%20Plan%20Inquiry`;
+                    window.location.href = supportMailto("Enterprise Plan Inquiry");
                     return;
                   }
                   billing.startCheckout(key);
@@ -576,7 +576,15 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
         </p>
 
         <a
-          href={`mailto:${import.meta.env.VITE_SUPPORT_EMAIL || "support@kochav-hashulchan.co.il"}?subject=%D7%9E%D7%A9%D7%95%D7%91%20%D7%A2%D7%9C%20%D7%9B%D7%95%D7%9B%D7%91%20%D7%94%D7%A9%D7%95%D7%9C%D7%97%D7%9F&body=%D7%A9%D7%9C%D7%95%D7%9D%2C%0A%0A%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A9%D7%AA%D7%A3%20%D7%9E%D7%A9%D7%95%D7%91%2F%D7%A8%D7%A2%D7%99%D7%95%D7%9F%3A%0A%0A`}
+          /* The subject and body were percent-encoded BY HAND in the source,
+             which is why they read as noise: 200 characters of %D7%9E to say
+             "משוב על כוכב השולחן". supportMailto encodes once, at the point of
+             use, so the Hebrew stays readable here and the brand name follows
+             COMPANY instead of being frozen into an escape sequence. */
+          href={supportMailto(
+            `משוב על ${COMPANY.name}`,
+            "שלום,\n\nאשמח לשתף משוב/רעיון:\n\n",
+          )}
           className={styles.feedbackLink}
           target="_blank"
           rel="noreferrer"

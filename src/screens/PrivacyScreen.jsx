@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
+import { supportEmail, supportMailto } from "../data/company.js";
 
 export default function PrivacyScreen() {
   return (
@@ -80,7 +81,7 @@ export default function PrivacyScreen() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>7. יצירת קשר</h2>
           <p className={styles.text}>
-            לכל שאלה בנושא פרטיות: <a href="mailto:support@kochav-hashulchan.co.il">support@kochav-hashulchan.co.il</a>
+            לכל שאלה בנושא פרטיות: <a href={supportMailto()}>{supportEmail()}</a>
           </p>
         </section>
 

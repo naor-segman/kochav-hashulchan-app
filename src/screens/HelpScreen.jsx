@@ -4,6 +4,7 @@ import styles from "./LegalScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
 import help from "./HelpScreen.module.css";
+import { supportEmail, supportMailto } from "../data/company.js";
 
 const FAQ = [
   {
@@ -74,7 +75,7 @@ export default function HelpScreen() {
           <h2 className={styles.sectionTitle}>עוד שאלה?</h2>
           <p className={styles.text}>
             נשמח לעזור — כתבו לנו:{" "}
-            <a href="mailto:support@kochav-hashulchan.co.il">support@kochav-hashulchan.co.il</a>
+            <a href={supportMailto()}>{supportEmail()}</a>
           </p>
         </section>
 

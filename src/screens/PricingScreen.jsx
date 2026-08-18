@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import styles from "./PricingScreen.module.css";
+import { contactMailto } from "../data/company.js";
 
 const PLANS = [
   {
@@ -65,7 +66,11 @@ const PLANS = [
       { text: "דפי אורח: אישורי הגעה, הזמנה, מתנות", included: true },
     ],
     cta: "צרו קשר",
-    ctaHref: "mailto:contact@kochav-hashulchan.co.il",
+    // `null`, and resolved at render below. The address used to be baked into
+    // this module-level constant, which is evaluated once at import — so the
+    // whole point of centralising it (change one line, everything follows)
+    // would have been defeated by a value frozen before `COMPANY` is read.
+    ctaHref: null,
     highlight: false,
     external: true,
   },
@@ -167,7 +172,7 @@ export default function PricingScreen({ user }) {
                 </ul>
                 {plan.external ? (
                   <a
-                    href={plan.ctaHref}
+                    href={plan.ctaHref ?? contactMailto()}
                     className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}
                   >
                     {plan.cta}

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
+import { supportEmail, supportMailto } from "../data/company.js";
 
 export default function TermsScreen() {
   return (
@@ -83,7 +84,7 @@ export default function TermsScreen() {
             עדכון מהווה הסכמה לנוסח המעודכן.
           </p>
           <p className={styles.text}>
-            יצירת קשר: <a href="mailto:support@kochav-hashulchan.co.il">support@kochav-hashulchan.co.il</a>
+            יצירת קשר: <a href={supportMailto()}>{supportEmail()}</a>
           </p>
         </section>
 

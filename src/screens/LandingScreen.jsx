@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./LandingScreen.module.css";
+import { contactMailto } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import { MOCK_TABLES, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
 
@@ -159,7 +160,11 @@ const PRICING_PLANS = [
       "SLA ותמיכה ייעודית",
     ],
     cta: "צרו קשר",
-    ctaHref: "mailto:contact@kochav-hashulchan.co.il",
+    // `null`, and resolved at render below. The address used to be baked into
+    // this module-level constant, which is evaluated once at import — so the
+    // whole point of centralising it (change one line, everything follows)
+    // would have been defeated by a value frozen before `COMPANY` is read.
+    ctaHref: null,
     highlight: false,
     external: true,
   },
@@ -540,7 +545,7 @@ export default function LandingScreen() {
                   {plan.features.map(f => <li key={f}>{f}</li>)}
                 </ul>
                 {plan.external ? (
-                  <a href={plan.ctaHref} className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}>
+                  <a href={plan.ctaHref ?? contactMailto()} className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}>
                     {plan.cta}
                   </a>
                 ) : (

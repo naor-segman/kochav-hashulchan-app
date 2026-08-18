@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import styles from "./Footer.module.css";
+import { supportMailto } from "../../data/company.js";
 
 export default function Footer() {
   return (
@@ -39,7 +40,7 @@ export default function Footer() {
           <div className={styles.col}>
             <div className={styles.colTitle}>תמיכה ומידע</div>
             <Link to="/help" className={styles.colLink}>מרכז עזרה</Link>
-            <a href="mailto:support@kochav-hashulchan.co.il" className={styles.colLink}>צרו קשר</a>
+            <a href={supportMailto()} className={styles.colLink}>צרו קשר</a>
             <Link to="/privacy" className={styles.colLink}>מדיניות פרטיות</Link>
             <Link to="/terms" className={styles.colLink}>תנאי שימוש</Link>
             <Link to="/accessibility" className={styles.colLink}>הצהרת נגישות</Link>
