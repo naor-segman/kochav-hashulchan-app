@@ -355,7 +355,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
      seatingTotals() through arrivalTotals(), so this panel and the door screen
      cannot disagree about what "everyone" means. */
   const arrival     = useMemo(() => arrivalTotals(ev.guests, ev.seating), [ev.guests, ev.seating]);
-  const totalGifts  = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
 
   const toggleTableLock = useCallback((tableId) => {
     patchEvent(e => {
@@ -541,7 +540,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
                 {arrival.arrivedSeats > 0 && <StatPill n={arrival.arrivedSeats} label="הגיעו" color="var(--green)" />}
-                {totalGifts > 0 && <StatPill n={"₪" + totalGifts.toLocaleString("he-IL")} label="מתנות" color="var(--green)" />}
+                {/* A "מתנות" pill over `g.giftAmount` used to sit here. Nothing
+                    in the codebase writes that field — the entrance screen's
+                    input was removed deliberately — so `totalGifts > 0` was
+                    false on every event and the pill has never rendered. Left in
+                    place it invites someone to "fix" the guard and ship a ₪0
+                    pill. Removed with the same field's dead stats on the budget
+                    screen (checklist 82). */}
                 <StatPill n={violations.length}   label={violations.length === 1 ? "הפרה" : "הפרות"}   color={violations.length > 0 ? "var(--red)" : undefined} />
               </div>
             }

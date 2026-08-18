@@ -78,11 +78,37 @@ ok(!statLabels.some(l => l.startsWith('נרשמו בדף המתנה')),
 ok(!/NaN/.test(text), 'no NaN anywhere on a money screen');
 
 console.log('\n── nothing else on the budget screen broke');
-for (const label of ['הכנסה צפויה', 'הכנסה בפועל (מתנות)', 'צפי נטו (צפוי − מתוכנן)', 'נטו בפועל']) {
+// The two dead ones are deliberately NOT in this list any more — see the block
+// below. Written in when item 2 landed, this line codified a stat that could
+// never show anything but "—" as expected behaviour, which is how it survived
+// the commit that proved its field has no writer.
+for (const label of ['הכנסה צפויה', 'צפי נטו (צפוי − מתוכנן)']) {
   ok(statLabels.includes(label), label, statLabels.join(' · '));
 }
 ok(text.includes('אולם'), 'the expense categories are untouched');
 ok(errs.length === 0, 'no page error', errs[0] || '');
+
+
+console.log('\n── the dead money stats are gone');
+// `g.giftAmount` is read in three places and WRITTEN IN NONE — the entrance
+// screen's input was removed deliberately. So "הכנסה בפועל (מתנות)" was
+// structurally zero and rendered "—" on every event that has ever existed, and
+// "נטו בפועל" was income(0) − expenses, i.e. the negation of a figure already
+// on the screen: a host who entered ₪12,000 of real venue spend read
+// "נטו בפועל −₪12,000" as though the event had lost that money.
+//
+// Checklist item 2 proved the field had no writer and deleted only the help
+// text. This is the rest of it.
+{
+  const labels = await p.evaluate(() =>
+    [...document.querySelectorAll('[class*=statLabel]')].map(e => e.textContent.trim()));
+  ok(!labels.some(l => /הכנסה בפועל/.test(l)), 'no "הכנסה בפועל"', labels.join(' · '));
+  ok(!labels.some(l => /נטו בפועל/.test(l)), 'no "נטו בפועל"', labels.join(' · '));
+  ok(labels.some(l => /הכנסה צפויה/.test(l)), 'the expected-income stat stays — it has a writer');
+  ok(labels.some(l => /צפי נטו/.test(l)), 'and so does the expected net');
+  const body = await p.evaluate(() => document.body.innerText);
+  ok(!/−₪|-₪/.test(body) || !/נטו בפועל/.test(body), 'no phantom deficit on screen');
+}
 
 await b.close();
 console.log(`\n${fails} failing checks`);

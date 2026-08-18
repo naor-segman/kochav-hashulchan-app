@@ -107,10 +107,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
     (ev?.guests ?? []).filter(g => g.rsvp !== "declined" && g.estGift > 0).length, [ev]);
   const nAttending = useMemo(() =>
     (ev?.guests ?? []).filter(g => g.rsvp !== "declined").length, [ev]);
-  const actualIncome = useMemo(() =>
-    (ev?.guests ?? []).reduce((s, g) => s + (g.giftAmount || 0), 0), [ev]);
   const netExpected  = estIncome - totalBudget;
-  const netActual    = actualIncome - totalActual;
 
   // One read per mount. Not realtime and not polled: a gift arriving while the
   // host stares at the budget screen is not worth a subscription, and the number
@@ -192,7 +189,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
   const maxCat = useMemo(
     () => catsWithData.reduce((m, c) => Math.max(m, parseAmt(c.budget), parseAmt(c.actual)), 0),
     [catsWithData]);
-  const maxBig = Math.max(estIncome, actualIncome, totalBudget, totalActual, 1);
+  const maxBig = Math.max(estIncome, declaredTotal, totalBudget, totalActual, 1);
   const pct = (v, max) => (max > 0 ? Math.min(100, (v / max) * 100) : 0) + "%";
 
   return (
@@ -462,12 +459,25 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
             <span className={styles.statNum}>{estIncome > 0 ? fmtILS(estIncome) : "—"}</span>
             <span className={styles.statLabel}>הכנסה צפויה</span>
           </div>
-          <div className={styles.stat}>
-            <span className={styles.statNum}>{actualIncome > 0 ? fmtILS(actualIncome) : "—"}</span>
-            <span className={styles.statLabel}>הכנסה בפועל (מתנות)</span>
-          </div>
-          {/* Deliberately NOT folded into "הכנסה בפועל", for two reasons that
-              both had to hold:
+          {/* "הכנסה בפועל (מתנות)" used to sit here, summing `g.giftAmount`.
+              NOTHING IN THE CODEBASE EVER WRITES THAT FIELD — the entrance
+              screen's input was removed deliberately, and it is read in three
+              places and set in none. So the stat was structurally ₪0 and
+              rendered "—" on every event that has ever existed, on a screen
+              about money, as the only unexplained figure on it.
+
+              Checklist item 2 established that and deleted only the help text
+              that described it. The dead stat itself stayed, and took "נטו
+              בפועל" down with it: income(always 0) − expenses is the negation
+              of a number already on this screen, so a host who entered ₪12,000
+              of real venue spend read "נטו בפועל −₪12,000" as if the event had
+              lost that money.
+
+              Both are gone. What the screen can honestly say about real money
+              is below: what guests DECLARED on the gift page, and what has
+              actually been spent. */}
+          {/* Deliberately NOT folded into any "actual income" line, for two
+              reasons that both had to hold:
 
               A declared gift is a DECLARATION, not a receipt. `paid` is false on
               every row and nothing in the codebase ever sets it true — no card
@@ -492,12 +502,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
             </span>
             <span className={styles.statLabel}>צפי נטו (צפוי − מתוכנן)</span>
           </div>
-          <div className={styles.stat}>
-            <span className={[styles.statNum, netActual < 0 ? styles.statOver : ""].join(" ")}>
-              {(actualIncome > 0 || totalActual > 0) ? fmtNet(netActual) : "—"}
-            </span>
-            <span className={styles.statLabel}>נטו בפועל</span>
-          </div>
+
         </div>
 
         {/* Who declared what. A total on its own gives the host a number; this
@@ -548,7 +553,12 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
             {[
               { label: "הכנסה צפויה", val: estIncome,   cls: styles.barIncome, show: estIncome > 0 },
               { label: "הוצאה מתוכננת", val: totalBudget, cls: styles.barExpense, show: totalBudget > 0 },
-              { label: "הכנסה בפועל", val: actualIncome, cls: styles.barIncome, show: actualIncome > 0 },
+              // Was "הכנסה בפועל" over `actualIncome`, which nothing ever
+              // writes — so `show` was false on every event and the bar has
+              // never once been drawn. What the host actually has is the
+              // declared total, which is real and already labelled as a
+              // declaration everywhere else on this screen.
+              { label: "נרשמו בדף המתנה", val: declaredTotal, cls: styles.barIncome, show: declaredTotal > 0 },
               { label: "הוצאה בפועל", val: totalActual,  cls: styles.barExpense, show: totalActual > 0 },
             ].filter(r => r.show).map((r, i) => (
               <div key={i} className={styles.bigRow}>
