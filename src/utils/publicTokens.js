@@ -14,8 +14,12 @@ function mapPublicEvent(data) {
     organizationName: data.organization_name ?? "",
     contactName:      data.contact_name      ?? "",
     ownerName:        data.owner_name        ?? "",
-    giftBitPhone:     data.bit_phone         ?? "",
-    giftPayboxLink:   data.paybox_link       ?? "",
+    // giftBitPhone / giftPayboxLink used to be mapped here. The RPC no longer
+    // serves them (20260818000200) and no screen ever rendered them: GiftScreen
+    // deliberately has no Bit/PayBox route, by the 11.8 decision that a
+    // peer-to-peer transfer app charges the HOST the fee. They were reaching
+    // every token type — the album QR, which strangers photograph off a table,
+    // included. The values still live in events.payload for the host's own copy.
     site: (data.site && typeof data.site === "object") ? data.site : null,
     announcements: (data.announcements && typeof data.announcements === "object")
       ? data.announcements : null,

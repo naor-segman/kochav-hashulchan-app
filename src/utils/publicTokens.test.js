@@ -144,10 +144,24 @@ describe("fetchEventByToken — a partial row must not crash a public page", () 
     expect(ev.name).toBe("");
     expect(ev.type).toBe("חתונה");          // the Hebrew default the app compares against
     expect(ev.brideName).toBe("");
-    expect(ev.giftBitPhone).toBe("");
     expect(ev.site).toBeNull();
     expect(ev.announcements).toBeNull();
     expect(ev.rsvpToken).toBeNull();
+  });
+
+  it("carries no payment details, whatever the RPC returns", async () => {
+    // These reached EVERY token type — the album QR included, which strangers
+    // photograph off a table in the hall — and no screen has ever rendered
+    // them: GiftScreen deliberately has no Bit/PayBox route (11.8 decision).
+    // The RPC stopped serving them in 20260818000200; this is the client half,
+    // so a server that starts sending them again still cannot get them onto a
+    // guest's page through this mapper.
+    ok({ id: "cloud-1", bit_phone: "0501234567", paybox_link: "https://payboxapp.page.link/x" });
+    const ev = await fetchEventByToken("album", "tok");
+    expect(ev.giftBitPhone).toBeUndefined();
+    expect(ev.giftPayboxLink).toBeUndefined();
+    expect(JSON.stringify(ev)).not.toContain("0501234567");
+    expect(JSON.stringify(ev)).not.toContain("payboxapp");
   });
 
   it("passes the token type through untouched", async () => {
