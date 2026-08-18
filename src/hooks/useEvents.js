@@ -287,10 +287,46 @@ function mergeArrivals(localGuests, cloudGuests) {
 export function mergeCloudWithLocal(
   localEvents,
   cloudEvents,
-  { cloudIsAuthoritative = false, fetchedAt = Infinity } = {},
+  { cloudIsAuthoritative = false, fetchedAt = Infinity, unpushedIds = null } = {},
 ) {
+  /* ── `unpushedIds` — the fix for a data-loss path ──────────────────────────
+   *
+   * `version` is a per-device counter, `syncedVersion` is the server's.
+   * `isCloudBacked` in storage.js is `syncedVersion === version`, and
+   * `pruneCloudBackedEvents` runs on that AUTOMATICALLY on SIGNED_OUT.
+   *
+   * That predicate is right for every path but one. In the ORDINARY two-device
+   * conflict — one edit on each side — both counters land on N+1, this merge
+   * keeps the local content and takes `syncedVersion` from the cloud row, and
+   * the two come out EQUAL while the merged content is held by NEITHER side.
+   * The prune then deleted the event from the browser with the cloud still on
+   * the pre-conflict copy: the venue, the whole seating map, the locks, the
+   * floor-plan image (which never syncs at all), the custom groups. Gone, and
+   * AccountScreen shows the host the same predicate as a promise — "כבר בענן
+   * ויחזור בכניסה הבאה".
+   *
+   * The caller is the only one who knows. `pushUpdate` reaches this merge
+   * BECAUSE the server rejected its write, so by definition it holds content
+   * the cloud does not; hydration knows no such thing and passes nothing, so
+   * its behaviour is untouched.
+   *
+   * Deciding it here instead, by comparing the merged event to the cloud row,
+   * was tried and does not work: `normalizeEvent` mints a fresh uuid for every
+   * event-site FAQ row and every token that arrives without one, so two copies
+   * of identical content never serialise the same and EVERY event would have
+   * been marked dirty and re-pushed on every single login.
+   */
   const cloudLocalIds = new Set(cloudEvents.map(e => e.id));
   const cloudIds      = new Set(cloudEvents.map(e => e.cloudId).filter(Boolean));
+
+  // One past the base the next push compares against. `updateCloudEvent` sends
+  // `.eq("version", syncedVersion)` and writes `version` from the payload, so
+  // any other value either skips numbers the server never issued or — when the
+  // local counter is behind — writes a version lower than the row it overwrote.
+  const markUnpushed = (e) =>
+    unpushedIds && unpushedIds.has(e.id)
+      ? { ...e, version: (Number.isFinite(e.syncedVersion) ? e.syncedVersion : 0) + 1 }
+      : e;
 
   const merged = cloudEvents.map(ce => {
     const normalized = normalizeEvent(ce);
@@ -313,7 +349,7 @@ export function mergeCloudWithLocal(
     // work and then persisted the deletion, which is unrecoverable. Whichever
     // side was written last wins; the cloud id always comes from the cloud.
     if (localMatch && (localMatch.updatedAt ?? 0) > (ce.updatedAt ?? 0)) {
-      return normalizeEvent({
+      return markUnpushed(normalizeEvent({
         ...localMatch,
         // Arrivals are the one thing on this row written by SOMEONE ELSE, from a
         // device this tab never sees — the greeter, through the entrance token.
@@ -364,7 +400,7 @@ export function mergeCloudWithLocal(
         tokensRotatedAt: Math.max(ce.tokensRotatedAt ?? 0, localMatch.tokensRotatedAt ?? 0) || null,
         tokens: mergeTokens(ce.tokens, localMatch.tokens, null,
                             ce.tokensRotatedAt, localMatch.tokensRotatedAt),
-      });
+      }));
     }
 
     let result = normalized;
@@ -439,7 +475,9 @@ export function mergeCloudWithLocal(
         tokens: mergeTokens(ce.tokens, localMatch.tokens, result.tokens,
                             ce.tokensRotatedAt, localMatch.tokensRotatedAt) };
     }
-    return result;
+    // Applied at BOTH exits. The local-wins branch above returns early, and
+    // putting this only here silently skipped the exact case it is for.
+    return markUnpushed(result);
   });
 
   for (const le of localEvents) {
@@ -647,10 +685,48 @@ export function useEvents(user) {
           const fetchedAt = Date.now();
           const cloudEvents = await fetchCloudEvents(uid);
           if (ownerRef.current !== uid) return;
-          setEvents(prev => mergeCloudWithLocal(prev, cloudEvents, {
+
+          // Merged HERE rather than inside a `setEvents(prev => …)` updater,
+          // because the retry below needs the result and React does not run an
+          // updater synchronously — it runs it during the next render, so the
+          // variable was still null when the retry read it and the second push
+          // never fired. `eventsRef` is what the rest of this hook already uses
+          // for the same purpose, and every render has flushed during the
+          // awaited fetch above.
+          const next = mergeCloudWithLocal(eventsRef.current, cloudEvents, {
             cloudIsAuthoritative: cloudEvents.length < CLOUD_EVENTS_LIMIT,
             fetchedAt,
-          }));
+            // We are here BECAUSE the server rejected this event's write, so
+            // this device is holding content the cloud does not have. See the
+            // long note on the option in mergeCloudWithLocal.
+            unpushedIds: new Set([ev.id]),
+          });
+          setEvents(next);
+          const mergedThis = next.find(e => e.id === ev.id) ?? null;
+
+          // AND THEN PUSH IT. Without this the merge was a dead end: it built a
+          // state neither side held, set SYNCED and stopped — "resolving" a
+          // conflict by leaving the resolution on one device. The cloud kept
+          // the pre-conflict copy indefinitely, because it is read once per
+          // login and nothing re-reads it.
+          if (mergedThis?.cloudId) {
+            try {
+              const v2 = await updateCloudEvent(mergedThis, uid);
+              if (ownerRef.current !== uid) return;
+              if (Number.isFinite(v2)) {
+                setEvents(prev => prev.map(e =>
+                  e.id === ev.id ? { ...e, syncedVersion: v2, version: v2 } : e));
+              }
+              setSyncStatus(SYNC_STATUS.SYNCED);
+            } catch {
+              // A second conflict is NOT retried — two devices writing in a
+              // tight loop would recurse. The event stays unpushed, which is
+              // the honest state: the prune will leave it alone and the next
+              // ordinary edit sends it.
+              setSyncStatus(SYNC_STATUS.ERROR);
+            }
+            return;
+          }
           setSyncStatus(SYNC_STATUS.SYNCED);
         } catch {
           setSyncStatus(SYNC_STATUS.ERROR);
