@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncement } from "../data/announcementTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
-import { fmtDate } from "../utils/dateFormat.js";
+import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 
@@ -31,22 +31,39 @@ const MOCK = {
   announcements: null,
 };
 
+/* Days until the event, on the page every guest opens.
+ *
+ * THE BUG: this used to be `Math.ceil((target - now) / 86_400_000)` over a raw
+ * duration, and it was the ONLY "days until" in the product that did not go
+ * through `daysUntil()` — the dashboard and the hub both do. Two failures came
+ * out of that, and both were measured at TZ=Asia/Jerusalem against the app's
+ * own helper as the oracle:
+ *
+ *   • `ceil` on a duration overcounts at any hour other than the event's own.
+ *     On the morning before a wedding the invitation said "2 ימים לאירוע", and
+ *     ON THE MORNING OF THE WEDDING it said "1 יום לאירוע" — telling the guests
+ *     the wedding is tomorrow, on the day.
+ *   • fixed-millisecond arithmetic breaks across a DST change. Two dates 48
+ *     calendar hours apart at the same wall-clock time read as 3 days across
+ *     Israel's 2026-10-25 fall-back.
+ *
+ * `daysUntil` counts CALENDAR days from local midnight to local midnight, which
+ * is what "ימים לאירוע" means. The interval stays: the page can sit open past
+ * midnight and the number has to change when the date does.
+ */
 function useCountdown(date) {
-  const target = useMemo(() => {
-    if (!date) return null;
-    const t = new Date(date + "T18:00:00").getTime();
-    return Number.isNaN(t) ? null : t;
-  }, [date]);
-  const [now, setNow] = useState(() => Date.now());
+  const [, setTick] = useState(0);
   useEffect(() => {
-    if (!target) return;
-    const id = setInterval(() => setNow(Date.now()), 60_000);
+    if (!date) return;
+    const id = setInterval(() => setTick(t => t + 1), 60_000);
     return () => clearInterval(id);
-  }, [target]);
-  if (!target) return null;
-  const diff = target - now;
-  if (diff <= 0) return null;
-  return Math.ceil(diff / 86_400_000);
+  }, [date]);
+  if (!date) return null;
+  const days = daysUntil(date);
+  // null on an unparseable date; nothing on the day itself or after it, which
+  // is where the page switches to its own "today" copy.
+  if (days === null || days <= 0) return null;
+  return days;
 }
 
 export default function AnnouncementScreen({ kind, localEvent }) {
