@@ -1,6 +1,9 @@
 import { uid } from "./uid.js";
 import { defaultEventSite } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncements } from "../data/announcementTemplates.js";
+// The canonical predicate, imported rather than re-typed: a second copy of a
+// one-line rule is exactly the drift this codebase has already paid for.
+import { isStoredPhoto } from "./sitePhotos.js";
 
 // ── Event schema helpers ──────────────────────────────────────────────────────
 //
@@ -266,6 +269,45 @@ export function updateEventTimestamp(ev) {
   });
 }
 
+/* Photos do NOT come along on a duplicate, and this is data safety, not tidiness.
+ *
+ * THE FAILURE: `duplicateEvent` deep-copied `eventSite` and `announcements`
+ * including their photo URLs, and set `cloudId: null`. But a stored photo's path
+ * is `${cloudId}/…` (see sitePhotos.js), so BOTH events then named the SAME
+ * objects in the bucket — and every route that deletes reaches them:
+ *
+ *   • The RLS delete policy only requires the folder to be an event the caller
+ *     owns, and the host owns the original. So replacing the cover photo on the
+ *     copy silently broke the ORIGINAL's live guest site, and vice versa.
+ *   • `photo_purge_due` collects URLs out of the payload and the purge function
+ *     removes exactly those paths. Whichever of the two events came due first
+ *     destroyed the other's photos, and the survivor's payload kept pointing at
+ *     deleted objects with `photosPurgedAt` still null — so the app had no idea
+ *     and rendered broken images at somebody's wedding.
+ *
+ * "Duplicate last year's event" is the workflow this whole function is written
+ * around, so this was reachable by the ordinary path.
+ *
+ * Only STORED photos are dropped. A legacy `data:` URI carries its own bytes,
+ * belongs to no folder, and copying it harms nothing.
+ */
+function stripSharedPhotos(node, kind) {
+  if (!node) return node;
+  if (kind === "eventSite") {
+    if (isStoredPhoto(node.coverPhoto)) node.coverPhoto = null;
+    if (Array.isArray(node.gallery)) node.gallery = node.gallery.filter(u => !isStoredPhoto(u));
+    // A postponement the copy never earned, and a purge that never happened to
+    // it. Both are the SERVER's bookkeeping about the original's objects.
+    node.photosKeepUntil = null;
+    node.photosPurgedAt  = null;
+  } else {
+    for (const k of Object.keys(node)) {
+      if (node[k] && isStoredPhoto(node[k].photo)) node[k].photo = null;
+    }
+  }
+  return node;
+}
+
 /**
  * Create a full copy of an event with new IDs for all entities.
  * Used by the "duplicate event" feature. The copy starts as a fresh
@@ -361,12 +403,12 @@ export function duplicateEvent(ev) {
     })),
     // Deep-copy the remaining nested collections so editing the duplicate never
     // mutates the original (Object.assign only shallow-copies these).
-    announcements:    ev.announcements ? JSON.parse(JSON.stringify(ev.announcements)) : (ev.announcements ?? null),
+    announcements:    stripSharedPhotos(ev.announcements ? JSON.parse(JSON.stringify(ev.announcements)) : (ev.announcements ?? null), "announcements"),
     messageTemplates: ev.messageTemplates ? JSON.parse(JSON.stringify(ev.messageTemplates)) : (ev.messageTemplates ?? null),
     customGroups:     Array.isArray(ev.customGroups) ? [...ev.customGroups] : [],
     customTableTypes: Array.isArray(ev.customTableTypes) ? [...ev.customTableTypes] : [],
     sideLabels:       ev.sideLabels ? { ...ev.sideLabels } : (ev.sideLabels ?? null),
-    eventSite:        ev.eventSite ? JSON.parse(JSON.stringify(ev.eventSite)) : (ev.eventSite ?? null),
+    eventSite:        stripSharedPhotos(ev.eventSite ? JSON.parse(JSON.stringify(ev.eventSite)) : (ev.eventSite ?? null), "eventSite"),
     // Each duplicated event gets its own fresh public-URL tokens so that
     // the copy's public links don't collide with the original. Every key in
     // TOKEN_KEYS must be minted here: a missing one is only re-filled if the
