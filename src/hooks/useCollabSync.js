@@ -185,6 +185,53 @@ export const guestToCollab = (g) => ({
   notes: norm(g.notes),
 });
 
+/**
+ * Move every reference to a guest from one id to another, across the whole
+ * event. Exported because it is the piece worth testing on its own.
+ *
+ * WHY IT EXISTS: when a family submission dedups onto an existing guest, the
+ * guest is re-keyed to the collab row's id so `collab-row-id === guest-id`
+ * stays true — the family's row is never deleted-and-recreated, so there is no
+ * flicker and the two-way sync needs no special cases.
+ *
+ * THE BUG: this used to remap `seating`, `constraints` and `lockedGuests` and
+ * FORGET `messagesSent`, which is keyed by guest id two levels down —
+ * `{ [stage]: { [guestId]: ts } }`. MessagesScreen reads
+ * `sent[stage]?.[g.id]`, so the guest silently reverted to "never messaged"
+ * and the host re-sent the invitation to somebody who already had it. That is
+ * the failure useEvents' own merge calls out as costing "real money and real
+ * goodwill", reached through a different door.
+ *
+ * `lockedTables` is deliberately untouched: it holds TABLE ids, which this
+ * never changes. Saying so is the point — the next id-keyed structure added to
+ * an event has to be considered here on purpose.
+ */
+export function remapGuestId(ev, fromId, toId) {
+  const remap = (id) => (id === fromId ? toId : id);
+
+  const seating = { ...(ev.seating || {}) };
+  if (seating[fromId] !== undefined) {
+    seating[toId] = seating[fromId];
+    delete seating[fromId];
+  }
+
+  const messagesSent = {};
+  for (const [stage, byGuest] of Object.entries(ev.messagesSent || {})) {
+    messagesSent[stage] = {};
+    for (const [gid, ts] of Object.entries(byGuest || {})) {
+      messagesSent[stage][remap(gid)] = ts;
+    }
+  }
+
+  return {
+    ...ev,
+    seating,
+    messagesSent,
+    constraints: (ev.constraints || []).map((c) => ({ ...c, guestA: remap(c.guestA), guestB: remap(c.guestB) })),
+    lockedGuests: (ev.lockedGuests || []).map(remap),
+  };
+}
+
 export function useCollabSync(activeEvent, patchEvent, showToast) {
   const cloudId  = activeEvent?.cloudId || null;
   const collabOn = !!activeEvent?.tokens?.collab;
@@ -259,19 +306,10 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // keep working without special cases. Migrate seating / constraints /
         // locks off the old guest id.
         if (existing) {
-          const remap = (id) => (id === existing.id ? row.id : id);
           const merged = { ...guestFromCollab(row, existing), id: row.id };
-          const seating = { ...(e.seating || {}) };
-          if (seating[existing.id] !== undefined) {
-            seating[row.id] = seating[existing.id];
-            delete seating[existing.id];
-          }
           return {
-            ...e,
+            ...remapGuestId(e, existing.id, row.id),
             guests: guests.map((g) => (g.id === existing.id ? merged : g)),
-            seating,
-            constraints: (e.constraints || []).map((c) => ({ ...c, guestA: remap(c.guestA), guestB: remap(c.guestB) })),
-            lockedGuests: (e.lockedGuests || []).map(remap),
           };
         }
 
