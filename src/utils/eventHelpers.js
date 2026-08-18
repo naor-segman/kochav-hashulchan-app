@@ -416,6 +416,19 @@ export function duplicateEvent(ev) {
     // that doesn't would ship an event with a dead public link.
     tokens:      Object.fromEntries(TOKEN_KEYS.map(k => [k, uid()])),
     cloudId:     null,
+    // A copy has never been pushed, so it has no server version to compare
+    // against. Carrying the original's meant the copy's FIRST push would send
+    // `.eq("version", <the original's base>)` — which matches nothing, raises
+    // CloudConflictError, and sends a brand-new event straight into the
+    // conflict-recovery path on its very first save. Survives today only
+    // because addEvent's create overwrites it; that is luck, not design.
+    syncedVersion: null,
+    // Tombstones are this account's record of rows it DELETED, keyed by the
+    // ids of those rows. Every id in the copy is freshly minted, so they can
+    // never match anything here — dead weight until the day one id is
+    // deliberately preserved, at which point they become a silent delete of a
+    // row the host has just copied.
+    deletedRows: {},
     createdAt:   now,
     updatedAt:   now,
     version:     1,

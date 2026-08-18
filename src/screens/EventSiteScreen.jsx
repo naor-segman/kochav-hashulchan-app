@@ -401,6 +401,25 @@ function Countdown({ date, styles }) {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+  // NOT switched to daysUntil(), and that is a decision rather than an
+  // oversight — checklist item 80.
+  //
+  // This is a live d/h/m/s CLOCK, and its job is "how much time is left". The
+  // fixed-millisecond division is exactly right for that: across Israel's
+  // October fall-back a wedding seven calendar days out reads "6 ימים 23 שעות",
+  // and that is TRUE — there really are 6 days and 23 hours until 18:00 on the
+  // day. Making the day cell calendar-based would print "7 ימים 23 שעות",
+  // which is an hour of a day that does not exist.
+  //
+  // So the site's clock and the hub's "N ימים" can differ by one for a few
+  // hours a year. They answer different questions, the hours cell resolves the
+  // ambiguity on screen, and the alternative is a number that is simply wrong.
+  // AnnouncementScreen is the one that had to change (item 71), because it
+  // renders a SENTENCE — "N ימים לאירוע" — with no hours beside it.
+  //
+  // `date` is guarded by the caller (`ev.date &&`), so `target` is never NaN
+  // here; Math.max also floors a past event at zero rather than counting down
+  // into negatives.
   const diff = Math.max(0, target - now);
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);

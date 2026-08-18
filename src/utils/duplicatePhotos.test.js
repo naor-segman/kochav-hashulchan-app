@@ -94,3 +94,47 @@ describe("a duplicate does not share the original's photos", () => {
     expect(() => duplicateEvent(bare)).not.toThrow();
   });
 });
+
+describe("a duplicate carries no bookkeeping from the original", () => {
+  // Both of these survived only because the create path happens to overwrite
+  // them. That is luck, and the failure modes are silent.
+
+  // Fresh stamps, not a fixed 2023 timestamp: normalizeDeletedRows ages
+  // tombstones out after 180 days, so a stale fixture is silently emptied and
+  // the test then proves nothing about tombstones at all.
+  const RECENT = Date.now() - 86_400_000;
+
+  const withHistory = () => normalizeEvent({
+    ...original(),
+    version: 42, syncedVersion: 42,
+    deletedRows: { guests: { "g-old": RECENT }, tables: { "t-old": RECENT } },
+  });
+
+  it("has no server version — it has never been pushed", () => {
+    // The copy's first push would otherwise send `.eq("version", 42)` against a
+    // row that does not exist yet: a conflict on a brand-new event's first save.
+    const copy = duplicateEvent(withHistory());
+    expect(copy.syncedVersion).toBeNull();
+    expect(copy.version).toBe(1);
+    expect(copy.cloudId).toBeNull();
+  });
+
+  it("carries no tombstones", () => {
+    // They are keyed by the ORIGINAL's row ids, and every id in the copy is
+    // freshly minted — so they are dead weight right up until one id is
+    // deliberately preserved, at which point they delete a row the host just
+    // copied, silently.
+    // `{}` and not `{guests:{}, tables:{}}` — that is the shape
+    // normalizeDeletedRows produces for an event that has deleted nothing, so
+    // the copy is indistinguishable from a brand-new event.
+    const copy = duplicateEvent(withHistory());
+    expect(copy.deletedRows).toEqual({});
+  });
+
+  it("leaves the original's bookkeeping alone", () => {
+    const src = withHistory();
+    duplicateEvent(src);
+    expect(src.syncedVersion).toBe(42);
+    expect(src.deletedRows.guests["g-old"]).toBe(RECENT);
+  });
+});
