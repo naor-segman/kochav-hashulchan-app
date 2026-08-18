@@ -164,3 +164,99 @@ describe("hydration is untouched — only the failed push marks anything", () =>
     expect(out.find(e => e.id === "e2").version).toBe(6);
   });
 });
+
+describe("the cloud-wins branch keeps the arrangement, not just the rows", () => {
+  // THE FAILURE: the union rescues a table this device created, and then
+  // `seating`, the locks, the custom groups and the floor-plan positions were
+  // all taken whole from a cloud that has never heard of it. The host was left
+  // with a table nobody sits at, with no place on the plan, and no way to tell
+  // that from having forgotten to seat it.
+  //
+  // Measured before the fix: local tables [t1, tLOCAL], seating
+  // {g1:t1, g2:tLOCAL} → after the merge, tables [t1, tLOCAL], seating {}.
+
+  const NOWER = NOW - 30_000;   // cloud is newer than local
+
+  const localSide = () => ({
+    id: "e1", cloudId: "c-1", name: "החתונה", type: "חתונה", date: "2027-06-01",
+    guests: [{ id: "g1", name: "טל", count: 2 }, { id: "gLOCAL", name: "נועה", count: 1 }],
+    tables: [{ id: "t1", name: "שולחן 1", seats: 10 }, { id: "tLOCAL", name: "שולחן חדש", seats: 8 }],
+    seating: { g1: "t1", gLOCAL: "tLOCAL" },
+    lockedGuests: ["gLOCAL"], lockedTables: ["tLOCAL"],
+    customGroups: ["חברים מהצבא"], customTableTypes: ["בר"],
+    // t1 is deliberately at a DIFFERENT position from the cloud's copy. With
+    // both at the same coordinates a mutation that lets the local plan overwrite
+    // the cloud's was invisible.
+    floorPlan: { image: null, tablePositions: { t1: { x: 5, y: 5 }, tLOCAL: { x: 9, y: 9 } }, elements: [] },
+    constraints: [], tasks: [], vendors: [], costs: {},
+    version: 4, syncedVersion: 4, updatedAt: NOW - 120_000, createdAt: NOW - 999_999,
+  });
+
+  const cloudSide = () => ({
+    id: "e1", cloudId: "c-1", name: "החתונה", type: "חתונה", date: "2027-06-01",
+    guests: [{ id: "g1", name: "טל", count: 2 }],
+    tables: [{ id: "t1", name: "שולחן 1", seats: 10 }],
+    seating: { g1: "t1" },
+    lockedGuests: [], lockedTables: [], customGroups: [], customTableTypes: [],
+    floorPlan: { image: null, tablePositions: { t1: { x: 1, y: 1 } }, elements: [] },
+    constraints: [], tasks: [], vendors: [], costs: {},
+    version: 9, syncedVersion: 9, updatedAt: NOWER, createdAt: NOW - 999_999,
+  });
+
+  const out = () => hydrate(localSide(), cloudSide());
+
+  it("rescues the local table — the premise", () => {
+    expect(out().tables.map(t => t.id).sort()).toEqual(["t1", "tLOCAL"]);
+  });
+
+  it("and the guest sitting at it is still sitting at it", () => {
+    expect(out().seating.gLOCAL).toBe("tLOCAL");
+  });
+
+  it("keeps the cloud's answer for guests the cloud knows", () => {
+    // The cloud won on scalars and that is not being re-litigated. Only the
+    // rows it has never seen come back.
+    expect(out().seating.g1).toBe("t1");
+  });
+
+  it("does not resurrect a seat for a guest the cloud deliberately unseated", () => {
+    // A guest the cloud KNOWS but left unseated is a decision made on the other
+    // device. `!(id in seating)` would have undone it.
+    const cloud = cloudSide();
+    cloud.seating = {};                       // g1 unseated over there
+    const m = hydrate(localSide(), cloud);
+    expect(m.seating.g1).toBeUndefined();
+    expect(m.seating.gLOCAL, "but the unknown guest still keeps his seat").toBe("tLOCAL");
+  });
+
+  it("keeps the locks and the custom groups", () => {
+    const m = out();
+    expect(m.lockedGuests).toContain("gLOCAL");
+    expect(m.lockedTables).toContain("tLOCAL");
+    expect(m.customGroups).toContain("חברים מהצבא");
+    expect(m.customTableTypes).toContain("בר");
+  });
+
+  it("gives the rescued table a place on the floor plan", () => {
+    expect(out().floorPlan.tablePositions.tLOCAL).toEqual({ x: 9, y: 9 });
+    // The cloud won on scalars, so where IT has a position that position stands.
+    expect(out().floorPlan.tablePositions.t1, "the cloud's position for a table it knows").toEqual({ x: 1, y: 1 });
+  });
+
+  it("drops a lock on something that did not survive the merge", () => {
+    // A lock pointing at nothing is not a lock, it is a value the UI has to
+    // guard against forever.
+    const local = localSide();
+    local.lockedTables = ["tLOCAL", "tGONE"];
+    local.lockedGuests = ["gLOCAL", "gGONE"];
+    const m = hydrate(local, cloudSide());
+    expect(m.lockedTables).not.toContain("tGONE");
+    expect(m.lockedGuests).not.toContain("gGONE");
+  });
+
+  it("does not seat a guest at a table that did not survive", () => {
+    const local = localSide();
+    local.seating = { ...local.seating, gLOCAL: "tVANISHED" };
+    expect(hydrate(local, cloudSide()).seating.gLOCAL).toBeUndefined();
+  });
+});

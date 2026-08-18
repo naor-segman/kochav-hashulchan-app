@@ -229,6 +229,52 @@ function unionByKey(localMap, cloudMap) {
  * neither device ever saw. The only failure worth preventing is the total one:
  * an empty side overwriting a filled one.
  */
+/* The arrangement built AROUND the rows the union just rescued.
+ *
+ * THE FAILURE. In the cloud-wins branch the union keeps a table this device
+ * created — and then `seating`, `lockedGuests`, `lockedTables`, `customGroups`
+ * and the floor-plan positions were all taken whole from the cloud, which has
+ * never heard of that table. The host was left with a table nobody sits at,
+ * that has no place on the floor plan, and no way to tell that from "I forgot
+ * to seat it". Measured: local held tables [t1, tLOCAL] and seating
+ * {g1:t1, g2:tLOCAL}; after the merge, tables [t1, tLOCAL] and seating {}.
+ *
+ * Keeping a row and dropping everything that gave it meaning is worse than
+ * either keeping both or dropping both.
+ *
+ * The rule: the CLOUD still wins every id it knows about — it won on scalars,
+ * and that is not being re-litigated here. What is restored is only the part
+ * the cloud CANNOT have an opinion about, because it has never seen the row.
+ */
+function mergeSeating(cloudSeating, localSeating, cloudKnowsGuest, tableExists) {
+  const out = { ...(cloudSeating || {}) };
+  for (const [guestId, tableId] of Object.entries(localSeating || {})) {
+    // Not `!(guestId in out)`: a guest the cloud knows but left UNSEATED is a
+    // deliberate state, and resurrecting the local seat would undo an
+    // unseating done on the other device.
+    if (cloudKnowsGuest(guestId)) continue;
+    if (!tableExists(tableId)) continue;
+    out[guestId] = tableId;
+  }
+  return out;
+}
+
+/** Union two id lists, dropping ids that no longer exist after the merge. */
+function unionIds(cloudIds, localIds, exists) {
+  const out = [];
+  for (const id of [...(cloudIds || []), ...(localIds || [])]) {
+    if (!out.includes(id) && exists(id)) out.push(id);
+  }
+  return out;
+}
+
+/** Union two string lists, cloud order first. Used for customGroups. */
+function unionStrings(cloudList, localList) {
+  const out = [...(cloudList || [])];
+  for (const v of localList || []) if (!out.includes(v)) out.push(v);
+  return out;
+}
+
 function keepFilledCosts(winner, loser) {
   const has = v => Array.isArray(v?.categories) && v.categories.length > 0;
   return (!has(winner) && has(loser)) ? loser : winner;
@@ -436,18 +482,52 @@ export function mergeCloudWithLocal(
       // carried the NEWER arrivedAt and mergeArrivals would have kept them.
       // Arguments are (local, cloud) in the other branch; here `result` is the
       // cloud side, so they swap.
+      const guests = mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests);
+      const tables = unionById(result.tables, localMatch.tables, tombs.tables);
+
+      // Who the CLOUD knows, computed before the union, so "the cloud has no
+      // opinion about this guest" is answerable. After the union everything
+      // looks known.
+      const cloudGuestIds = new Set((result.guests || []).map(g => g.id));
+      const tableIds      = new Set(tables.map(t => t.id));
+      const guestIds      = new Set(guests.map(g => g.id));
+
       result = {
         ...result,
         deletedRows: tombs,
-        guests: mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests),
-        tables:      unionById(result.tables,      localMatch.tables,      tombs.tables),
+        guests,
+        tables,
         constraints: unionById(result.constraints, localMatch.constraints, tombs.constraints),
         tasks:       unionById(result.tasks,       localMatch.tasks,       tombs.tasks),
         vendors:     unionById(result.vendors,     localMatch.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(result.messagesSent, localMatch.messagesSent),
         messageTemplates: unionByKey(result.messageTemplates, localMatch.messageTemplates),
         costs:            keepFilledCosts(result.costs, localMatch.costs),
+        // Everything below is the ARRANGEMENT around those rows. Keeping a
+        // rescued table while dropping its seat, its lock and its position on
+        // the floor plan leaves the host a table nobody sits at and no way to
+        // tell that from having forgotten to seat it. See mergeSeating.
+        seating: mergeSeating(result.seating, localMatch.seating,
+                              (id) => cloudGuestIds.has(id), (id) => tableIds.has(id)),
+        lockedGuests: unionIds(result.lockedGuests, localMatch.lockedGuests, (id) => guestIds.has(id)),
+        lockedTables: unionIds(result.lockedTables, localMatch.lockedTables, (id) => tableIds.has(id)),
+        customGroups: unionStrings(result.customGroups, localMatch.customGroups),
+        customTableTypes: unionStrings(result.customTableTypes, localMatch.customTableTypes),
       };
+    }
+
+    // Positions for tables the cloud has never seen. The rescue below only fires
+    // when this device happens to hold the floor-plan IMAGE, so a table added
+    // here kept its seat and its lock and still had no place on the plan.
+    if (localMatch?.floorPlan?.tablePositions && result.floorPlan) {
+      const known = result.floorPlan.tablePositions || {};
+      const extra = {};
+      for (const [tid, pos] of Object.entries(localMatch.floorPlan.tablePositions)) {
+        if (!(tid in known)) extra[tid] = pos;
+      }
+      if (Object.keys(extra).length) {
+        result = { ...result, floorPlan: { ...result.floorPlan, tablePositions: { ...known, ...extra } } };
+      }
     }
 
     if (localMatch?.floorPlan?.image && !result.floorPlan?.image) {
