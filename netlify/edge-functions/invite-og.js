@@ -67,6 +67,22 @@ export default async (request, context) => {
     // A function replacement never expands anything.
     const t = esc(title);
     const d = esc(desc);
+
+    // `html` WAS NEVER DEFINED. This line read `const out = html…` against a
+    // variable that does not exist anywhere in the file, so every request threw
+    // ReferenceError, the outer `catch { return res; }` swallowed it, and the
+    // rewrite below has therefore NEVER RUN — not once, on any /invite/ link
+    // ever shared. Every WhatsApp preview showed the site's generic title
+    // instead of the event's, which is the entire purpose of this function.
+    //
+    // It hid inside the three eslint errors under netlify/ that were written
+    // off as pre-existing: the two `Netlify` ones really are false positives
+    // (it is a real edge-runtime global, now declared in eslint.config.js), and
+    // this one was a live bug travelling with them.
+    //
+    // `.clone()` and not `res.text()`: reading the body consumes it, and the
+    // catch below still has to be able to hand the original response back.
+    const html = await res.clone().text();
     const out = html
       .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${t}</title>`)
       .replace(/(<meta property="og:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)

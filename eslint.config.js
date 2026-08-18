@@ -29,6 +29,18 @@ export default defineConfig([
     },
   },
   {
+    // Netlify edge functions run on Deno with a `Netlify` global. Without this
+    // the file reported two no-undef errors that were genuinely false — and a
+    // THIRD, `'html' is not defined`, that was a real bug: the OG rewrite
+    // referenced an undeclared variable and threw on every request for as long
+    // as it existed. Three errors written off together as "pre-existing" is how
+    // it stayed hidden. netlify/ is at zero now, so the next one is visible.
+    files: ['netlify/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node, Netlify: 'readonly' },
+    },
+  },
+  {
     // Tests run under Node, not in a browser. The base config gives every file
     // `globals.browser` only, so a test that legitimately touches `process`
     // reported `'process' is not defined` — which is the opposite of true here.
