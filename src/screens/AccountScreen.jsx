@@ -575,22 +575,16 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
           להסתנכרן נשאר כאן כדי שלא ילך לאיבוד. במחשב משותף כדאי למחוק גם אותו.
         </p>
 
-        <a
-          /* The subject and body were percent-encoded BY HAND in the source,
-             which is why they read as noise: 200 characters of %D7%9E to say
-             `משוב על ${COMPANY.name}`. supportMailto encodes once, at the point of
-             use, so the Hebrew stays readable here and the brand name follows
-             COMPANY instead of being frozen into an escape sequence. */
-          href={supportMailto(
-            `משוב על ${COMPANY.name}`,
-            "שלום,\n\nאשמח לשתף משוב/רעיון:\n\n",
-          )}
-          className={styles.feedbackLink}
-          target="_blank"
-          rel="noreferrer"
-        >
+        {/* Was a `mailto:` here (checklist 25). It depended on the reader having
+            a mail client configured, it silently did nothing on a lot of phones,
+            it arrived with no context about which screen or which browser — and
+            until the domain is bought it pointed at a mailbox that does not
+            exist, so it went nowhere at all. The form stores a row now, with the
+            route and the browser attached. The mail route is still offered on
+            that page for anyone who would rather write an email. */}
+        <Link to="/feedback" className={styles.feedbackLink}>
           <Icon name="mail" /> שלחו משוב / דווחו על בעיה
-        </a>
+        </Link>
 
         <p className={styles.versionLabel}>גרסה 0.1 · בטא מוקדמת</p>
 

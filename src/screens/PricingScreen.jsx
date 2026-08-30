@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import styles from "./PricingScreen.module.css";
-import { contactMailto } from "../data/company.js";
-import { COMPANY } from "../data/company.js";
+import { COMPANY, contactMailto } from "../data/company.js";
 
 const PLANS = [
   {

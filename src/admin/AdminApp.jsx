@@ -10,6 +10,7 @@ import AdminSettingsScreen       from "./screens/AdminSettingsScreen.jsx";
 import AdminSubscriptionsScreen  from "./screens/AdminSubscriptionsScreen.jsx";
 import AdminActivityScreen       from "./screens/AdminActivityScreen.jsx";
 import AdminErrorsScreen         from "./screens/AdminErrorsScreen.jsx";
+import AdminFeedbackScreen       from "./screens/AdminFeedbackScreen.jsx";
 
 // ── AdminApp ──────────────────────────────────────────────────────────────────
 //
@@ -26,6 +27,7 @@ import AdminErrorsScreen         from "./screens/AdminErrorsScreen.jsx";
 //   /admin/subscriptions      — protected
 //   /admin/activity           — protected
 //   /admin/errors             — protected
+//   /admin/feedback           — protected
 //   /admin/settings           — protected
 //   /admin/*                  — catch-all redirects to dashboard
 // ─────────────────────────────────────────────────────────────────────────────
@@ -98,6 +100,14 @@ export default function AdminApp() {
         element={
           <AdminGuard>
             <AdminErrorsScreen />
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="feedback"
+        element={
+          <AdminGuard>
+            <AdminFeedbackScreen />
           </AdminGuard>
         }
       />

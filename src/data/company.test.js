@@ -153,9 +153,22 @@ describe("nobody has hardcoded the address again", () => {
    * It stays exactly as it is. */
   const NOT_AN_ADDRESS = { "utils/calendarFile.js": "iCalendar UID, not a mailbox" };
 
+  /* Comments are stripped before scanning.
+   *
+   * This has bitten twice: an assertion that reads raw source matches the
+   * comment that EXPLAINS the rule, so documenting "this used to be a
+   * `mailto:`" fails the test that forbids hand-built mailto: links. The
+   * finding is then a bug in the check, not in the code, and the fix is here.
+   *
+   * `(?<!:)` keeps `https://` out of it — that colon is why a naive line-comment
+   * strip eats every URL in the file. */
+  const stripComments = (src) => src
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(?<!:)\/\/[^\n]*/g, "");
+
   const scan = (re) => walk(SRC)
     .filter(f => !f.endsWith("data/company.js") && !f.endsWith("data/company.test.js"))
-    .filter(f => re.test(readFileSync(f, "utf8")))
+    .filter(f => re.test(stripComments(readFileSync(f, "utf8"))))
     .map(f => f.slice(SRC.length))
     .filter(f => !(f in NOT_AN_ADDRESS));
 

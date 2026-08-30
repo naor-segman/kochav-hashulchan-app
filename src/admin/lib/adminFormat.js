@@ -78,3 +78,23 @@ export function countPhrase(n, { none, one, many }) {
   if (n === 1) return one;
   return many.replace("%n", n.toLocaleString());
 }
+
+// "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 …) Safari/605" → "Safari · iPhone".
+// The full string stays in the row's title attribute.
+export function shortAgent(ua = "") {
+  const browser =
+    /EdgA?\//.test(ua)                        ? "Edge"
+    : /OPR\//.test(ua)                        ? "Opera"
+    : /Chrome\//.test(ua) && !/Chromium/.test(ua) ? "Chrome"
+    : /Firefox\//.test(ua)                    ? "Firefox"
+    : /Safari\//.test(ua)                     ? "Safari"
+    : "דפדפן";
+  const device =
+    /iPhone/.test(ua)  ? "iPhone"
+    : /iPad/.test(ua)  ? "iPad"
+    : /Android/.test(ua) ? "אנדרואיד"
+    : /Macintosh/.test(ua) ? "מק"
+    : /Windows/.test(ua)   ? "Windows"
+    : "";
+  return device ? `${browser} · ${device}` : browser;
+}

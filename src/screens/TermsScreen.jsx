@@ -2,8 +2,7 @@ import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
-import { supportEmail, supportMailto } from "../data/company.js";
-import { COMPANY } from "../data/company.js";
+import { COMPANY, supportEmail, supportMailto } from "../data/company.js";
 
 export default function TermsScreen() {
   return (

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, Fragment } from "react";
 import { flushSync } from "react-dom";
-import { messageSignature } from "../data/company.js";
+import { COMPANY, messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
 import Icon from "../components/ui/Icon.jsx";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +31,6 @@ import { tableCardKeys } from "../components/seating/tableCardKeys.js";
 import { buildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
-import { COMPANY } from "../data/company.js";
 
 function DroppableWrapper({ id, children }) {
   const { setNodeRef, isOver } = useDroppable({ id });

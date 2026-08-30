@@ -3,10 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./LandingScreen.module.css";
-import { contactMailto } from "../data/company.js";
+import { COMPANY, contactMailto } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import { MOCK_TABLES, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
-import { COMPANY } from "../data/company.js";
 
 // Four claims a visitor can check for themselves inside the product. They
 // replaced four invented statistics — a new product does not have real numbers

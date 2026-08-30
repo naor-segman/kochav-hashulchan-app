@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase.js";
 import Icon from "../../components/ui/Icon.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Loading from "../../components/feedback/Loading.jsx";
-import { formatDateTime } from "../lib/adminFormat.js";
+import { formatDateTime, shortAgent } from "../lib/adminFormat.js";
 import styles from "./AdminErrorsScreen.module.css";
 
 // Crashes, as they happen, in one list.
@@ -32,26 +32,6 @@ async function loadErrors() {
     .limit(200);
   if (error) throw error;
   return data || [];
-}
-
-// "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 …) Safari/605" → "Safari · iPhone".
-// The full string stays in the row's title attribute.
-function shortAgent(ua = "") {
-  const browser =
-    /EdgA?\//.test(ua)                        ? "Edge"
-    : /OPR\//.test(ua)                        ? "Opera"
-    : /Chrome\//.test(ua) && !/Chromium/.test(ua) ? "Chrome"
-    : /Firefox\//.test(ua)                    ? "Firefox"
-    : /Safari\//.test(ua)                     ? "Safari"
-    : "דפדפן";
-  const device =
-    /iPhone/.test(ua)  ? "iPhone"
-    : /iPad/.test(ua)  ? "iPad"
-    : /Android/.test(ua) ? "אנדרואיד"
-    : /Macintosh/.test(ua) ? "מק"
-    : /Windows/.test(ua)   ? "Windows"
-    : "";
-  return device ? `${browser} · ${device}` : browser;
 }
 
 export default function AdminErrorsScreen() {

@@ -70,6 +70,7 @@ const EventSiteEditorScreen = lazy(() => import("./screens/EventSiteEditorScreen
 const ShareLinksScreen      = lazy(() => import("./screens/ShareLinksScreen.jsx"));
 // Legal / policy pages — lazy, rarely visited
 const HelpScreen          = lazy(() => import("./screens/HelpScreen.jsx"));
+const FeedbackScreen      = lazy(() => import("./screens/FeedbackScreen.jsx"));
 const PrivacyScreen       = lazy(() => import("./screens/PrivacyScreen.jsx"));
 const TermsScreen         = lazy(() => import("./screens/TermsScreen.jsx"));
 const AccessibilityScreen = lazy(() => import("./screens/AccessibilityScreen.jsx"));
@@ -425,6 +426,7 @@ function AppRoutes() {
       <Route path="/privacy"       element={<Suspense fallback={<Loading />}><PrivacyScreen /></Suspense>} />
       <Route path="/terms"         element={<Suspense fallback={<Loading />}><TermsScreen /></Suspense>} />
       <Route path="/accessibility" element={<Suspense fallback={<Loading />}><AccessibilityScreen /></Suspense>} />
+      <Route path="/feedback"      element={<Suspense fallback={<Loading />}><FeedbackScreen /></Suspense>} />
 
       {/* ── Admin area — lazy-loaded, completely isolated from customer app ── */}
       <Route

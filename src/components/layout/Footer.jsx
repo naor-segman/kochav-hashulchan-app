@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import styles from "./Footer.module.css";
-import { supportMailto } from "../../data/company.js";
-import { COMPANY } from "../../data/company.js";
+import { COMPANY, supportMailto } from "../../data/company.js";
 
 export default function Footer() {
   return (

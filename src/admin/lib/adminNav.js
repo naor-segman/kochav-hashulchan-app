@@ -23,5 +23,6 @@ export const NAV_ITEMS = [
   { mark: "adminSubscriptions", label: "מנויים ותשלומים", path: "/admin/subscriptions", live: true },
   { mark: "adminActivity",      label: "יומן פעילות",     path: "/admin/activity",      badge: "בפיתוח" },
   { mark: "alert",              label: "שגיאות",          path: "/admin/errors",        live: true },
+  { mark: "help",               label: "משוב",            path: "/admin/feedback",      live: true },
   { mark: "adminSettings",      label: "הגדרות מערכת",   path: "/admin/settings",      live: true },
 ];
