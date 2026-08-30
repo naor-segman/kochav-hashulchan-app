@@ -46,8 +46,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'כוכב השולחן — סידור הושבה',
-        short_name: 'כוכב השולחן',
+        name: 'רוויה — סידור הושבה',
+        short_name: 'רוויה',
         description: 'אפליקציית סידור הושבה חכמה לאירועים ישראליים',
         theme_color: '#14161A',
         background_color: '#FFFFFF',

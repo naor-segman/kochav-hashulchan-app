@@ -3,6 +3,7 @@ import styles from "./LegalScreen.module.css";
 import { supportEmail, supportMailto } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
+import { COMPANY } from "../data/company.js";
 
 export default function AccessibilityScreen() {
   return (
@@ -10,7 +11,7 @@ export default function AccessibilityScreen() {
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
           <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
         </Link>
       </header>
 
@@ -24,7 +25,7 @@ export default function AccessibilityScreen() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>המחויבות שלנו</h2>
           <p className={styles.text}>
-            כוכב השולחן רואה חשיבות רבה בהנגשת השירות לכלל המשתמשים, לרבות אנשים
+            {COMPANY.name} רואה חשיבות רבה בהנגשת השירות לכלל המשתמשים, לרבות אנשים
             עם מוגבלות. אנו פועלים להתאמת האתר לתקן הישראלי ת"י 5568 ולהנחיות
             הנגישות הבינלאומיות WCAG 2.1 ברמה AA, בהתאם לתקנות שוויון זכויות
             לאנשים עם מוגבלות (התאמות נגישות לשירות), התשע"ג-2013.

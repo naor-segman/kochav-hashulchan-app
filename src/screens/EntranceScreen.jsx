@@ -16,6 +16,7 @@ import Icon from "../components/ui/Icon.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import styles from "./EntranceScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
+import { COMPANY } from "../data/company.js";
 
 /**
  * עמדת הכניסה — the one screen the door runs on.
@@ -794,7 +795,7 @@ export default function EntranceScreen({
       {isToken && (
         <footer className={styles.footer}>
           <span className={styles.footerStar} aria-hidden="true">✦</span>
-          <span>כוכב השולחן</span>
+          <span>{COMPANY.name}</span>
         </footer>
       )}
       {gate}

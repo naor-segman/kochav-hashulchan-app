@@ -13,11 +13,61 @@
 // VITE_SUPPORT_EMAIL is an alternative that needs no code change at all.
 
 export const COMPANY = {
-  name:     "כוכב השולחן", // placeholder brand name (not final — checklist 11)
-  domain:   "",            // ← THE ONE LINE. e.g. "kochav.co.il" (checklist 12-13)
-  site:     "",            // main marketing site URL, e.g. "https://kochav.co.il"
+  // The brand, decided 30.8 (checklist 11). Three forms, because Hebrew needs
+  // three and picking the wrong one in the wrong place is how a brand looks
+  // careless:
+  //
+  //   name       running text, every screen, every message. Plain ktiv male.
+  //              NOT "רויה" — an unpointed consonantal vav must be doubled or
+  //              the word reads "roya"/"ruya" instead of "revaya".
+  //   nameShuruk the pointed, biblical form. Logo, hero, the places where the
+  //              name is a statement rather than a label. Never in body text —
+  //              niqqud inside a paragraph reads as a typo.
+  //   nameLatin  domains, Meta/WhatsApp Business, anything Latin-script.
+  //
+  name:       "רוויה",
+  namePointed:"רְוָיָה",
+  nameLatin:  "REVAYA",
+
+  domain:   "",            // ← THE ONE LINE. e.g. "revaya.co.il" (checklist 12-13)
+  site:     "",            // main marketing site URL, e.g. "https://revaya.co.il"
   whatsapp: "",            // company WhatsApp digits, e.g. "972500000000" (checklist 16)
 };
+
+/**
+ * The verse the name comes from — Psalms 23:5.
+ *
+ * Kept here rather than retyped per screen for the same reason the support
+ * address is: a quoted verse that drifts by one letter across six pages is
+ * worse than not quoting it. `VERSE.lines` for display, `VERSE.source` for the
+ * citation.
+ *
+ * Meaning, so nobody has to look it up to place it correctly: the psalm stops
+ * describing God as a shepherd here and starts describing Him as a HOST — He
+ * lays a table, anoints the guest's head with oil (the ancient Near-Eastern
+ * welcome), and fills the cup past the brim. It is the Bible's most famous
+ * description of hospitality, and its opening verb is literally "to lay a
+ * table".
+ */
+export const VERSE = {
+  lines: [
+    "תַּעֲרֹךְ לְפָנַי שֻׁלְחָן נֶגֶד צֹרְרָי,",
+    "דִּשַּׁנְתָּ בַשֶּׁמֶן רֹאשִׁי,",
+    "כּוֹסִי רְוָיָה.",
+  ],
+  short:  "תַּעֲרֹךְ לְפָנַי שֻׁלְחָן",
+  source: "תהלים כ״ג, ה",
+};
+
+/**
+ * What the product does, in the words people actually search for.
+ *
+ * The brand name carries no meaning to someone who has never heard it, so
+ * every <title> and OG description pairs it with this. Ordered by search
+ * intent, not by how central the feature is to us.
+ */
+export const DESCRIPTOR = "סידור הושבה, אישורי הגעה וניהול אירועים";
+
 
 // The address the product has always shown. Kept as the last resort so nothing
 // renders a blank `mailto:` before the domain is bought — but it is NOT OWNED,

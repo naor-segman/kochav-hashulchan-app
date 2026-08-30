@@ -5,6 +5,7 @@ import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
 import help from "./HelpScreen.module.css";
 import { supportEmail, supportMailto } from "../data/company.js";
+import { COMPANY } from "../data/company.js";
 
 const FAQ = [
   {
@@ -48,7 +49,7 @@ export default function HelpScreen() {
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
           <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
         </Link>
       </header>
 

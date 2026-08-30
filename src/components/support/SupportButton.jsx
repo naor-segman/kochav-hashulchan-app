@@ -1,11 +1,12 @@
 import styles from "./SupportButton.module.css";
+import { COMPANY } from "../../data/company.js";
 
 // Floating WhatsApp support button. Renders only when a support number is
 // configured via VITE_SUPPORT_WHATSAPP (international format, no "+").
 const RAW = import.meta.env.VITE_SUPPORT_WHATSAPP || "";
 const PHONE = RAW.replace(/[^\d]/g, "");
 
-const GREETING = encodeURIComponent("היי, אני צריך עזרה עם כוכב השולחן 🙂");
+const GREETING = encodeURIComponent(`היי, אני צריך עזרה עם ${COMPANY.name} 🙂`);
 
 export default function SupportButton() {
   if (!PHONE) return null;

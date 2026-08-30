@@ -22,10 +22,10 @@ import handler from "./invite-og.js";
  */
 
 const SHELL = `<!doctype html><html><head>
-<title>כוכב השולחן – סידור הושבה חכם לאירועים</title>
-<meta property="og:title" content="כוכב השולחן" />
+<title>רוויה — סידור הושבה, אישורי הגעה וניהול אירועים</title>
+<meta property="og:title" content="רוויה" />
 <meta property="og:description" content="סידור הושבה" />
-<meta name="twitter:title" content="כוכב השולחן" />
+<meta name="twitter:title" content="רוויה" />
 <meta name="twitter:description" content="סידור הושבה" />
 </head><body><div id="root"></div></body></html>`;
 
@@ -63,7 +63,7 @@ describe("the invitation's link preview", () => {
     const out = await run();
     const body = await out.text();
     expect(body).toContain("<title>אתר החתונה של דנה &amp; יוסי</title>");
-    expect(body).not.toContain("<title>כוכב השולחן – סידור");
+    expect(body).not.toContain("<title>רוויה – סידור");
   });
 
   it("rewrites all four social meta tags", async () => {

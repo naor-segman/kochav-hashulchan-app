@@ -6,6 +6,7 @@ import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
 import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { COMPANY } from "../data/company.js";
 
 // Map a local (host-owned) event into the public-site shape, so the host can
 // preview drafts securely from inside the authenticated app.
@@ -385,7 +386,7 @@ export default function EventSiteScreen({ localEvent }) {
             יש שאלה? דברו איתנו בוואטסאפ
           </a>
         )}
-        <Link to="/" className={styles.footBrand}>✦ נבנה בכוכב השולחן</Link>
+        <Link to="/" className={styles.footBrand}>✦ נבנה ב{COMPANY.name}</Link>
         <Link to={token ? `/signup?ref=${token}` : "/signup"} className={styles.footPromo}>
           מתכננים אירוע? בנו אתר כזה בחינם ←
         </Link>

@@ -19,6 +19,7 @@ import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSubscriptionsScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
+import { COMPANY } from "../../data/company.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -198,7 +199,7 @@ export default function AdminSubscriptionsScreen() {
           <SectionMark name="adminSubscriptions" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>מנויים ותשלומים</span>
           <span className={styles.brandSep}>·</span>
-          <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.brandSub}>{COMPANY.name}</span>
         </div>
         <div className={styles.topbarRight}>
           {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}

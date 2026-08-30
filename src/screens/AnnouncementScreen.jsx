@@ -8,6 +8,7 @@ import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.j
 import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { COMPANY } from "../data/company.js";
 
 /**
  * Public Save-the-Date / designed invitation.
@@ -204,7 +205,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
 
       <footer className={styles.footer}>
         <Link to="/" className={styles.brand}>
-          <span aria-hidden="true">✦</span> נבנה בכוכב השולחן
+          <span aria-hidden="true">✦</span> נבנה ב{COMPANY.name}
         </Link>
       </footer>
     </div>

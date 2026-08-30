@@ -31,6 +31,7 @@ import { tableCardKeys } from "../components/seating/tableCardKeys.js";
 import { buildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
+import { COMPANY } from "../data/company.js";
 
 function DroppableWrapper({ id, children }) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -943,7 +944,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
         {/* ── Header (both modes) ── */}
         <div className={styles.pvHeader}>
-          <div className={styles.pvBrand}>כוכב השולחן</div>
+          <div className={styles.pvBrand}>{COMPANY.name}</div>
           <h1 className={styles.pvTitle}>{ev.name}</h1>
           {(ev.date || ev.venue) && (
             <p className={styles.pvMeta}>
@@ -1074,7 +1075,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               const tg = tableGuests(t.id);
               return (
                 <div key={t.id} className={styles.pvCard}>
-                  <div className={styles.pvCardBrand}>כוכב השולחן · {ev.name || "האירוע"}</div>
+                  <div className={styles.pvCardBrand}>{COMPANY.name} · {ev.name || "האירוע"}</div>
                   <div className={styles.pvCardTableName}>{t.name}</div>
                   <div className={styles.pvCardDivider} />
                   <div className={styles.pvCardGuests}>
@@ -1101,7 +1102,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         </div>
 
         <div className={styles.pvFooter}>
-          הופק באמצעות כוכב השולחן · {new Date().toLocaleDateString("he-IL")}
+          הופק באמצעות {COMPANY.name} · {new Date().toLocaleDateString("he-IL")}
         </div>
       </div>
       )}

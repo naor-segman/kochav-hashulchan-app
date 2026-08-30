@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import styles from "./Footer.module.css";
 import { supportMailto } from "../../data/company.js";
+import { COMPANY } from "../../data/company.js";
 
 export default function Footer() {
   return (
@@ -9,7 +10,7 @@ export default function Footer() {
         <div className={styles.brand}>
           <Link to="/" className={styles.logo}>
             <span className={styles.logoMark}>✦</span>
-            <span className={styles.logoName}>כוכב השולחן</span>
+            <span className={styles.logoName}>{COMPANY.name}</span>
           </Link>
           {/* Factual, not superlative. "המובילה" is the same unearned claim as
               the invented statistics that were removed from the landing page —
@@ -50,7 +51,7 @@ export default function Footer() {
 
       <div className={styles.bottom}>
         <div className={styles.bottomInner}>
-          <span className={styles.copy}>© {new Date().getFullYear()} כוכב השולחן. כל הזכויות שמורות.</span>
+          <span className={styles.copy}>© {new Date().getFullYear()} {COMPANY.name}. כל הזכויות שמורות.</span>
         </div>
       </div>
     </footer>

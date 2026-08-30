@@ -35,7 +35,7 @@ async function fill(page, sel, val) { await safe(()=>page.locator(sel).first().f
     await pg.goto(BASE); await pg.waitForLoadState('networkidle');
     await shot(pg,'auth_home');
     log('Auth: Guest home loads with signup link', await pg.locator('a[href="/signup"]').isVisible() ? 'PASS':'FAIL');
-    log('Auth: Onboarding text visible', await pg.locator('text=כוכב השולחן').first().isVisible() ? 'PASS':'FAIL');
+    log('Auth: Onboarding text visible', await pg.locator('text=רוויה').first().isVisible() ? 'PASS':'FAIL');
 
     await pg.goto(`${BASE}/login`); await pg.waitForLoadState('networkidle');
     await shot(pg,'auth_login');

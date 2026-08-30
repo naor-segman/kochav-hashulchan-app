@@ -6,6 +6,7 @@ import styles from "./LandingScreen.module.css";
 import { contactMailto } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import { MOCK_TABLES, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
+import { COMPANY } from "../data/company.js";
 
 // Four claims a visitor can check for themselves inside the product. They
 // replaced four invented statistics — a new product does not have real numbers
@@ -244,7 +245,7 @@ export default function LandingScreen() {
         <div className={styles.navInner}>
           <Link to="/" className={styles.navLogo}>
             <span className={styles.navLogoMark}>✦</span>
-            <span className={styles.navLogoName}>כוכב השולחן</span>
+            <span className={styles.navLogoName}>{COMPANY.name}</span>
           </Link>
 
           <div className={styles.navLinks}>

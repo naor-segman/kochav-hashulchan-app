@@ -8,6 +8,7 @@ import SectionMark from "../../components/ui/SectionMark.jsx";
 import { formatDate, formatRelative } from "../lib/adminFormat.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { deriveEventStatus } from "../lib/eventStatus.js";
+import { COMPANY } from "../../data/company.js";
 
 const SIDE_LABEL = { bride: "כלה", groom: "חתן" };
 const CONSTRAINT_LABEL = { together: "יחד", apart: "רחוק" };
@@ -138,7 +139,7 @@ export default function AdminEventDetailScreen() {
         <SectionMark name="adminEvents" tone="admin" size={20} className={styles.brandMark} />
         <span className={styles.brandName}>פרטי אירוע</span>
         <span className={styles.brandSep}>·</span>
-        <span className={styles.brandSub}>כוכב השולחן</span>
+        <span className={styles.brandSub}>{COMPANY.name}</span>
         {dataState === "live" && (
           <span className={styles.liveBadge}>
             <span className={styles.liveDot} />

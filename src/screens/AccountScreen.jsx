@@ -200,7 +200,7 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
         {/* Brand */}
         <div className={styles.brand}>
           <span className={styles.brandMark}>✦</span>
-          <span className={styles.brandName}>כוכב השולחן</span>
+          <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 
         <div className={styles.titleRow}>
@@ -578,7 +578,7 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
         <a
           /* The subject and body were percent-encoded BY HAND in the source,
              which is why they read as noise: 200 characters of %D7%9E to say
-             "משוב על כוכב השולחן". supportMailto encodes once, at the point of
+             `משוב על ${COMPANY.name}`. supportMailto encodes once, at the point of
              use, so the Hebrew stays readable here and the brand name follows
              COMPANY instead of being frozen into an escape sequence. */
           href={supportMailto(

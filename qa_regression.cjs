@@ -494,7 +494,7 @@ async function customerSmoke(browser) {
   // Dashboard loads
   await pg.goto(BASE); await pg.waitForLoadState('networkidle');
   const homeText = await safe(() => pg.evaluate(() => document.body.innerText)) || '';
-  log('Customer', 'Dashboard loads', homeText.includes('כוכב השולחן') ? 'PASS' : 'FAIL');
+  log('Customer', 'Dashboard loads', homeText.includes('רוויה') ? 'PASS' : 'FAIL');
 
   // Create wedding event, fill name, save, visit all tabs
   await createEventViaTemplate(pg, 'חתונה');

@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { COMPANY } from "../data/company.js";
 
 function friendlyError(message) {
   const m = message.toLowerCase();
@@ -86,7 +87,7 @@ export default function LoginScreen() {
 
         <div className={styles.brand}>
           <span className={styles.brandMark}>✦</span>
-          <span className={styles.brandName}>כוכב השולחן</span>
+          <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 
         <h1 className={styles.title}>כניסה לחשבון</h1>

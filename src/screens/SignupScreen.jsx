@@ -3,6 +3,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
+import { COMPANY } from "../data/company.js";
 import styles from "./LoginScreen.module.css"; // shares layout styles
 
 function friendlyError(message) {
@@ -95,7 +96,7 @@ export default function SignupScreen() {
         <div className={styles.card}>
           <div className={styles.brand}>
             <span className={styles.brandMark}>✦</span>
-            <span className={styles.brandName}>כוכב השולחן</span>
+            <span className={styles.brandName}>{COMPANY.name}</span>
           </div>
           <h1 className={styles.title}>בדקו את האימייל שלכם</h1>
           <p className={styles.confirmBody}>
@@ -135,7 +136,7 @@ export default function SignupScreen() {
 
         <div className={styles.brand}>
           <span className={styles.brandMark}>✦</span>
-          <span className={styles.brandName}>כוכב השולחן</span>
+          <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 
         <h1 className={styles.title}>הרשמה</h1>

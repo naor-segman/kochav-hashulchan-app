@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import styles from "./PricingScreen.module.css";
 import { contactMailto } from "../data/company.js";
+import { COMPANY } from "../data/company.js";
 
 const PLANS = [
   {
@@ -107,7 +108,7 @@ export default function PricingScreen({ user }) {
         <div className={styles.navInner}>
           <Link to="/" className={styles.navLogo}>
             <span className={styles.navLogoMark}>✦</span>
-            <span className={styles.navLogoName}>כוכב השולחן</span>
+            <span className={styles.navLogoName}>{COMPANY.name}</span>
           </Link>
           <div className={styles.navLinks}>
             {/* /home, not / — see the note in Footer.jsx. */}

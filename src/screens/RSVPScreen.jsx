@@ -7,6 +7,7 @@ import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.j
 import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
+import { COMPANY } from "../data/company.js";
 
 // DEV-only preview fallback — used only when import.meta.env.DEV and Supabase
 // returns no event, so the page can be designed without a live token.
@@ -50,7 +51,7 @@ function PageHeader() {
   return (
     <header className={styles.header} role="banner">
       <span className={styles.headerMark} aria-hidden="true">✦</span>
-      <span className={styles.headerName}>כוכב השולחן</span>
+      <span className={styles.headerName}>{COMPANY.name}</span>
     </header>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import styles from "./AdminLoginScreen.module.css";
+import { COMPANY } from "../../data/company.js";
 
 // Map raw Supabase auth error strings to user-friendly Hebrew messages.
 function friendlyAuthError(message) {
@@ -68,7 +69,7 @@ export default function AdminLoginScreen() {
         <div className={styles.header}>
           <span className={styles.logo}>✦</span>
           <h1 className={styles.title}>כניסת מנהל</h1>
-          <p className={styles.sub}>כוכב השולחן — ניהול מערכת</p>
+          <p className={styles.sub}>{COMPANY.name} — ניהול מערכת</p>
         </div>
 
         {!isSupabaseConfigured && (

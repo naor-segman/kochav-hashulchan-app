@@ -72,7 +72,7 @@ async function createWeddingEvent(page, name='חתונת נועה וטל', bride
     log('Auth: Guest mode — "הצטרף חינם" link visible',
       await page.locator('a[href="/signup"]').isVisible() ? 'PASS' : 'FAIL');
     log('Auth: Home onboarding renders for guest',
-      await page.locator('text=כוכב השולחן').first().isVisible() ? 'PASS' : 'FAIL');
+      await page.locator('text=רוויה').first().isVisible() ? 'PASS' : 'FAIL');
 
     // Login screen
     await page.goto(`${BASE}/login`);

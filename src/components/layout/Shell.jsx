@@ -9,6 +9,7 @@ import SectionMark from "../ui/SectionMark.jsx";
 import styles from "./Shell.module.css";
 import Icon from "../ui/Icon.jsx";
 import { makeOpenScreen } from "../../utils/eventNameGate.js";
+import { COMPANY } from "../../data/company.js";
 
 // ── Two tiers, because there are two questions ────────────────────────────────
 //
@@ -113,7 +114,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
       <header className={styles.topbar}>
         <button className={styles.logo} onClick={() => go("dashboard")}>
           <span className={styles.logoMark}>✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
           <span className={styles.betaBadge}>בטא</span>
         </button>
 

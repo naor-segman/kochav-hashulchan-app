@@ -6,6 +6,7 @@ import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { NAV_ITEMS } from "../lib/adminNav.js";
+import { COMPANY } from "../../data/company.js";
 
 // Stat tile definitions — key maps to the stats object returned by fetchStats().
 // `mark` is a key into components/ui/SectionMark — the same drawings the
@@ -91,7 +92,7 @@ export default function AdminDashboardScreen() {
           <SectionMark name="adminOverview" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>לוח בקרה</span>
           <span className={styles.brandSep}>·</span>
-          <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.brandSub}>{COMPANY.name}</span>
           {/* Was green and unconditional — it stayed green with a red error
               banner underneath and every tile showing "—". */}
           {!loading && !statsError && (

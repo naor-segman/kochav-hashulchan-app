@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitGift } from "../utils/publicTokens.js";
 import styles from "./GiftScreen.module.css";
 import { prefixed } from "../utils/hebrewPrefix.js";
+import { COMPANY } from "../data/company.js";
 
 const MOCK_EVENT = {
   name: "חתונת נועה וטל",
@@ -113,7 +114,7 @@ export default function GiftScreen() {
         <header className={styles.header}>
           <Link to="/" className={styles.logo}>
             <span className={styles.logoMark} aria-hidden="true">✦</span>
-            <span className={styles.logoName}>כוכב השולחן</span>
+            <span className={styles.logoName}>{COMPANY.name}</span>
           </Link>
         </header>
         <div className={styles.successWrap}>
@@ -182,7 +183,7 @@ export default function GiftScreen() {
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
           <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
         </Link>
       </header>
 

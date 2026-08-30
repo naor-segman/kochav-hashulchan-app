@@ -9,6 +9,7 @@ import { formatDate, formatRelative } from "../lib/adminFormat.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { deriveEventStatus } from "../lib/eventStatus.js";
 import { attachWindowMeta } from "../lib/listWindow.js";
+import { COMPANY } from "../../data/company.js";
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
 //
@@ -145,7 +146,7 @@ export default function AdminEventsScreen() {
           <SectionMark name="adminEvents" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>כל האירועים</span>
           <span className={styles.brandSep}>·</span>
-          <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.brandSub}>{COMPANY.name}</span>
           {/* Was green and unconditional, including with a 500 banner under it
               and zero rows loaded. Now it reports the state it is in. */}
           {!loading && !error && (

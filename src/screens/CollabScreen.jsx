@@ -13,6 +13,7 @@ import { collabRowMissing, exportCollabTableToExcel } from "../utils/exportHelpe
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
 import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { COMPANY } from "../data/company.js";
 
 // DEV mock so the page can be designed without a live token.
 const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתונה", brideName: "נועה", groomName: "טל", coupleType: "bride-groom", sideLabels: null };
@@ -341,7 +342,7 @@ export default function CollabScreen() {
           })}
         </div>
 
-        <footer className={styles.footer}>✦ נבנה בכוכב השולחן</footer>
+        <footer className={styles.footer}>✦ נבנה ב{COMPANY.name}</footer>
       </div>
     </div>
   );

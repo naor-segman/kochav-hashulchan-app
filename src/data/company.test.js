@@ -66,12 +66,13 @@ describe("and the two ways to turn it real", () => {
 
 describe("supportMailto encodes once, at the point of use", () => {
   // The account screen carried 200 characters of hand-written %D7%9E to say
-  // "משוב על כוכב השולחן". Unreadable, and it froze the brand name into an
+  // a hand-escaped `משוב על …`. Unreadable, and it froze the brand name into an
   // escape sequence where COMPANY.name could never reach it.
   it("encodes a Hebrew subject and body", () => {
-    const url = supportMailto("משוב על כוכב השולחן", "שלום,\n\nרעיון:");
+    const subject = `משוב על ${COMPANY.name}`;
+    const url = supportMailto(subject, "שלום,\n\nרעיון:");
     expect(url.startsWith("mailto:support@kochav-hashulchan.co.il?")).toBe(true);
-    expect(url).toContain("subject=" + encodeURIComponent("משוב על כוכב השולחן"));
+    expect(url).toContain("subject=" + encodeURIComponent(subject));
     expect(url).toContain("body=" + encodeURIComponent("שלום,\n\nרעיון:"));
   });
 
@@ -90,7 +91,11 @@ describe("supportMailto encodes once, at the point of use", () => {
 describe("messageSignature — the growth line on every guest message", () => {
   it("is attribution only while nothing is configured", () => {
     const sig = messageSignature();
-    expect(sig).toContain("נבנה עם כוכב השולחן");
+    // Reads the brand from its source. Hardcoding it here is what made this
+    // assertion the only thing that broke when the name was decided — a test
+    // that fails on a rename it is not guarding is a test that has to be
+    // edited every time, and one that gets edited carelessly.
+    expect(sig).toContain(`נבנה עם ${COMPANY.name}`);
     // No half-built call to action, and above all no broken link: this text
     // goes to somebody else's wedding guests.
     expect(sig).not.toContain("רוצים אתר");
@@ -173,5 +178,20 @@ describe("nobody has hardcoded the address again", () => {
     // CALL to them is fine, a template literal starting `mailto:` is not.
     expect(scan(/`mailto:|"mailto:|'mailto:/),
       "use supportMailto() / contactMailto()").toEqual([]);
+  });
+
+  /* The same door, for the brand.
+   *
+   * When the name was decided on 30.8 it had to be changed in THIRTY-FOUR
+   * files, because every screen spelled it out. That is the support-address
+   * bug again at six times the size, and the trademark search is not finished
+   * — so a second rename is a live possibility, not a hypothetical.
+   *
+   * The literal is built from COMPANY.name rather than typed, so this test
+   * keeps guarding whatever the brand becomes instead of guarding a string
+   * that stops being the brand. */
+  it("no file outside company.js spells the brand name out", () => {
+    expect(scan(new RegExp(COMPANY.name)),
+      "render {COMPANY.name} instead of typing the brand").toEqual([]);
   });
 });

@@ -10,6 +10,7 @@ import Icon from "../../components/ui/Icon.jsx";
 import { useConfirm } from "../../components/ui/useConfirm.jsx";
 import { formatDate } from "../lib/adminFormat.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
+import { COMPANY } from "../../data/company.js";
 
 const FORM_DEFAULTS = {
   name:        "",
@@ -328,7 +329,7 @@ export default function AdminTemplatesScreen() {
           <SectionMark name="adminTemplates" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>ניהול תבניות</span>
           <span className={styles.brandSep}>·</span>
-          <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.brandSub}>{COMPANY.name}</span>
         </div>
         <div className={styles.topbarRight}>
           {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}
