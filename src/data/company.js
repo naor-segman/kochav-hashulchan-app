@@ -29,8 +29,8 @@ export const COMPANY = {
   namePointed:"רְוָיָה",
   nameLatin:  "REVAYA",
 
-  domain:   "",            // ← THE ONE LINE. e.g. "revaya.co.il" (checklist 12-13)
-  site:     "",            // main marketing site URL, e.g. "https://revaya.co.il"
+  domain:   "revaya-events.co.il",   // bought 31.8, support@ is a real mailbox (checklist 13)
+  site:     "",            // main marketing site URL, e.g. "https://revaya-events.co.il"
   whatsapp: "",            // company WhatsApp digits, e.g. "972500000000" (checklist 16)
 };
 

@@ -27,16 +27,27 @@ const ORIGINAL = { ...COMPANY };
 beforeEach(() => { vi.unstubAllEnvs(); Object.assign(COMPANY, ORIGINAL); });
 afterEach(()  => { vi.unstubAllEnvs(); Object.assign(COMPANY, ORIGINAL); });
 
-describe("the support address, before the domain is bought", () => {
-  it("falls back to the placeholder rather than a blank mailto:", () => {
-    expect(supportEmail()).toBe("support@kochav-hashulchan.co.il");
-    expect(supportMailto()).toBe("mailto:support@kochav-hashulchan.co.il");
+describe("the support address, now that the domain is bought", () => {
+  // revaya-events.co.il was registered on 31.8 and support@ is a real mailbox,
+  // not a forward. Until then every "צרו קשר" in the product dropped a
+  // customer's question into a hole; these three assertions are what says that
+  // is over, and they fail the moment COMPANY.domain is emptied again.
+  it("every address is on the domain we actually own", () => {
+    expect(supportEmail()).toBe("support@revaya-events.co.il");
+    expect(contactEmail()).toBe("contact@revaya-events.co.il");
+    expect(supportMailto()).toBe("mailto:support@revaya-events.co.il");
   });
 
-  it("says out loud that nobody is reading it", () => {
-    // This is the honest half. Nothing branches on it yet — it exists so the
-    // decision to hide or replace those links can be made in ONE place when
-    // the legal pages get their real contact details.
+  it("says out loud that somebody is reading it", () => {
+    expect(supportContactIsReal()).toBe(true);
+  });
+
+  it("still falls back rather than rendering a blank mailto: if the domain is cleared", () => {
+    // The fallback is not dead code just because the domain is set — clearing
+    // it is one keystroke, and a blank `mailto:` renders as a link that opens
+    // an empty compose window addressed to nobody.
+    COMPANY.domain = "";
+    expect(supportEmail()).toBe("support@kochav-hashulchan.co.il");
     expect(supportContactIsReal()).toBe(false);
   });
 });
@@ -71,7 +82,7 @@ describe("supportMailto encodes once, at the point of use", () => {
   it("encodes a Hebrew subject and body", () => {
     const subject = `משוב על ${COMPANY.name}`;
     const url = supportMailto(subject, "שלום,\n\nרעיון:");
-    expect(url.startsWith("mailto:support@kochav-hashulchan.co.il?")).toBe(true);
+    expect(url.startsWith(`mailto:${supportEmail()}?`)).toBe(true);
     expect(url).toContain("subject=" + encodeURIComponent(subject));
     expect(url).toContain("body=" + encodeURIComponent("שלום,\n\nרעיון:"));
   });
