@@ -30,7 +30,7 @@ export const COMPANY = {
   nameLatin:  "REVAYA",
 
   domain:   "revaya-events.co.il",   // bought 31.8, support@ is a real mailbox (checklist 13)
-  site:     "",            // main marketing site URL, e.g. "https://revaya-events.co.il"
+  site:     "https://revaya-events.co.il",  // lights up the guest-message signature (checklist 14)
   whatsapp: "",            // company WhatsApp digits, e.g. "972500000000" (checklist 16)
 };
 

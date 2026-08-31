@@ -100,15 +100,25 @@ describe("supportMailto encodes once, at the point of use", () => {
 });
 
 describe("messageSignature — the growth line on every guest message", () => {
-  it("is attribution only while nothing is configured", () => {
+  it("is live, and points at the site we actually own", () => {
+    // Turned on 31.8 (checklist 14), once the domain existed to point at.
     const sig = messageSignature();
     // Reads the brand from its source. Hardcoding it here is what made this
     // assertion the only thing that broke when the name was decided — a test
     // that fails on a rename it is not guarding is a test that has to be
     // edited every time, and one that gets edited carelessly.
     expect(sig).toContain(`נבנה עם ${COMPANY.name}`);
-    // No half-built call to action, and above all no broken link: this text
-    // goes to somebody else's wedding guests.
+    expect(sig).toContain("רוצים אתר לאירוע שלכם? https://revaya-events.co.il");
+  });
+
+  it("is attribution only while nothing is configured", () => {
+    // Still the state the product shipped in for months, and one keystroke
+    // away. No half-built call to action, and above all no broken link: this
+    // text goes to somebody else's wedding guests.
+    COMPANY.site = "";
+    COMPANY.whatsapp = "";
+    const sig = messageSignature();
+    expect(sig).toContain(`נבנה עם ${COMPANY.name}`);
     expect(sig).not.toContain("רוצים אתר");
     expect(sig).not.toContain("http");
     expect(sig).not.toContain("wa.me");
