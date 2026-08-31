@@ -8,6 +8,7 @@ import SectionLabel from "../components/ui/SectionLabel.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./ShareLinksScreen.module.css";
+import { track, EVENTS } from "../lib/analytics.js";
 
 /* ── The links, on a screen of their own ──────────────────────────────────────
  *
@@ -36,6 +37,9 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
   const copyLink = useCallback(async (key, url) => {
     try {
       await navigator.clipboard.writeText(url);
+      // `key` is which link (rsvp / invite / album …). The URL itself is never
+      // sent: it carries the token, and a token is a credential.
+      track(EVENTS.SHARE_COPIED, { link: key });
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(k => (k === key ? null : k)), 2000);
     } catch {

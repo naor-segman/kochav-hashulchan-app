@@ -8,6 +8,7 @@ import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.j
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
 import { COMPANY } from "../data/company.js";
+import { track, EVENTS } from "../lib/analytics.js";
 
 // DEV-only preview fallback — used only when import.meta.env.DEV and Supabase
 // returns no event, so the page can be designed without a live token.
@@ -123,6 +124,11 @@ export default function RSVPScreen() {
         setSubmitting(false);
         return;
       }
+      /* Fired on the GUEST's device, which is why it carries nothing but the
+         answer — no name, no phone, no token. This is the only funnel step
+         that happens outside the host's session, and it is the one that says
+         whether a shared link actually produced a reply. */
+      track(EVENTS.RSVP_RECEIVED, { answer });
       setStep("submitted");
     } catch {
       setSubmitError("אירעה שגיאה בשליחה. אנא נסו שוב.");
@@ -148,6 +154,11 @@ export default function RSVPScreen() {
         setSubmitting(false);
         return;
       }
+      /* Fired on the GUEST's device, which is why it carries nothing but the
+         answer — no name, no phone, no token. This is the only funnel step
+         that happens outside the host's session, and it is the one that says
+         whether a shared link actually produced a reply. */
+      track(EVENTS.RSVP_RECEIVED, { answer });
       setStep("submitted");
     } catch {
       setSubmitError("אירעה שגיאה בשליחה. אנא נסו שוב.");

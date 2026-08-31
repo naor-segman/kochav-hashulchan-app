@@ -9,6 +9,7 @@ import { uid } from "./utils/uid.js";
 import { duplicateEvent } from "./utils/eventHelpers.js";
 import { AuthProvider, useAuth } from "./hooks/useAuth.js";
 import { useEvents }        from "./hooks/useEvents.js";
+import { trackPageview, identifyUser, track, EVENTS } from "./lib/analytics.js";
 import { useToast }         from "./hooks/useToast.js";
 import { usePlan }          from "./hooks/usePlan.js";
 import { useActiveEvent }   from "./hooks/useActiveEvent.js";
@@ -218,6 +219,22 @@ function AppRoutes() {
   // the reload waits for a moment when it will not interrupt anyone.
   useAppUpdate();
 
+  /* Pageviews, with the tokens taken out of the path (checklist 18).
+   *
+   * PostHog's own pageview capture is off, because it sends the raw URL — and
+   * nine public routes carry a token there, which is a credential. This sends
+   * the scrubbed path instead, so `/rsvp/8f3c…` arrives as `/rsvp/:token`.
+   *
+   * `identify` runs on the same effect rather than its own: the funnel's
+   * whole question is "did THIS person get stuck", and events fired before
+   * the id is known are anonymous ones that never join up. The id only — an
+   * email address in a third-party tool is a liability with no benefit. */
+  const trackedPath = useLocation().pathname;
+  useEffect(() => {
+    if (user?.id) identifyUser(user.id);
+    trackPageview(trackedPath);
+  }, [trackedPath, user?.id]);
+
   // Show a one-time toast whenever a cloud sync error occurs.
   const prevSyncRef = useRef(null);
   useEffect(() => {
@@ -263,6 +280,9 @@ function AppRoutes() {
       version:    1,
     };
     addEvent(ev);
+    // `type` is the Hebrew string from EVENT_TYPES, which is what an event
+    // actually stores — an English key here would match nothing.
+    track(EVENTS.EVENT_CREATED, { type: ev.type, source: "new" });
     navigate(`/events/${ev.id}`);
     window.scrollTo(0, 0);
   }, [addEvent, navigate, plan, events.length, showToast]);
@@ -282,6 +302,7 @@ function AppRoutes() {
     if (!original) return;
     const copy = duplicateEvent(original);
     addEvent(copy);
+    track(EVENTS.EVENT_CREATED, { type: copy.type, source: "duplicate" });
     navigate(`/events/${copy.id}`);
     window.scrollTo(0, 0);
     showToast("האירוע שוכפל ✓");

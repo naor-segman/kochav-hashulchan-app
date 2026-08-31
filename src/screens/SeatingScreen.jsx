@@ -12,6 +12,7 @@ import {
   pointerWithin, rectIntersection, MeasuringStrategy,
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
+import { track, EVENTS } from "../lib/analytics.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
 import { getSideLabel, getSideLabels, guestCompanionNames, seatingTotals } from "../utils/eventHelpers.js";
@@ -253,6 +254,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // but were never candidates, and counting them reported "all seated" while
     // a real guest was still standing.
     const placed = activeGuests.filter(g => newSeating[g.id]).length;
+    /* The step the product exists for (checklist 18). Counts only, never a
+       name: `placed` and `of` say whether the engine finished the job, which
+       is the question, and a guest's name would say nothing extra while
+       putting a real person into a third-party tool. */
+    track(EVENTS.SEATING_RUN, { placed, of: activeGuests.length, tables: ev.tables.length });
     const missed = activeGuests.length - placed;
     if (missed > 0)
       showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");

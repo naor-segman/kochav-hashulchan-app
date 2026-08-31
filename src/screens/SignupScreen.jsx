@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { track, EVENTS } from "../lib/analytics.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import { COMPANY } from "../data/company.js";
@@ -61,6 +62,10 @@ export default function SignupScreen() {
     setBusy(true);
     try {
       const { needsConfirmation } = await signUp(email.trim(), password);
+      // Step 1 of the funnel. Fired on success only — a failed attempt is a
+      // different question, and counting it here would inflate the top of the
+      // funnel with people who never got in.
+      track(EVENTS.SIGNED_UP, { needs_confirmation: needsConfirmation });
       if (needsConfirmation) {
         setDone(true);
       } else {
