@@ -25,7 +25,22 @@
  */
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
+
+/** Width/height straight out of a JPEG's SOF marker — no image library. */
+function jpegSize(path) {
+  const b = readFileSync(path);
+  let i = 2;
+  while (i < b.length) {
+    if (b[i] !== 0xFF) { i++; continue; }
+    const m = b[i + 1];
+    if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC) {
+      return { h: b.readUInt16BE(i + 5), w: b.readUInt16BE(i + 7) };
+    }
+    i += 2 + b.readUInt16BE(i + 2);
+  }
+  return { w: 0, h: 0 };
+}
 
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
@@ -138,13 +153,28 @@ const EVENT = {
  * `clip` keeps the shot to the part of the screen that carries the message —
  * a full-page capture of a 14-table list is a tall grey strip on a landing
  * page. Height is in CSS pixels at deviceScaleFactor 2. */
+/* `scroll` is not a detail. Several of these screens OPEN with their add-form —
+ * "הוספת אורח", "הוספת שולחן" — so a capture at y=0 is a picture of an empty
+ * form, and the first version of this file shipped exactly that: a step captioned
+ * "מכניסים את האורחים" illustrated by a blank text field instead of the list of
+ * 58 people. The offsets put each frame on the part of the screen the caption is
+ * actually talking about.
+ *
+ * Every frame is the same height on purpose. The page declares one intrinsic
+ * size on every <img>, and a declared aspect ratio that does not match the file
+ * is a layout shift while it loads. */
+const H = 760;
 const FRAMES = [
-  { name: "seating",     path: "/events/e1/seating",     h: 760 },
-  { name: "guests",      path: "/events/e1/guests",      h: 760 },
-  { name: "constraints", path: "/events/e1/constraints", h: 700 },
-  { name: "tables",      path: "/events/e1/tables",      h: 700 },
-  { name: "checkin",     path: "/events/e1/checkin",     h: 760 },
-  { name: "rsvps",       path: "/events/e1/rsvps",       h: 760 },
+  { name: "seating",     path: "/events/e1/seating" },
+  // Anchored, not offset. Hand-tuned numbers were wrong twice — 620 was still
+  // inside the "הוספת אורח" form, because that form is 1,300px tall before the
+  // list begins. `anchor` finds the element by its text and clips from there,
+  // so the frame stays correct when the screen above it changes height.
+  { name: "guests",      path: "/events/e1/guests",      anchor: "סינון:" },
+  { name: "constraints", path: "/events/e1/constraints", anchor: "חייבים לשבת יחד" },
+  { name: "tables",      path: "/events/e1/tables",      anchor: "השולחנות שלי" },
+  { name: "checkin",     path: "/events/e1/checkin" },
+  { name: "rsvps",       path: "/events/e1/rsvps" },
 ];
 
 const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
@@ -195,16 +225,65 @@ try {
   for (const f of FRAMES) {
     await page.goto(BASE + f.path, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1200);
+    /* Where the frame starts. An anchor is resolved against the document; a
+     * screen with no anchor starts at the top. The result is clamped so a clip
+     * can never run past the end of a short page — that produced a 1160px-tall
+     * image on the RSVP screen. */
+    const docH = await page.evaluate(() => document.documentElement.scrollHeight);
+    let y = 0;
+    if (f.anchor) {
+      y = await page.evaluate((text) => {
+        /* Not `children.length === 0` — that was the first version, and it could
+           not find "חייבים לשבת יחד" because the label wraps an <Icon/> beside
+           its text, so the element holding the words is not a leaf. Match on
+           text and then take the DEEPEST hit, which is the tightest element
+           that still contains the whole string. */
+        const hits = [...document.querySelectorAll("*")]
+          .filter(n => n.textContent.trim().startsWith(text));
+        if (!hits.length) return -1;
+        const depth = n => { let d = 0; while ((n = n.parentElement)) d++; return d; };
+        const el = hits.reduce((a, b) => (depth(b) > depth(a) ? b : a));
+        return Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY) - 24);
+      }, f.anchor);
+      if (y < 0) {
+        console.log(`ANCHOR-MISSING  ${f.name}: "${f.anchor}"`);
+        process.exitCode = 1;
+        y = 0;
+      }
+    }
+    y = Math.max(0, Math.min(y, docH - H));
+
+    /* fullPage, and only then clip.
+     *
+     * Without it `clip` is bounded by the viewport, so asking for y=620..1380
+     * of an 800-tall window produced a 2400x360 sliver — a strip of two filter
+     * dropdowns, saved under the name of the screenshot that is supposed to
+     * show 58 guests. It looked like a cropping choice rather than a bug, which
+     * is exactly why it is worth a comment: with fullPage the coordinates are
+     * document-relative and the requested box is what comes out. */
     await page.screenshot({
       path: `${OUT}/${f.name}.jpg`, type: "jpeg", quality: 86,
-      clip: { x: 0, y: 0, width: 1200, height: f.h },
+      fullPage: true,
+      clip: { x: 0, y, width: 1200, height: H },
     });
     // Read the brand back OUT OF THE PAGE rather than trusting that the rebrand
     // reached this screen. The whole reason for this harness is a set of images
     // that carried a stale name for eleven days without anyone noticing.
     const stale = await page.evaluate(() => document.body.innerText.includes("כוכב השולחן"));
-    console.log(`${stale ? "STALE-BRAND" : "ok"}  ${f.name}.jpg  (${f.h}px)`);
-    if (stale) process.exitCode = 1;
+
+    /* Two separate ways this file has already produced a wrong image, both of
+     * which look like a deliberate crop rather than a bug:
+     *   - clip bounded by the viewport → a 2400x360 sliver;
+     *   - a scroll offset past the end of a short screen → a 2400x1160 one.
+     * The page declares ONE intrinsic size for every screenshot, so anything
+     * off-size is also a layout shift. Read the JPEG's own header back. */
+    const size = jpegSize(`${OUT}/${f.name}.jpg`);
+    const want = `${1200 * 2}x${H * 2}`;
+    const got  = `${size.w}x${size.h}`;
+    const bad  = got !== want;
+    console.log(`${stale ? "STALE-BRAND" : bad ? "WRONG-SIZE" : "ok"}  ${f.name}.jpg  ` +
+      `(y=${y}, ${got}${bad ? ` — expected ${want}` : ""})`);
+    if (stale || bad) process.exitCode = 1;
   }
 
   console.log(`\nseeded: ${guests.length} rows · ${totalSeats} seats · ${tables.length} tables · ${EVENT.constraints.length} constraints`);

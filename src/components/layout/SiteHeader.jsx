@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { COMPANY } from "../../data/company.js";
+import { liveServices } from "../../data/services.js";
 import styles from "./SiteHeader.module.css";
 
 /**
@@ -45,6 +46,10 @@ import styles from "./SiteHeader.module.css";
  * reason Footer.jsx gives.
  */
 
+/* Landing-page sections, still linked while the six service pages are being
+ * built. They go as the pages replace them — "תכונות" and "איך זה עובד" are
+ * headings of a document rather than things a host searches for, which is the
+ * whole reason 87 exists. The last one leaves with service page 6. */
 const SECTIONS = [
   { id: "features", label: "תכונות" },
   { id: "how",      label: "איך זה עובד" },
@@ -56,6 +61,12 @@ export default function SiteHeader({ user = null, active = null }) {
 
   const { pathname } = useLocation();
   const onLanding = pathname === "/" || pathname === "/home";
+
+  /* Only services whose page exists. While there are few they sit in the bar;
+     the `השירותים ▾` dropdown arrives with the third, which is the point at
+     which a flat bar of six labels plus מחירים stops fitting. The flag keeps
+     its own slot either way — see the note in src/data/services.js. */
+  const live = liveServices();
 
   /** A section link, in whichever of its two forms this page needs. */
   const section = ({ id, label }, className, onClick) =>
@@ -89,6 +100,12 @@ export default function SiteHeader({ user = null, active = null }) {
         </Link>
 
         <div className={styles.navLinks}>
+          {live.map(s => (
+            <Link key={s.id} to={s.path}
+              className={[styles.navLink, active === s.id && styles.navLinkActive].filter(Boolean).join(" ")}>
+              {s.label}
+            </Link>
+          ))}
           {SECTIONS.map(s => section(s, styles.navLink))}
           <Link to="/pricing" className={pricingClass}>מחירים</Link>
         </div>
@@ -110,6 +127,9 @@ export default function SiteHeader({ user = null, active = null }) {
 
       {menuOpen && (
         <div className={styles.mobileMenu}>
+          {live.map(s => (
+            <Link key={s.id} to={s.path} className={styles.mobileLink} onClick={closeMenu}>{s.label}</Link>
+          ))}
           {SECTIONS.map(s => section(s, styles.mobileLink, closeMenu))}
           <Link to="/pricing" className={styles.mobileLink} onClick={closeMenu}>מחירים</Link>
           {user ? (

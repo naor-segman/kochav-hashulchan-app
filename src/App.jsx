@@ -49,6 +49,10 @@ const LandingScreen      = lazy(() => import("./screens/LandingScreen.jsx"));
 
 const AdminApp       = lazy(() => import("./admin/AdminApp.jsx"));
 const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
+/* Marketing service pages (checklist 87). One chunk each and lazy like the rest
+   of the marketing site: a visitor who lands on /services/seating from a search
+   result should download that page, not the other five. */
+const SeatingServiceScreen = lazy(() => import("./screens/services/SeatingServiceScreen.jsx"));
 // Public pages — standalone, no auth, token-based
 const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
 const EventSiteScreen = lazy(() => import("./screens/EventSiteScreen.jsx"));
@@ -375,6 +379,18 @@ function AppRoutes() {
         element={
           <Suspense fallback={<Loading />}>
             <PricingScreen user={user} />
+          </Suspense>
+        }
+      />
+      {/* Service pages. Namespaced under /services/ deliberately: eleven public
+          routes already own a top-level segment with a :token after it, and a
+          marketing page at /rsvp sitting beside /rsvp/:token is a collision
+          waiting for someone to trim a trailing segment off a shared link. */}
+      <Route
+        path="/services/seating"
+        element={
+          <Suspense fallback={<Loading />}>
+            <SeatingServiceScreen user={user} />
           </Suspense>
         }
       />
