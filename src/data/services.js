@@ -60,7 +60,7 @@ export const SERVICES = [
     label: "תכנון האירוע",
     blurb: "משימות, תקציב וספקים",
     when: "לקראת האירוע",
-    live: false,
+    live: true,
   },
   {
     id: "day",

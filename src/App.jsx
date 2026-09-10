@@ -54,6 +54,7 @@ const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
    result should download that page, not the other five. */
 const SeatingServiceScreen   = lazy(() => import("./screens/services/SeatingServiceScreen.jsx"));
 const EventSiteServiceScreen = lazy(() => import("./screens/services/EventSiteServiceScreen.jsx"));
+const PlanningServiceScreen  = lazy(() => import("./screens/services/PlanningServiceScreen.jsx"));
 // Public pages — standalone, no auth, token-based
 const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
 const EventSiteScreen = lazy(() => import("./screens/EventSiteScreen.jsx"));
@@ -400,6 +401,14 @@ function AppRoutes() {
         element={
           <Suspense fallback={<Loading />}>
             <EventSiteServiceScreen user={user} />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/services/planning"
+        element={
+          <Suspense fallback={<Loading />}>
+            <PlanningServiceScreen user={user} />
           </Suspense>
         }
       />

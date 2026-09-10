@@ -142,16 +142,42 @@ const EVENT = {
     { id: "c4", type: "apart",    guestA: "g7",  guestB: "g19" },
     { id: "c5", type: "together", guestA: "g5",  guestB: "g15" },
   ],
+  /* Tasks in the real shape — {title, note, due, priority, status, doneAt} — and
+     spread across the three columns the board actually has, because a board
+     with everything in one column shows nothing about a board. One row is
+     deliberately overdue so the "באיחור" pill renders. */
   tasks: [
-    { id: "k1", title: "לסגור אולם",       done: true },
-    { id: "k2", title: "לבחור צלם",         done: true },
-    { id: "k3", title: "לשלוח הזמנות",      done: false },
-    { id: "k4", title: "לסגור תפריט",       done: false },
+    { id: "k1", title: "לסגור אולם ותאריך",       note: "חתמנו, מקדמה שולמה", due: "2026-06-10", priority: "high",   status: "done",       doneAt: 1780000000000 },
+    { id: "k2", title: "לבחור צלם",               note: "אור נגה — מחכים לחוזה", due: "2026-08-01", priority: "high",  status: "done",       doneAt: 1780500000000 },
+    { id: "k3", title: "לסגור תפריט מול הקייטרינג", note: "כולל 4 מנות צמחוניות", due: "2026-09-05", priority: "high",  status: "inprogress", doneAt: null },
+    { id: "k4", title: "לשלוח הזמנות",            note: "אחרי שהרשימה תיסגר",  due: "2026-09-01", priority: "normal", status: "inprogress", doneAt: null },
+    { id: "k5", title: "לבחור שיר לכניסה לחופה",   note: "",                    due: "2027-04-20", priority: "low",    status: "todo",       doneAt: null },
+    { id: "k6", title: "לתדרך את הדיילת",          note: "",                    due: "2027-05-30", priority: "normal", status: "todo",       doneAt: null },
+    { id: "k7", title: "להזמין הסעות",             note: "תל אביב + ירושלים",   due: "2027-05-01", priority: "normal", status: "todo",       doneAt: null },
   ],
+  /* Vendors: every field the row has, including a `payment` that is chosen by
+     hand and is NOT derived from price/paid — which is exactly why the landing
+     page does not claim the app reconciles them. */
   vendors: [
-    { id: "v1", name: "להקת הכוכבים", category: "מוזיקה", phone: "050-1234567", price: 6000, paid: 2000 },
-    { id: "v2", name: "צלם — אור נגה", category: "צילום",  phone: "052-2345678", price: 9500, paid: 3000 },
+    { id: "v1", name: "אולמי הגן",       category: "venue",        status: "booked",   contact: "מירי",  phone: "050-1234567", price: "45000", paid: "15000", payment: "advance", note: "מקדמה שולמה, יתרה שבוע לפני" },
+    { id: "v2", name: "להקת הכוכבים",     category: "music",        status: "booked",   contact: "איתי",  phone: "052-2345678", price: "12000", paid: "12000", payment: "paid",    note: "כולל הגברה" },
+    { id: "v3", name: "אור נגה — צילום",  category: "photographer", status: "quoted",   contact: "אור",   phone: "053-3456789", price: "9500",  paid: "",      payment: "unpaid",  note: "מחכים לחוזה" },
+    { id: "v4", name: "פרחי השדה",        category: "flowers",      status: "inquiry",  contact: "",     phone: "054-4567890", price: "",      paid: "",      payment: "unpaid",  note: "לבקש הצעה" },
+    { id: "v5", name: "הסעות דרום",       category: "transport",    status: "declined", contact: "",     phone: "",            price: "8000",  paid: "",      payment: "unpaid",  note: "יקר מדי" },
   ],
+  /* A budget with real figures. Ids and names match DEFAULT_CATEGORIES so the
+     rows render as the product's own categories rather than as custom ones. */
+  costs: {
+    categories: [
+      { id: "venue",        name: "אולם",         budget: "45000", actual: "45000" },
+      { id: "catering",     name: "קייטרינג",      budget: "38000", actual: "41200" },
+      { id: "music",        name: "מוזיקה",        budget: "12000", actual: "12000" },
+      { id: "photographer", name: "צלם וצלמת",     budget: "10000", actual: "9500"  },
+      { id: "flowers",      name: "פרחים ועיצוב",  budget: "8000",  actual: "6400"  },
+      { id: "invitations",  name: "הזמנות",        budget: "2500",  actual: "1800"  },
+      { id: "other",        name: "אחר",           budget: "4000",  actual: "2900"  },
+    ],
+  },
   /* The event site, filled in rather than left to defaults. `normalizeEventSite`
      would produce a valid but EMPTY site — no address, no shuttles, no story —
      and a screenshot of the editor with every field blank says nothing about
@@ -212,12 +238,12 @@ const EVENT = {
  * is a layout shift while it loads. */
 const H = 760;
 const FRAMES = [
-  { name: "seating",     path: "/events/e1/seating" },
+  { name: "seating",     path: "/events/e1/seating", expect: ["סידור הושבה", "הושבה מלאה וללא הפרות"] },
   // Anchored, not offset. Hand-tuned numbers were wrong twice — 620 was still
   // inside the "הוספת אורח" form, because that form is 1,300px tall before the
   // list begins. `anchor` finds the element by its text and clips from there,
   // so the frame stays correct when the screen above it changes height.
-  { name: "guests",      path: "/events/e1/guests",      anchor: "סינון:" },
+  { name: "guests",      path: "/events/e1/guests",      anchor: "סינון:",            expect: ["58 רשומות"] },
   { name: "constraints", path: "/events/e1/constraints", anchor: "חייבים לשבת יחד" },
   { name: "tables",      path: "/events/e1/tables",      anchor: "השולחנות שלי" },
   { name: "checkin",     path: "/events/e1/checkin" },
@@ -225,9 +251,10 @@ const FRAMES = [
   // ── Service page 2: the event site and the invitation ────────────────────
   { name: "site-editor", path: "/events/e1/site" },
   // ── Service page 3: planning ─────────────────────────────────────────────
-  { name: "tasks",       path: "/events/e1/tasks" },
-  { name: "costs",       path: "/events/e1/costs" },
-  { name: "vendors",     path: "/events/e1/vendors" },
+  // `expect` is what proves the frame is not an empty form — see the guard below.
+  { name: "tasks",       path: "/events/e1/tasks",   expect: ["לוח משימות", "לסגור אולם ותאריך", "הושלמו"] },
+  { name: "costs",       path: "/events/e1/costs",   expect: ["תכנון תקציב", "45,000", "עלות לאורח"] },
+  { name: "vendors",     path: "/events/e1/vendors", expect: ["ספקים", "אולמי הגן", "נותר לשלם"] },
 ];
 
 const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
