@@ -39,9 +39,11 @@ import styles from "./ServicePage.module.css";
 
 const SERVICE = serviceById("site");
 
-/* The three things a host sends, in the order they are sent. All three are the
-   SAME `invite` token — one link that grows up — which is the genuinely good
-   part of this design and the thing worth leading with. */
+/* The three things a host sends, in the order they are sent.
+   They share the `invite` TOKEN but they are three distinct URLs, so the page
+   does not call them one link. What they genuinely share is the event's own
+   details — names, date, venue are entered once and appear in all three — and
+   each has its own publish flag. Both were verified in the code. */
 const STAGES = [
   {
     n: "01",
@@ -95,12 +97,18 @@ export default function EventSiteServiceScreen({ user = null }) {
         <div className={styles.heroInner}>
           <p className={styles.eyebrow}>אתר לאירוע והזמנה דיגיטלית</p>
           <h1 className={styles.h1}>
-            קישור אחד.<br />
-            <span className={styles.h1Soft}>כל מה שהאורח צריך לדעת.</span>
+            שולחים פעם אחת.<br />
+            <span className={styles.h1Soft}>מעדכנים עד הערב עצמו.</span>
           </h1>
+          {/* NOT "קישור אחד", which is what this said first and is not true:
+              /save-the-date/, /invitation/ and /invite/ are three different
+              URLs that share one token. A host sends three. What IS true, and
+              is what ShareLinksScreen itself promises, is that each address is
+              permanent — the content behind it changes without resending. */}
           <p className={styles.lead}>
-            שמרו את התאריך, ההזמנה ואתר האירוע הם אותו קישור — הוא רק גדל.
-            שולחים אותו פעם אחת, ומעדכנים את מה שמאחוריו עד הערב עצמו.
+            שמרו את התאריך, ההזמנה ואתר האירוע — שלושה דפים לאותו אירוע, וכל אחד
+            יושב בכתובת קבועה שלא משתנה. שלחתם בוואטסאפ? אפשר להמשיך לערוך את מה
+            שמאחורי הקישור עד הערב, בלי לשלוח שוב ובלי שאף אחד יישאר עם גרסה ישנה.
           </p>
           <div className={styles.heroActions}>
             <Link to="/signup" className={styles.cta}>בנו אתר בחינם ←</Link>
@@ -144,10 +152,11 @@ export default function EventSiteServiceScreen({ user = null }) {
       {/* ── One link, three stages ── */}
       <section className={styles.proof}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>קישור אחד, שלוש תחנות</h2>
+          <h2 className={styles.h2}>שלושה דפים, שלוש נקודות זמן</h2>
           <p className={styles.proofSub}>
-            לא שלושה קישורים שונים שצריך לזכור מי קיבל מה. אותה כתובת, בשלוש
-            נקודות זמן — ואתם מחליטים מתי כל שלב מתפרסם.
+            כולם נבנים מאותם פרטי אירוע — השמות, התאריך והמקום מוזנים פעם אחת
+            ומופיעים בשלושתם. ולכל אחד מתג פרסום נפרד, כך שאתם מחליטים מתי כל
+            אחד עולה לאוויר.
           </p>
           <div className={styles.stages}>
             {STAGES.map(s => (
