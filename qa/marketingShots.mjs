@@ -255,6 +255,8 @@ const FRAMES = [
   { name: "tasks",       path: "/events/e1/tasks",   expect: ["לוח משימות", "לסגור אולם ותאריך", "הושלמו"] },
   { name: "costs",       path: "/events/e1/costs",   expect: ["תכנון תקציב", "45,000", "עלות לאורח"] },
   { name: "vendors",     path: "/events/e1/vendors", expect: ["ספקים", "אולמי הגן", "נותר לשלם"] },
+  // ── Service page 4: RSVP ─────────────────────────────────────────────────
+  { name: "messages",    path: "/events/e1/messages" },
 ];
 
 const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
