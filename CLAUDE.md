@@ -176,6 +176,18 @@ Check for these first — each has bitten more than once:
 
 ## Environment traps
 
+- 🔴 **The local gate does not cover the Netlify deploy.** Netlify bundles
+  EVERY top-level file in `netlify/edge-functions/` for Deno, and that bundler
+  is the one stage of the deploy that never runs here. A test file written into
+  that directory (`import ... from "vitest"` — a bare specifier Deno cannot
+  resolve) killed every build of the branch for eleven days while `npm run
+  build`, 1,267 tests and `eslint` were all green; the PR sat on three red
+  checks and `main` kept serving a version from eleven days earlier. Green
+  locally is not green on Netlify. Edge-function files go in
+  `netlify/edge-functions/`, everything about them goes in `netlify/tests/`,
+  and `netlify/tests/edgeFunctionsDir.test.js` enforces it. That guard covers
+  the *shape* that broke, not every bundling failure — a syntax error only Deno
+  catches still lands silently.
 - **Chromium** is at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` and
   must be launched with `args:['--no-proxy-server']`, or localhost is routed
   through the agent proxy and every request fails. Resolve Playwright with
