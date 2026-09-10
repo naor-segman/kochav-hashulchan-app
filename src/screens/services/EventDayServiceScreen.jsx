@@ -49,12 +49,16 @@ const DOOR = [
 
 /* Every row verified in EntranceScreen.jsx / arrival.js. */
 const AT_THE_DOOR = [
-  { title: "מחפשים בשם — גם של המלווה", body: "לא זוכרים על שם מי הוזמנו? החיפוש עובר גם על שמות המלווים ועל מספר הטלפון, ואומר דרך מי נמצא." },
+  /* The phone half is OWNER-ONLY: the hostess RPC never returns phones, so on
+     the greeter's link a phone search matches nothing, and the placeholder
+     there says "שם האורח או שם מלווה". Split rather than blurred. */
+  { title: "מחפשים בשם — גם של המלווה", body: "לא זוכרים על שם מי הוזמנו? החיפוש עובר גם על שמות המלווים, ואומר דרך מי נמצא. במכשיר שלכם אפשר לחפש גם לפי טלפון." },
   { title: "רואים מיד לאיזה שולחן", body: "השם, כמה מקומות, ומספר השולחן. אם מישהו עוד לא שובץ — כתוב גם את זה, במקום להמציא." },
   { title: "הגיעו שלושה מתוך חמישה", body: "אפשר לסמן משפחה שלמה בלחיצה, או לפתוח ולסמן בדיוק מי הגיע — שם-שם. הסימון הוא מתג: לחיצה נוספת מבטלת." },
   { title: "שולחן שלם בבת אחת", body: "בתצוגה לפי שולחן אפשר לסמן את כל היושבים בו יחד — נוח כשמגיעה חבורה שלמה." },
   { title: "מונה שסופר אנשים, לא שורות", body: "‏\"47 מתוך 96 אורחים\" — לפי מקומות, כי משפחה של חמישה היא חמישה אנשים בדלת. ומי שסירב לא נספר בכלל." },
-  { title: "מי שהגיע בלי לאשר", body: "מוסיפים אותו בו במקום, והמערכת מציעה שולחנות שבאמת יש בהם מקום פנוי עכשיו — לפי הקיבולת פחות מי שכבר משובץ." },
+  /* Owner-only — `canManage = !isToken`. The greeter cannot add anyone. */
+  { title: "מי שהגיע בלי לאשר", body: "מוסיפים אותו בו במקום, והמערכת מציעה שולחנות שבאמת יש בהם מקום פנוי עכשיו — לפי הקיבולת פחות מי שכבר משובץ. זה מהמכשיר שלכם; הדיילת לא מוסיפה אורחים." },
 ];
 
 /* Verified against the hostess RPCs and 20260811000000_entrance_scoped_writes. */
@@ -69,7 +73,10 @@ const GREETER = [
 const PRINTS = [
   { title: "כרטיס שולחן שעומד לבד", body: "מודפס כפול ומתקפל על הקו — עומד על השולחן וקריא משני הצדדים. המספר גדול בכוונה: הוא צריך להיקרא מקצה אולם חשוך." },
   { title: "כרטיס מקום לכל אורח", body: "אחד לכל מושב, לא לכל הזמנה — כולל מלווים, כך שגם \"יעל\" מקבלת כרטיס משלה ולא \"דודה רחל +1\"." },
-  { title: "תג שם ומדבקה", body: "לענידה או להדבקה, לאירועים עסקיים. שמונה, שתים-עשרה או שש-עשרה בעמוד." },
+  /* SIZES in NameTagsScreen.jsx: table 2, card 8, tag 12, small 16. The first
+     draft put "8, 12, 16" on the tag+sticker row, where 8 belongs to the place
+     card above it. */
+  { title: "תג שם ומדבקה", body: "לענידה או להדבקה, נפוץ באירועים עסקיים — שנים-עשר תגים או שש-עשרה מדבקות בעמוד. כרטיס מקום יוצא שמונה בעמוד, וכרטיס שולחן שניים." },
   { title: "דף לצוות האולם", body: "גרסה צפופה, שמות בלבד, שלוש עמודות — מה שהמלצרים צריכים ולא יותר. ולצידה גרסה מלאה עם צד, קבוצה ומלווים בשבילכם." },
 ];
 
@@ -87,8 +94,11 @@ export default function EventDayServiceScreen({ user = null }) {
             <span className={styles.h1Soft}>שם, שולחן, הלאה.</span>
           </h1>
           <p className={styles.lead}>
-            מי שעומד בכניסה מקליד שם ומקבל מספר שולחן. מסמן מי נכנס, רואה כמה
-            כבר בפנים — ואתם יודעים בדיוק איפה אתם עומדים מול האולם.
+            {/* Not "you see it live": the greeter's phone re-reads every 25s,
+                and the host's own screen does not poll at all — it shows the
+                count when they open it. */}
+            מי שעומד בכניסה מקליד שם ומקבל מספר שולחן. הוא מסמן מי נכנס ורואה
+            כמה כבר בפנים, ואתם פותחים את המסך שלכם ורואים את אותו מספר.
           </p>
           <div className={styles.heroActions}>
             <Link to="/signup" className={styles.cta}>נסו בחינם ←</Link>
