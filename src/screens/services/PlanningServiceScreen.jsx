@@ -95,8 +95,11 @@ export default function PlanningServiceScreen({ user = null }) {
             <Link to="/signup" className={styles.cta}>התחילו לתכנן ←</Link>
             <a href="#tasks" className={styles.ghost}>מה יש בפנים</a>
           </div>
+          {/* "מסתנכרן בין המחשב לטלפון" alone was an over-claim: without an
+              account the data is localStorage on ONE device. Cloud sync is on
+              the free plan, but it needs the account, so the note says so. */}
           <p className={styles.heroNote}>
-            הכל נשמר אוטומטית ומסתנכרן בין המחשב לטלפון.
+            הכל נשמר אוטומטית תוך כדי — ועם חשבון חינמי גם מסתנכרן בין המחשב לטלפון.
           </p>
         </div>
       </section>
