@@ -42,12 +42,19 @@ function jpegSize(path) {
   return { w: 0, h: 0 };
 }
 
+import { COMPANY } from "../src/data/company.js";
+
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
 
 const PORT = 5188;
 const BASE = `http://127.0.0.1:${PORT}`;
 const OUT  = "/home/user/kochav-hashulchan-app/public/shots";
+/* The origin the screenshots must show — read from company.js, not typed, so it
+   follows the domain instead of becoming a second place to update. That is the
+   whole point of checklist 15, and a hardcoded origin here would put the old
+   domain into every marketing image the day it changes. */
+const ORIGIN = COMPANY.site;
 mkdirSync(OUT, { recursive: true });
 
 /* ── The seed ──────────────────────────────────────────────────────────────
@@ -145,6 +152,46 @@ const EVENT = {
     { id: "v1", name: "להקת הכוכבים", category: "מוזיקה", phone: "050-1234567", price: 6000, paid: 2000 },
     { id: "v2", name: "צלם — אור נגה", category: "צילום",  phone: "052-2345678", price: 9500, paid: 3000 },
   ],
+  /* The event site, filled in rather than left to defaults. `normalizeEventSite`
+     would produce a valid but EMPTY site — no address, no shuttles, no story —
+     and a screenshot of the editor with every field blank says nothing about
+     the product. Every value here is invented; the Waze URL is left empty on
+     purpose so the shot shows the fallback the code builds from the address. */
+  site: {
+    theme: "sand",
+    font: "serif",
+    hero: "דנה ויוסי",
+    heroEn: "Dana & Yossi",
+    story: "נפגשנו בתור לקפה בתחנה המרכזית, ומאז אנחנו לא מפסיקים לדבר. נשמח שתהיו איתנו בערב הזה.",
+    countdown: true,
+    dressCode: "לבוש ערב. הנעליים — תחשבו על דשא.",
+    address: "אולמי הגן, רחוב הזית 12, ראשון לציון",
+    wazeUrl: "",
+    parkingNote: "חניון חינם בצמוד לאולם, הכניסה מרחוב האלון.",
+    shuttles: [
+      { id: "s1", time: "18:15", place: "תל אביב — רכבת סבידור מרכז" },
+      { id: "s2", time: "18:30", place: "ירושלים — בנייני האומה" },
+      { id: "s3", time: "23:45", place: "הסעה חזרה — מהאולם" },
+    ],
+    schedule: [
+      { id: "sc1", time: "19:00", title: "קבלת פנים", icon: "🥂" },
+      { id: "sc2", time: "20:15", title: "חופה",      icon: "💍" },
+      { id: "sc3", time: "21:00", title: "ארוחת ערב", icon: "🍽️" },
+      { id: "sc4", time: "22:00", title: "ריקודים",   icon: "💃" },
+    ],
+    faq: [
+      { id: "f1", q: "מתי צריך להגיע?", a: "קבלת הפנים מתחילה ב-19:00, החופה ב-20:15. שווה להגיע מוקדם." },
+      { id: "f2", q: "אפשר להביא ילדים?", a: "בשמחה. יש פינת ילדים עם השגחה לאורך כל הערב." },
+      { id: "f3", q: "יש חניה?", a: "כן, חניון חינם בצמוד לאולם." },
+    ],
+    contactPhone: "050-1234567",
+    rsvpMessage: "תודה שאישרתם! מחכים לראות אתכם.",
+    sections: { countdown: true, gallery: false, schedule: true, location: true, shuttles: true, dressCode: true, gift: true, blessings: true, faq: true },
+    gallery: [],
+    coverPhoto: null,
+    photosKeepUntil: null,
+    photosPurgedAt: null,
+  },
   tokens: { rsvp: "r1", album: "al1", invite: "i1", gift: "gi1", hostess: "h1", collab: "c1" },
   cloudId: null, createdAt: 1700000000000, updatedAt: 1700000000000,
 };
@@ -175,6 +222,8 @@ const FRAMES = [
   { name: "tables",      path: "/events/e1/tables",      anchor: "השולחנות שלי" },
   { name: "checkin",     path: "/events/e1/checkin" },
   { name: "rsvps",       path: "/events/e1/rsvps" },
+  // ── Service page 2: the event site and the invitation ────────────────────
+  { name: "site-editor", path: "/events/e1/site" },
 ];
 
 const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
@@ -197,12 +246,56 @@ try {
   });
   const page = await ctx.newPage();
 
-  await page.goto(BASE + "/app", { waitUntil: "domcontentloaded" });
+  /* ── Serve the real build under the REAL origin ──────────────────────────
+   * Several of these screens print full share URLs into the page — the site
+   * editor shows the event-site and album links, and the links screen shows all
+   * ten. Shot against the preview server those read
+   * "http://127.0.0.1:5188/invite/i1", and that is what went into a public
+   * marketing image on the first run: a localhost URL, on the page that is
+   * supposed to make the product look finished.
+   *
+   * The fix is not to edit the picture. Every request is fulfilled from the
+   * local build while the page believes it is on COMPANY.site, so
+   * `window.location.origin` is genuinely the production origin and the URLs in
+   * the screenshot are the URLs a host would actually see. Nothing is doctored;
+   * only where the bytes come from changes. */
+  await ctx.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.origin === ORIGIN) {
+      const res = await ctx.request.fetch(BASE + url.pathname + url.search, {
+        method: route.request().method(),
+        headers: route.request().headers(),
+        data: route.request().postDataBuffer() ?? undefined,
+      });
+      return route.fulfill({ response: res });
+    }
+    // Supabase, fonts and anything else external: let it fail as it already
+    // does in this container rather than pretending it succeeded.
+    return route.continue();
+  });
+
+  await page.goto(ORIGIN + "/app", { waitUntil: "domcontentloaded" });
+
+  /* ── Screens gated on an account cannot be shot here, and that is fine ──
+   *
+   * There is no .env in this repo, so `isSupabaseConfigured` is false in a local
+   * build and `supabase` is null: useAuth can never produce a user, whatever is
+   * in localStorage. A faked session was tried and could not work for that
+   * reason — worth writing down, because the symptom (a screenshot of the share
+   * screen saying "הקישור נפתח אחרי פתיחת חשבון") looks like a product bug and
+   * is not one. Every account holder sees those links.
+   *
+   * The links screen is therefore NOT in FRAMES. Supplying the Supabase URL and
+   * the publishable key to a local build would fix it, but they do not belong in
+   * the repo, and a marketing image is not worth a credential in git. The
+   * LOCKED-STATE guard below is what keeps this decision from quietly reverting:
+   * any frame that renders a gated or unpublished state fails the run. */
+
   await page.evaluate(e => localStorage.setItem("kochav_hashulchan_v1",
     JSON.stringify({ events: [e], activeEventId: "e1" })), EVENT);
 
   /* Run the real auto-assign once, and read the result back out of the page. */
-  await page.goto(BASE + "/events/e1/seating", { waitUntil: "domcontentloaded" });
+  await page.goto(ORIGIN + "/events/e1/seating", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(1200);
   // The label depends on state: "לחצו להושבה אוטומטית" on an empty event,
   // "חשבו מחדש" once anyone is seated. The seed is empty, so it is the first —
@@ -223,7 +316,7 @@ try {
   }
 
   for (const f of FRAMES) {
-    await page.goto(BASE + f.path, { waitUntil: "domcontentloaded" });
+    await page.goto(ORIGIN + f.path, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1200);
     /* Where the frame starts. An anchor is resolved against the document; a
      * screen with no anchor starts at the top. The result is clamped so a clip
@@ -271,6 +364,18 @@ try {
     // that carried a stale name for eleven days without anyone noticing.
     const stale = await page.evaluate(() => document.body.innerText.includes("כוכב השולחן"));
 
+    /* Any frame that still shows a locked or empty state is a marketing image of
+     * the product refusing to work. Both of these have already been shipped
+     * once by this file. */
+    const blocked = await page.evaluate(() => {
+      const t = document.body.innerText;
+      for (const s of ["הקישור נפתח אחרי פתיחת חשבון", "הקישורים ממתינים לחשבון",
+                       "האתר בהכנה", "הדף עדיין לא פורסם", "הקישור אינו תקין"]) {
+        if (t.includes(s)) return s;
+      }
+      return null;
+    });
+
     /* Two separate ways this file has already produced a wrong image, both of
      * which look like a deliberate crop rather than a bug:
      *   - clip bounded by the viewport → a 2400x360 sliver;
@@ -281,9 +386,9 @@ try {
     const want = `${1200 * 2}x${H * 2}`;
     const got  = `${size.w}x${size.h}`;
     const bad  = got !== want;
-    console.log(`${stale ? "STALE-BRAND" : bad ? "WRONG-SIZE" : "ok"}  ${f.name}.jpg  ` +
-      `(y=${y}, ${got}${bad ? ` — expected ${want}` : ""})`);
-    if (stale || bad) process.exitCode = 1;
+    console.log(`${stale ? "STALE-BRAND" : bad ? "WRONG-SIZE" : blocked ? "LOCKED-STATE" : "ok"}  ${f.name}.jpg  ` +
+      `(y=${y}, ${got}${bad ? ` — expected ${want}` : ""}${blocked ? ` — "${blocked}"` : ""})`);
+    if (stale || bad || blocked) process.exitCode = 1;
   }
 
   console.log(`\nseeded: ${guests.length} rows · ${totalSeats} seats · ${tables.length} tables · ${EVENT.constraints.length} constraints`);

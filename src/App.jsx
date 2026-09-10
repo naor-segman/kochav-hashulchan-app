@@ -52,7 +52,8 @@ const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
 /* Marketing service pages (checklist 87). One chunk each and lazy like the rest
    of the marketing site: a visitor who lands on /services/seating from a search
    result should download that page, not the other five. */
-const SeatingServiceScreen = lazy(() => import("./screens/services/SeatingServiceScreen.jsx"));
+const SeatingServiceScreen   = lazy(() => import("./screens/services/SeatingServiceScreen.jsx"));
+const EventSiteServiceScreen = lazy(() => import("./screens/services/EventSiteServiceScreen.jsx"));
 // Public pages — standalone, no auth, token-based
 const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
 const EventSiteScreen = lazy(() => import("./screens/EventSiteScreen.jsx"));
@@ -391,6 +392,14 @@ function AppRoutes() {
         element={
           <Suspense fallback={<Loading />}>
             <SeatingServiceScreen user={user} />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/services/event-site"
+        element={
+          <Suspense fallback={<Loading />}>
+            <EventSiteServiceScreen user={user} />
           </Suspense>
         }
       />

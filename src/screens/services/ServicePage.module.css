@@ -318,6 +318,50 @@
   background: var(--surface);
 }
 
+/* Three-up cards for a timeline of stages (service page 2). Same card language
+   as .depthCard, plus the "when" label that makes it a sequence. */
+.stages {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.stage {
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--blush-line);
+}
+
+.stageWhen {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--blush-soft);
+  color: var(--accent-text);
+  font-size: var(--step--2);
+  font-weight: 700;
+}
+
+.stageNote {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: var(--step--2);
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* An explicit flip for a one-off row, where :nth-child cannot help because the
+   row is the only .step in its section. Mirrors the even-step rule below,
+   column widths included — swapping order alone put the picture in the narrow
+   track, which is the bug that made service page 1's steps unequal. */
+.stepFlip { grid-template-columns: 1.35fr 1fr; }
+.stepFlip .stepText   { order: 2; }
+.stepFlip .stepFigure { order: 1; }
+
 /* ── Depth ──────────────────────────────────────────────────────────────── */
 
 .depth { background: var(--bg); }
@@ -417,8 +461,12 @@
      image above its own heading. */
   .step:nth-child(even) .stepText   { order: 0; }
   .step:nth-child(even) .stepFigure { order: 0; }
+  .stepFlip { grid-template-columns: 1fr; }
+  .stepFlip .stepText   { order: 0; }
+  .stepFlip .stepFigure { order: 0; }
 
   .depthGrid { grid-template-columns: repeat(2, 1fr); }
+  .stages    { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 600px) {

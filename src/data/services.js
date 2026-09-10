@@ -44,7 +44,7 @@ export const SERVICES = [
     label: "אתר לאירוע והזמנה",
     blurb: "הזמנה דיגיטלית, אתר, Waze והסעות",
     when: "לקראת האירוע",
-    live: false,
+    live: true,
   },
   {
     id: "rsvp",

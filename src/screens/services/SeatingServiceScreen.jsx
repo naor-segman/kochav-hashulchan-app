@@ -3,7 +3,7 @@ import SiteHeader from "../../components/layout/SiteHeader.jsx";
 import Footer from "../../components/layout/Footer.jsx";
 import { COMPANY } from "../../data/company.js";
 import { serviceById } from "../../data/services.js";
-import styles from "./SeatingServiceScreen.module.css";
+import styles from "./ServicePage.module.css";
 
 /**
  * Service page 1 of 6 — סידורי הושבה. Checklist 87.
@@ -26,11 +26,13 @@ import styles from "./SeatingServiceScreen.module.css";
  * come back (CLAUDE.md, frozen decisions). The rule this page follows is
  * narrower and testable: a number appears only if it came out of a run.
  *
- * ── Shared structure, deliberately not extracted yet ────────────────────────
- * The hero / section / CTA shapes here will be shared by the other five pages,
- * and pulling them into a common component from a single instance is guessing
- * at the abstraction. Page 2 is what shows which parts are actually the same;
- * the extraction happens then, with two real examples to generalise from.
+ * ── Shared structure ────────────────────────────────────────────────────────
+ * The stylesheet is `ServicePage.module.css`, shared with the other service
+ * pages. It was `SeatingServiceScreen.module.css` while this was the only one:
+ * extracting a shell from a single instance is guessing at the abstraction, and
+ * page 2 is what showed which parts are genuinely common. Anything only one
+ * page needs still lives in that file, next to what uses it — one stylesheet
+ * with a few page-specific rules beats six that drift (bug class 6).
  */
 
 const SERVICE = serviceById("seating");
