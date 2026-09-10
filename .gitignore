@@ -6,6 +6,11 @@ node_modules/
 # Build output
 dist/
 dist-ssr/
+# qa/marketingShotsGift.mjs builds here, with a DUMMY Supabase url/key, so the
+# two public gift screens believe cloud sync is configured and issue their RPCs
+# (which the harness then answers from its own seed). Never a real credential,
+# and never committed.
+dist-shots/
 
 # Local env files
 .env

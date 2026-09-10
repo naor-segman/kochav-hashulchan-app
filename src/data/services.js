@@ -17,9 +17,17 @@
  *   1. seating   🚩  the flag — everything it needs is built
  *   2. site          built
  *   3. planning      built
- *   4. rsvp          needs 88 (per-stage links) and 89 (phone rounds)
- *   5. day           needs 89 (hostesses, on-site seating manager)
- *   6. gifts         needs 90 (card charging) — the biggest gap
+ *   4. rsvp          built; 88 (per-stage links) and 89 (phone rounds) quarantined
+ *   5. day           built; 89 (hostesses, on-site seating manager) quarantined
+ *   6. gifts         built; 90 (card charging) quarantined
+ *
+ * All six are live. The last three describe things that do not exist yet, at
+ * the owner's explicit instruction and on his explicit condition — the site is
+ * not published until they are built. Every unbuilt claim on those pages lives
+ * in one `COMING` array per page; grep COMING_NOT_BUILT. `gifts` is the widest
+ * gap of the three: the label the owner chose is "מתנות באשראי" and charging a
+ * card is checklist 90, which is blocked on a clearing agreement (46) before it
+ * is blocked on code.
  *
  * `flag: true` means the link stays visible in the bar rather than moving into
  * the dropdown when the others arrive. There is exactly one, deliberately: the
@@ -76,7 +84,7 @@ export const SERVICES = [
     label: "מתנות באשראי",
     blurb: "מתנה, ברכה וקיר ברכות",
     when: "ביום האירוע",
-    live: false,
+    live: true,
   },
 ];
 

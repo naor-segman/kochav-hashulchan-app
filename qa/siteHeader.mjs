@@ -81,7 +81,7 @@ try {
     });
     page.on("pageerror", e => errors.push(String(e)));
 
-    for (const route of ["/home", "/pricing", "/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day"]) {
+    for (const route of ["/home", "/pricing", "/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day", "/services/gifts"]) {
       await page.goto(BASE + route, { waitUntil: "networkidle" });
 
       // 1 — there is exactly ONE header, and it carries the brand.

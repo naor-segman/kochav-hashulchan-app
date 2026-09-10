@@ -318,6 +318,17 @@
   background: var(--surface);
 }
 
+/* A PORTRAIT capture of a guest-facing screen (service page 6).
+   The landscape shots are 2400×1520 and are meant to fill their column. The
+   gift form is 1280×2200, and at the same column width it renders over a
+   thousand pixels tall beside four lines of text — the row then reads as an
+   image with a caption stuck to it. Capped and centred instead, so it reads as
+   what it is: a phone in someone's hand. */
+.stepFigurePortrait {
+  max-width: 320px;
+  margin-inline: auto;
+}
+
 /* Three-up cards for a timeline of stages (service page 2). Same card language
    as .depthCard, plus the "when" label that makes it a sequence. */
 .stages {

@@ -25,7 +25,7 @@ const { chromium } = require("playwright");
 
 const PORT = 4341;
 const BASE = `http://127.0.0.1:${PORT}`;
-const ROUTES = ["/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day"];
+const ROUTES = ["/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day", "/services/gifts"];
 const WIDTHS = [320, 360, 390, 414, 768, 1024, 1280, 1440];
 
 const results = [];
@@ -109,7 +109,20 @@ try {
         const found = [];
         for (const n of kids) {
           if (n.nodeType !== 3 || !n.nodeValue) continue;
-          for (const m of n.nodeValue.matchAll(/\d+/g)) {
+          /* One number is ONE match, thousands separator included.
+           *
+           * This was /\d+/g and it reported a failure on "₪1,000" — the comma
+           * split it into "1" and "000", and inside a single number the digits
+           * run LTR, so "1" is painted to the LEFT of "000" and the RTL rule
+           * below fired on a line that was rendering perfectly. The check was
+           * wrong, not the page. Requiring the match to END in a digit keeps a
+           * trailing full stop out of it, and "/" is deliberately not in the
+           * class, so "250/300" — the shape that actually reverses, measured
+           * 10.9 — is still two separate numbers. ":" is in it for the same
+           * reason as ",": bidi W2/W4 make EN-CS-EN one number run, so "19:00"
+           * paints LTR as a unit and splitting it would fire on every time on
+           * the site. "3: 12" is still two, because the class holds no space. */
+          for (const m of n.nodeValue.matchAll(/\d[\d,.:]*\d|\d/g)) {
             const r = document.createRange();
             r.setStart(n, m.index);
             r.setEnd(n, m.index + m[0].length);

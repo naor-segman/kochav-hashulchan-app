@@ -57,6 +57,7 @@ const EventSiteServiceScreen = lazy(() => import("./screens/services/EventSiteSe
 const PlanningServiceScreen  = lazy(() => import("./screens/services/PlanningServiceScreen.jsx"));
 const RsvpServiceScreen      = lazy(() => import("./screens/services/RsvpServiceScreen.jsx"));
 const EventDayServiceScreen  = lazy(() => import("./screens/services/EventDayServiceScreen.jsx"));
+const GiftsServiceScreen     = lazy(() => import("./screens/services/GiftsServiceScreen.jsx"));
 // Public pages — standalone, no auth, token-based
 const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
 const EventSiteScreen = lazy(() => import("./screens/EventSiteScreen.jsx"));
@@ -427,6 +428,14 @@ function AppRoutes() {
         element={
           <Suspense fallback={<Loading />}>
             <EventDayServiceScreen user={user} />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/services/gifts"
+        element={
+          <Suspense fallback={<Loading />}>
+            <GiftsServiceScreen user={user} />
           </Suspense>
         }
       />
