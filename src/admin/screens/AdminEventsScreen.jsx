@@ -8,25 +8,47 @@ import Icon from "../../components/ui/Icon.jsx";
 import { formatDate, formatRelative } from "../lib/adminFormat.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { deriveEventStatus } from "../lib/eventStatus.js";
+import { attachWindowMeta } from "../lib/listWindow.js";
+import { COMPANY } from "../../data/company.js";
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
 //
 // Single query: events + embedded profiles(email) via FK events.user_id → profiles.id.
 // PostgREST resolves the many-to-one automatically; profiles comes back as an object.
 
-async function loadEventsData() {
-  const { data, error } = await supabase
-    .from("events")
-    .select(
-      "id, user_id, name, type, date, venue, guest_count, table_count, seated_pct," +
-      " created_at, updated_at, profiles!user_id(email)"
-    )
-    .order("updated_at", { ascending: false })
-    .limit(500);
+// The window this screen loads. It was the bare literal 500 inside the query
+// and appeared nowhere in the UI, so the 501st event did not exist as far as
+// the panel was concerned — and worse, the count beside the search box printed
+// the WINDOW as if it were the total. "500 אירועים" on a table holding 1,240 is
+// not a rounding error, it is a wrong answer to the only question this screen
+// is asked. Same cap and same treatment as USERS_PAGE in AdminUsersScreen.
+const EVENTS_PAGE = 500;
 
+async function loadEventsData() {
+  const [listRes, totalRes] = await Promise.all([
+    supabase
+      .from("events")
+      .select(
+        "id, user_id, name, type, date, venue, guest_count, table_count, seated_pct," +
+        " created_at, updated_at, profiles!user_id(email)"
+      )
+      .order("updated_at", { ascending: false })
+      .limit(EVENTS_PAGE),
+    // The TRUE row count. Without it the screen cannot tell a full window from
+    // a complete table — `rows.length === 500` means "500 events" and "at least
+    // 500 events" equally, and it was reading it as the first.
+    // `.catch` and not just the `error` field: `attachWindowMeta` degrades
+    // gracefully for count: null, but only if the promise RESOLVES. A rejection
+    // from the auxiliary count would reject the pair and take the events list
+    // down with it — a screen that used to work when only this query failed.
+    supabase.from("events").select("id", { count: "exact", head: true })
+      .then(r => r, () => ({ count: null })),
+  ]);
+
+  const { data, error } = listRes;
   if (error) throw error;
 
-  return (data || []).map((ev) => ({
+  const rows = (data || []).map((ev) => ({
     id:          ev.id,
     user_id:     ev.user_id,
     name:        ev.name || "—",
@@ -40,6 +62,12 @@ async function loadEventsData() {
     created_at:  ev.created_at,
     updated_at:  ev.updated_at,
   }));
+
+  // `total` / `truncated` carried on the array itself, the shape
+  // AdminUsersScreen established. The decision is in admin/lib/listWindow.js
+  // because three more admin screens still need it — and because the obvious
+  // test for it (`rows.length >= limit`) is wrong at exactly `limit` rows.
+  return attachWindowMeta(rows, EVENTS_PAGE, totalRes.count);
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -77,7 +105,12 @@ export default function AdminEventsScreen() {
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
 
-  // Collect distinct event types for the filter dropdown.
+  // Collect distinct event types for the filter dropdown. Derived from the
+  // LOADED WINDOW, so past the cap a type that only appears on older events is
+  // missing from the dropdown entirely. Not worth a second query — the type
+  // list is five Hebrew strings from constants.js and the notice beside the
+  // count already says the list is a window — but it is a real limit, not an
+  // oversight, and it should be read as one.
   const eventTypes = useMemo(() => {
     if (!events) return [];
     return [...new Set(events.map((e) => e.type).filter(Boolean))].sort();
@@ -113,7 +146,7 @@ export default function AdminEventsScreen() {
           <SectionMark name="adminEvents" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>כל האירועים</span>
           <span className={styles.brandSep}>·</span>
-          <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.brandSub}>{COMPANY.name}</span>
           {/* Was green and unconditional, including with a 500 banner under it
               and zero rows loaded. Now it reports the state it is in. */}
           {!loading && !error && (
@@ -181,13 +214,43 @@ export default function AdminEventsScreen() {
             ))}
           </select>
 
-          {!loading && !error && (
+          {/* Three different sentences, because there are three different
+              truths and the first version of this fix only told two of them.
+              A filter SEARCHES THE WINDOW, so its denominator is the window —
+              "152 מתוך 1,240" read as "152 of the 1,240 events match", when
+              the search never saw 740 of them and the real answer across the
+              table was closer to 380. That is the same class of wrong answer
+              this whole row set out to remove, in the very `?owner=` flow it
+              called the case that actually misleads: an owner with 8 events,
+              3 of them inside the window, read "3 מתוך 1,240".
+
+              The wording is deliberately NOT the users screen's. That one says
+              "500 הראשונים" while ordering by created_at DESC — it shows the
+              newest and calls them the first. */}
+          {!loading && !error && events && (
             <span className={styles.resultCount}>
-              {filtered.length.toLocaleString()}
-              {events && filtered.length !== events.length
-                ? ` מתוך ${events.length.toLocaleString()}`
-                : ""
-              } אירועים
+              {hasFilters ? (
+                events.truncated ? (
+                  <>
+                    {filtered.length.toLocaleString()} מתוך {EVENTS_PAGE.toLocaleString()} שנטענו
+                    <span className={styles.truncNote}>
+                      {" · "}מתוך {(events.total ?? events.length).toLocaleString()} סה״כ
+                    </span>
+                  </>
+                ) : (
+                  <>{filtered.length.toLocaleString()} מתוך {events.length.toLocaleString()} אירועים</>
+                )
+              ) : (
+                <>
+                  {filtered.length.toLocaleString()}
+                  {filtered.length !== (events.total ?? events.length)
+                    ? ` מתוך ${(events.total ?? events.length).toLocaleString()}`
+                    : ""} אירועים
+                  {events.truncated && (
+                    <span className={styles.truncNote}> · מוצגים {EVENTS_PAGE} שעודכנו לאחרונה</span>
+                  )}
+                </>
+              )}
             </span>
           )}
         </div>
@@ -201,7 +264,21 @@ export default function AdminEventsScreen() {
         {!loading && !error && filtered.length === 0 && (
           <div className={styles.stateBox}>
             {hasFilters
-              ? <><p className={styles.emptyTitle}>לא נמצאו תוצאות</p><p className={styles.emptyHint}>נסה לשנות את פילטרי החיפוש</p></>
+              ? <>
+                  <p className={styles.emptyTitle}>לא נמצאו תוצאות</p>
+                  {/* This is the case the truncation actually bites in, and it
+                      is why the notice could not live in the toolbar alone.
+                      AdminUsersScreen links here as ?owner=<email>. The search
+                      runs client-side over the loaded window, so a customer
+                      whose events all sit outside it produced "לא נמצאו
+                      תוצאות" — which reads as "this customer has no events",
+                      not as "we did not look at all of them". */}
+                  <p className={styles.emptyHint}>
+                    {events?.truncated
+                      ? `החיפוש רץ על ${EVENTS_PAGE} האירועים שעודכנו לאחרונה, מתוך ${(events.total ?? events.length).toLocaleString()} — אירוע שלא עודכן זמן רב לא נכלל בו.`
+                      : "נסה לשנות את פילטרי החיפוש"}
+                  </p>
+                </>
               : <><p className={styles.emptyTitle}>אין אירועים ענן עדיין</p><p className={styles.emptyHint}>כאשר משתמש מחובר יצור אירוע, הוא יסונכרן לענן ויופיע כאן אוטומטית</p></>
             }
           </div>

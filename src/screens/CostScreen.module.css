@@ -452,3 +452,77 @@
     height: 44px;
   }
 }
+
+/* ── Gifts declared on the public gift page ───────────────────────────────────
+   Read-only, so no row affordances and no hover state: nothing here is
+   clickable and a hover would promise otherwise. Amounts are tabular so a
+   column of them lines up, which is the only way a host scans for the large
+   one. */
+
+.giftList {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.giftRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--step--1);
+}
+
+.giftRow:last-child { border-bottom: none; }
+
+.giftName {
+  color: var(--text);
+  /* A donor types their own name and it can be long ("משפחת כהן מירושלים"). It
+     yields the row rather than pushing the amount off the edge. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.giftAmt {
+  color: var(--text);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ── Moderating the blessing wall ── */
+/* The host is standing in a hall looking at a projector, so this has to be
+   reachable with a thumb and readable at a glance. 44px is the floor this
+   codebase uses everywhere. */
+.giftAction {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--accent-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.giftAction:disabled { opacity: 0.6; cursor: default; }
+
+/* A hidden blessing stays in the host's list — it is still their record of a
+   declared gift — so it is dimmed rather than removed. */
+.giftHidden { color: var(--muted); }
+
+.giftHiddenTag {
+  margin-inline-start: 8px;
+  font-size: var(--step--3);
+  color: var(--muted);
+  font-weight: 600;
+}

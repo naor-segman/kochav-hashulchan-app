@@ -35,8 +35,32 @@ const PROFILES = EMAILS.map((email, i) => ({
     : [],
 }));
 
+/* A real `payload`, because the detail screen renders everything from it and a
+ * row without one shows "לא הוגדרו שולחנות לאירוע" for every event — so the
+ * table cards, the seating counts and the guest list were unreachable in the
+ * preview. `qa/adminBidi.mjs` needs the table cards specifically: the defect it
+ * measures is a bidi inversion in the seated/capacity fraction, and there is no
+ * way to see it without a table to draw. Mixed counts on purpose, so rows and
+ * seats are never the same number. */
+const payloadFor = (i) => ({
+  tables: [
+    { id: `t${i}a`, name: "שולחן 1",   capacity: 10, shape: "round",  type: "משפחה" },
+    { id: `t${i}b`, name: "שולחן VIP", capacity: 8,  shape: "oval" },
+    { id: `t${i}c`, name: "אביר",      capacity: 12, shape: "rect" },
+  ],
+  guests: [
+    { id: `g${i}1`, name: "טל שוורץ", count: 2, side: "bride", group: "משפחה" },
+    { id: `g${i}2`, name: "רון לוי",  count: 1, side: "groom", group: "חברים" },
+    { id: `g${i}3`, name: "נועה גל",  count: 3, side: "bride", group: "עבודה" },
+  ],
+  seating: { [`g${i}1`]: `t${i}a`, [`g${i}2`]: `t${i}a`, [`g${i}3`]: `t${i}b` },
+  constraints: [{ id: `c${i}`, type: "together", guestA: `g${i}1`, guestB: `g${i}2` }],
+  brideName: "דנה", groomName: "יוסי",
+});
+
 const EVENTS = NAMES.map((name, i) => ({
   id: "e" + i,
+  payload: payloadFor(i),
   user_id: "u" + (i % PROFILES.length),
   name,
   type: TYPES[i % TYPES.length],
@@ -101,15 +125,42 @@ const ERRORS = [
 }));
 
 const SETTINGS = [
-  { key: "product_name", value: "כוכב השולחן" },
+  { key: "product_name", value: "רוויה" },
   { key: "default_tables", value: "20" },
   { key: "feature_ai_seating", value: "false" },
   { key: "system_note", value: "בטא — כל התוכניות פתוחות" },
 ];
 
+/* ?bulk=N pads the events table to N rows.
+ *
+ * The screens cap their queries at 500 and the fixtures hold 8, so the branch
+ * that says "this list is a window, not the table" was unreachable in a
+ * browser — the only way to check it was to read the JSX and believe it. With
+ * ?bulk=1240 the list query returns its 500 and the head-count query returns
+ * 1,240, which is exactly the shape production has and the shape the count
+ * beside the search box used to get wrong. */
+const bulkN = (() => {
+  const m = typeof location !== "undefined" && /[?&]bulk=(\d+)/.exec(location.search);
+  return m ? Number(m[1]) : 0;
+})();
+
+const EVENTS_ALL = bulkN > EVENTS.length
+  ? Array.from({ length: bulkN }, (_, i) => {
+      const base = EVENTS[i % EVENTS.length];
+      // `i % 900`, so past row 900 the timestamps repeat rows 0-339 — this
+      // comment used to claim they keep descending, and they do not. It does
+      // not affect any assertion because `order()` in the mock is `return this`
+      // (a no-op), which is itself worth stating out loud: the harness proves
+      // the COUNT and the wording, never the "which 500 these are" ordering
+      // that the wording depends on. That ordering is PostgREST's job and is
+      // untested here.
+      return { ...base, id: "e" + i, name: `${base.name} ${i}`, updated_at: iso(i % 900) };
+    })
+  : EVENTS;
+
 const TABLES = {
   profiles: PROFILES,
-  events: EVENTS,
+  events: EVENTS_ALL,
   templates: TEMPLATES,
   subscriptions: SUBSCRIPTIONS,
   admin_activity: ACTIVITY,

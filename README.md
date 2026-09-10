@@ -1,4 +1,4 @@
-# כוכב השולחן – Kochav Hashulchan
+# רוויה – Kochav Hashulchan
 
 Premium Hebrew RTL automatic seating arrangement web app for Israeli events.
 

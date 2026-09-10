@@ -186,19 +186,54 @@ Check for these first — each has bitten more than once:
   afternoon into "fixing" CSS that was already correct.
 - **Outbound HTTP is blocked** by the proxy for most hosts, including competitor
   sites. Say so rather than inventing findings.
-- **`npm run lint` runs `eslint .` and reports 13 errors** — all pre-existing,
-  in `legacy/` (7), `netlify/` (3), `qa_test.js` (1) and `qa/marksPreview.jsx`
-  (2, `react-refresh/only-export-components`). The count was recorded as 10 for
-  a while, then as 12 with `netlify/` at 2; both had drifted, and `netlify/` has
-  three (`Netlify` twice, `html` once, all `no-undef` in
-  `edge-functions/invite-og.js`). Counted by checking out the previous
-  `eslint.config.js` and re-running, not by memory. `npx eslint src` is the
-  meaningful one and is at 0 errors.
+- **`npm run lint` runs `eslint .` and reports 10 errors** — in `legacy/` (7),
+  `qa_test.js` (1) and `qa/marksPreview.jsx` (2). `npx eslint src` is the
+  meaningful one and is at 0.
+- 🔴 **`netlify/` was in that list until 18.8, and one of its three "errors"
+  was a live bug.** Two were genuinely false — `Netlify` is a real
+  edge-runtime global, now declared in `eslint.config.js`. The third,
+  `'html' is not defined` in `edge-functions/invite-og.js`, meant the
+  invitation's OG rewrite threw on every request and had **never once run**:
+  every WhatsApp preview of an invitation showed the generic site title.
+  Writing three errors off together as "pre-existing" is exactly how it stayed
+  hidden for months. `netlify/` is at 0 now. **Do not dismiss the remaining ten
+  as a group — read each one.**
 - **Test and `qa/` files get Node globals** via a second block in
   `eslint.config.js`. The base config grants `globals.browser` only, so a test
   touching `process` — e.g. `photoRetention.test.js`, which sets
   `TZ=Asia/Jerusalem` because every date bug here is invisible at offset zero —
   was reported as `'process' is not defined`.
+
+## The method for every task in WORKPLAN's checklist
+
+This applies to task 1 and to task 68 alike. The owner asked for it once; it
+does not need asking again.
+
+**Never work on autopilot.** Before writing a line, establish four things and say
+them: what the task connects to, where it sits in the product, where it sits in
+the code, and which other checklist items it touches. A task done in isolation
+is how a fix lands on top of something already broken.
+
+**Use the subagents.** Fan out an Explore agent when the answer means reading
+across files. Do not sweep the tree by hand and call it thorough.
+
+**Verify after every task, not at the end of the day.** The gate is: `npx vitest
+run` (and the exit code, not just the summary line), `npm run build`, `npx eslint
+src` at 0 errors, `node qa/cssmod.mjs`, plus a real browser harness whenever the
+change is visible to a user. Read the value back out of the DOM or localStorage
+— never from the code that wrote it.
+
+**Prove the test would fail.** A new assertion is worth nothing until the change
+it guards has been reverted and the test observed failing. Restore from bytes
+held in memory, never `git checkout --`.
+
+**One task, one commit, in checklist order.** The commit message names the item
+number. WORKPLAN's checklist is the only surface that gets updated — tick the
+row, do not open a parallel list.
+
+**Say what you did not do.** If a task turned out to be bigger than its line, or
+half of it is blocked, that goes in the report and in the row. Partial work
+described as finished is the failure this project has recorded most often.
 
 ## Commit message format
 ```

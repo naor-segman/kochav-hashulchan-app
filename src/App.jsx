@@ -9,6 +9,7 @@ import { uid } from "./utils/uid.js";
 import { duplicateEvent } from "./utils/eventHelpers.js";
 import { AuthProvider, useAuth } from "./hooks/useAuth.js";
 import { useEvents }        from "./hooks/useEvents.js";
+import { trackPageview, identifyUser, track, EVENTS } from "./lib/analytics.js";
 import { useToast }         from "./hooks/useToast.js";
 import { usePlan }          from "./hooks/usePlan.js";
 import { useActiveEvent }   from "./hooks/useActiveEvent.js";
@@ -39,9 +40,10 @@ const TableBuilderScreen = lazy(() => import("./screens/TableBuilderScreen.jsx")
 const GuestManagerScreen = lazy(() => import("./screens/GuestManagerScreen.jsx"));
 const ConstraintsScreen  = lazy(() => import("./screens/ConstraintsScreen.jsx"));
 const SeatingScreen      = lazy(() => import("./screens/SeatingScreen.jsx"));
-const CheckInScreen      = lazy(() => import("./screens/CheckInScreen.jsx"));
-// The unified day-of screen. CheckInScreen / HostessScreen are now thin shims
-// over it and stay routed for links already printed on invitations.
+// The one day-of screen. /checkin and /hostess were separate lazy modules that
+// did nothing but render this one in a given mode — two extra chunks for a
+// prop. They are aliases in the route table now; the URLs are unchanged,
+// because they are printed on QR codes already out in the world.
 const EntranceScreen     = lazy(() => import("./screens/EntranceScreen.jsx"));
 const LandingScreen      = lazy(() => import("./screens/LandingScreen.jsx"));
 
@@ -50,7 +52,6 @@ const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
 // Public pages — standalone, no auth, token-based
 const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
 const EventSiteScreen = lazy(() => import("./screens/EventSiteScreen.jsx"));
-const HostessScreen  = lazy(() => import("./screens/HostessScreen.jsx"));
 const CollabScreen   = lazy(() => import("./screens/CollabScreen.jsx"));
 const InviteScreen   = lazy(() => import("./screens/InviteScreen.jsx"));
 const GiftScreen     = lazy(() => import("./screens/GiftScreen.jsx"));
@@ -70,6 +71,7 @@ const EventSiteEditorScreen = lazy(() => import("./screens/EventSiteEditorScreen
 const ShareLinksScreen      = lazy(() => import("./screens/ShareLinksScreen.jsx"));
 // Legal / policy pages — lazy, rarely visited
 const HelpScreen          = lazy(() => import("./screens/HelpScreen.jsx"));
+const FeedbackScreen      = lazy(() => import("./screens/FeedbackScreen.jsx"));
 const PrivacyScreen       = lazy(() => import("./screens/PrivacyScreen.jsx"));
 const TermsScreen         = lazy(() => import("./screens/TermsScreen.jsx"));
 const AccessibilityScreen = lazy(() => import("./screens/AccessibilityScreen.jsx"));
@@ -217,6 +219,22 @@ function AppRoutes() {
   // the reload waits for a moment when it will not interrupt anyone.
   useAppUpdate();
 
+  /* Pageviews, with the tokens taken out of the path (checklist 18).
+   *
+   * PostHog's own pageview capture is off, because it sends the raw URL — and
+   * nine public routes carry a token there, which is a credential. This sends
+   * the scrubbed path instead, so `/rsvp/8f3c…` arrives as `/rsvp/:token`.
+   *
+   * `identify` runs on the same effect rather than its own: the funnel's
+   * whole question is "did THIS person get stuck", and events fired before
+   * the id is known are anonymous ones that never join up. The id only — an
+   * email address in a third-party tool is a liability with no benefit. */
+  const trackedPath = useLocation().pathname;
+  useEffect(() => {
+    if (user?.id) identifyUser(user.id);
+    trackPageview(trackedPath);
+  }, [trackedPath, user?.id]);
+
   // Show a one-time toast whenever a cloud sync error occurs.
   const prevSyncRef = useRef(null);
   useEffect(() => {
@@ -262,6 +280,9 @@ function AppRoutes() {
       version:    1,
     };
     addEvent(ev);
+    // `type` is the Hebrew string from EVENT_TYPES, which is what an event
+    // actually stores — an English key here would match nothing.
+    track(EVENTS.EVENT_CREATED, { type: ev.type, source: "new" });
     navigate(`/events/${ev.id}`);
     window.scrollTo(0, 0);
   }, [addEvent, navigate, plan, events.length, showToast]);
@@ -281,6 +302,7 @@ function AppRoutes() {
     if (!original) return;
     const copy = duplicateEvent(original);
     addEvent(copy);
+    track(EVENTS.EVENT_CREATED, { type: copy.type, source: "duplicate" });
     navigate(`/events/${copy.id}`);
     window.scrollTo(0, 0);
     showToast("האירוע שוכפל ✓");
@@ -357,7 +379,10 @@ function AppRoutes() {
         }
       />
       {/* ── Public token-based pages — no auth required ── */}
-      {/* /gift/:token/wall MUST precede /gift/:token — React Router first-match */}
+      {/* /gift/:token/wall is listed first for readability, NOT because it must
+          be. React Router 7 ranks by specificity, not declaration order, so the
+          wall wins either way — the old comment here claimed the ordering was
+          load-bearing and would have misled anyone reordering these. */}
       <Route path="/gift/:token/wall" element={<Suspense fallback={<Loading />}><GiftWallScreen /></Suspense>} />
       <Route path="/gift/:token"      element={<Suspense fallback={<Loading />}><GiftScreen /></Suspense>} />
       <Route path="/rsvp/:token"      element={<Suspense fallback={<Loading />}><RSVPScreen /></Suspense>} />
@@ -366,7 +391,7 @@ function AppRoutes() {
       <Route path="/album/:token"     element={<Suspense fallback={<Loading />}><AlbumScreen /></Suspense>} />
       <Route path="/save-the-date/:token" element={<Suspense fallback={<Loading />}><AnnouncementScreen kind="saveTheDate" /></Suspense>} />
       <Route path="/invitation/:token"    element={<Suspense fallback={<Loading />}><AnnouncementScreen kind="invitation" /></Suspense>} />
-      <Route path="/hostess/:token"   element={<Suspense fallback={<Loading />}><HostessScreen /></Suspense>} />
+      <Route path="/hostess/:token"   element={<Suspense fallback={<Loading />}><EntranceScreen mode="token" /></Suspense>} />
       <Route path="/collab/:token"    element={<Suspense fallback={<Loading />}><CollabScreen /></Suspense>} />
       {/* ── עמדת הכניסה — the one day-of screen ──────────────────────────
           Two ways in, one screen: the host's own device (owner) and a hired
@@ -381,9 +406,12 @@ function AppRoutes() {
         path="/entrance/:token"
         element={<Suspense fallback={<Loading />}><EntranceScreen mode="token" /></Suspense>}
       />
+      {/* The alias. Identical to /entrance above — `showToast` used to be
+          threaded through the shim and EntranceScreen never had such a prop,
+          so it was passed to nothing for as long as the shim existed. */}
       <Route
         path="/events/:eventId/checkin"
-        element={<Suspense fallback={<Loading />}><CheckInScreen events={events} patchEventById={patchEventById} showToast={showToast} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
+        element={<Suspense fallback={<Loading />}><EntranceScreen mode="owner" events={events} patchEventById={patchEventById} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
       />
       {/* Host-only draft preview of the event site — renders from local data */}
       <Route
@@ -419,6 +447,7 @@ function AppRoutes() {
       <Route path="/privacy"       element={<Suspense fallback={<Loading />}><PrivacyScreen /></Suspense>} />
       <Route path="/terms"         element={<Suspense fallback={<Loading />}><TermsScreen /></Suspense>} />
       <Route path="/accessibility" element={<Suspense fallback={<Loading />}><AccessibilityScreen /></Suspense>} />
+      <Route path="/feedback"      element={<Suspense fallback={<Loading />}><FeedbackScreen /></Suspense>} />
 
       {/* ── Admin area — lazy-loaded, completely isolated from customer app ── */}
       <Route

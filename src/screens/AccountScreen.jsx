@@ -15,6 +15,7 @@ import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/storage.js";
+import { COMPANY, supportMailto } from "../data/company.js";
 
 function formatDate(iso) {
   if (!iso) return null;
@@ -199,7 +200,7 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
         {/* Brand */}
         <div className={styles.brand}>
           <span className={styles.brandMark}>✦</span>
-          <span className={styles.brandName}>כוכב השולחן</span>
+          <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 
         <div className={styles.titleRow}>
@@ -434,8 +435,7 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
                 const handleCardAction = () => {
                   if (isCurrent || billing.checkoutTarget) return;
                   if (isEnterprise) {
-                    window.location.href =
-                      `mailto:${import.meta.env.VITE_SUPPORT_EMAIL || "support@kochav-hashulchan.co.il"}?subject=Enterprise%20Plan%20Inquiry`;
+                    window.location.href = supportMailto("Enterprise Plan Inquiry");
                     return;
                   }
                   billing.startCheckout(key);
@@ -575,14 +575,16 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
           להסתנכרן נשאר כאן כדי שלא ילך לאיבוד. במחשב משותף כדאי למחוק גם אותו.
         </p>
 
-        <a
-          href={`mailto:${import.meta.env.VITE_SUPPORT_EMAIL || "support@kochav-hashulchan.co.il"}?subject=%D7%9E%D7%A9%D7%95%D7%91%20%D7%A2%D7%9C%20%D7%9B%D7%95%D7%9B%D7%91%20%D7%94%D7%A9%D7%95%D7%9C%D7%97%D7%9F&body=%D7%A9%D7%9C%D7%95%D7%9D%2C%0A%0A%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A9%D7%AA%D7%A3%20%D7%9E%D7%A9%D7%95%D7%91%2F%D7%A8%D7%A2%D7%99%D7%95%D7%9F%3A%0A%0A`}
-          className={styles.feedbackLink}
-          target="_blank"
-          rel="noreferrer"
-        >
+        {/* Was a `mailto:` here (checklist 25). It depended on the reader having
+            a mail client configured, it silently did nothing on a lot of phones,
+            it arrived with no context about which screen or which browser — and
+            until the domain is bought it pointed at a mailbox that does not
+            exist, so it went nowhere at all. The form stores a row now, with the
+            route and the browser attached. The mail route is still offered on
+            that page for anyone who would rather write an email. */}
+        <Link to="/feedback" className={styles.feedbackLink}>
           <Icon name="mail" /> שלחו משוב / דווחו על בעיה
-        </a>
+        </Link>
 
         <p className={styles.versionLabel}>גרסה 0.1 · בטא מוקדמת</p>
 

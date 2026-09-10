@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./LandingScreen.module.css";
+import { COMPANY, contactMailto } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
+import { MOCK_TABLES, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
 
 // Four claims a visitor can check for themselves inside the product. They
 // replaced four invented statistics — a new product does not have real numbers
@@ -71,6 +73,13 @@ const SHOWCASE = [
  * Keep the subject off-centre-right: the text sits over the start (right) edge
  * in RTL, and a face directly behind the headline reads as a mistake.
  */
+// The seating card's figures live in src/data/landingMock.js — the reason they
+// are derived rather than typed is written there, next to the array.
+//
+// This paragraph used to be that explanation, and it stayed here when the
+// constants moved out: fifteen lines about "this one array" with no array
+// anywhere near them, directly above HERO_MEDIA. It survived in the same commit
+// whose subject was removing two comments that had stopped being true.
 const HERO_MEDIA = {
   video:        "/hero/hero.mp4",
   poster:       "/hero/hero.jpg",
@@ -151,7 +160,11 @@ const PRICING_PLANS = [
       "SLA ותמיכה ייעודית",
     ],
     cta: "צרו קשר",
-    ctaHref: "mailto:contact@kochav-hashulchan.co.il",
+    // `null`, and resolved at render below. The address used to be baked into
+    // this module-level constant, which is evaluated once at import — so the
+    // whole point of centralising it (change one line, everything follows)
+    // would have been defeated by a value frozen before `COMPANY` is read.
+    ctaHref: null,
     highlight: false,
     external: true,
   },
@@ -160,6 +173,51 @@ const PRICING_PLANS = [
 export default function LandingScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+
+  // ── Arriving with a #hash ───────────────────────────────────────────────────
+  //
+  // The browser's own hash scrolling does not work on this page, and only
+  // measuring finds that out: loading /#features fresh leaves scrollY at 0 while
+  // the section sits at y=3320. The browser looks for the element while parsing
+  // the HTML shell, long before React has rendered anything, finds nothing, and
+  // never tries again.
+  //
+  // So every link into a section was broken for EVERY visitor, not only for the
+  // signed-in ones who got redirected to /app — "תכונות" and "איך זה עובד" in
+  // the pricing nav and in the footer simply dropped you at the top of the page.
+  //
+  // Keyed on `key` as well as `hash`, and both are load-bearing:
+  //
+  //   hash — a footer link clicked while already on this page changes the hash
+  //          without remounting anything.
+  //   key  — react-router mints a new one PER NAVIGATION. Without it, clicking
+  //          the same anchor twice was a dead click: the second click produces
+  //          a new location object carrying the identical hash string, the
+  //          dependency array does not change, and nothing scrolls. Measured:
+  //          first click landed at y=3324, scroll back to 0, second click left
+  //          it at 0.
+  const { hash, key } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    // decodeURIComponent throws URIError on a lone `%` — and a throw in an
+    // effect reaches the root ErrorBoundary, so `/home#50%` white-screened the
+    // PUBLIC MARKETING PAGE with "אירעה שגיאה בלתי צפויה". Measured before this
+    // guard on all of `#50%`, `#%E0` and `#utm_x%`. That is one mangled or
+    // tracking-suffixed link away from being what a visitor sees.
+    //
+    // The decode itself was added for a Hebrew id that does not exist yet, so
+    // the raw hash is the right fallback: it is what the browser would have
+    // matched anyway.
+    let id;
+    try { id = decodeURIComponent(hash.slice(1)); }
+    catch { id = hash.slice(1); }
+    // Two frames, not zero: the section sits below the hero, whose height
+    // settles after its media lays out. Scrolling immediately lands short.
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
+    return () => cancelAnimationFrame(raf);
+  }, [hash, key]);
 
   const hasHeroMedia = Boolean(HERO_MEDIA.video || HERO_MEDIA.poster);
   // Decided once, in the initializer, rather than in an effect — an effect would
@@ -186,7 +244,7 @@ export default function LandingScreen() {
         <div className={styles.navInner}>
           <Link to="/" className={styles.navLogo}>
             <span className={styles.navLogoMark}>✦</span>
-            <span className={styles.navLogoName}>כוכב השולחן</span>
+            <span className={styles.navLogoName}>{COMPANY.name}</span>
           </Link>
 
           <div className={styles.navLinks}>
@@ -287,21 +345,10 @@ export default function LandingScreen() {
               <div className={styles.mockCardHead}>
                 <span className={styles.mockCardMark}>✦</span>
                 <span className={styles.mockCardTitle}>תוכנית ישיבה</span>
-                <span className={styles.mockCardStat}>58 אורחים</span>
+                <span className={styles.mockCardStat}>{MOCK_GUESTS} אורחים</span>
               </div>
               <div className={styles.mockTables}>
-                {[
-                  { name: "שולחן 1",   total: 10, filled: 10, shape: "round"  },
-                  { name: "שולחן 2",   total: 8,  filled: 7,  shape: "square" },
-                  { name: "שולחן 3",   total: 10, filled: 9,  shape: "round"  },
-                  { name: "אביר",      total: 12, filled: 8,  shape: "rect"   },
-                  { name: "שולחן 5",   total: 10, filled: 6,  shape: "round"  },
-                  { name: "שולחן VIP", total: 8,  filled: 8,  shape: "oval"   },
-                  // The mock used a flat row of dots per table — a picture of
-                  // nothing in particular. These are the same glyphs the
-                  // product actually draws, so the landing page shows the real
-                  // thing rather than an illustration of it.
-                ].map(t => (
+                {MOCK_TABLES.map(t => (
                   <div key={t.name} className={styles.mockTable}>
                     <TableGlyph shape={t.shape} capacity={t.total} taken={t.filled} size={54} />
                     <span className={styles.mockTableLabel}>{t.name}</span>
@@ -309,7 +356,7 @@ export default function LandingScreen() {
                 ))}
               </div>
               <div className={styles.mockCardFoot}>
-                <span className={styles.mockCardFootBadge}>✓ 48 מתוך 54 אורחים סודרו</span>
+                <span className={styles.mockCardFootBadge}>✓ {MOCK_SEATED} מתוך {MOCK_GUESTS} אורחים סודרו</span>
               </div>
             </div>
           </div>
@@ -498,7 +545,7 @@ export default function LandingScreen() {
                   {plan.features.map(f => <li key={f}>{f}</li>)}
                 </ul>
                 {plan.external ? (
-                  <a href={plan.ctaHref} className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}>
+                  <a href={plan.ctaHref ?? contactMailto()} className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}>
                     {plan.cta}
                   </a>
                 ) : (

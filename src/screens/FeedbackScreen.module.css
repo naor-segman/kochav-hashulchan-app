@@ -1,0 +1,161 @@
+/* The feedback form. The page shell (header, main, title) comes from
+   LegalScreen.module.css, exactly as HelpScreen does — this file holds only
+   what the form itself needs. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 620px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Kind picker — three choices, so they are buttons and not a <select>. A
+   select hides its options behind a tap and makes a three-way choice feel
+   like a form to fill rather than a question to answer. */
+.kinds {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kind {
+  flex: 1 1 auto;
+  min-width: 120px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+
+.kind:hover { border-color: var(--border2); color: var(--text); }
+
+.kind:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+.kindOn {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+
+.textarea,
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.textarea { min-height: 160px; resize: vertical; }
+
+.textarea:focus-visible,
+.input:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 1px;
+  border-color: var(--accent-border);
+}
+
+.counter {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: start;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.submit {
+  padding: 13px 26px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit:hover:not(:disabled) { filter: brightness(.94); }
+
+.submit:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 3px;
+}
+
+.submit:disabled { opacity: .55; cursor: default; }
+
+/* Result lines. Semantic colour, separate from the accent. */
+.ok,
+.bad {
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 620px;
+}
+
+.ok  { background: var(--green-bg, #E3F4ED); color: var(--green); }
+.bad { background: var(--warn-bg,  #FBF1DA); color: var(--warn);  }
+
+.ok a,
+.bad a { color: inherit; }
+
+.again {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--accent-text);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.privacy {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 620px;
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 16px;
+}

@@ -141,10 +141,10 @@ await page.waitForTimeout(1300);
 const field = page.locator('input[type=text], input:not([type])').first();
 if (await field.count()) {
   errs.length = 0;
-  await field.fill('כוכב השולחן — בדיקה');
+  await field.fill('רוויה — בדיקה');
   await page.waitForTimeout(500);
   const v = await field.inputValue();
-  ok(v === 'כוכב השולחן — בדיקה' && errs.length === 0,
+  ok(v === 'רוויה — בדיקה' && errs.length === 0,
      'a settings field is editable and holds what was typed', v);
 } else ok(false, 'the settings screen has an editable field');
 

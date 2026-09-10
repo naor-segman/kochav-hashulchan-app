@@ -4,6 +4,7 @@ import styles from "./LegalScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
 import help from "./HelpScreen.module.css";
+import { COMPANY, supportEmail, supportMailto } from "../data/company.js";
 
 const FAQ = [
   {
@@ -47,7 +48,7 @@ export default function HelpScreen() {
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
           <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
         </Link>
       </header>
 
@@ -72,9 +73,16 @@ export default function HelpScreen() {
 
         <section className={styles.section} style={{ marginTop: 28 }}>
           <h2 className={styles.sectionTitle}>עוד שאלה?</h2>
+          {/* Two routes on purpose. The form is first because it reaches us
+              whatever the reader's phone does with a mailto:, and it arrives
+              with the screen and browser attached. The address stays for
+              anyone who would simply rather write an email. */}
           <p className={styles.text}>
-            נשמח לעזור — כתבו לנו:{" "}
-            <a href="mailto:support@kochav-hashulchan.co.il">support@kochav-hashulchan.co.il</a>
+            אם משהו לא עובד או שיש לכם רעיון — <Link to="/feedback">ספרו לנו כאן</Link>.
+          </p>
+          <p className={styles.text}>
+            ואפשר גם במייל:{" "}
+            <a href={supportMailto()}>{supportEmail()}</a>
           </p>
         </section>
 

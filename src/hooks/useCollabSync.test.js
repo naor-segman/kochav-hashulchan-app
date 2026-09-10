@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   matchExistingGuest, pickCompanions, pickNotes,
-  guestFromCollab, guestToCollab, sigCollab, sigGuest, collabComplete,
+  guestFromCollab, guestToCollab, sigCollab, sigGuest, collabComplete, remapGuestId,
 } from "./useCollabSync.js";
 
 const guest = (id, name, phone) => ({ id, name, phone, side: "bride", group: "משפחה", count: 1 });
@@ -228,5 +228,86 @@ describe("collabComplete — what may enter the guest list", () => {
   it("still refuses the rows it always refused", () => {
     expect(collabComplete({ ...full, phone: "" })).toBe(false);
     expect(collabComplete({ ...full, guest_group: "" })).toBe(false);
+  });
+});
+
+describe("remapGuestId — the family submission that dedups onto an existing guest", () => {
+  // When a relative fills in someone the host already has, the guest is
+  // re-keyed to the collab row's id so `collab-row-id === guest-id` holds. Every
+  // structure keyed by guest id has to move with it.
+  //
+  // THE BUG: `messagesSent` was the one it forgot. It is keyed by guest id two
+  // levels down — `{ [stage]: { [guestId]: ts } }` — and MessagesScreen reads
+  // `sent[stage]?.[g.id]`, so the guest reverted to "never messaged" and the
+  // host re-sent the invitation to somebody who already had it. useEvents' own
+  // merge calls that exact failure "real money and real goodwill".
+
+  const ev = () => ({
+    id: "e1",
+    guests: [guest("old", "דוד כהן", "0501234567"), guest("g9", "רותי", "0521111111")],
+    seating: { old: "t1", g9: "t2" },
+    constraints: [
+      { id: "c1", type: "together", guestA: "old", guestB: "g9" },
+      { id: "c2", type: "apart", guestA: "g9", guestB: "old" },
+    ],
+    lockedGuests: ["old", "g9"],
+    lockedTables: ["t1"],
+    messagesSent: {
+      saveTheDate: { old: 1_700_000_000_000, g9: 1_700_000_001_000 },
+      invitation:  { old: 1_700_000_002_000 },
+    },
+  });
+
+  it("carries the sent-message history to the new id", () => {
+    const out = remapGuestId(ev(), "old", "new");
+    expect(out.messagesSent.saveTheDate.new).toBe(1_700_000_000_000);
+    expect(out.messagesSent.invitation.new).toBe(1_700_000_002_000);
+    expect(out.messagesSent.saveTheDate.old, "the stale key must not linger").toBeUndefined();
+  });
+
+  it("leaves every other guest's history alone", () => {
+    const out = remapGuestId(ev(), "old", "new");
+    expect(out.messagesSent.saveTheDate.g9).toBe(1_700_000_001_000);
+    expect(out.messagesSent.invitation.g9).toBeUndefined();
+  });
+
+  it("still moves seating, constraints and locks", () => {
+    const out = remapGuestId(ev(), "old", "new");
+    expect(out.seating).toEqual({ new: "t1", g9: "t2" });
+    expect(out.constraints[0]).toMatchObject({ guestA: "new", guestB: "g9" });
+    expect(out.constraints[1]).toMatchObject({ guestA: "g9", guestB: "new" });
+    expect(out.lockedGuests).toEqual(["new", "g9"]);
+  });
+
+  it("does not touch lockedTables, which holds table ids", () => {
+    // The from-id is deliberately a TABLE id here. Passing a guest id could not
+    // tell the two apart — no table is called "old", so remapping lockedTables
+    // would be a no-op and the mutation survived. Renaming t1 proves the field
+    // is not remapped at all, whatever the ids happen to be.
+    const out = remapGuestId(ev(), "t1", "SOMETHING-ELSE");
+    expect(out.lockedTables).toEqual(["t1"]);
+  });
+
+  it("survives an event with none of these fields", () => {
+    const out = remapGuestId({ id: "e2" }, "old", "new");
+    expect(out.seating).toEqual({});
+    expect(out.messagesSent).toEqual({});
+    expect(out.constraints).toEqual([]);
+    expect(out.lockedGuests).toEqual([]);
+  });
+
+  it("is a no-op for an id that appears nowhere", () => {
+    const before = ev();
+    const out = remapGuestId(before, "nobody", "new");
+    expect(out.seating).toEqual(before.seating);
+    expect(out.messagesSent).toEqual(before.messagesSent);
+    expect(out.lockedGuests).toEqual(before.lockedGuests);
+  });
+
+  it("does not mutate the event it was given", () => {
+    const before = ev();
+    remapGuestId(before, "old", "new");
+    expect(before.seating.old).toBe("t1");
+    expect(before.messagesSent.saveTheDate.old).toBe(1_700_000_000_000);
   });
 });

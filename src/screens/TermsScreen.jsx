@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
+import { COMPANY, supportEmail, supportMailto } from "../data/company.js";
 
 export default function TermsScreen() {
   return (
@@ -9,7 +10,7 @@ export default function TermsScreen() {
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
           <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
         </Link>
       </header>
 
@@ -23,7 +24,7 @@ export default function TermsScreen() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>1. השירות</h2>
           <p className={styles.text}>
-            כוכב השולחן היא מערכת מקוונת לניהול אירועים: רשימות אורחים, סידורי
+            {COMPANY.name} היא מערכת מקוונת לניהול אירועים: רשימות אורחים, סידורי
             הושבה אוטומטיים, אישורי הגעה, הזמנות דיגיטליות, ברכות וכלים ליום
             האירוע. השימוש בשירות כפוף לתנאים אלה — הרשמה או שימוש מהווים הסכמה.
           </p>
@@ -53,7 +54,7 @@ export default function TermsScreen() {
           <p className={styles.text}>
             דף המתנה מאפשר לאורחים להשאיר ברכה ולציין סכום מתנה. העברת הכסף
             עצמה מתבצעת ישירות בין האורח לבעל האירוע באמצעות שירותי תשלום
-            חיצוניים (כגון ביט או PayBox) שבחר בעל האירוע. כוכב השולחן אינה צד
+            חיצוניים (כגון ביט או PayBox) שבחר בעל האירוע. {COMPANY.name} אינה צד
             להעברות אלה, אינה גובה אותן ואינה אחראית להן.
           </p>
         </section>
@@ -70,7 +71,7 @@ export default function TermsScreen() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>6. קניין רוחני</h2>
           <p className={styles.text}>
-            כל הזכויות בשירות, בעיצובו ובקוד שלו שמורות לכוכב השולחן. אין
+            כל הזכויות בשירות, בעיצובו ובקוד שלו שמורות ל{COMPANY.name}. אין
             להעתיק, לשכפל או ליצור יצירות נגזרות ללא אישור בכתב.
           </p>
         </section>
@@ -83,7 +84,7 @@ export default function TermsScreen() {
             עדכון מהווה הסכמה לנוסח המעודכן.
           </p>
           <p className={styles.text}>
-            יצירת קשר: <a href="mailto:support@kochav-hashulchan.co.il">support@kochav-hashulchan.co.il</a>
+            יצירת קשר: <a href={supportMailto()}>{supportEmail()}</a>
           </p>
         </section>
 

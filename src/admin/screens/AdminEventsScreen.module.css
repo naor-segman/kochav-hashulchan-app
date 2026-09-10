@@ -213,6 +213,19 @@
 .resultCount {
   font-size: var(--step--1);
   color: var(--adm-ink-muted);
+  /* Was `white-space: nowrap` on a line that is now up to twice as long. At
+     390px the count sits under the search field with the truncation note after
+     it; nowrap made that one unbreakable run and pushed the toolbar wider than
+     the viewport. It wraps, and the note stays whole. */
+  text-wrap: pretty;
+}
+
+/* Says out loud that the list is a window, not the whole table. Not the
+   panel's semantic colour: a truncated window is a fact about the query, not
+   an alarm. Matches .truncNote in AdminUsersScreen.module.css. */
+.truncNote {
+  color: var(--adm-ink-dark);
+  font-weight: 700;
   white-space: nowrap;
 }
 

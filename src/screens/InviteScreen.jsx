@@ -8,6 +8,7 @@ import { tableLabel } from "../components/seating/tableLabel.js";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import styles from "./InviteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { COMPANY } from "../data/company.js";
 
 // Development fallback — displayed when Supabase is not configured locally
 const MOCK_EVENT = {
@@ -180,7 +181,7 @@ export default function InviteScreen() {
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
           <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
         </Link>
       </header>
 

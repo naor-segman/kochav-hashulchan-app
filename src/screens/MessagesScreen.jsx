@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { messageSignature } from "../data/company.js";
 import {
   MESSAGE_STAGES, audienceFor, audienceLabel, reachable,
-  renderTemplate, whatsappLink, estimateCost,
+  renderTemplate, whatsappLink,
 } from "../data/messageSequence.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import Field from "../components/ui/Field.jsx";
@@ -117,15 +117,18 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
         }
       />
 
-      {/* Cost is shown before anything is automated, because "unlimited
-          messages" is exactly how a package quietly loses money. */}
+      {/* What the host needs from this card is the answer to "will this cost me
+          money?", and that answer is no. What used to follow it — a projected
+          bill for automated sending we have not built, at a rate we had guessed
+          — is our cost structure, not theirs. It priced a service they cannot
+          buy and cannot avoid, on a screen whose job is to help them send an
+          invitation. The analysis moved to WORKPLAN, where it belongs and where
+          it now carries Meta's real rate card. */}
       <div className={base.card}>
-        <SectionLabel>עלות משוערת</SectionLabel>
+        <SectionLabel>עלות</SectionLabel>
         <p className={base.fieldHint}>
-          כרגע השליחה ידנית דרך וואטסאפ ולכן <b>ללא עלות</b>. אם נחבר שליחה
-          אוטומטית, רצף מלא לאירוע הזה הוא <b>{totalPlanned} הודעות</b> ≈{" "}
-          <b>₪{estimateCost(totalPlanned)}</b> (בהערכה של ₪0.12 להודעה).
-          זו הסיבה שחבילה "ללא הגבלה" חייבת תקרה.
+          השליחה נעשית מהוואטסאפ שלכם, ולכן <b>ללא עלות</b> — כאן רק מכינים את
+          הטקסט, בוחרים למי, ועוקבים אחרי מי כבר קיבל.
         </p>
       </div>
 

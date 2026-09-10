@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
+import { COMPANY, supportEmail, supportMailto } from "../data/company.js";
 
 export default function PrivacyScreen() {
   return (
@@ -9,7 +10,7 @@ export default function PrivacyScreen() {
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
           <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
         </Link>
       </header>
 
@@ -23,7 +24,7 @@ export default function PrivacyScreen() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>1. כללי</h2>
           <p className={styles.text}>
-            כוכב השולחן ("השירות", "אנחנו") היא מערכת לניהול הושבה ואירועים.
+            {COMPANY.name} ("השירות", "אנחנו") היא מערכת לניהול הושבה ואירועים.
             מסמך זה מסביר איזה מידע נאסף, כיצד הוא נשמר ומה הזכויות שלך.
             השימוש בשירות מהווה הסכמה למדיניות זו. אנו פועלים בהתאם לחוק הגנת
             הפרטיות, התשמ"א-1981, על תיקוניו.
@@ -80,7 +81,7 @@ export default function PrivacyScreen() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>7. יצירת קשר</h2>
           <p className={styles.text}>
-            לכל שאלה בנושא פרטיות: <a href="mailto:support@kochav-hashulchan.co.il">support@kochav-hashulchan.co.il</a>
+            לכל שאלה בנושא פרטיות: <a href={supportMailto()}>{supportEmail()}</a>
           </p>
         </section>
 

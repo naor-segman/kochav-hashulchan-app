@@ -7,6 +7,7 @@ import Icon from "../components/ui/Icon.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./StartScreen.module.css";
+import { COMPANY } from "../data/company.js";
 
 /* ── The first screen ─────────────────────────────────────────────────────────
  *
@@ -107,14 +108,14 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
       <section className={styles.hero}>
         <div className={styles.brand}>
           <span className={styles.brandMark}>✦</span>
-          <span className={styles.brandName}>כוכב השולחן</span>
+          <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 
         <h1 className={styles.headline}>ההושבה מסתדרת לבד.</h1>
 
         <p className={styles.lead}>
           אתם מזינים את רשימת האורחים ואת מי שאסור להושיב יחד.
-          כוכב השולחן בונה את כל השולחנות בשניות — ואומר לכם מיד מה עדיין לא מסתדר.
+          {COMPANY.name} בונה את כל השולחנות בשניות — ואומר לכם מיד מה עדיין לא מסתדר.
         </p>
 
         {/* The glyph's table top is --blush-soft. On the blush-soft hero it was

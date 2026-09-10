@@ -8,6 +8,7 @@ import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
 import { formatDate } from "../lib/adminFormat.js";
+import { COMPANY } from "../../data/company.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -137,7 +138,7 @@ export default function AdminUsersScreen() {
           <SectionMark name="adminUsers" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>ניהול משתמשים</span>
           <span className={styles.brandSep}>·</span>
-          <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.brandSub}>{COMPANY.name}</span>
           {/* Was green and unconditional — including with a 500 banner under
               it and zero rows loaded, the one state where it matters. */}
           {!loading && !error && (

@@ -8,6 +8,8 @@ import NavBadge from "../navigation/NavBadge.jsx";
 import SectionMark from "../ui/SectionMark.jsx";
 import styles from "./Shell.module.css";
 import Icon from "../ui/Icon.jsx";
+import { makeOpenScreen } from "../../utils/eventNameGate.js";
+import { COMPANY } from "../../data/company.js";
 
 // ── Two tiers, because there are two questions ────────────────────────────────
 //
@@ -102,22 +104,17 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
   // A tool is only reachable once the event has a name — the whole product
   // keys off it. The start screen now collects it before the event exists, so
-  // this is a backstop for older drafts, not the normal path.
-  const openScreen = (id) => {
-    if (id !== "setup" && !activeEvent?.name?.trim()) {
-      showToast?.("יש להזין שם לאירוע לפני המשך", "err");
-      go("setup");
-      return;
-    }
-    go(id);
-  };
+  // this is a backstop for older drafts, not the normal path. EventHubScreen
+  // applies the same gate from the same module; it used to be a second copy of
+  // these lines, and the two had already drifted apart once.
+  const openScreen = makeOpenScreen(activeEvent, { go, showToast });
 
   return (
     <div className={styles.root}>
       <header className={styles.topbar}>
         <button className={styles.logo} onClick={() => go("dashboard")}>
           <span className={styles.logoMark}>✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
           <span className={styles.betaBadge}>בטא</span>
         </button>
 

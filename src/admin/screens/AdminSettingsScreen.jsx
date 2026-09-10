@@ -7,6 +7,7 @@ import styles from "./AdminSettingsScreen.module.css";
 import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
+import { COMPANY } from "../../data/company.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ const FEATURE_FLAG_DEFS = [
 const EVENT_TYPE_OPTS = EVENT_TYPES;
 
 const EMPTY_FORM = {
-  product_name:   "כוכב השולחן",
+  product_name:   COMPANY.name,
   support_email:  "",
   table_capacity: "8",
   guest_count:    "100",
@@ -44,7 +45,7 @@ function rowToForm(row) {
   const ed = row.event_defaults || {};
   const ff = row.feature_flags  || {};
   return {
-    product_name:    row.product_name    || "כוכב השולחן",
+    product_name:    row.product_name    || COMPANY.name,
     support_email:   row.support_email   || "",
     table_capacity:  String(ed.table_capacity ?? 8),
     guest_count:     String(ed.guest_count    ?? 100),
@@ -60,7 +61,7 @@ function rowToForm(row) {
 function formToPayload(form) {
   return {
     id:            SETTINGS_ROW_ID,
-    product_name:  form.product_name.trim() || "כוכב השולחן",
+    product_name:  form.product_name.trim() || COMPANY.name,
     support_email: form.support_email.trim() || null,
     event_defaults: {
       table_capacity: Math.max(1, parseInt(form.table_capacity) || 8),
@@ -173,7 +174,7 @@ export default function AdminSettingsScreen() {
           <SectionMark name="adminSettings" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>הגדרות מערכת</span>
           <span className={styles.brandSep}>·</span>
-          <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.brandSub}>{COMPANY.name}</span>
         </div>
         <div className={styles.topbarRight}>
           {adminEmail && <span className={styles.adminEmail}>{adminEmail}</span>}

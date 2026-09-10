@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
 import {
   MESSAGE_STAGES, stageByKey, audienceFor, reachable,
-  renderTemplate, whatsappLink, estimateCost, audienceLabel,
+  renderTemplate, whatsappLink, audienceLabel,
 } from "./messageSequence.js";
 
 const g = (id, extra = {}) => ({ id, name: id, phone: "0501234567", rsvp: "pending", ...extra });
@@ -138,13 +139,22 @@ describe("whatsappLink", () => {
   });
 });
 
-describe("estimateCost", () => {
-  it("prices a full run so 'unlimited' can't hide the bill", () => {
-    expect(estimateCost(2000)).toBe(240);
-    expect(estimateCost(0)).toBe(0);
+describe("the messaging rate, which is documentation now and not code", () => {
+  // `estimateCost()` was removed: it had tests and no caller anywhere in src/,
+  // and `n * rate` is not worth carrying speculatively. What was worth keeping
+  // is the rate research, so this pins that it is still written down — the one
+  // thing that would actually be lost.
+  const SRC = readFileSync(new URL("./messageSequence.js", import.meta.url), "utf8");
+
+  it("still records Meta's Israel rates and where they came from", () => {
+    expect(SRC).toContain("0.0353");
+    expect(SRC).toContain("0.0053");
+    expect(SRC).toMatch(/rate card the owner supplied/i);
   });
-  it("respects a different per-message rate", () => {
-    expect(estimateCost(100, 0.2)).toBe(20);
+
+  it("still says the shekel conversion is an unsourced assumption", () => {
+    expect(SRC).toMatch(/3\.7₪|3\.7 ₪/);
+    expect(SRC).toMatch(/nobody has sourced/i);
   });
 });
 

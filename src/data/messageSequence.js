@@ -188,14 +188,38 @@ export function whatsappLink(phone, text) {
   return "https://wa.me/" + intl + "?text=" + encodeURIComponent(text || "");
 }
 
-/**
- * What an automated send would cost.
+/* ── What an automated send would cost ────────────────────────────────────────
  *
- * Surfaced before anything is connected because "unlimited messages" is how a
- * package quietly loses money: 650 guests over three rounds is ~2,000 sends.
- * Rate is per message and provider-dependent; 0.12₪ is a realistic mid-market
- * figure for Israeli WhatsApp/SMS traffic.
- */
-export function estimateCost(messageCount, perMessage = 0.12) {
-  return Math.round(messageCount * perMessage * 100) / 100;
-}
+ * There is no function here any more, deliberately. `estimateCost()` lived at
+ * this spot with tests and NO CALLER anywhere in src/ — created three commits
+ * before the one whose entire subject was removing a dead export, which a review
+ * was right to point out. `n * rate` is not worth carrying as speculative code;
+ * the RESEARCH is, and that is what stays.
+ *
+ * WHERE THE RATE COMES FROM, stated precisely, because an earlier version of
+ * this note said "THE RATE IS NOW MEASURED, NOT GUESSED" and could not support
+ * it: outbound HTTP to Meta is blocked from this environment, so nothing here
+ * was ever fetched or measured.
+ *
+ * It is READ OFF THE RATE CARD THE OWNER SUPPLIED — Meta's official per-country
+ * CSV, Israel (972/IL): $0.0353 per MARKETING template, $0.0053 per UTILITY
+ * template. A primary source, and better than the 0.12 it replaced, which was
+ * openly a guess ("a realistic mid-market figure") and landed close.
+ *
+ * The shekel figures are OURS and are the soft part: ~3.7₪/$ is an assumption
+ * nobody has sourced, so ₪0.13 and ₪0.02 move with the exchange rate. Price a
+ * package off the DOLLAR rate. At the rounded shekel numbers the
+ * marketing:utility gap reads as 6.5x; on the dollars it is 6.7x.
+ *
+ * Assume the marketing rate for any ceiling: an event invitation is a
+ * business-initiated message to someone who never opted in, which is what Meta
+ * classifies as marketing. That gap is the single largest lever in the whole
+ * messaging feature — see WORKPLAN, and checklist item 34.
+ *
+ * Only TEMPLATES are charged. Replies from a guest, and anything sent inside
+ * the 24-hour window their reply opens, are free, so a bot conversation costs
+ * nothing beyond the message that started it.
+ *
+ * Scale to check the arithmetic against: 650 guests over three rounds is ~2,000
+ * sends. "Unlimited messages" is how a package quietly loses money.
+ * ──────────────────────────────────────────────────────────────────────────── */

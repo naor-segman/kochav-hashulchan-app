@@ -12,6 +12,7 @@ import StartScreen from "./StartScreen.jsx";
 import base from "../styles/screenBase.module.css";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import styles from "./DashboardScreen.module.css";
+import { COMPANY } from "../data/company.js";
 
 export default function DashboardScreen({ events, plan = "free", onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
   const { confirm, dialog } = useConfirm();
@@ -66,7 +67,7 @@ export default function DashboardScreen({ events, plan = "free", onStartEvent, o
       <div className={styles.heroBar}>
         <div className={styles.heroBarBrand}>
           <span className={styles.logoMark}>✦</span>
-          <span className={styles.logoName}>כוכב השולחן</span>
+          <span className={styles.logoName}>{COMPANY.name}</span>
           <span className={styles.heroBarSub}>סידור הושבה לאירועים</span>
         </div>
         <div className={styles.heroBarActions}>

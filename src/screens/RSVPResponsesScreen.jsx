@@ -390,6 +390,27 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                       {respStatus(r) === "maybe" && <span className={styles.badgeMaybe}>אולי</span>}
                       {respStatus(r) === "no"    && <span className={styles.badgeNo}>לא מגיעים</span>}
                     </span>
+                    {/* The names the guest actually typed.
+                     *
+                     * `companions` was already being SELECTed by
+                     * fetchRSVPResponses and already being written into the
+                     * guest row — it was simply never shown here, so this
+                     * screen said "מגיעים · 2" and dropped the fact that the
+                     * second one is ירדן. Reported after the first real
+                     * end-to-end RSVP.
+                     *
+                     * This screen is the raw responses, and it is where the
+                     * host looks to see what people actually wrote. Showing a
+                     * count while hiding the words behind it is a loss in the
+                     * one view whose job is not to lose anything.
+                     *
+                     * Guarded on the array rather than on length alone: the
+                     * column is jsonb and an older row can hold null. */}
+                    {Array.isArray(r.companions) && r.companions.length > 0 && (
+                      <span className={base.gMeta}>
+                        עם {r.companions.join(", ")}
+                      </span>
+                    )}
                     <span className={base.gMeta}>
                       {r.phone ? r.phone + " · " : ""}{formatDate(r.created_at)}
                     </span>

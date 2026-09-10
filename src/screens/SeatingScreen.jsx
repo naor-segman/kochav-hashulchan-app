@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, Fragment } from "react";
 import { flushSync } from "react-dom";
-import { messageSignature } from "../data/company.js";
+import { COMPANY, messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
 import Icon from "../components/ui/Icon.jsx";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ import {
   pointerWithin, rectIntersection, MeasuringStrategy,
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
+import { track, EVENTS } from "../lib/analytics.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
 import { getSideLabel, getSideLabels, guestCompanionNames, seatingTotals } from "../utils/eventHelpers.js";
@@ -253,6 +254,11 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // but were never candidates, and counting them reported "all seated" while
     // a real guest was still standing.
     const placed = activeGuests.filter(g => newSeating[g.id]).length;
+    /* The step the product exists for (checklist 18). Counts only, never a
+       name: `placed` and `of` say whether the engine finished the job, which
+       is the question, and a guest's name would say nothing extra while
+       putting a real person into a third-party tool. */
+    track(EVENTS.SEATING_RUN, { placed, of: activeGuests.length, tables: ev.tables.length });
     const missed = activeGuests.length - placed;
     if (missed > 0)
       showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");
@@ -355,7 +361,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
      seatingTotals() through arrivalTotals(), so this panel and the door screen
      cannot disagree about what "everyone" means. */
   const arrival     = useMemo(() => arrivalTotals(ev.guests, ev.seating), [ev.guests, ev.seating]);
-  const totalGifts  = ev.guests.reduce((s, g) => s + (g.giftAmount || 0), 0);
 
   const toggleTableLock = useCallback((tableId) => {
     patchEvent(e => {
@@ -541,7 +546,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
                 {arrival.arrivedSeats > 0 && <StatPill n={arrival.arrivedSeats} label="הגיעו" color="var(--green)" />}
-                {totalGifts > 0 && <StatPill n={"₪" + totalGifts.toLocaleString("he-IL")} label="מתנות" color="var(--green)" />}
+                {/* A "מתנות" pill over `g.giftAmount` used to sit here. Nothing
+                    in the codebase writes that field — the entrance screen's
+                    input was removed deliberately — so `totalGifts > 0` was
+                    false on every event and the pill has never rendered. Left in
+                    place it invites someone to "fix" the guard and ship a ₪0
+                    pill. Removed with the same field's dead stats on the budget
+                    screen (checklist 82). */}
                 <StatPill n={violations.length}   label={violations.length === 1 ? "הפרה" : "הפרות"}   color={violations.length > 0 ? "var(--red)" : undefined} />
               </div>
             }
@@ -938,7 +949,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
         {/* ── Header (both modes) ── */}
         <div className={styles.pvHeader}>
-          <div className={styles.pvBrand}>כוכב השולחן</div>
+          <div className={styles.pvBrand}>{COMPANY.name}</div>
           <h1 className={styles.pvTitle}>{ev.name}</h1>
           {(ev.date || ev.venue) && (
             <p className={styles.pvMeta}>
@@ -1069,7 +1080,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               const tg = tableGuests(t.id);
               return (
                 <div key={t.id} className={styles.pvCard}>
-                  <div className={styles.pvCardBrand}>כוכב השולחן · {ev.name || "האירוע"}</div>
+                  <div className={styles.pvCardBrand}>{COMPANY.name} · {ev.name || "האירוע"}</div>
                   <div className={styles.pvCardTableName}>{t.name}</div>
                   <div className={styles.pvCardDivider} />
                   <div className={styles.pvCardGuests}>
@@ -1096,7 +1107,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         </div>
 
         <div className={styles.pvFooter}>
-          הופק באמצעות כוכב השולחן · {new Date().toLocaleDateString("he-IL")}
+          הופק באמצעות {COMPANY.name} · {new Date().toLocaleDateString("he-IL")}
         </div>
       </div>
       )}

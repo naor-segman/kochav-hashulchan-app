@@ -23,23 +23,14 @@
    marks. It takes the accent only when it is being reached for. */
 .btn:hover { color: var(--accent-text); }
 
-/* 19x19 measured, on three screens. The mark has to stay small — it sits inline
-   beside a field label and fourteen of them on one form is already a lot — so
-   the HIT area grows and the glyph does not. The wrap is inline-flex and
-   position: relative already, and nothing here clips, so the pseudo-element is
-   safe (unlike in the breadcrumb, where overflow: hidden ate one). */
-@media (pointer: coarse) {
-  .btn { position: relative; }
-  .btn::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 44px;
-    height: 44px;
-  }
-}
+/* The touch-target block that used to sit here was a DUPLICATE — an identical
+   `@media (pointer: coarse)` further down declared the same two rules, and
+   being later it won every one of them. Found by the checklist-24 sweep. Two
+   copies of a hit-area rule is one copy that gets tuned and one that silently
+   does not, and the next person to read this file would have had to diff them
+   to learn which was live. The surviving block is at the bottom, next to the
+   rest of the touch-target notes; its comment carries the 19x19 measurement
+   this one used to. */
 
 .btn:focus-visible {
   outline: 2px solid var(--accent-text);

@@ -4,6 +4,7 @@ import Icon from "../components/ui/Icon.jsx";
 import styles from "./CostScreen.module.css";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
+import { fetchEventGifts, setGiftHidden } from "../utils/publicTokens.js";
 
 const DEFAULT_CATEGORIES = [
   { id: "venue",        name: "אולם",           budget: 0, actual: 0 },
@@ -36,9 +37,15 @@ function fmtNet(n) {
   return (n < 0 ? "−₪" : "+₪") + abs;
 }
 
-export default function CostScreen({ activeEvent: ev, patchEvent }) {
+export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
   const [cats, setCats]    = useState(() => initCategories(ev));
   const [bulkGift, setBulkGift] = useState("");
+  // Gifts a guest declared on the public gift page. Read here and nowhere else
+  // in the app — until now nothing read them at all, so a guest could fill in an
+  // amount, watch it save, and have it reach no one.
+  const [declaredGifts, setDeclaredGifts] = useState([]);
+  const [busyGiftId,    setBusyGiftId]    = useState(null);
+  const [giftsState, setGiftsState] = useState("idle"); // idle | loading | ready | error
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
 
@@ -100,10 +107,54 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
     (ev?.guests ?? []).filter(g => g.rsvp !== "declined" && g.estGift > 0).length, [ev]);
   const nAttending = useMemo(() =>
     (ev?.guests ?? []).filter(g => g.rsvp !== "declined").length, [ev]);
-  const actualIncome = useMemo(() =>
-    (ev?.guests ?? []).reduce((s, g) => s + (g.giftAmount || 0), 0), [ev]);
   const netExpected  = estIncome - totalBudget;
-  const netActual    = actualIncome - totalActual;
+
+  // One read per mount. Not realtime and not polled: a gift arriving while the
+  // host stares at the budget screen is not worth a subscription, and the number
+  // refreshes by opening the screen again.
+  const cloudId = ev?.cloudId;
+  useEffect(() => {
+    if (!cloudId) { setDeclaredGifts([]); setGiftsState("idle"); return; }
+    let cancelled = false;
+    setGiftsState("loading");
+    fetchEventGifts(cloudId)
+      .then(rows => { if (!cancelled) { setDeclaredGifts(rows); setGiftsState("ready"); } })
+      // Swallowed on purpose: this is one section of a budget screen that works
+      // without it. A failed read must not blank the categories, the totals or
+      // the chart — it shows its own line and nothing else changes.
+      .catch(() => { if (!cancelled) { setDeclaredGifts([]); setGiftsState("error"); } });
+    return () => { cancelled = true; };
+  }, [cloudId]);
+
+  const declaredTotal = useMemo(
+    () => declaredGifts.reduce((sum, g) => sum + (g.amountILS || 0), 0),
+    [declaredGifts],
+  );
+
+  /* Take one blessing off the public wall, or put it back.
+   *
+   * Optimistic on purpose: the host is standing in a hall watching a projector
+   * with something on it they want gone, and the wall re-polls every 30
+   * seconds. Waiting for a round trip before the row changes reads as the
+   * button not working, and they press it again.
+   *
+   * On failure the row is put back exactly as it was and the host is told —
+   * silently leaving the UI claiming "מוסתר" while the projector still shows
+   * the blessing is the one outcome worse than doing nothing. */
+  const toggleGiftHidden = async (gift) => {
+    const next = !gift.hidden;
+    setBusyGiftId(gift.id);
+    setDeclaredGifts(rows => rows.map(r => (r.id === gift.id ? { ...r, hidden: next } : r)));
+    try {
+      await setGiftHidden(gift.id, next);
+      showToast?.(next ? "הברכה הוסתרה מהקיר" : "הברכה חזרה לקיר", "ok");
+    } catch {
+      setDeclaredGifts(rows => rows.map(r => (r.id === gift.id ? { ...r, hidden: gift.hidden } : r)));
+      showToast?.("לא הצלחנו לעדכן את הקיר — נסו שוב", "err");
+    } finally {
+      setBusyGiftId(null);
+    }
+  };
 
   // Convenience: set a per-person estimate on every attending guest at once
   // (host can then fine-tune individuals in the guest list).
@@ -138,7 +189,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
   const maxCat = useMemo(
     () => catsWithData.reduce((m, c) => Math.max(m, parseAmt(c.budget), parseAmt(c.actual)), 0),
     [catsWithData]);
-  const maxBig = Math.max(estIncome, actualIncome, totalBudget, totalActual, 1);
+  const maxBig = Math.max(estIncome, declaredTotal, totalBudget, totalActual, 1);
   const pct = (v, max) => (max > 0 ? Math.min(100, (v / max) * 100) : 0) + "%";
 
   return (
@@ -383,7 +434,8 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
         <SectionLabel>הכנסה צפויה ותמונת נטו</SectionLabel>
         <p className={base.fieldHint}>
           "הכנסה צפויה" מסכמת את המתנה המשוערת שהזנתם לכל אורח (במסך האורחים).
-          "הכנסה בפועל" מתמלאת מהמתנות שנרשמות בצ׳ק-אין.
+          {" "}"נרשמו בדף המתנה" הוא מה שאורחים הצהירו עליו בעצמם בקישור המתנה —
+          הצהרה, לא כסף שנספר.
         </p>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", margin: "8px 0 16px" }}>
           <div style={{ flex: "1 1 160px", minWidth: 0 }}>
@@ -407,23 +459,93 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
             <span className={styles.statNum}>{estIncome > 0 ? fmtILS(estIncome) : "—"}</span>
             <span className={styles.statLabel}>הכנסה צפויה</span>
           </div>
-          <div className={styles.stat}>
-            <span className={styles.statNum}>{actualIncome > 0 ? fmtILS(actualIncome) : "—"}</span>
-            <span className={styles.statLabel}>הכנסה בפועל (מתנות)</span>
-          </div>
+          {/* "הכנסה בפועל (מתנות)" used to sit here, summing `g.giftAmount`.
+              NOTHING IN THE CODEBASE EVER WRITES THAT FIELD — the entrance
+              screen's input was removed deliberately, and it is read in three
+              places and set in none. So the stat was structurally ₪0 and
+              rendered "—" on every event that has ever existed, on a screen
+              about money, as the only unexplained figure on it.
+
+              Checklist item 2 established that and deleted only the help text
+              that described it. The dead stat itself stayed, and took "נטו
+              בפועל" down with it: income(always 0) − expenses is the negation
+              of a number already on this screen, so a host who entered ₪12,000
+              of real venue spend read "נטו בפועל −₪12,000" as if the event had
+              lost that money.
+
+              Both are gone. What the screen can honestly say about real money
+              is below: what guests DECLARED on the gift page, and what has
+              actually been spent. */}
+          {/* Deliberately NOT folded into any "actual income" line, for two
+              reasons that both had to hold:
+
+              A declared gift is a DECLARATION, not a receipt. `paid` is false on
+              every row and nothing in the codebase ever sets it true — no card
+              was charged. Calling it actual income would be the product
+              overstating what it knows.
+
+              And a gift row carries no link to a guest, only the free-text name
+              the donor typed, so it can never be reconciled against a per-guest
+              figure. Merging the two sums would be a double count with no way to
+              detect it. */}
+          {giftsState === "ready" && declaredGifts.length > 0 && (
+            <div className={styles.stat}>
+              <span className={styles.statNum}>{fmtILS(declaredTotal)}</span>
+              <span className={styles.statLabel}>
+                נרשמו בדף המתנה ({declaredGifts.length})
+              </span>
+            </div>
+          )}
           <div className={styles.stat}>
             <span className={[styles.statNum, netExpected < 0 ? styles.statOver : ""].join(" ")}>
               {(estIncome > 0 || totalBudget > 0) ? fmtNet(netExpected) : "—"}
             </span>
             <span className={styles.statLabel}>צפי נטו (צפוי − מתוכנן)</span>
           </div>
-          <div className={styles.stat}>
-            <span className={[styles.statNum, netActual < 0 ? styles.statOver : ""].join(" ")}>
-              {(actualIncome > 0 || totalActual > 0) ? fmtNet(netActual) : "—"}
-            </span>
-            <span className={styles.statLabel}>נטו בפועל</span>
-          </div>
+
         </div>
+
+        {/* Who declared what. A total on its own gives the host a number; this
+            tells them whether אמא already sent hers. The amount is the point of
+            the list — this is the one place in the product where it appears, and
+            it is deliberately absent from the blessing wall, which is projected
+            in a room full of people. */}
+        {giftsState === "ready" && declaredGifts.length > 0 && (
+          <ul className={styles.giftList}>
+            {declaredGifts.map(g => (
+              <li key={g.id} className={styles.giftRow}>
+                <span className={[styles.giftName, g.hidden ? styles.giftHidden : ""].filter(Boolean).join(" ")}>
+                  {g.donorName}
+                  {g.hidden && <span className={styles.giftHiddenTag}>מוסתר מהקיר</span>}
+                </span>
+                <span className={styles.giftAmt}>{fmtILS(g.amountILS)}</span>
+                {/* The moderation the wall never had. Anyone the gift link was
+                    forwarded to can put 1,000 characters on a screen in the
+                    hall for a declared ₪5, and until now there was no way to
+                    take it down from anywhere in the product.
+
+                    Hide is the primary action and delete is not offered here:
+                    hiding is reversible mid-party and keeps the host's own
+                    record of what was declared, which is what this screen is
+                    for. */}
+                <button
+                  type="button"
+                  className={styles.giftAction}
+                  onClick={() => toggleGiftHidden(g)}
+                  disabled={busyGiftId === g.id}
+                  aria-label={g.hidden ? `החזרה לקיר: ${g.donorName}` : `הסתרה מהקיר: ${g.donorName}`}
+                >
+                  {busyGiftId === g.id ? "…" : (g.hidden ? "החזירו לקיר" : "הסתירו מהקיר")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {giftsState === "error" && (
+          <p className={base.fieldHint}>
+            לא הצלחנו לטעון את המתנות שנרשמו בדף המתנה. שאר המסך מעודכן — נסו לרענן.
+          </p>
+        )}
 
         {/* Income vs expenses — visual coverage */}
         {(estIncome > 0 || totalBudget > 0) && (
@@ -431,7 +553,12 @@ export default function CostScreen({ activeEvent: ev, patchEvent }) {
             {[
               { label: "הכנסה צפויה", val: estIncome,   cls: styles.barIncome, show: estIncome > 0 },
               { label: "הוצאה מתוכננת", val: totalBudget, cls: styles.barExpense, show: totalBudget > 0 },
-              { label: "הכנסה בפועל", val: actualIncome, cls: styles.barIncome, show: actualIncome > 0 },
+              // Was "הכנסה בפועל" over `actualIncome`, which nothing ever
+              // writes — so `show` was false on every event and the bar has
+              // never once been drawn. What the host actually has is the
+              // declared total, which is real and already labelled as a
+              // declaration everywhere else on this screen.
+              { label: "נרשמו בדף המתנה", val: declaredTotal, cls: styles.barIncome, show: declaredTotal > 0 },
               { label: "הוצאה בפועל", val: totalActual,  cls: styles.barExpense, show: totalActual > 0 },
             ].filter(r => r.show).map((r, i) => (
               <div key={i} className={styles.bigRow}>

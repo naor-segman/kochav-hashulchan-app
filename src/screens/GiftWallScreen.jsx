@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
 import styles from "./GiftWallScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { COMPANY } from "../data/company.js";
 
 // DEV-only preview blessings — shown only when no live event resolves in dev.
 const MOCK_GIFTS = [
@@ -95,7 +96,7 @@ export default function GiftWallScreen() {
     return (
       <div className={styles.root}>
         <header className={styles.topBar}>
-          <span className={styles.logo} aria-label="כוכב השולחן">✦ כוכב השולחן</span>
+          <span className={styles.logo} aria-label={COMPANY.name}>✦ {COMPANY.name}</span>
         </header>
         <main className={styles.content}>
           <div className={styles.empty}>
@@ -111,8 +112,8 @@ export default function GiftWallScreen() {
   return (
     <div className={styles.root}>
       <header className={styles.topBar}>
-        <span className={styles.logo} aria-label="כוכב השולחן">
-          ✦ כוכב השולחן
+        <span className={styles.logo} aria-label={COMPANY.name}>
+          ✦ {COMPANY.name}
         </span>
         <h1 className={styles.eventName}>{eventName}</h1>
         <span className={styles.wallLabel}>קיר ברכות</span>
@@ -145,7 +146,7 @@ export default function GiftWallScreen() {
         <p className={styles.totalLine}>
           {gifts.length > 0
             ? `${gifts.length} ברכות התקבלו 💛`
-            : "כוכב השולחן ✦"}
+            : `${COMPANY.name} ✦`}
         </p>
       </footer>
     </div>

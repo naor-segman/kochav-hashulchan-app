@@ -118,7 +118,7 @@
   text-align: right;
 }
 
-/* Nine of these down the screen. As filled --cta buttons they would be nine
+/* Ten of these down the screen. As filled --cta buttons they would be ten
    primary actions competing with each other, so they take the quiet hairline
    skin. Doubled class name so it beats .btnSm's fill on specificity rather
    than on CSS-module bundling order. */

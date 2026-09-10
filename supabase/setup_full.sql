@@ -1,5 +1,5 @@
 -- ═════════════════════════════════════════════════════════════════════════════
---  FULL DATABASE SETUP — כוכב השולחן
+--  FULL DATABASE SETUP — רוויה
 --
 --  ⚠️  GENERATED FILE. Do not edit by hand.
 --
@@ -3815,3 +3815,504 @@ revoke all on function public.photo_purge_due(integer)   from public, anon, auth
 revoke all on function public.photo_purge_finalize(uuid) from public, anon, authenticated;
 grant execute on function public.photo_purge_due(integer)   to service_role;
 grant execute on function public.photo_purge_finalize(uuid) to service_role;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260818000000_profiles_pin_billing_columns.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- profiles: users can no longer rewrite their own billing identity
+--
+-- THE HOLE. `profiles: users update own` (20260524000000) was written before
+-- billing existed and pins exactly two columns in its WITH CHECK:
+--
+--     WITH CHECK (id = auth.uid()
+--                 AND role = (SELECT p.role FROM public.profiles p
+--                             WHERE p.id = auth.uid()))
+--
+-- `stripe_customer_id` was added four migrations later (20260524000004) with a
+-- UNIQUE constraint and no policy of its own, so it fell straight through that
+-- check — as does `email`. Both are user-writable from the browser today.
+--
+-- Why that matters, precisely:
+--
+--   • create-billing-portal reads `profiles.stripe_customer_id` for the caller
+--     and hands it to `stripe.billingPortal.sessions.create({ customer })`
+--     verbatim. A signed-up user who set that column to somebody else's `cus_…`
+--     gets a genuine Stripe portal for the victim: invoices with billing name
+--     and address, card last-4, and the power to cancel their subscription.
+--   • create-checkout-session seeds the Stripe customer from `profiles.email`.
+--   • The column is UNIQUE, so squatting an id makes the real owner's webhook
+--     write fail — a quiet billing denial of service.
+--
+-- NOT exploitable today: billing is switched off (no publishable key, so the UI
+-- hides) and the app never exposes a `cus_…` anywhere. This is closed BEFORE
+-- checklist item 41 turns the keys on, which is the whole point — a hole like
+-- this is invisible on the day it stops being theoretical.
+--
+-- Both columns stay writable by the SERVICE ROLE, which is what the Edge
+-- Functions use and what legitimately sets them.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+drop policy if exists "profiles: users update own" on public.profiles;
+
+create policy "profiles: users update own"
+  on public.profiles
+  for update
+  using (id = auth.uid())
+  with check (
+    id = auth.uid()
+    -- Every column below is compared to its CURRENT stored value, so an UPDATE
+    -- that leaves it alone passes and one that changes it is refused. Listing
+    -- them by name rather than by exclusion is deliberate: a column added later
+    -- must be considered on purpose, which is exactly what did not happen to
+    -- stripe_customer_id.
+    and role = (
+      select p.role from public.profiles p where p.id = auth.uid()
+    )
+    and stripe_customer_id is not distinct from (
+      select p.stripe_customer_id from public.profiles p where p.id = auth.uid()
+    )
+    and email is not distinct from (
+      select p.email from public.profiles p where p.id = auth.uid()
+    )
+  );
+
+comment on policy "profiles: users update own" on public.profiles is
+  'A user may edit their own profile except role, email and stripe_customer_id. '
+  'The last two feed the Stripe Edge Functions directly; see 20260818000000.';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260818000100_album_objects_cap.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- event-album: an anonymous upload is bounded per event
+--
+-- THE HOLE. `album_objects_insert` (20260728000000) grants INSERT on
+-- storage.objects to `anon` with one test: is the first path segment a real
+-- event id?
+--
+--     with check (bucket_id = 'event-album'
+--                 and public.album_folder_is_event((storage.foldername(name))[1]))
+--
+-- No token, no ceiling. And the event id is not a secret from anyone holding
+-- ANY public link: `public_event_by_token` returns `'id', e.id`. So any guest
+-- who was sent the RSVP, gift, invitation or album link — or anyone they
+-- forwarded it to — could PUT 10MB images into that folder in a loop, straight
+-- onto the storage bill.
+--
+-- The 5000-row cap added in 20260814020000 bounds `album_photos`, the INDEX.
+-- It does not bound `storage.objects`, where the bytes actually live. The two
+-- were never connected: `album_add_photo` writes the row, the client PUTs the
+-- object, and only the first had a limit.
+--
+-- 20260727000001 recorded this as accepted residual risk. Re-ranked now that
+-- there is a paying customer and a storage bill with a name on it.
+--
+-- THE CAP. Same number as the sibling row cap, deliberately — two different
+-- limits on two halves of one operation is how they drift. 5000 objects at the
+-- bucket's 10MB ceiling is the worst case; a real 300-guest wedding uploading
+-- ten photos each is 3000, so this does not touch normal use.
+--
+-- WHAT THIS IS NOT. It is not per-uploader and it is not authentication: one
+-- determined guest can still fill an event's 5000 slots. It converts unbounded
+-- into bounded, which is the difference between "a storage bill" and "one
+-- event's album is spoiled". Real per-guest limiting needs the album token to
+-- reach storage RLS, which it cannot today.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create or replace function public.album_folder_has_room(folder text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  -- `< 5000`, so the 5000th object is accepted and the 5001st is not.
+  select (
+    select count(*) from storage.objects o
+    where o.bucket_id = 'event-album'
+      and (storage.foldername(o.name))[1] = folder
+  ) < 5000;
+$$;
+
+revoke all on function public.album_folder_has_room(text) from public;
+grant execute on function public.album_folder_has_room(text) to anon, authenticated;
+
+drop policy if exists album_objects_insert on storage.objects;
+create policy album_objects_insert
+  on storage.objects for insert to anon, authenticated
+  with check (
+    bucket_id = 'event-album'
+    and public.album_folder_is_event((storage.foldername(name))[1])
+    and public.album_folder_has_room((storage.foldername(name))[1])
+  );
+
+comment on function public.album_folder_has_room(text) is
+  'Is this event album under its 5000-object ceiling? Guards the anonymous '
+  'INSERT policy on storage.objects; see 20260818000100.';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260818000200_drop_payment_fields_from_public_event.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- public_event_by_token: stop broadcasting the host's payment details
+--
+-- THE LEAK. 20260728000000 carefully gated the sibling tokens per token type —
+-- the album QR must not also unlock RSVP — and left these two OUTSIDE the CASE:
+--
+--     'bit_phone', e.payload->>'giftBitPhone',
+--     'paybox_link', e.payload->>'giftPayboxLink',
+--
+-- So every token type received them: `album` and `hostess` included. The album
+-- QR is designed to be photographed off a table in the hall by strangers, and
+-- it was handing out the host's personal Bit number and PayBox link.
+--
+-- AND NOTHING EVER RENDERED THEM. Grepped the whole client: `publicTokens.js`
+-- mapped them into its return value and no screen read the result.
+-- `GiftScreen` states outright why (11.8) — "a peer-to-peer transfer app
+-- charges the HOST the fee on money the product just collected on their
+-- behalf" — so the gift page deliberately has no Bit/PayBox route. The only
+-- other mention is a demo fixture.
+--
+-- A field that nothing displays and everything receives is the easiest kind of
+-- leak to justify closing: this removes them outright rather than adding a
+-- fourth entry to the CASE. The values stay in `events.payload`, so the host's
+-- own copy and the cloud round-trip are untouched — this is only about what an
+-- anonymous token holder is handed.
+--
+-- IF THEY ARE EVER NEEDED AGAIN, put them INSIDE the CASE:
+--     'bit_phone', case when token_type = 'gift' then e.payload->>'giftBitPhone' end
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create or replace function public.public_event_by_token(token_type text, token_value text)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'id', e.id, 'name', e.name, 'type', e.type, 'date', e.date, 'venue', e.venue,
+    'bride_name', e.payload->>'brideName', 'groom_name', e.payload->>'groomName',
+    'celebrant_name', e.payload->>'celebrantName', 'organization_name', e.payload->>'organizationName',
+    'contact_name', e.payload->>'contactName', 'owner_name', e.payload->>'ownerName',
+    -- Only serve the site once the host has published it.
+    'site', case when coalesce((e.payload->'eventSite'->>'enabled')::boolean, false)
+                 then e.payload->'eventSite' else null end,
+    -- Same rule, per announcement kind: a draft never leaves the database.
+    'announcements', (
+      select jsonb_object_agg(k, v)
+        from jsonb_each(coalesce(e.payload->'announcements', '{}'::jsonb)) as a(k, v)
+       where coalesce((v->>'enabled')::boolean, false)
+    ),
+    -- Sibling tokens only where a page actually links onward. The invite page
+    -- is the hub and needs RSVP; the RSVP page links back to the site. The
+    -- album and gift pages link to neither, so they get neither. hostess_token
+    -- and collab_token are never exposed here — they unlock the full guest list
+    -- with phone numbers.
+    'rsvp_token',   case when token_type in ('invite', 'rsvp') then e.rsvp_token   end,
+    'gift_token',   case when token_type in ('invite', 'gift') then e.gift_token   end,
+    'invite_token', case when token_type in ('invite', 'rsvp') then e.invite_token end)
+  from public.events e
+  where token_value is not null and char_length(token_value) >= 8
+    and case token_type
+      when 'rsvp'    then e.rsvp_token    = token_value
+      when 'invite'  then e.invite_token  = token_value
+      when 'gift'    then e.gift_token    = token_value
+      when 'hostess' then e.hostess_token = token_value
+      when 'album'   then e.payload->>'albumToken' = token_value
+      else false end
+  limit 1;
+$$;
+revoke all on function public.public_event_by_token(text, text) from public;
+grant execute on function public.public_event_by_token(text, text) to anon, authenticated;
+
+comment on function public.public_event_by_token(text, text) is
+  'Public event data for one token. Serves no payment details: see 20260818000200.';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260818000300_gift_wall_moderation.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- The blessing wall gets a moderator: the host
+--
+-- THE HOLE. `submit_gift_by_token` is granted to `anon`, requires only a name
+-- and an amount of at least ₪5, and stores a 1,000-character free-text message.
+-- `gift_wall_by_token` returns EVERY row with no filter at all. The wall polls
+-- every 30 seconds and is designed to be projected on a screen in the hall.
+--
+-- So anyone holding the gift link — the whole WhatsApp group, and anyone they
+-- forwarded it to — could put arbitrary text on the wall at somebody's wedding
+-- for a declaration of ₪5 that nobody ever collects. And the host had no way to
+-- take it down: `gifts` has an owner SELECT policy and nothing else, so there
+-- was no delete path from anywhere in the product.
+--
+-- Checklist item 1 gave the wall a share link, which made it likelier to be
+-- used, and item 2 gave the host a read of the same rows. Neither noticed that
+-- the row could not be removed.
+--
+-- THE FIX, in three parts:
+--
+--   • `hidden` — the host takes a blessing off the wall while keeping the
+--     record. Moderation should not destroy the host's own money list, and a
+--     mistaken hide has to be reversible.
+--   • the wall filters on it.
+--   • owner UPDATE and DELETE policies, so the host can hide, unhide, or remove
+--     outright. Scoped through `events.user_id` exactly like the SELECT policy
+--     they sit beside.
+--
+-- `hidden` defaults to false: the wall is opt-out, not opt-in. A host cannot
+-- pre-approve blessings arriving during their own wedding, and a wall that
+-- shows nothing until someone presses a button is a wall that shows nothing.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+alter table public.gifts
+  add column if not exists hidden boolean not null default false;
+
+comment on column public.gifts.hidden is
+  'Host took this blessing off the public wall. The row is kept — it is still '
+  'their record of a declared gift. See 20260818000300.';
+
+-- Every wall read goes through this one function, so filtering here is the
+-- whole enforcement. The index keeps the projector query cheap on an event with
+-- thousands of rows.
+create index if not exists gifts_event_visible_idx
+  on public.gifts (event_id, created_at desc)
+  where not hidden;
+
+create or replace function public.gift_wall_by_token(token_value text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'id',         g.id,
+      'donor_name', g.donor_name,
+      'message',    g.message,
+      'created_at', g.created_at
+    ) order by g.created_at desc)
+    from public.gifts g
+    where g.event_id = e.id
+      and not g.hidden
+  ), '[]'::jsonb)
+  from public.events e
+  where token_value is not null
+    and char_length(token_value) >= 8
+    and e.gift_token = token_value
+  limit 1;
+$$;
+
+revoke all on function public.gift_wall_by_token(text) from public;
+grant execute on function public.gift_wall_by_token(text) to anon, authenticated;
+
+comment on function public.gift_wall_by_token(text) is
+  'Blessings for the public wall. Skips rows the host has hidden; see 20260818000300.';
+
+-- ── The host's controls ──────────────────────────────────────────────────────
+--
+-- Deliberately NOT granted to anon: these are authenticated, and scoped to
+-- events the caller owns. `gifts_owner_select` already establishes that shape.
+grant update, delete on public.gifts to authenticated;
+
+drop policy if exists "gifts_owner_update" on public.gifts;
+create policy "gifts_owner_update"
+  on public.gifts for update to authenticated
+  using (exists (
+    select 1 from public.events e where e.id = gifts.event_id and e.user_id = auth.uid()
+  ))
+  -- The same test in WITH CHECK, so a host cannot move a blessing onto somebody
+  -- else's wall by rewriting event_id.
+  --
+  -- Measured: `gifts_owner_select` already refuses that move on its own, so
+  -- this clause is not currently what stops it. It stays regardless — a
+  -- guarantee that rests on a sibling policy nobody remembers is a guarantee
+  -- that vanishes the day that policy is edited — but it is stated here as
+  -- defence in depth rather than as the load-bearing check, because that is
+  -- what it measured as.
+  with check (exists (
+    select 1 from public.events e where e.id = gifts.event_id and e.user_id = auth.uid()
+  ));
+
+drop policy if exists "gifts_owner_delete" on public.gifts;
+create policy "gifts_owner_delete"
+  on public.gifts for delete to authenticated
+  using (exists (
+    select 1 from public.events e where e.id = gifts.event_id and e.user_id = auth.uid()
+  ));
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260830000000_rebrand_product_name.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+--  Rebrand — app_settings.product_name
+--  Checklist 11. Runs after 20260818000300.
+-- =============================================================================
+--
+--  WHAT THIS IS FOR
+--  The brand name was decided on 30.8: "רוויה". Everywhere the product renders
+--  it, it now reads COMPANY.name from src/data/company.js — one source, and a
+--  test that fails if anyone spells it out again.
+--
+--  The database is the one place that change cannot reach. `app_settings` was
+--  created by 20260524000002 with the old name as BOTH a column default and a
+--  seeded value, and that row is what the admin Settings screen loads and
+--  displays. Without this migration the admin panel keeps showing a brand that
+--  no longer exists anywhere else in the product.
+--
+--  WHY NOT EDIT THE ORIGINAL MIGRATION
+--  20260524000002 has already run in production. A migration that has run is
+--  history — editing it changes what a fresh database gets while leaving the
+--  live one untouched, which is precisely how setup_full.sql fell seven
+--  migrations behind and came up with holes nobody could see. New file, always.
+--
+--  SAFE TO RE-RUN. Both statements are idempotent, and the UPDATE deliberately
+--  touches ONLY rows still holding the old string — if an operator has already
+--  typed a different name into the Settings screen, that is a real choice and
+--  this migration must not overwrite it.
+-- =============================================================================
+
+-- 1. The column default, for any future row.
+ALTER TABLE public.app_settings
+  ALTER COLUMN product_name SET DEFAULT 'רוויה';
+
+-- 2. The seeded singleton the admin screen actually reads.
+UPDATE public.app_settings
+   SET product_name = 'רוויה'
+ WHERE product_name = 'כוכב השולחן';
+
+-- Verify (expects one row, product_name = 'רוויה'):
+--   SELECT id, product_name FROM public.app_settings;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260830000100_feedback.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Feedback from pilot users.  Checklist 25.
+--
+-- `error_reports` (20260730000002) catches what CRASHES. This catches what is
+-- merely wrong: the button nobody finds, the wording that misleads, the step
+-- that works and is still the wrong step. Those never throw, so no amount of
+-- error reporting surfaces them — the only way they reach the owner is if
+-- somebody types them, and the only way somebody types them is if there is
+-- somewhere to type.
+--
+-- WHY NOT A mailto:
+-- The account screen already had one. It depends on the reader having a mail
+-- client configured, it silently does nothing on a lot of phones, it arrives
+-- with no context about which screen or which browser — and today it points at
+-- a domain with no mailbox behind it (checklist 13), so it goes nowhere at all.
+-- A row in a table works now, and arrives with the context attached.
+--
+-- Deliberately shaped like error_reports: same guards, same admin-only reads,
+-- same anonymous write path through an RPC. A second pattern for the same job
+-- is a second thing to get wrong.
+--
+-- PRIVACY: the route is scrubbed of public tokens client-side before it is
+-- sent (src/utils/errorReport.js `scrubRoute`) — a token in a URL is a
+-- credential and this table is read by the admin panel. `contact` is optional
+-- and typed by the person on purpose; nothing else identifying is collected.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.feedback (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  user_id     uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
+  kind        text        NOT NULL DEFAULT 'other',
+  message     text        NOT NULL,
+  contact     text,
+  route       text,
+  user_agent  text,
+  seen        boolean     NOT NULL DEFAULT false
+);
+
+CREATE INDEX IF NOT EXISTS feedback_created_idx ON public.feedback (created_at DESC);
+CREATE INDEX IF NOT EXISTS feedback_unseen_idx  ON public.feedback (seen, created_at DESC);
+
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+
+-- No direct access for anybody. Writes go through the RPC below, reads are
+-- admin-only — feedback can carry a phone number the sender typed in.
+CREATE POLICY "feedback_admin_select" ON public.feedback
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+  );
+
+CREATE POLICY "feedback_admin_update" ON public.feedback
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+  );
+
+CREATE POLICY "feedback_admin_delete" ON public.feedback
+  FOR DELETE USING (
+    EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+  );
+
+-- ── The write path ───────────────────────────────────────────────────────────
+-- Callable by anyone. A guest who opens an RSVP link has no session, and the
+-- guest screens are exactly where a confusing step costs the host a reply.
+--
+-- Guards, because an endpoint anonymous callers can write to is an endpoint
+-- someone will flood:
+--   • every field length-bounded here, not trusted from the client;
+--   • `kind` narrowed to the three the form offers — anything else is 'other';
+--   • the same message from the same sender inside 10 minutes is a double-tap
+--     on the submit button, not a second opinion;
+--   • a global ceiling of 100 rows per hour.
+--
+-- Returns boolean rather than void so the screen can tell "we stored it" from
+-- "we dropped it", and say something true either way.
+CREATE OR REPLACE FUNCTION public.submit_feedback(
+  p_kind       text,
+  p_message    text,
+  p_contact    text DEFAULT NULL,
+  p_route      text DEFAULT NULL,
+  p_user_agent text DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_message text := nullif(trim(coalesce(p_message, '')), '');
+  v_kind    text := lower(trim(coalesce(p_kind, '')));
+  v_route   text := left(coalesce(p_route, ''), 200);
+BEGIN
+  IF v_message IS NULL THEN RETURN false; END IF;
+  v_message := left(v_message, 4000);
+
+  IF v_kind NOT IN ('bug', 'idea', 'other') THEN
+    v_kind := 'other';
+  END IF;
+
+  -- Double-tap, not a second opinion.
+  IF EXISTS (
+    SELECT 1 FROM public.feedback
+    WHERE message = v_message
+      AND user_id IS NOT DISTINCT FROM auth.uid()
+      AND created_at > now() - interval '10 minutes'
+  ) THEN
+    RETURN true;   -- already have it; the sender should not be told otherwise
+  END IF;
+
+  IF (SELECT count(*) FROM public.feedback WHERE created_at > now() - interval '1 hour') >= 100 THEN
+    RETURN false;
+  END IF;
+
+  INSERT INTO public.feedback (user_id, kind, message, contact, route, user_agent)
+  VALUES (
+    auth.uid(),
+    v_kind,
+    v_message,
+    nullif(left(trim(coalesce(p_contact, '')), 200), ''),
+    v_route,
+    left(coalesce(p_user_agent, ''), 300)
+  );
+  RETURN true;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.submit_feedback(text, text, text, text, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.submit_feedback(text, text, text, text, text) TO anon, authenticated;

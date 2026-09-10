@@ -42,7 +42,7 @@ async function clearStorage(page) {
   const signupLink = await page.$('a[href="/signup"]');
   log('Auth: Guest mode UI', signupLink ? 'PASS' : 'FAIL', signupLink ? null : '"הצטרף חינם" link missing');
 
-  const onboarding = await page.locator('text=כוכב השולחן').first().isVisible();
+  const onboarding = await page.locator('text=רוויה').first().isVisible();
   log('Auth: Guest onboarding visible', onboarding ? 'PASS' : 'FAIL');
 
   // ─── 2. SIGNUP SCREEN ──────────────────────────────────────────────────────

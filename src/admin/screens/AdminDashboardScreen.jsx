@@ -5,6 +5,8 @@ import styles from "./AdminDashboardScreen.module.css";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
+import { NAV_ITEMS } from "../lib/adminNav.js";
+import { COMPANY } from "../../data/company.js";
 
 // Stat tile definitions — key maps to the stats object returned by fetchStats().
 // `mark` is a key into components/ui/SectionMark — the same drawings the
@@ -16,18 +18,6 @@ const STAT_DEFS = [
   { mark: "adminEvents",        label: "אירועים",       key: "events" },
   { mark: "adminTemplates",     label: "תבניות",        key: "templates" },
   { mark: "adminSubscriptions", label: "מנויים פעילים", key: "subscriptions" },
-];
-
-// live: true  → rendered as a real Link (route exists)
-// phase: "N"  → rendered as a static item with a phase badge (not built yet)
-const NAV_ITEMS = [
-  { mark: "adminUsers",         label: "ניהול משתמשים",   path: "/admin/users",         live: true },
-  { mark: "adminEvents",        label: "כל האירועים",     path: "/admin/events",        live: true },
-  { mark: "adminTemplates",     label: "ניהול תבניות",    path: "/admin/templates",     live: true },
-  { mark: "adminSubscriptions", label: "מנויים ותשלומים", path: "/admin/subscriptions", live: true },
-  { mark: "adminActivity",      label: "יומן פעילות",     path: "/admin/activity",      live: true },
-  { mark: "alert",              label: "שגיאות",          path: "/admin/errors",        live: true },
-  { mark: "adminSettings",      label: "הגדרות מערכת",   path: "/admin/settings",      live: true },
 ];
 
 // Run all four count queries in parallel.
@@ -102,7 +92,7 @@ export default function AdminDashboardScreen() {
           <SectionMark name="adminOverview" tone="admin" size={20} className={styles.brandMark} />
           <span className={styles.brandName}>לוח בקרה</span>
           <span className={styles.brandSep}>·</span>
-          <span className={styles.brandSub}>כוכב השולחן</span>
+          <span className={styles.brandSub}>{COMPANY.name}</span>
           {/* Was green and unconditional — it stayed green with a red error
               banner underneath and every tile showing "—". */}
           {!loading && !statsError && (
@@ -195,7 +185,7 @@ export default function AdminDashboardScreen() {
                 <li key={item.path} className={styles.navItem}>
                   <span className={styles.navIcon}><SectionMark name={item.mark} tone="admin" size={22} /></span>
                   <span className={styles.navLabel}>{item.label}</span>
-                  <span className={styles.navPhase}>Phase {item.phase}</span>
+                  <span className={styles.navPhase}>{item.badge}</span>
                 </li>
               )
             )}

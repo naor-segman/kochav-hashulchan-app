@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { SHARE_GROUPS } from "../components/share/shareLinks.js";
+import { SHARE_GROUPS, shareUrl } from "../components/share/shareLinks.js";
 import { useShareGate } from "../components/share/useShareGate.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -8,11 +8,12 @@ import SectionLabel from "../components/ui/SectionLabel.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./ShareLinksScreen.module.css";
+import { track, EVENTS } from "../lib/analytics.js";
 
 /* ── The links, on a screen of their own ──────────────────────────────────────
  *
  * They lived at the bottom of פרטי האירוע: a form about the couple's names, the
- * date and the venue, with the eight things their GUESTS receive stapled
+ * date and the venue, with the things their GUESTS receive stapled
  * underneath. The decision to move them was taken twice and carried out
  * neither time.
  *
@@ -36,6 +37,9 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
   const copyLink = useCallback(async (key, url) => {
     try {
       await navigator.clipboard.writeText(url);
+      // `key` is which link (rsvp / invite / album …). The URL itself is never
+      // sent: it carries the token, and a token is a credential.
+      track(EVENTS.SHARE_COPIED, { link: key });
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(k => (k === key ? null : k)), 2000);
     } catch {
@@ -76,7 +80,11 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
           <ul className={styles.list}>
             {group.links.map(sl => {
               const token = ev.tokens?.[sl.tokenKey] || "";
-              const url   = origin + sl.path + token;
+              // Built by shareLinks.js, not here — see shareUrl's comment. When
+              // this was an inline concatenation the test re-implemented it,
+              // and the suffix could be deleted from this line with the whole
+              // suite still green.
+              const url   = shareUrl(sl, origin, token);
               return (
                 <li key={sl.key} className={styles.row}>
                   <span className={styles.rowMark}>
