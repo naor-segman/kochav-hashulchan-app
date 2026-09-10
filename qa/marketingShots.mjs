@@ -224,6 +224,10 @@ const FRAMES = [
   { name: "rsvps",       path: "/events/e1/rsvps" },
   // ── Service page 2: the event site and the invitation ────────────────────
   { name: "site-editor", path: "/events/e1/site" },
+  // ── Service page 3: planning ─────────────────────────────────────────────
+  { name: "tasks",       path: "/events/e1/tasks" },
+  { name: "costs",       path: "/events/e1/costs" },
+  { name: "vendors",     path: "/events/e1/vendors" },
 ];
 
 const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
@@ -362,19 +366,27 @@ try {
     // Read the brand back OUT OF THE PAGE rather than trusting that the rebrand
     // reached this screen. The whole reason for this harness is a set of images
     // that carried a stale name for eleven days without anyone noticing.
-    const stale = await page.evaluate(() => document.body.innerText.includes("כוכב השולחן"));
+    const bodyText = await page.evaluate(() => document.body.innerText);
+    const stale = bodyText.includes("כוכב השולחן");
 
     /* Any frame that still shows a locked or empty state is a marketing image of
      * the product refusing to work. Both of these have already been shipped
      * once by this file. */
-    const blocked = await page.evaluate(() => {
-      const t = document.body.innerText;
+    const blocked = (() => {
       for (const s of ["הקישור נפתח אחרי פתיחת חשבון", "הקישורים ממתינים לחשבון",
                        "האתר בהכנה", "הדף עדיין לא פורסם", "הקישור אינו תקין"]) {
-        if (t.includes(s)) return s;
+        if (bodyText.includes(s)) return s;
       }
       return null;
-    });
+    })();
+
+    /* An EMPTY frame is as useless as a locked one and the guard above did not
+     * catch it: the budget screen shot came back with every figure a dash and
+     * every category row a zero, because the seed had no costs in it. A
+     * marketing image of an empty form says the product does nothing. Each
+     * frame that has something specific to prove names it here, and the run
+     * fails if the rendered page does not contain it. */
+    const missing = (f.expect || []).filter(t => !bodyText.includes(t));
 
     /* Two separate ways this file has already produced a wrong image, both of
      * which look like a deliberate crop rather than a bug:
@@ -386,9 +398,12 @@ try {
     const want = `${1200 * 2}x${H * 2}`;
     const got  = `${size.w}x${size.h}`;
     const bad  = got !== want;
-    console.log(`${stale ? "STALE-BRAND" : bad ? "WRONG-SIZE" : blocked ? "LOCKED-STATE" : "ok"}  ${f.name}.jpg  ` +
-      `(y=${y}, ${got}${bad ? ` — expected ${want}` : ""}${blocked ? ` — "${blocked}"` : ""})`);
-    if (stale || bad || blocked) process.exitCode = 1;
+    const flag = stale ? "STALE-BRAND" : bad ? "WRONG-SIZE"
+      : blocked ? "LOCKED-STATE" : missing.length ? "EMPTY-FRAME" : "ok";
+    console.log(`${flag}  ${f.name}.jpg  (y=${y}, ${got}` +
+      `${bad ? ` — expected ${want}` : ""}${blocked ? ` — "${blocked}"` : ""}` +
+      `${missing.length ? ` — missing ${JSON.stringify(missing)}` : ""})`);
+    if (flag !== "ok") process.exitCode = 1;
   }
 
   console.log(`\nseeded: ${guests.length} rows · ${totalSeats} seats · ${tables.length} tables · ${EVENT.constraints.length} constraints`);
