@@ -23,6 +23,7 @@ const ROUTES = [
   '/events/e1/tasks', '/events/e1/announce', '/events/e1/vendors',
   '/events/e1/messages', '/events/e1/nametags', '/events/e1/checkin',
   '/rsvp/r1', '/invite/i1', '/gift/gi1', '/card/i1',
+  '/services/seating',   // checklist 87
 ];
 for (const route of ROUTES) {
   await p.goto('http://127.0.0.1:5188'+route,{waitUntil:'domcontentloaded'});

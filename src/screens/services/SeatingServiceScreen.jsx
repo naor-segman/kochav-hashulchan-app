@@ -51,7 +51,12 @@ const STEPS = [
   {
     n: "01",
     title: "מכניסים את האורחים",
-    body: "ידנית, בהדבקה מוואטסאפ, מאקסל — או פשוט שולחים למשפחה טבלה שיתופית וכולם ממלאים יחד. שם, טלפון, כמה מקומות, איזה צד ואיזו קבוצה.",
+    /* NOT "מאקסל". Importing a spreadsheet does not exist — checklist 64 is
+       still open, and the xlsx dependency on that screen is for the EXPORT.
+       Pasting a list does work, including a column copied out of a sheet, so
+       that is what this says. The landing page was already careful here
+       ("הדביקו רשימה מוואטסאפ או מגיליון"); this line was not. */
+    body: "ידנית, או בהדבקה של רשימה שלמה — מקבוצת וואטסאפ או מעמודה בגיליון. אפשר גם לשלוח למשפחה טבלה שיתופית וכולם ממלאים יחד. שם, טלפון, כמה מקומות, איזה צד ואיזו קבוצה.",
     img: "/shots/guests.jpg",
     alt: "מסך האורחים — 58 רשומות עם צד, קבוצה, מספר מקומות וסטטוס אישור הגעה",
   },
@@ -87,11 +92,19 @@ const DEPTH = [
   },
   {
     title: "אם מישהו לא נכנס — אומרים לכם",
-    body: "המערכת לא ממציאה פתרון ולא דוחפת אורח לשולחן מלא. היא אומרת בדיוק מי נשאר בחוץ ולמה, ואתם מחליטים.",
+    /* True as written: SeatingScreen keeps an `unassigned` list and renders a
+       "ממתינים לשיבוץ" panel with those guests by name, and the run reports the
+       count. It does NOT explain a per-guest reason, so this does not claim
+       one — the earlier draft said "בדיוק מי נשאר בחוץ ולמה". */
+    body: "המערכת לא ממציאה פתרון ולא דוחפת אורח לשולחן מלא. מי שלא נכנס נשאר ברשימת הממתינים, בשמו, ואתם מחליטים מה לעשות איתו.",
   },
   {
-    title: "אילוץ סותר לא נבלע בשקט",
-    body: "ביקשתם ששניים ישבו יחד וגם בנפרד? תקבלו על זה התרעה, לא הושבה מוזרה שתגלו באולם.",
+    title: "אילוץ סותר בכלל לא נכנס",
+    /* The behaviour is a BLOCK at entry, not a warning at seating time:
+       ConstraintsScreen refuses the second constraint and says an opposite one
+       already exists. The earlier draft implied the clash survives until the
+       run, which would have been a promise about a different product. */
+    body: "תנסו לומר ששניים יושבים יחד אחרי שאמרתם שהם בנפרד — והמערכת פשוט לא תוסיף אותו, ותבקש שתסירו את ההפוך קודם. הסתירה נעצרת בהזנה, לא מתגלה באולם.",
   },
   {
     title: "מי שסירב לא תופס מקום",
@@ -123,7 +136,10 @@ export default function SeatingServiceScreen({ user = null }) {
           <p className={styles.lead}>
             מזינים את רשימת האורחים, מסמנים מי חייב לשבת יחד ומי בשום אופן לא —
             ולוחצים פעם אחת. {COMPANY.name} בונה את כל האולם בשניות, מכבדת כל
-            אילוץ, וממלאת כל שולחן עד הקיבולת שלו.
+            {/* "וממלאת כל שולחן עד הקיבולת שלו" was the earlier line, and it
+                promises the wrong thing — the engine RESPECTS capacity, it does
+                not pack every table to the brim. */}
+            {" "}אילוץ, ולא חורגת מהקיבולת של אף שולחן.
           </p>
           <div className={styles.heroActions}>
             <Link to="/signup" className={styles.cta}>נסו בחינם ←</Link>
