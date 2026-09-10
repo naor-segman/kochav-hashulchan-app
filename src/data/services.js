@@ -52,7 +52,7 @@ export const SERVICES = [
     label: "אישורי הגעה",
     blurb: "וואטסאפ, תזכורות וסבבי שיחות",
     when: "לקראת האירוע",
-    live: false,
+    live: true,
   },
   {
     id: "planning",

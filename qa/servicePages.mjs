@@ -25,7 +25,7 @@ const { chromium } = require("playwright");
 
 const PORT = 4341;
 const BASE = `http://127.0.0.1:${PORT}`;
-const ROUTES = ["/services/seating", "/services/event-site", "/services/planning"];
+const ROUTES = ["/services/seating", "/services/event-site", "/services/planning", "/services/rsvp"];
 const WIDTHS = [320, 360, 390, 414, 768, 1024, 1280, 1440];
 
 const results = [];

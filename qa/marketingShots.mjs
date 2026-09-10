@@ -247,7 +247,6 @@ const FRAMES = [
   { name: "constraints", path: "/events/e1/constraints", anchor: "חייבים לשבת יחד" },
   { name: "tables",      path: "/events/e1/tables",      anchor: "השולחנות שלי" },
   { name: "checkin",     path: "/events/e1/checkin" },
-  { name: "rsvps",       path: "/events/e1/rsvps" },
   // ── Service page 2: the event site and the invitation ────────────────────
   { name: "site-editor", path: "/events/e1/site" },
   // ── Service page 3: planning ─────────────────────────────────────────────
@@ -403,7 +402,12 @@ try {
      * once by this file. */
     const blocked = (() => {
       for (const s of ["הקישור נפתח אחרי פתיחת חשבון", "הקישורים ממתינים לחשבון",
-                       "האתר בהכנה", "הדף עדיין לא פורסם", "הקישור אינו תקין"]) {
+                       "האתר בהכנה", "הדף עדיין לא פורסם", "הקישור אינו תקין",
+                       // Added after rsvps.jpg was saved showing nothing but this
+                       // banner. Any screen whose content comes from Supabase
+                       // degrades to it in a build with no .env, and the result
+                       // is a marketing image of an empty page.
+                       "סנכרון ענן אינו מוגדר", "האירוע עדיין לא סונכרן"]) {
         if (bodyText.includes(s)) return s;
       }
       return null;

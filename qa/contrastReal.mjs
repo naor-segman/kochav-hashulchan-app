@@ -55,7 +55,7 @@ const SCREENS = [
   // Service pages (checklist 87). Added here rather than in a new tool: this is
   // where 'what the browser actually paints' is measured, and a marketing page
   // is where a wrong pairing is seen by someone who is not a customer yet.
-  ['svc-seating', '/services/seating'], ['svc-site', '/services/event-site'], ['svc-plan', '/services/planning'],
+  ['svc-seating', '/services/seating'], ['svc-site', '/services/event-site'], ['svc-plan', '/services/planning'], ['svc-rsvp', '/services/rsvp'],
 ];
 
 const b = await chromium.launch({
