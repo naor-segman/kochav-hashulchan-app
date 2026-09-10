@@ -55,7 +55,7 @@ const CHASE = [
 /* The guest's actual flow, in order, with the product's own button labels. */
 const GUEST_FLOW = [
   { n: "01", title: "לוחצים על הקישור", body: "נפתח בדפדפן של הטלפון. בלי הרשמה, בלי סיסמה, בלי להוריד שום דבר." },
-  { n: "02", title: "בוחרים תשובה", body: "‏כן, אגיע בשמחה · עדיין לא בטוח/ה · לא אוכל להגיע. מי שלא מגיע — משאיר שם וזהו, שתי לחיצות והוא סיים." },
+  { n: "02", title: "בוחרים תשובה", body: "‏כן, אגיע בשמחה · עדיין לא בטוח/ה · לא אוכל להגיע. מי שלא מגיע נשאל רק לשם — בלי טלפון, בלי כמות, בלי מנה — ומסיים שם." },
   { n: "03", title: "ממלאים את הפרטים", body: "שם, טלפון אם בא להם, וכמה מגיעים. הזינו יותר מאחד? נפתחות שורות לשמות הנלווים — ואפשר גם לשלוח בלי, ולהשלים אחר כך." },
   { n: "04", title: "מנה והסעה, אם רלוונטי", body: "מנה מיוחדת מוצעת רק למי שאישר, והסעה מופיעה רק אם פרסמתם מסלולים. אורח שלא צריך אותן לא רואה אותן בכלל." },
 ];
@@ -64,7 +64,10 @@ const HOST_SIDE = [
   { title: "התשובה מתחברת לאורח הנכון", body: "ההתאמה נעשית לפי הטלפון, ואם אין — לפי שם. מה שהתאים מתעדכן ברשימה; מה שלא, מחכה לכם בלחיצה אחת של \"הוסיפו לרשימה\"." },
   { title: "כמה מנות להזמין", body: "המערכת מחשבת תחזית מנות מהמאשרים, עם מקדם אי-הגעה שאתם קובעים. זה המספר שהאולם מבקש." },
   { title: "מי נרשם להסעות", body: "אם פרסמתם הסעות — תראו כמה מקומות נתפסו בכל נקודת איסוף." },
-  { title: "מנה מיוחדת נשמרת על האורח", body: "טבעוני, כשר מהדרין, ילדים — נכנס לשורה של האורח ויוצא איתו לאקסל ולכרטיסי השם." },
+  /* Meal IS a column in the Excel export (exportHelpers.js — "מנה"), and is
+     NOT on the printed name tags: NameTagsScreen has no mention of it. The
+     first draft claimed both. */
+  { title: "מנה מיוחדת נשמרת על האורח", body: "טבעוני, כשר מהדרין, ילדים — נכנס לשורה של האורח ברשימה, ויוצא איתו בייצוא לאקסל." },
 ];
 
 /* The six-stage sequence — content, audiences and the tracker all exist. */
@@ -118,7 +121,8 @@ export default function RsvpServiceScreen({ user = null }) {
           </h1>
           <p className={styles.lead}>
             קישור אחד שנשלח בוואטסאפ, ונפתח אצל האורח בלי הרשמה ובלי אפליקציה.
-            שלוש לחיצות והוא סיים — ואתם מקבלים מספר אמיתי במקום ספירה בראש.
+            הוא בוחר תשובה, כותב שם, ושולח — ואתם מקבלים מספר אמיתי במקום ספירה
+            בראש.
           </p>
           <div className={styles.heroActions}>
             <Link to="/signup" className={styles.cta}>התחילו לאסוף אישורים ←</Link>
@@ -153,7 +157,7 @@ export default function RsvpServiceScreen({ user = null }) {
       {/* ── The guest's side ── */}
       <section className={styles.proof} id="flow">
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>מה האורח עושה — ארבעה מסכים, חצי דקה</h2>
+          <h2 className={styles.h2}>מה האורח עושה — פחות מדקה</h2>
           <p className={styles.proofSub}>
             האורח לא פותח חשבון ולא מוריד כלום. הוא לוחץ על קישור, ורואה את שם
             האירוע, התאריך והמקום — ואז שלושה כפתורים.
