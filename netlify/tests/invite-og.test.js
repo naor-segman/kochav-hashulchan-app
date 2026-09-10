@@ -1,7 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import handler from "./invite-og.js";
+import handler from "../edge-functions/invite-og.js";
 
-/* THE BUG: this function has never worked. Not "worked and then regressed" —
+/* ⚠️ THIS FILE MUST NOT LIVE IN `netlify/edge-functions/`.
+ *
+ * Netlify deploys EVERY top-level file in that directory as an edge function
+ * and bundles it for Deno. This file was written there, and `import ... from
+ * "vitest"` is a bare specifier Deno cannot resolve — so the bundler failed and
+ * **every Netlify build of the branch died at "building site", exit code 2**,
+ * from the commit that added it until it was moved. `npm run build` passes on a
+ * clean clone on Netlify's own Node 20: the edge bundler is the one part of the
+ * deploy that never runs locally, which is exactly why it went unnoticed.
+ *
+ * `netlify/tests/edgeFunctionsDir.test.js` now fails if anything but a real
+ * edge function is put back in there.
+ *
+ * ── THE BUG THIS FILE IS ABOUT ──────────────────────────────────────────────
+ * The function has never worked. Not "worked and then regressed" —
  * never, on any /invite/ link ever shared.
  *
  * Line 70 read `const out = html…` and `html` was not defined anywhere in the
