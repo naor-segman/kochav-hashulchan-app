@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import SiteHeader from "../components/layout/SiteHeader.jsx";
 import { Link, useLocation } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./LandingScreen.module.css";
-import { COMPANY, contactMailto } from "../data/company.js";
+import { contactMailto } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import { MOCK_TABLES, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
 
@@ -171,9 +172,6 @@ const PRICING_PLANS = [
 ];
 
 export default function LandingScreen() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const closeMenu = () => setMenuOpen(false);
-
   // ── Arriving with a #hash ───────────────────────────────────────────────────
   //
   // The browser's own hash scrolling does not work on this page, and only
@@ -239,48 +237,7 @@ export default function LandingScreen() {
 
   return (
     <div className={styles.root}>
-      {/* ── Nav ── */}
-      <header className={styles.nav}>
-        <div className={styles.navInner}>
-          <Link to="/" className={styles.navLogo}>
-            <span className={styles.navLogoMark}>✦</span>
-            <span className={styles.navLogoName}>{COMPANY.name}</span>
-          </Link>
-
-          <div className={styles.navLinks}>
-            <a href="#features" className={styles.navLink}>תכונות</a>
-            <a href="#how" className={styles.navLink}>איך זה עובד</a>
-            <Link to="/pricing" className={styles.navLink}>מחירים</Link>
-          </div>
-
-          <div className={styles.navActions}>
-            <Link to="/login" className={styles.navLoginBtn}>כניסה</Link>
-            <Link to="/signup" className={styles.navCta}>התחילו חינם</Link>
-          </div>
-
-          <button
-            type="button"
-            className={styles.navBurger}
-            aria-label={menuOpen ? "סגירת תפריט" : "פתיחת תפריט"}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen(o => !o)}
-          >
-            <span className={[styles.burgerBar, menuOpen && styles.burgerBar1].filter(Boolean).join(" ")} />
-            <span className={[styles.burgerBar, menuOpen && styles.burgerBar2].filter(Boolean).join(" ")} />
-            <span className={[styles.burgerBar, menuOpen && styles.burgerBar3].filter(Boolean).join(" ")} />
-          </button>
-        </div>
-
-        {menuOpen && (
-          <div className={styles.mobileMenu}>
-            <a href="#features" className={styles.mobileLink} onClick={closeMenu}>תכונות</a>
-            <a href="#how" className={styles.mobileLink} onClick={closeMenu}>איך זה עובד</a>
-            <Link to="/pricing" className={styles.mobileLink} onClick={closeMenu}>מחירים</Link>
-            <Link to="/login" className={styles.mobileLink} onClick={closeMenu}>כניסה</Link>
-            <Link to="/signup" className={styles.mobileMenuCta} onClick={closeMenu}>התחילו חינם ←</Link>
-          </div>
-        )}
-      </header>
+      <SiteHeader />
 
       {/* ── Hero ── */}
       <section className={[styles.hero, hasHeroMedia ? styles.heroCinematic : ""].filter(Boolean).join(" ")}>
