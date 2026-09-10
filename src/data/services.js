@@ -68,7 +68,7 @@ export const SERVICES = [
     label: "יום האירוע",
     blurb: "עמדת כניסה, דיילות וכרטיסי שם",
     when: "ביום האירוע",
-    live: false,
+    live: true,
   },
   {
     id: "gifts",
