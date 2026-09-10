@@ -246,7 +246,9 @@ const FRAMES = [
   { name: "guests",      path: "/events/e1/guests",      anchor: "סינון:",            expect: ["58 רשומות"] },
   { name: "constraints", path: "/events/e1/constraints", anchor: "חייבים לשבת יחד" },
   { name: "tables",      path: "/events/e1/tables",      anchor: "השולחנות שלי" },
-  { name: "checkin",     path: "/events/e1/checkin" },
+  { name: "checkin",     path: "/events/e1/checkin",  expect: ["דנה ויוסי"] },
+  // ── Service page 5: the day ──────────────────────────────────────────────
+  { name: "nametags",    path: "/events/e1/nametags", expect: ["כרטיסי שם"] },
   // ── Service page 2: the event site and the invitation ────────────────────
   { name: "site-editor", path: "/events/e1/site" },
   // ── Service page 3: planning ─────────────────────────────────────────────
