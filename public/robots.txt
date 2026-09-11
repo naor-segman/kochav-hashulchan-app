@@ -1,0 +1,26 @@
+# revaya-events.co.il
+
+User-agent: *
+Allow: /
+
+# The signed-in product. Nothing here is reachable without an account, and a
+# crawler that follows these links only ever reads a login screen.
+Disallow: /app
+Disallow: /account
+Disallow: /admin
+Disallow: /events/
+Disallow: /login
+Disallow: /signup
+Disallow: /reset-password
+Disallow: /auth/
+
+# NOTE — the guest links (/invite/, /gift/, /rsvp/, /card/, /album/, /hostess/,
+# /collab/, /save-the-date/, /invitation/) are deliberately NOT disallowed.
+# Facebook's and WhatsApp's link-preview crawlers honour robots.txt, so blocking
+# /invite/ would kill the per-event preview that netlify/edge-functions/
+# invite-og.js exists to produce. Those URLs carry unguessable tokens and are
+# linked from nowhere, so there is no path for a crawler to discover one. If
+# they ever need to be kept out of an index, the tool is a per-page
+# <meta name="robots" content="noindex">, which a preview crawler ignores.
+
+Sitemap: https://revaya-events.co.il/sitemap.xml

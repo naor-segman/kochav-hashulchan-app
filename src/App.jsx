@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { useAppUpdate } from "./hooks/useAppUpdate.js";
+import { usePageMeta } from "./hooks/usePageMeta.js";
 import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
@@ -243,6 +244,12 @@ function AppRoutes() {
     if (user?.id) identifyUser(user.id);
     trackPageview(trackedPath);
   }, [trackedPath, user?.id]);
+
+  /* <title>, description and canonical per route (checklist 87).
+     The build writes a correct <head> into a real document per indexable route,
+     which is what a crawler reads; this is the half that keeps the tab right
+     once the app has booted and every navigation is client-side. */
+  usePageMeta();
 
   // Show a one-time toast whenever a cloud sync error occurs.
   const prevSyncRef = useRef(null);
