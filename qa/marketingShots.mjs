@@ -102,6 +102,31 @@ for (let i = 0; i < 58; i++) {
   });
 }
 
+/* Arrivals, seeded so the entrance frame shows the product MID-EVENT.
+ *
+ * The first version seeded none, and checkin.jpg came back reading
+ * "0 מתוך 96 אורחים" over an empty search box and the "הקלידו שם" empty state —
+ * a marketing image of a screen with nothing on it, on the section that is
+ * supposed to prove the door works. The EMPTY-FRAME guard did not catch it
+ * because that frame declared nothing to expect.
+ *
+ * `arrivedSeats` is the canonical field and it is PER PERSON, not per row
+ * (utils/arrival.js): index i lines up with guestSeatNames(g)[i]. Legacy
+ * `arrived` means "someone in this row is here" and six other files still read
+ * it, so both are written, exactly as withArrivedSeats() does. Partial rows are
+ * deliberate — a couple where one has arrived and one has not is the case the
+ * whole per-person model exists for, and it should be visible in the picture. */
+for (const g of guests) {
+  if (g.rsvp !== "confirmed") continue;
+  const roll = rnd();
+  if (roll > 0.72) continue;                      // not here yet
+  const all = roll < 0.58 || g.count === 1;       // most rows arrive whole
+  g.arrivedSeats = all
+    ? Array.from({ length: g.count }, (_, i) => i)
+    : [0];
+  g.arrived = true;
+}
+
 const tables = [];
 const SHAPES = [["round", 10], ["round", 10], ["rect", 12], ["round", 8], ["round", 10]];
 for (let i = 0; i < 14; i++) {
@@ -246,7 +271,12 @@ const FRAMES = [
   { name: "guests",      path: "/events/e1/guests",      anchor: "סינון:",            expect: ["58 רשומות"] },
   { name: "constraints", path: "/events/e1/constraints", anchor: "חייבים לשבת יחד" },
   { name: "tables",      path: "/events/e1/tables",      anchor: "השולחנות שלי" },
-  { name: "checkin",     path: "/events/e1/checkin",  expect: ["דנה ויוסי"] },
+  /* `type` drives the real search box before the shot, so the frame shows a
+     result with a table number instead of the "הקלידו שם" empty state. The name
+     is picked from the seed at run time, not typed here, so it cannot drift
+     from the data. `expect` now names what has to be ON the screen. */
+  { name: "checkin",     path: "/events/e1/checkin",  typeGuest: true,
+    expect: ["דנה ויוסי", "מתוך 96 אורחים", "שולחן"] },
   // ── Service page 5: the day ──────────────────────────────────────────────
   { name: "nametags",    path: "/events/e1/nametags", expect: ["כרטיסי שם"] },
   // ── Service page 2: the event site and the invitation ────────────────────
@@ -352,6 +382,18 @@ try {
   for (const f of FRAMES) {
     await page.goto(ORIGIN + f.path, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1200);
+
+    /* Type into the REAL search box rather than seeding a query string — the
+       screen owns the matching, and a frame that shows a hand-placed result is
+       a picture of a mock. The guest is one that has NOT arrived, so the shot
+       shows the action still available rather than a row already ticked. */
+    if (f.typeGuest) {
+      const waiting = guests.find(g => g.rsvp === "confirmed" && !g.arrivedSeats);
+      const box = page.getByPlaceholder(/שם האורח/).first();
+      await box.click();
+      await box.fill(waiting.name.split(" ")[0]);
+      await page.waitForTimeout(700);
+    }
     /* Where the frame starts. An anchor is resolved against the document; a
      * screen with no anchor starts at the top. The result is clamped so a clip
      * can never run past the end of a short page — that produced a 1160px-tall

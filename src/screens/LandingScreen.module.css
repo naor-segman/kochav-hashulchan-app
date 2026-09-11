@@ -394,6 +394,31 @@
   margin: 0;
 }
 
+/* The six cards became LINKS to the six service pages (checklist 87). An <a>
+   brings its own colour and underline, and it needs to be a block for the
+   padding above to apply — so the card styling stays in .featureCard and this
+   only undoes what the anchor adds. `min-height` lines the three columns up
+   when one blurb wraps to two lines and its neighbours do not. */
+.featureLink {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.featureMore {
+  margin-top: auto;
+  padding-top: 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  /* --accent is a FILL token at 3.8:1 and is never text. On this surface the
+     text token is --accent-text. */
+  color: var(--accent-text);
+}
+
+.featureLink:hover .featureMore { text-decoration: underline; }
+
 /* ── How it works ── */
 
 .howSection {

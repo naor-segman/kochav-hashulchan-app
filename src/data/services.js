@@ -35,9 +35,15 @@
  * and hiding it behind a click to tidy the bar would be tidying away the point.
  */
 
+/* `mark` is a SectionMark glyph name (components/ui/SectionMark.jsx). It lives
+ * here rather than in the landing page so the icon travels with the service —
+ * the home-page grid, and anything else that lists services, read it from one
+ * place. Every value below resolves; `planning` maps to `tasks` and `day` to
+ * `checkin`, which are the screens behind those headings. */
 export const SERVICES = [
   {
     id: "seating",
+    mark: "seating",
     path: "/services/seating",
     label: "סידורי הושבה",
     // Shown under the label in the dropdown. One line, no full stop.
@@ -48,6 +54,7 @@ export const SERVICES = [
   },
   {
     id: "site",
+    mark: "site",
     path: "/services/event-site",
     label: "אתר לאירוע והזמנה",
     blurb: "הזמנה דיגיטלית, אתר, Waze והסעות",
@@ -56,6 +63,7 @@ export const SERVICES = [
   },
   {
     id: "rsvp",
+    mark: "rsvp",
     path: "/services/rsvp",
     label: "אישורי הגעה",
     blurb: "וואטסאפ, תזכורות וסבבי שיחות",
@@ -64,6 +72,7 @@ export const SERVICES = [
   },
   {
     id: "planning",
+    mark: "tasks",
     path: "/services/planning",
     label: "תכנון האירוע",
     blurb: "משימות, תקציב וספקים",
@@ -72,6 +81,7 @@ export const SERVICES = [
   },
   {
     id: "day",
+    mark: "checkin",
     path: "/services/event-day",
     label: "יום האירוע",
     blurb: "עמדת כניסה, דיילות וכרטיסי שם",
@@ -80,6 +90,7 @@ export const SERVICES = [
   },
   {
     id: "gifts",
+    mark: "gifts",
     path: "/services/gifts",
     label: "מתנות באשראי",
     blurb: "מתנה, ברכה וקיר ברכות",

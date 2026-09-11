@@ -25,7 +25,14 @@ const { chromium } = require("playwright");
 
 const PORT = 4341;
 const BASE = `http://127.0.0.1:${PORT}`;
-const ROUTES = ["/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day", "/services/gifts"];
+/* /home is in this list even though it is not a service page. The checks here
+ * — images load, declared size matches the file, numbers not reversed by bidi,
+ * one h1, no skipped level, no h-scroll at eight widths — are exactly what a
+ * marketing page built out of screenshots needs, and the home page is built out
+ * of the same three screenshots. It was the only marketing page nothing opened
+ * an <img> on, which is how it carried a stale 117 and a 1200x720 declaration
+ * on a 2400x1520 file. */
+const ROUTES = ["/home", "/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day", "/services/gifts"];
 const WIDTHS = [320, 360, 390, 414, 768, 1024, 1280, 1440];
 
 const results = [];

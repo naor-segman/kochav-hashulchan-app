@@ -7,17 +7,34 @@ import styles from "./LandingScreen.module.css";
 import { contactMailto } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import { MOCK_TABLES, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
+import { liveServices } from "../data/services.js";
 
 // Four claims a visitor can check for themselves inside the product. They
 // replaced four invented statistics — a new product does not have real numbers
 // yet, and unverifiable ones cost more trust than they buy.
 const TRUST = [
+  /* "לייצא הכל לאקסל" was not true. There are exactly three xlsx exports —
+     the guest list, תוכנית ההושבה and the shared table — and none of them is
+     everything: משימות, תקציב, ספקים, הודעות, כרטיסי שם, אישורי הגעה, מתנות
+     and the album do not export at all. The claim is now the three that do. */
   { icon: "cloud",   title: "הנתונים שלכם, שלכם",
-    desc: "נשמר אצלכם בדפדפן ומסונכרן לענן. אפשר לייצא הכל לאקסל בכל רגע." },
-  { icon: "checkin", title: "עובד גם בלי רשת",
-    desc: "באולם עם קליטה גרועה האפליקציה ממשיכה לעבוד, ומסתנכרנת כשחוזרת." },
+    desc: "נשמר אצלכם בדפדפן ומסונכרן לענן. רשימת האורחים, תוכנית ההושבה והטבלה המשותפת יורדות לאקסל בכל רגע." },
+  /* ⚠️ THE CLAIM THAT WAS FALSE, AND THE ICON THAT PROVED IT.
+     This card used to read "עובד גם בלי רשת · באולם עם קליטה גרועה האפליקציה
+     ממשיכה לעבוד" and it was illustrated with the `checkin` glyph — i.e. with
+     the ONE screen for which it is false. The host's own device is genuinely
+     offline-capable (localStorage). The GREETER's link is not: hostess_data_by_token
+     and hostess_mark_arrival_by_token are bare RPCs, read and write, and
+     retryQueue.js has exactly one consumer and it is useCollabSync. Without a
+     connection the greeter gets a connection error and a failed tick is
+     DISCARDED. The sentence was worded around the exact scenario where the
+     relevant half does not work. WORKPLAN row א2. */
+  { icon: "cloud",   title: "המכשיר שלכם עובד גם בלי רשת",
+    desc: "האירוע נשמר בדפדפן שלכם, אז עריכה בלי קליטה ממשיכה לעבוד ומסתנכרנת אחר כך. הקישור של הדיילת צריך רשת." },
+  /* "מקישור אחד" was false: shareLinks.js defines eight guest links over three
+     different tokens. RSVP and gift are simply different URLs. */
   { icon: "site",   title: "האורחים לא צריכים חשבון",
-    desc: "אישור הגעה, הזמנה ומתנה נפתחים מקישור אחד — בלי הרשמה ובלי אפליקציה." },
+    desc: "אישור הגעה, הזמנה ומתנה נפתחים מקישור בוואטסאפ — בלי הרשמה ובלי אפליקציה." },
   { icon: "guests",  title: "בלי כרטיס אשראי",
     desc: "פותחים אירוע ובודקים אם זה מתאים לכם. אין תקופת ניסיון שנגמרת." },
 ];
@@ -31,31 +48,58 @@ const SHOWCASE = [
     eyebrow: "הלב של המוצר",
     title:   "ההושבה נעשית לבד",
     body:    "מגדירים מי חייב לשבת יחד ומי בשום אופן לא — והאלגוריתם מסדר את כל האורחים תוך שניות, תוך כיבוד הקבוצות, הצדדים והקיבולת של כל שולחן.",
-    points:  ["אילוצי \"יחד\" ו\"בנפרד\" נשמרים תמיד",
+    /* "נשמרים תמיד" was overstated and the engine says so itself: seating.js
+       builds a violations[] array with together/apart/capacity entries, and
+       deliberately takes a MINIMAL violation when a cluster cannot fit. What is
+       true — and better — is that it tells you. "ולמה" was removed outright:
+       the unassigned list names WHO, and the only reason it ever gives is the
+       generic "הוסיפו מקומות נוספים". */
+    points:  ["אילוץ שלא הסתדר מסומן לכם, ולא נבלע",
               "שולחן נעול נשאר בדיוק כפי שסידרתם",
-              "אם מישהו לא נכנס — נאמר לכם בדיוק מי ולמה"],
+              "אם מישהו לא נכנס — רואים בדיוק מי"],
     img: "/shots/seating.jpg",
-    alt: "מסך סידור ההושבה — 14 שולחנות עם התפוסה של כל אחד, 117 מקומות שובצו ללא הפרות",
+    /* 117 was the seed's TOTAL seats; what the picture actually renders is
+       96/96 over 14 tables with 0 violations. Read off the pixels, 11.9. */
+    alt: "מסך סידור ההושבה אחרי הרצה — 96 מתוך 96 מקומות שובצו ב-14 שולחנות, אפס הפרות",
   },
   {
     eyebrow: "רשימת האורחים",
     title:   "מדביקים רשימה, מקבלים אירוע",
-    body:    "הדביקו רשימה מוואטסאפ או מגיליון — השמות והטלפונים נקראים לבד, כפילויות מתמזגות, ואישורי ההגעה נכנסים לרשימה אוטומטית.",
+    /* "כפילויות מתמזגות" was false. importReview.js flags a duplicate with a
+       warn chip reading "כבר ברשימה" and says outright that a duplicate has
+       never been a block; the only removal is the host clicking the row away.
+       Nothing merges — and flagging before the import is the better behaviour
+       anyway, so the sentence now describes it. */
+    body:    "הדביקו רשימה מוואטסאפ או מגיליון — השמות והטלפונים נקראים לבד, כפילויות מסומנות לפני שהן נכנסות, ואישורי ההגעה נכנסים לרשימה אוטומטית.",
     points:  ["צד, קבוצה, כמות מקומות ומנה לכל שורה",
               "טבלה שיתופית שההורים ממלאים בעצמם",
               "מעקב אחרי מי אישר, מי סירב ומי עוד שותק"],
     img: "/shots/guests.jpg",
-    alt: "מסך ניהול האורחים — רשימה מסוננת של 58 רשומות עם צד, קבוצה, מספר מקומות ואישור הגעה",
+    /* Not "מסוננת" — all three filters in the shot read "כל ה…". */
+    alt: "מסך ניהול האורחים — 58 רשומות עם צד, קבוצה, מספר מקומות ואישור הגעה",
   },
   {
     eyebrow: "ביום האירוע",
     title:   "בכניסה, בלי דפים",
-    body:    "מחפשים אורח בשם או בטלפון, רואים את השולחן שלו ומסמנים הגעה. אפשר גם לסרוק את הקוד שעל ההזמנה.",
-    points:  ["מונה הגעה חי לפי מקומות, לא לפי שורות",
+    /* Two removals here.
+       "אפשר גם לסרוק את הקוד שעל ההזמנה" — isScanSupported() gates on
+       "BarcodeDetector" in window, so the button does not exist on an iPhone,
+       and an iPhone is most of the room at an Israeli wedding. A scan also
+       marks the WHOLE row rather than the person it identified.
+       "רישום מתנות תוך כדי" — that field was DELETED from this screen on
+       purpose (a greeter cannot know what is in an envelope), and nothing in
+       src/ writes giftAmount. It advertised a feature the product removed. */
+    body:    "מחפשים אורח בשם, רואים את השולחן שלו ומסמנים הגעה. גם מי שהגיע עם חצי מהמשפחה.",
+    /* "חי" was false: the greeter's phone re-reads every 25 seconds and the
+       owner's screen does not poll or subscribe at all. Per SEAT is the true
+       half and it is the one that matters — arrivedSeats is per person. */
+    points:  ["מונה הגעה לפי מקומות, לא לפי שורות",
               "קישור נפרד לדיילת — בלי גישה לשאר האירוע",
-              "רישום מתנות תוך כדי"],
+              "כרטיסי שם ומפת אולם להדפסה"],
     img: "/shots/checkin.jpg",
-    alt: "מסך הצ׳ק-אין ביום האירוע — חיפוש אורח בשם, מספר השולחן שלו וסימון הגעה, עם מונה 67 מתוך 117",
+    /* Re-shot 11.9 — the previous file showed an empty search box and
+       "0 מתוך 96". This alt is read off the new pixels. */
+    alt: "עמדת הכניסה באמצע האירוע — חיפוש שם מחזיר שלושה אורחים, לכל אחד מספר השולחן שלו וכפתור סימון הגעה, מעליהם מונה 58 מתוך 96",
   },
 ];
 
@@ -74,13 +118,6 @@ const SHOWCASE = [
  * Keep the subject off-centre-right: the text sits over the start (right) edge
  * in RTL, and a face directly behind the headline reads as a mistake.
  */
-// The seating card's figures live in src/data/landingMock.js — the reason they
-// are derived rather than typed is written there, next to the array.
-//
-// This paragraph used to be that explanation, and it stayed here when the
-// constants moved out: fifteen lines about "this one array" with no array
-// anywhere near them, directly above HERO_MEDIA. It survived in the same commit
-// whose subject was removing two comments that had stopped being true.
 const HERO_MEDIA = {
   video:        "/hero/hero.mp4",
   poster:       "/hero/hero.jpg",
@@ -102,27 +139,36 @@ const PROBLEM = [
   { where: "סידור על מפית",      what: "בשתיים בלילה, שבוע לפני" },
 ];
 
-const FEATURES = [
-  { icon: "seating", title: "הושבה אוטומטית",
-    desc: "אלגוריתם חכם שמסדר את כל האורחים תוך שניות, תוך שמירה על כל האילוצים שהגדרתם" },
-  { icon: "guests", title: "ניהול אורחים",
-    desc: "טבלה שיתופית שהמשפחה ממלאת מהטלפון, הדבקת רשימה מוכנה, ומעקב אישורי הגעה לפי קבוצות" },
-  { icon: "tables", title: "סקיצה של האולם",
-    desc: "גררו שולחנות על תמונת האולם ותקבלו תצוגה חזותית מושלמת של הסידור" },
-  { icon: "checkin", title: "צ׳ק-אין ביום האירוע",
-    desc: "מצאו כל אורח בשניות וראו את מספר השולחן שלו — מצב מושלם לכניסה לאולם" },
-  { icon: "site", title: "דפי אורח דיגיטליים",
-    desc: "הזמנה, אישור הגעה, מתנה וברכות — קישור אישי לכל אירוע שנשלח לאורחים בקליק" },
-  { icon: "cloud", title: "סנכרון ענן",
-    desc: "גישה מכל מכשיר, שמירה אוטומטית — עבדו מהמחשב, המשיכו מהטלפון" },
-];
+/* This WAS a hand-written array of six features, and it was the page's oldest
+ * problem rather than one of its claims.
+ *
+ * It derived from nothing, so the product walked away from it: sixteen screens
+ * exist and that array named six, with משימות, תקציב, ספקים, הודעות and
+ * כרטיסי שם appearing nowhere on the home page at all. WORKPLAN 87 opens on
+ * exactly this — "במוצר 16 מסכים, דף הבית מפרסם 6, וההדר 0". It also carried
+ * two claims that were not true: "תצוגה חזותית מושלמת" is puffery, and the
+ * section's own subtitle promised "רשימה שיודעת כמה שולחנות צריך", which
+ * nothing computes — the venue sizes the tables and the app never recommends a
+ * number.
+ *
+ * It is now `liveServices()`: the same six headings the header, the dropdown
+ * and the six landing pages use, from src/data/services.js. A seventh service
+ * is one entry there and appears here on its own.
+ *
+ * And the cards are LINKS. Six landing pages were built to be found in search,
+ * and the page most visitors actually land on linked to none of them — the
+ * footer's whole "מוצר" column pointed back into two anchors of this same page.
+ */
+
+/* Read once at module scope — liveServices() filters a frozen array. */
+const SERVICE_CARDS = liveServices();
 
 const HOW_IT_WORKS = [
   { num: "01", title: "צרו אירוע", desc: "בחרו סוג אירוע, הזינו תאריך ומקום" },
   { num: "02", title: "הוסיפו אורחים", desc: "שלחו קישור למשפחה שתמלא יחד, הדביקו רשימה, או הוסיפו ידנית" },
   { num: "03", title: "בנו שולחנות", desc: "הגדירו מספר מקומות וצורת ישיבה לכל שולחן" },
   { num: "04", title: "הגדירו אילוצים", desc: "מי ישב יחד, מי חייב להיות בנפרד" },
-  { num: "05", title: "סדרו בלחיצה", desc: "קבלו תוכנית ישיבה מושלמת תוך שניות" },
+  { num: "05", title: "סדרו בלחיצה", desc: "המערכת משבצת את כולם, ואומרת לכם אם משהו לא הסתדר" },
 ];
 
 const PRICING_PLANS = [
@@ -142,10 +188,14 @@ const PRICING_PLANS = [
     price: "₪99",
     per: "/ חודש",
     badge: "הכי פופולרי",
+    /* "תמיכה מועדפת" was here and on no other surface. There is no support-tier
+       mechanism anywhere in src/ — one WhatsApp button and one mailto, identical
+       for every plan — and PricingScreen, the page a buyer would actually check,
+       does not list it. Replaced with a line that is on both. */
     features: [
       "עד 20 אירועים",
       "עד 500 אורחים לאירוע",
-      "תמיכה מועדפת",
+      "טבלה שיתופית ואתר לאירוע",
     ],
     cta: "התחילו חינם",
     ctaHref: "/signup",
@@ -156,9 +206,11 @@ const PRICING_PLANS = [
     name: "ארגוני",
     price: "בהתאמה",
     per: "",
+    /* "SLA ותמיכה ייעודית" — same problem, same fix. No SLA exists, and
+       PricingScreen's Enterprise column has no such line. */
     features: [
       "אירועים ואורחים ללא הגבלה",
-      "SLA ותמיכה ייעודית",
+      "ליווי בהקמה ובאירוע הראשון",
     ],
     cta: "צרו קשר",
     // `null`, and resolved at render below. The address used to be baked into
@@ -171,7 +223,7 @@ const PRICING_PLANS = [
   },
 ];
 
-export default function LandingScreen() {
+export default function LandingScreen({ user = null }) {
   // ── Arriving with a #hash ───────────────────────────────────────────────────
   //
   // The browser's own hash scrolling does not work on this page, and only
@@ -237,7 +289,11 @@ export default function LandingScreen() {
 
   return (
     <div className={styles.root}>
-      <SiteHeader />
+      {/* `user` was not passed, and /home IS reachable while signed in (the
+          topbar links to it) — so a signed-in visitor was shown "כניסה" and
+          "התחילו חינם", the exact pair SiteHeader branches on `user` to avoid.
+          PricingScreen has always passed it. */}
+      <SiteHeader user={user} />
 
       {/* ── Hero ── */}
       <section className={[styles.hero, hasHeroMedia ? styles.heroCinematic : ""].filter(Boolean).join(" ")}>
@@ -295,7 +351,7 @@ export default function LandingScreen() {
                 ראו איך זה עובד
               </a>
             </div>
-            <p className={styles.heroNote}>ללא כרטיס אשראי · ניסיון חינם לכל החיים</p>
+            <p className={styles.heroNote}>ללא כרטיס אשראי · המסלול החינמי נשאר חינמי</p>
           </div>
           <div className={styles.heroVisual} aria-hidden="true">
             <div className={styles.mockCard}>
@@ -402,8 +458,12 @@ export default function LandingScreen() {
               </div>
               <div className={styles.shotFrame}>
                 <span className={styles.shotPlinth} aria-hidden="true" />
+                {/* The files are 2400×1520. Declaring 1200×720 reserved a box of
+                    the WRONG SHAPE while they load, which is the layout shift
+                    these attributes exist to prevent — `height: auto` in the
+                    stylesheet kept it from distorting and hid the mistake. */}
                 <img className={styles.shotImg} src={sc.img} alt={sc.alt}
-                     loading="lazy" width="1200" height="720" />
+                     loading="lazy" width="2400" height="1520" />
               </div>
             </div>
           </div>
@@ -415,31 +475,36 @@ export default function LandingScreen() {
         <div className={styles.sectionInner}>
           <div className={styles.sectionHeader}>
             {/* AIDA — Desire. "כל מה שצריך לאירוע מושלם" could sit on any
-                product in this category. This says what the reader stops doing. */}
+                product in this category. This says what the reader stops doing.
+                The old subtitle promised "רשימה שיודעת כמה שולחנות צריך" —
+                nothing derives a table count from a headcount, and the venue is
+                the one who decides it. */}
             <span className={styles.sectionTag}>מה נכנס למקום אחד</span>
             <h2 className={styles.sectionTitle}>הכל מדבר עם הכל</h2>
             <p className={styles.sectionSub}>
-              אישור הגעה שנכנס לרשימה לבד, רשימה שיודעת כמה שולחנות צריך,
-              ושולחנות שמסתדרים לפי מי שבאמת מגיע
+              אישור הגעה שנכנס לרשימה לבד, רשימה שיודעת מי באמת מגיע,
+              והושבה שמחושבת לפיה
             </p>
           </div>
           <div className={styles.featuresGrid}>
-            {FEATURES.map((f, i) => (
-              <div key={f.title} className={styles.featureCard}>
+            {SERVICE_CARDS.map((sv, i) => (
+              <Link key={sv.id} to={sv.path}
+                    className={[styles.featureCard, styles.featureLink].join(" ")}>
                 <div className={styles.featureIconWrap}>
                   {/* Every third badge sits on the ink ground, where an ink hairline is
                       invisible — the same "measured against the wrong ground" trap the
                       hostess chips hit. Those get the mark's onDark tone. */}
                   <SectionMark
-                    name={f.icon}
+                    name={sv.mark}
                     size={28}
                     tone={i % 3 === 2 ? "ondark" : "brand"}
                     className={styles.featureIcon}
                   />
                 </div>
-                <h3 className={styles.featureTitle}>{f.title}</h3>
-                <p className={styles.featureDesc}>{f.desc}</p>
-              </div>
+                <h3 className={styles.featureTitle}>{sv.label}</h3>
+                <p className={styles.featureDesc}>{sv.blurb}</p>
+                <span className={styles.featureMore}>לפרטים ←</span>
+              </Link>
             ))}
           </div>
         </div>
@@ -451,7 +516,7 @@ export default function LandingScreen() {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTagLight}>תהליך פשוט</span>
             <h2 className={styles.sectionTitleLight}>
-              מ-0 לתוכנית ישיבה מושלמת<br />ב-5 צעדים
+              מרשימה מפוזרת לתוכנית ישיבה<br />ב-5 צעדים
             </h2>
           </div>
           <div className={styles.howGrid}>
@@ -531,7 +596,11 @@ export default function LandingScreen() {
             בלי התקנה ובלי כרטיס אשראי — נכנסים, מזינים אורחים, ומקבלים סידור.
           </p>
           <Link to="/signup" className={styles.ctaBtn}>הצטרפו חינם עכשיו ←</Link>
-          <p className={styles.ctaNote}>ללא כרטיס אשראי · ביטול בכל עת</p>
+          {/* "ביטול בכל עת" described a subscription that cannot be entered —
+              stripe.js throws without a key and the account screen says
+              "ניהול חיוב יהיה זמין בקרוב". Nothing to cancel, so nothing to
+              promise about cancelling. */}
+          <p className={styles.ctaNote}>ללא כרטיס אשראי · האירוע נשאר שלכם</p>
         </div>
       </section>
 

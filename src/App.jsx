@@ -346,7 +346,7 @@ function AppRoutes() {
           short of logging out. The topbar's "עמוד הבית" points here. */}
       <Route
         path="/home"
-        element={<Suspense fallback={<Loading />}><LandingScreen /></Suspense>}
+        element={<Suspense fallback={<Loading />}><LandingScreen user={user} /></Suspense>}
       />
       {/* Dashboard — authenticated app */}
       <Route
