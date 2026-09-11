@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
-import { COMPANY, supportEmail, supportMailto } from "../data/company.js";
+import { COMPANY, LEGAL, legalTel, supportEmail, supportMailto } from "../data/company.js";
 
 export default function TermsScreen() {
   return (
@@ -19,7 +19,37 @@ export default function TermsScreen() {
           <SectionMark name="terms" size={26} tile />
           <h1 className={styles.title}>תנאי שימוש</h1>
         </div>
-        <p className={styles.updated}>עודכן לאחרונה: 21 ביולי 2026</p>
+        <p className={styles.updated}>עודכן לאחרונה: 11 בספטמבר 2026</p>
+
+        {/* Operator identity — checklist 19–20. `address` is empty until the
+            owner supplies one, and an empty field prints NO ROW rather than a
+            blank: a legal page with "כתובת:" and nothing after it looks like a
+            broken template, which is worse than not listing it. */}
+        <section className={styles.identity}>
+          <h2 className={styles.identityTitle}>מפעיל השירות</h2>
+          <dl className={styles.identityList}>
+            <dt className={styles.identityKey}>שם</dt>
+            <dd className={styles.identityVal}>{LEGAL.name}</dd>
+            <dt className={styles.identityKey}>{LEGAL.type}</dt>
+            <dd className={styles.identityVal}>{LEGAL.taxId}</dd>
+            <dt className={styles.identityKey}>טלפון</dt>
+            <dd className={styles.identityVal}>
+              <a href={legalTel()}>{LEGAL.phone}</a>
+            </dd>
+            <dt className={styles.identityKey}>אימייל</dt>
+            <dd className={styles.identityVal}>
+              <a href={supportMailto()}>{supportEmail()}</a>
+            </dd>
+            {LEGAL.address && (
+              <>
+                <dt className={styles.identityKey}>כתובת</dt>
+                <dd className={styles.identityVal}>{LEGAL.address}</dd>
+              </>
+            )}
+          </dl>
+          <p className={styles.text}>אלה פרטי מי שאתם מתקשרים איתו בתנאים אלה. השירות מופעל כעסק יחיד, ולכן החשבונות שיישלחו יהיו על שם זה.</p>
+        </section>
+
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>1. השירות</h2>

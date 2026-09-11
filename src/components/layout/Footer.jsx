@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import styles from "./Footer.module.css";
-import { COMPANY, supportMailto } from "../../data/company.js";
+import { COMPANY, legalLine, supportMailto } from "../../data/company.js";
 
 export default function Footer() {
   return (
@@ -51,6 +51,10 @@ export default function Footer() {
       <div className={styles.bottom}>
         <div className={styles.bottomInner}>
           <span className={styles.copy}>© {new Date().getFullYear()} {COMPANY.name}. כל הזכויות שמורות.</span>
+          {/* Who actually operates the service, on every page rather than only
+              on the three legal ones (checklist 19–20). legalLine() builds it
+              from one source in company.js. */}
+          <span className={styles.legal}>{legalLine()}</span>
         </div>
       </div>
     </footer>
