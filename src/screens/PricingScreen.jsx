@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
+import SiteHeader from "../components/layout/SiteHeader.jsx";
 import Footer from "../components/layout/Footer.jsx";
 import styles from "./PricingScreen.module.css";
-import { COMPANY, contactMailto } from "../data/company.js";
+import { contactMailto } from "../data/company.js";
 
 const PLANS = [
   {
@@ -102,31 +103,7 @@ const FAQ = [
 export default function PricingScreen({ user }) {
   return (
     <div className={styles.root}>
-      {/* ── Nav ── */}
-      <header className={styles.nav}>
-        <div className={styles.navInner}>
-          <Link to="/" className={styles.navLogo}>
-            <span className={styles.navLogoMark}>✦</span>
-            <span className={styles.navLogoName}>{COMPANY.name}</span>
-          </Link>
-          <div className={styles.navLinks}>
-            {/* /home, not / — see the note in Footer.jsx. */}
-            <Link to="/home#features" className={styles.navLink}>תכונות</Link>
-            <Link to="/home#how" className={styles.navLink}>איך זה עובד</Link>
-            <Link to="/pricing" className={[styles.navLink, styles.navLinkActive].join(" ")}>מחירים</Link>
-          </div>
-          <div className={styles.navActions}>
-            {user ? (
-              <Link to="/app" className={styles.navCta}>כניסה לאפליקציה</Link>
-            ) : (
-              <>
-                <Link to="/login" className={styles.navLoginBtn}>כניסה</Link>
-                <Link to="/signup" className={styles.navCta}>התחילו חינם</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <SiteHeader user={user} active="pricing" />
 
       {/* ── Header ── */}
       <section className={styles.pageHeader}>

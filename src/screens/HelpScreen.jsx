@@ -33,7 +33,11 @@ const FAQ = [
   },
   {
     q: "איך אפשר לקבל מתנות?",
-    a: "בפרטי האירוע מגדירים מספר ביט או קישור PayBox. בדף המתנה של האירוע האורחים משאירים ברכה ומקבלים את פרטי ההעברה. הברכות מופיעות בקיר הברכות באתר.",
+    // The old answer sent hosts looking for a Bit number and a PayBox link in
+    // event setup. Those fields were removed by decision 11.8 and the RPC
+    // stopped serving them in 20260818000200 — a host following this would
+    // have searched a screen that no longer has them.
+    a: "שולחים לאורחים את קישור המתנה (במסך \"קישורים לאורחים\"). האורח כותב ברכה ובוחר סכום, והברכה עולה לקיר הברכות — בלי הסכום. אצלכם, במסך התקציב, מופיעה רשימה של מי הצהיר על מה. את המתנה עצמה מעניקים ביום האירוע: המערכת לא מחייבת כרטיס ולא מעבירה כסף.",
   },
   {
     q: "הנתונים שלי בטוחים? מה קורה אם אני מתנתק?",

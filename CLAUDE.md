@@ -166,6 +166,15 @@ Check for these first — each has bitten more than once:
    rendered `300 / 250` for a DOM value of `250 / 300` — bidi rule N1 resolves
    the neutrals around the slash as RTL. `250 מתוך 300` is correct, because the
    Hebrew word anchors it. Measure the VISUAL order with Range rects, not the DOM.
+   🔬 **Measured 10.9, four shapes, Range rects on a live RTL page in this
+   Chromium:** `250/300` **reverses** — 300 paints to the RIGHT of 250. `250 / 300`
+   with spaces does **not**, and neither does the same pair split across text
+   nodes or across spans, nor `250 מתוך 300`. So the shape to hunt is a separator
+   with **no spaces**, and a mutation that reproduces only the spaced form will
+   pass while the bug is live — that happened here twice before the right shape
+   was found. `qa/servicePages.mjs` compares numbers per ELEMENT and was observed
+   failing on `96/140`; its first version compared them per text node and passed
+   the mutation, because `{a} / {b}` is three separate text nodes.
 8. **`String.replace` with a string replacement expands `$&`, `` $` ``, `$'`
    AFTER your escaping.** The OG tag builder escaped a host-controlled name
    correctly and then let the replacement expand raw page HTML into the
@@ -176,6 +185,18 @@ Check for these first — each has bitten more than once:
 
 ## Environment traps
 
+- 🔴 **The local gate does not cover the Netlify deploy.** Netlify bundles
+  EVERY top-level file in `netlify/edge-functions/` for Deno, and that bundler
+  is the one stage of the deploy that never runs here. A test file written into
+  that directory (`import ... from "vitest"` — a bare specifier Deno cannot
+  resolve) killed every build of the branch for eleven days while `npm run
+  build`, 1,267 tests and `eslint` were all green; the PR sat on three red
+  checks and `main` kept serving a version from eleven days earlier. Green
+  locally is not green on Netlify. Edge-function files go in
+  `netlify/edge-functions/`, everything about them goes in `netlify/tests/`,
+  and `netlify/tests/edgeFunctionsDir.test.js` enforces it. That guard covers
+  the *shape* that broke, not every bundling failure — a syntax error only Deno
+  catches still lands silently.
 - **Chromium** is at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` and
   must be launched with `args:['--no-proxy-server']`, or localhost is routed
   through the agent proxy and every request fails. Resolve Playwright with

@@ -196,3 +196,51 @@
     height: 44px;
   }
 }
+
+/* ── Operator identity (checklist 19–20) ──────────────────────────────────────
+   Who legally runs the service. It sits directly under the "עודכן לאחרונה"
+   line on all three legal pages, because a reader who wants it wants it before
+   the clauses, not after them. A definition list rather than a paragraph: the
+   registration number and the phone are LOOKED UP, not read. */
+.identity {
+  margin: 0 0 32px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface2);
+}
+
+.identityTitle {
+  margin: 0 0 12px;
+  font-size: var(--step-0);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.identityList {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+}
+
+.identityKey {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.identityVal {
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.identityVal a { color: var(--accent-text); }
+
+@media (max-width: 520px) {
+  /* Two columns at 320px puts a nine-digit number on its own line anyway, and
+     the key column then eats a third of the width. Stack instead. */
+  .identityList { grid-template-columns: 1fr; gap: 2px; }
+  .identityKey { margin-top: 8px; }
+}

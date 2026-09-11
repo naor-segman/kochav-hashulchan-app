@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { useAppUpdate } from "./hooks/useAppUpdate.js";
+import { usePageMeta } from "./hooks/usePageMeta.js";
 import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
@@ -49,6 +50,15 @@ const LandingScreen      = lazy(() => import("./screens/LandingScreen.jsx"));
 
 const AdminApp       = lazy(() => import("./admin/AdminApp.jsx"));
 const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
+/* Marketing service pages (checklist 87). One chunk each and lazy like the rest
+   of the marketing site: a visitor who lands on /services/seating from a search
+   result should download that page, not the other five. */
+const SeatingServiceScreen   = lazy(() => import("./screens/services/SeatingServiceScreen.jsx"));
+const EventSiteServiceScreen = lazy(() => import("./screens/services/EventSiteServiceScreen.jsx"));
+const PlanningServiceScreen  = lazy(() => import("./screens/services/PlanningServiceScreen.jsx"));
+const RsvpServiceScreen      = lazy(() => import("./screens/services/RsvpServiceScreen.jsx"));
+const EventDayServiceScreen  = lazy(() => import("./screens/services/EventDayServiceScreen.jsx"));
+const GiftsServiceScreen     = lazy(() => import("./screens/services/GiftsServiceScreen.jsx"));
 // Public pages — standalone, no auth, token-based
 const RSVPScreen     = lazy(() => import("./screens/RSVPScreen.jsx"));
 const EventSiteScreen = lazy(() => import("./screens/EventSiteScreen.jsx"));
@@ -235,6 +245,12 @@ function AppRoutes() {
     trackPageview(trackedPath);
   }, [trackedPath, user?.id]);
 
+  /* <title>, description and canonical per route (checklist 87).
+     The build writes a correct <head> into a real document per indexable route,
+     which is what a crawler reads; this is the half that keeps the tab right
+     once the app has booted and every navigation is client-side. */
+  usePageMeta();
+
   // Show a one-time toast whenever a cloud sync error occurs.
   const prevSyncRef = useRef(null);
   useEffect(() => {
@@ -330,7 +346,7 @@ function AppRoutes() {
           short of logging out. The topbar's "עמוד הבית" points here. */}
       <Route
         path="/home"
-        element={<Suspense fallback={<Loading />}><LandingScreen /></Suspense>}
+        element={<Suspense fallback={<Loading />}><LandingScreen user={user} /></Suspense>}
       />
       {/* Dashboard — authenticated app */}
       <Route
@@ -375,6 +391,58 @@ function AppRoutes() {
         element={
           <Suspense fallback={<Loading />}>
             <PricingScreen user={user} />
+          </Suspense>
+        }
+      />
+      {/* Service pages. Namespaced under /services/ deliberately: eleven public
+          routes already own a top-level segment with a :token after it, and a
+          marketing page at /rsvp sitting beside /rsvp/:token is a collision
+          waiting for someone to trim a trailing segment off a shared link. */}
+      <Route
+        path="/services/seating"
+        element={
+          <Suspense fallback={<Loading />}>
+            <SeatingServiceScreen user={user} />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/services/event-site"
+        element={
+          <Suspense fallback={<Loading />}>
+            <EventSiteServiceScreen user={user} />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/services/planning"
+        element={
+          <Suspense fallback={<Loading />}>
+            <PlanningServiceScreen user={user} />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/services/rsvp"
+        element={
+          <Suspense fallback={<Loading />}>
+            <RsvpServiceScreen user={user} />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/services/event-day"
+        element={
+          <Suspense fallback={<Loading />}>
+            <EventDayServiceScreen user={user} />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/services/gifts"
+        element={
+          <Suspense fallback={<Loading />}>
+            <GiftsServiceScreen user={user} />
           </Suspense>
         }
       />

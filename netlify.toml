@@ -10,6 +10,55 @@
   path     = "/invite/*"
   function = "invite-og"
 
+# ── Per-route documents (checklist 87) ───────────────────────────────────────
+# `seoPages()` in vite.config.js writes a real HTML file per indexable route,
+# each with its own <title>, description and canonical. Netlify's pretty-URL
+# handling would probably resolve /services/seating to that file on its own —
+# but "probably", about the one stage of the deploy that never runs locally, is
+# how eleven days of builds were lost here once. These rules make it explicit:
+# first match wins, so they must stay ABOVE the SPA fallback below.
+#
+# A path missing from this list silently falls through to the generic
+# index.html, which is exactly the bug being fixed and would look like it was
+# still there. `netlify/tests/seoRoutes.test.js` fails when an entry in
+# SEO_PAGES has no rule here.
+
+[[redirects]]
+  from   = "/services/*"
+  to     = "/services/:splat/index.html"
+  status = 200
+
+[[redirects]]
+  from   = "/home"
+  to     = "/home/index.html"
+  status = 200
+
+[[redirects]]
+  from   = "/pricing"
+  to     = "/pricing/index.html"
+  status = 200
+
+[[redirects]]
+  from   = "/help"
+  to     = "/help/index.html"
+  status = 200
+
+[[redirects]]
+  from   = "/terms"
+  to     = "/terms/index.html"
+  status = 200
+
+[[redirects]]
+  from   = "/privacy"
+  to     = "/privacy/index.html"
+  status = 200
+
+[[redirects]]
+  from   = "/accessibility"
+  to     = "/accessibility/index.html"
+  status = 200
+
+# Everything else is the single-page app.
 [[redirects]]
   from   = "/*"
   to     = "/index.html"

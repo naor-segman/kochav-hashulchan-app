@@ -70,7 +70,13 @@ export const SHARE_GROUPS = [
         path: "/gift/",
         label: "מתנה וברכה",
         mark: "gifts",
-        say: "האורח משאיר לכם ברכה, ורואה איך להעביר מתנה.",
+        // NOT "ורואה איך להעביר מתנה". Decision 11.8 removed the Bit and
+        // PayBox fields, GiftScreen shows no transfer instructions of any
+        // kind, and the screen was even re-tagged "ברכה ומתנה" rather than
+        // "מתנה דיגיטלית" for exactly this reason. This is the line the HOST
+        // reads before deciding to send the link, so it was the one place
+        // that still promised the guest a payment route that is not there.
+        say: "האורח משאיר לכם ברכה ומצהיר על סכום. המתנה עצמה עוברת ביום האירוע.",
       },
       {
         // Orphaned until now: `album` was in TOKEN_KEYS, it had a route, it had

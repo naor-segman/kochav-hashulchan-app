@@ -1,6 +1,97 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+
+/**
+ * Emit one real HTML document per indexable route, plus sitemap.xml.
+ * Checklist 87 (the SEO gap) and 52.
+ *
+ * Measured in a browser on 10.9: /home, /pricing and all six /services/* served
+ * the SAME <title>, the SAME description and no canonical — one index.html, as
+ * every SPA does. Six landing pages built to be found on "סידורי הושבה" and
+ * "אישורי הגעה" looked to Google like one page, and a WhatsApp preview of any of
+ * them showed the generic site title.
+ *
+ * WHY STATIC FILES AND NOT AN EDGE FUNCTION. netlify/edge-functions/invite-og.js
+ * does this at the edge, and it has to — the invite title depends on a token and
+ * a database row. These eight routes are FIXED, so the correct document can be
+ * written at build time, which costs nothing per request, needs no Supabase
+ * round trip, cannot fail at runtime, and — the reason that decides it — never
+ * touches the Deno bundler, the one stage of the deploy that does not run
+ * locally and that killed every build of this branch for eleven days.
+ *
+ * Netlify's `/*` → `/index.html` rule has no `force`, so a real file at
+ * dist/services/seating/index.html wins over the fallback and the crawler gets a
+ * correct <head> without running any JavaScript.
+ *
+ * It is `enforce: 'post'`, which puts it after vite-plugin-pwa — deliberately.
+ * Workbox's globPatterns match '**\/*.html', so running first would precache
+ * eight near-identical copies of index.html into every installed app.
+ */
+function seoPages() {
+  let outDir = 'dist'
+  const esc = (s) => String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+
+  return {
+    name: 'revaya-seo-pages',
+    apply: 'build',
+    enforce: 'post',
+    configResolved(config) { outDir = config.build.outDir },
+    async closeBundle() {
+      const { SEO_PAGES, pageTitle, pageCanonical } = await import('./src/data/seo.js')
+      const shell = await readFile(join(outDir, 'index.html'), 'utf8')
+
+      for (const page of SEO_PAGES) {
+        const t = esc(pageTitle(page))
+        const d = esc(page.description)
+        const c = esc(pageCanonical(page))
+
+        /* Replacement FUNCTIONS, never strings. String.prototype.replace expands
+           `$&`, "$`", `$'` and `$1` inside a string replacement AFTER escaping —
+           that is bug class 8 in CLAUDE.md, and it is how invite-og.js let a
+           host-controlled name pull raw page HTML into an attribute. Nothing
+           here is host-controlled today, but the shape is the bug. */
+        let html = shell
+          .replace(/<title>[\s\S]*?<\/title>/i, () => `<title>${t}</title>`)
+          .replace(/(<meta name="description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
+          .replace(/(<meta property="og:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)
+          .replace(/(<meta property="og:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
+          .replace(/(<meta name="twitter:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)
+          .replace(/(<meta name="twitter:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
+
+        // Canonical and og:url are ADDED — index.html carries neither, which is
+        // half of what the measurement found.
+        html = html.replace(/<\/head>/i, () =>
+          `  <link rel="canonical" href="${c}" />\n` +
+          `    <meta property="og:url" content="${c}" />\n` +
+          `  </head>`)
+
+        const file = page.path === '/'
+          ? join(outDir, 'index.html')
+          : join(outDir, page.path, 'index.html')
+        await mkdir(dirname(file), { recursive: true })
+        await writeFile(file, html)
+      }
+
+      const lastmod = new Date().toISOString().slice(0, 10)
+      const urls = SEO_PAGES
+        .filter(p => p.sitemap !== false)
+        .map(p => `  <url>\n    <loc>${esc(pageCanonical(p))}</loc>\n` +
+                  `    <lastmod>${lastmod}</lastmod>\n` +
+                  `    <priority>${p.priority || '0.5'}</priority>\n  </url>`)
+        .join('\n')
+      await writeFile(join(outDir, 'sitemap.xml'),
+        `<?xml version="1.0" encoding="UTF-8"?>\n` +
+        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`)
+
+      console.log(`\nseo-pages  ${SEO_PAGES.length} documents + sitemap.xml`)
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -118,5 +209,6 @@ export default defineConfig({
         ],
       },
     }),
+    seoPages(),
   ],
 })

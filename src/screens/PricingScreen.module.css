@@ -3,134 +3,6 @@
   min-height: 100vh;
 }
 
-/* ── Nav (same as LandingScreen) ── */
-
-.nav {
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  /* Was a hardcoded warm brown left over from the pre-magenta palette — it made
-     this nav visibly browner than the identical one on the landing page. */
-  background: rgba(var(--text-rgb), 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--nav-border);
-}
-
-.navInner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 68px;
-  display: flex;
-  align-items: center;
-  gap: 40px;
-}
-
-.navLogo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-
-.navLogoMark {
-  /* --accent-on-dark, the same answer LandingScreen's identical glyph already
-     uses. Two things were wrong here. The token: --accent is a FILL and never
-     the right answer for a glyph (bug class 4). And the measurement in the old
-     comment: "4.84:1" was computed against #14161A, but this nav actually
-     paints #202226 — a tint is a ground (bug class 5). Measured against the
-     ground it really has: --accent 4.19:1, which fails AA at this size;
-     --accent-on-dark 8.18:1. */
-  color: var(--accent-on-dark);
-  font-size: var(--step-2);
-  line-height: 1;
-}
-
-.navLogoName {
-  color: var(--nav-text);
-  font-size: var(--step-1);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.navLinks {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  flex: 1;
-}
-
-.navLink {
-  color: var(--nav-muted);
-  text-decoration: none;
-  font-size: var(--step-0);
-  font-weight: 500;
-  transition: color var(--transition);
-}
-
-.navLink:hover {
-  color: var(--nav-text);
-}
-
-/* "You are here" is a state, not a brand moment — and --accent-text was
-   unreadable on this ground. Full-strength nav text plus a rule under it says
-   it more clearly and costs no colour. */
-.navLinkActive {
-  color: var(--nav-text);
-  box-shadow: inset 0 -2px 0 var(--accent);
-  padding-bottom: 2px;
-}
-
-.navActions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-inline-start: auto;
-}
-
-.navLoginBtn {
-  color: var(--nav-muted);
-  text-decoration: none;
-  font-size: var(--step-0);
-  font-weight: 500;
-  padding: 6px 16px;
-  border-radius: var(--radius);
-  transition: color var(--transition);
-}
-
-.navLoginBtn:hover {
-  color: var(--nav-text);
-}
-
-.navCta {
-  /* white on --accent is 3.80:1; on --cta it is 4.70:1. */
-  background: var(--cta);
-  color: var(--on-accent);
-  text-decoration: none;
-  font-size: var(--step-0);
-  font-weight: 700;
-  padding: 8px 20px;
-  /* Measured at 39px tall on a phone. The landing page's own .navCta was given
-     these three lines for exactly this reason; the pricing page has a separate
-     copy of the rule and never got them, so the button people press to start
-     paying was the short one. */
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-accent);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
-  white-space: nowrap;
-}
-
-.navCta:hover {
-  background: var(--cta-dark);
-  box-shadow: var(--shadow-cta-lg);
-  transform: translateY(-1px);
-}
-
 /* ── Page header ── */
 
 .pageHeader {
@@ -563,13 +435,6 @@
 }
 
 @media (max-width: 600px) {
-  .navLinks {
-    display: none;
-  }
-
-  .navLoginBtn {
-    display: none;
-  }
 
   .pageHeader {
     padding: 48px 20px 64px;
@@ -612,21 +477,3 @@
   line-height: 1.5;
 }
 
-/* Touch target — see qa/mobile.mjs. Only the tappable area grows to 44px,
-   through a pseudo-element; the box does not move. */
-@media (pointer: coarse) {
-  .navLogo {
-    position: relative;
-  }
-
-  .navLogo::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    min-width: 44px;
-    height: 44px;
-  }
-}

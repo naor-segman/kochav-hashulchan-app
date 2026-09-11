@@ -4,188 +4,6 @@
   overflow-x: hidden;
 }
 
-/* ── Navigation ── */
-
-.nav {
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  background: rgba(var(--text-rgb), 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--nav-border);
-}
-
-.navInner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 68px;
-  display: flex;
-  align-items: center;
-  gap: 40px;
-}
-
-.navLogo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-
-.navLogoMark {
-  /* The brand glyph appeared in FOUR different pinks on this page, three of
-     them on the same ink ground. One rule, the documented one: --accent-text on
-     a light ground, --accent-on-dark on a dark one. --accent is a FILL token
-     (CLAUDE.md bug class 4) and was never the right answer for a glyph.
-     Here — the near-black nav — that is --accent-on-dark at 9.52:1, against
-     4.87:1 for the --accent that was here and 2.66:1 for --accent-text. */
-  color: var(--accent-on-dark);
-  font-size: var(--step-2);
-  line-height: 1;
-}
-
-.navLogoName {
-  color: var(--nav-text);
-  font-size: var(--step-1);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.navLinks {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  flex: 1;
-}
-
-.navLink {
-  color: var(--nav-muted);
-  text-decoration: none;
-  font-size: var(--step-0);
-  font-weight: 500;
-  transition: color var(--transition);
-}
-
-.navLink:hover {
-  color: var(--nav-text);
-}
-
-.navActions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-inline-start: auto;
-}
-
-.navLoginBtn {
-  color: var(--nav-muted);
-  text-decoration: none;
-  font-size: var(--step-0);
-  font-weight: 500;
-  padding: 6px 16px;
-  border-radius: var(--radius);
-  transition: color var(--transition);
-}
-
-.navLoginBtn:hover {
-  color: var(--nav-text);
-}
-
-.navCta {
-  /* --accent under a white label is 3.80:1 and fails AA. --cta is the same hue
-     deepened exactly for this job (4.70:1) — that is what it exists for. */
-  background: var(--cta);
-  color: var(--on-accent);
-  text-decoration: none;
-  font-size: var(--step-0);
-  font-weight: 700;
-  padding: 8px 20px;
-  /* The primary call to action on the page that sells, measured at 39px tall on
-     a phone. Every other coarse-pointer control in this codebase is 44. */
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-accent);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
-  white-space: nowrap;
-}
-
-.navCta:hover {
-  background: var(--cta-dark);
-  box-shadow: var(--shadow-cta-lg);
-  transform: translateY(-1px);
-}
-
-/* ── Mobile menu (hamburger) — hidden on desktop, shown ≤600px ── */
-.navBurger {
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-  /* 44, not 40. This is the ONLY navigation on the landing page below the
-     breakpoint, and the first control a prospective customer touches — and it
-     was the one place in the app with no `pointer: coarse` override, measured
-     at 38x40 effective. Everywhere else in this codebase the coarse-pointer
-     minimum is 44px. */
-  width: 44px;
-  height: 44px;
-  padding: 8px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  margin-inline-start: 4px;
-}
-
-.burgerBar {
-  display: block;
-  width: 22px;
-  height: 2px;
-  border-radius: var(--radius-xs);
-  background: var(--nav-text);
-  transition: transform var(--transition), opacity var(--transition);
-}
-.burgerBar1 { transform: translateY(7px) rotate(45deg); }
-.burgerBar2 { opacity: 0; }
-.burgerBar3 { transform: translateY(-7px) rotate(-45deg); }
-
-.mobileMenu {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 16px 16px;
-  border-top: 1px solid var(--nav-border);
-  background: rgba(var(--text-rgb), 0.98);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.mobileLink {
-  color: var(--nav-muted);
-  text-decoration: none;
-  font-size: var(--step-1);
-  font-weight: 600;
-  padding: 12px 8px;
-  border-radius: var(--radius);
-}
-.mobileLink:hover { color: var(--nav-text); }
-
-.mobileMenuCta {
-  margin-top: 8px;
-  text-align: center;
-  background: var(--cta);
-  color: var(--on-accent);
-  text-decoration: none;
-  font-size: var(--step-1);
-  font-weight: 700;
-  padding: 12px 20px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-cta);
-}
-
 /* Sticky-nav offset so anchor jumps land below the bar, not under it. */
 .features,
 .howSection {
@@ -575,6 +393,31 @@
   line-height: 1.7;
   margin: 0;
 }
+
+/* The six cards became LINKS to the six service pages (checklist 87). An <a>
+   brings its own colour and underline, and it needs to be a block for the
+   padding above to apply — so the card styling stays in .featureCard and this
+   only undoes what the anchor adds. `min-height` lines the three columns up
+   when one blurb wraps to two lines and its neighbours do not. */
+.featureLink {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.featureMore {
+  margin-top: auto;
+  padding-top: 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  /* --accent is a FILL token at 3.8:1 and is never text. On this surface the
+     text token is --accent-text. */
+  color: var(--accent-text);
+}
+
+.featureLink:hover .featureMore { text-decoration: underline; }
 
 /* ── How it works ── */
 
@@ -1159,35 +1002,6 @@
 }
 
 @media (max-width: 600px) {
-  /* 40px of gap twice, plus 48px of padding, is 128px of whitespace in a 390px
-     bar. The logo is flex-shrink:0 and the burger has a 44px floor, so the
-     deficit had nowhere to go and pushed the burger 15px off the inline-end
-     edge of the screen: a 44px box with 28px of it actually reachable, on the
-     only navigation control the page that SELLS has below this breakpoint.
-     `margin-inline-start: auto` on .navActions already does the separating,
-     so the large gap was never load-bearing here. */
-  .navInner {
-    gap: 12px;
-    padding: 0 16px;
-  }
-
-  .navLinks {
-    display: none;
-  }
-
-  .navLoginBtn {
-    display: none;
-  }
-
-  .navBurger {
-    display: flex;
-    flex-shrink: 0;
-    /* The width/height above are 44px, but `display: none` there means the
-       flex box only materialises here — and padding:8px on a 44px box left the
-       measured hit area at 38 wide. Belt and braces on the axis that failed. */
-    min-width: 44px;
-    min-height: 44px;
-  }
 
   .hero {
     padding: 64px 20px 88px;
@@ -1203,20 +1017,6 @@
 }
 
 @media (max-width: 400px) {
-  /* At 320 the bar still needed 343px: 32 of padding, a 126px logo that does
-     not shrink, a 117px CTA, and the 44px burger. The burger sat 21px off the
-     inline-end edge, and because the row overflowed its container the opened
-     menu's links stretched past the screen with it. Nothing is hidden and
-     nothing truncates — 12px comes off the bar and 16px off the CTA's own
-     padding, which is 28px against a 23px deficit. The CTA is the control that
-     earns money on this page, so it keeps its 44px height and its label. */
-  .navInner {
-    padding: 0 10px;
-  }
-
-  .navCta {
-    padding-inline: 12px;
-  }
 
   .heroHeadline {
     font-size: 2.4rem;
@@ -1446,26 +1246,6 @@
 }
 .trustTitle { font-size: var(--step-0); font-weight: 800; color: var(--text); margin: 0 0 2px; }
 .trustDesc  { font-size: var(--step--1); color: var(--muted); margin: 0; line-height: 1.5; }
-
-/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
-   through a pseudo-element; the box does not move. */
-@media (pointer: coarse) {
-  .navLogo {
-    position: relative;
-  }
-
-  .navLogo::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    min-width: 44px;
-    height: 44px;
-  }
-
-}
 
 /* Touch target — see qa/mobile.mjs. The hero's second route in appears only
    once the cinematic layout is on, which is why it showed up in the audit only

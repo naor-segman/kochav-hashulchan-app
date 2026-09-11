@@ -35,6 +35,63 @@ export const COMPANY = {
 };
 
 /**
+ * Who legally operates this service. Checklist 19–20.
+ *
+ * The three legal pages carried NO legal identity at all before this — not a
+ * name, not a registration number, not a phone. Only a support mailbox. תנאי
+ * שימוש that never say who you are contracting with, a privacy policy that
+ * never names the data controller, and an accessibility statement whose
+ * coordinator is an email address are all incomplete in the same way.
+ *
+ * One source, for the same reason the domain is one source: it was hardcoded
+ * NINE times across eight files and setting the env var fixed a quarter of the
+ * problem while looking like it had fixed all of it.
+ *
+ * ── The details, supplied by the owner on 11.9 ──────────────────────────────
+ * `עוסק פטור` is a sole-trader registration held by a PERSON, not by a trade
+ * name: the number below is the owner's own, and רוויה is a brand operating
+ * under it alongside his other one. That is why `name` is the person and
+ * `brand` is separate — a receipt has to carry the registered name, and only
+ * the registered name identifies who the customer is contracting with.
+ *
+ * TWO CONSEQUENCES worth knowing before anyone writes a price (checklist 31,
+ * 45, 46), because they are properties of the STATUS and not of this file:
+ *   • A עוסק פטור does not charge VAT and cannot issue a חשבונית מס — only a
+ *     קבלה. So a price shown here is final, and must never be labelled
+ *     "+ מע\"מ" or "כולל מע\"מ". Nothing in the app says either today.
+ *   • The status carries an annual turnover ceiling, per person and not per
+ *     business, above which registration as עוסק מורשה is mandatory.
+ *
+ * `address` was deliberately empty until the owner supplied one on 11.9 — an
+ * address that is wrong on a legal page is worse than one that is missing.
+ * Every consumer below still omits the row rather than printing a blank, so
+ * emptying this field again degrades correctly instead of leaving "כתובת:"
+ * followed by nothing.
+ */
+export const LEGAL = {
+  /** The registered name. This is who the customer contracts with. */
+  name:   "נאור סגמן",
+  /** Sole-trader registration. `type` is rendered beside it, never alone. */
+  type:   "עוסק פטור",
+  taxId:  "313614067",
+  /** Business phone. Also the accessibility coordinator's, which the
+      Accessibility Regulations ask for by name and by phone. */
+  phone:  "050-2296734",
+  /** Supplied 11.9. Rendered only when non-empty — see the note above. */
+  address: "גלוסקין 38, רחובות",
+};
+
+/** "נאור סגמן, עוסק פטור 313614067" — the identity line, built once. */
+export function legalLine() {
+  return `${LEGAL.name}, ${LEGAL.type} ${LEGAL.taxId}`;
+}
+
+/** `tel:` href for the business phone, digits only. */
+export function legalTel() {
+  return `tel:${LEGAL.phone.replace(/[^\d+]/g, "")}`;
+}
+
+/**
  * The verse the name comes from — Psalms 23:5.
  *
  * Kept here rather than retyped per screen for the same reason the support

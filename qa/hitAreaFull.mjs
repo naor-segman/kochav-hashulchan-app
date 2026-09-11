@@ -47,6 +47,7 @@ const SCREENS = [
   ['vendors', '/events/e1/vendors'], ['messages', '/events/e1/messages'],
   ['nametags', '/events/e1/nametags'], ['entrance', '/events/e1/entrance'],
   ['landing', '/'], ['pricing', '/pricing'], ['help', '/help'],
+  ['svc-seating', '/services/seating'], ['svc-site', '/services/event-site'], ['svc-plan', '/services/planning'], ['svc-rsvp', '/services/rsvp'], ['svc-day', '/services/event-day'], ['svc-gifts', '/services/gifts'],   // checklist 87
 ];
 
 const b = await chromium.launch({
