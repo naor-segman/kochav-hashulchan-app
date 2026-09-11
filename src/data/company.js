@@ -62,9 +62,11 @@ export const COMPANY = {
  *   • The status carries an annual turnover ceiling, per person and not per
  *     business, above which registration as עוסק מורשה is mandatory.
  *
- * `address` is deliberately empty and NOT invented. An address that is wrong
- * on a legal page is worse than an address that is missing, and every consumer
- * of this object below is written to omit the line rather than print a blank.
+ * `address` was deliberately empty until the owner supplied one on 11.9 — an
+ * address that is wrong on a legal page is worse than one that is missing.
+ * Every consumer below still omits the row rather than printing a blank, so
+ * emptying this field again degrades correctly instead of leaving "כתובת:"
+ * followed by nothing.
  */
 export const LEGAL = {
   /** The registered name. This is who the customer contracts with. */
@@ -75,8 +77,8 @@ export const LEGAL = {
   /** Business phone. Also the accessibility coordinator's, which the
       Accessibility Regulations ask for by name and by phone. */
   phone:  "050-2296734",
-  /** Not supplied yet — see the note above. Never render a blank line. */
-  address: "",
+  /** Supplied 11.9. Rendered only when non-empty — see the note above. */
+  address: "גלוסקין 38, רחובות",
 };
 
 /** "נאור סגמן, עוסק פטור 313614067" — the identity line, built once. */
