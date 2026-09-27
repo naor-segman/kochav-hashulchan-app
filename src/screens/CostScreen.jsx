@@ -96,8 +96,18 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
 
   const totalDiff = totalActual - totalBudget;
 
+  /* Declined guests are excluded — they were not, and this was the ONLY guest
+     aggregate on the screen that counted them. The three below it filter
+     `rsvp !== "declined"`, as do the seating screen, the entrance counter, the
+     name-tag printer, the analytics and the export. So a declined family of six
+     was diluting "עלות לאורח", inflating "מספר אורחים", and — the one that
+     actually costs money — inflating the catering hint, which reads
+     "קייטרינג = N אורחים × ₪X לאורח" and is a number a host quotes to a caterer.
+     Seats, not rows: `count` is people. */
   const totalGuests = useMemo(() =>
-    (ev?.guests ?? []).reduce((s, g) => s + (g.count || 1), 0), [ev]);
+    (ev?.guests ?? [])
+      .filter(g => g.rsvp !== "declined")
+      .reduce((s, g) => s + (g.count || 1), 0), [ev]);
 
   // ── Income forecast: sum of the PER-GUEST estimated gifts the host entered,
   // vs actual gifts, and the net picture. Only attending (not declined) count.
