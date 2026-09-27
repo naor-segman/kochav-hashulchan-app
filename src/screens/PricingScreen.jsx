@@ -92,7 +92,12 @@ export default function PricingScreen({ user }) {
                 className={[styles.planCard, plan.highlight && styles.planCardPro].filter(Boolean).join(" ")}
               >
                 <div className={styles.planHeader}>
-                  <div className={styles.planName}>{plan.name}</div>
+                  {/* h2, not a div. The group titles below are h3, so a plain
+                      div here made the page jump h1 → h3 — a skipped level, the
+                      exact thing qa/servicePages.mjs checks for on every other
+                      marketing page. /pricing was simply not in its route list;
+                      it is now. */}
+                  <h2 className={styles.planName}>{plan.name}</h2>
                   <p className={styles.planDesc}>{plan.desc}</p>
                 </div>
 
@@ -104,34 +109,45 @@ export default function PricingScreen({ user }) {
                 </div>
                 {plan.note && <p className={styles.planNote}>{plan.note}</p>}
 
+                {/* The card carries the HEADINGS only. The full contents are one
+                    section down.
+
+                    They were in the card at first, and it did not survive being
+                    looked at: the grid stretches all three to equal height, the
+                    free tier holds 38 bullets and the on-site tier holds 5, so
+                    the ₪1,290 card came out as a 2,664-pixel column of white
+                    space with a price at the top. A pricing card's job is to be
+                    compared with the two beside it, and forty bullets is not a
+                    comparison — it is a document. */}
+                {plan.inherits && <p className={styles.planInherits}>{plan.inherits}</p>}
+                <ul className={styles.planSummary}>
+                  {plan.groups.map(group => (
+                    <li key={group.title} className={styles.planFeature}>
+                      <span className={styles.planFeatureIcon} aria-hidden="true">✓</span>
+                      <span>
+                        {group.title}
+                        {/* The one honest label that has to travel with the
+                            line: delivered by a person, through Unica, not by
+                            the software. Never colour alone. */}
+                        {group.human && <span className={styles.planHuman}>בשטח</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* LAST in the card, and that is load-bearing. `.planCta` carries
+                    `margin-top: auto` so the three buttons line up as a row no
+                    matter how much text sits above them — the stylesheet records
+                    that they once sat at 1114 / 1193 / 1206 and that it is the
+                    most-noticed misalignment on a pricing table. Putting the
+                    button above the summary list broke exactly that again:
+                    measured 745 / 875 / 1125. Anything added below it will too. */}
                 <Link
                   to={plan.ctaTo}
                   className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}
                 >
                   {plan.cta}
                 </Link>
-
-                {plan.inherits && <p className={styles.planInherits}>{plan.inherits}</p>}
-
-                {plan.groups.map(group => (
-                  <div key={group.title} className={styles.planGroup}>
-                    <h3 className={styles.planGroupTitle}>
-                      {group.title}
-                      {/* The one honest label that has to travel with the line:
-                          these are delivered by a person, through Unica, not by
-                          the software. */}
-                      {group.human && <span className={styles.planHuman}>בשטח</span>}
-                    </h3>
-                    <ul className={styles.planFeatures}>
-                      {group.items.map(text => (
-                        <li key={text} className={styles.planFeature}>
-                          <span className={styles.planFeatureIcon} aria-hidden="true">✓</span>
-                          <span>{text}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
               </div>
             ))}
           </div>
@@ -157,6 +173,42 @@ export default function PricingScreen({ user }) {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── What is actually in each package ──
+          The full lists, below the cards rather than inside them. One block per
+          tier, headings that continue the page's h2/h3 ladder. */}
+      <section className={styles.detailSection} id="whats-inside">
+        <div className={styles.detailInner}>
+          <h2 className={styles.detailHeading}>מה בדיוק נכנס בכל חבילה</h2>
+          {PLANS.map(plan => (
+            <div key={plan.key} className={styles.detailPlan}>
+              <div className={styles.detailPlanHead}>
+                <h3 className={styles.detailPlanName}>{plan.name}</h3>
+                <span className={styles.detailPlanPrice}>{plan.price}</span>
+              </div>
+              {plan.inherits && <p className={styles.detailInherits}>{plan.inherits}</p>}
+              <div className={styles.detailGrid}>
+                {plan.groups.map(group => (
+                  <div key={group.title} className={styles.planGroup}>
+                    <h4 className={styles.planGroupTitle}>
+                      {group.title}
+                      {group.human && <span className={styles.planHuman}>בשטח</span>}
+                    </h4>
+                    <ul className={styles.planFeatures}>
+                      {group.items.map(text => (
+                        <li key={text} className={styles.planFeature}>
+                          <span className={styles.planFeatureIcon} aria-hidden="true">✓</span>
+                          <span>{text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

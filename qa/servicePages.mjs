@@ -32,7 +32,10 @@ const BASE = `http://127.0.0.1:${PORT}`;
  * of the same three screenshots. It was the only marketing page nothing opened
  * an <img> on, which is how it carried a stale 117 and a 1200x720 declaration
  * on a 2400x1520 file. */
-const ROUTES = ["/home", "/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day", "/services/gifts"];
+/* /pricing is here for the heading check above all: its plan names were plain
+ * divs, so the page jumped h1 -> h3 and nothing noticed, because this harness
+ * was the thing that checks for that and /pricing was not in its list. */
+const ROUTES = ["/home", "/pricing", "/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day", "/services/gifts"];
 const WIDTHS = [320, 360, 390, 414, 768, 1024, 1280, 1440];
 
 const results = [];
@@ -79,7 +82,14 @@ try {
       naturalH: el.naturalHeight,
       complete: el.complete,
     })));
-    check(`${route}: has images`, imgs.length > 0, `${imgs.length}`);
+    /* Only where a page is BUILT out of screenshots. The check exists because a
+       404 on a landing page is a grey box where the proof was — but /pricing is
+       a table and a word list, and demanding an image of it is the check being
+       wrong rather than the page. Everything below still runs on whatever
+       images a page does have. */
+    if (route !== "/pricing") {
+      check(`${route}: has images`, imgs.length > 0, `${imgs.length}`);
+    }
     for (const im of imgs) {
       check(`${route}: loaded ${im.src}`,
         im.complete && im.naturalW > 0, `natural ${im.naturalW}x${im.naturalH}`);

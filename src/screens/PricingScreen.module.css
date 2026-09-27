@@ -598,3 +598,95 @@
 @media (max-width: 720px) {
   .addonsGrid { grid-template-columns: 1fr; }
 }
+
+/* ── The detail section (checklist 31) ──────────────────────────────────────
+   The full contents of each package, below the cards. See the comment in the
+   JSX for why they are not inside them. */
+
+.planSummary {
+  list-style: none;
+  margin: 24px 0 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detailSection {
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+}
+
+.detailInner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 72px 24px;
+}
+
+.detailHeading {
+  margin: 0 0 40px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: var(--text);
+  text-align: center;
+}
+
+.detailPlan {
+  padding: 28px 30px;
+  margin-bottom: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.detailPlanHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detailPlanName {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.detailPlanPrice {
+  font-size: var(--step-1);
+  font-weight: 800;
+  /* --accent is a FILL token at 3.8:1 and is never text. */
+  color: var(--accent-text);
+}
+
+.detailInherits {
+  margin: 14px 0 0;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--text2);
+}
+
+/* Three columns of groups, so a 38-item tier reads as seven short lists rather
+   than one long one. Collapses on narrow screens. */
+.detailGrid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 32px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .detailGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .detailGrid  { grid-template-columns: 1fr; }
+  .detailInner { padding: 56px 16px; }
+  .detailPlan  { padding: 22px 18px; }
+}
