@@ -294,7 +294,9 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
 
         {/* ── Subscription info ── */}
         <section className={styles.section}>
-          <h2 className={styles.sectionLabel}>תוכנית ומנוי</h2>
+          {/* "תוכנית ומנוי" — there is no מנוי. One payment per event, decided
+              27.7, and the checkout matches it since 27.9. */}
+          <h2 className={styles.sectionLabel}>החבילה שלכם</h2>
           {sub === undefined ? (
             <Loading />
           ) : (
@@ -327,16 +329,15 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
               </div>
               {sub?.started_at && (
                 <div className={styles.infoRow}>
-                  <span className={styles.infoKey}>תחילת מנוי</span>
+                  <span className={styles.infoKey}>תאריך הרכישה</span>
                   <span className={styles.infoVal}>{formatDate(sub.started_at)}</span>
                 </div>
               )}
-              {sub?.current_period_end && !isCancelling && (
-                <div className={styles.infoRow}>
-                  <span className={styles.infoKey}>חידוש הבא</span>
-                  <span className={styles.infoVal}>{formatDate(sub.current_period_end)}</span>
-                </div>
-              )}
+              {/* A "חידוש הבא" row stood here, reading `current_period_end`.
+                  There is no next period — that is the product promise, printed
+                  on the pricing page twice — and the column is null for every
+                  one-time purchase, so the row could only ever have appeared for
+                  a subscription we no longer sell. */}
               {isCancelling && sub?.expires_at && (
                 <div className={styles.infoRow}>
                   <span className={styles.infoKey}>גישה עד</span>
@@ -345,7 +346,7 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
               )}
               {!sub && (
                 <p className={styles.noSubNote}>
-                  אין מנוי פעיל — משתמש בתוכנית החינמית.
+                  לא נרכשה חבילה — אתם בחבילת החינם.
                 </p>
               )}
 
@@ -383,7 +384,10 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
         {/* ── Subscription status notices ── */}
         {sub && isPaymentFailed && (
           <div className={styles.paymentFailedBanner}>
-            <span><Icon name="alert" /> תשלום נכשל — אנא עדכנו את אמצעי התשלום שלכם.</span>
+            {/* No longer written by any webhook — a one-time payment produces no
+                invoices, so invoice.payment_failed cannot fire. An admin can
+                still set the flag by hand, which is the only way this shows. */}
+            <span><Icon name="alert" /> התשלום לא הושלם — אנא בדקו את אמצעי התשלום.</span>
             {isPaidPlan(planKey) && isStripeConfigured && (
               <button
                 className={styles.paymentFailedBannerBtn}
@@ -397,7 +401,10 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
         )}
         {sub && isCancelling && !isPaymentFailed && (
           <div className={styles.cancellingBanner}>
-            ביטול מתוכנן — הגישה לתוכנית {getPlanLabel(planKey)} פעילה עד{" "}
+            {/* Reachable two ways now, and neither is a scheduled cancellation:
+                a full refund (charge.refunded sets expires_at to now) or an admin
+                setting an end date by hand. */}
+            הגישה לחבילת {getPlanLabel(planKey)} פעילה עד{" "}
             {formatDate(sub.expires_at)}.
           </div>
         )}
@@ -548,7 +555,10 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
                 ].filter(Boolean).join(" ")}
                 disabled={!isStripeConfigured || billing.checkoutTarget === "portal"}
                 onClick={isStripeConfigured ? billing.openPortal : undefined}
-                title={isStripeConfigured ? "נהלו מנוי, שנו תשלום, או בטלו" : "ניהול חיוב יהיה זמין בקרוב"}
+                /* Was "נהלו מנוי, שנו תשלום, או בטלו". Nothing here renews, so
+                   there is no מנוי to manage and nothing to cancel — what the
+                   Stripe portal is actually good for now is the receipt. */
+                title={isStripeConfigured ? "הקבלות ואמצעי התשלום שלכם" : "ניהול חיוב יהיה זמין בקרוב"}
               >
                 {billing.checkoutTarget === "portal" ? "פותח…" : "ניהול חיוב ↗"}
               </button>

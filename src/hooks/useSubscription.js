@@ -4,13 +4,22 @@ import { supabase } from "../lib/supabase.js";
 
 // ── useSubscription ────────────────────────────────────────────────────────────
 //
-// Returns the authenticated user's active subscription row plus derived state.
+// Returns the authenticated user's active PURCHASE row plus derived state.
 //
-// subscription — undefined (loading) | null (no active sub) | object (active/trialing row)
-// planKey      — "free" | "pro" | "enterprise" (defaults to "free" when no sub)
-// statusKey    — "active" | "trialing" (always from DB status column when sub exists)
-// isPaymentFailed — true when payment_past_due flag is set (grace period)
-// isCancelling — true when expires_at is set and in the future (cancel scheduled)
+// Purchases are one-time per event since 27.9, not subscriptions — the table is
+// still called `subscriptions` because subscriptions.plan carries a CHECK
+// constraint the whole app reads. Nothing here renews.
+//
+// subscription — undefined (loading) | null (nothing purchased) | object (active row)
+// planKey      — "free" | "pro" | "enterprise" (defaults to "free" when none)
+// statusKey    — "active" | "trialing" (always from DB status column when a row exists)
+// isPaymentFailed — true when payment_past_due is set. ADMIN-set only now: a
+//                one-time payment generates no invoices, so nothing in the
+//                webhook writes this flag any more.
+// isCancelling — true when expires_at is set and in the future. NOT a scheduled
+//                cancellation any more — there is no period to cancel at the end
+//                of. It means an end date exists: a full refund (which sets it to
+//                now) or an admin-set expiry.
 // refresh()    — manually re-fetch (call after a successful checkout)
 // refreshUntilPlanChanges() — bounded poll for the async Stripe webhook
 // ─────────────────────────────────────────────────────────────────────────────

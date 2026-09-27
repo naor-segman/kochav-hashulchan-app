@@ -8,15 +8,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Receives and verifies Stripe webhook events, then updates the subscriptions
 // and profiles tables in Supabase accordingly.
 //
+// ONE-TIME PAYMENTS, NOT SUBSCRIPTIONS (27.9). A purchase has exactly two
+// lifecycle events: it is paid, and it may later be refunded. That is the whole
+// state machine, and it is why four handlers were deleted from this file rather
+// than adapted — `customer.subscription.updated`, `customer.subscription.deleted`,
+// `invoice.payment_failed` and `invoice.payment_succeeded` are events Stripe will
+// never send for `mode: "payment"`: there is no Subscription object and, with
+// invoice_creation off, no invoices either. Handlers for events that cannot
+// arrive are not caution, they are code that reads as if the product still
+// renewed.
+//
 // Configure in Stripe Dashboard → Developers → Webhooks:
 //   Endpoint URL:
 //     https://<project-ref>.supabase.co/functions/v1/stripe-webhook
 //   Events to send:
 //     checkout.session.completed
-//     customer.subscription.updated
-//     customer.subscription.deleted
-//     invoice.payment_failed
-//     invoice.payment_succeeded
+//     charge.refunded
 //
 // Deploy:
 //   supabase functions deploy stripe-webhook
@@ -32,23 +39,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //   handlers skip it. Use this for comped accounts, support exceptions, etc.
 // =============================================================================
 
-// Maps Stripe subscription.status → internal status column value
-function mapStripeStatus(stripeStatus: string): string {
-  switch (stripeStatus) {
-    case "active":             return "active";
-    case "trialing":           return "trialing";
-    case "past_due":           return "active";     // grace period — keep access,
-                                                    // the payment_past_due flag
-                                                    // is what surfaces it
-    case "canceled":           return "cancelled";
-    case "unpaid":             return "cancelled";
-    case "incomplete":         return "expired";    // first payment never landed
-    case "incomplete_expired": return "expired";
-    case "paused":             return "cancelled";
-    // An unrecognised Stripe status must not hand out a paid plan by default.
-    default:                   return "expired";
-  }
-}
+// `mapStripeStatus` stood here, translating the nine Stripe SUBSCRIPTION states
+// (trialing, past_due, unpaid, incomplete_expired, paused …) into this schema's
+// four. A one-time payment has none of them: a Checkout session either completes
+// paid or it does not exist, so the only two values this file ever writes are
+// "active" and, on a refund, "cancelled". The function had no remaining caller.
 
 // The price the customer is actually billed on is the authority on their plan.
 // Reading it from subscription.metadata with a hardcoded `?? "pro"` fallback
@@ -128,13 +123,15 @@ Deno.serve(async (req: Request) => {
 
       // ────────────────────────────────────────────────────────────────────────
       // checkout.session.completed
-      // User completed a Checkout session — create/update the subscription row.
+      // The host paid. Record the purchase. This is the only event that grants a
+      // paid plan, and for a one-time payment it is also the only one that says
+      // the money arrived — there is no invoice.payment_succeeded to follow it.
       // ────────────────────────────────────────────────────────────────────────
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
 
-        if (!session.subscription || !session.customer) {
-          console.warn("checkout.session.completed: no subscription or customer on session");
+        if (!session.customer) {
+          console.warn("checkout.session.completed: no customer on session");
           break;
         }
 
@@ -144,39 +141,61 @@ Deno.serve(async (req: Request) => {
           break;
         }
 
-        // Retrieve the full subscription so we get price ID and period end.
-        const subscription = await stripe.subscriptions.retrieve(
-          session.subscription as string,
-          { expand: ["items.data.price"] }
-        );
+        // PAID, not merely completed. The two are different events for any
+        // delayed-notification method, and the session fires `completed` with
+        // payment_status "unpaid" while the money is still in flight. Granting a
+        // paid plan there hands out the product for a payment that can still
+        // fail. Cards settle immediately, so in practice this is "paid" — which
+        // is exactly why it would never have been noticed if it were wrong.
+        if (session.payment_status !== "paid") {
+          console.log(`checkout.session.completed: payment_status=${session.payment_status}, waiting`);
+          break;
+        }
 
-        const priceId   = subscription.items.data[0]?.price?.id ?? null;
-        const plan      = planFromPrice(priceId, session.metadata?.plan);
-        const status    = mapStripeStatus(subscription.status);
-        const periodEnd = subscription.current_period_end
-          ? new Date(subscription.current_period_end * 1000).toISOString()
-          : null;
+        // The price ID comes from the line items. Under the subscription model
+        // it came from the retrieved Subscription's first item; there is no
+        // Subscription now, and `session.line_items` is NOT included in the
+        // webhook payload — it has to be listed explicitly, which is the kind of
+        // thing that silently yields `plan: "free"` for a host who just paid.
+        let priceId: string | null = null;
+        try {
+          const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
+          priceId = items.data[0]?.price?.id ?? null;
+        } catch (err: any) {
+          console.error("checkout.session.completed — listLineItems failed:", err?.message ?? err);
+        }
+        const plan = planFromPrice(priceId, session.metadata?.plan);
+        if (plan === "free") {
+          // Neither the price nor the metadata named a plan we recognise. Writing
+          // the row anyway would record a purchase that grants nothing, and the
+          // host would see the free plan after paying with no trace of why.
+          console.error(`checkout.session.completed: could not resolve a paid plan (price=${priceId}, metadata=${session.metadata?.plan}) — not writing a row`);
+          break;
+        }
 
-        // Upsert by stripe_subscription_id (unique column).
-        // ON CONFLICT: update the existing row if the user somehow completed
-        // checkout twice (e.g., double-click or browser back).
+        // Conflict on the CHECKOUT SESSION id. Stripe can deliver an event more
+        // than once, and a host pressing Back can complete two sessions; this is
+        // what keeps either from producing a second purchase row.
         const { error: upsertError } = await supabase
           .from("subscriptions")
           .upsert(
             {
-              user_id:                userId,
+              user_id:                    userId,
               plan,
-              status,
-              stripe_customer_id:     session.customer as string,
-              stripe_subscription_id: subscription.id,
-              stripe_price_id:        priceId,
-              current_period_end:     periodEnd,
-              payment_past_due:       false,
-              started_at:             new Date().toISOString(),
-              expires_at:             null,
-              updated_at:             new Date().toISOString(),
+              // One payment, so there is nothing to be in trouble about later:
+              // no trial, no grace period, no renewal that can fail.
+              status:                     "active",
+              stripe_customer_id:         session.customer as string,
+              stripe_checkout_session_id: session.id,
+              stripe_payment_intent_id:   (session.payment_intent as string) ?? null,
+              stripe_price_id:            priceId,
+              current_period_end:         null,
+              payment_past_due:           false,
+              started_at:                 new Date().toISOString(),
+              expires_at:                 null,
+              updated_at:                 new Date().toISOString(),
             },
-            { onConflict: "stripe_subscription_id" }
+            { onConflict: "stripe_checkout_session_id" }
           );
 
         if (upsertError) {
@@ -186,156 +205,53 @@ Deno.serve(async (req: Request) => {
       }
 
       // ────────────────────────────────────────────────────────────────────────
-      // customer.subscription.updated
-      // Plan change, trial → paid conversion, cancel_at_period_end toggle, etc.
+      // charge.refunded
+      // The only thing that happens to a one-time purchase after it succeeds.
+      // Full refund → the plan goes away. Partial refund → it does not: a ₪100
+      // goodwill credit on a ₪690 package is not a cancellation, and treating it
+      // as one would take the product away mid-event from someone we had just
+      // compensated.
       // ────────────────────────────────────────────────────────────────────────
-      case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription;
-
-        // Skip manually-managed rows.
-        const { data: existing } = await supabase
-          .from("subscriptions")
-          .select("is_manually_managed")
-          .eq("stripe_subscription_id", subscription.id)
-          .maybeSingle();
-
-        if (existing?.is_manually_managed) {
-          console.log(`customer.subscription.updated: skipping manually managed row for sub ${subscription.id}`);
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        const pi = charge.payment_intent as string | null;
+        if (!pi) {
+          console.warn("charge.refunded: no payment_intent on charge");
           break;
         }
-
-        const priceId   = subscription.items.data[0]?.price?.id ?? null;
-        const userId    = subscription.metadata?.user_id ?? null;
-        const plan      = planFromPrice(priceId, subscription.metadata?.plan);
-        const status    = mapStripeStatus(subscription.status);
-        const periodEnd = subscription.current_period_end
-          ? new Date(subscription.current_period_end * 1000).toISOString()
-          : null;
-
-        // When the customer has scheduled a cancellation, set expires_at to
-        // the end of the current paid period so they keep access until then.
-        const expiresAt = subscription.cancel_at_period_end ? periodEnd : null;
-
-        const { error: updateError } = await supabase
-          .from("subscriptions")
-          .update({
-            plan,
-            status,
-            stripe_price_id:    priceId,
-            current_period_end: periodEnd,
-            expires_at:         expiresAt,
-            updated_at:         new Date().toISOString(),
-          })
-          .eq("stripe_subscription_id", subscription.id);
-
-        if (updateError) {
-          console.error("customer.subscription.updated — update error:", updateError);
+        if (charge.amount_refunded < charge.amount) {
+          console.log(`charge.refunded: partial (${charge.amount_refunded}/${charge.amount}) — access kept`);
+          break;
         }
-
-        // Keep profiles.stripe_customer_id up to date if it hasn't been set yet.
-        if (userId && subscription.customer) {
-          await supabase
-            .from("profiles")
-            .update({
-              stripe_customer_id: subscription.customer as string,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", userId)
-            .is("stripe_customer_id", null);
-        }
-        break;
-      }
-
-      // ────────────────────────────────────────────────────────────────────────
-      // customer.subscription.deleted
-      // Subscription fully cancelled after the billing period ended.
-      // Preserve the row for billing history — just update status.
-      // ────────────────────────────────────────────────────────────────────────
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
 
         const { data: existing } = await supabase
           .from("subscriptions")
           .select("is_manually_managed")
-          .eq("stripe_subscription_id", subscription.id)
+          .eq("stripe_payment_intent_id", pi)
           .maybeSingle();
 
-        if (existing?.is_manually_managed) {
-          console.log(`customer.subscription.deleted: skipping manually managed row for sub ${subscription.id}`);
+        if (!existing) {
+          console.warn(`charge.refunded: no purchase row for payment intent ${pi}`);
+          break;
+        }
+        if (existing.is_manually_managed) {
+          console.log(`charge.refunded: skipping manually managed row for ${pi}`);
           break;
         }
 
-        // Use period_end as expires_at so usePlan() returns "free" after expiry
-        // but the row is preserved for billing history.
-        const periodEnd = subscription.current_period_end
-          ? new Date(subscription.current_period_end * 1000).toISOString()
-          : new Date().toISOString();
-
+        // The row is kept, not deleted — it is the record that money moved. It is
+        // `expires_at` that makes usePlan() return "free", and the status that
+        // makes useSubscription stop selecting it.
         const { error } = await supabase
           .from("subscriptions")
           .update({
             status:     "cancelled",
-            expires_at: periodEnd,
+            expires_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq("stripe_subscription_id", subscription.id);
+          .eq("stripe_payment_intent_id", pi);
 
-        if (error) console.error("customer.subscription.deleted — update error:", error);
-        break;
-      }
-
-      // ────────────────────────────────────────────────────────────────────────
-      // invoice.payment_failed
-      // Automatic renewal payment failed. Stripe will retry (Smart Retries).
-      // Set payment_past_due flag but do NOT revoke access — let Stripe retry.
-      // Access is only revoked when subscription.updated/deleted fires later.
-      // ────────────────────────────────────────────────────────────────────────
-      case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        if (!invoice.subscription) break;
-
-        const { error } = await supabase
-          .from("subscriptions")
-          .update({
-            payment_past_due: true,
-            updated_at:       new Date().toISOString(),
-          })
-          .eq("stripe_subscription_id", invoice.subscription as string)
-          .eq("is_manually_managed", false);
-
-        if (error) console.error("invoice.payment_failed — update error:", error);
-        break;
-      }
-
-      // ────────────────────────────────────────────────────────────────────────
-      // invoice.payment_succeeded
-      // Renewal payment succeeded (or past_due recovery). Restore clean status.
-      // ────────────────────────────────────────────────────────────────────────
-      case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
-        if (!invoice.subscription) break;
-
-        // Update current_period_end from the invoice line item if available.
-        const lineEnd = (invoice as any).lines?.data?.[0]?.period?.end;
-        const periodEnd = lineEnd
-          ? new Date(lineEnd * 1000).toISOString()
-          : null;
-
-        const updatePayload: Record<string, unknown> = {
-          status:           "active",
-          payment_past_due: false,
-          expires_at:       null,
-          updated_at:       new Date().toISOString(),
-        };
-        if (periodEnd) updatePayload.current_period_end = periodEnd;
-
-        const { error } = await supabase
-          .from("subscriptions")
-          .update(updatePayload)
-          .eq("stripe_subscription_id", invoice.subscription as string)
-          .eq("is_manually_managed", false);
-
-        if (error) console.error("invoice.payment_succeeded — update error:", error);
+        if (error) console.error("charge.refunded — update error:", error);
         break;
       }
 

@@ -8,6 +8,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Creates a Stripe Checkout session for the authenticated user, then returns
 // the hosted Checkout URL so the browser can redirect to it.
 //
+// ONE-TIME PAYMENT (mode: "payment"), not a subscription. A couple has one
+// wedding; the price is per event and charged once. The two price secrets below
+// must therefore be ONE-TIME prices in Stripe — a recurring price is refused by
+// this function with an error that names the secret.
+//
 // Request  (POST, JSON): { plan: "pro" | "enterprise", returnUrl: string }
 // Response (JSON):       { url: string }  — Stripe hosted Checkout URL
 //
@@ -16,8 +21,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //
 // Required Supabase Edge Function secrets (set via Supabase Dashboard or CLI):
 //   STRIPE_SECRET_KEY            — sk_live_… or sk_test_…
-//   STRIPE_PRO_PRICE_ID          — price_… for the Pro plan
-//   STRIPE_ENTERPRISE_PRICE_ID   — price_… for the Enterprise plan
+//   STRIPE_PRO_PRICE_ID          — price_… ONE-TIME price for the ₪690 package
+//   STRIPE_ENTERPRISE_PRICE_ID   — price_… ONE-TIME price for the ₪1,290 package
 //   SUPABASE_URL                 — auto-injected
 //   SUPABASE_ANON_KEY            — auto-injected
 //   SUPABASE_SERVICE_ROLE_KEY    — auto-injected (used for profile reads/writes)
@@ -142,9 +147,38 @@ Deno.serve(async (req: Request) => {
         .eq("id", user.id);
     }
 
+    // ── The price has to be a ONE-TIME price, and we check before Stripe does ──
+    //
+    // `mode: "payment"` with a recurring price is rejected by Stripe with
+    // "You specified `payment` mode but passed a recurring price" — accurate and
+    // completely opaque from inside the app, where it surfaces as a 500 and a
+    // Hebrew toast saying the upgrade failed. One API call buys an error that
+    // names the secret to fix, which matters because this is the first thing
+    // anyone will hit on the day billing is switched on: the prices in Stripe
+    // were created for the subscription model this replaced.
+    const price = await stripe.prices.retrieve(priceId);
+    if (price.recurring) {
+      const secret = `STRIPE_${plan.toUpperCase()}_PRICE_ID`;
+      console.error(`${secret} points at a RECURRING price (${priceId}). Purchases are one-time.`);
+      return json({
+        error: `${secret} is a recurring price. Pricing is one payment per event, not a subscription — create a one-time price in Stripe and update that secret.`,
+      }, 500);
+    }
+
     // ── Create Stripe Checkout session ────────────────────────────────────────
+    //
+    // ONE PAYMENT, NOT A SUBSCRIPTION. This was `mode: "subscription"` while the
+    // public pricing page said "תשלום אחד לאירוע. לא מנוי." in two places — a
+    // recurring charge under a promise that there would not be one. The decision
+    // is from 27.7 and the code is what changes.
+    //
+    // `payment_intent_data.metadata` replaces `subscription_data.metadata`: there
+    // is no Subscription object to hang metadata on, and the webhook needs the
+    // user id somewhere durable. It is on the session AND the payment intent,
+    // because charge.refunded — the only event a one-time payment has after it
+    // succeeds — sees the payment intent and never the session.
     const session = await stripe.checkout.sessions.create({
-      mode:             "subscription",
+      mode:             "payment",
       customer:         customerId,
       line_items:       [{ price: priceId, quantity: 1 }],
       success_url:      `${safeReturn}?checkout=success`,
@@ -152,8 +186,13 @@ Deno.serve(async (req: Request) => {
       allow_promotion_codes: true,
       locale:           "he",
       metadata:         { user_id: user.id, plan },
-      subscription_data: {
+      payment_intent_data: {
         metadata: { user_id: user.id, plan },
+        // What the host sees on their card statement. Without it the statement
+        // shows the Stripe account's default name, which is the wrong company:
+        // the merchant of record is Unica, and "REVAYA" is what they will
+        // recognise next to a charge they made on a wedding-planning site.
+        description: `רוויה — ${plan === "pro" ? "בלי הפתעות" : "אנחנו שם איתכם"}`,
       },
     });
 

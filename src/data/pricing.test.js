@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { PLANS, ADDONS, PRICING_FOOTNOTE, teaserFor, PLAN_DB_KEY } from "./pricing.js";
 import { canSeatMore, canAddGuest, canUseAI, canUseCollaboration } from "../utils/featureGates.js";
 import { PLAN_LIMITS, PLAN_META } from "../admin/lib/planConfig.js";
@@ -206,6 +207,67 @@ describe("pricing: what the page sells, the gates allow", () => {
     for (const p of PLANS) {
       expect(Object.keys(PLAN_LIMITS), p.key).toContain(PLAN_DB_KEY[p.key]);
     }
+  });
+});
+
+describe("pricing: the checkout does what the page promises", () => {
+  /* THE ONE LINE ON THAT PAGE WITH REAL EXPOSURE, and it was live for weeks.
+     PRICING_FOOTNOTE and the ₪690 card both say "לא מנוי" — while the only
+     checkout path in the repo created a Stripe session with
+     `mode: "subscription"`, i.e. a recurring charge. Nobody could be charged
+     (Stripe was never configured), so nothing in the app, no test and no lint
+     rule could notice: the contradiction lived between a Hebrew string in src/
+     and a TypeScript file in supabase/functions/ that NO gate here reads —
+     `npm run build` skips it (it is Deno), and eslint has no TS parser
+     configured for it.
+
+     So the tie is asserted here, from the file itself. Comments are stripped
+     first, because this file's own history is written in them — the comment
+     explaining what `mode: "subscription"` used to be would otherwise satisfy a
+     naive grep for it, and the test would pass on the bug it exists to catch. */
+  const strip = (src) => src
+    .replace(/\/\*[\s\S]*?\*\//g, "")   // block comments
+    .replace(/^\s*\/\/.*$/gm, "");        // whole-line comments
+
+  const checkout = strip(readFileSync("supabase/functions/create-checkout-session/index.ts", "utf8"));
+  const webhook  = strip(readFileSync("supabase/functions/stripe-webhook/index.ts", "utf8"));
+
+  it("says it is not a subscription, in both places", () => {
+    expect(PRICING_FOOTNOTE).toContain("לא מנוי");
+    expect(PLANS[1].note).toContain("לא מנוי");
+  });
+
+  it("and opens a ONE-TIME payment, not a subscription", () => {
+    expect(checkout).toMatch(/mode:\s*"payment"/);
+    expect(checkout).not.toMatch(/mode:\s*"subscription"/);
+    // subscription_data is the other half: it only exists on a recurring
+    // session, and it carried the metadata the webhook reads.
+    expect(checkout).not.toMatch(/subscription_data/);
+  });
+
+  it("the webhook grants a plan on payment, and revokes it on a refund", () => {
+    expect(webhook).toMatch(/case "checkout\.session\.completed"/);
+    expect(webhook).toMatch(/case "charge\.refunded"/);
+  });
+
+  it("the webhook has no handlers for events a one-time payment cannot produce", () => {
+    // Stripe sends none of these for mode: "payment" — no Subscription object
+    // exists and, with invoice_creation off, no invoices either. A handler for an
+    // event that cannot arrive reads as if the product still renewed.
+    expect(webhook).not.toMatch(/case "customer\.subscription\./);
+    expect(webhook).not.toMatch(/case "invoice\./);
+  });
+
+  it("the purchase is keyed on the checkout session, which is what makes it idempotent", () => {
+    // Stripe can deliver the same event twice and a host can complete two
+    // sessions with the Back button. Without this conflict target, either
+    // produces a second purchase row.
+    expect(webhook).toMatch(/onConflict:\s*"stripe_checkout_session_id"/);
+    // And a migration has to have created that unique column, or the upsert
+    // fails at runtime with "there is no unique constraint matching" — a 200 from
+    // the webhook, a paid customer, and no row.
+    const migration = readFileSync("supabase/migrations/20260927000000_one_time_purchase.sql", "utf8");
+    expect(migration).toMatch(/stripe_checkout_session_id text UNIQUE/);
   });
 });
 

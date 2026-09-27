@@ -48,8 +48,11 @@ export async function createCheckoutSession(planKey, returnUrl) {
 }
 
 /**
- * Create a Stripe Billing Portal session so the user can manage or cancel
- * their active subscription.
+ * Create a Stripe Billing Portal session.
+ *
+ * There is no subscription to manage or cancel — purchases are one-time per
+ * event (27.9). What the portal is for now is the customer's own record: the
+ * receipt for what they paid, and the card on file.
  * Returns the portal URL. Redirect the browser to this URL to open the portal.
  *
  * Throws when Stripe or Supabase is not configured, the user has no Stripe
