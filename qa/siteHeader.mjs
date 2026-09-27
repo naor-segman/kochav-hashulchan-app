@@ -14,7 +14,7 @@
  * Run: node qa/siteHeader.mjs   (expects `npm run build` to have run)
  */
 import { createRequire } from "node:module";
-import { spawn } from "node:child_process";
+import { startPreview } from "./lib/preview.mjs";
 
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
@@ -28,16 +28,10 @@ const results = [];
 const check = (name, pass, detail = "") =>
   results.push({ name, pass: !!pass, detail: String(detail) });
 
-const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
-  cwd: "/home/user/kochav-hashulchan-app", stdio: "ignore",
-});
-const waitForServer = async () => {
-  for (let i = 0; i < 60; i++) {
-    try { const r = await fetch(BASE); if (r.ok) return true; } catch { /* not up */ }
-    await new Promise(r => setTimeout(r, 500));
-  }
-  return false;
-};
+/* startPreview refuses to run when the port already answers — see
+   qa/lib/preview.mjs. A stale preview from another checkout on this port would
+   otherwise be measured instead of this build, silently. */
+let server = { stop: () => {} };
 
 /** Visible = laid out AND not display:none/visibility:hidden, read from the DOM. */
 const visibleText = (page, selector) => page.$$eval(selector, els =>
@@ -49,7 +43,7 @@ const visibleText = (page, selector) => page.$$eval(selector, els =>
 );
 
 try {
-  if (!await waitForServer()) throw new Error(`preview server never came up on ${PORT}`);
+  server = await startPreview(PORT);
 
   const browser = await chromium.launch({
     executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
@@ -192,7 +186,7 @@ try {
 } catch (e) {
   check("harness ran", false, e.message);
 } finally {
-  server.kill();
+  server.stop();
 }
 
 const failed = results.filter(r => !r.pass);

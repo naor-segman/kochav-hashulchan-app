@@ -18,7 +18,7 @@
  * Run: node qa/servicePages.mjs   (expects a build)
  */
 import { createRequire } from "node:module";
-import { spawn } from "node:child_process";
+import { startPreview } from "./lib/preview.mjs";
 
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
@@ -42,15 +42,16 @@ const results = [];
 const check = (name, pass, detail = "") =>
   results.push({ name, pass: !!pass, detail: String(detail) });
 
-const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
-  cwd: "/home/user/kochav-hashulchan-app", stdio: "ignore",
-});
+/* startPreview, not a hand-rolled spawn-and-poll. This harness once reported
+   `FAIL /pricing: no skipped heading level` against a stale preview left running
+   on this port by another checkout: --strictPort killed our own server, the poll
+   was answered by the stranger, and 152 checks described a different commit.
+   startPreview refuses to run when the port already answers. */
+let server = { stop: () => {} };
 
 try {
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(BASE)).ok) break; } catch { /* not up */ }
-    await new Promise(r => setTimeout(r, 500));
-  }
+  const preview = await startPreview(PORT);
+  server = preview;
 
   const browser = await chromium.launch({
     executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
@@ -197,7 +198,7 @@ try {
 } catch (e) {
   check("harness ran", false, e.message);
 } finally {
-  server.kill();
+  server.stop();
 }
 
 const failed = results.filter(r => !r.pass);
