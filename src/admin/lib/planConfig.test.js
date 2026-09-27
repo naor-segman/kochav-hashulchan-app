@@ -25,21 +25,35 @@ import {
 
 describe("planConfig — the plan limits featureGates actually checks", () => {
   it("pins the exact free-tier numbers", () => {
-    // These two are the entire free tier. Changing either is a pricing decision
-    // (and the free/paid split is frozen), never a refactor.
+    /* The free tier, per the model decided in checklist 31. Changing any of
+       these is a pricing decision, never a refactor.
+
+       `maxGuests` was 80 and is now Infinity: 80 is below every Israeli
+       wedding, so the free tier could not be used for the thing the product is
+       for — and the free tier IS the distribution channel, because every guest
+       message carries "נבנה עם רוויה". The cap that replaced it is
+       `maxSeatedSeats`, counted in PEOPLE rather than rows. */
     expect(PLAN_LIMITS.free.maxEvents).toBe(1);
-    expect(PLAN_LIMITS.free.maxGuests).toBe(80);
+    expect(PLAN_LIMITS.free.maxGuests).toBe(Infinity);
+    expect(PLAN_LIMITS.free.maxSeatedSeats).toBe(200);
     expect(PLAN_LIMITS.free.advancedExports).toBe(false);
     expect(PLAN_LIMITS.free.aiFeatures).toBe(false);
     expect(PLAN_LIMITS.free.collaboration).toBe(false);
   });
 
   it("pins the exact pro-tier numbers", () => {
-    expect(PLAN_LIMITS.pro.maxEvents).toBe(20);
-    expect(PLAN_LIMITS.pro.maxGuests).toBe(500);
+    /* `pro` is the ₪690 per-event package. You pay per event, so capping how
+       many events you may create would be charging twice for the same thing —
+       hence Infinity, where it used to be 20. Collaboration moved down here
+       from enterprise: the shared family table is one of the things this
+       package sells, and gating it above meant the plan row refused a feature
+       the pricing page advertised. */
+    expect(PLAN_LIMITS.pro.maxEvents).toBe(Infinity);
+    expect(PLAN_LIMITS.pro.maxGuests).toBe(Infinity);
+    expect(PLAN_LIMITS.pro.maxSeatedSeats).toBe(Infinity);
     expect(PLAN_LIMITS.pro.advancedExports).toBe(true);
     expect(PLAN_LIMITS.pro.aiFeatures).toBe(false);
-    expect(PLAN_LIMITS.pro.collaboration).toBe(false);
+    expect(PLAN_LIMITS.pro.collaboration).toBe(true);
   });
 
   it("gives enterprise true Infinity, not a large finite number", () => {
@@ -59,7 +73,7 @@ describe("planConfig — the plan limits featureGates actually checks", () => {
     // The property behind the three tables above: a customer who pays more must
     // never get less. This catches a limit edited in one tier and forgotten in
     // the next, which no single-tier assertion can.
-    const numeric = ["maxEvents", "maxGuests"];
+    const numeric = ["maxEvents", "maxGuests", "maxSeatedSeats"];
     const boolean = ["advancedExports", "aiFeatures", "collaboration"];
     for (const k of numeric) {
       expect(PLAN_LIMITS.free[k]).toBeLessThanOrEqual(PLAN_LIMITS.pro[k]);
@@ -119,9 +133,11 @@ describe("planConfig — Hebrew labels, and the raw DB key never reaching a scre
       expect(getPlanLabel(plan)).toBe(PLAN_META[plan].label);
       expect(getPlanLabel(plan)).toMatch(/[֐-׿]/);
     }
-    expect(getPlanLabel("free")).toBe("חינמי");
-    expect(getPlanLabel("pro")).toBe("מקצועי");
-    expect(getPlanLabel("enterprise")).toBe("ארגוני");
+    // The customer-facing names of the three packages (checklist 31). These are
+    // what appear in the account screen, so they must match the pricing page.
+    expect(getPlanLabel("free")).toBe("הרשימה בידיים");
+    expect(getPlanLabel("pro")).toBe("בלי הפתעות");
+    expect(getPlanLabel("enterprise")).toBe("אנחנו שם איתכם");
   });
 
   it("never falls through to the raw key for an unknown plan", () => {
@@ -276,7 +292,7 @@ describe("plan lookups do not read through the prototype chain", () => {
   it("still answers correctly for the real keys", () => {
     expect(isKnownPlan("free")).toBe(true);
     expect(getPlanLimits("pro").maxGuests).toBe(getPlanLimits("pro").maxGuests);
-    expect(getPlanMeta("free")?.label).toBe("חינמי");
+    expect(getPlanMeta("free")?.label).toBe("הרשימה בידיים");
   });
 
   it("survives a non-string key without throwing", () => {

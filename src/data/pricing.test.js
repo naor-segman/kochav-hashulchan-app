@@ -1,0 +1,171 @@
+import { describe, it, expect } from "vitest";
+import { PLANS, ADDONS, PRICING_FOOTNOTE, teaserFor } from "./pricing.js";
+import { canSeatMore, canAddGuest } from "../utils/featureGates.js";
+import { PLAN_LIMITS } from "../admin/lib/planConfig.js";
+
+/**
+ * The pricing model, pinned. Checklist 31.
+ *
+ * Two different failures are guarded here and they are not the same kind:
+ *
+ *   The TABLE — a price or a claim drifting between the two screens that show
+ *   it. That already happened once: the landing page advertised "תמיכה מועדפת"
+ *   and "SLA ותמיכה ייעודית", neither of which was on the pricing page a buyer
+ *   would open and neither of which exists in the product.
+ *
+ *   The GATE — the seats-versus-rows confusion. `guests.length` counts ROWS and
+ *   a row carries `count` people, so a cap applied to the wrong one is wrong by
+ *   the average party size. This is the only numeric limit a customer meets.
+ */
+
+describe("pricing: the table", () => {
+  it("has exactly three tiers, free first", () => {
+    expect(PLANS.map(p => p.key)).toEqual(["free", "event", "onsite"]);
+    expect(PLANS[0].price).toBe("₪0");
+  });
+
+  it("prices are one-time per event, never monthly", () => {
+    /* A couple has one wedding. Any per-month wording here is the subscription
+       model the owner decided against on 27.7.
+
+       The first version of this test forbade the word "מנוי" outright, and it
+       failed on the ₪690 card's own note — "תשלום אחד לאירוע. לא מנוי." That is
+       the sentence the decision exists to produce, and the check was catching
+       the negation. What is actually forbidden is a per-MONTH claim. */
+    for (const p of PLANS) {
+      const text = `${p.per} ${p.desc} ${p.note ?? ""}`;
+      expect(text, p.key).not.toMatch(/לחודש|חודשי|בחודש/);
+    }
+    // And the middle tier says out loud that it is not one.
+    expect(PLANS[1].note).toContain("לא מנוי");
+  });
+
+  it("never mentions VAT — the operator is a עוסק פטור", () => {
+    // No tax invoice, no VAT to add or exclude: the number shown is final. And
+    // Israeli consumer law requires a consumer price to be displayed gross
+    // anyway, so "+ מע״מ" would be wrong twice.
+    const all = JSON.stringify(PLANS) + JSON.stringify(ADDONS) + PRICING_FOOTNOTE;
+    expect(all).not.toMatch(/מע"?״?מ/);
+  });
+
+  it("makes no unearned popularity claim", () => {
+    // Same class as the invented statistics removed from the landing page: a
+    // product with no customers has not earned "הכי פופולרי".
+    const all = JSON.stringify(PLANS);
+    expect(all).not.toMatch(/פופולרי|הכי נמכר|מומלץ ביותר/);
+  });
+
+  it("the paid tiers are cumulative, and say so", () => {
+    expect(PLANS[0].inherits).toBeUndefined();
+    for (const p of PLANS.slice(1)) {
+      expect(p.inherits, p.key).toBeTruthy();
+    }
+  });
+
+  it("only the on-site tier claims work done by a person", () => {
+    // `human: true` is what puts the "בשטח" label on a group. It must never
+    // appear on a tier that is only software, because that label is the one
+    // honest signal that a line is delivered by someone rather than by the app.
+    const humanTiers = PLANS
+      .filter(p => p.groups.some(g => g.human))
+      .map(p => p.key);
+    expect(humanTiers).toEqual(["onsite"]);
+  });
+
+  it("every tier has a CTA that goes somewhere real", () => {
+    for (const p of PLANS) {
+      expect(p.cta, p.key).toBeTruthy();
+      expect(p.ctaTo, p.key).toMatch(/^\//);
+    }
+  });
+
+  it("the teaser the landing page renders is derived, not retyped", () => {
+    const t = teaserFor(PLANS[1]);
+    expect(t.price).toBe(PLANS[1].price);
+    expect(t.name).toBe(PLANS[1].name);
+    expect(t.lines.length).toBeGreaterThan(0);
+    // Each teaser line must be a real line from the full list.
+    const all = PLANS[1].groups.flatMap(g => g.items);
+    for (const line of t.lines) expect(all).toContain(line);
+  });
+
+  it("no two numbers sit either side of a bare separator", () => {
+    // Bug class 7: in an RTL line, "200/340" paints 340 to the RIGHT of 200 and
+    // reads backwards. Measured in this Chromium — the spaced form is fine, the
+    // unspaced one is not.
+    const all = [
+      ...PLANS.flatMap(p => [p.price, p.per, p.desc, p.note ?? "",
+        ...p.groups.flatMap(g => g.items)]),
+      ...ADDONS.flatMap(a => [a.title, a.price, a.note, a.body]),
+      PRICING_FOOTNOTE,
+    ];
+    for (const line of all) {
+      expect(line, line).not.toMatch(/\d[/\-:]\d/);
+    }
+  });
+});
+
+describe("pricing: the gate counts SEATS, not rows", () => {
+  // One row, four people. This is the shape the whole bug lives in.
+  const family = (n) => ({ count: n });
+
+  it("a cap of 200 people is not a cap of 200 rows", () => {
+    const rows = Array.from({ length: 60 }, () => family(4));   // 60 rows, 240 people
+    const gate = canSeatMore("free", rows);
+    expect(gate.seats).toBe(240);
+    expect(gate.withinPlan).toBe(false);
+    // The row count would have passed comfortably — that is the failure this
+    // test exists to make impossible.
+    expect(rows.length).toBeLessThan(PLAN_LIMITS.free.maxSeatedSeats);
+  });
+
+  it("counts a bare row as one person", () => {
+    expect(canSeatMore("free", [{}, {}, {}]).seats).toBe(3);
+  });
+
+  it("does not spend the allowance on people who declined", () => {
+    const rows = [family(4), { count: 100, rsvp: "declined" }, family(2)];
+    expect(canSeatMore("free", rows).seats).toBe(6);
+  });
+
+  it("the free tier seats 200 and not one more", () => {
+    expect(canSeatMore("free", [{ count: 200 }]).withinPlan).toBe(true);
+    expect(canSeatMore("free", [{ count: 201 }]).withinPlan).toBe(false);
+  });
+
+  it("the paid tiers have no seating cap at all", () => {
+    for (const plan of ["pro", "enterprise"]) {
+      expect(canSeatMore(plan, [{ count: 5000 }]).withinPlan, plan).toBe(true);
+    }
+  });
+
+  it("names both numbers with Hebrew around them", () => {
+    const reason = canSeatMore("free", [{ count: 340 }]).reason;
+    expect(reason).toContain("200");
+    expect(reason).toContain("340");
+    expect(reason).not.toMatch(/\d[/\-:]\d/);
+  });
+
+  it("the guest-row cap says רשומות, because rows is what it counts", () => {
+    // maxGuests is Infinity on every plan now, so this never fires in
+    // production — but the wording bug is what made the seat cap necessary and
+    // it must not come back if a row cap ever returns.
+    const src = canAddGuest("free", 10);
+    expect(src.reason).toBeNull();
+    expect(PLAN_LIMITS.free.maxGuests).toBe(Infinity);
+  });
+});
+
+describe("pricing: the free tier is usable", () => {
+  it("does not cap the guest list", () => {
+    // 80 was below every Israeli wedding, which made the free tier useless for
+    // the thing the product is for — and the free tier is the distribution
+    // channel, because every guest message carries "נבנה עם רוויה".
+    expect(PLAN_LIMITS.free.maxGuests).toBe(Infinity);
+    expect(canAddGuest("free", 100000).allowed).toBe(true);
+  });
+
+  it("still gives automatic seating something to show", () => {
+    expect(PLAN_LIMITS.free.maxSeatedSeats).toBe(200);
+  });
+});

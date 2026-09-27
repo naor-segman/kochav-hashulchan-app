@@ -9,24 +9,61 @@
 
 // ── Plan limit shapes ─────────────────────────────────────────────────────────
 
+/**
+ * ── The limits, rewritten for the per-event model (checklist 31) ────────────
+ *
+ * The DB keys stay `free` / `pro` / `enterprise` because `subscriptions.plan`
+ * has a CHECK constraint on exactly those three strings; renaming them is a
+ * migration, and the customer never sees them. They now mean:
+ *
+ *   free        "הרשימה בידיים"    — ₪0, one event
+ *   pro         "בלי הפתעות"       — ₪690 per event
+ *   enterprise  "אנחנו שם איתכם"   — ₪1,290 per event
+ *
+ * TWO CHANGES, and both are the point of the model:
+ *
+ * 1. `maxGuests` is Infinity on every plan, free included. It was 80, which is
+ *    below every Israeli wedding — so the free tier could not be used for the
+ *    thing the product is for, and the free tier IS the distribution channel:
+ *    `messageSignature()` puts "נבנה עם רוויה" and the site link on every
+ *    guest message, so one free event is several hundred strangers seeing the
+ *    name. A cap that makes the free tier useless switches that channel off.
+ *
+ * 2. `maxSeatedSeats` is the new cap, and it is the only numeric one that
+ *    reaches a customer. Free gets automatic seating up to 200 PEOPLE so a host
+ *    can see it work; past that it is paid. 200 is deliberately below an
+ *    Israeli wedding (400–650 invitees, measured), so the generosity costs
+ *    nothing — and it is deliberately AT a competitor's free ceiling, because
+ *    Lunsoul give automatic seating away free to 200 guests and a comparison
+ *    page must not be able to call us the meaner one.
+ *
+ * ⚠️ SEATS, NOT ROWS. `maxGuests` was compared against `ev.guests.length`,
+ * which counts ROWS — and a row carries `count` people. "עד 500 אורחים" meant
+ * 500 rows, i.e. 750–1,000 actual people. The new cap is named `maxSeatedSeats`
+ * so the unit is in the name, and `featureGates.canSeatMore` counts it with the
+ * same arithmetic the seating engine uses.
+ */
 export const PLAN_LIMITS = {
   free: {
     maxEvents:         1,
-    maxGuests:         80,
+    maxGuests:         Infinity,
+    maxSeatedSeats:    200,
     advancedExports:   false,
     aiFeatures:        false,
     collaboration:     false,
   },
   pro: {
-    maxEvents:         20,
-    maxGuests:         500,
+    maxEvents:         Infinity,
+    maxGuests:         Infinity,
+    maxSeatedSeats:    Infinity,
     advancedExports:   true,
     aiFeatures:        false,
-    collaboration:     false,
+    collaboration:     true,
   },
   enterprise: {
     maxEvents:         Infinity,
     maxGuests:         Infinity,
+    maxSeatedSeats:    Infinity,
     advancedExports:   true,
     aiFeatures:        true,
     collaboration:     true,
@@ -37,21 +74,21 @@ export const PLAN_LIMITS = {
 
 export const PLAN_META = {
   free: {
-    label:       "חינמי",
+    label:       "הרשימה בידיים",
     labelEn:     "Free",
     color:       "#888",
     bgColor:     "#f4f4f5",
     borderColor: "#e5e7eb",
   },
   pro: {
-    label:       "מקצועי",
-    labelEn:     "Pro",
+    label:       "בלי הפתעות",
+    labelEn:     "Event",
     color:       "#1d4ed8",
     bgColor:     "#eff6ff",
     borderColor: "#bfdbfe",
   },
   enterprise: {
-    label:       "ארגוני",
+    label:       "אנחנו שם איתכם",
     labelEn:     "Enterprise",
     // Was the literal #E8437B — a hardcoded colour outside tokens.css, and
     // --accent measures 3.80:1 on white and 3.63:1 on the cream ground below,

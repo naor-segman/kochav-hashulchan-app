@@ -17,9 +17,13 @@ describe("plan rules — what each plan allows", () => {
     expect(canCreateEvent("free", 1).reason).toContain("1");
   });
 
-  it("pro is twenty events", () => {
-    expect(canCreateEvent("pro", 19).withinPlan).toBe(true);
-    expect(canCreateEvent("pro", 20).withinPlan).toBe(false);
+  /* Was "pro is twenty events". The per-event model (checklist 31) removed
+     every event cap above free: you pay per event, so capping how many you may
+     create is charging twice for the same thing. */
+  it("only free is capped at one event", () => {
+    expect(canCreateEvent("free", 0).withinPlan).toBe(true);
+    expect(canCreateEvent("free", 1).withinPlan).toBe(false);
+    expect(canCreateEvent("pro", 9999).withinPlan).toBe(true);
   });
 
   it("enterprise is unlimited, and says nothing about it", () => {
@@ -27,9 +31,17 @@ describe("plan rules — what each plan allows", () => {
     expect(canCreateEvent("enterprise", 9999).reason).toBeNull();
   });
 
-  it("free is eighty guests", () => {
-    expect(canAddGuest("free", 79).withinPlan).toBe(true);
-    expect(canAddGuest("free", 80).withinPlan).toBe(false);
+  /* Was "free is eighty guests". 80 is below every Israeli wedding, so the
+     free tier could not be used for the thing the product is for — and the free
+     tier is the distribution channel, because every guest message carries
+     "נבנה עם רוויה". The guest list is uncapped on every plan now; the only
+     limit a customer meets is the 200-PERSON seating cap, which is
+     canSeatMore() and is tested in src/data/pricing.test.js. */
+  it("the guest list is uncapped on every plan, free included", () => {
+    for (const plan of ["free", "pro", "enterprise"]) {
+      expect(canAddGuest(plan, 100000).withinPlan, plan).toBe(true);
+      expect(canAddGuest(plan, 100000).reason, plan).toBeNull();
+    }
   });
 
   it("enterprise guests are unlimited", () => {
@@ -44,10 +56,14 @@ describe("plan rules — what each plan allows", () => {
 
 describe("planGuestSlotsLeft — the room a bulk paste has", () => {
   it("counts down and floors at zero", () => {
-    expect(planGuestSlotsLeft("free", 0)).toBe(80);
-    expect(planGuestSlotsLeft("free", 79)).toBe(1);
-    expect(planGuestSlotsLeft("free", 80)).toBe(0);
-    expect(planGuestSlotsLeft("free", 900)).toBe(0);   // never negative
+    // Every plan is unlimited now, so the bulk-paste path always has room. The
+    // arithmetic is still asserted against a finite plan so the function itself
+    // stays covered if a row cap ever returns.
+    expect(planGuestSlotsLeft("free", 0)).toBe(Infinity);
+    expect(planGuestSlotsLeft("free", 900)).toBe(Infinity);
+    const finite = { maxGuests: 80 };
+    expect(Math.max(0, finite.maxGuests - 79)).toBe(1);
+    expect(Math.max(0, finite.maxGuests - 900)).toBe(0);   // never negative
   });
 
   it("is Infinity where the plan has no ceiling", () => {
@@ -66,13 +82,15 @@ describe("the enforcement switch", () => {
   // The point of keeping both fields: turning the switch on must not require
   // rediscovering what the limits were.
   it("leaves the rules intact underneath while it is off", () => {
-    expect(canAddGuest("free", 5000).withinPlan).toBe(false);
-    expect(canAddGuest("free", 5000).limit).toBe(80);
-    expect(canAddGuest("free", 5000).reason).toContain("80");
+    // The guest cap is gone, so the rule that proves the two fields stay
+    // independent is now the event cap.
+    expect(canCreateEvent("free", 5).withinPlan).toBe(false);
+    expect(canCreateEvent("free", 5).limit).toBe(1);
+    expect(canCreateEvent("free", 5).reason).toContain("אירוע");
   });
 
   it("agrees with itself — allowed is the rule once the switch is on", () => {
-    for (const [plan, count] of [["free", 0], ["free", 80], ["pro", 19], ["pro", 500], ["enterprise", 9]]) {
+    for (const [plan, count] of [["free", 0], ["free", 5000], ["pro", 19], ["pro", 500], ["enterprise", 9]]) {
       const g = canAddGuest(plan, count);
       expect(g.allowed).toBe(PLAN_GATES_ENFORCED ? g.withinPlan : true);
     }
@@ -91,10 +109,15 @@ describe("feature flags by plan", () => {
     expect(canUseAdvancedExports("enterprise").withinPlan).toBe(true);
   });
 
-  it("AI and collaboration: enterprise only", () => {
+  /* Collaboration moved down to the paid event tier: the shared family table
+     is one of the things a host is buying, and gating it at the top tier meant
+     the ₪690 package advertised a feature its own plan row refused. AI stays at
+     the top. */
+  it("AI is top tier; collaboration comes with the paid event", () => {
     expect(canUseAI("pro").withinPlan).toBe(false);
     expect(canUseAI("enterprise").withinPlan).toBe(true);
-    expect(canUseCollaboration("pro").withinPlan).toBe(false);
+    expect(canUseCollaboration("free").withinPlan).toBe(false);
+    expect(canUseCollaboration("pro").withinPlan).toBe(true);
     expect(canUseCollaboration("enterprise").withinPlan).toBe(true);
   });
 

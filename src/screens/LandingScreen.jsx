@@ -4,10 +4,10 @@ import { Link, useLocation } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./LandingScreen.module.css";
-import { contactMailto } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import { MOCK_TABLES, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
 import { liveServices } from "../data/services.js";
+import { PLANS, teaserFor, PRICING_FOOTNOTE } from "../data/pricing.js";
 
 // Four claims a visitor can check for themselves inside the product. They
 // replaced four invented statistics — a new product does not have real numbers
@@ -171,57 +171,13 @@ const HOW_IT_WORKS = [
   { num: "05", title: "סדרו בלחיצה", desc: "המערכת משבצת את כולם, ואומרת לכם אם משהו לא הסתדר" },
 ];
 
-const PRICING_PLANS = [
-  {
-    key: "free",
-    name: "חינמי",
-    price: "₪0",
-    per: "/ לנצח",
-    features: ["אירוע 1", "עד 80 אורחים", "הושבה אוטומטית", "ייצוא לאקסל"],
-    cta: "התחילו חינם",
-    ctaHref: "/signup",
-    highlight: false,
-  },
-  {
-    key: "pro",
-    name: "מקצועי",
-    price: "₪99",
-    per: "/ חודש",
-    badge: "הכי פופולרי",
-    /* "תמיכה מועדפת" was here and on no other surface. There is no support-tier
-       mechanism anywhere in src/ — one WhatsApp button and one mailto, identical
-       for every plan — and PricingScreen, the page a buyer would actually check,
-       does not list it. Replaced with a line that is on both. */
-    features: [
-      "עד 20 אירועים",
-      "עד 500 אורחים לאירוע",
-      "טבלה שיתופית ואתר לאירוע",
-    ],
-    cta: "התחילו חינם",
-    ctaHref: "/signup",
-    highlight: true,
-  },
-  {
-    key: "enterprise",
-    name: "ארגוני",
-    price: "בהתאמה",
-    per: "",
-    /* "SLA ותמיכה ייעודית" — same problem, same fix. No SLA exists, and
-       PricingScreen's Enterprise column has no such line. */
-    features: [
-      "אירועים ואורחים ללא הגבלה",
-      "ליווי בהקמה ובאירוע הראשון",
-    ],
-    cta: "צרו קשר",
-    // `null`, and resolved at render below. The address used to be baked into
-    // this module-level constant, which is evaluated once at import — so the
-    // whole point of centralising it (change one line, everything follows)
-    // would have been defeated by a value frozen before `COMPANY` is read.
-    ctaHref: null,
-    highlight: false,
-    external: true,
-  },
-];
+/* The pricing teaser reads src/data/pricing.js — the same source the pricing
+ * page reads. It used to be a second hand-written array here, and the two had
+ * already drifted: this page promised "תמיכה מועדפת" and "SLA ותמיכה ייעודית",
+ * and NEITHER appeared on the pricing page a buyer would actually open, because
+ * neither exists in the product. Bug class 6, on the surface where being wrong
+ * costs money. */
+const PRICING_PLANS = PLANS.map(teaserFor);
 
 export default function LandingScreen({ user = null }) {
   // ── Arriving with a #hash ───────────────────────────────────────────────────
@@ -540,16 +496,14 @@ export default function LandingScreen({ user = null }) {
           <div className={styles.sectionHeader}>
             <span className={styles.sectionTag}>מחירים</span>
             <h2 className={styles.sectionTitle}>תוכנית לכל צורך</h2>
-            <p className={styles.sectionSub}>התחילו חינם, שדרגו כשצריך</p>
+            <p className={styles.sectionSub}>מתחילים חינם, משלמים כשמגיעים לשולחנות</p>
           </div>
 
-          {/* The numbers on the cards describe the planned model, not what the
-              app does today — nothing is capped while there is no way to pay.
-              Saying so here keeps the page from advertising a limit a visitor
-              will not actually meet. The pricing screen carries the same note. */}
-          <p className={styles.betaNote}>
-            בתקופת הבטא כל התוכניות פתוחות ללא תשלום — המגבלות שלמטה מתארות את המודל המתוכנן.
-          </p>
+          {/* The beta note that stood here — "בתקופת הבטא כל התוכניות פתוחות
+              ללא תשלום" — was correct and load-bearing while nothing could be
+              bought. It cannot sit above a real ₪690 price: a page that quotes
+              a price and then says everything is free is not a pricing page.
+              It comes back only if the prices come down again. */}
 
           <div className={styles.pricingGrid}>
             {PRICING_PLANS.map(plan => (
@@ -557,31 +511,28 @@ export default function LandingScreen({ user = null }) {
                 key={plan.key}
                 className={[styles.pricingCard, plan.highlight && styles.pricingCardPro].filter(Boolean).join(" ")}
               >
-                {plan.badge && <div className={styles.planBadge}>{plan.badge}</div>}
                 <div className={styles.planName}>{plan.name}</div>
                 <div className={styles.planPriceRow}>
                   <span className={styles.planNum}>{plan.price}</span>
                   {plan.per && <span className={styles.planPer}>{plan.per}</span>}
                 </div>
                 <ul className={styles.planFeatures}>
-                  {plan.features.map(f => <li key={f}>{f}</li>)}
+                  {plan.lines.map(f => <li key={f}>{f}</li>)}
                 </ul>
-                {plan.external ? (
-                  <a href={plan.ctaHref ?? contactMailto()} className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}>
-                    {plan.cta}
-                  </a>
-                ) : (
-                  <Link to={plan.ctaHref} className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}>
-                    {plan.cta}
-                  </Link>
-                )}
+                {/* Every tier is an internal route now. The Enterprise card's
+                    mailto is gone with the tier it belonged to. */}
+                <Link to={plan.ctaTo} className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}>
+                  {plan.cta}
+                </Link>
               </div>
             ))}
           </div>
 
+          <p className={styles.betaNote}>{PRICING_FOOTNOTE}</p>
+
           <div className={styles.pricingFooter}>
             <Link to="/pricing" className={styles.pricingMoreLink}>
-              השוואת תוכניות מלאה ←
+              מה בדיוק נכנס בכל חבילה ←
             </Link>
           </div>
         </div>

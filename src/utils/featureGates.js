@@ -57,9 +57,58 @@ export function canAddGuest(plan, currentCount) {
     allowed,
     withinPlan,
     limit: maxGuests,
+    // "רשומות", not "אורחים". This function is handed `ev.guests.length`, so
+    // the number it compares is ROWS — and a row carries `count` people. The
+    // message said "אורחים", which meant a host with 400 people in 180 rows
+    // read a cap that had nothing to do with the number they were watching.
+    // The seat-based cap is canSeatMore() below; this one stays honest about
+    // its own unit.
     reason: withinPlan || maxGuests === Infinity
       ? null
-      : `תוכנית ${getPlanLabel(plan)} מאפשרת עד ${maxGuests} אורחים לאירוע`,
+      : `תוכנית ${getPlanLabel(plan)} מאפשרת עד ${maxGuests} רשומות לאירוע`,
+  };
+}
+
+/**
+ * Whether automatic seating may run for this many PEOPLE. Checklist 31.
+ *
+ * This is the only numeric limit a customer meets, and it is the one the free
+ * tier is built around: seating is free up to `maxSeatedSeats` people so a host
+ * can watch it work on a small event, and paid past it.
+ *
+ * ⚠️ SEATS, NOT ROWS, and that distinction is the whole reason this function
+ * exists rather than reusing canAddGuest. `guestSeats(g) = g.count || 1` is the
+ * invariant the seating engine, the entrance counter and the name-tag printer
+ * all share: one row can be a family of five. A cap applied to `guests.length`
+ * would let 200 rows through as 600 people, or block a 190-row event that is
+ * only 340 people. Callers pass the guest ARRAY, not a count, so there is no
+ * way to hand this the wrong number.
+ *
+ * Declined guests are excluded, exactly as the seating screen excludes them —
+ * someone who said no is not seated and must not consume the allowance.
+ *
+ * @param {string} plan
+ * @param {Array<{count?: number, rsvp?: string}>} guests — the event's guest rows
+ */
+export function canSeatMore(plan, guests) {
+  const { maxSeatedSeats } = getPlanLimits(plan);
+  const seats = (Array.isArray(guests) ? guests : [])
+    .filter(g => g?.rsvp !== "declined")
+    .reduce((n, g) => n + Math.max(1, Number(g?.count) || 1), 0);
+
+  const withinPlan = seats <= maxSeatedSeats;
+  const allowed    = !PLAN_GATES_ENFORCED || withinPlan;
+  return {
+    allowed,
+    withinPlan,
+    seats,
+    limit: maxSeatedSeats,
+    reason: withinPlan || maxSeatedSeats === Infinity
+      ? null
+      // "200 מתוך 340" reverses in an RTL line — bug class 7 — so the numbers
+      // are anchored by Hebrew words and never sit either side of a bare
+      // separator.
+      : `ההושבה האוטומטית בתוכנית ${getPlanLabel(plan)} עובדת עד ${maxSeatedSeats} אנשים. באירוע הזה יש ${seats}.`,
   };
 }
 
