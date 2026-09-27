@@ -511,7 +511,16 @@ export default function LandingScreen({ user = null }) {
                 key={plan.key}
                 className={[styles.pricingCard, plan.highlight && styles.pricingCardPro].filter(Boolean).join(" ")}
               >
-                <div className={styles.planName}>{plan.name}</div>
+                <div className={styles.planName}>
+                  {plan.name}
+                  {/* The "בשטח" label travels with the teaser now. It was
+                      computed in pricing.js and dropped here, so the on-site
+                      tier presented a person standing at a door as if it were a
+                      software feature — on the page more people see. Never
+                      colour alone: the badge carries the word. */}
+                  {plan.human && <span className={styles.planHuman}>בשטח</span>}
+                </div>
+                {plan.desc && <p className={styles.planDesc}>{plan.desc}</p>}
                 <div className={styles.planPriceRow}>
                   <span className={styles.planNum}>{plan.price}</span>
                   {plan.per && <span className={styles.planPer}>{plan.per}</span>}

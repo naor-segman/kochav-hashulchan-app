@@ -555,26 +555,44 @@
   transform: scale(1.04);
 }
 
-.planBadge {
-  position: absolute;
-  top: -13px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--cta);
-  color: var(--on-accent);
-  font-size: var(--step--3);
-  font-weight: 700;
-  padding: 4px 18px;
+/* `.planBadge` stood here — the absolute "הכי פופולרי" pill. The badge went
+   with the unearned popularity claim and left the rule behind as dead CSS; this
+   is the label that replaced it, and unlike the badge it is earned: it marks a
+   line delivered by a person. Same shape as PricingScreen's, so the two
+   surfaces say the same thing in the same way. */
+.planHuman {
+  margin-inline-start: 8px;
+  padding: 2px 9px;
   border-radius: var(--radius-pill);
-  letter-spacing: 0.03em;
-  white-space: nowrap;
+  background: var(--blush-soft);
+  color: var(--accent-text);
+  font-size: var(--step--2);
+  font-weight: 700;
 }
 
 .planName {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 12px;
+  margin-bottom: 6px;
+}
+
+/* The tier's one-line pitch. It was computed in pricing.js and rendered
+   nowhere — defined, carried through the teaser, and invisible. */
+.planDesc {
+  margin: 0 0 12px;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* Bug class 5, caught by qa/contrastReal.mjs on the first run after this line
+   was added: a TINT IS A GROUND. --muted is fine on the white cards and measures
+   3.6:1 on the highlighted card's --blush — below the 4.5 floor — because that
+   card has a pink background. --text2 is what the feature list already switches
+   to for the same reason, twenty lines down. */
+.pricingCardPro .planDesc {
+  color: var(--text2);
 }
 
 .pricingCardPro .planName {

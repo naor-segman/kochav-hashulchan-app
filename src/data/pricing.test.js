@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { PLANS, ADDONS, PRICING_FOOTNOTE, teaserFor } from "./pricing.js";
-import { canSeatMore, canAddGuest } from "../utils/featureGates.js";
-import { PLAN_LIMITS } from "../admin/lib/planConfig.js";
+import { PLANS, ADDONS, PRICING_FOOTNOTE, teaserFor, PLAN_DB_KEY } from "./pricing.js";
+import { canSeatMore, canAddGuest, canUseAI, canUseCollaboration } from "../utils/featureGates.js";
+import { PLAN_LIMITS, PLAN_META } from "../admin/lib/planConfig.js";
 
 /**
  * The pricing model, pinned. Checklist 31.
@@ -89,6 +89,70 @@ describe("pricing: the table", () => {
     for (const line of t.lines) expect(all).toContain(line);
   });
 
+  it("every teaser card gets the same number of lines", () => {
+    /* It was `groups.slice(0, 4).map(g => g.items[0])` — the first item of the
+       first four GROUPS. The on-site tier has one group, so it rendered ONE
+       bullet beside two cards with four, and the paid-upgrade card came out
+       visibly stunted: measured 283 px against 436 at a 390-wide viewport. */
+    const counts = PLANS.map(p => teaserFor(p).lines.length);
+    expect(counts).toEqual([4, 4, 4]);
+    // And nothing undefined can reach a React key.
+    for (const p of PLANS) {
+      for (const line of teaserFor(p).lines) expect(typeof line).toBe("string");
+    }
+  });
+
+  it("carries `human` into the teaser, on the higher-traffic surface", () => {
+    // The badge existed only on /pricing. The landing page showed "מנהל הושבה
+    // שלנו בכניסה" with no label, i.e. a person presented as a feature.
+    expect(teaserFor(PLANS[0]).human).toBe(false);
+    expect(teaserFor(PLANS[1]).human).toBe(false);
+    expect(teaserFor(PLANS[2]).human).toBe(true);
+  });
+
+  it("no package line claims the app takes a credit card", () => {
+    /* It claimed exactly that — "מתנות באשראי", in the FREE tier. GiftScreen has
+       a name, an amount and a blessing: no card field, no clearing call, no
+       redirect. `submit_gift_by_token` writes `paid = false` and nothing in the
+       codebase ever flips it, and the guest's own confirmation screen says the
+       gift is given on the day. /services/gifts already said the honest version,
+       so the site answered the same question two ways and the false answer was
+       the one on the page with the price.
+       Unica's clearing is real and is sold — in the FAQ, as an arrangement made
+       with us. A package bullet is a claim about the software. */
+    for (const p of PLANS) {
+      for (const item of p.groups.flatMap(g => g.items)) {
+        expect(item, p.key).not.toMatch(/אשראי|סליקה|תשלום מאובטח/);
+      }
+    }
+  });
+
+  it("no package line sells a printout that does not exist", () => {
+    /* The להדפסה group carried "רשימת כניסה לפי א׳-ב׳". The app has exactly two
+       print surfaces — NameTagsScreen and SeatingScreen — and every mode of both
+       is ordered BY TABLE. The alphabetical list is Excel sheet 3 only, which
+       the ייצוא group one line down already sells. A host standing at the door
+       pressing print is the cheapest possible way to be caught. */
+    const printGroup = PLANS[1].groups.find(g => g.title === "להדפסה");
+    expect(printGroup).toBeTruthy();
+    for (const item of printGroup.items) {
+      expect(item).not.toMatch(/א׳-ב׳|אלפביתי|לפי שם/);
+    }
+  });
+
+  it("does not promise a gift ledger, because nothing writes giftAmount", () => {
+    /* The ייצוא line said "חוברת אקסל בחמישה גיליונות: … ומתנות". The gift sheet
+       reads `Number(g.giftAmount)` and NOTHING in src/ writes that field — the
+       door deliberately has no gift input and the two UIs for it were removed on
+       purpose — so every row and every total prints ₪0. And only two of the five
+       sheets are unconditional, so the normal pre-event export is not five. */
+    const exportGroup = PLANS[1].groups.find(g => g.title === "ייצוא");
+    expect(exportGroup).toBeTruthy();
+    for (const item of exportGroup.items) {
+      expect(item).not.toMatch(/מתנות|חמישה גיליונות/);
+    }
+  });
+
   it("no two numbers sit either side of a bare separator", () => {
     // Bug class 7: in an RTL line, "200/340" paints 340 to the RIGHT of 200 and
     // reads backwards. Measured in this Chromium — the spaced form is fine, the
@@ -101,6 +165,46 @@ describe("pricing: the table", () => {
     ];
     for (const line of all) {
       expect(line, line).not.toMatch(/\d[/\-:]\d/);
+    }
+  });
+});
+
+describe("pricing: what the page sells, the gates allow", () => {
+  /* The class of failure this describe() exists for: a bullet in a package and a
+     flag in PLAN_LIMITS disagreeing, invisibly, because PLAN_GATES_ENFORCED is
+     false. Nothing enforces anything today, so the contradiction cannot be
+     noticed by using the app — it surfaces on the one day it costs money, when
+     the switch goes on. That is exactly how `pro.aiFeatures: false` sat under a
+     ₪690 bullet selling table detection from a venue sketch. */
+
+  const tierFor = (needle) =>
+    PLANS.find(p => p.groups.some(g => g.items.some(i => i.includes(needle))));
+
+  it("the package that sells sketch detection has the AI flag", () => {
+    const tier = tierFor("מזהה את השולחנות מהתמונה");
+    expect(tier, "no package sells sketch detection any more — delete this test or the bullet").toBeTruthy();
+    expect(canUseAI(PLAN_DB_KEY[tier.key]).withinPlan, tier.key).toBe(true);
+  });
+
+  it("the package that sells the shared family table has the collaboration flag", () => {
+    const tier = tierFor("טבלה שיתופית");
+    expect(tier).toBeTruthy();
+    expect(canUseCollaboration(PLAN_DB_KEY[tier.key]).withinPlan, tier.key).toBe(true);
+  });
+
+  it("the package names on the two sides are the same strings", () => {
+    /* They are typed by hand in pricing.js AND in planConfig.js PLAN_META, and
+       pinned by tests on both sides, with nothing tying them together — so a
+       rename in one place passed the whole suite. PLAN_META's label is what the
+       account screen and the admin panel show a paying customer. */
+    for (const p of PLANS) {
+      expect(PLAN_META[PLAN_DB_KEY[p.key]].label, p.key).toBe(p.name);
+    }
+  });
+
+  it("every package key maps to a real plan row", () => {
+    for (const p of PLANS) {
+      expect(Object.keys(PLAN_LIMITS), p.key).toContain(PLAN_DB_KEY[p.key]);
     }
   });
 });
@@ -121,6 +225,22 @@ describe("pricing: the gate counts SEATS, not rows", () => {
 
   it("counts a bare row as one person", () => {
     expect(canSeatMore("free", [{}, {}, {}]).seats).toBe(3);
+  });
+
+  it("throws when handed a COUNT instead of the array", () => {
+    /* It used to return { seats: 0, withinPlan: true } for this — it failed
+       OPEN, silently, on the exact mistake it exists to prevent, and
+       `canAddGuest(plan, currentCount)` a few lines above takes a count as its
+       second argument, so the wrong call is the natural one to write. */
+    expect(() => canSeatMore("free", 3000)).toThrow(TypeError);
+    expect(() => canSeatMore("free", undefined)).toThrow(/guest ARRAY/);
+  });
+
+  it("does not invent people out of empty rows", () => {
+    // [null, null] survived the declined filter (`null?.rsvp` is undefined) and
+    // then scored Number(undefined) || 1 each — two seats from zero guests.
+    expect(canSeatMore("free", [null, undefined]).seats).toBe(0);
+    expect(canSeatMore("free", [null, { count: 4 }]).seats).toBe(4);
   });
 
   it("does not spend the allowance on people who declined", () => {

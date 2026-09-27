@@ -28,6 +28,14 @@ import { PLANS, ADDONS, PRICING_FOOTNOTE } from "../data/pricing.js";
  * It comes back only if the prices come down again.
  */
 
+/* The prices in the answers come from PLANS, not from a second copy of the
+   number. Two of them were typed by hand in this file — "₪690 לאירוע" and
+   "בחבילה של ₪1,290" — in the same file whose header says that if you are here
+   to change a price you are in the wrong file. Change pricing.js and the FAQ
+   followed the card nowhere. */
+const EVENT_PRICE  = PLANS[1].price;
+const ONSITE_PRICE = PLANS[2].price;
+
 const FAQ = [
   {
     q: "זה תשלום חודשי?",
@@ -35,7 +43,7 @@ const FAQ = [
   },
   {
     q: "המחיר משתנה לפי מספר האורחים?",
-    a: "לא. ₪690 לאירוע, בין אם הזמנתם מאה אנשים ובין אם שש מאות. אין תוספת לרשומה ואין תקרה שצריך לשמור עליה.",
+    a: `לא. ${EVENT_PRICE} לאירוע, בין אם הזמנתם מאה אנשים ובין אם שש מאות. אין תוספת לרשומה ואין תקרה שצריך לשמור עליה.`,
   },
   {
     q: "מה באמת מקבלים בחינם?",
@@ -50,11 +58,19 @@ const FAQ = [
     a: "כל אירוע מקבל קישור לדף אישורי הגעה. שולחים אותו בוואטסאפ, האורח עונה בלי להירשם ובלי להוריד כלום — והתשובה נכנסת לרשימה שלכם לבד.",
   },
   {
-    q: "מה קורה עם המתנות באשראי?",
-    a: "האורחים יכולים לתת מתנה בכרטיס אשראי ולכתוב ברכה. הברכות עולות לקיר ברכות שמוקרן על מסך באולם — בלי סכומים — ואצלכם נשמרת רשימה מסודרת של מי נתן ומה.",
+    /* This answer used to say "האורחים יכולים לתת מתנה בכרטיס אשראי" and the app
+       does no such thing: GiftScreen has a name, an amount and a blessing — no
+       card field, no clearing call — `submit_gift_by_token` writes paid = false
+       and nothing ever flips it, and the guest's own confirmation screen says
+       the gift itself is given on the day. /services/gifts on this same site
+       already said that, so the site gave two answers and the false one was on
+       the page with the price. The clearing arrangement is real and stays — as
+       what it is: arranged with us, not a button in the app. */
+    q: "מה קורה עם המתנות?",
+    a: "באפליקציה האורח מצהיר על המתנה וכותב ברכה. הברכות עולות לקיר ברכות שמוקרן על מסך באולם — בלי סכומים — ואצלכם נשמרת רשימה של מי בירך ומה. הכסף עצמו עובר ביום האירוע. סליקה בכרטיס אשראי היא הסדר נפרד שאנחנו מסדרים איתכם מראש, ולא משהו שקורה דרך האתר.",
   },
   {
-    q: "מי עומד בכניסה בחבילה של ₪1,290?",
+    q: `מי עומד בכניסה בחבילה של ${ONSITE_PRICE}?`,
     a: "מנהל הושבה מטעמנו, לאורך כל קבלת הפנים. הוא בונה איתכם את ההושבה לפני האירוע, מגיע עם התרשים וכרטיסי השם מודפסים, ומטפל בשינויים במקום.",
   },
   {

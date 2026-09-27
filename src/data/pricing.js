@@ -112,7 +112,9 @@ export const PLANS = [
         items: [
           "קישור אחד בוואטסאפ — בלי הרשמה ובלי אפליקציה",
           "כן, אולי או לא · כמה מגיעים · שמות המלווים",
-          "שש מנות לבחירה, והאורח בוחר בעצמו",
+          // Five meals and an opt-out, not six meals: MEAL_OPTIONS' sixth entry
+          // is { value: "none", label: "לא אוכל" }.
+          "חמש מנות לבחירה ואפשרות ״לא אוכל״ — האורח בוחר בעצמו",
           "הרשמה להסעה — ואתם רואים כמה מקומות להזמין בכל נקודה",
           "התשובות נכנסות לרשימה לבד, לפי טלפון ואז לפי שם",
           "תחזית מנות עם מקדם אי-הגעה שאתם קובעים",
@@ -133,23 +135,44 @@ export const PLANS = [
       {
         title: "הודעות, מתנות ותמונות",
         items: [
-          "רצף שש הודעות עם קהל יעד אוטומטי ומעקב מי כבר קיבל",
+          // "מעקב מי כבר קיבל" was a claim about the GUEST. markSent() fires on
+          // the click, before window.open, and nothing ever revisits it
+          // (MessagesScreen.jsx:203-205) — the screen's own hint says you still
+          // have to press send inside WhatsApp. The app knows what you sent,
+          // not what arrived.
+          "רצף שש הודעות עם קהל יעד אוטומטי וסימון מי כבר נשלח",
           "תבניות שאתם עורכים, עם שם, תאריך, מקום, שולחן וקישור",
           "השליחה מהוואטסאפ שלכם — בלי עלות",
-          "מתנות באשראי, וקיר ברכות שמוקרן על מסך באולם",
+          // This said "מתנות באשראי" and that was FALSE as software. GiftScreen
+          // has a name, an amount and a blessing — no card field, no clearing
+          // call, no redirect; submit_gift_by_token writes `paid = false` and
+          // nothing ever flips it; and the guest's own confirmation screen says
+          // "את המתנה עצמה אפשר להעניק ביום האירוע". /services/gifts on the
+          // same site already said the honest version, so the site gave two
+          // answers and the false one was on the page with the price.
+          //
+          // Unica's card clearing is real, which is why the SERVICE stays — it
+          // is in the FAQ, described as what it is. What the software does is
+          // the declaration, the blessing and the projected wall, and that is
+          // all this line may claim.
+          "הצהרת מתנה וברכה מהאורח, וקיר ברכות שמוקרן על מסך באולם — בלי סכומים",
           "אלבום משותף — האורחים מעלים תמונות לקישור אחד",
         ],
-        // The gift line is the only one here delivered outside the app: the
-        // guest's card is cleared through Unica's existing arrangement, which
-        // is what makes it sellable at all. The declaration, the blessing and
-        // the projected wall are the product's own.
       },
       {
         title: "ועוד",
         items: [
-          "עשרה קישורים לאורחים, לכל אחד קוד QR להורדה",
-          "סנכרון ענן, עבודה מכמה מכשירים ואפליקציה להתקנה",
-          "הושבה אוטומטית עד 200 איש — לצפייה במסך",
+          // Not "לאורחים": three of the ten are not for guests at all —
+          // `entrance` is the greeter station, `collab` is the family's edit
+          // table, `giftWall` is the projector feed.
+          "עשרה קישורים לשיתוף, לכל אחד קוד QR להורדה",
+          // Not "עבודה מכמה מכשירים". This file's own header (see above) uses
+          // the opposite fact to justify a single operator in tier 3: two
+          // devices editing seating at once hit whole-event last-write-wins and
+          // the loser forfeits the venue, the map and the locks. Sequential
+          // access from any device is true; simultaneous editing is the hazard.
+          "סנכרון ענן, גישה מכל מכשיר ואפליקציה להתקנה",
+          "הושבה אוטומטית עד 200 איש",
         ],
       },
     ],
@@ -160,7 +183,9 @@ export const PLANS = [
     name: "בלי הפתעות",
     price: "₪690",
     per: "לאירוע",
-    desc: "כל הערב מסודר, במחיר של שתי מנות באולם",
+    // "במחיר של שתי מנות באולם" put a hall meal at ₪345. Nothing in the repo
+    // sources that number, and rule 3 above bans an unearned one.
+    desc: "כל הערב מסודר — מההושבה ועד הדלת",
     cta: "קונים את האירוע",
     ctaTo: "/signup",
     highlight: true,
@@ -201,7 +226,10 @@ export const PLANS = [
         items: [
           "עמדת כניסה: חיפוש בשם, בשם מלווה או בטלפון",
           "סימון הגעה לכל אדם בנפרד — הדודה הגיעה, הילדים עוד לא",
-          "סימון שולחן שלם בלחיצה, ומקומות פנויים בזמן אמת",
+          // Not "בזמן אמת": the greeter's device re-polls every 25 seconds
+          // (EntranceScreen.jsx:222), there is no push, and two greeters can be
+          // that far out of date with each other.
+          "סימון שולחן שלם בלחיצה, ומקומות פנויים שמתעדכנים כל כמה שניות",
           "אורח שלא הוזמן — נכנס, ומקבל שולחן שיש בו מקום עכשיו",
           "קישור נפרד לדיילת, בלי גישה לשאר האירוע ובלי טלפונים",
           "מתג שסוגר את הסימון אחרי האירוע, בלי לבטל את הקישור",
@@ -213,7 +241,11 @@ export const PLANS = [
           "ארבעה סוגי כרטיסי שם: כרטיס שולחן מתקפל, כרטיס מקום, תג ענידה ומדבקה",
           "כרטיס מקום לכל כיסא — זוג מקבל שניים",
           "סידור הושבה מלא, וגיליון דחוס לצוות האולם",
-          "רשימת כניסה לפי א׳-ב׳",
+          // "רשימת כניסה לפי א׳-ב׳" was here and there is no such PRINTOUT. The
+          // app has exactly two print surfaces — NameTagsScreen and
+          // SeatingScreen — and every mode of both is ordered by table. The
+          // alphabetical list exists only as Excel sheet 3, which the ייצוא
+          // group below already sells.
           "בחירה למי מדפיסים: רק משובצים, רק מי שאישר, או כולם",
         ],
       },
@@ -223,14 +255,32 @@ export const PLANS = [
           "מתוכנן מול בפועל, עלות לאורח וגרפים — נשמר לבד",
           "קטגוריות שאתם עורכים, ומילוי מהיר של מתנה משוערת לכולם",
           "ספקים: אחת-עשרה קטגוריות, מהצעה עד סגירה, ומעקב תשלומים",
-          "לוח משימות עם רשימת התחלה מוכנה לפי סוג האירוע ותאריכי יעד",
+          // "כשהלוח ריק" is not a hedge: the loader button lives inside
+          // {tasks.length === 0 && …} in both places it is rendered
+          // (TasksScreen.jsx:112, :168), so one task of your own makes the
+          // starter list permanently unreachable.
+          "לוח משימות עם תאריכי יעד, ורשימת התחלה לפי סוג האירוע כשהלוח ריק",
           "הסתרת ברכה מקיר הברכות באמצע האירוע, והחזרה שלה",
         ],
       },
       {
         title: "ייצוא",
         items: [
-          "חוברת אקסל בחמישה גיליונות: הושבה, ממתינים, רשימת כניסה, הפרות ומתנות",
+          // This said "חוברת אקסל בחמישה גיליונות … ומתנות" and both halves were
+          // wrong. Only two sheets are unconditional — sheet 1 סידור הושבה
+          // (exportHelpers.js:215) and sheet 3 רשימת כניסה א׳-ב׳ (:276).
+          // ממתינים (:219) and הפרות (:280) appear only when there are any, so
+          // the normal pre-event export is two or three sheets, not five — and
+          // "הפרות" is a tab that only exists when the plan is broken.
+          //
+          // The gift sheet is gone from the sentence for a harder reason: it
+          // reads `Number(g.giftAmount)` (:302) and NOTHING in src/ ever writes
+          // giftAmount — the door deliberately has no gift field, and the two
+          // UIs for it were removed on purpose (SeatingScreen.jsx:549,
+          // CostScreen.jsx:462). Every row and every total prints ₪0. Selling a
+          // gift ledger that is structurally empty is the same failure as the
+          // "רישום מתנות" claim already retracted from the landing page.
+          "ייצוא לאקסל: סידור הושבה ורשימת כניסה לפי א׳-ב׳, ועוד גיליון לממתינים לשיבוץ ולהפרות אילוצים כשיש כאלה",
         ],
       },
     ],
@@ -242,8 +292,13 @@ export const PLANS = [
     price: "₪1,290",
     per: "לאירוע",
     desc: "מישהו שלנו עומד בדלת ומקבל את האורחים",
-    cta: "בדקו אם התאריך פנוי",
-    ctaTo: "/signup",
+    // "בדקו אם התאריך פנוי" → /signup was a button that promised a calendar
+    // check and delivered a signup form. There is no date-availability
+    // mechanism anywhere in the repo, and no contact route either until
+    // VITE_SUPPORT_WHATSAPP is set (checklist 16). Until then this points at
+    // the page that actually explains the evening, which ends in its own CTA.
+    cta: "איך זה עובד בערב",
+    ctaTo: "/services/event-day",
     inherits: "כל מה שב״בלי הפתעות״, ועוד:",
     groups: [
       {
@@ -260,6 +315,22 @@ export const PLANS = [
     ],
   },
 ];
+
+/**
+ * This file's keys → the keys the database and planConfig.js use.
+ *
+ * The two sets of names are not a mistake and cannot be merged: `free` / `event`
+ * / `onsite` describe the packages as a buyer meets them, while `free` / `pro` /
+ * `enterprise` are the values already written into `subscriptions.plan`, which
+ * carries a CHECK constraint — renaming them is a migration plus a Stripe
+ * metadata change, not an edit.
+ *
+ * It exists as a map rather than as knowledge in someone's head because the two
+ * sides had already drifted once: the package NAMES are written out by hand in
+ * both files, pinned by tests on both sides, and nothing tied them together. The
+ * tests in pricing.test.js use this to compare them.
+ */
+export const PLAN_DB_KEY = { free: "free", event: "pro", onsite: "enterprise" };
 
 /**
  * Sold by the hour, not bundled. These are the lines whose cost scales with
@@ -295,7 +366,16 @@ export const teaserFor = (plan) => ({
   cta: plan.cta,
   ctaTo: plan.ctaTo,
   highlight: !!plan.highlight,
-  // The first item of each of the first four groups — enough to tell the tiers
-  // apart without reprinting forty lines on a page whose job is elsewhere.
-  lines: plan.groups.slice(0, 4).map(g => g.items[0]),
+  /* `human` has to travel with the teaser. It is the one honest signal that a
+     line is delivered by a person rather than by the app, and the landing page
+     is the HIGHER-traffic surface: dropping it there showed "מנהל הושבה שלנו
+     בכניסה" with no "בשטח" label, indistinguishable from a software feature. */
+  human: plan.groups.some(g => g.human),
+  /* Four ITEMS, flattened across groups — not the first item of each of the
+     first four groups, which is what this was. The on-site tier has ONE group,
+     so it rendered a single bullet beside two cards with four: measured 436 px
+     against 453 at 1280, and 283 against 436 at 390, i.e. the paid-upgrade card
+     came out visibly stunted. `filter(Boolean)` because an empty `items` array
+     would otherwise emit `undefined` as both content and React key. */
+  lines: plan.groups.flatMap(g => g.items).filter(Boolean).slice(0, 4),
 });
