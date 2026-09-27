@@ -81,8 +81,15 @@ export function canAddGuest(plan, currentCount) {
  * invariant the seating engine, the entrance counter and the name-tag printer
  * all share: one row can be a family of five. A cap applied to `guests.length`
  * would let 200 rows through as 600 people, or block a 190-row event that is
- * only 340 people. Callers pass the guest ARRAY, not a count, so there is no
- * way to hand this the wrong number.
+ * only 340 people.
+ *
+ * This used to claim that "callers pass the guest ARRAY, not a count, so there is
+ * no way to hand this the wrong number." That was false and it was the dangerous
+ * kind of false: `canSeatMore("free", guests.length)` returned
+ * `{ seats: 0, withinPlan: true }` — it FAILED OPEN, silently, on exactly the
+ * mistake the function exists to prevent. And `canAddGuest(plan, currentCount)`
+ * sits a few lines above it taking a count as its second argument, so the wrong
+ * call is the natural one to write. It throws now.
  *
  * Declined guests are excluded, exactly as the seating screen excludes them —
  * someone who said no is not seated and must not consume the allowance.
@@ -91,10 +98,22 @@ export function canAddGuest(plan, currentCount) {
  * @param {Array<{count?: number, rsvp?: string}>} guests — the event's guest rows
  */
 export function canSeatMore(plan, guests) {
+  if (!Array.isArray(guests)) {
+    // Loud, not lenient. A number here is the seats-versus-rows bug arriving by
+    // the front door, and returning `{ seats: 0, allowed: true }` for it is the
+    // one behaviour this function must never have.
+    throw new TypeError(
+      `canSeatMore expects the guest ARRAY, got ${typeof guests} — pass ev.guests, not a count`
+    );
+  }
   const { maxSeatedSeats } = getPlanLimits(plan);
-  const seats = (Array.isArray(guests) ? guests : [])
-    .filter(g => g?.rsvp !== "declined")
-    .reduce((n, g) => n + Math.max(1, Number(g?.count) || 1), 0);
+  const seats = guests
+    // `.filter(Boolean)` first: a null row survived `g?.rsvp !== "declined"` and
+    // then scored `Number(undefined) || 1` = 1, so [null, null] counted as two
+    // people who do not exist.
+    .filter(Boolean)
+    .filter(g => g.rsvp !== "declined")
+    .reduce((n, g) => n + Math.max(1, Number(g.count) || 1), 0);
 
   const withinPlan = seats <= maxSeatedSeats;
   const allowed    = !PLAN_GATES_ENFORCED || withinPlan;
@@ -147,18 +166,25 @@ export function canUseAdvancedExports(plan) {
   // so they could never be wired to a call site without enforcing the split
   // while the switch was off — which is why they had zero call sites and
   // flipping the switch would have enforced nothing for them.
+  /* The plan NAME comes from getPlanLabel, it is not typed here. These three
+     strings said "מקצועי" and "ארגוני" — the labels the packages had before they
+     were renamed to הרשימה בידיים / בלי הפתעות / אנחנו שם איתכם. Two of them are
+     customer-facing (canUseAI's note reaches FloorPlanEditor), so a customer would
+     have been sent to a plan that does not appear anywhere on the site. */
   return {
     withinPlan:  advancedExports,
     allowed:     !PLAN_GATES_ENFORCED || advancedExports,
     upgradeNote: advancedExports
       ? null
-      : "ייצוא מתקדם (PDF, ייצוא מפורט) — זמין בתוכנית מקצועי ומעלה",
+      : `ייצוא מתקדם (PDF, ייצוא מפורט) — זמין בחבילת ${getPlanLabel("pro")} ומעלה`,
   };
 }
 
 /**
- * Whether the user's plan includes AI-powered seating optimization.
- * Requires Enterprise plan.
+ * Whether the plan includes the AI features — today that is ONE thing, and it is
+ * not seating: table detection from an uploaded venue sketch
+ * (FloorPlanEditor.handleDetect). Available from the ₪690 package up, because
+ * that is the package that sells it.
  */
 export function canUseAI(plan) {
   const { aiFeatures } = getPlanLimits(plan);
@@ -172,13 +198,14 @@ export function canUseAI(plan) {
     allowed:     !PLAN_GATES_ENFORCED || aiFeatures,
     upgradeNote: aiFeatures
       ? null
-      : "הושבה חכמה מבוססת AI — זמינה בתוכנית ארגוני",
+      : `זיהוי שולחנות מסקיצת האולם — זמין בחבילת ${getPlanLabel("pro")} ומעלה`,
   };
 }
 
 /**
- * Whether the user's plan includes multi-user collaboration.
- * Requires Enterprise plan.
+ * Whether the plan includes the shared family table (CollabScreen behind a share
+ * token). TRUE on every plan, because the free package sells it — see
+ * planConfig.js. Zero call sites; kept so the rule stays beside the others.
  */
 export function canUseCollaboration(plan) {
   const { collaboration } = getPlanLimits(plan);
@@ -192,6 +219,6 @@ export function canUseCollaboration(plan) {
     allowed:     !PLAN_GATES_ENFORCED || collaboration,
     upgradeNote: collaboration
       ? null
-      : "שיתוף פעולה עם הצוות — זמין בתוכנית ארגוני",
+      : `טבלה שיתופית למשפחה — זמינה בחבילת ${getPlanLabel("pro")} ומעלה`,
   };
 }

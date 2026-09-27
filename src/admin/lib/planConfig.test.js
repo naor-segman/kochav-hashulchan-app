@@ -38,7 +38,11 @@ describe("planConfig — the plan limits featureGates actually checks", () => {
     expect(PLAN_LIMITS.free.maxSeatedSeats).toBe(200);
     expect(PLAN_LIMITS.free.advancedExports).toBe(false);
     expect(PLAN_LIMITS.free.aiFeatures).toBe(false);
-    expect(PLAN_LIMITS.free.collaboration).toBe(false);
+    /* TRUE, and it was false. The free package sells "טבלה שיתופית: המשפחה
+       ממלאת מהטלפון" — CollabScreen behind a share token — so a false here was
+       a plan row that would delete a free-tier bullet the day the gates go on.
+       The flag differentiates nothing now, which is the honest state. */
+    expect(PLAN_LIMITS.free.collaboration).toBe(true);
   });
 
   it("pins the exact pro-tier numbers", () => {
@@ -52,7 +56,11 @@ describe("planConfig — the plan limits featureGates actually checks", () => {
     expect(PLAN_LIMITS.pro.maxGuests).toBe(Infinity);
     expect(PLAN_LIMITS.pro.maxSeatedSeats).toBe(Infinity);
     expect(PLAN_LIMITS.pro.advancedExports).toBe(true);
-    expect(PLAN_LIMITS.pro.aiFeatures).toBe(false);
+    /* TRUE, and it was false — the one gate that contradicted something we
+       charge for. pricing.js sells table detection from an uploaded venue sketch
+       inside this ₪690 package, and that is FloorPlanEditor.handleDetect behind
+       canUseAI(plan) → this flag. */
+    expect(PLAN_LIMITS.pro.aiFeatures).toBe(true);
     expect(PLAN_LIMITS.pro.collaboration).toBe(true);
   });
 

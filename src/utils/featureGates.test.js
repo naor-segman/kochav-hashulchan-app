@@ -109,16 +109,21 @@ describe("feature flags by plan", () => {
     expect(canUseAdvancedExports("enterprise").withinPlan).toBe(true);
   });
 
-  /* Collaboration moved down to the paid event tier: the shared family table
-     is one of the things a host is buying, and gating it at the top tier meant
-     the ₪690 package advertised a feature its own plan row refused. AI stays at
-     the top. */
-  it("AI is top tier; collaboration comes with the paid event", () => {
-    expect(canUseAI("pro").withinPlan).toBe(false);
+  /* Both flags follow the PAGE, because the page is what a customer bought.
+     This test used to pin `canUseAI("pro") === false` while pricing.js sold
+     table detection from a venue sketch inside the ₪690 package — so the suite
+     was holding the contradiction in place: a ₪690 customer clicking the
+     headline feature of that group would have been sent to a plan that no longer
+     exists, the moment PLAN_GATES_ENFORCED was flipped. AI is paid, from ₪690 up.
+     Collaboration is TRUE everywhere including free, because the free package
+     sells the shared family table. */
+  it("AI comes with the paid event; collaboration is on every plan", () => {
+    expect(canUseAI("free").withinPlan).toBe(false);
+    expect(canUseAI("pro").withinPlan).toBe(true);
     expect(canUseAI("enterprise").withinPlan).toBe(true);
-    expect(canUseCollaboration("free").withinPlan).toBe(false);
-    expect(canUseCollaboration("pro").withinPlan).toBe(true);
-    expect(canUseCollaboration("enterprise").withinPlan).toBe(true);
+    for (const plan of ["free", "pro", "enterprise"]) {
+      expect(canUseCollaboration(plan).withinPlan, plan).toBe(true);
+    }
   });
 
   // The switch is the single point of control. While it is off nothing is

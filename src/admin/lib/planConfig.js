@@ -40,8 +40,14 @@
  * ⚠️ SEATS, NOT ROWS. `maxGuests` was compared against `ev.guests.length`,
  * which counts ROWS — and a row carries `count` people. "עד 500 אורחים" meant
  * 500 rows, i.e. 750–1,000 actual people. The new cap is named `maxSeatedSeats`
- * so the unit is in the name, and `featureGates.canSeatMore` counts it with the
- * same arithmetic the seating engine uses.
+ * so the unit is in the name, and `featureGates.canSeatMore` counts it the way
+ * `arrival.js` seatsOf() does — Math.max(1, Number(count) || 1).
+ *
+ * NOT "the same arithmetic the seating engine uses", which is what this said and
+ * it is false: `guestSeats` in seating.js is `g.count || 1` with no coercion, so
+ * a string "4" makes its reduce CONCATENATE (0 + "4" + "4" → "044") and a
+ * negative count subtracts seats. canSeatMore is the correct one of the two; the
+ * latent bug is in seating.js and only guestForm's 1–50 clamp keeps it off.
  */
 export const PLAN_LIMITS = {
   free: {
@@ -50,14 +56,31 @@ export const PLAN_LIMITS = {
     maxSeatedSeats:    200,
     advancedExports:   false,
     aiFeatures:        false,
-    collaboration:     false,
+    /* TRUE on the free tier, because the free tier SELLS it: "טבלה שיתופית:
+       המשפחה ממלאת מהטלפון, בזמן אמת, בלי חשבון" is a free-tier line, and it is
+       CollabScreen behind a share token. So this flag now differentiates
+       nothing — which is the honest state, and better than a flag that would
+       delete a free-tier bullet the day enforcement is switched on.
+       `canUseCollaboration` still has zero call sites; it is kept so the rule
+       lives next to the others rather than being invented at a call site. */
+    collaboration:     true,
   },
   pro: {
     maxEvents:         Infinity,
     maxGuests:         Infinity,
     maxSeatedSeats:    Infinity,
     advancedExports:   true,
-    aiFeatures:        false,
+    /* TRUE, and it was false — which made this the one gate that contradicted a
+       line we charge for. `pricing.js` sells "מעלים את סקיצת האולם — והמערכת
+       מזהה את השולחנות מהתמונה" inside the ₪690 tier, and that is `handleDetect`
+       in FloorPlanEditor.jsx:339, guarded by `canUseAI(plan)` → this flag. With
+       it false, only `enterprise` could run detection, and the ₪690 customer who
+       clicked the headline feature of that group would have been told it is
+       available in a plan that no longer exists.
+       It worked today only because PLAN_GATES_ENFORCED is false, i.e. the bug
+       was invisible until the one moment it matters — the day we start charging.
+       That is bug class 6 on the money surface. */
+    aiFeatures:        true,
     collaboration:     true,
   },
   enterprise: {
@@ -98,6 +121,18 @@ export const PLAN_META = {
     color:       "var(--accent-text)",
     bgColor:     "#fef9f0",
     borderColor: "#f3d99e",
+    /* The ONE thing this package has that the ₪690 package does not: a person
+       from us standing at the door. It lives in PLAN_META and not in PLAN_LIMITS
+       on purpose — PLAN_LIMITS is read by the gate helpers, and a service
+       delivered by a human must never become something the software claims to
+       check. It is display metadata, and the only consumer is the plan card.
+
+       Without it the two paid cards were byte-identical: every limit in
+       PLAN_LIMITS is now the same for `pro` and `enterprise` (both unlimited,
+       both AI, both collaboration), which is CORRECT — the difference is not a
+       software capability — so a comparison table built only from limits could
+       not tell them apart on the screen where someone decides to pay. */
+    humanService: "מנהל הושבה שלנו בכניסה — שירות בשטח",
   },
 };
 
@@ -206,7 +241,8 @@ export function getPlanLimits(plan) {
 
 /**
  * Returns the Hebrew display label for a plan key.
- * E.g. getPlanLabel("pro") → "מקצועי"
+ * E.g. getPlanLabel("pro") → "בלי הפתעות"   (it said "מקצועי" — the label was
+ * renamed with the packages and this example was left behind)
  */
 export function getPlanLabel(plan) {
   // Never fall through to the raw key. A DB value the panel does not know

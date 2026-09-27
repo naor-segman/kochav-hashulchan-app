@@ -12,6 +12,8 @@ import {
   pointerWithin, rectIntersection, MeasuringStrategy,
 } from "@dnd-kit/core";
 import { autoAssign, computeViolations } from "../logic/seating.js";
+import { canSeatMore } from "../utils/featureGates.js";
+import { usePlan } from "../hooks/usePlan.js";
 import { track, EVENTS } from "../lib/analytics.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
@@ -79,6 +81,7 @@ const TOUCH_ACTIVATION   = { activationConstraint: { delay: 250, tolerance: 5 } 
 
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const navigate = useNavigate();
+  const { plan } = usePlan();
   const { confirm, dialog } = useConfirm();
   // Which table cards are open. A Set, not a single id: opening one table used
   // to close whichever other table was open, which is exactly what the host
@@ -222,6 +225,25 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const runAuto = async () => {
     if (noTables) { showToast("יש להגדיר שולחנות תחילה", "err"); return; }
     if (noGuests) { showToast("יש להוסיף אורחים תחילה", "err"); return; }
+    /* THE seat ceiling, at the one entry point it belongs at. It had none.
+     *
+     * `canSeatMore` was written for exactly this and then wired nowhere — zero
+     * call sites in src/ — while the pricing page stated the cap as a fact
+     * ("הושבה אוטומטית עד 200 איש") and charged ₪690 for a group titled
+     * "ההושבה — בלי תקרה". Nothing in the running app treated a 600-person free
+     * event differently from a paid one, so the paid tier's first group was
+     * selling the removal of a limit that did not exist.
+     *
+     * Like every other gate here this is inert while PLAN_GATES_ENFORCED is
+     * false — `allowed` is true for everyone today. It is wiring, not a decision
+     * about what free includes: the decision is in planConfig.js and the switch
+     * is one line in featureGates.js. What it buys is that the switch now means
+     * something for this feature instead of nothing. */
+    const seatGate = canSeatMore(plan, ev.guests);
+    if (!seatGate.allowed) {
+      showToast(seatGate.reason || "ההושבה האוטומטית אינה זמינה בחבילה הנוכחית", "warn");
+      return;
+    }
     if (nAssigned > 0 && !await confirm(
       "לחשב מחדש את ההושבה?\n\n" +
       nAssigned + " שיבוצים קיימים יוחלפו (אורחים נעולים ישמרו במקומם).\n" +

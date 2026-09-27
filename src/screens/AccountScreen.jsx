@@ -28,18 +28,31 @@ function formatDate(iso) {
 
 function planFeatures(key) {
   const l = getPlanLimits(key);
+  const human = getPlanMeta(key)?.humanService;
+  /* These rows have to DIFFER, and they had stopped: once maxGuests went to
+     Infinity on every plan, `pro` and `enterprise` both rendered exactly
+     "∞ אירועים" / "∞ אורחים" — byte-identical cards — and `free` differed from
+     them in one row. A plan-comparison table that does not distinguish the plans
+     is worse than no table on the screen where someone decides to pay.
+     So the rows are what actually separates the packages now: the seating
+     ceiling, the sketch detection, and the person at the door. */
+  const seats = l.maxSeatedSeats === Infinity
+    ? "הושבה אוטומטית בלי תקרה"
+    : `הושבה אוטומטית עד ${l.maxSeatedSeats} אנשים`;
   return [
     {
-      label:    l.maxEvents === Infinity ? "∞ אירועים" : `עד ${l.maxEvents} אירועים`,
+      label:    l.maxEvents === Infinity ? "אירועים ללא הגבלה" : `${l.maxEvents === 1 ? "אירוע אחד" : `עד ${l.maxEvents} אירועים`}`,
       included: true,
     },
-    {
-      label:    l.maxGuests === Infinity ? "∞ אורחים"  : `עד ${l.maxGuests} אורחים`,
-      included: true,
-    },
-    // Advanced export, AI seating and team collaboration are in planConfig and
-    // on nothing else — none of the three is built. They are off the customer
-    // screens until they exist; the plan document keeps them as candidates.
+    { label: "רשימת אורחים ללא הגבלה", included: l.maxGuests === Infinity },
+    { label: seats,                    included: true },
+    { label: "זיהוי שולחנות מסקיצת האולם", included: l.aiFeatures },
+    /* The human line last, and only on the package that has one. It comes from
+       PLAN_META rather than from the limits, and it carries the words "שירות
+       בשטח" inside the label — the same honest signal as the pricing page's
+       "בשטח" badge, so a person at a door is never presented as a feature the
+       software performs. Without it the two paid cards were identical. */
+    ...(human ? [{ label: human, included: true }] : []),
   ];
 }
 
@@ -48,7 +61,9 @@ function planFeatures(key) {
 function cardBtnLabel(cardKey, currentPlanKey) {
   if (cardKey === currentPlanKey) return "תוכנית נוכחית ✓";
   if (cardKey === "free")         return "—";
-  if (cardKey === "pro")          return "שדרגו ל-Pro";
+  // Was "שדרגו ל-Pro" — the internal DB key, printed at a customer. The label
+  // comes from PLAN_META, which is what the rest of the screen shows.
+  if (cardKey === "pro")          return `שדרגו ל${getPlanLabel("pro")}`;
   if (cardKey === "enterprise")   return "צרו קשר";
   return "—";
 }
@@ -506,7 +521,7 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
                         title={
                           isCurrent       ? "זוהי התוכנית הנוכחית שלכם" :
                           !isStripeConfigured && !isEnterprise ? "שדרוג יהיה זמין בקרוב" :
-                          isEnterprise    ? "שלחו אימייל לגבי תוכנית ארגוני" :
+                          isEnterprise    ? `שלחו אימייל לגבי חבילת ${getPlanLabel("enterprise")}` :
                           `שדרגו לתוכנית ${getPlanLabel(key)}`
                         }
                       >
