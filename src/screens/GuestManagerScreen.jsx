@@ -99,6 +99,14 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   // disagree with itself about whether a limit applies.
   const slotsLeft = guestSlotsLeft(plan, ev.guests.length);
   const atCap     = slotsLeft === 0;
+  /* The number the cap messages below print. `maxGuests` is Infinity on every
+     plan today, and the five places that interpolated it raw would have rendered
+     "הגעתם למגבלת Infinity הרשומות" — an English word in a Hebrew toast, on the
+     screen where a host pastes their list. Double-unreachable right now (every
+     message sits behind `atCap`, and slotsLeft is Infinity both when the gates
+     are off and when maxGuests is), so this guards the day a row cap returns
+     rather than fixing something a host can see. */
+  const capLabel  = maxGuests === Infinity ? "הרשומות" : `${maxGuests} הרשומות`;
 
   // Focus the name field once, on mount. Depending on editId would yank focus
   // back to the top of the form every time the host starts editing a row.
@@ -199,7 +207,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const parsed = parseGuestList(listText);
     if (parsed.length === 0) return;
     if (atCap) {
-      showToast(`הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
+      showToast(`הגעתם למגבלת ${capLabel} בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
       return;
     }
     setReviewRows(buildImportRows(parsed, ev.guests));
@@ -211,7 +219,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const allRows = readyImportRows(reviewRows || []);
     if (allRows.length === 0) return;
     if (atCap) {
-      showToast(`הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
+      showToast(`הגעתם למגבלת ${capLabel} בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
       return;
     }
     // Take what fits rather than rejecting the whole paste. Refusing 400 names
@@ -235,7 +243,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       "נוספו " + newGuests.length + " אורחים" +
       (seats > newGuests.length ? ` · ${seats} מקומות` : "") +
       (withPhone ? ` · ${withPhone} עם טלפון` : "") +
-      (skipped ? ` · ${skipped} לא נוספו — מגבלת ${maxGuests} רשומות בתוכנית` : "") + " ✓",
+      (skipped ? ` · ${skipped} לא נוספו — מגבלת ${capLabel} בתוכנית` : "") + " ✓",
       skipped ? "warn" : undefined
     );
     setListText("");
@@ -391,7 +399,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       {/* ── Guest limit upgrade tip ── */}
       {atCap && (
         <p className={styles.upgradeTip}>
-          <Icon name="lock" /> הגעתם למגבלת {maxGuests} הרשומות בתוכנית הנוכחית —{" "}
+          <Icon name="lock" /> הגעתם למגבלת {capLabel} בתוכנית הנוכחית —{" "}
           <a href="/account" className={styles.upgradeTipLink}>שדרגו את התוכנית</a>{" "}
           להוספת אורחים נוספים.
         </p>
@@ -695,7 +703,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             onClick={saveGuest}
             disabled={!editId && atCap}
             title={!editId && atCap
-              ? `הגעתם למגבלת ${maxGuests} האורחים — שדרגו את התוכנית`
+              ? `הגעתם למגבלת ${capLabel} — שדרגו את התוכנית`
               : undefined}
           >
             {editId ? "שמרו שינויים" : "+ הוסיפו אורח"}
