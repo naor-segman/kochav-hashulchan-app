@@ -57,10 +57,12 @@ async function portTaken(base) {
  *
  * @param {number} port
  * @param {string} [cwd]
+ * @param {string[]} [extraArgs]  passed to `vite preview`, e.g. ["--outDir", "dist-shots"]
+ *                                for a harness that previews a build other than dist/
  * @returns {Promise<{ base: string, stop: () => void }>}
  * @throws if the port is already in use, or the server never comes up.
  */
-export async function startPreview(port, cwd = ROOT) {
+export async function startPreview(port, cwd = ROOT, extraArgs = []) {
   const base = `http://127.0.0.1:${port}`;
 
   if (await portTaken(base)) {
@@ -75,7 +77,7 @@ export async function startPreview(port, cwd = ROOT) {
   // vite's own entry, run by this node binary — NOT `npx vite`, whose child the
   // server would be and which survives our SIGTERM. See the note above.
   const server = spawn(process.execPath,
-    [join(ROOT, "node_modules/vite/bin/vite.js"), "preview",
+    [join(ROOT, "node_modules/vite/bin/vite.js"), "preview", ...extraArgs,
      "--port", String(port), "--strictPort"],
     { cwd, stdio: "ignore" });
 

@@ -9,7 +9,7 @@
 //
 //   node qa/giftModerationUi.mjs      (starts and stops its own vite)
 import { createRequire } from 'module';
-import { spawn, spawnSync } from 'child_process';
+import { startDev } from './lib/preview.mjs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 
@@ -42,18 +42,15 @@ const GIFTS = [
   { id: 'gift-3', donor_name: 'הוסתר קודם', amount: 1000, message: 'ישן',      created_at: '2026-08-03T10:00:00Z', hidden: true },
 ];
 
-const vite = spawn('npx', ['vite', '--port', PORT, '--host', '127.0.0.1'], {
-  env: { ...process.env, VITE_SUPABASE_URL: 'https://stub.supabase.co', VITE_SUPABASE_ANON_KEY: 'stub-anon-key' },
-  stdio: 'ignore',
+/* startDev, not spawn('npx', ['vite', …]). The old teardown was
+   `process.kill(-vite.pid)` — a process-GROUP kill on a child that was never
+   spawned detached, so it has no group of its own — then `vite.kill('SIGKILL')`,
+   which reaches the npx wrapper and not the shell-and-node chain under it.
+   MEASURED on the old version (28.9): after a green run, `node …/.bin/vite
+   --port 5192` was still running. Checklist 93; see qa/lib/preview.mjs. */
+const { stop: stopVite } = await startDev(Number(PORT), {
+  VITE_SUPABASE_URL: 'https://stub.supabase.co', VITE_SUPABASE_ANON_KEY: 'stub-anon-key',
 });
-const stopVite = () => { try { process.kill(-vite.pid); } catch { /* already gone */ } vite.kill('SIGKILL'); };
-
-const wait = (ms) => new Promise(r => setTimeout(r, ms));
-for (let i = 0; i < 40; i++) {
-  const r = spawnSync('curl', ['-s', '-o', '/dev/null', `${BASE}/app`]);
-  if (r.status === 0) break;
-  await wait(500);
-}
 
 const b = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
