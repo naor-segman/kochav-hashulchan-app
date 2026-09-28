@@ -50,6 +50,37 @@ try {
     args: ["--no-proxy-server"],   // or localhost is routed through the agent proxy
   });
 
+  /* 0 — every width in between (28.9). This harness measured 390 and 1280
+   * only, and between them the bar did not fit: from 601 to ~990px כניסה and
+   * התחילו חינם were painted off the left edge on every marketing page,
+   * invisible, and /pricing scrolled sideways. So: at each width, every
+   * visible header control lies wholly inside the viewport, and the page does
+   * not scroll sideways. */
+  {
+    const page = await browser.newPage({ viewport: DESKTOP });
+    for (const w of [601, 700, 768, 834, 900, 1000, 1023, 1024, 1100]) {
+      await page.setViewportSize({ width: w, height: 900 });
+      for (const route of ["/home", "/pricing", "/services/seating", "/services/gifts"]) {
+        await page.goto(BASE + route, { waitUntil: "networkidle" });
+        const r = await page.evaluate(() => {
+          const out = [];
+          for (const el of document.querySelectorAll("header a, header button")) {
+            const b = el.getBoundingClientRect();
+            if (!b.width || !b.height || getComputedStyle(el).visibility === "hidden") continue;
+            if (b.left < 0 || b.right > innerWidth) out.push(`"${el.textContent.trim()}" ${Math.round(b.left)}…${Math.round(b.right)}`);
+          }
+          window.scrollTo({ left: -1e5, behavior: "instant" });
+          const sx = window.scrollX;
+          window.scrollTo({ left: 0, behavior: "instant" });
+          return { out, sx };
+        });
+        check(`@${w} ${route}: every header control on screen`, r.out.length === 0, r.out.join(" | "));
+        check(`@${w} ${route}: no h-overflow`, r.sx === 0, `scrollX=${r.sx}`);
+      }
+    }
+    await page.close();
+  }
+
   for (const [label, viewport] of [["desktop", DESKTOP], ["phone", PHONE]]) {
     const page = await browser.newPage({ viewport });
     const errors = [];
@@ -147,7 +178,7 @@ try {
       // child inflates it on every ancestor); scrolling and reading scrollX back
       // is the method that does not.
       const scrolled = await page.evaluate(() => {
-        window.scrollTo(9999, 0);
+        window.scrollTo({ left: -1e5, behavior: "instant" });
         const x = window.scrollX;
         window.scrollTo(0, 0);
         return x;

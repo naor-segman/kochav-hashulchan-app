@@ -130,7 +130,7 @@
   transform: translateY(-1px);
 }
 
-/* ── Mobile menu (hamburger) — hidden on desktop, shown ≤600px ── */
+/* ── Mobile menu (hamburger) — hidden on desktop, shown ≤1023px ── */
 .navBurger {
   display: none;
   flex-direction: column;
@@ -199,20 +199,18 @@
 
 /* The breakpoint that used to live in two sheets. It hides the desktop links
    and reveals the hamburger — and in the pricing copy it hid the links next to
-   a hamburger that was never rendered, which is the bug this file removes. */
-@media (max-width: 600px) {
-  /* 40px of gap twice, plus 48px of padding, is 128px of whitespace in a 390px
-     bar. The logo is flex-shrink:0 and the burger has a 44px floor, so the
-     deficit had nowhere to go and pushed the burger 15px off the inline-end
-     edge of the screen: a 44px box with 28px of it actually reachable, on the
-     only navigation control the page that SELLS has below this breakpoint.
-     `margin-inline-start: auto` on .navActions already does the separating,
-     so the large gap was never load-bearing here. */
-  .navInner {
-    gap: 12px;
-    padding: 0 16px;
-  }
+   a hamburger that was never rendered, which is the bug this file removes.
 
+   1023px, not 600px (28.9). The full bar — six service links, two section
+   links, מחירים, כניסה and the CTA — needs about 990px. Between 601 and 990
+   the row overflowed its container to the inline END, so כניסה and התחילו
+   חינם were painted off the left edge of every iPad and small laptop:
+   invisible, unreachable, on the pages that exist to sell. /pricing also
+   scrolled sideways by up to 387px. Nobody saw it because the overflow check
+   in 15 harnesses could not fire on an RTL page (see qa/README.md), and the
+   header harness only measured 390 and 1280. qa/siteHeader.mjs now sweeps
+   the widths in between. */
+@media (max-width: 1023px) {
   .navLinks { display: none; }
   .navLoginBtn { display: none; }
 
@@ -224,6 +222,20 @@
        measured hit area at 38 wide. Belt and braces on the axis that failed. */
     min-width: 44px;
     min-height: 44px;
+  }
+}
+
+@media (max-width: 600px) {
+  /* 40px of gap twice, plus 48px of padding, is 128px of whitespace in a 390px
+     bar. The logo is flex-shrink:0 and the burger has a 44px floor, so the
+     deficit had nowhere to go and pushed the burger 15px off the inline-end
+     edge of the screen: a 44px box with 28px of it actually reachable, on the
+     only navigation control the page that SELLS has below this breakpoint.
+     `margin-inline-start: auto` on .navActions already does the separating,
+     so the large gap was never load-bearing here. */
+  .navInner {
+    gap: 12px;
+    padding: 0 16px;
   }
 }
 
