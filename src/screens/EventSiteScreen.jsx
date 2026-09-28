@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
@@ -94,6 +96,8 @@ export default function EventSiteScreen({ localEvent }) {
   const [state, setState] = useState("loading"); // loading | ready | notfound | unreachable
   const [wishes, setWishes] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Not in the host's in-app preview: that tab is the host's app.
+  useGuestTitle(!isPreview && ev && guestHosts(ev));
   const scheduleRef = useRef(null);
   const locationRef = useRef(null);
   const shuttlesRef = useRef(null);
@@ -225,7 +229,7 @@ export default function EventSiteScreen({ localEvent }) {
             <div className={styles.heroPhoto} style={{ backgroundImage: `url(${site.coverPhoto})` }} aria-hidden="true" />
           )}
           <div className={styles.heroInner}>
-            <span className={styles.heroTag}>{ev.type}</span>
+            {guestEventType(ev.type) && <span className={styles.heroTag}>{guestEventType(ev.type)}</span>}
             <div className={styles.heroNames}>{hosts}</div>
             {site?.heroEn && <div className={styles.heroEn}>{site.heroEn}</div>}
             <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>

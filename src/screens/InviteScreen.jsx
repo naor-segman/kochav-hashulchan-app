@@ -9,6 +9,8 @@ import { prefixed } from "../utils/hebrewPrefix.js";
 import styles from "./InviteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 // Development fallback — displayed when Supabase is not configured locally
 const MOCK_EVENT = {
@@ -48,6 +50,7 @@ export default function InviteScreen() {
   const [loading,  setLoading]  = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
+  useGuestTitle(event && `הזמנה · ${guestHosts(event)}`);
   const [copied,   setCopied]   = useState(false);
   const [qrUrl,    setQrUrl]    = useState("");
 

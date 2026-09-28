@@ -215,6 +215,14 @@ describe("every guest link previews as the event, not the product (WORKPLAN ר)"
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("never shows the raw 'אחר' type in a preview (106)", async () => {
+    for (const path of ["/invite/tok123", "/rsvp/tok123"]) {
+      fetchMock.mockResolvedValue(new Response(JSON.stringify({ ...DATED, type: "אחר" }), { status: 200 }));
+      const body = await (await run("https://kochav.co.il" + path)).text();
+      expect(body, path).not.toMatch(/content="[^"]*אחר/);
+    }
+  });
+
   it("the site keeps its original title", async () => {
     const body = await (await run()).text();
     expect(body).toContain("<title>אתר החתונה של דנה &amp; יוסי</title>");

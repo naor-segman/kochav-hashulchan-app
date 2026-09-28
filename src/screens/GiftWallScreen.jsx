@@ -4,6 +4,8 @@ import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/pub
 import styles from "./GiftWallScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 // DEV-only preview blessings — shown only when no live event resolves in dev.
 const MOCK_GIFTS = [
@@ -43,6 +45,7 @@ export default function GiftWallScreen() {
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreachable, setUnreachable] = useState(false);
+  useGuestTitle(event && `קיר ברכות · ${guestHosts(event)}`);
 
   useEffect(() => {
     let cancelled = false;

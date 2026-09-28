@@ -83,10 +83,13 @@ export default async (request, context) => {
     // The site keeps its original wording. Every other page names itself first,
     // then whose event it is — "אישור הגעה · דנה & יוסי".
     const title = route.label ? `${route.label} · ${hosts}` : `${typeSite} ${hosts}`;
-    const facts = [ev.type, fmtDate(ev.date), ev.venue].filter(Boolean).join(" · ");
+    // "אחר" is a real type and not something to show a guest (106). Inline,
+    // because an edge function cannot import from src/.
+    const type  = ev.type && ev.type !== "אחר" ? ev.type : "";
+    const facts = [type, fmtDate(ev.date), ev.venue].filter(Boolean).join(" · ");
     const desc  = route.label
       ? [facts, route.desc].filter(Boolean).join(" — ") || "אתם מוזמנים!"
-      : [ev.type, ev.venue].filter(Boolean).join(" · ") || "אתם מוזמנים! פרטים ואישור הגעה בקישור.";
+      : [type, ev.venue].filter(Boolean).join(" · ") || "אתם מוזמנים! פרטים ואישור הגעה בקישור.";
 
     // Replacement FUNCTIONS, not strings.
     //

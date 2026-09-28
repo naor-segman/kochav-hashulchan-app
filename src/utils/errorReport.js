@@ -1,3 +1,4 @@
+import { GUEST_ROUTE_PREFIXES } from "./guestRoutes.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 
 /**
@@ -17,8 +18,7 @@ import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 // "entrance" was missing — /entrance/<token> is the door station, and its
 // token is the hostess link. Caught only by the uuid rule below, by luck of
 // the token's shape. 28.9 audit.
-const TOKEN_ROUTES = ["rsvp", "invite", "gift", "card", "album", "collab", "hostess",
-                      "entrance", "invitation", "save-the-date"];
+const TOKEN_ROUTES = GUEST_ROUTE_PREFIXES;
 
 export function scrubRoute(pathname) {
   const parts = String(pathname || "").split("/");

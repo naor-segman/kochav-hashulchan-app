@@ -4,6 +4,8 @@ import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, UNREACHABLE_TEXT
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 /**
  * Public shared album — guests and the photographer upload here.
@@ -73,6 +75,7 @@ export default function AlbumScreen() {
   const [event, setEvent]   = useState(null);
   const [state, setState]   = useState("loading");
   const [photos, setPhotos] = useState([]);
+  useGuestTitle(event && `אלבום התמונות · ${guestHosts(event)}`);
   const [name, setName]     = useState(readName);
   const [busy, setBusy]     = useState(0);
   const [error, setError]   = useState("");

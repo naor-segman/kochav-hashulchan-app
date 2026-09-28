@@ -5,6 +5,8 @@ import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
+import { guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 const MOCK_EVENT = {
   name: "חתונת נועה וטל",
@@ -26,6 +28,7 @@ export default function GiftScreen() {
   const [event, setEvent]         = useState(null);
   const [loading, setLoading]     = useState(true);
   const [unreachable, setUnreachable] = useState(false);
+  useGuestTitle(event && `מתנה וברכה · ${guestHosts(event)}`);
   const [amount, setAmount]       = useState(null);   // number | "custom" | null
   const [customAmt, setCustomAmt] = useState("");
   const [message, setMessage]     = useState("");

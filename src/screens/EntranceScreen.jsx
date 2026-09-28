@@ -18,6 +18,7 @@ import SectionMark from "../components/ui/SectionMark.jsx";
 import styles from "./EntranceScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
 import { COMPANY } from "../data/company.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 /**
  * עמדת הכניסה — the one screen the door runs on.
@@ -181,6 +182,7 @@ export default function EntranceScreen({
   const [remote, setRemote]       = useState(null);
   const [remoteState, setRemoteState] = useState("loading"); // loading|ready|notfound|error
   const [saveError, setSaveError] = useState("");
+  useGuestTitle(isToken && remote && `כניסה · ${remote.name || ""}`);
 
   // Guests with a write still in flight. A refresh that landed mid-write used to
   // overwrite them with the server's pre-write state: the greeter's correction

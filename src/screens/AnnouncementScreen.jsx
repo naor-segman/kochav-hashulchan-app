@@ -9,6 +9,8 @@ import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 /**
  * Public Save-the-Date / designed invitation.
@@ -75,6 +77,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   const isPreview = !!localEvent;
   const [event, setEvent] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | error
+  useGuestTitle(!localEvent && event && `${kind === "saveTheDate" ? "שמרו את התאריך" : "הזמנה"} · ${guestHosts(event)}`);
 
   useEffect(() => {
     if (localEvent) {

@@ -14,6 +14,7 @@ import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.j
 import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 // DEV mock so the page can be designed without a live token.
 const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתונה", brideName: "נועה", groomName: "טל", coupleType: "bride-groom", sideLabels: null };
@@ -39,6 +40,7 @@ export default function CollabScreen() {
   const [ev, setEv] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | notfound
   const [rows, setRows] = useState([]);
+  useGuestTitle(ev && `רשימת האורחים · ${ev.name || ""}`);
   // Rows whose last save failed — kept held so the poll can't revert them.
   const [failed, setFailed] = useState(() => new Set());
   const [me, setMe] = useState(() => { try { return localStorage.getItem("collab_me") || ""; } catch { return ""; } });
