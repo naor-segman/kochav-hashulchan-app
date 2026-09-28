@@ -155,4 +155,17 @@ export const EVENTS = {
   SEATING_RUN:    "seating_run",
   SHARE_COPIED:   "share_link_copied",
   RSVP_RECEIVED:  "rsvp_received",
+  // The gift page's only step (WORKPLAN מ2). Guest's device, like RSVP.
+  GIFT_DECLARED:  "gift_declared",
 };
+
+/** A declared gift amount as a coarse band — the funnel needs the shape of
+ *  the money, not a guest's exact figure. */
+export function amountBand(ils) {
+  const n = Number(ils);
+  if (!Number.isFinite(n) || n <= 0) return "none";
+  if (n < 200) return "<200";
+  if (n < 500) return "200-499";
+  if (n < 1000) return "500-999";
+  return "1000+";
+}

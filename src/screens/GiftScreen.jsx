@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitGift, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
@@ -81,6 +82,11 @@ export default function GiftScreen() {
         setErrors({ submit: "אירעה שגיאה בשמירת המתנה. אנא נסו שוב." });
         return;
       }
+      /* Fired only after the server accepted it, and on the GUEST's device —
+         so no name, no message, no token, and the amount as a band. Until 28.9
+         the page that is meant to become the revenue feature sent nothing at
+         all (WORKPLAN מ2). */
+      track(EVENTS.GIFT_DECLARED, { amount_band: amountBand(finalAmount), with_message: !!message.trim() });
     }
     setStep("submitted");
   };
