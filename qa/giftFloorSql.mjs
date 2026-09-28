@@ -55,6 +55,21 @@ try {
   ok(psql(`select count(*) from public.gifts where amount = 500`) === '1', 'the existing ₪5 row is kept (NOT VALID), not deleted');
   give(10000, 'א'.repeat(1000));
   ok(psql(`select max(char_length(message)) from public.gifts`) === '600', 'a 1,000-character message is cut to 600');
+
+  psql(mig('20260928000900_gift_rate_limit.sql'));
+  console.log('\n── double taps and bursts (20260928000900)');
+  psql(`delete from public.gifts`);
+  give(36000, 'לחיים');
+  give(36000, 'לחיים');
+  ok(psql(`select count(*) from public.gifts`) === '1', 'the same declaration twice is stored once');
+  give(36000, 'לחיים!!');
+  ok(psql(`select count(*) from public.gifts`) === '2', 'a different message is a different gift');
+  psql(`insert into public.gifts (event_id, donor_name, amount, created_at)
+        select e.id, 'x' || i, 5000, now() from public.events e, generate_series(1, 57) i`);   // + the 2 above = 59
+  ok(give(5000, 'עוד אחד') === null, 'the 60th in a minute is accepted');
+  ok(/rate limited/.test(give(5000, 'ועוד') || ''), 'the 61st is refused');
+  psql(`update public.gifts set created_at = now() - interval '2 minutes'`);
+  ok(give(5000, 'אחרי דקה') === null, 'a minute later it is open again');
 } finally {
   spawnSync('su', ['postgres', '-c', `${PGBIN}/pg_ctl -D ${DIR} -m immediate stop`]);
   rmSync(DIR, { recursive: true, force: true });
