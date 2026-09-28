@@ -17,6 +17,7 @@ import { usePlan } from "../hooks/usePlan.js";
 import { track, EVENTS } from "../lib/analytics.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
+import { fetchEventGifts } from "../utils/publicTokens.js";
 import { getSideLabel, getSideLabels, guestCompanionNames, seatingTotals } from "../utils/eventHelpers.js";
 import { arrivalTotals } from "../utils/arrival.js";
 import { fmtDate } from "../utils/dateFormat.js";
@@ -453,6 +454,25 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     }
   };
 
+  /* The export reads the DECLARED gifts first (checklist 92), because the gift
+     sheet it used to write was built from `g.giftAmount`, which nothing writes
+     — every row printed ₪0. The declarations live in the `gifts` table under the
+     event's CLOUD id, so an event that never synced simply has none to add.
+     A failed read does not block the file — the seating is what the host came
+     for — but it is SAID, rather than the sheet quietly going missing on the
+     morning the host needed it. */
+  const handleExport = async () => {
+    let declared = [];
+    if (ev.cloudId) {
+      try {
+        declared = await fetchEventGifts(ev.cloudId);
+      } catch {
+        showToast("הקובץ ירד בלי גיליון המתנות — לא הצלחנו לקרוא אותן. נסו שוב", "warn");
+      }
+    }
+    await exportToExcel(ev, sideLabel, violations, declared);
+  };
+
   const handlePrint = (mode) => {
     setPrintMode(mode);
     setPrinting(true);
@@ -694,7 +714,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 </div>
                 <button
                   className={[base.btnSm, styles.xlsBtn].join(" ")}
-                  onClick={() => exportToExcel(ev, sideLabel, violations)}
+                  onClick={handleExport}
                   title="ייצוא לקובץ אקסל"
                   disabled={ev.guests.length === 0 && ev.tables.length === 0}
                 >

@@ -65,15 +65,28 @@ describe("exportToExcel — workbook shape", () => {
     expect(sheetNamed("הפרות אילוצים")).toBeTruthy();
   });
 
-  it("adds the gift report only when a gift was actually recorded", async () => {
+  /* This test used to write `giftAmount: 500` onto a guest and assert the gift
+     report showed "500". It passed — and it encoded the bug as if it were
+     behaviour: NOTHING in the app writes giftAmount, so in production the sheet
+     printed ₪0 on every row. CLAUDE.md records "three tests once encoded this
+     bug as if it were correct behaviour" about a different field; this was the
+     same shape. Checklist 92. */
+  it("never reads a per-guest gift amount — nothing in the app writes one", async () => {
     const base = { name: "e", tables: [t("t1")], seating: { a: "t1" }, constraints: [] };
-    await exportToExcel({ ...base, guests: [g("a")] }, sideLabel, []);
+    await exportToExcel({ ...base, guests: [g("a", { giftAmount: 500, arrived: true, arrivedSeats: [0] })] }, sideLabel, []);
+    const all = sheets.flatMap(sh => sh.rows).flat().join(" | ");
+    expect(all).not.toContain("500");
+    expect(all).not.toMatch(/סכום מתנה/);
     expect(sheetNamed("דוח מתנות")).toBeUndefined();
+  });
 
+  it("adds the declared-gifts sheet only when there are declarations", async () => {
+    const base = { name: "e", guests: [g("a")], tables: [t("t1")], seating: { a: "t1" }, constraints: [] };
+    await exportToExcel(base, sideLabel, []);
+    expect(sheetNamed("מתנות שהוצהרו")).toBeUndefined();
     sheets.length = 0;
-    await exportToExcel({ ...base, guests: [g("a", { giftAmount: 500 })] }, sideLabel, []);
-    expect(sheetNamed("דוח מתנות")).toBeTruthy();
-    expect(flat("דוח מתנות")).toContain("500");
+    await exportToExcel(base, sideLabel, [], []);
+    expect(sheetNamed("מתנות שהוצהרו")).toBeUndefined();
   });
 });
 
@@ -392,7 +405,10 @@ describe("the gift report counts PEOPLE in the room, not rows with someone in th
     constraints: [],
   };
 
-  const giftSheet = () => sheets.find(s => /מתנ/.test(s.name));
+  // Renamed from "דוח מתנות" to "מי הגיע" in checklist 92: the money half of
+  // this sheet read a field nothing writes. The arrivals half — what these tests
+  // pin — was real and is unchanged.
+  const giftSheet = () => sheetNamed("מי הגיע");
 
   it("puts the seat count in the summary, not the row count", async () => {
     await exportToExcel(ev, sideLabel, []);
@@ -425,5 +441,61 @@ describe("the gift report counts PEOPLE in the room, not rows with someone in th
     const summary = giftSheet().rows.find(r => r.includes("סה״כ הגיעו:"));
     expect(summary[summary.indexOf("סה״כ הגיעו:") + 1]).toBe(3);
     expect(giftSheet().rows.find(r => r[0] === "ישן")[3]).toBe("✓");
+  });
+});
+
+/* ── The declared gifts, as their own sheet — checklist 92 ─────────────────────
+ *
+ * From the `gifts` table (fetchEventGifts), passed in by the caller. A gift row
+ * has NO guest id — only the name the donor typed — which is why these are a list
+ * of their own and not a column on the guest rows. */
+describe("the declared-gifts sheet", () => {
+  const ev = { name: "החתונה", guests: [g("a")], tables: [t("t1")], seating: { a: "t1" }, constraints: [] };
+  const declared = [
+    { donorName: "משפחת כהן",  amountILS: 1000, message: "מזל טוב!",   createdAt: "2027-06-01T19:00:00Z" },
+    { donorName: "צוות המשרד", amountILS: 360,  message: "",           createdAt: "2027-06-01T20:00:00Z" },
+  ];
+  const sheet = () => sheetNamed("מתנות שהוצהרו");
+
+  it("lists every declaration with the name as the donor typed it", async () => {
+    await exportToExcel(ev, sideLabel, [], declared);
+    const rows = sheet().rows;
+    expect(rows.find(r => r[0] === "משפחת כהן")).toBeTruthy();
+    expect(rows.find(r => r[0] === "צוות המשרד")).toBeTruthy();
+  });
+
+  it("writes amounts as NUMBERS, so Excel can sum them", async () => {
+    // "₪1,000" as a string is text to Excel: SUM() ignores it.
+    await exportToExcel(ev, sideLabel, [], declared);
+    const row = sheet().rows.find(r => r[0] === "משפחת כהן");
+    expect(row[1]).toBe(1000);
+    expect(typeof row[1]).toBe("number");
+  });
+
+  it("totals what was declared", async () => {
+    await exportToExcel(ev, sideLabel, [], declared);
+    const summary = sheet().rows.find(r => r.includes("סה״כ הוצהר (₪):"));
+    expect(summary[summary.indexOf("סה״כ הוצהר (₪):") + 1]).toBe(1360);
+  });
+
+  it("says in the sheet itself that this is a list of declarations, not a receipt", async () => {
+    // submit_gift_by_token writes paid = false and nothing flips it. A printout
+    // of this sheet must not be mistakable for a record of payments.
+    await exportToExcel(ev, sideLabel, [], declared);
+    const text = sheet().rows.flat().join(" ");
+    expect(text).toMatch(/לא קבלה/);
+    expect(text).toMatch(/לא עבר דרך האתר/);
+  });
+
+  it("does not let one bad amount turn the total into NaN", async () => {
+    /* `undefined` and a non-numeric string, NOT null. The first version of this
+       test used null, and Number(null) is 0 — so it could not fail: a mutation
+       dropping the `|| 0` guard passed it. Number(undefined) and Number("x") are
+       NaN, and one NaN poisons the whole sum. */
+    await exportToExcel(ev, sideLabel, [], [...declared,
+      { donorName: "x", amountILS: undefined, createdAt: null },
+      { donorName: "y", amountILS: "לא מספר", createdAt: null }]);
+    const summary = sheet().rows.find(r => r.includes("סה״כ הוצהר (₪):"));
+    expect(summary[summary.indexOf("סה״כ הוצהר (₪):") + 1]).toBe(1360);
   });
 });

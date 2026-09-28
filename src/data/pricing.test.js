@@ -141,6 +141,10 @@ describe("pricing: the table", () => {
     }
   });
 
+  /* Since checklist 92 the workbook DOES carry a "מתנות שהוצהרו" sheet — the
+     declarations from the gifts table — and the per-guest ₪0 column is gone. The
+     assertion stays: that sheet is a list of what guests TYPED, explicitly "לא
+     קבלה", and a package bullet reading "ומתנות" would sell it as a ledger. */
   it("does not promise a gift ledger, because nothing writes giftAmount", () => {
     /* The ייצוא line said "חוברת אקסל בחמישה גיליונות: … ומתנות". The gift sheet
        reads `Number(g.giftAmount)` and NOTHING in src/ writes that field — the
