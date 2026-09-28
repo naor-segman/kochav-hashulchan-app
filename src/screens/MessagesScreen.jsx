@@ -107,7 +107,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
       <PageHeader
         title="הודעות לאורחים"
         mark="messages"
-        sub="רצף ההודעות משמירת התאריך ועד התודה — עם מעקב מי כבר קיבל מה."
+        sub="רצף ההודעות משמירת התאריך ועד התודה — עם סימון למי כבר שלחתם."
         aside={
           <div className={base.pills}>
             <StatPill n={stages.reduce((n, s) => n + s.done, 0)} label="נשלחו" color="var(--green)" />
@@ -127,7 +127,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
         <SectionLabel>עלות</SectionLabel>
         <p className={base.fieldHint}>
           השליחה נעשית מהוואטסאפ שלכם, ולכן <b>ללא עלות</b> — כאן רק מכינים את
-          הטקסט, בוחרים למי, ועוקבים אחרי מי כבר קיבל.
+          הטקסט, בוחרים למי, ורואים למי כבר שלחתם.
         </p>
       </div>
 

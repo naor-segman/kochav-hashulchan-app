@@ -118,6 +118,11 @@ export default function EventSiteScreen({ localEvent }) {
   }, [token, localEvent]);
 
   const site = ev?.site;
+  // A question the host never answered is not shown to guests. The default
+  // template ships "איך מגיעים לאירוע? יש חניה?" with an empty answer, and it
+  // rendered on the live site as a question that opens onto nothing (28.9).
+  const faqAnswered = (Array.isArray(site?.faq) ? site.faq : [])
+    .filter(f => f?.q?.trim() && f?.a?.trim());
   useEffect(() => {
     if (!ev?.giftToken || !site?.sections?.blessings) return;
     let cancelled = false;
@@ -177,7 +182,7 @@ export default function EventSiteScreen({ localEvent }) {
     (site?.address) && sec.location && { label: "מיקום", key: "location" },
     site?.shuttles?.length && sec.shuttles && { label: "הסעות", key: "shuttles" },
     sec.blessings && { label: "ברכות", key: "blessings" },
-    site?.faq?.length && sec.faq && { label: "שאלות", key: "faq" },
+    faqAnswered.length > 0 && sec.faq && { label: "שאלות", key: "faq" },
   ].filter(Boolean);
   // RSVP is always reachable — even before the site is published — so a guest
   // who arrives early can still confirm attendance.
@@ -387,11 +392,11 @@ export default function EventSiteScreen({ localEvent }) {
       )}
 
       {/* ── FAQ ── */}
-      {visible && sec.faq && site?.faq?.length > 0 && (
+      {visible && sec.faq && faqAnswered.length > 0 && (
         <section ref={faqRef} className={styles.section}>
           <h2 className={styles.secTitle}>שאלות נפוצות</h2>
           <div className={styles.faqList}>
-            {site.faq.filter(f => f.q).map(f => <FaqItem key={f.id} q={f.q} a={f.a} />)}
+            {faqAnswered.map(f => <FaqItem key={f.id} q={f.q} a={f.a} />)}
           </div>
         </section>
       )}

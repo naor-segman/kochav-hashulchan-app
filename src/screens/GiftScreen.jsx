@@ -308,7 +308,9 @@ export default function GiftScreen() {
           <div className={styles.payCard}>
             <div className={styles.payCardTitle}>מה קורה עכשיו?</div>
             <p className={styles.payComing}>
-              הברכה והסכום נרשמים ומופיעים בקיר הברכות של האירוע.
+              {/* "הברכה והסכום … מופיעים בקיר" was false: the wall shows the
+                  name and the blessing, never an amount (28.9 audit). */}
+              הברכה נרשמת ומופיעה בקיר הברכות של האירוע. הסכום נשמר רק אצל בעלי האירוע.
               את המתנה עצמה מעניקים ביום האירוע.
             </p>
           </div>

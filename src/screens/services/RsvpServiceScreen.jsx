@@ -230,7 +230,10 @@ export default function RsvpServiceScreen({ user = null }) {
           <article className={[styles.step, styles.stepFlip].join(" ")}>
             <div className={styles.stepText}>
               <span className={styles.stepNum}>הודעות</span>
-              <h3 className={styles.h3}>ומעקב מי כבר קיבל מה</h3>
+              {/* "מי כבר קיבל" claimed delivery. The mark is set when the host
+                  opens WhatsApp — the app knows what was sent, not what
+                  arrived (same correction as pricing.js, 28.9 audit). */}
+              <h3 className={styles.h3}>וסימון למי כבר שלחתם</h3>
               <p className={styles.stepBody}>
                 כל אורח מסומן אחרי שנשלח אליו, כך שאתם לא מתחילים לספור מהתחלה
                 בכל פעם. ההודעה יוצאת מהוואטסאפ שלכם — ולכן היא לא עולה כלום.

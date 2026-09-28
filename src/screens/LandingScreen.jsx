@@ -95,7 +95,9 @@ const SHOWCASE = [
        half and it is the one that matters — arrivedSeats is per person. */
     points:  ["מונה הגעה לפי מקומות, לא לפי שורות",
               "קישור נפרד לדיילת — בלי גישה לשאר האירוע",
-              "כרטיסי שם ומפת אולם להדפסה"],
+              // "מפת אולם להדפסה" was false: the floor plan has no print
+              // view. What prints is name cards and the seating list (28.9).
+              "כרטיסי שם וסידור הושבה להדפסה"],
     img: "/shots/checkin.jpg",
     /* Re-shot 11.9 — the previous file showed an empty search box and
        "0 מתוך 96". This alt is read off the new pixels. */
