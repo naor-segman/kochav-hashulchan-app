@@ -344,11 +344,18 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const nSeated    = ev.guests.filter(g => ev.seating[g.id]).length;
   const nConfirmed = ev.guests.filter(g => g.rsvp === "confirmed").length;
   const nDeclined  = ev.guests.filter(g => g.rsvp === "declined").length;
+  // MEALS, not rows: a row is a party, and a vegetarian family of four is four
+  // vegetarian meals. And a guest who declined eats nothing. The chips counted
+  // rows including declined ones, which is not a number a kitchen can use
+  // (107, 28.9).
+  const coming     = ev.guests.filter(g => g.rsvp !== "declined");
+  const comingSeats = coming.reduce((s, g) => s + Math.max(1, g.count || 1), 0);
   const mealCounts = MEAL_OPTIONS.reduce((acc, o) => {
-    const n = ev.guests.filter(g => (g.meal || MEAL_DEFAULT) === o.value).length;
+    const n = coming.filter(g => (g.meal || MEAL_DEFAULT) === o.value)
+                    .reduce((s, g) => s + Math.max(1, g.count || 1), 0);
     if (n > 0) acc.push({ ...o, n });
     return acc;
-  }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < ev.guests.length);
+  }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < comingSeats);
   const tableOf    = id => { const tid = ev.seating[id]; return tid ? ev.tables.find(t => t.id === tid) : null; };
   const isFiltered = filter.side !== "all" || filter.group !== "all" || filter.rsvp !== "all" || filter.search;
 
@@ -385,7 +392,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           </span>
           {mealCounts.map(m => (
             <span key={m.value} className={base.statChip}>
-              <span className={base.statChipN}>{m.n}</span> {m.label}
+              <span className={base.statChipN}>{m.n}</span> {m.value === "none" ? "בלי מנה" : m.n === 1 ? `מנה ${m.label}` : `מנות ${m.label}`}
             </span>
           ))}
         </div>
