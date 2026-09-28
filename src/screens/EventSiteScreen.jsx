@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
-import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
 import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
@@ -241,7 +241,7 @@ export default function EventSiteScreen({ localEvent }) {
 
       {/* ── Countdown ── */}
       {visible && site?.countdown !== false && ev.date && (
-        <Countdown date={ev.date} styles={styles} />
+        <Countdown date={ev.date} time={eventStartTime(site?.schedule)} styles={styles} />
       )}
 
       {/* ── Story ── */}
@@ -311,7 +311,7 @@ export default function EventSiteScreen({ localEvent }) {
                     name:      ev.name,
                     date:      ev.date,
                     venue:     site.address || ev.venue,
-                    startTime: (site.schedule || [])[0]?.time,
+                    startTime: eventStartTime(site.schedule),
                     url:       window.location.href,
                   });
                   if (ics) downloadIcs(ics, icsFileName(ev.name));
@@ -417,8 +417,10 @@ export default function EventSiteScreen({ localEvent }) {
   );
 }
 
-function Countdown({ date, styles }) {
-  const target = useMemo(() => new Date(date + "T18:00:00").getTime(), [date]);
+function Countdown({ date, time, styles }) {
+  // The event's own start time, the same one the calendar button writes. It
+  // was "T18:00" for every event, so a 21:00 wedding hit zero at 18:00.
+  const target = useMemo(() => new Date(`${date}T${time}:00`).getTime(), [date, time]);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -430,7 +432,7 @@ function Countdown({ date, styles }) {
   // This is a live d/h/m/s CLOCK, and its job is "how much time is left". The
   // fixed-millisecond division is exactly right for that: across Israel's
   // October fall-back a wedding seven calendar days out reads "6 ימים 23 שעות",
-  // and that is TRUE — there really are 6 days and 23 hours until 18:00 on the
+  // and that is TRUE — there really are 6 days and 23 hours until the start on the
   // day. Making the day cell calendar-based would print "7 ימים 23 שעות",
   // which is an hour of a day that does not exist.
   //

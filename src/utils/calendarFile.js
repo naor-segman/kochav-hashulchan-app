@@ -35,6 +35,30 @@ function toTime(hhmm, fallback = "190000") {
   return `${h}${m[2]}00`;
 }
 
+/** When nothing in the schedule says otherwise. One value for every consumer. */
+export const DEFAULT_START = "19:00";
+
+/**
+ * The event's start time, as the guest pages use it: the first schedule entry
+ * with a valid "H:MM", else DEFAULT_START. There is no start-time field on the
+ * event; the schedule is where the host writes it.
+ *
+ * One helper because there were two answers: the calendar button read the
+ * first schedule item (falling back to 19:00) while the site countdown was
+ * hard-coded to 18:00 — so an event starting at 21:00 hit zero three hours
+ * early, beside a calendar entry that said 21:00 (WORKPLAN ס, 28.9 audit).
+ *
+ * @param {Array<{time?: string}>} schedule
+ * @returns {string} "HH:MM"
+ */
+export function eventStartTime(schedule) {
+  for (const item of Array.isArray(schedule) ? schedule : []) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec((item?.time || "").trim());
+    if (m && Number(m[1]) <= 23 && Number(m[2]) <= 59) return `${m[1].padStart(2, "0")}:${m[2]}`;
+  }
+  return DEFAULT_START;
+}
+
 /** YYYYMMDD + n days, so an end time past midnight lands on the next day. */
 function addDays(stamp, n) {
   const d = new Date(

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildEventIcs, icsFileName } from "./calendarFile.js";
+import { buildEventIcs, icsFileName, eventStartTime, DEFAULT_START } from "./calendarFile.js";
 
 const base = { name: "חתונת דנה ויוסי", date: "2026-09-15", venue: "אולמי הגן" };
 const get = (ics, key) => ics.split("\r\n").find(l => l.startsWith(key + ":"))?.slice(key.length + 1);
@@ -140,5 +140,17 @@ describe("an end time equal to the start", () => {
     const start = /DTSTART[^:]*:(\d{8})/.exec(ics)[1];
     const end   = /DTEND[^:]*:(\d{8})/.exec(ics)[1];
     expect(Number(end)).toBe(Number(start) + 1);
+  });
+});
+
+describe("eventStartTime — one start time for the countdown and the calendar", () => {
+  it("takes the first valid schedule time", () => {
+    expect(eventStartTime([{ time: "21:00" }, { time: "22:30" }])).toBe("21:00");
+    expect(eventStartTime([{ time: "" }, { time: "9:15" }])).toBe("09:15");
+  });
+  it("skips junk and falls back to DEFAULT_START", () => {
+    expect(eventStartTime([{ time: "25:00" }, { time: "ערב" }])).toBe(DEFAULT_START);
+    expect(eventStartTime(null)).toBe(DEFAULT_START);
+    expect(eventStartTime([])).toBe(DEFAULT_START);
   });
 });

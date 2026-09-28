@@ -4,7 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
-import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
 import { COMPANY } from "../data/company.js";
@@ -628,7 +628,7 @@ export default function RSVPScreen() {
                     name:  event.name,
                     date:  event.date,
                     venue: event.venue,
-                    startTime: (site?.schedule || [])[0]?.time,
+                    startTime: eventStartTime(site?.schedule),
                     url:   event.inviteToken ? window.location.origin + "/invite/" + event.inviteToken : null,
                   });
                   if (ics) downloadIcs(ics, icsFileName(event.name));
