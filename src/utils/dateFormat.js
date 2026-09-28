@@ -34,3 +34,27 @@ export const daysUntil = (iso, today = new Date()) => {
   const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
   return Math.round((target - now) / 86400000);
 };
+
+/**
+ * A server TIMESTAMP ("2026-09-27T22:30:00Z") as the host's local date and time.
+ *
+ * fmtDate is for calendar dates ("YYYY-MM-DD") and must not be handed a
+ * timestamp: it splits on "-", the day part becomes "27T22:30:00.000Z", Number()
+ * of that is NaN, and it returns the raw ISO string — which is what the host
+ * album screen printed under every photo in its first draft. And a timestamp cut
+ * to its first ten characters is the UTC date, a day early for anything uploaded
+ * between midnight and 03:00 in Israel — bug class 2.
+ *
+ * toLocale* resolves in the device's own time zone, which is the zone the host
+ * lives in. The guards are the ones RSVPResponsesScreen learned the hard way:
+ * `new Date(null)` is the epoch and an invalid date does not throw, it renders
+ * "Invalid Date".
+ */
+export const fmtDateTime = iso => {
+  if (iso == null || iso === "") return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("he-IL", {
+    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+  });
+};

@@ -73,6 +73,9 @@ const AnnouncementsEditorScreen = lazy(() => import("./screens/AnnouncementsEdit
 const VendorsScreen             = lazy(() => import("./screens/VendorsScreen.jsx"));
 const MessagesScreen            = lazy(() => import("./screens/MessagesScreen.jsx"));
 const NameTagsScreen            = lazy(() => import("./screens/NameTagsScreen.jsx"));
+// NOT AlbumScreen — that is the GUEST page at /album/:token, imported below.
+// This is the host's side of the same album (checklist 57).
+const AlbumManagerScreen        = lazy(() => import("./screens/AlbumManagerScreen.jsx"));
 const AlbumScreen               = lazy(() => import("./screens/AlbumScreen.jsx"));
 const AnnouncementScreen        = lazy(() => import("./screens/AnnouncementScreen.jsx"));
 const RSVPResponsesScreen = lazy(() => import("./screens/RSVPResponsesScreen.jsx"));
@@ -170,6 +173,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
         <Route path="vendors"     element={<Suspense fallback={<Loading />}><VendorsScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
         <Route path="messages"    element={<Suspense fallback={<Loading />}><MessagesScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />
         <Route path="nametags"    element={<Suspense fallback={<Loading />}><NameTagsScreen activeEvent={activeEvent} /></Suspense>} />
+        <Route path="album"       element={<Suspense fallback={<Loading />}><AlbumManagerScreen activeEvent={activeEvent} showToast={showToast} go={go} /></Suspense>} />
         {/* The event's front page. This used to redirect to `setup`, which is
             why opening an event dropped a first-time host straight into a form
             with no idea what the other thirteen screens were for. */}

@@ -466,6 +466,92 @@ export async function fetchAlbumPhotos(albumToken) {
   }));
 }
 
+// ── The HOST's view of the album — checklist 57 ──────────────────────────────
+//
+// Until 57 there was none. The owner SELECT and DELETE policies on album_photos
+// and on the storage objects existed and nothing in the client used them, so a
+// host who wanted to see or remove a photo opened the same public link a guest
+// does, with the same powers: none.
+
+/**
+ * Every photo in this event's album, INCLUDING hidden ones, newest first.
+ *
+ * A table read under owner RLS, not the public RPC: album_list_by_token now
+ * leaves hidden photos out (that is what hiding is for), and the host has to be
+ * able to see a hidden photo to un-hide it. Keyed on the CLOUD id — the FK and
+ * the storage folder are both events.id — so an event that has never synced has
+ * no album to read, and the screen says so rather than showing an empty grid.
+ *
+ * @param {string} eventCloudId  ev.cloudId, never ev.id
+ */
+export async function fetchHostAlbumPhotos(eventCloudId) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
+  const { data, error } = await supabase
+    .from("album_photos")
+    .select("id, storage_path, uploader, created_at, hidden")
+    .eq("event_id", eventCloudId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(r => ({
+    id:          r.id,
+    storagePath: r.storage_path,
+    uploader:    r.uploader || "",
+    createdAt:   r.created_at,
+    hidden:      r.hidden === true,
+    url: supabase.storage.from("event-album").getPublicUrl(r.storage_path).data.publicUrl,
+  }));
+}
+
+/**
+ * Take a photo out of the public album, or put it back.
+ *
+ * Only the `hidden` column is writable by the owner — the migration grants
+ * UPDATE on that one column, so this cannot be widened into rewriting a row's
+ * storage path by accident. Hiding does NOT revoke the file's address: the
+ * bucket is public, and anyone who saved the direct URL can still open it. Only
+ * deleteAlbumPhoto takes a photo off the internet.
+ */
+export async function setAlbumPhotoHidden(photoId, hidden) {
+  if (!isSupabaseConfigured || !supabase || !photoId) return false;
+  const { error } = await supabase
+    .from("album_photos")
+    .update({ hidden: !!hidden })
+    .eq("id", photoId);
+  if (error) throw error;
+  return true;
+}
+
+/**
+ * Delete a photo — the FILE first, then its row.
+ *
+ * The order is the whole design. The two deletes cannot be one transaction
+ * (storage and the table are different APIs), so one of them can fail after the
+ * other succeeded, and the two failure modes are not equal:
+ *
+ *   row gone, file left  →  the photo is still PUBLICLY REACHABLE at its URL,
+ *                           off every list, where the host can no longer see
+ *                           it to try again. The host asked for it to be gone
+ *                           and it is not, and nothing says so.
+ *   file gone, row left  →  a broken tile in the host's own grid, with the
+ *                           delete button still under it. Pressing it again
+ *                           finishes the job: removing a path that no longer
+ *                           exists is not an error.
+ *
+ * So the file goes first, and if that fails nothing has changed at all.
+ * `remove()` resolves with `{ error }` rather than rejecting, so its result is
+ * checked explicitly — a bare await would report success on a failed delete.
+ *
+ * @param {{id: string, storagePath: string}} photo
+ */
+export async function deleteAlbumPhoto(photo) {
+  if (!isSupabaseConfigured || !supabase || !photo?.id || !photo?.storagePath) return false;
+  const { error: rmErr } = await supabase.storage.from("event-album").remove([photo.storagePath]);
+  if (rmErr) throw rmErr;
+  const { error: rowErr } = await supabase.from("album_photos").delete().eq("id", photo.id);
+  if (rowErr) throw rowErr;
+  return true;
+}
+
 /**
  * Upload one photo and index it.
  *

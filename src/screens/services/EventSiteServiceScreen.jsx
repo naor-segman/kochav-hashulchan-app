@@ -17,9 +17,12 @@ import styles from "./ServicePage.module.css";
  *   • CUSTOM DOMAIN is dead. The editor has a "דומיין משלכם" field and even
  *     prints CNAME instructions, but `site.customDomain` is read by nothing in
  *     src/ or netlify/. Not mentioned here, at all.
- *   • The ALBUM has no host gallery and no moderation — guests upload and
- *     everyone sees everything. So this page says "כולם רואים הכל" rather than
- *     anything about controlling what is published.
+ *   • The ALBUM had no host gallery and no moderation until checklist 57
+ *     (28.9). It now has both — AFTER the fact: the host can hide or delete a
+ *     photo, but there is still no approval before a photo appears. So this page
+ *     says the host can take a photo down, and still does NOT say anything
+ *     about controlling what is published (WORKPLAN row ע forbids "אתם שולטים
+ *     במה שמתפרסם", and that remains true).
  *   • The album is NOT linked from the site or the invitation; it travels as
  *     its own link. Said plainly rather than implied away.
  *   • PERSONAL QR CARDS reach five guests in practice. The card is described as
@@ -85,6 +88,9 @@ const ALBUM = [
   "האורחים מעלים מהטלפון, בלי הרשמה ובלי אפליקציה.",
   "אפשר לצרף שם, כדי שתדעו מי צילם.",
   "התמונות מוקטנות בטלפון לפני ההעלאה, כך שזה עובד גם על הרשת של האולם.",
+  // True since checklist 57 — AlbumManagerScreen. After the fact only; see the
+  // kicker below for what is still not possible.
+  "אתם רואים את כל התמונות במקום אחד, ויכולים להסתיר או למחוק כל תמונה.",
 ];
 
 export default function EventSiteServiceScreen({ user = null }) {
@@ -263,11 +269,15 @@ export default function EventSiteServiceScreen({ user = null }) {
               </li>
             ))}
           </ul>
-          {/* Said out loud rather than left for a host to discover: there is no
-              host gallery, no approval queue and no delete. */}
+          {/* Said out loud rather than left for a host to discover. Since 57
+              the host can hide or delete a photo — but only AFTER it appears.
+              There is still no approval queue, and this line must not be
+              softened into "you control what is published": that would be
+              false, and WORKPLAN row ע records that it must not be written. */}
           <p className={styles.frictionKicker}>
             שקוף מראש: האלבום פתוח — מי שיש לו את הקישור מעלה ורואה את הכל, ואין
-            מסך אישור לפני שתמונה מופיעה. שלחו אותו למי שהייתם מזמינים לחתונה.
+            מסך אישור לפני שתמונה מופיעה. אפשר להוריד תמונה אחרי שעלתה, לא לעצור
+            אותה לפני. שלחו אותו למי שהייתם מזמינים לחתונה.
           </p>
         </div>
       </section>

@@ -88,6 +88,11 @@ export const AREAS = [
       // hand, a queue at the door), so opening it deliberately leaves the nav.
       { id: "entrance", label: "עמדת הכניסה", short: "הכניסה", mark: "checkin", standalone: true, hint: "מי הגיע, ולאיזה שולחן לשלוח" },
       { id: "nametags", label: "כרטיסי שם",        mark: "nameTags",  hint: "להדפסה מראש — שם ומספר שולחן" },
+      // The host's side of the shared album (checklist 57). In the day area
+      // because that is when it fills: guests upload during the party and the
+      // morning after. Until this there was no host screen at all — the only
+      // way to see the photos was the same public link a guest opens.
+      { id: "album",    label: "אלבום האורחים", short: "אלבום", mark: "album", hint: "התמונות שהאורחים העלו — להסתיר או למחוק" },
     ],
   },
 ];

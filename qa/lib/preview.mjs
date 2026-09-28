@@ -103,3 +103,47 @@ export async function startPreview(port, cwd = ROOT) {
   stop();
   throw new Error(`preview server never came up on ${port}`);
 }
+
+/**
+ * Start the vite DEV server — for harnesses that need build-time env baked in
+ * differently from `dist` (a stubbed VITE_SUPABASE_URL, so the real signed-in
+ * code path runs against intercepted REST calls). `preview` serves whatever
+ * `dist` was built with; only the dev server reads env at start-up.
+ *
+ * Same two rules as startPreview, for the same two reasons: refuse a port that
+ * already answers, and spawn vite's own entry so the pid we hold IS the server.
+ * The harnesses that did this by hand (`spawn("npx", ["vite", …])`) killed only
+ * the npx wrapper and left the dev server running on the port.
+ *
+ * @param {number} port
+ * @param {Record<string,string>} env  extra environment for the server
+ */
+export async function startDev(port, env = {}, cwd = ROOT) {
+  const base = `http://127.0.0.1:${port}`;
+  if (await portTaken(base)) {
+    throw new Error(
+      `port ${port} is already serving something — refusing to measure it.\n` +
+      `    pkill -f "vite"        (or: ss -ltnp | grep ${port})`
+    );
+  }
+  const server = spawn(process.execPath,
+    [join(ROOT, "node_modules/vite/bin/vite.js"), "--port", String(port),
+     "--strictPort", "--host", "127.0.0.1"],
+    { cwd, stdio: "ignore", env: { ...process.env, ...env } });
+
+  let exited = false;
+  server.on("exit", () => { exited = true; });
+  const stop = () => {
+    if (!exited) server.kill("SIGTERM");
+    setTimeout(() => { if (!exited) server.kill("SIGKILL"); }, 2000).unref();
+  };
+
+  for (let i = 0; i < 80; i++) {
+    if (exited) throw new Error(`vite dev exited before serving ${base} (port ${port} busy?)`);
+    try { if ((await fetch(base)).ok) return { base, stop }; }
+    catch { /* not up yet */ }
+    await new Promise(r => setTimeout(r, 500));
+  }
+  stop();
+  throw new Error(`dev server never came up on ${port}`);
+}
