@@ -136,3 +136,22 @@ describe("useAuth — teardown", () => {
     expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("useAuth — signing out clears the service worker's Supabase cache (102)", () => {
+  it("deletes the cache vite.config.js stores Supabase reads in", async () => {
+    const del = vi.fn(async () => true);
+    globalThis.caches = { delete: del };
+    try {
+      sessionResult = { user: { id: "u1" } };
+      show();
+      await waitFor(() => expect(text()).toBe("u1"));
+      await act(async () => { authCallback("SIGNED_OUT", null); });
+      expect(del).toHaveBeenCalledWith("supabase-api");
+    } finally { delete globalThis.caches; }
+  });
+
+  it("and it is the same name the service worker uses", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("vite.config.js", "utf8")).toMatch(/cacheName: 'supabase-api'/);
+  });
+});

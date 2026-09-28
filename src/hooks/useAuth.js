@@ -5,6 +5,9 @@ import {
 import { supabase } from "../lib/supabase.js";
 import { pruneCloudBackedEvents, userStorageKey } from "../utils/storage.js";
 
+/** The service-worker cache that holds Supabase reads — see vite.config.js. */
+const SUPABASE_CACHE = "supabase-api";
+
 // Supabase v2 auth — null-safe when VITE_SUPABASE_* env vars are missing.
 //
 // This is a CONTEXT, not a plain hook. It used to be a plain hook and there are
@@ -89,6 +92,13 @@ export function AuthProvider({ children }) {
         try {
           pruneCloudBackedEvents(userStorageKey(prevUserIdRef.current));
         } catch { /* storage blocked — the session still ends */ }
+        // The service worker keeps the account's Supabase reads for up to five
+        // minutes (vite.config.js, cache "supabase-api"). On a shared or
+        // borrowed device the next person could be served them — guest lists
+        // with phone numbers — while the network is slow (102, 28.9).
+        try {
+          globalThis.caches?.delete(SUPABASE_CACHE)?.catch?.(() => {});
+        } catch { /* no Cache API here — nothing was cached */ }
       }
 
       prevUserIdRef.current = session?.user?.id ?? null;
