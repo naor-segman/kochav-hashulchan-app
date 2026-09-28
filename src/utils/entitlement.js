@@ -29,6 +29,26 @@ import { PLAN_KEYS } from "../admin/lib/planConfig.js";
 /** Best-first. A host who bought the on-site package has the ₪690 one too. */
 const RANK = { free: 0, pro: 1, enterprise: 2 };
 
+/**
+ * Does this row grant anything on EVERY event of the account?
+ *
+ * Only an ADMIN COMP: event_id null AND is_manually_managed true. It used to be
+ * event_id null alone, and that was a hole I built on 28.9 and the security
+ * audit found the same day. subscriptions.event_id is ON DELETE SET NULL (so
+ * deleting an event keeps the record that money moved), and the webhook wrote
+ * null when it could not match the event — so "null" meant two things, and the
+ * second one was exploitable: pay ₪690 once, delete that event, and the row
+ * turned into an account-wide entitlement. Every event on the account, including
+ * ones created years later, unlocked for the price of one.
+ *
+ * An orphaned purchase now grants NOTHING. It stays in the table as the record of
+ * a payment, for support and refunds, and the host who deleted a paid event by
+ * mistake is a support case — not an automatic unlimited plan.
+ */
+function isAccountWide(p) {
+  return p.event_id == null && p.is_manually_managed === true;
+}
+
 /** Rows this app is allowed to treat as paid-for-right-now. */
 function isLive(p, now) {
   if (!p) return false;
@@ -52,19 +72,16 @@ export function planForEvent(purchases, ev) {
   let best = "free";
   for (const p of purchases ?? []) {
     if (!isLive(p, now)) continue;
-    /* event_id null = account-wide. That is an admin comp, or a purchase whose
-       event was deleted (the FK is ON DELETE SET NULL, so the host keeps what
-       they paid for). It applies to every event, including ones created later.
+    /* Account-wide only for an admin comp — see isAccountWide. An orphaned row
+       (its event deleted, or never matched) applies to nothing.
 
        The `!!ev?.cloudId` clause is belt and braces and I could not make it
        fail: with any row the webhook can actually write, `p.event_id` is either
-       null — caught by the test above it — or a uuid string, and a string never
-       equals null or undefined, so an unsynced event (cloudId null) already
-       matches nothing. A mutation removing the clause passes the suite, and it
-       is kept anyway because it is the one line stating the invariant that an
-       event with no cloud identity is entitled to nothing. Reported as
-       uncovered rather than dressed up with a test that cannot fail. */
-    const applies = p.event_id == null || (!!ev?.cloudId && p.event_id === ev.cloudId);
+       null or a uuid string, and a string never equals null or undefined, so an
+       unsynced event (cloudId null) already matches nothing. A mutation removing
+       the clause passes the suite; kept because it states the invariant that an
+       event with no cloud identity is entitled to nothing. */
+    const applies = isAccountWide(p) || (!!ev?.cloudId && p.event_id === ev.cloudId);
     if (!applies) continue;
     if (!PLAN_KEYS.includes(p.plan)) continue;   // an unknown plan grants nothing
     if (RANK[p.plan] > RANK[best]) best = p.plan;
@@ -85,6 +102,9 @@ export function bestPlanOnAccount(purchases) {
   let best = "free";
   for (const p of purchases ?? []) {
     if (!isLive(p, now)) continue;
+    // An orphaned purchase is a record, not an entitlement — it must not make
+    // the account screen claim a paid package that unlocks nothing.
+    if (p.event_id == null && !isAccountWide(p)) continue;
     if (!PLAN_KEYS.includes(p.plan)) continue;
     if (RANK[p.plan] > RANK[best]) best = p.plan;
   }

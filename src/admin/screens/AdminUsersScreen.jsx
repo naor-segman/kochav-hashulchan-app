@@ -35,7 +35,7 @@ async function loadUsersData() {
       // subscriptions ordered: without it PostgREST returns the embed in an
       // arbitrary order, so a user with two active rows could show a stale plan
       // here while the customer app showed the current one.
-      .select("id, email, full_name, role, created_at, subscriptions(plan, status, started_at, expires_at, event_id)")
+      .select("id, email, full_name, role, created_at, subscriptions(plan, status, started_at, expires_at, event_id, is_manually_managed)")
       .order("created_at", { ascending: false })
       .order("started_at", { referencedTable: "subscriptions", ascending: false })
       .limit(USERS_PAGE),

@@ -60,12 +60,32 @@ describe("planForEvent — a purchase unlocks ONE event", () => {
     expect(planForEvent(purchases, null)).toBe("free");
   });
 
-  it("an account-wide purchase applies to every event, including later ones", () => {
-    // event_id null is an admin comp, or a purchase whose event was deleted —
-    // the FK is ON DELETE SET NULL so the host keeps what they paid for.
-    const purchases = [{ plan: "pro", event_id: null, status: "active", expires_at: null }];
+  it("an ADMIN COMP applies to every event, including later ones", () => {
+    // event_id null AND is_manually_managed — a person decided this.
+    const purchases = [{ plan: "pro", event_id: null, status: "active", expires_at: null, is_manually_managed: true }];
     expect(planForEvent(purchases, ev("a", "cloud-a"))).toBe("pro");
     expect(planForEvent(purchases, ev("b", "cloud-b"))).toBe("pro");
+  });
+
+  it("an ORPHANED purchase unlocks nothing — pay once, delete the event, get nothing free", () => {
+    /* THE HOLE, found by the security audit the day it was written. This test
+       used to be "an account-wide purchase applies to every event", with a bare
+       event_id null — and subscriptions.event_id is ON DELETE SET NULL, and the
+       webhook wrote null whenever it could not match the event. So: pay ₪690 for
+       one wedding, delete it, and every event on the account — including ones
+       made years later — was unlocked. The test pinned the exploit as a feature.
+       A null event without is_manually_managed is now a record of a payment,
+       for support and refunds, and grants nothing. */
+    const orphan = [{ plan: "pro", event_id: null, status: "active", expires_at: null }];
+    expect(planForEvent(orphan, ev("a", "cloud-a"))).toBe("free");
+    expect(planForEvent(orphan, ev("new", "cloud-new"))).toBe("free");
+    // is_manually_managed false or missing is the same answer.
+    const orphan2 = [{ ...orphan[0], is_manually_managed: false }];
+    expect(planForEvent(orphan2, ev("a", "cloud-a"))).toBe("free");
+    // And the account screen does not claim a package it cannot deliver.
+    expect(bestPlanOnAccount(orphan)).toBe("free");
+    // Nor does it free up the unpaid-event allowance.
+    expect(unpaidEventCount(orphan, [ev("a", "cloud-a")])).toBe(1);
   });
 
   it("takes the better package when an event has two purchases", () => {
@@ -135,7 +155,7 @@ describe("unpaidEventCount — what the event allowance counts now", () => {
   });
 
   it("is zero when an account-wide comp covers everything", () => {
-    const comp = [{ plan: "pro", event_id: null, status: "active", expires_at: null }];
+    const comp = [{ plan: "pro", event_id: null, status: "active", expires_at: null, is_manually_managed: true }];
     expect(unpaidEventCount(comp, events)).toBe(0);
   });
 
@@ -228,7 +248,9 @@ describe("every gate asks about an EVENT, not about the account", () => {
     expect(src).not.toMatch(/status === "active"/);
     // And it has to ask for the columns the rule reads, or it silently resolves
     // every host to free.
-    expect(src).toMatch(/subscriptions\(plan, status, started_at, expires_at, event_id\)/);
+    // is_manually_managed since 28.9: without it every admin comp reads as an
+    // orphaned purchase and the panel shows the host as free.
+    expect(src).toMatch(/subscriptions\(plan, status, started_at, expires_at, event_id, is_manually_managed\)/);
   });
 
   it("finds the call sites at all, so an empty result cannot pass", () => {

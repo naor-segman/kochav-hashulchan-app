@@ -47,7 +47,7 @@ async function fetchPurchases(userId) {
       // event_id is the column this whole change is about. `expires_at` comes
       // with it because a refund revokes by setting it, and a row can still say
       // status "active" at that moment.
-      .select("plan, event_id, status, expires_at, started_at")
+      .select("plan, event_id, status, expires_at, started_at, is_manually_managed")
       .eq("user_id", userId)
       .in("status", ["active", "trialing"])
       // No `.limit(1)`. A host with three events can hold three purchases, and

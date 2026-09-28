@@ -164,6 +164,9 @@ describe("usePlan — the plan featureGates is handed", () => {
     const sel = chain.find(c => c[0] === "select");
     expect(sel[1]).toContain("event_id");
     expect(sel[1]).toContain("expires_at");
+    // Without it every admin comp reads as an orphaned purchase and grants
+    // nothing — the account-wide rule depends on this flag since 28.9.
+    expect(sel[1]).toContain("is_manually_managed");
   });
 
   it("does not take just the newest purchase", async () => {

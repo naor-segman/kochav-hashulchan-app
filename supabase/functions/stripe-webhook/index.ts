@@ -166,30 +166,41 @@ Deno.serve(async (req: Request) => {
         }
         const plan = planFromPrice(priceId, session.metadata?.plan);
 
-        /* WHICH EVENT was bought. A purchase unlocks one event, so a row written
-           without it is an account-wide entitlement — the bug the per-event
-           model exists to remove, and one that shows up as revenue that never
-           arrives rather than as an error.
-           Re-verified here against the events table even though
-           create-checkout-session already did: this handler trusts nothing from
-           the metadata blob, and a session could in principle have been created
-           by an older deploy of that function. A mismatch writes null (the row
-           still records the payment and the host keeps access account-wide)
-           rather than dropping the purchase on the floor. */
+        /* WHICH EVENT was bought. Re-verified here against the events table
+           even though create-checkout-session already did: this handler trusts
+           nothing from the metadata blob.
+
+           A MISMATCH IS RECORDED, NOT GRANTED. This comment used to say a
+           mismatch "records the purchase account-wide" — and that was the hole
+           the 28.9 security audit found: event_id null meant account-wide, so
+           buying for event A and deleting A before paying (or after) turned one
+           ₪690 into every event on the account. event_id null now grants nothing
+           unless an admin set is_manually_managed (src/utils/entitlement.js). So
+           the row is still written — money moved and support needs the record —
+           and it unlocks nothing until a person decides.
+
+           A QUERY ERROR IS NOT A MISMATCH. The first version read only `data`
+           and ignored `error`, so a transient database failure looked exactly
+           like "not your event". It now fails the delivery with a 500 and Stripe
+           retries; the upsert below is idempotent, so a retry is safe. */
         let eventId: string | null = session.metadata?.event_id ?? null;
         if (eventId) {
-          const { data: owned } = await supabase
+          const { data: owned, error: ownErr } = await supabase
             .from("events")
             .select("id")
             .eq("id", eventId)
             .eq("user_id", userId)
             .maybeSingle();
+          if (ownErr) {
+            console.error("checkout.session.completed — ownership check failed, asking Stripe to retry:", ownErr);
+            return new Response("ownership check failed", { status: 500 });
+          }
           if (!owned) {
-            console.error(`checkout.session.completed: event ${eventId} does not belong to ${userId} — recording the purchase account-wide`);
+            console.error(`checkout.session.completed: event ${eventId} does not belong to ${userId} (deleted, or never theirs) — recording the payment with NO entitlement; needs a person`);
             eventId = null;
           }
         } else {
-          console.warn(`checkout.session.completed: no event_id in metadata for session ${session.id} — recording the purchase account-wide`);
+          console.error(`checkout.session.completed: no event_id in metadata for session ${session.id} — recording the payment with NO entitlement; needs a person`);
         }
         if (plan === "free") {
           // Neither the price nor the metadata named a plan we recognise. Writing
