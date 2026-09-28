@@ -15,7 +15,7 @@ const { default: RSVPScreen } = await import("./RSVPScreen.jsx");
 
 describe("RSVP page, as a guest sees it", () => {
   it("does not print 'אחר' and names the event in the tab", async () => {
-    document.title = "רוויה — סידור הושבה";
+    document.title = "the default product title";
     render(<MemoryRouter initialEntries={["/rsvp/tok12345"]}><Routes>
       <Route path="/rsvp/:token" element={<RSVPScreen />} />
     </Routes></MemoryRouter>);
