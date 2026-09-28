@@ -38,6 +38,10 @@ const FALSE = [
   [/מפת אולם להדפסה/, "a printable floor plan"],
   // Event-site photos are purged 30 days after the event.
   [/ההושבה והתמונות/, "photos stay with you after the event"],
+  // There are three xlsx exports, not "everything".
+  [/הכל לאקסל/, "everything exports to Excel"],
+  // There is no PDF export anywhere in the product (checklist 36).
+  [/\(PDF/, "a PDF export"],
 ];
 
 describe("claims measured false stay out of the shipped source", () => {

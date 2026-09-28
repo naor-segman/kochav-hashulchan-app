@@ -185,7 +185,7 @@ export default function RsvpServiceScreen({ user = null }) {
               <h3 className={styles.h3}>כל אורח עם הסטטוס שלו</h3>
               <p className={styles.stepBody}>
                 אישר, סירב, או עדיין שותק — ליד השם, בצבע, בלי לחפש. אפשר לסנן
-                לפי סטטוס, לפי צד ולפי קבוצה, ולהוריד את הכל לאקסל בכל רגע.
+                לפי סטטוס, לפי צד ולפי קבוצה, ולהוריד את הרשימה לאקסל בכל רגע.
               </p>
             </div>
             <figure className={styles.stepFigure}>

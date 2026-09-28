@@ -181,7 +181,8 @@ export function planGuestSlotsLeft(plan, currentCount) {
 }
 
 /**
- * Whether the user's plan includes advanced export formats (PDF, etc.).
+ * Whether the user's plan includes the advanced exports. There is no PDF
+ * export in the product; the upgrade note used to promise one (checklist 36).
  * Free plan gets the basic Excel export; advanced formats require Pro+.
  */
 export function canUseAdvancedExports(plan) {
@@ -201,7 +202,8 @@ export function canUseAdvancedExports(plan) {
     allowed:     !PLAN_GATES_ENFORCED || advancedExports,
     upgradeNote: advancedExports
       ? null
-      : `ייצוא מתקדם (PDF, ייצוא מפורט) — זמין בחבילת ${getPlanLabel("pro")} ומעלה`,
+      // "(PDF, …)" promised a format that does not exist (checklist 36).
+      : `ייצוא מתקדם — זמין בחבילת ${getPlanLabel("pro")} ומעלה`,
   };
 }
 
