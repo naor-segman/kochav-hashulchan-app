@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 import { ownedPaths } from "../_shared/purgePaths.js";
 
 // =============================================================================

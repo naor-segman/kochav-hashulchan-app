@@ -71,3 +71,22 @@ describe("the purge function actually uses the fence", () => {
     expect(fn).not.toMatch(/function storagePath/);
   });
 });
+
+describe("edge functions pin their remote imports (102, 28.9)", () => {
+  // `esm.sh/stripe@14` resolves to whatever the newest 14.x is on the day of
+  // the deploy — a payment path whose code can change without a commit.
+  // Pinned to exactly what the ranges resolved to on 28.9 (14.25.0, 2.117.2).
+  it("every esm.sh import names an exact version", async () => {
+    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const root = "supabase/functions";
+    const loose = [];
+    for (const dir of readdirSync(root)) {
+      const file = `${root}/${dir}/index.ts`;
+      try { statSync(file); } catch { continue; }
+      for (const m of readFileSync(file, "utf8").matchAll(/https:\/\/esm\.sh\/((?:@[^/]+\/)?[^@"']+)@([^"'/?]+)/g)) {
+        if (!/^\d+\.\d+\.\d+$/.test(m[2])) loose.push(`${dir}: ${m[1]}@${m[2]}`);
+      }
+    }
+    expect(loose).toEqual([]);
+  });
+});

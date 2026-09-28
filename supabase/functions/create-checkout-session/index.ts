@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
-import Stripe from "https://esm.sh/stripe@14";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@14.25.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 
 // =============================================================================
 // create-checkout-session — Supabase Edge Function
