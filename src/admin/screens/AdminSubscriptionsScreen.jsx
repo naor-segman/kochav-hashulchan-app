@@ -53,16 +53,14 @@ const PLAN_BADGE = {
   enterprise: "badgeFilled",
 };
 
+// The statuses a row can actually have — see STATUS_KEYS in planConfig.js.
+// Four unreachable Stripe subscription states were removed in checklist 94.
 const STATUS_BADGE = {
-  active:             "badgeFilled",
-  trialing:           "badgeOutline",
-  incomplete:         "badgeOutline",
-  paused:             "badgeOutline",
-  cancelled:          "badgeQuiet",
-  expired:            "badgeQuiet",
-  incomplete_expired: "badgeQuiet",
-  past_due:           "badgeAlarm",
-  unpaid:             "badgeAlarm",
+  active:    "badgeFilled",
+  trialing:  "badgeOutline",
+  cancelled: "badgeQuiet",
+  expired:   "badgeQuiet",
+  past_due:  "badgeAlarm",
 };
 
 function PlanBadge({ plan }) {
@@ -166,7 +164,7 @@ export default function AdminSubscriptionsScreen() {
         setNotConfigured(true);
         setSubs([]);
       } else {
-        setError(err.message || "טעינת המנויים נכשלה.");
+        setError(err.message || "טעינת הרכישות נכשלה.");
         setSubs([]);
       }
     }
@@ -197,7 +195,7 @@ export default function AdminSubscriptionsScreen() {
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminSubscriptions" tone="admin" size={20} className={styles.brandMark} />
-          <span className={styles.brandName}>מנויים ותשלומים</span>
+          <span className={styles.brandName}>רכישות ותשלומים</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>{COMPANY.name}</span>
         </div>
@@ -221,7 +219,7 @@ export default function AdminSubscriptionsScreen() {
         {!loading && notConfigured && (
           <div className={styles.notConfiguredBox}>
             <div className={styles.notConfiguredIcon}><Icon name="card" size={30} /></div>
-            <h2 className={styles.notConfiguredTitle}>טבלת מנויים לא נמצאה</h2>
+            <h2 className={styles.notConfiguredTitle}>טבלת הרכישות לא נמצאה</h2>
             <p className={styles.notConfiguredText}>
               הפעל את המיגרציה הבאה ב-Supabase SQL Editor:
             </p>
@@ -262,7 +260,7 @@ export default function AdminSubscriptionsScreen() {
                       {/* Read "1 פעילים" on every plan that had exactly one. */}
                       {countPhrase(
                         (subs || []).filter(s => s.plan === plan && s.status === "active" && !s.payment_past_due).length,
-                        { none: "אין מנויים פעילים", one: "מנוי פעיל אחד", many: "%n מנויים פעילים" }
+                        { none: "אין רכישות פעילות", one: "רכישה פעילה אחת", many: "%n רכישות פעילות" }
                       )}
                     </div>
                   </div>
@@ -308,16 +306,16 @@ export default function AdminSubscriptionsScreen() {
                 </select>
               </div>
               <span className={styles.resultCount}>
-                {filtered.length.toLocaleString()} מנויים
+                {filtered.length.toLocaleString()} רכישות
               </span>
             </div>
 
             {/* Empty state — no data at all */}
             {(subs || []).length === 0 && (
               <div className={styles.stateBox}>
-                <p className={styles.emptyTitle}>אין מנויים עדיין</p>
+                <p className={styles.emptyTitle}>אין רכישות עדיין</p>
                 <p className={styles.emptyHint}>
-                  מנויים יופיעו כאן לאחר שמשתמשים יירשמו למערכת ויוקצה להם תוכנית.
+                  רכישות יופיעו כאן כשמארחים ירכשו חבילה לאירוע.
                 </p>
               </div>
             )}
@@ -326,7 +324,7 @@ export default function AdminSubscriptionsScreen() {
             {(subs || []).length > 0 && filtered.length === 0 && (
               <div className={styles.stateBox}>
                 <p className={styles.emptyTitle}>אין תוצאות</p>
-                <p className={styles.emptyHint}>שנה את הסינון כדי לראות מנויים.</p>
+                <p className={styles.emptyHint}>שנו את הסינון כדי לראות רכישות.</p>
               </div>
             )}
 
@@ -397,7 +395,7 @@ export default function AdminSubscriptionsScreen() {
 
         {/* ── Loading ── */}
         {loading && (
-          <Loading rows={4} label="טוען מנויים…" />
+          <Loading rows={4} label="טוען רכישות…" />
         )}
 
       </main>

@@ -20,7 +20,7 @@ export const NAV_ITEMS = [
   { mark: "adminUsers",         label: "ניהול משתמשים",   path: "/admin/users",         live: true },
   { mark: "adminEvents",        label: "כל האירועים",     path: "/admin/events",        live: true },
   { mark: "adminTemplates",     label: "ניהול תבניות",    path: "/admin/templates",     live: true },
-  { mark: "adminSubscriptions", label: "מנויים ותשלומים", path: "/admin/subscriptions", live: true },
+  { mark: "adminSubscriptions", label: "רכישות ותשלומים", path: "/admin/subscriptions", live: true },
   { mark: "adminActivity",      label: "יומן פעילות",     path: "/admin/activity",      badge: "בפיתוח" },
   { mark: "alert",              label: "שגיאות",          path: "/admin/errors",        live: true },
   { mark: "help",               label: "משוב",            path: "/admin/feedback",      live: true },

@@ -173,38 +173,28 @@ export const STATUS_META = {
     bgColor:     "#fef2f2",
     borderColor: "#fecaca",
   },
-  // Stripe emits these four as well, and every one of them reached the panel
-  // unmapped: the raw English key rendered mid-Hebrew-table, and
-  // `incomplete_expired` clipped to "te_expired" at 390px. They are ordinary
-  // subscription states, not errors — they just had no label.
-  incomplete: {
-    label:       "ממתין לתשלום ראשון",
-    color:       "#854d0e",
-    bgColor:     "#fefce8",
-    borderColor: "#fde68a",
-  },
-  incomplete_expired: {
-    label:       "תשלום ראשון לא הושלם",
-    color:       "#6b7280",
-    bgColor:     "#f9fafb",
-    borderColor: "#e5e7eb",
-  },
-  unpaid: {
-    label:       "לא שולם",
-    color:       "#b91c1c",
-    bgColor:     "#fef2f2",
-    borderColor: "#fecaca",
-  },
-  paused: {
-    label:       "מושהה",
-    color:       "#6b7280",
-    bgColor:     "#f9fafb",
-    borderColor: "#e5e7eb",
-  },
+  /* `incomplete`, `incomplete_expired`, `unpaid` and `paused` stood here, and
+     were removed in checklist 94. They are Stripe SUBSCRIPTION states, and two
+     facts make them unreachable:
+       1. subscriptions.status carries CHECK (status IN ('active', 'trialing',
+          'cancelled', 'expired')) — unchanged since 20260524000000 — so none of
+          the four can ever be stored. The old webhook translated Stripe's states
+          into those four through mapStripeStatus for exactly that reason.
+       2. Since 27.9 purchases are one-time (mode: "payment"): there is no
+          Subscription object, so Stripe produces none of these states at all.
+     They were labels for values the database refuses, offered as filter
+     options in the admin panel that could never match a row. If one ever did
+     appear, getStatusLabel still says "סטטוס לא מוכר" with the raw value in a
+     title — the graceful path, not the invisible one.
+
+     `past_due` stays. It is not a DB status either, but it IS reachable:
+     displayStatus() derives it from the payment_past_due flag, which an admin
+     can still set by hand. */
 };
 
 /** Statuses that need somebody to act. The panel's ONE semantic colour. */
-export const ALARMING_STATUSES = new Set(["past_due", "unpaid"]);
+// `unpaid` left with the other three unreachable Stripe states — see STATUS_META.
+export const ALARMING_STATUSES = new Set(["past_due"]);
 
 /** The status to DISPLAY — delinquency outranks the nominal status. */
 export function displayStatus(sub) {
@@ -274,10 +264,10 @@ export function isKnownStatus(status) {
 // ── Ordered plan list (for UI pickers, upgrade prompts, etc.) ─────────────────
 export const PLAN_KEYS   = ["free", "pro", "enterprise"];
 // past_due first: it is the only one that needs somebody to act on it.
-export const STATUS_KEYS = [
-  "past_due", "unpaid", "active", "trialing",
-  "incomplete", "incomplete_expired", "paused", "cancelled", "expired",
-];
+// Exactly the four the DB CHECK allows, plus past_due, which displayStatus()
+// derives from a flag. planConfig.test.js reads the CHECK out of the migration
+// and fails if this list and the schema ever disagree.
+export const STATUS_KEYS = ["past_due", "active", "trialing", "cancelled", "expired"];
 
 /** The metadata for a plan key, or undefined. Prototype-safe — see own(). */
 export function getPlanMeta(plan) { return own(PLAN_META, plan); }

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
 import {
   PLAN_LIMITS, PLAN_META, STATUS_META, ALARMING_STATUSES,
   PLAN_KEYS, STATUS_KEYS,
@@ -172,19 +173,42 @@ describe("planConfig — Hebrew labels, and the raw DB key never reaching a scre
     expect(isKnownPlan("pro")).toBe(true);
     expect(isKnownPlan("enterprise_annual")).toBe(false);
     expect(isKnownPlan(null)).toBe(false);
-    expect(isKnownStatus("incomplete_expired")).toBe(true);
+    expect(isKnownStatus("past_due")).toBe(true);
     expect(isKnownStatus("something_new")).toBe(false);
     expect(isKnownStatus(undefined)).toBe(false);
   });
 
-  it("maps every subscription status Stripe can emit", () => {
-    // All four of these reached the panel unmapped once. They are ordinary
-    // subscription states, not errors — they simply had no label, and one of
-    // them clipped to "te_expired" on a phone.
-    for (const s of ["active", "trialing", "cancelled", "expired", "past_due",
-                     "incomplete", "incomplete_expired", "unpaid", "paused"]) {
-      expect(STATUS_META[s]).toBeDefined();
-      expect(isKnownStatus(s)).toBe(true);
+  /* This test used to insist on labels for nine statuses, including four Stripe
+     SUBSCRIPTION states (incomplete, incomplete_expired, unpaid, paused). None of
+     them can be stored — subscriptions.status has carried
+     CHECK (status IN ('active','trialing','cancelled','expired')) since the first
+     migration and it has never been relaxed — and since 27.9 purchases are
+     one-time, so Stripe does not produce them at all. The test pinned labels for
+     values the database refuses, and the admin filter offered them as options
+     that could never match a row. Checklist 94.
+
+     So the list is now read against the SCHEMA: the statuses the panel knows are
+     exactly the CHECK's, plus past_due, which displayStatus() derives from a flag.
+     A migration that changes the CHECK fails this until the labels follow. */
+  it("knows exactly the statuses the database can hold, plus past_due", () => {
+    const sql = readFileSync("supabase/migrations/20260524000000_admin_foundation.sql", "utf8");
+    const check = /status\s+text[^,]*CHECK \(status IN \(([^)]*)\)\)/.exec(sql);
+    expect(check, "the subscriptions.status CHECK moved or changed shape").toBeTruthy();
+    const dbStatuses = check[1].split(",").map(x => x.trim().replace(/'/g, ""));
+    expect(dbStatuses.sort()).toEqual(["active", "cancelled", "expired", "trialing"]);
+
+    // And no later migration relaxed it — the premise of removing the four.
+    for (const f of readdirSync("supabase/migrations")) {
+      const body = readFileSync(`supabase/migrations/${f}`, "utf8");
+      expect(body, f).not.toMatch(/subscriptions_status_check|alter table public\.subscriptions[^;]*status[^;]*check/i);
+    }
+
+    expect([...STATUS_KEYS].sort()).toEqual([...dbStatuses, "past_due"].sort());
+    for (const s of STATUS_KEYS) expect(isKnownStatus(s), s).toBe(true);
+    for (const gone of ["incomplete", "incomplete_expired", "unpaid", "paused"]) {
+      expect(isKnownStatus(gone), gone).toBe(false);
+      // Still graceful if one ever turns up: a Hebrew "unknown", never the key.
+      expect(getStatusLabel(gone)).toBe("סטטוס לא מוכר");
     }
   });
 });
@@ -213,9 +237,9 @@ describe("planConfig — the delinquency rule", () => {
   });
 
   it("flags exactly the statuses that need somebody to act", () => {
-    expect([...ALARMING_STATUSES].sort()).toEqual(["past_due", "unpaid"]);
+    expect([...ALARMING_STATUSES].sort()).toEqual(["past_due"]);
     for (const s of ALARMING_STATUSES) expect(STATUS_META[s]).toBeDefined();
-    for (const s of ["active", "trialing", "paused", "cancelled", "expired"]) {
+    for (const s of ["active", "trialing", "cancelled", "expired"]) {
       expect(ALARMING_STATUSES.has(s)).toBe(false);
     }
   });
@@ -308,5 +332,24 @@ describe("plan lookups do not read through the prototype chain", () => {
       expect(getPlanLimits(key)).toEqual(getPlanLimits("free"));
       expect(isKnownPlan(key)).toBe(false);
     }
+  });
+});
+
+describe("the admin panel's vocabulary follows the product", () => {
+  /* Since 27.9 a purchase is one payment for one event — "תשלום אחד לאירוע. לא
+     מנוי." on the public pricing page. The admin panel kept calling every
+     purchase a מנוי: the nav said "מנויים ותשלומים", the dashboard "מנויים
+     פעילים", the activity log "מנוי שונה". Only the owner sees it, which is why
+     it survived the customer-facing pass — and it is also why it matters: the
+     one person running the business was looking at the model they had rejected.
+     Checklist 94. Comments are stripped first; the history is written in them. */
+  it("no string the admin panel shows says מנוי", () => {
+    const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap(d =>
+      d.isDirectory() ? walk(`${dir}/${d.name}`) : [`${dir}/${d.name}`]);
+    const files = walk("src/admin").filter(f => /\.(jsx?|mjs)$/.test(f) && !/\.test\./.test(f));
+    expect(files.length).toBeGreaterThan(10);   // or this passes by reading nothing
+    const hits = files.filter(f => /מנוי/.test(strip(readFileSync(f, "utf8"))));
+    expect(hits).toEqual([]);
   });
 });
