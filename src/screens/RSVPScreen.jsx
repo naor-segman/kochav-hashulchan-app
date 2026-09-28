@@ -70,7 +70,12 @@ export default function RSVPScreen() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [guestsCount, setGuestsCount] = useState(1);
+  // What the guest is TYPING, kept apart from the number it means. Clamping
+  // on every keystroke turned an emptied field straight back into "1", so a
+  // guest who deleted the 1 to type 3 got 13 (106, 28.9). The field may be
+  // empty while typing; the count it means is always 1–20.
+  const [countText, setCountText] = useState("1");
+  const guestsCount = Math.max(1, Math.min(20, Number(countText) || 1));
   const [companions, setCompanions] = useState([]);
   const [shuttleId, setShuttleId] = useState("");
   const [meal, setMeal] = useState("");
@@ -383,10 +388,9 @@ export default function RSVPScreen() {
                   type="number"
                   min={1}
                   max={20}
-                  value={guestsCount}
-                  onChange={e =>
-                    setGuestsCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
-                  }
+                  value={countText}
+                  onChange={e => setCountText(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+                  onBlur={() => setCountText(String(guestsCount))}
                   dir="ltr"
                   disabled={submitting}
                 />
