@@ -14,8 +14,11 @@ import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 // A token in a URL is a credential, and this lands in a table the admin panel
 // reads. `/rsvp/8f3c…` becomes `/rsvp/:token` — enough to know WHICH screen
 // crashed, without carrying the key to somebody's guest list into a log.
+// "entrance" was missing — /entrance/<token> is the door station, and its
+// token is the hostess link. Caught only by the uuid rule below, by luck of
+// the token's shape. 28.9 audit.
 const TOKEN_ROUTES = ["rsvp", "invite", "gift", "card", "album", "collab", "hostess",
-                      "invitation", "save-the-date"];
+                      "entrance", "invitation", "save-the-date"];
 
 export function scrubRoute(pathname) {
   const parts = String(pathname || "").split("/");

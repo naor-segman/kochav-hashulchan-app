@@ -42,7 +42,45 @@ import { scrubRoute } from "../utils/errorReport.js";
  *   is a recording of three hundred names and phone numbers.
  *
  * src/lib/analytics.test.js fails if any of the three comes back.
+ *
+ * ── And a fourth: every URL posthog-js attaches ON ITS OWN ───────────────────
+ * The scrubbed $current_url above was not enough, and the comments said it
+ * was. posthog-js adds `$pathname`, `$referrer`, `$initial_referrer` and the
+ * initial URL to EVERY event and to the person record — so a guest opening
+ * /collab/<token> still sent the raw token in `$pathname` on the pageview, and
+ * `track(RSVP_RECEIVED)` from /rsvp/<token> sent it in both. The collab token
+ * opens the whole guest list, phone numbers included. Found independently by
+ * two agents in the 28.9 audit, confirmed against posthog-js's own bundle.
+ *
+ * `before_send` now runs every outgoing event through scrubEvent(): each string
+ * that looks like a path or a URL, in `properties`, `$set` and `$set_once`,
+ * goes through scrubRoute. One rule for what a token-bearing URL may look like
+ * when it leaves the browser, applied to everything rather than field by field.
  */
+
+/**
+ * Take the tokens out of every URL-ish string in an outgoing PostHog event.
+ * Pure, exported for the test. Returns the event (mutated copy) or null to
+ * drop — never throws, because analytics must never break the app.
+ */
+export function scrubEvent(ev) {
+  try {
+    if (!ev || typeof ev !== "object") return ev;
+    const clean = (bag) => {
+      if (!bag || typeof bag !== "object") return bag;
+      const out = { ...bag };
+      for (const [k, v] of Object.entries(out)) {
+        if (typeof v === "string" && (v.startsWith("/") || /^https?:\/\//i.test(v))) {
+          out[k] = scrubRoute(v);
+        }
+      }
+      return out;
+    };
+    return { ...ev, properties: clean(ev.properties), $set: clean(ev.$set), $set_once: clean(ev.$set_once) };
+  } catch {
+    return null;   // if we cannot be sure it is clean, it does not leave
+  }
+}
 
 const KEY  = import.meta.env?.VITE_POSTHOG_KEY;
 const HOST = import.meta.env?.VITE_POSTHOG_HOST || "https://eu.i.posthog.com";
@@ -73,6 +111,7 @@ export function initAnalytics() {
         capture_pageleave: false,
         disable_session_recording: true,
         persistence: "localStorage",   // no cross-site cookie
+        before_send: scrubEvent,       // tokens out of EVERY url posthog attaches
       });
       ph = p;
       // Flush in the order the app made them, so the funnel keeps its shape.
