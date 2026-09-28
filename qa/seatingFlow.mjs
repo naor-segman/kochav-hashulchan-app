@@ -158,7 +158,7 @@ is('the lowest occupied table has its guest rows rendered after scrolling',
 console.log(`      (card #${lowestOccupied?.i + 1}: ${lowestOccupied?.seated} seats, ${lowestOccupied?.rows} rows)`);
 
 /* ── 7. Horizontal overflow — scrollWidth lies, so scroll and look ──────── */
-const scrolledX = await p.evaluate(() => { window.scrollTo(9999, 0); return window.scrollX; });
+const scrolledX = await p.evaluate(() => { window.scrollTo({ left: -1e5, behavior: "instant" }); return window.scrollX; });
 is('the page does not scroll horizontally', scrolledX, 0);
 
 /* ── 8. Drag and drop still works ───────────────────────────────────────── */

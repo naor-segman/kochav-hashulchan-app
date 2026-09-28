@@ -135,7 +135,7 @@ for (const [w, h, label] of [[390, 844, 'mobile 390'], [1280, 900, 'desktop 1280
     // page actually scrolls sideways.
     const overflow = await p.evaluate(() => {
       const b4 = window.scrollX;
-      window.scrollTo(9999, 0);
+      window.scrollTo({ left: -1e5, behavior: "instant" });
       const moved = Math.abs(window.scrollX - b4);
       window.scrollTo(b4, 0);
       return moved;

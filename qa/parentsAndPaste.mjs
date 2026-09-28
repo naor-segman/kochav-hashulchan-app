@@ -131,7 +131,7 @@ if (ta) {
 
 // ── Horizontal overflow at 390px — scrollWidth lies, so scroll and measure ──
 const moved = await p.evaluate(() => {
-  window.scrollTo(9999, 0);
+  window.scrollTo({ left: -1e5, behavior: "instant" });
   const x = window.scrollX;
   window.scrollTo(0, 0);
   return x;

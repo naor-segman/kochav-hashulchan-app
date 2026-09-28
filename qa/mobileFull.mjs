@@ -117,7 +117,7 @@ for (const vp of VIEWPORTS) {
     const r = await page.evaluate(() => {
       const out = {};
       // Overflow: scroll and see whether it MOVED.
-      window.scrollTo(9999, 0); out.scrollX = window.scrollX; window.scrollTo(0, 0);
+      window.scrollTo({ left: -1e5, behavior: "instant" }); out.scrollX = window.scrollX; window.scrollTo(0, 0);
 
       // Anything painted outside the viewport on the inline axis.
       out.wide = [];
@@ -169,7 +169,7 @@ for (const vp of VIEWPORTS) {
       return out;
     });
 
-    if (r.scrollX > 0)
+    if (r.scrollX !== 0)
       add({ sev:'FAIL', vp:vp.name, screen:name, kind:'h-scroll', detail:`scrollX=${r.scrollX}px` });
     if (r.wide.length)
       add({ sev:'FAIL', vp:vp.name, screen:name, kind:'painted-wide', detail:r.wide.join(' | ') });

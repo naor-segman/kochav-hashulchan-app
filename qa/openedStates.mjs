@@ -102,7 +102,7 @@ for (const vp of VPS) {
   }
   const measure = () => page.evaluate(() => {
     document.documentElement.style.scrollBehavior = 'auto';
-    window.scrollTo(9999, 0); const sx = window.scrollX; window.scrollTo(0, 0);
+    window.scrollTo({ left: -1e5, behavior: "instant" }); const sx = window.scrollX; window.scrollTo(0, 0);
     const wide = [...document.querySelectorAll('button')]
       .map(el => ({ t: (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 34), r: el.getBoundingClientRect() }))
       .filter(o => o.r.width > innerWidth)
@@ -134,7 +134,7 @@ for (const vp of VPS) {
   await page.waitForTimeout(1200);
   const site = await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = 'auto';
-    window.scrollTo(9999, 0); const sx = window.scrollX; window.scrollTo(0, 0);
+    window.scrollTo({ left: -1e5, behavior: "instant" }); const sx = window.scrollX; window.scrollTo(0, 0);
     const narrow = [...document.querySelectorAll('input[type=text], input:not([type])')]
       .map(el => ({ a: el.getAttribute('aria-label') || el.placeholder || '', w: el.getBoundingClientRect().width }))
       .filter(o => o.w > 0 && o.w < 60 && !/אייקון/.test(o.a))

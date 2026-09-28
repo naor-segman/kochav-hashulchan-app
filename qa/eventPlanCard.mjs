@@ -91,7 +91,7 @@ for (const w of [390, 1280]) {
        printed instead of dressed up as a passing check. */
     console.log(`      measured @${w}: card top ${card.top}px, height ${card.height}px`);
   }
-  const x = await p.evaluate(() => { window.scrollTo(9999, 0); const v = window.scrollX; window.scrollTo(0, 0); return v; });
+  const x = await p.evaluate(() => { window.scrollTo({ left: -1e5, behavior: "instant" }); const v = window.scrollX; window.scrollTo(0, 0); return v; });
   check(`@${w} no horizontal scroll`, x === 0, `scrollX=${x}`);
   check(`@${w} no console errors`, errs.length === 0, errs.slice(0, 2).join(" | "));
   await p.close();

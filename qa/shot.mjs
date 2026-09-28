@@ -22,7 +22,7 @@ for (const [w,h] of [[1280,900],[390,844]]) {
     await page.waitForTimeout(500);
     await page.evaluate(()=>window.scrollTo(0,0));
     await page.waitForTimeout(300);
-    const overflow = await page.evaluate(()=>{ window.scrollTo(9999,0); const x=window.scrollX; window.scrollTo(0,0); return x; });
+    const overflow = await page.evaluate(()=>{ window.scrollTo({ left: -1e5, behavior: "instant" }); const x=window.scrollX; window.scrollTo(0,0); return x; });
     results.push({phase,w,name,overflowX:overflow});
     await page.screenshot({ path:`${DIR}/${phase}-${name}-${w}.png`, fullPage:true });
   }

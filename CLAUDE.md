@@ -202,9 +202,15 @@ Check for these first — each has bitten more than once:
   through the agent proxy and every request fails. Resolve Playwright with
   `createRequire('/home/user/kochav-hashulchan-app/')`.
 - **Never use `scrollWidth` to detect horizontal overflow.** An internally
-  scrollable child inflates it on every ancestor. Use `window.scrollTo(9999,0)`
-  and check whether `window.scrollX` actually moved. The old method once sent an
-  afternoon into "fixing" CSS that was already correct.
+  scrollable child inflates it on every ancestor. Use
+  `window.scrollTo({ left: -1e5, behavior: "instant" })` and check that
+  `window.scrollX` is `!== 0`. The old method once sent an afternoon into
+  "fixing" CSS that was already correct.
+  🔴 **`scrollTo(9999,0)` — what this file prescribed until 28.9 — is blind
+  here.** RTL overflow scrolls to NEGATIVE `scrollX` (a positive target clamps
+  to 0) and `reset.css` has `scroll-behavior: smooth`. Measured: 0 vs -1618 on
+  a 2000px page. 15 harnesses carried it, two of them written in the same
+  session that found it. Every h-scroll pass before 28.9 proved nothing.
 - **Outbound HTTP is blocked** by the proxy for most hosts, including competitor
   sites. Say so rather than inventing findings.
 - **`npm run lint` runs `eslint .` and reports 10 errors** — in `legacy/` (7),

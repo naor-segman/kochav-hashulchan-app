@@ -186,7 +186,7 @@ try {
     }
 
     console.log('── layout');
-    const x = await p.evaluate(() => { window.scrollTo(9999, 0); const v = window.scrollX; window.scrollTo(0, 0); return v; });
+    const x = await p.evaluate(() => { window.scrollTo({ left: -1e5, behavior: "instant" }); const v = window.scrollX; window.scrollTo(0, 0); return v; });
     ok(x === 0, 'no horizontal scroll', `scrollX=${x}`);
     ok(errs.length === 0, 'no page errors', errs.join(' | '));
     await p.close();

@@ -183,7 +183,7 @@ try {
       await page.setViewportSize({ width: w, height: 900 });
       await page.waitForTimeout(250);
       const x = await page.evaluate(() => {
-        window.scrollTo(9999, 0);
+        window.scrollTo({ left: -1e5, behavior: "instant" });
         const v = window.scrollX;
         window.scrollTo(0, 0);
         return v;

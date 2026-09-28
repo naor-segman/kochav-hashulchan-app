@@ -149,7 +149,7 @@ console.log('\n── 390px: the note doubled the length of that line');
   // NOT scrollWidth — an internally scrollable child inflates it on every
   // ancestor. Whether the PAGE scrolls sideways is the only real question.
   const moved = await p.evaluate(() => {
-    window.scrollTo(9999, 0);
+    window.scrollTo({ left: -1e5, behavior: "instant" });
     const x = window.scrollX;
     window.scrollTo(0, 0);
     return x;
