@@ -10,13 +10,21 @@
  * nothing here knows about events.
  */
 
-/** The native BarcodeDetector ships in Chrome/Edge/Android, not Safari/Firefox. */
+/**
+ * Whether this device can scan at all — i.e. it has a camera API. Decoding is
+ * no longer the gate: where the native BarcodeDetector is missing (Safari,
+ * every iPhone, Firefox) QrScanner decodes with jsQR, loaded only then.
+ *
+ * Until 28.9 this tested for BarcodeDetector, so on an iPhone — most of the
+ * phones at an Israeli wedding — the scan button did not exist (WORKPLAN ד2/ק).
+ */
 export function isScanSupported() {
-  return typeof window !== "undefined" && "BarcodeDetector" in window;
+  return typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function";
 }
 
 /**
- * Whether QR specifically is decodable here.
+ * Whether the NATIVE detector decodes QR here. When it does not, the scanner
+ * falls back to jsQR; this decides which of the two runs.
  *
  * The object existing is not enough: the spec lets a platform expose
  * BarcodeDetector without backing the qr_code format, in which case the
@@ -25,7 +33,7 @@ export function isScanSupported() {
  * that would never scan anything.
  */
 export async function isQrSupported() {
-  if (!isScanSupported()) return false;
+  if (typeof window === "undefined" || !("BarcodeDetector" in window)) return false;
   try {
     const formats = await window.BarcodeDetector.getSupportedFormats();
     return Array.isArray(formats) && formats.includes("qr_code");

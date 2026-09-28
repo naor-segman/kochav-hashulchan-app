@@ -82,10 +82,10 @@ const SHOWCASE = [
     eyebrow: "ביום האירוע",
     title:   "בכניסה, בלי דפים",
     /* Two removals here.
-       "אפשר גם לסרוק את הקוד שעל ההזמנה" — isScanSupported() gates on
-       "BarcodeDetector" in window, so the button does not exist on an iPhone,
-       and an iPhone is most of the room at an Israeli wedding. A scan also
-       marks the WHOLE row rather than the person it identified.
+       "אפשר גם לסרוק את הקוד שעל ההזמנה" — at the time the button did not
+       exist on an iPhone. Scanning works on iPhones since 28.9 (jsQR
+       fallback); the line stays out until the owner decides the copy (104),
+       and because a scan still marks the WHOLE row, not the person.
        "רישום מתנות תוך כדי" — that field was DELETED from this screen on
        purpose (a greeter cannot know what is in an envelope), and nothing in
        src/ writes giftAmount. It advertised a feature the product removed. */

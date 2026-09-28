@@ -1,14 +1,42 @@
 import { useEffect, useRef, useState } from "react";
-import { isQrSupported } from "../../utils/scanPayload.js";
+import { isQrSupported, isScanSupported } from "../../utils/scanPayload.js";
 import styles from "./QrScanner.module.css";
+
+/**
+ * One decode function for either engine: frame in, raw text (or "") out.
+ * jsQR works on pixels, so frames are drawn to a canvas scaled to ≤640px wide
+ * — full-resolution frames cost a phone 100ms+ each for no gain in accuracy.
+ */
+async function makeDecoder() {
+  if (await isQrSupported()) {
+    const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+    return async (video) => (await detector.detect(video))[0]?.rawValue || "";
+  }
+  const { default: jsQR } = await import("jsqr");
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  return async (video) => {
+    const w = video.videoWidth, h = video.videoHeight;
+    if (!w || !h || !ctx) return "";
+    const scale = Math.min(1, 640 / w);
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    return jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" })?.data || "";
+  };
+}
 
 /**
  * Camera QR scanner for the entrance.
  *
- * Uses the native BarcodeDetector, which ships in Chrome/Edge/Android but not
- * in Safari or Firefox. Rather than pulling in a ~200KB decoding library for a
- * feature used at one door for a few hours, unsupported browsers get an honest
- * message pointing back to name search — which already works everywhere.
+ * Uses the native BarcodeDetector where it decodes QR (Chrome/Edge/Android).
+ * Everywhere else — Safari, so every iPhone, and Firefox — it decodes frames
+ * with jsQR. That library is loaded with a dynamic import only when this
+ * component mounts on such a browser, so no page and no other browser pays
+ * for it. The earlier decision was to skip the library and send iPhones to
+ * name search; but an iPhone is most of the phones at the door, and the
+ * button simply did not exist there (WORKPLAN ד2/ק, 28.9).
  *
  * onScan receives the raw payload; parsing it (utils/scanPayload.js) and
  * matching it to a guest are the caller's job, so this component stays free of
@@ -39,12 +67,12 @@ export default function QrScanner({ onScan, onClose }) {
         // throws when no requested format is supported, and thrown from the
         // effect body that took down the whole app via the root error boundary
         // — at the door, mid-queue.
-        if (!(await isQrSupported())) {
+        if (!isScanSupported()) {
           if (!cancelled) setError("unsupported");
           return;
         }
+        const decode = await makeDecoder();
         if (cancelled) return;
-        const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
         });
@@ -58,13 +86,12 @@ export default function QrScanner({ onScan, onClose }) {
         const tick = async () => {
           if (cancelled || !videoRef.current) return;
           try {
-            const codes = await detector.detect(videoRef.current);
+            const value = await decode(videoRef.current);
             // Re-check after the await: the panel may have been closed while
             // this frame was in flight, and firing onScan then would check a
             // guest in after the scanner was dismissed.
             if (cancelled) return;
-            if (codes.length) {
-              const value = codes[0].rawValue || "";
+            if (value) {
               const now = Date.now();
               // The camera sees the same code many times a second — ignore a
               // repeat within two seconds so one badge checks in once.
@@ -94,7 +121,7 @@ export default function QrScanner({ onScan, onClose }) {
   }, []);
 
   const message =
-    error === "unsupported" ? "הדפדפן הזה לא תומך בסריקה. ב-Safari ובפיירפוקס השתמשו בחיפוש לפי שם — הוא עובד בכל מכשיר."
+    error === "unsupported" ? "אין גישה למצלמה בדפדפן הזה. השתמשו בחיפוש לפי שם — הוא עובד בכל מכשיר."
     : error === "denied"    ? "הגישה למצלמה נדחתה. אשרו גישה בהגדרות הדפדפן, או השתמשו בחיפוש לפי שם."
     : error === "camera"    ? "לא הצלחנו לפתוח את המצלמה. השתמשו בחיפוש לפי שם."
     : "";
