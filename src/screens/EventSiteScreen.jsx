@@ -4,6 +4,7 @@ import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/pub
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
+import { daysUntil } from "../utils/dateFormat.js";
 import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
@@ -17,6 +18,7 @@ function fromLocalEvent(le) {
     organizationName: le.organizationName, ownerName: le.ownerName,
     site: le.eventSite,
     rsvpToken: le.tokens?.rsvp ?? null, giftToken: le.tokens?.gift ?? null,
+    albumToken: le.tokens?.album ?? null,
   };
 }
 
@@ -176,6 +178,12 @@ export default function EventSiteScreen({ localEvent }) {
   const scrollTo = (key) => { setMenuOpen(false); refByKey[key]?.current?.scrollIntoView({ behavior: "smooth" }); };
   const rsvpUrl = ev.rsvpToken ? `/rsvp/${ev.rsvpToken}` : null;
   const giftUrl = ev.giftToken ? `/gift/${ev.giftToken}` : null;
+  // The shared album, from the day of the event on (WORKPLAN פ). Before then
+  // there is nothing to upload, and a link to an empty album on a site guests
+  // open weeks ahead reads as broken. The thank-you message links it too (88).
+  const albumDays = daysUntil(ev.date);
+  const albumUrl = ev.albumToken && albumDays !== null && albumDays <= 0
+    ? `/album/${ev.albumToken}` : null;
 
   const navItems = !visible ? [] : [
     site?.schedule?.length && sec.schedule && { label: "לוז", key: "schedule" },
@@ -388,6 +396,17 @@ export default function EventSiteScreen({ localEvent }) {
               ))}
             </div>
           )}
+        </section>
+      )}
+
+      {/* ── Shared album ── */}
+      {visible && albumUrl && (
+        <section className={styles.section}>
+          <h2 className={styles.secTitle}>אלבום האירוע</h2>
+          <div className={styles.giftCard}>
+            <p>צילמתם? העלו את התמונות שלכם לאלבום המשותף — וראו מה צילמו כולם.</p>
+            <Link to={albumUrl} className={styles.locBtn}>לאלבום ←</Link>
+          </div>
         </section>
       )}
 

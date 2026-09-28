@@ -183,6 +183,13 @@ describe("fetchEventByToken — a partial row must not crash a public page", () 
     await expect(fetchEventByToken("rsvp", "tok")).rejects.toBeInstanceOf(LinkUnreachableError);
   });
 
+  it("maps the album token the site receives (migration 20260928000400)", async () => {
+    ok({ id: "x", album_token: "albumtok11" });
+    expect((await fetchEventByToken("invite", "tok")).albumToken).toBe("albumtok11");
+    ok({ id: "x" });
+    expect((await fetchEventByToken("rsvp", "tok")).albumToken).toBeNull();
+  });
+
   it("does not call the database at all without a token", async () => {
     expect(await fetchEventByToken("rsvp", "")).toBeNull();
     expect(rpc).not.toHaveBeenCalled();

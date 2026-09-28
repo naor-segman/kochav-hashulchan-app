@@ -70,6 +70,7 @@ try {
   `);
 
   psql(readFileSync(new URL('../supabase/migrations/20260818000200_drop_payment_fields_from_public_event.sql', import.meta.url), 'utf8'));
+  psql(readFileSync(new URL('../supabase/migrations/20260928000400_album_link_on_site.sql', import.meta.url), 'utf8'));
 
   const call = (type, tok) =>
     psql(`select coalesce(public.public_event_by_token('${type}', '${tok}')::text, 'NULL')`);
@@ -97,6 +98,16 @@ try {
     ok(!album.includes('rsvptok1') && !album.includes('gifttok11'),
        'the album token still unlocks nothing else — the earlier gating survived');
     ok(album.includes('דנה'), 'but the album page still knows whose wedding it is');
+  }
+
+  console.log('\n── the album link reaches the site, and only the site (WORKPLAN פ)');
+  {
+    ok(call('invite', 'invitetok1').includes('albumtok11'), 'the event site receives the album token');
+    for (const [type, tok] of TOKENS.filter(([t]) => t !== 'invite')) {
+      // The key exists for every type; only the site gets a VALUE in it.
+      const out = call(type, tok);
+      ok(!/"album_token": "/.test(out), `${type.padEnd(8)} — no album token handed out`);
+    }
   }
 
   console.log('\n── and a wrong token still gets nothing');

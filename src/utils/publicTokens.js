@@ -26,6 +26,8 @@ function mapPublicEvent(data) {
     rsvpToken:        data.rsvp_token        ?? null,
     giftToken:        data.gift_token        ?? null,
     inviteToken:      data.invite_token      ?? null,
+    // Served to the event site only (migration 20260928000400).
+    albumToken:       data.album_token       ?? null,
   };
 }
 
