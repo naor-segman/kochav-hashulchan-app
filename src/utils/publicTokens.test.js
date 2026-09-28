@@ -19,7 +19,7 @@ vi.mock("../lib/supabase.js", () => ({
 }));
 
 const {
-  fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift,
+  fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift, LinkUnreachableError,
   upsertCollabGuest, fetchCollabGuestsOwner, upsertCollabGuestOwner,
   fetchEventGifts,
 } = await import("./publicTokens.js");
@@ -173,8 +173,13 @@ describe("fetchEventByToken — a partial row must not crash a public page", () 
   it("returns null for an unknown token instead of a half-built event", async () => {
     ok(null);
     expect(await fetchEventByToken("rsvp", "nope")).toBeNull();
-    fail({ message: "boom" });
-    expect(await fetchEventByToken("rsvp", "tok")).toBeNull();
+  });
+
+  it("THROWS when the server cannot be reached — that is not an unknown token", async () => {
+    // 28.9 audit: both used to be null, so a guest on bad reception read "the
+    // link is invalid, or the event was cancelled".
+    fail({ message: "Failed to fetch" });
+    await expect(fetchEventByToken("rsvp", "tok")).rejects.toBeInstanceOf(LinkUnreachableError);
   });
 
   it("does not call the database at all without a token", async () => {
@@ -199,18 +204,26 @@ describe("fetchHostessData", () => {
     expect(d.seating).toEqual({});
   });
 
-  it("returns null on error, so the screen shows its own empty state", async () => {
-    fail({ message: "boom" });
+  it("returns null for an unknown token", async () => {
+    ok(null);
     expect(await fetchHostessData("tok")).toBeNull();
+  });
+
+  it("throws on a failed call, so a failed REFRESH at the door keeps the list", async () => {
+    fail({ message: "boom" });
+    await expect(fetchHostessData("tok")).rejects.toBeInstanceOf(LinkUnreachableError);
   });
 });
 
 describe("fetchGiftWall", () => {
-  it("returns an array even when the call fails — the wall is projected in a hall", async () => {
-    fail({ message: "network" });
-    expect(await fetchGiftWall("tok")).toEqual([]);
+  it("returns an array for a malformed answer", async () => {
     ok("not-an-array");
     expect(await fetchGiftWall("tok")).toEqual([]);
+  });
+
+  it("throws on a failed call instead of [] — [] blanked a projected wall", async () => {
+    fail({ message: "network" });
+    await expect(fetchGiftWall("tok")).rejects.toBeInstanceOf(LinkUnreachableError);
   });
 
   it("passes the rows through untouched when they are well formed", async () => {

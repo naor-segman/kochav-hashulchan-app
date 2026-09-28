@@ -30,6 +30,30 @@ function mapPublicEvent(data) {
 }
 
 /**
+ * The server could not be reached, or answered with an error — as opposed to
+ * answering "no such link". Until 28.9 every fetcher below returned null / []
+ * for both, so a guest whose wifi dropped read "הקישור אינו תקין, או שהאירוע
+ * בוטל", a projected gift wall emptied on one failed poll, and the greeter's
+ * guest list at the door was replaced by "invalid link" mid-event.
+ *
+ * None of the token RPCs raises for an unknown token — each returns null or an
+ * empty set — so `error` set means transport or server, never "not found".
+ */
+export class LinkUnreachableError extends Error {
+  constructor(cause) {
+    super("link unreachable");
+    this.name = "LinkUnreachableError";
+    this.cause = cause;
+  }
+}
+
+/** What a guest page says when the server cannot be reached. One copy. */
+export const UNREACHABLE_TEXT = {
+  title: "אין חיבור כרגע",
+  body:  "לא הצלחנו להגיע לשרת — הקישור עצמו בסדר. נסו לרענן את הדף בעוד רגע.",
+};
+
+/**
  * Fetch the public event data for a given token type and token value.
  * Used by public pages (RSVP, invite, gift, hostess) that have no user auth.
  * Calls a SECURITY DEFINER function that requires a valid token and returns
@@ -46,7 +70,8 @@ export async function fetchEventByToken(tokenType, token) {
     token_type:  tokenType,
     token_value: token,
   });
-  if (error || !data) return null;
+  if (error) throw new LinkUnreachableError(error);
+  if (!data) return null;
   return mapPublicEvent(data);
 }
 
@@ -68,7 +93,8 @@ export async function fetchHostessData(token) {
   const { data, error } = await supabase.rpc("hostess_data_by_token", {
     token_value: token,
   });
-  if (error || !data) return null;
+  if (error) throw new LinkUnreachableError(error);
+  if (!data) return null;
   return {
     cloudId: data.id,
     name:    data.name    ?? "",
@@ -267,7 +293,8 @@ export async function fetchGiftWall(token) {
   const { data, error } = await supabase.rpc("gift_wall_by_token", {
     token_value: token,
   });
-  if (error || !Array.isArray(data)) return [];
+  if (error) throw new LinkUnreachableError(error);
+  if (!Array.isArray(data)) return [];
   return data;
 }
 
@@ -277,7 +304,8 @@ export async function fetchGiftWall(token) {
 export async function fetchCollabEvent(token) {
   if (!isSupabaseConfigured || !supabase || !token) return null;
   const { data, error } = await supabase.rpc("collab_event_by_token", { token_value: token });
-  if (error || !data) return null;
+  if (error) throw new LinkUnreachableError(error);
+  if (!data) return null;
   return {
     cloudId:    data.id,
     name:       data.name       ?? "",
@@ -303,7 +331,8 @@ export async function fetchCollabEvent(token) {
 export async function fetchCollabGuests(token) {
   if (!isSupabaseConfigured || !supabase || !token) return [];
   const { data, error } = await supabase.rpc("collab_list_by_token", { token_value: token });
-  if (error || !Array.isArray(data)) return [];
+  if (error) throw new LinkUnreachableError(error);
+  if (!Array.isArray(data)) return [];
   return data;
 }
 

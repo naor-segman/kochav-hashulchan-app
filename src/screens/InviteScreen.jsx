@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import QRCode from "qrcode";
-import { fetchEventByToken } from "../utils/publicTokens.js";
+import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { readGuestCardParams, guestScanPayload } from "../utils/guestCard.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
@@ -47,6 +47,7 @@ export default function InviteScreen() {
   const [event,    setEvent]    = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [unreachable, setUnreachable] = useState(false);
   const [copied,   setCopied]   = useState(false);
   const [qrUrl,    setQrUrl]    = useState("");
 
@@ -68,7 +69,13 @@ export default function InviteScreen() {
     async function load() {
       setLoading(true);
       setNotFound(false);
-      const data = await fetchEventByToken("invite", token);
+      let data;
+      try {
+        data = await fetchEventByToken("invite", token);
+      } catch {
+        if (!cancelled) { setUnreachable(true); setLoading(false); }
+        return;
+      }
       if (cancelled) return;
       if (data) {
         setEvent(data);
@@ -119,6 +126,18 @@ export default function InviteScreen() {
         <div className={styles.stateCenter}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
           <p className={styles.stateText}>טוען הזמנה...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (unreachable) {
+    return (
+      <div className={styles.root}>
+        <div className={styles.stateCenter}>
+          <span className={styles.notFoundStar} aria-hidden="true">✦</span>
+          <p className={styles.stateText}>{UNREACHABLE_TEXT.title}</p>
+          <p className={styles.stateSub}>{UNREACHABLE_TEXT.body}</p>
         </div>
       </div>
     );

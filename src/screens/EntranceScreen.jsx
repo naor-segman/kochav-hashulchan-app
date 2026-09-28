@@ -207,7 +207,11 @@ export default function EntranceScreen({
       setRemoteState("ready");
       return data;
     } catch {
-      setRemoteState("error");
+      // A failed REFRESH keeps the list on screen. Replacing a working door
+      // list with an error because one 25-second poll hit a dead spot in the
+      // hall is worse than showing data that is 25 seconds old (28.9 audit).
+      // Only a first load with nothing to show becomes the error state.
+      setRemoteState(s => (s === "ready" ? "ready" : "error"));
       return null;
     }
   }, [token]);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken } from "../utils/publicTokens.js";
+import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncement } from "../data/announcementTemplates.js";
@@ -92,7 +92,13 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     }
     let cancelled = false;
     (async () => {
-      const data = await fetchEventByToken("invite", token);
+      let data;
+      try {
+        data = await fetchEventByToken("invite", token);
+      } catch {
+        if (!cancelled) setState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (data) { setEvent(data); setState("ready"); }
       else if (!isSupabaseConfigured) { setEvent(MOCK); setState("ready"); }
@@ -125,6 +131,15 @@ export default function AnnouncementScreen({ kind, localEvent }) {
         <span className={styles.star}>✦</span>
         <p>הדף לא נמצא</p>
         <p className={styles.stateSub}>הקישור אינו תקף או שפג תוקפו</p>
+      </div>
+    );
+  }
+  if (state === "unreachable") {
+    return (
+      <div className={styles.state}>
+        <span className={styles.star}>✦</span>
+        <p>{UNREACHABLE_TEXT.title}</p>
+        <p className={styles.stateSub}>{UNREACHABLE_TEXT.body}</p>
       </div>
     );
   }

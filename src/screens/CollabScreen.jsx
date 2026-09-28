@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   fetchCollabEvent, fetchCollabGuests,
-  upsertCollabGuest, deleteCollabGuest,
+  upsertCollabGuest, deleteCollabGuest, UNREACHABLE_TEXT,
 } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
@@ -92,20 +92,30 @@ export default function CollabScreen() {
     let cancelled = false;
     let poll = null;
     (async () => {
-      const data = await fetchCollabEvent(token);
+      let data, list;
+      try {
+        data = await fetchCollabEvent(token);
+        // Fetched BEFORE the table is shown. A failed first read used to come
+        // back as [] and render an empty list — and a relative looking at an
+        // empty list adds everyone again (28.9 audit).
+        list = data ? await fetchCollabGuests(token) : [];
+      } catch {
+        if (!cancelled) setState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (data) {
         setEv(data); setState("ready");
-        const list = await fetchCollabGuests(token);
-        if (cancelled) return;
         list.forEach(r => serverIds.current.add(r.id));
         setRows(list);
         // Poll for others' changes (anon has no direct table read for security,
         // so Realtime isn't available — the token RPC is the safe channel).
         if (data.cloudId) {
           poll = setInterval(async () => {
-            const fresh = await fetchCollabGuests(token);
-            if (!cancelled && Array.isArray(fresh)) mergePolled(fresh);
+            try {
+              const fresh = await fetchCollabGuests(token);
+              if (!cancelled && Array.isArray(fresh)) mergePolled(fresh);
+            } catch { /* a failed poll changes nothing; the next one retries */ }
           }, 3000);
         }
       } else if (!isSupabaseConfigured || import.meta.env.DEV) {
@@ -127,6 +137,14 @@ export default function CollabScreen() {
       <span className={styles.star}><Icon name="alert" size={26} /></span>
       <p>הקישור אינו פעיל</p>
       <p className={styles.stateHint}>ייתכן שבעלי האירוע סגרו אותו, או שהכתובת שגויה. שווה לבקש מהם קישור מעודכן.</p>
+    </div>
+  );
+
+  if (state === "unreachable") return (
+    <div className={styles.state}>
+      <span className={styles.star}><Icon name="alert" size={26} /></span>
+      <p>{UNREACHABLE_TEXT.title}</p>
+      <p className={styles.stateHint}>{UNREACHABLE_TEXT.body}</p>
     </div>
   );
 

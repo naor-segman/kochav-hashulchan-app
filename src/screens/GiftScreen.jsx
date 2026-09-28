@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitGift } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitGift, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import styles from "./GiftScreen.module.css";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
@@ -24,6 +24,7 @@ export default function GiftScreen() {
   const { token } = useParams();
   const [event, setEvent]         = useState(null);
   const [loading, setLoading]     = useState(true);
+  const [unreachable, setUnreachable] = useState(false);
   const [amount, setAmount]       = useState(null);   // number | "custom" | null
   const [customAmt, setCustomAmt] = useState("");
   const [message, setMessage]     = useState("");
@@ -34,7 +35,13 @@ export default function GiftScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const ev = await fetchEventByToken("gift", token);
+      let ev;
+      try {
+        ev = await fetchEventByToken("gift", token);
+      } catch {
+        if (!cancelled) { setUnreachable(true); setLoading(false); }
+        return;
+      }
       if (!cancelled) {
         if (!ev && !import.meta.env.DEV) {
           setEvent(null);
@@ -77,6 +84,18 @@ export default function GiftScreen() {
     }
     setStep("submitted");
   };
+
+  if (unreachable) {
+    return (
+      <div className={styles.root}>
+        <div className={styles.loadingWrap}>
+          <span className={styles.loadingStar} aria-hidden="true">✦</span>
+          <p className={styles.loadingText}>{UNREACHABLE_TEXT.title}</p>
+          <p className={styles.loadingText}>{UNREACHABLE_TEXT.body}</p>
+        </div>
+      </div>
+    );
+  }
 
   // ── Not found (production only) ─────────────────────────────────────────────
   if (!loading && !event) {

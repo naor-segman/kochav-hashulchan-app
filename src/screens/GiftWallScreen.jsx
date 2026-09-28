@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import styles from "./GiftWallScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
@@ -42,11 +42,18 @@ export default function GiftWallScreen() {
   const [event, setEvent] = useState(null);
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [unreachable, setUnreachable] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const ev = await fetchEventByToken("gift", token);
+      let ev;
+      try {
+        ev = await fetchEventByToken("gift", token);
+      } catch {
+        if (!cancelled) { setUnreachable(true); setLoading(false); }
+        return;
+      }
       if (!cancelled) {
         setEvent(ev || null);
         setGifts(!ev && import.meta.env.DEV ? MOCK_GIFTS : []);
@@ -61,8 +68,13 @@ export default function GiftWallScreen() {
     if (!event?.cloudId) return;
     let cancelled = false;
     const load = async () => {
-      const rows = await fetchGiftWall(token);
-      if (!cancelled) setGifts(rows);
+      // A failed poll keeps the wall as it is. It used to come back as [] and
+      // blank a wall projected in front of the whole hall until the next
+      // successful poll (28.9 audit).
+      try {
+        const rows = await fetchGiftWall(token);
+        if (!cancelled) setGifts(rows);
+      } catch { /* keep what is on the screen */ }
     };
     load();
     const tid = setInterval(load, POLL_MS);
@@ -101,8 +113,16 @@ export default function GiftWallScreen() {
         <main className={styles.content}>
           <div className={styles.empty}>
             <span className={styles.emptyIcon} aria-hidden="true"><Icon name="alert" size={30} /></span>
-            <p>לא הצלחנו לטעון את קיר הברכות.</p>
-            <p>בדקו את החיבור לאינטרנט ורעננו את הדף.</p>
+            {/* Two different answers. A link that resolves to nothing is not a
+                connection problem, and telling the venue to check its wifi
+                for a wrong link sends them chasing the wrong fault. */}
+            {unreachable ? <>
+              <p>{UNREACHABLE_TEXT.title}</p>
+              <p>{UNREACHABLE_TEXT.body}</p>
+            </> : <>
+              <p>הקישור לקיר הברכות אינו תקין.</p>
+              <p>בקשו מבעלי האירוע את הקישור העדכני.</p>
+            </>}
           </div>
         </main>
       </div>

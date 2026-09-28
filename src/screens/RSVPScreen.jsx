@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitRSVP } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitRSVP, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
 import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
@@ -61,7 +61,7 @@ export default function RSVPScreen() {
   const { token } = useParams();
 
   const [event, setEvent] = useState(null);
-  const [loadState, setLoadState] = useState("loading"); // "loading" | "error" | "ready"
+  const [loadState, setLoadState] = useState("loading"); // "loading" | "error" | "unreachable" | "ready"
   const [step, setStep] = useState("choice"); // "choice" | "yes-details" | "no-confirm" | "submitted"
 
   const [name, setName] = useState("");
@@ -77,7 +77,15 @@ export default function RSVPScreen() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const result = await fetchEventByToken("rsvp", token);
+      let result;
+      try {
+        result = await fetchEventByToken("rsvp", token);
+      } catch {
+        // Not "the link is invalid or the event was cancelled" — which is what
+        // a guest on bad reception used to read (28.9 audit).
+        if (!cancelled) setLoadState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (result) {
         setEvent(result);
@@ -186,6 +194,23 @@ export default function RSVPScreen() {
         <div className={styles.loadingWrap}>
           <span className={styles.spinner} aria-hidden="true">✦</span>
           <p className={styles.loadingText}>טוען פרטי אירוע…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadState === "unreachable") {
+    return (
+      <div className={styles.page}>
+        <PageHeader />
+        <div className={styles.cardWrap}>
+          <div className={styles.card}>
+            <div className={styles.errorState}>
+              <span className={styles.errorIcon} aria-hidden="true"><Icon name="alert" size={26} /></span>
+              <h1 className={styles.errorTitle}>{UNREACHABLE_TEXT.title}</h1>
+              <p className={styles.errorBody}>{UNREACHABLE_TEXT.body}</p>
+            </div>
+          </div>
         </div>
       </div>
     );

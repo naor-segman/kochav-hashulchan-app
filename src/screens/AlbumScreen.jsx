@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
@@ -81,7 +81,13 @@ export default function AlbumScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const ev = await fetchEventByToken("album", token);
+      let ev;
+      try {
+        ev = await fetchEventByToken("album", token);
+      } catch {
+        if (!cancelled) setState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (!ev) { setState(isSupabaseConfigured ? "error" : "nocloud"); return; }
       setEvent(ev);
@@ -136,6 +142,15 @@ export default function AlbumScreen() {
         <span className={styles.star}>✦</span>
         <p>האלבום אינו זמין</p>
         <p className={styles.sub}>האירוע עדיין לא סונכרן לענן</p>
+      </div>
+    );
+  }
+  if (state === "unreachable") {
+    return (
+      <div className={styles.state}>
+        <span className={styles.star}>✦</span>
+        <p>{UNREACHABLE_TEXT.title}</p>
+        <p className={styles.sub}>{UNREACHABLE_TEXT.body}</p>
       </div>
     );
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
@@ -89,7 +89,7 @@ export default function EventSiteScreen({ localEvent }) {
   // Host preview: rendered inside the app with the owner's local event data.
   const isPreview = !!localEvent;
   const [ev, setEv] = useState(null);
-  const [state, setState] = useState("loading"); // loading | ready | notfound
+  const [state, setState] = useState("loading"); // loading | ready | notfound | unreachable
   const [wishes, setWishes] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const scheduleRef = useRef(null);
@@ -102,7 +102,13 @@ export default function EventSiteScreen({ localEvent }) {
     if (localEvent) { setEv(fromLocalEvent(localEvent)); setState("ready"); return; }
     let cancelled = false;
     (async () => {
-      const data = await fetchEventByToken("invite", token);
+      let data;
+      try {
+        data = await fetchEventByToken("invite", token);
+      } catch {
+        if (!cancelled) setState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (data) { setEv(data); setState("ready"); }
       else if (!isSupabaseConfigured || import.meta.env.DEV) { setEv(MOCK); setState("ready"); }
@@ -115,7 +121,9 @@ export default function EventSiteScreen({ localEvent }) {
   useEffect(() => {
     if (!ev?.giftToken || !site?.sections?.blessings) return;
     let cancelled = false;
-    fetchGiftWall(ev.giftToken).then(rows => { if (!cancelled) setWishes(rows || []); });
+    fetchGiftWall(ev.giftToken)
+      .then(rows => { if (!cancelled) setWishes(rows || []); })
+      .catch(() => { /* the blessings section just stays as it is */ });
     return () => { cancelled = true; };
   }, [ev?.giftToken, site?.sections?.blessings]);
 
@@ -138,6 +146,15 @@ export default function EventSiteScreen({ localEvent }) {
         <span className={styles.stateStar}>✦</span>
         <p>הקישור אינו תקין או שפג תוקפו</p>
         <Link to="/" className={styles.stateLink}>לדף הבית</Link>
+      </div>
+    );
+  }
+  if (state === "unreachable") {
+    return (
+      <div className={styles.stateWrap}>
+        <span className={styles.stateStar}>✦</span>
+        <p>{UNREACHABLE_TEXT.title}</p>
+        <p>{UNREACHABLE_TEXT.body}</p>
       </div>
     );
   }
