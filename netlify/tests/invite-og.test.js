@@ -181,3 +181,56 @@ describe("and it gets out of the way when it cannot help", () => {
     expect(out.headers.get("content-length")).toBeNull();
   });
 });
+
+describe("every guest link previews as the event, not the product (WORKPLAN ר)", () => {
+  const DATED = { ...EVENT, date: "2026-10-01" };
+  const cases = [
+    ["/rsvp/tok123",          "rsvp",   "אישור הגעה · דנה &amp; יוסי"],
+    ["/invitation/tok123",    "invite", "הזמנה · דנה &amp; יוסי"],
+    ["/save-the-date/tok123", "invite", "שמרו את התאריך · דנה &amp; יוסי"],
+    ["/card/tok123",          "invite", "הזמנה · דנה &amp; יוסי"],
+    ["/album/tok123",         "album",  "אלבום התמונות · דנה &amp; יוסי"],
+    ["/gift/tok123",          "gift",   "מתנה וברכה · דנה &amp; יוסי"],
+  ];
+  for (const [path, type, title] of cases) {
+    it(`${path} → asks as "${type}", titles the event`, async () => {
+      fetchMock.mockResolvedValue(new Response(JSON.stringify(DATED), { status: 200 }));
+      const body = await (await run("https://kochav.co.il" + path)).text();
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body).token_type).toBe(type);
+      expect(body).toContain(`<title>${title}</title>`);
+      expect(body).toContain('<meta property="og:title" content="' + title + '"');
+    });
+  }
+
+  it("prints the date from its own parts — no day lost to UTC", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(DATED), { status: 200 }));
+    const body = await (await run("https://kochav.co.il/rsvp/tok123")).text();
+    expect(body).toContain("1.10.2026");
+    expect(body).not.toContain("30.9.2026");
+  });
+
+  it("leaves the projected gift wall alone", async () => {
+    const { out, res } = await runWith("https://kochav.co.il/gift/tok123/wall");
+    expect(out).toBe(res);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("the site keeps its original title", async () => {
+    const body = await (await run()).text();
+    expect(body).toContain("<title>אתר החתונה של דנה &amp; יוסי</title>");
+  });
+});
+
+describe("netlify.toml routes every path in ROUTES to this function", () => {
+  it("has an [[edge_functions]] entry for each", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { ROUTES } = await import("../edge-functions/invite-og.js");
+    const toml = readFileSync(new URL("../../netlify.toml", import.meta.url), "utf8")
+      .split("\n").map(l => l.replace(/#.*$/, "")).join("\n");
+    const paths = [...toml.matchAll(/\[\[edge_functions\]\]\s*path\s*=\s*"([^"]+)"\s*function\s*=\s*"invite-og"/g)].map(x => x[1]);
+    for (const r of ROUTES) {
+      const prefix = r.re.source.match(/^\^\\\/([a-z-]+)\\\//)[1];
+      expect(paths, prefix).toContain(`/${prefix}/*`);
+    }
+  });
+});
