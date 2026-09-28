@@ -63,3 +63,21 @@
   from   = "/*"
   to     = "/index.html"
   status = 200
+
+# ── Security headers (audit 28.9, A2) ────────────────────────────────────────
+# Nothing was set before, so any site could frame the app (clickjacking a
+# signed-in host into a delete), and every outbound link — Waze, maps,
+# WhatsApp — sent the FULL guest URL as Referer, token included.
+#
+# frame-ancestors is 'self', not 'none': the site and invitation editors
+# preview the real guest page in a same-origin <iframe>. 'none' breaks both.
+# No Permissions-Policy: the door screen needs the camera for QR check-in.
+# No full CSP yet — Supabase, Stripe, PostHog and Google Fonts would each need
+# listing, and a wrong one blanks the app on the one stage that never runs here.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options         = "SAMEORIGIN"
+    Content-Security-Policy = "frame-ancestors 'self'"
+    X-Content-Type-Options  = "nosniff"
+    Referrer-Policy         = "strict-origin-when-cross-origin"
