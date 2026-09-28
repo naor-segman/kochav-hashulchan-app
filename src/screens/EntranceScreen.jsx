@@ -6,9 +6,10 @@ import { uid } from "../utils/uid.js";
 import {
   seatsOf, arrivedSeatsOf, arrivedCountOf, isFullyArrived, withArrivedSeats,
   setRowArrived, toggleSeat, setArrivedCount, arrivalTotals, searchGuests,
-  seatChipLabels, tableAvailability, norm,
+  seatChipLabels, tableAvailability, norm, mergeArrivals,
 } from "../utils/arrival.js";
 import { fetchHostessData, markArrivalByToken } from "../utils/publicTokens.js";
+import { fetchCloudEventGuests } from "../utils/cloudSync.js";
 import { isScanSupported, parseScanPayload } from "../utils/scanPayload.js";
 import QrScanner from "../components/ui/QrScanner.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
@@ -236,6 +237,41 @@ export default function EntranceScreen({
     if (!loading && !localEvent) navigate("/app", { replace: true });
   }, [isToken, loading, localEvent, navigate]);
 
+  // ── The host's own door: the greeter's marks while this screen is open ─────
+  // WORKPLAN ב2. The greeter writes to the cloud; this screen read only the
+  // local copy, so a host standing at the door saw none of the greeter's
+  // check-ins until a reload. It now reads its own cloud row every 25s (the
+  // greeter's cadence) and overlays arrivals with the SAME per-row timestamp
+  // rule the sync merge uses. Display only: nothing is written, the sync
+  // engine is untouched, and a failed read keeps the last good overlay.
+  const ownerCloudId = !isToken ? localEvent?.cloudId : null;
+  const [cloudGuests, setCloudGuests] = useState(null);
+  useEffect(() => {
+    if (!ownerCloudId) return undefined;
+    let alive = true;
+    const pull = async () => {
+      try {
+        const g = await fetchCloudEventGuests(ownerCloudId);
+        if (alive && g) setCloudGuests({ forId: ownerCloudId, guests: g });
+      } catch { /* keep the last overlay; the next pull retries */ }
+    };
+    pull();
+    const iv = setInterval(pull, 25000);
+    return () => { alive = false; clearInterval(iv); };
+  }, [ownerCloudId]);
+  // The latest overlay, for the write path below: a host's tap must start
+  // from the row as the screen SHOWS it. Starting from the local row, a tap on
+  // seat 2 of a family the greeter had marked seat 1 of would be stamped newer
+  // and, by the merge's last-writer rule, drop the greeter's seat.
+  const cloudGuestsRef = useRef(null);
+  useEffect(() => {
+    cloudGuestsRef.current = cloudGuests && cloudGuests.forId === localEvent?.cloudId ? cloudGuests.guests : null;
+  }, [cloudGuests, localEvent?.cloudId]);
+  const ownerEvent = useMemo(() => {
+    if (!localEvent || !cloudGuests || cloudGuests.forId !== localEvent.cloudId) return localEvent;
+    return { ...localEvent, guests: mergeArrivals(localEvent.guests, cloudGuests.guests) };
+  }, [localEvent, cloudGuests]);
+
   // ── One shape for both modes ───────────────────────────────────────────────
   const ev = isToken
     ? (remote && {
@@ -245,7 +281,7 @@ export default function EntranceScreen({
         tables: remote.tables,
         seating: remote.seating,
       })
-    : localEvent;
+    : ownerEvent;
 
   const canWrite  = isToken ? !!remote?.writesOpen : true;
   const canManage = !isToken;   // walk-ins, by-table browse, the door-link switch
@@ -301,9 +337,10 @@ export default function EntranceScreen({
          loadRemote();
        });
     } else {
+      const shown = g => (cloudGuestsRef.current ? mergeArrivals([g], cloudGuestsRef.current)[0] : g);
       patchEventById(eventId, e => ({
         ...e,
-        guests: e.guests.map(g => (g.id === guestId ? transform(g) : g)),
+        guests: e.guests.map(g => (g.id === guestId ? transform(shown(g)) : g)),
       }));
     }
   }, [canWrite, isToken, token, eventId, patchEventById, loadRemote]);

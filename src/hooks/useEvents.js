@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { loadState, persist, userStorageKey } from "../utils/storage.js";
 import { normalizeEvent, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
+import { mergeArrivals } from "../utils/arrival.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
@@ -44,20 +45,9 @@ function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRo
   );
 }
 
-/**
- * Take the cloud's arrival state for any guest this tab has never expressed an
- * opinion about.
- *
- * "Never expressed an opinion" is precisely `arrivedSeats === undefined` and no
- * truthy `arrived`. That is different from `arrivedSeats: []`, which is the host
- * deliberately un-marking someone — so un-marking still wins, and a host who
- * marks people on their own device still wins. Only the guests the local copy is
- * silent about are taken from the cloud, which is exactly the set the greeter
- * touched after this tab last read the row.
- *
- * A guest missing from either side is left alone; this never adds or removes a
- * row, only two keys on rows that exist on both.
- */
+// mergeArrivals moved to utils/arrival.js (28.9) — the host's door screen
+// uses the same rule to overlay the greeter's marks while it is open.
+
 /**
  * Rows the OTHER device added, which whole-event last-write-wins throws away.
  *
@@ -280,37 +270,6 @@ function keepFilledCosts(winner, loser) {
   return (!has(winner) && has(loser)) ? loser : winner;
 }
 
-function mergeArrivals(localGuests, cloudGuests) {
-  if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
-  const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
-  const take = c => ({ arrivedSeats: c.arrivedSeats, arrived: c.arrived, arrivedAt: c.arrivedAt });
-  const stamp = g => (Number.isFinite(g?.arrivedAt) ? g.arrivedAt : null);
-  const silent = g => g?.arrivedSeats === undefined && !g?.arrived;
-
-  return localGuests.map(g => {
-    const c = cloudById.get(g.id);
-    if (!c || silent(c)) return g;
-
-    // The rule, once both sides carry a stamp: whoever wrote last wins. That is
-    // the only question about arrivals with a correct answer, because the two
-    // writers are different PEOPLE — the host on their phone and the greeter at
-    // the door — and neither is authoritative over the other.
-    const ls = stamp(g), cs = stamp(c);
-    if (ls !== null && cs !== null) return cs > ls ? { ...g, ...take(c) } : g;
-    if (cs !== null && ls === null) return { ...g, ...take(c) };
-    if (ls !== null && cs === null) return g;
-
-    // NEITHER side is stamped: rows written before this shipped, or by a client
-    // that has not updated. Fall back to the old rule exactly — the local copy
-    // wins if it has said anything at all — so nothing about existing data
-    // changes behaviour until it is next touched.
-    //
-    // The old rule is wrong (it cannot tell a local opinion from a value it
-    // copied from the cloud), and this is the shape of being wrong that loses
-    // the SECOND update rather than the first. Kept only as the legacy path.
-    return silent(g) ? { ...g, ...take(c) } : g;
-  });
-}
 
 // Cloud events take precedence over local events with the same ID.
 // Local-only events (no cloudId, not present in cloud) are kept as-is.

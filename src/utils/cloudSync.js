@@ -320,3 +320,23 @@ export async function fetchCloudEvents(userId) {
   if (error) throw error;
   return (data ?? []).map(mapCloudEventToLocalEvent);
 }
+
+/**
+ * The guest rows of ONE event as the cloud holds them right now — for the
+ * host's door screen, which overlays the greeter's marks while it is open
+ * (WORKPLAN ב2). The owner reads their own row under RLS. Read-only: nothing
+ * here writes, and nothing here touches the sync state.
+ *
+ * @param {string} cloudId events.id
+ * @returns {Promise<object[]|null>} null when there is nothing to read
+ */
+export async function fetchCloudEventGuests(cloudId) {
+  if (!isSupabaseConfigured || !supabase || !cloudId) return null;
+  const { data, error } = await supabase
+    .from("events")
+    .select("payload")
+    .eq("id", cloudId)
+    .maybeSingle();
+  if (error) throw error;
+  return Array.isArray(data?.payload?.guests) ? data.payload.guests : null;
+}
