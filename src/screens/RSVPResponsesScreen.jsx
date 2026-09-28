@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { fetchRSVPResponses } from "../utils/publicTokens.js";
-import { pickMeal, pickCompanions } from "../utils/rsvpApply.js";
+import { pickMeal, pickCompanions, normName, normPhone, respStatus, latestPerRespondent } from "../utils/rsvpApply.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { uid } from "../utils/uid.js";
 import Banner from "../components/feedback/Banner.jsx";
@@ -11,22 +11,6 @@ import Loading from "../components/feedback/Loading.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import styles from "./RSVPResponsesScreen.module.css";
 
-// Normalize a display name for fuzzy matching between an RSVP response and a
-// guest-list row: trim, collapse inner whitespace, lowercase.
-function normName(s) {
-  return (s || "").trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-// Normalize an Israeli phone to a comparable local form (05x…) for matching.
-function normPhone(p) {
-  let d = (p || "").replace(/\D/g, "");
-  if (d.startsWith("00")) d = d.slice(2);
-  if (d.startsWith("972")) d = "0" + d.slice(3);
-  return d;
-}
-
-// A response's answer: prefer the new status column, fall back to the boolean.
-const respStatus = (r) => r.status || (r.attending ? "yes" : "no");
 // Map an RSVP answer to a guest-list rsvp value.
 const GUEST_RSVP = { yes: "confirmed", maybe: "maybe", no: "declined" };
 
@@ -87,13 +71,20 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     return null;
   }, [guestIndex]);
 
+  // A guest who answers twice is two rows — on purpose: the newest wins and
+  // the auto-sync below keys on row ids. But every COUNT on this screen summed
+  // all rows, so "maybe" then "yes" read as one maybe AND one yes, with the
+  // party counted twice for catering and twice on the bus (107/ת4, 28.9).
+  // Counts use each respondent's latest answer; the list below keeps history.
+  const current = useMemo(() => latestPerRespondent(responses), [responses]);
   const stats = useMemo(() => {
-    const confirmed = responses.filter(r => respStatus(r) === "yes");
-    const maybe     = responses.filter(r => respStatus(r) === "maybe");
-    const declined  = responses.filter(r => respStatus(r) === "no");
+    const confirmed = current.filter(r => respStatus(r) === "yes");
+    const maybe     = current.filter(r => respStatus(r) === "maybe");
+    const declined  = current.filter(r => respStatus(r) === "no");
     const coming    = confirmed.reduce((s, r) => s + (r.guests_count || 1), 0);
-    return { total: responses.length, confirmed: confirmed.length, maybe: maybe.length, declined: declined.length, coming };
-  }, [responses]);
+    return { total: current.length, confirmed: confirmed.length, maybe: maybe.length, declined: declined.length, coming,
+             repeats: responses.length - current.length };
+  }, [current, responses.length]);
 
   // ── Shuttle registrations ────────────────────────────────────────────────
   // Guests pick a shuttle on the RSVP form; the host needs seats-per-pickup to
@@ -105,12 +96,12 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       id: sh.id,
       label: [sh.place, sh.time].filter(Boolean).join(" · ") || "הסעה",
       // Whole party per responder — one RSVP can bring four people onto a bus.
-      seats: responses
+      seats: current
         .filter(r => r.shuttle_id === sh.id && respStatus(r) !== "no")
         .reduce((n, r) => n + (r.guests_count || 1), 0),
     }))
     .filter(sh => sh.seats > 0),
-    [responses, ev?.eventSite?.shuttles], // eslint-disable-line react-hooks/exhaustive-deps
+    [current, ev?.eventSite?.shuttles], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Meal forecast — count confirmed seats across the guest list (manual +
@@ -266,6 +257,13 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
             <span className={styles.statLabel}>לא מגיעים</span>
           </div>
         </div>
+      )}
+      {loadState === "ready" && stats.repeats > 0 && (
+        <p className={base.fieldHint}>
+          {stats.repeats === 1
+            ? "אורח אחד ענה יותר מפעם אחת — נספרה רק התשובה האחרונה שלו."
+            : `${stats.repeats} תשובות הוחלפו בתשובה חדשה יותר של אותו אורח — נספרה רק האחרונה.`}
+        </p>
       )}
 
       {/* ── Meal forecast (optional — collapsed by default) ── */}
