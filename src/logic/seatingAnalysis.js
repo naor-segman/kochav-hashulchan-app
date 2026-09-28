@@ -881,7 +881,7 @@ export function generateSuggestions(
       explanation:       `ציון איכות ההושבה: ${qualityScore}/100`,
       whyMatters:        qualityScore < 60
         ? "הסידור הנוכחי מכיל כמה בעיות שמשפיעות על חוויית האורחים"
-        : `הסידור סביר — ${criticalCount > 0 ? criticalCount + " נושאים קריטיים לטיפול" : "שיפורים קטנים ניתן לבצע"}`,
+        : `הסידור סביר — ${criticalCount === 1 ? "נושא קריטי אחד לטיפול" : criticalCount > 0 ? criticalCount + " נושאים קריטיים לטיפול" : "שיפורים קטנים ניתן לבצע"}`,
       impact:            qualityScore < 60
         ? "טיפול בבעיות הקריטיות ישפר משמעותית את חוויית האורחים"
         : "שיפורים קטנים יעלו את הציון ל-80 ומעלה",

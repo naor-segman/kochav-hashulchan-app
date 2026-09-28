@@ -268,6 +268,18 @@ describe("generateSuggestions — the categories that had no coverage", () => {
       .toBeUndefined();                                           // 80+ — nothing to say
   });
 
+  it("says 'one critical issue' in the singular — not '1 נושאים קריטיים'", () => {
+    // Browser audit 28.9 read "הסידור סביר — 1 נושאים קריטיים לטיפול" on the page.
+    const guests  = [g("a"), g("b"), g("c")];
+    const seating = { a: "t1", b: "t1", c: "t2" };
+    const apart   = [{ id: "k1", type: "apart", guestA: "a", guestB: "b" }];
+    const all     = generateSuggestions(guests, [t("t1", 10), t("t2", 10)], apart, seating, 70);
+    expect(all.filter(x => x.section === "critical")).toHaveLength(1);   // the premise
+    const q = find(all, "quality_score");
+    expect(q.whyMatters).toContain("נושא קריטי אחד");
+    expect(q.whyMatters).not.toMatch(/\b1 נושאים/);
+  });
+
   it("orders critical problems before fixes and opportunities", () => {
     const guests = [g("A"), g("B"), g("C"), g("D"), g("E")];
     const tables = [t("t1", 10), t("t2", 10)];

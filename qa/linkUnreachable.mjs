@@ -131,6 +131,8 @@ try {
       return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     });
     ok((await text(p)).includes('משפחת כהן'), 'the first poll shows the blessing');
+    // WORKPLAN ל2: "1 ברכות התקבלו" on the big screen.
+    ok((await text(p)).includes('ברכה אחת התקבלה'), 'one blessing is counted in the singular');
     await p.clock.runFor(31000);
     await p.waitForTimeout(500);
     ok(wallCalls >= 2, 'a second poll was attempted and failed', `calls=${wallCalls}`);

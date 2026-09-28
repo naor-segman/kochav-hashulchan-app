@@ -165,7 +165,9 @@ export default function GiftWallScreen() {
       <footer className={styles.bottomBar}>
         <p className={styles.totalLine}>
           {gifts.length > 0
-            ? `${gifts.length} ברכות התקבלו 💛`
+            // "1 ברכות התקבלו" was the first line of the evening on the big
+            // screen (WORKPLAN ל2).
+            ? (gifts.length === 1 ? "ברכה אחת התקבלה 💛" : `${gifts.length} ברכות התקבלו 💛`)
             : `${COMPANY.name} ✦`}
         </p>
       </footer>
