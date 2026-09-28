@@ -766,3 +766,16 @@ describe("getSideLabels — the couple's own wording", () => {
     expect(out.bride).not.toBe("");
   });
 });
+
+describe("normalizeEvent — rsvpApplied (ת3)", () => {
+  it("defaults to [] and keeps only non-empty strings", () => {
+    expect(normalizeEvent({ id: "e1", name: "x" }).rsvpApplied).toEqual([]);
+    expect(normalizeEvent({ id: "e1", name: "x", rsvpApplied: ["a", 3, null, "", "b"] }).rsvpApplied).toEqual(["a", "b"]);
+  });
+  it("keeps the newest 2,000", () => {
+    const ids = Array.from({ length: 2100 }, (_, i) => `r${i}`);
+    const out = normalizeEvent({ id: "e1", name: "x", rsvpApplied: ids }).rsvpApplied;
+    expect(out).toHaveLength(2000);
+    expect(out[0]).toBe("r100");
+  });
+});

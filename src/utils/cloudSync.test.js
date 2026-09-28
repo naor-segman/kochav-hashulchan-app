@@ -25,6 +25,7 @@ const richEvent = {
   giftBitPhone: "0501234567", giftPayboxLink: "https://payboxapp.page.link/x",
   eventSite: { enabled: true, schedule: [{ id: "s1", time: "18:00", title: "קבלה" }], sections: {} },
   noShowPct: 0,
+  rsvpApplied: ["resp-1", "resp-2"],
   floorPlan: { image: "data:image/png;base64,AAA", tablePositions: { t1: { x: 0.3, y: 0.4, size: 1.4 } } },
   createdAt: 1700000000000, updatedAt: 1700000005000, version: 2,
 };
@@ -35,6 +36,10 @@ describe("cloudSync round-trip (local → cloud → local)", () => {
   it("preserves customGroups and customTableTypes", () => {
     expect(out.customGroups).toEqual(["חברים מהצבא"]);
     expect(out.customTableTypes).toEqual(["שולחן ילדים"]);
+  });
+
+  it("preserves which RSVP answers were already applied (ת3)", () => {
+    expect(out.rsvpApplied).toEqual(["resp-1", "resp-2"]);
   });
 
   it("preserves every public token", () => {

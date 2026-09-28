@@ -754,3 +754,19 @@ describe("mergeCloudWithLocal — a deleted row stays deleted", () => {
     expect(out.deletedRows.guests).toBeUndefined();
   });
 });
+
+describe("rsvpApplied — an answer applied on either device stays applied (ת3)", () => {
+  it("unions the two lists when the local copy wins", () => {
+    const local = [ev({ rsvpApplied: ["a", "b"], updatedAt: 9_000_000, version: 6, cloudId: "c1" })];
+    const cloud = [ev({ rsvpApplied: ["b", "c"], updatedAt: 1_000,     version: 5, cloudId: "c1" })];
+    const [out] = mergeCloudWithLocal(local, cloud);
+    expect([...out.rsvpApplied].sort()).toEqual(["a", "b", "c"]);
+  });
+
+  it("and when the cloud copy wins", () => {
+    const local = [ev({ rsvpApplied: ["a"],      updatedAt: 1_000,     cloudId: "c1" })];
+    const cloud = [ev({ rsvpApplied: ["b", "c"], updatedAt: 9_000_000, cloudId: "c1" })];
+    const [out] = mergeCloudWithLocal(local, cloud);
+    expect([...out.rsvpApplied].sort()).toEqual(["a", "b", "c"]);
+  });
+});

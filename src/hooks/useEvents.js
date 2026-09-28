@@ -392,6 +392,8 @@ export function mergeCloudWithLocal(
         tasks:       unionById(localMatch.tasks,       ce.tasks,       tombs.tasks),
         vendors:     unionById(localMatch.vendors,     ce.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(localMatch.messagesSent, ce.messagesSent),
+        // Applied is a one-way fact: an id applied on EITHER device stays applied.
+        rsvpApplied:      unionStrings(ce.rsvpApplied, localMatch.rsvpApplied),
         messageTemplates: unionByKey(localMatch.messageTemplates, ce.messageTemplates),
         costs:            keepFilledCosts(localMatch.costs, ce.costs),
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
@@ -460,6 +462,7 @@ export function mergeCloudWithLocal(
         tasks:       unionById(result.tasks,       localMatch.tasks,       tombs.tasks),
         vendors:     unionById(result.vendors,     localMatch.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(result.messagesSent, localMatch.messagesSent),
+        rsvpApplied:      unionStrings(result.rsvpApplied, localMatch.rsvpApplied),
         messageTemplates: unionByKey(result.messageTemplates, localMatch.messageTemplates),
         costs:            keepFilledCosts(result.costs, localMatch.costs),
         // Everything below is the ARRANGEMENT around those rows. Keeping a

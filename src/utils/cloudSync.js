@@ -91,6 +91,7 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       albumToken:         localEvent.tokens?.album ?? null,
       messagesSent:       localEvent.messagesSent ?? {},
       messageTemplates:   localEvent.messageTemplates ?? {},
+      rsvpApplied:        Array.isArray(localEvent.rsvpApplied) ? localEvent.rsvpApplied : [],
       // Tombstones ride in the payload, and they MUST be in both mappers.
       // A field written locally and missing from either direction here is
       // silent data loss — it has happened three times in this file. For this
@@ -148,6 +149,7 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     vendors:          Array.isArray(p.vendors) ? p.vendors : [],
     messagesSent:     p.messagesSent ?? {},
     messageTemplates: p.messageTemplates ?? {},
+    rsvpApplied:      Array.isArray(p.rsvpApplied) ? p.rsvpApplied : [],
     deletedRows:      p.deletedRows ?? {},
     // Prefer the scalar token column, but fall back per-token to the payload's
     // tokens object. A column that is NULL (e.g. added by a later migration)

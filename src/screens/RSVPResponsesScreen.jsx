@@ -181,6 +181,11 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   useEffect(() => {
     if (!hydrated.current) {
       hydrated.current = true;
+      // The synced list first (ת3, 28.9) — it is what the OTHER device
+      // applied. The old per-browser list is still read once, so nothing this
+      // browser applied before the change is applied again; it is no longer
+      // written.
+      (ev.rsvpApplied || []).forEach(id => autoDone.current.add(id));
       try { JSON.parse(localStorage.getItem(appliedKey) || "[]").forEach(id => autoDone.current.add(id)); }
       catch { /* ignore */ }
     }
@@ -215,11 +220,15 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       n++;
     });
 
-    if (changed) { try { localStorage.setItem(appliedKey, JSON.stringify([...autoDone.current])); } catch { /* ignore */ } }
-    if (n === 0) return;
-    patchEvent(e => ({ ...e, guests: e.guests.map(g => updates.has(g.id) ? { ...g, ...updates.get(g.id) } : g) }));
-    showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
-  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast, appliedKey]);
+    if (!changed && n === 0) return;
+    const applied = [...autoDone.current];
+    patchEvent(e => ({
+      ...e,
+      rsvpApplied: [...new Set([...(e.rsvpApplied || []), ...applied])],
+      guests: n === 0 ? e.guests : e.guests.map(g => updates.has(g.id) ? { ...g, ...updates.get(g.id) } : g),
+    }));
+    if (n > 0) showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
+  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast, appliedKey, ev.rsvpApplied]);
 
   const rsvpLink = ev.tokens?.rsvp
     ? window.location.origin + "/rsvp/" + ev.tokens.rsvp

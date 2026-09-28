@@ -145,6 +145,12 @@ export function normalizeEvent(ev) {
     // host edited. Both survive an automated-sending switch untouched.
     messagesSent:     (ev.messagesSent && typeof ev.messagesSent === "object") ? ev.messagesSent : {},
     messageTemplates: (ev.messageTemplates && typeof ev.messageTemplates === "object") ? ev.messageTemplates : {},
+    // RSVP response ids already applied to the guest list (ת3, 28.9). Lived in
+    // one browser's localStorage, so a second device re-applied every old
+    // answer over the host's manual changes. Synced with the event now; the
+    // newest 2,000 are kept.
+    rsvpApplied: Array.isArray(ev.rsvpApplied)
+      ? ev.rsvpApplied.filter(x => typeof x === "string" && x).slice(-2000) : [],
     // Which rows this account has DELETED, as `{ collection: { rowId: when } }`.
     //
     // The merge unions id-keyed collections in both directions, which is what
@@ -385,6 +391,8 @@ export function duplicateEvent(ev) {
     // messagesSent is keyed by GUEST id, and the copy has new guest ids — a
     // carried-over map would match nobody and never be pruned. Start clean.
     messagesSent: {},
+    // Response ids of the ORIGINAL event's RSVP link; the copy has its own.
+    rsvpApplied: [],
     // Vendors carry over — the same DJ and the same photographer are usually
     // the point of duplicating an event — but their BOOKING state does not.
     // Copying them verbatim gave the new event a DJ already "booked" and
