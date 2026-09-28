@@ -93,7 +93,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const chooseListGroup = (value) =>
     value === "__addgroup__" ? addCustomGroup(setListGroup) : setListGroup(value);
 
-  const { plan, limits } = usePlan();
+  // Scoped to this event — see usePlan's header. (Every guest cap is Infinity
+  // today, so nothing here changes behaviour; it changes which question is
+  // being asked, so it stays right when a cap returns.)
+  const { plan, limits } = usePlan(ev);
   const { maxGuests } = limits;
   // Every cap question on this screen goes through here, so the screen cannot
   // disagree with itself about whether a limit applies.

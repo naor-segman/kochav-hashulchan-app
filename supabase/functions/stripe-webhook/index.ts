@@ -165,6 +165,32 @@ Deno.serve(async (req: Request) => {
           console.error("checkout.session.completed — listLineItems failed:", err?.message ?? err);
         }
         const plan = planFromPrice(priceId, session.metadata?.plan);
+
+        /* WHICH EVENT was bought. A purchase unlocks one event, so a row written
+           without it is an account-wide entitlement — the bug the per-event
+           model exists to remove, and one that shows up as revenue that never
+           arrives rather than as an error.
+           Re-verified here against the events table even though
+           create-checkout-session already did: this handler trusts nothing from
+           the metadata blob, and a session could in principle have been created
+           by an older deploy of that function. A mismatch writes null (the row
+           still records the payment and the host keeps access account-wide)
+           rather than dropping the purchase on the floor. */
+        let eventId: string | null = session.metadata?.event_id ?? null;
+        if (eventId) {
+          const { data: owned } = await supabase
+            .from("events")
+            .select("id")
+            .eq("id", eventId)
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (!owned) {
+            console.error(`checkout.session.completed: event ${eventId} does not belong to ${userId} — recording the purchase account-wide`);
+            eventId = null;
+          }
+        } else {
+          console.warn(`checkout.session.completed: no event_id in metadata for session ${session.id} — recording the purchase account-wide`);
+        }
         if (plan === "free") {
           // Neither the price nor the metadata named a plan we recognise. Writing
           // the row anyway would record a purchase that grants nothing, and the
@@ -181,6 +207,7 @@ Deno.serve(async (req: Request) => {
           .upsert(
             {
               user_id:                    userId,
+              event_id:                   eventId,
               plan,
               // One payment, so there is nothing to be in trouble about later:
               // no trial, no grace period, no renewal that can fail.

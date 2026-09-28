@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { bestPlanOnAccount } from "../../utils/entitlement.js";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import { getPlanLabel } from "../lib/planConfig.js";
@@ -34,7 +35,7 @@ async function loadUsersData() {
       // subscriptions ordered: without it PostgREST returns the embed in an
       // arbitrary order, so a user with two active rows could show a stale plan
       // here while the customer app showed the current one.
-      .select("id, email, full_name, role, created_at, subscriptions(plan, status, started_at)")
+      .select("id, email, full_name, role, created_at, subscriptions(plan, status, started_at, expires_at, event_id)")
       .order("created_at", { ascending: false })
       .order("started_at", { referencedTable: "subscriptions", ascending: false })
       .limit(USERS_PAGE),
@@ -59,18 +60,23 @@ async function loadUsersData() {
   });
 
   const rows = (profilesRes.data || []).map((p) => {
+    /* One implementation of the entitlement rule, shared with the customer app.
+       This used to pick `subs.find(active || trialing) ?? subs[0]` by hand under
+       a comment promising "the same rule usePlan() applies, so support and the
+       customer see one plan" — and it was a SECOND copy of that rule, so the
+       promise held only for as long as nobody edited either side. It stopped
+       holding the moment purchases became per-event: this would have shown
+       support a paid plan for a host whose events are all free, or the reverse.
+       bestPlanOnAccount is what the account screen shows, which is the right
+       answer for a per-USER row in a user list — the per-event breakdown belongs
+       on the event screens. */
     const subs = p.subscriptions || [];
-    // Prefer a currently-effective plan (active, then trialing) over an arbitrary
-    // historical row PostgREST happened to return first.
-    // Same rule usePlan() applies, so support and the customer see one plan.
-    const sub  = subs.find((s) => s.status === "active" || s.status === "trialing")
-              ?? subs[0];
     return {
       id:          p.id,
       email:       p.email,
       full_name:   p.full_name || null,
       role:        p.role,
-      plan:        sub?.plan || "free",
+      plan:        bestPlanOnAccount(subs),
       created_at:  p.created_at,
       event_count: eventCounts[p.id] || 0,
     };

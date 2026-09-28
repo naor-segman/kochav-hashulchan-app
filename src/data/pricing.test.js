@@ -258,6 +258,40 @@ describe("pricing: the checkout does what the page promises", () => {
     expect(webhook).not.toMatch(/case "invoice\./);
   });
 
+  it("a purchase belongs to ONE event, end to end", () => {
+    /* The price is "תשלום אחד לאירוע" and until 28.9 the purchase row was per
+       USER: paying ₪690 for a wedding unlocked every event the host would ever
+       create, including ones made years later. Four links in that chain, and the
+       whole thing is worthless if any one of them is missing — a browser that
+       does not send the event, a server that does not demand it, a server that
+       takes the browser's word for whose event it is, or a webhook that does not
+       store it. */
+    expect(checkout).toMatch(/eventId/);                        // the request carries it
+    expect(checkout).toMatch(/eventId is required/);            // and is refused without it
+    expect(checkout).toMatch(/event_id:\s*eventId/);            // into Stripe metadata
+    expect(webhook).toMatch(/event_id:\s*eventId/);             // and into the row
+
+    // The server must not take the browser's word for whose event it is. Without
+    // this, any signed-up user could point a purchase at someone else's event.
+    expect(checkout).toMatch(/from\("events"\)[\s\S]{0,200}eq\("user_id", user\.id\)/);
+    expect(webhook).toMatch(/from\("events"\)[\s\S]{0,200}eq\("user_id", userId\)/);
+
+    const migration = readFileSync("supabase/migrations/20260928000000_per_event_entitlement.sql", "utf8");
+    expect(migration).toMatch(/event_id uuid/);
+    // ON DELETE SET NULL, not CASCADE: deleting an event must not delete the
+    // record that money changed hands.
+    expect(migration).toMatch(/ON DELETE SET NULL/);
+  });
+
+  it("refuses to charge twice for the same event, before Stripe is called", () => {
+    /* There is deliberately no UNIQUE (user_id, event_id) — it would block a
+       refund-then-rebuy and an upgrade to the ₪1,290 package, and it would fail
+       AFTER the money moved, in a webhook, where the only remedy is a refund.
+       The guard is a check in FRONT of the charge, and this is what pins it. */
+    expect(checkout).toMatch(/alreadyPurchased/);
+    expect(checkout).toMatch(/eq\("event_id", eventId\)/);
+  });
+
   it("the purchase is keyed on the checkout session, which is what makes it idempotent", () => {
     // Stripe can deliver the same event twice and a host can complete two
     // sessions with the Back button. Without this conflict target, either

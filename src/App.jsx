@@ -220,7 +220,10 @@ function AppRoutes() {
   const { user, loading: authLoading }                                  = useAuth();
   const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady } = useEvents(user);
   const { toast, showToast }                                            = useToast();
-  const { plan }                                                        = usePlan();
+  // No event in scope here — AppRoutes sits above /events/:eventId — so this is
+  // the account-level form, used for nothing but the event allowance below.
+  // Every real gate asks usePlan(ev).
+  const { unpaidEvents }                                                = usePlan();
   const navigate                                                        = useNavigate();
   const migration = useMigration(events, patchEventById, user);
 
@@ -273,9 +276,13 @@ function AppRoutes() {
   // field on the start screen cannot silently write an unknown key into an
   // event record that has to survive the cloud round-trip.
   const startEvent = useCallback((seed = {}) => {
-    const gate = canCreateEvent(plan, events.length);
+    /* The UNPAID count, not events.length. A host who paid ₪690 for their
+       wedding used to still be at one-of-one and could not start anything else —
+       buying the package cost them room. See canCreateEvent. */
+    const gate = canCreateEvent(unpaidEvents(events));
     if (!gate.allowed) {
-      showToast(gate.reason + " — שדרגו את התוכנית להוספת אירועים נוספים", "err");
+      // The reason now says what to do, so it is not appended to any more.
+      showToast(gate.reason, "err");
       return;
     }
     const now = Date.now();
@@ -301,7 +308,7 @@ function AppRoutes() {
     track(EVENTS.EVENT_CREATED, { type: ev.type, source: "new" });
     navigate(`/events/${ev.id}`);
     window.scrollTo(0, 0);
-  }, [addEvent, navigate, plan, events.length, showToast]);
+  }, [addEvent, navigate, unpaidEvents, events, showToast]);
 
   const deleteEvent = useCallback((id) => {
     removeEvent(id);
@@ -309,9 +316,9 @@ function AppRoutes() {
   }, [removeEvent, showToast]);
 
   const handleDuplicateEvent = useCallback((id) => {
-    const gate = canCreateEvent(plan, events.length);
+    const gate = canCreateEvent(unpaidEvents(events));
     if (!gate.allowed) {
-      showToast(gate.reason + " — שדרגו את התוכנית להוספת אירועים נוספים", "err");
+      showToast(gate.reason, "err");
       return;
     }
     const original = events.find(e => e.id === id);
@@ -322,7 +329,7 @@ function AppRoutes() {
     navigate(`/events/${copy.id}`);
     window.scrollTo(0, 0);
     showToast("האירוע שוכפל ✓");
-  }, [events, addEvent, navigate, plan, showToast]);
+  }, [events, addEvent, navigate, unpaidEvents, showToast]);
 
   // go() for the dashboard Shell — the area rails are hidden on the dashboard,
   // so only the wordmark click and "new event" reach this.
@@ -358,7 +365,11 @@ function AppRoutes() {
             )}
             <DashboardScreen
               events={events}
-              plan={plan}
+              /* The unpaid count, not a plan. There is no account-level plan any
+                 more — three events can sit on three different packages — and
+                 the only thing this screen gated on it was the event
+                 allowance. */
+              unpaidCount={unpaidEvents(events)}
               onStartEvent={startEvent}
               onNewEvent={() => { navigate("/start"); window.scrollTo(0, 0); }}
               onOpenEvent={id => { navigate(`/events/${id}`); window.scrollTo(0, 0); }}
@@ -507,7 +518,11 @@ function AppRoutes() {
       <Route path="/login"         element={<LoginScreen />} />
       <Route path="/signup"        element={<SignupScreen />} />
       <Route path="/reset-password" element={<ResetPasswordScreen />} />
-      <Route path="/account"       element={<AccountScreen eventCount={events.length} showToast={showToast} />} />
+      {/* `events`, not only a count. Packages are bought per event, so this screen
+          has to be able to say WHICH events were paid for — with a count it could
+          only ever show one plan for the whole account, which is the model the
+          product moved off. */}
+      <Route path="/account"       element={<AccountScreen events={events} eventCount={events.length} showToast={showToast} />} />
       <Route path="/auth/callback" element={<AuthCallbackScreen />} />
 
       {/* ── Legal / policy / help pages ── */}

@@ -81,7 +81,10 @@ const TOUCH_ACTIVATION   = { activationConstraint: { delay: 250, tolerance: 5 } 
 
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const navigate = useNavigate();
-  const { plan } = usePlan();
+  // usePlan(ev), not usePlan(). The package belongs to THIS event: ₪690 buys
+  // one wedding, not the account. Passing the event object and not `ev.id` is
+  // load-bearing — a purchase references `ev.cloudId`.
+  const { plan } = usePlan(ev);
   const { confirm, dialog } = useConfirm();
   // Which table cards are open. A Set, not a single id: opening one table used
   // to close whichever other table was open, which is exactly what the host

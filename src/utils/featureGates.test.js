@@ -11,24 +11,37 @@ import {
 // through `withinPlan` and would go on holding the day the switch flips.
 
 describe("plan rules — what each plan allows", () => {
-  it("free is one event", () => {
-    expect(canCreateEvent("free", 0).withinPlan).toBe(true);
-    expect(canCreateEvent("free", 1).withinPlan).toBe(false);
-    expect(canCreateEvent("free", 1).reason).toContain("1");
+  /* canCreateEvent counts UNPAID events and takes no plan at all now.
+     It used to be canCreateEvent(plan, totalEventCount), and these three tests
+     encoded the account-plan model: "pro allows unlimited events". There is no
+     account plan any more — a host can hold three events on three different
+     packages — so the question "how many events does my plan allow" has no
+     answer. The question that does is "how many have I not paid for yet". */
+  it("one unpaid event at a time", () => {
+    expect(canCreateEvent(0).withinPlan).toBe(true);
+    expect(canCreateEvent(1).withinPlan).toBe(false);
   });
 
-  /* Was "pro is twenty events". The per-event model (checklist 31) removed
-     every event cap above free: you pay per event, so capping how many you may
-     create is charging twice for the same thing. */
-  it("only free is capped at one event", () => {
-    expect(canCreateEvent("free", 0).withinPlan).toBe(true);
-    expect(canCreateEvent("free", 1).withinPlan).toBe(false);
-    expect(canCreateEvent("pro", 9999).withinPlan).toBe(true);
+  it("paying for an event frees the allowance rather than spending it", () => {
+    /* THE regression this replaces. With the old signature a host who bought the
+       ₪690 package still had one event against a limit of one, so the purchase
+       took away their ability to start anything else — they paid us and got less
+       room. The unpaid count drops to zero when the wedding is bought, and the
+       next event starts free. */
+    expect(canCreateEvent(1).withinPlan).toBe(false);   // one unpaid event → full
+    expect(canCreateEvent(0).withinPlan).toBe(true);    // it got paid for → room
   });
 
-  it("enterprise is unlimited, and says nothing about it", () => {
-    expect(canCreateEvent("enterprise", 9999).withinPlan).toBe(true);
-    expect(canCreateEvent("enterprise", 9999).reason).toBeNull();
+  it("the refusal names the way out", () => {
+    // The old message was "תוכנית X מאפשרת עד 1 אירוע" — a statement of fact to
+    // someone who has one event and no idea what to do about it.
+    const reason = canCreateEvent(1).reason;
+    expect(reason).toMatch(/רכשו/);
+    expect(reason).not.toMatch(/תוכנית/);
+  });
+
+  it("says nothing when the host is within the allowance", () => {
+    expect(canCreateEvent(0).reason).toBeNull();
   });
 
   /* Was "free is eighty guests". 80 is below every Israeli wedding, so the

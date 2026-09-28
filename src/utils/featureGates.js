@@ -24,15 +24,36 @@ export const PLAN_GATES_ENFORCED = false;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Whether the user can create another event.
- * @param {string} plan
- * @param {number} currentCount — number of events the user already has
+ * Whether the host can start another event.
+ *
+ * ⚠️ IT COUNTS THE UNPAID ONES, and the argument changed name to say so.
+ *
+ * It used to take `(plan, currentCount)` and compare the host's TOTAL event
+ * count against the account's `maxEvents`. Under one-payment-per-event that is
+ * wrong in both directions and the wrong one is punishing: a host who paid ₪690
+ * for their wedding still had one event against a limit of one, so buying the
+ * package took away their ability to start anything else. They had paid us and
+ * got less room than before.
+ *
+ * The free tier's own words on the pricing page are "אירוע אחד". The honest
+ * reading of that, once each event is bought separately, is ONE UNPAID EVENT AT
+ * A TIME — plus every event you have paid for. Pay for the wedding and the next
+ * event starts free again, which is also the shape that sells: the second
+ * purchase is a decision about the second event, not about a plan.
+ *
+ * `utils/entitlement.js unpaidEventCount(purchases, events)` produces the
+ * argument, and `usePlan().unpaidEvents(events)` is the hook that hands it over.
+ *
+ * @param {number} unpaidCount — events the host has NOT paid for
  */
-export function canCreateEvent(plan, currentCount) {
-  const { maxEvents } = getPlanLimits(plan);
+export function canCreateEvent(unpaidCount) {
+  // The allowance is a property of the free tier. There is no account-level plan
+  // any more — a host can hold three events on three different packages — so
+  // there is no plan to look up here.
+  const { maxEvents } = getPlanLimits("free");
   // `withinPlan` is the rule; `allowed` is the rule after the switch above.
   // Both are returned so the limits stay testable while enforcement is off.
-  const withinPlan = currentCount < maxEvents;
+  const withinPlan = unpaidCount < maxEvents;
   const allowed    = !PLAN_GATES_ENFORCED || withinPlan;
   return {
     allowed,
@@ -40,7 +61,11 @@ export function canCreateEvent(plan, currentCount) {
     limit: maxEvents,
     reason: withinPlan || maxEvents === Infinity
       ? null
-      : `תוכנית ${getPlanLabel(plan)} מאפשרת עד ${maxEvents} ${maxEvents === 1 ? "אירוע" : "אירועים"}`,
+      // Names what to DO, which the old message could not: it said the plan
+      // allows one event, to someone who had one event and no way forward.
+      : maxEvents === 1
+        ? "אפשר אירוע אחד ללא תשלום בכל פעם. לפתיחת אירוע נוסף — רכשו את החבילה לאירוע הקיים"
+        : `אפשר עד ${maxEvents} אירועים ללא תשלום בכל פעם`,
   };
 }
 

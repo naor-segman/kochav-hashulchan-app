@@ -8,6 +8,7 @@ import {
 } from "../admin/lib/planConfig.js";
 import { isPaidPlan, isStripeConfigured } from "../admin/lib/stripeConfig.js";
 import { useBilling } from "../hooks/useBilling.js";
+import { usePlan } from "../hooks/usePlan.js";
 import { useSubscription } from "../hooks/useSubscription.js";
 import styles from "./AccountScreen.module.css";
 import Loading from "../components/feedback/Loading.jsx";
@@ -61,21 +62,32 @@ function planFeatures(key) {
 function cardBtnLabel(cardKey, currentPlanKey) {
   if (cardKey === currentPlanKey) return "תוכנית נוכחית ✓";
   if (cardKey === "free")         return "—";
-  // Was "שדרגו ל-Pro" — the internal DB key, printed at a customer. The label
-  // comes from PLAN_META, which is what the rest of the screen shows.
-  if (cardKey === "pro")          return `שדרגו ל${getPlanLabel("pro")}`;
+  /* The ₪690 card cannot start a checkout FROM HERE any more, and that is the
+     point of per-event entitlement rather than an oversight: a purchase unlocks
+     one event, and this screen is handed `eventCount` — a number — so it has no
+     event to buy. It sends the host to the event list, where each event has its
+     own package card.
+
+     It used to read "שדרגו ל-Pro" and call billing.startCheckout(key) with no
+     event at all, which under the new model would have written an account-wide
+     entitlement: one payment, every event unlocked. That is the bug. */
+  if (cardKey === "pro")          return "בחרו אירוע לרכישה";
   if (cardKey === "enterprise")   return "צרו קשר";
   return "—";
 }
 
 // ── AccountScreen ─────────────────────────────────────────────────────────────
 
-export default function AccountScreen({ eventCount = 0, showToast }) {
+export default function AccountScreen({ events = [], eventCount = 0, showToast }) {
   const { confirm, dialog } = useConfirm();
   const { user, loading, signOut } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
   const billing   = useBilling();
+  /* usePlan() with no event — the account-level form, which is only ever right
+     where there is genuinely no event in scope. `planFor(e)` then resolves each
+     event from the same single query. */
+  const { planFor } = usePlan();
 
   const {
     subscription:    sub,
@@ -205,7 +217,10 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
 
   if (loading || !user) return null;
 
-  const planMeta  = getPlanMeta(planKey);
+  /* `planMeta` stood here, colouring a single account-wide plan badge. That
+     badge is gone — packages are per event, and the list below names each one —
+     so the colours it carried have no element left to colour. getPlanMeta is
+     still used by planFeatures for the humanService line. */
   const statusMeta = getStatusMeta(statusKey);
 
   return (
@@ -301,19 +316,29 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
             <Loading />
           ) : (
             <>
-              <div className={styles.infoRow}>
-                <span className={styles.infoKey}>תוכנית</span>
-                <span
-                  className={styles.badge}
-                  style={{
-                    color:       planMeta?.color       || "#888",
-                    background:  planMeta?.bgColor     || "#f4f4f5",
-                    borderColor: planMeta?.borderColor || "#e5e7eb",
-                  }}
-                >
-                  {getPlanLabel(planKey)}
-                </span>
-              </div>
+              {/* ONE ROW PER EVENT, because that is what was bought.
+                  A single "תוכנית: בלי הפתעות" badge for the account is the
+                  per-account model this product moved off: a host can hold a
+                  paid wedding and a free bar mitzvah at the same time, and a
+                  badge cannot say that. Events with no purchase are listed too
+                  — "חינם" is a true answer about an event, and leaving them out
+                  would make the screen look like the host owns less than they
+                  do. */}
+              {events.length > 0 && (
+                <ul className={styles.planPerEvent}>
+                  {events.map(e => {
+                    const p = planFor(e);
+                    return (
+                      <li key={e.id} className={styles.planPerEventRow}>
+                        <span className={styles.planPerEventName}>{e.name || "אירוע בלי שם"}</span>
+                        <span className={styles.planPerEventPlan}>
+                          {p === "free" ? "חינם" : getPlanLabel(p)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
               <div className={styles.infoRow}>
                 <span className={styles.infoKey}>סטטוס</span>
                 <span
@@ -450,9 +475,12 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
                 // Enterprise uses a contact link rather than Stripe Checkout
                 const isEnterprise = key === "enterprise";
 
-                // Upgrade button is clickable when Stripe is configured and
-                // this is not the current plan
-                const isClickable = !isCurrent && isStripeConfigured;
+                /* Clickable whenever it is not the current plan. It no longer
+                   depends on Stripe being configured, because it no longer
+                   charges anything — it navigates to the event list. The "בקרוב"
+                   state belongs on the card inside an event, next to the price,
+                   where the purchase actually happens. */
+                const isClickable = !isCurrent;
 
                 const handleCardAction = () => {
                   if (isCurrent || billing.checkoutTarget) return;
@@ -460,7 +488,10 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
                     window.location.href = supportMailto("Enterprise Plan Inquiry");
                     return;
                   }
-                  billing.startCheckout(key);
+                  // To the event list, not to Stripe. See cardBtnLabel: there is
+                  // no event in scope on this screen, and a purchase belongs to
+                  // one. `billing.startCheckout` now requires the event object.
+                  navigate("/app");
                 };
 
                 return (
@@ -526,18 +557,15 @@ export default function AccountScreen({ eventCount = 0, showToast }) {
                         disabled={isCurrent || isThisLoading}
                         onClick={handleCardAction}
                         title={
-                          isCurrent       ? "זוהי התוכנית הנוכחית שלכם" :
-                          !isStripeConfigured && !isEnterprise ? "שדרוג יהיה זמין בקרוב" :
+                          isCurrent       ? "זוהי החבילה של רוב האירועים שלכם" :
                           isEnterprise    ? `שלחו אימייל לגבי חבילת ${getPlanLabel("enterprise")}` :
-                          `שדרגו לתוכנית ${getPlanLabel(key)}`
+                          `החבילה נרכשת מתוך האירוע — לכל אירוע בנפרד`
                         }
                       >
                         {isCurrent
-                          ? "תוכנית נוכחית"
+                          ? "החבילה הנוכחית"
                           : isThisLoading
                           ? "מעבד…"
-                          : !isStripeConfigured && !isEnterprise
-                          ? "בקרוב"
                           : btnLabel}
                       </button>
                     )}

@@ -9,6 +9,7 @@ import TableGlyph from "../components/ui/TableGlyph.jsx";
 import Orientation from "../components/onboarding/Orientation.jsx";
 import { useOrientation } from "../components/onboarding/useOrientation.js";
 import PhotoRetentionNotice from "../components/feedback/PhotoRetentionNotice.jsx";
+import EventPlanCard from "../components/billing/EventPlanCard.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventHubScreen.module.css";
 import { makeOpenScreen, isNameGated } from "../utils/eventNameGate.js";
@@ -131,6 +132,12 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           about a deletion is only a warning if it is seen before the deletion,
           and the event site editor is a place they may not open for weeks. */}
       <PhotoRetentionNotice ev={ev} patchEvent={patchEvent} showToast={showToast} />
+
+      {/* The event's package, and the only place it can be bought — a purchase
+          unlocks ONE event, so the checkout has to be opened from inside one.
+          It cannot hang off a gate: PLAN_GATES_ENFORCED is false, so nothing
+          refuses anyone today and a CTA shown on refusal would never show. */}
+      <EventPlanCard ev={ev} />
 
       {/* The tables as they stand, drawn. A row of numbers says how many; this
           says the SHAPE of the problem before a single label is read. */}

@@ -28,9 +28,14 @@ export { isStripeConfigured };
  *
  * @param {string} planKey   — "pro" | "enterprise"
  * @param {string} returnUrl — Full URL to redirect to after checkout completes or cancels
+ * @param {string} eventId   — the CLOUD id of the event being bought (ev.cloudId),
+ *                             NOT ev.id. A purchase unlocks one event, and the
+ *                             cloud id is the only one the server can verify —
+ *                             ev.id is self-declared JSON inside a row the host
+ *                             can edit. Required: the function refuses without it.
  * @returns {Promise<string>} Stripe hosted Checkout URL
  */
-export async function createCheckoutSession(planKey, returnUrl) {
+export async function createCheckoutSession(planKey, returnUrl, eventId) {
   if (!isStripeConfigured) {
     throw new Error("Stripe is not configured — add VITE_STRIPE_PUBLISHABLE_KEY to .env.local");
   }
@@ -38,8 +43,15 @@ export async function createCheckoutSession(planKey, returnUrl) {
     throw new Error("Supabase is not configured");
   }
 
+  if (!eventId) {
+    // Refused here rather than sent, because the failure it prevents is a host
+    // paying ₪690 and the purchase landing on no event — or, worse, on every
+    // event. The server refuses it too; this is the message a person can read.
+    throw new Error("לא ידוע איזה אירוע נרכש — נסו לרענן ולנסות שוב");
+  }
+
   const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-    body: { plan: planKey, returnUrl },
+    body: { plan: planKey, returnUrl, eventId },
   });
 
   if (error) throw new Error(error.message ?? "Edge Function error");

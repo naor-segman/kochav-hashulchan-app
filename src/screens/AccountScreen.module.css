@@ -671,3 +671,42 @@
   line-height: 1.6;
   max-width: 52ch;
 }
+
+/* ── One row per event, because a package is bought per event ─────────────────
+   Replaces a single "תוכנית" badge for the whole account. A host can hold a
+   paid wedding and a free bar mitzvah at the same time; one badge cannot say
+   that, and the badge was the per-account model showing through. */
+.planPerEvent {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.planPerEventRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-block-end: 1px solid var(--border);
+  font-size: var(--step-0);
+}
+
+.planPerEventRow:last-child { border-block-end: 0; }
+
+.planPerEventName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.planPerEventPlan {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--text2);
+}

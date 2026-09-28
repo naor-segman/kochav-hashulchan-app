@@ -13,7 +13,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // must therefore be ONE-TIME prices in Stripe — a recurring price is refused by
 // this function with an error that names the secret.
 //
-// Request  (POST, JSON): { plan: "pro" | "enterprise", returnUrl: string }
+// Request  (POST, JSON): { plan: "pro" | "enterprise", returnUrl: string,
+//                          eventId: uuid }   ← the events.id being bought
 // Response (JSON):       { url: string }  — Stripe hosted Checkout URL
 //
 // Deploy:
@@ -97,7 +98,9 @@ Deno.serve(async (req: Request) => {
     if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
     // ── Validate plan ─────────────────────────────────────────────────────────
-    const { plan, returnUrl } = await req.json() as { plan: string; returnUrl: string };
+    const { plan, returnUrl, eventId } = await req.json() as {
+      plan: string; returnUrl: string; eventId?: string;
+    };
     // An unset APP_ORIGINS makes the allow-list EMPTY, which rejects every
     // checkout with a message that blames the caller's URL. That is the first
     // thing that will happen the day billing is switched on, and "returnUrl is
@@ -113,6 +116,25 @@ Deno.serve(async (req: Request) => {
       return json({ error: `Invalid plan: ${plan}` }, 400);
     }
 
+    // ── Which event is being bought ────────────────────────────────────────
+    //
+    // A purchase unlocks ONE event (₪690 לאירוע), so a session without an event
+    // is refused rather than charged. The alternative — accept it and write a
+    // row with event_id null — is an account-wide entitlement created by
+    // accident, i.e. the exact bug this whole change removes, and it would only
+    // ever be noticed as revenue that failed to arrive.
+    if (!eventId) {
+      return json({ error: "eventId is required — a purchase belongs to one event" }, 400);
+    }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)) {
+      // Not cosmetic: the client's uid() has a fallback branch that returns
+      // "id-<base36>" when crypto is unavailable, and an event's LOCAL id can
+      // legitimately look like that. Sending it here means the caller passed
+      // ev.id instead of ev.cloudId, and it must fail loudly at the door rather
+      // than as a Postgres cast error after the customer has paid.
+      return json({ error: "eventId is not a UUID — pass ev.cloudId, not ev.id" }, 400);
+    }
+
     const priceId = PRICE_IDS[plan];
     if (!priceId) {
       return json({ error: `No Stripe price ID configured for plan: ${plan}. Set STRIPE_${plan.toUpperCase()}_PRICE_ID in Edge Function secrets.` }, 400);
@@ -124,6 +146,50 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // ── The event has to be the buyer's, and not already bought ───────────
+    //
+    // Verified SERVER-SIDE with the service role, because `eventId` came from
+    // the browser. Without this check a signed-up user could point a purchase at
+    // someone else's event id — and since the webhook trusts the metadata it
+    // writes, that would hand them an entitlement on a wedding that is not
+    // theirs. The row is read by id AND user_id; a mismatch is a 403 either way.
+    const { data: ownedEvent } = await supabaseAdmin
+      .from("events")
+      .select("id, name")
+      .eq("id", eventId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!ownedEvent) {
+      return json({ error: "Event not found for this user" }, 403);
+    }
+
+    // Already paid for? Refuse BEFORE Stripe is called.
+    //
+    // This is the guard that exists instead of a UNIQUE (user_id, event_id)
+    // constraint — see the migration. A constraint would also block the
+    // legitimate sequences (refund then re-buy; adding the ₪1,290 package on top
+    // of the ₪690 one), and it would fail AFTER the money moved, in a webhook,
+    // where the only available remedy is a refund. A check in front of the
+    // charge is the difference between "you already bought this" and taking a
+    // second ₪690 for the same wedding.
+    const { data: existingPurchase } = await supabaseAdmin
+      .from("subscriptions")
+      .select("plan, status, expires_at")
+      .eq("user_id", user.id)
+      .eq("event_id", eventId)
+      .in("status", ["active", "trialing"]);
+
+    const live = (existingPurchase ?? []).filter((p: any) =>
+      !p.expires_at || new Date(p.expires_at) > new Date()
+    );
+    if (live.some((p: any) => p.plan === plan)) {
+      return json({
+        error: `האירוע הזה כבר נרכש בחבילה הזאת.`,
+        alreadyPurchased: true,
+      }, 409);
+    }
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
@@ -185,9 +251,11 @@ Deno.serve(async (req: Request) => {
       cancel_url:       `${safeReturn}?checkout=cancelled`,
       allow_promotion_codes: true,
       locale:           "he",
-      metadata:         { user_id: user.id, plan },
+      // event_id on BOTH, for the same reason user_id is: charge.refunded sees
+      // the payment intent and never the session.
+      metadata:         { user_id: user.id, plan, event_id: eventId },
       payment_intent_data: {
-        metadata: { user_id: user.id, plan },
+        metadata: { user_id: user.id, plan, event_id: eventId },
         // What the host sees on their card statement. Without it the statement
         // shows the Stripe account's default name, which is the wrong company:
         // the merchant of record is Unica, and "REVAYA" is what they will
