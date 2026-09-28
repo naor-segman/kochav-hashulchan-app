@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { tableLabel } from "../components/seating/tableLabel.js";
-import { getSideLabel } from "../utils/eventHelpers.js";
+import { getSideLabel, rotateEventToken } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import {
   seatsOf, arrivedSeatsOf, arrivedCountOf, isFullyArrived, withArrivedSeats,
@@ -17,6 +17,7 @@ import Icon from "../components/ui/Icon.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import styles from "./EntranceScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { COMPANY } from "../data/company.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
@@ -302,6 +303,7 @@ export default function EntranceScreen({
   const [scanning, setScanning]       = useState(false);
   const [scanMsg, setScanMsg]         = useState("");
   const [linkOpen, setLinkOpen]       = useState(false);
+  const { confirm, dialog } = useConfirm();
   const searchRef = useRef(null);
 
   // Only the by-name tab. Focusing on the by-table tab raised the phone keyboard
@@ -498,6 +500,7 @@ export default function EntranceScreen({
 
   return (
     <div className={styles.root}>
+      {dialog}
       {/* ── Bar ── */}
       <header className={styles.bar}>
         {!isToken && (
@@ -760,6 +763,24 @@ export default function EntranceScreen({
                   {ev.hostessWriteActive === false
                     ? <><Icon name="unlock" size={15} /> פתחו סימון הגעה</>
                     : <><Icon name="lock" size={15} /> סגרו סימון הגעה</>}
+                </button>
+                {/* The door link could be switched to read-only but never
+                    revoked: whoever held it could still open the full guest
+                    list with every table (102, 28.9). Same rotation as the
+                    family table's link, same wording of what is lost. */}
+                <button
+                  className={styles.linkCopy}
+                  onClick={async () => {
+                    const ok = await confirm(
+                      "להחליף את הקישור לדיילת?\n\n"
+                      + "הקישור הנוכחי יפסיק לעבוד מיד — גם בטלפון של דיילת שכבר פתחה אותו. "
+                      + "הסימונים שכבר נעשו נשארים. תצטרכו לשלוח לדיילת את הקישור החדש.",
+                      { danger: true, confirmLabel: "החליפו את הקישור" },
+                    );
+                    if (ok) patchEventById(eventId, e => rotateEventToken(e, "hostess"));
+                  }}
+                >
+                  <Icon name="refresh" size={15} /> החליפו קישור
                 </button>
               </div>
             </div>
