@@ -23,6 +23,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //     https://<project-ref>.supabase.co/functions/v1/stripe-webhook
 //   Events to send:
 //     checkout.session.completed
+//     checkout.session.async_payment_succeeded
 //     charge.refunded
 //
 // Deploy:
@@ -115,9 +116,11 @@ Deno.serve(async (req: Request) => {
   }
 
   // ── Event dispatch ─────────────────────────────────────────────────────────
-  // All handlers are wrapped so a single handler error doesn't block others.
-  // We return 200 on application errors to prevent Stripe from retrying
-  // (retries would spam errors for problems we need to fix in code, not retry).
+  // A handler that throws returns 500 so Stripe RETRIES. It used to return 200
+  // "to prevent retries spamming errors" — which, on a payment, means a charge
+  // that granted nothing and was never tried again. A retry storm is visible in
+  // the Stripe dashboard; a silently lost purchase is not. Every write below is
+  // idempotent (keyed on the session or payment intent), so retrying is safe.
   try {
     switch (event.type) {
 
@@ -127,7 +130,13 @@ Deno.serve(async (req: Request) => {
       // paid plan, and for a one-time payment it is also the only one that says
       // the money arrived — there is no invoice.payment_succeeded to follow it.
       // ────────────────────────────────────────────────────────────────────────
-      case "checkout.session.completed": {
+      // async_payment_succeeded is the SAME grant, arriving later: for a delayed
+      // payment method the session completes "unpaid" and this event is the one
+      // that says the money landed. Without it such a payment was taken and
+      // never granted (28.9 audit, B6). Cards settle at once, so this is rare —
+      // which is exactly why it would never have been noticed.
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
         const session = event.data.object as Stripe.Checkout.Session;
 
         if (!session.customer) {
@@ -147,8 +156,13 @@ Deno.serve(async (req: Request) => {
         // paid plan there hands out the product for a payment that can still
         // fail. Cards settle immediately, so in practice this is "paid" — which
         // is exactly why it would never have been noticed if it were wrong.
-        if (session.payment_status !== "paid") {
-          console.log(`checkout.session.completed: payment_status=${session.payment_status}, waiting`);
+        //
+        // "no_payment_required" is a grant too: a 100% promotion code (checkout
+        // sets allow_promotion_codes) completes with nothing to collect, and the
+        // old `!== "paid"` dropped it — a code the owner handed out produced no
+        // purchase row at all (28.9 audit, B6).
+        if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
+          console.log(`${event.type}: payment_status=${session.payment_status}, waiting`);
           break;
         }
 
@@ -210,9 +224,70 @@ Deno.serve(async (req: Request) => {
           break;
         }
 
-        // Conflict on the CHECKOUT SESSION id. Stripe can deliver an event more
-        // than once, and a host pressing Back can complete two sessions; this is
-        // what keeps either from producing a second purchase row.
+        /* A REFUNDED PURCHASE MUST NOT COME BACK TO LIFE (28.9 audit, B3).
+           The upsert below writes status "active" unconditionally, so a
+           duplicate, late or manually re-sent delivery of this event after
+           charge.refunded would reactivate the purchase — and if the refund was
+           processed FIRST, the refund handler found no row and stopped, and this
+           then wrote an active one. Two guards:
+             1. an existing row for this session that is cancelled or manually
+                managed is left alone — a person or a refund already decided;
+             2. the payment intent's own charge is checked: fully refunded means
+                the row is written as cancelled, whatever order events arrived. */
+        const { data: existing, error: existingErr } = await supabase
+          .from("subscriptions")
+          .select("status, is_manually_managed")
+          .eq("stripe_checkout_session_id", session.id)
+          .maybeSingle();
+        if (existingErr) {
+          console.error(`${event.type} — could not read the existing row, asking Stripe to retry:`, existingErr);
+          return new Response("read failed", { status: 500 });
+        }
+        if (existing && (existing.status === "cancelled" || existing.is_manually_managed)) {
+          console.log(`${event.type}: session ${session.id} is ${existing.is_manually_managed ? "manually managed" : "cancelled"} — not reactivating`);
+          break;
+        }
+
+        let refundedAlready = false;
+        const piId = (session.payment_intent as string) ?? null;
+        if (piId) {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge"] });
+            const ch = pi.latest_charge as Stripe.Charge | null;
+            refundedAlready = !!ch && ch.amount_refunded >= ch.amount && ch.amount > 0;
+          } catch (err: any) {
+            // Not knowing is not the same as "not refunded". Retry.
+            console.error(`${event.type} — could not read the payment intent, asking Stripe to retry:`, err?.message ?? err);
+            return new Response("payment intent read failed", { status: 500 });
+          }
+        }
+
+        /* THE SAME EVENT BOUGHT TWICE (28.9 audit, B4). Two open sessions — two
+           tabs, or Back — are both payable and each has its own session id, so
+           the idempotent upsert does not stop the second. create-checkout-session
+           now expires older open sessions for the same event, which closes most
+           of it; this catches what gets through. The row is still written —
+           money moved — but it is flagged loudly, because the host was charged
+           twice and needs a refund from a person. NOT automated: a refund is a
+           money action this code has never been able to run against Stripe. */
+        if (eventId && !refundedAlready) {
+          const { data: twins } = await supabase
+            .from("subscriptions")
+            .select("stripe_checkout_session_id")
+            .eq("user_id", userId)
+            .eq("event_id", eventId)
+            .eq("plan", plan)
+            .in("status", ["active", "trialing"])
+            .neq("stripe_checkout_session_id", session.id);
+          if (twins && twins.length > 0) {
+            console.error(`DOUBLE CHARGE — user ${userId} event ${eventId} plan ${plan}: session ${session.id} paid while ${twins.map(t => t.stripe_checkout_session_id).join(", ")} is already live. REFUND ${piId ?? session.id} by hand.`);
+          }
+        }
+
+        // Conflict on the CHECKOUT SESSION id: Stripe can deliver an event more
+        // than once, and this keeps a repeat delivery of the SAME session from
+        // producing a second row. It does not, by itself, stop a second session
+        // — see the double-charge note above.
         const { error: upsertError } = await supabase
           .from("subscriptions")
           .upsert(
@@ -222,7 +297,7 @@ Deno.serve(async (req: Request) => {
               plan,
               // One payment, so there is nothing to be in trouble about later:
               // no trial, no grace period, no renewal that can fail.
-              status:                     "active",
+              status:                     refundedAlready ? "cancelled" : "active",
               stripe_customer_id:         session.customer as string,
               stripe_checkout_session_id: session.id,
               stripe_payment_intent_id:   (session.payment_intent as string) ?? null,
@@ -230,14 +305,19 @@ Deno.serve(async (req: Request) => {
               current_period_end:         null,
               payment_past_due:           false,
               started_at:                 new Date().toISOString(),
-              expires_at:                 null,
+              expires_at:                 refundedAlready ? new Date().toISOString() : null,
               updated_at:                 new Date().toISOString(),
             },
             { onConflict: "stripe_checkout_session_id" }
           );
 
+        /* 500, not a log line (28.9 audit, B5). This returned 200 on a failed
+           write, so Stripe never retried: one transient database error meant
+           money taken and no entitlement, with nothing anywhere to say so. The
+           upsert is idempotent on the session id, so a retry is safe. */
         if (upsertError) {
-          console.error("checkout.session.completed — subscriptions upsert error:", upsertError);
+          console.error(`${event.type} — subscriptions upsert failed, asking Stripe to retry:`, upsertError);
+          return new Response("upsert failed", { status: 500 });
         }
         break;
       }
@@ -289,7 +369,12 @@ Deno.serve(async (req: Request) => {
           })
           .eq("stripe_payment_intent_id", pi);
 
-        if (error) console.error("charge.refunded — update error:", error);
+        // 500 so Stripe retries — a refund that fails to revoke leaves a
+        // refunded customer with a paid plan (28.9 audit, B5).
+        if (error) {
+          console.error("charge.refunded — update failed, asking Stripe to retry:", error);
+          return new Response("refund update failed", { status: 500 });
+        }
         break;
       }
 
@@ -298,8 +383,8 @@ Deno.serve(async (req: Request) => {
         break;
     }
   } catch (err: any) {
-    // Log handler errors but return 200 to prevent Stripe retries.
-    console.error(`Error handling Stripe event ${event.type}:`, err?.message ?? String(err));
+    console.error(`Error handling Stripe event ${event.type} — asking Stripe to retry:`, err?.message ?? String(err));
+    return new Response("handler error", { status: 500 });
   }
 
   return new Response(JSON.stringify({ received: true }), {

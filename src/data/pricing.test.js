@@ -296,6 +296,38 @@ describe("pricing: the checkout does what the page promises", () => {
     expect(checkout).toMatch(/eq\("event_id", eventId\)/);
   });
 
+  /* The 28.9 security audit's billing findings B3–B6. These read the source,
+     comment-stripped, because the function is Deno with remote imports and
+     cannot run in this environment — a structural pin, weaker than executing
+     it, and each one was proved to fail by reverting the change it guards. */
+  it("grants on a delayed payment and on a 100% promotion code", () => {
+    expect(webhook).toMatch(/case "checkout\.session\.async_payment_succeeded"/);
+    expect(webhook).toMatch(/payment_status !== "paid" && session\.payment_status !== "no_payment_required"/);
+  });
+
+  it("never revives a refunded or manually managed purchase", () => {
+    expect(webhook).toMatch(/existing\.status === "cancelled" \|\| existing\.is_manually_managed/);
+    expect(webhook).toMatch(/amount_refunded >= ch\.amount/);
+    expect(webhook).toMatch(/status:\s*refundedAlready \? "cancelled" : "active"/);
+  });
+
+  it("asks Stripe to RETRY a failed write instead of swallowing it", () => {
+    // It returned 200 on every failure: money taken, nothing granted, never
+    // retried, nothing anywhere to say so.
+    expect(webhook).toMatch(/if \(upsertError\) \{[\s\S]{0,200}status: 500/);
+    expect(webhook).toMatch(/refund update failed", \{ status: 500 \}/);
+    expect(webhook).toMatch(/handler error", \{ status: 500 \}/);
+    expect(webhook).not.toMatch(/return 200 to prevent Stripe retries/i);
+  });
+
+  it("closes older open sessions for the same event before opening a new one", () => {
+    // Two open sessions were both payable: the same wedding charged twice.
+    expect(checkout).toMatch(/sessions\.list\(\{ customer: customerId, status: "open"/);
+    expect(checkout).toMatch(/old\.metadata\?\.event_id === eventId[\s\S]{0,120}sessions\.expire\(old\.id\)/);
+    // And the webhook flags what gets through, rather than staying silent.
+    expect(webhook).toMatch(/DOUBLE CHARGE/);
+  });
+
   it("the purchase is keyed on the checkout session, which is what makes it idempotent", () => {
     // Stripe can deliver the same event twice and a host can complete two
     // sessions with the Back button. Without this conflict target, either

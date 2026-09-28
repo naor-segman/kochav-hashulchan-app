@@ -243,6 +243,25 @@ Deno.serve(async (req: Request) => {
     // user id somewhere durable. It is on the session AND the payment intent,
     // because charge.refunded — the only event a one-time payment has after it
     // succeeds — sees the payment intent and never the session.
+    /* ONE PAYABLE SESSION PER EVENT (28.9 audit, B4). The already-purchased
+       check above runs when a session is CREATED, so two open sessions — two
+       tabs, or Back and Buy again — were both payable, and each has its own
+       session id, so both became purchase rows: the same wedding charged twice.
+       Before opening a new one, any older OPEN session this customer has for
+       this event is expired, so only the newest can be paid. Best effort: if
+       Stripe cannot list or expire, the purchase is not blocked — the webhook
+       flags a double charge loudly as the second line of defence. */
+    try {
+      const open = await stripe.checkout.sessions.list({ customer: customerId, status: "open", limit: 100 });
+      for (const old of open.data) {
+        if (old.metadata?.event_id === eventId) {
+          await stripe.checkout.sessions.expire(old.id);
+        }
+      }
+    } catch (err: any) {
+      console.error("could not expire older open sessions for this event:", err?.message ?? err);
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode:             "payment",
       customer:         customerId,
