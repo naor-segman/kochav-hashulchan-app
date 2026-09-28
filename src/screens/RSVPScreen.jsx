@@ -3,6 +3,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
+import { rsvpSuccessLinks } from "../utils/rsvpLinks.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
@@ -26,6 +27,7 @@ const MOCK_EVENT = {
   inviteToken: "bbbbbbbb",
   giftToken: "cccccccc",
   site: {
+    enabled: true,
     rsvpMessage: "היי, כאן נועה וטל — כיף שאתם באים לחגוג איתנו! 💛",
     coverPhoto: null,
     // Shuttles in the dev fixture so the pickup picker is exercisable locally.
@@ -598,8 +600,7 @@ export default function RSVPScreen() {
     maybe: "נשמח אם תעדכן/י אותנו ברגע שתדע/י בוודאות.",
     no:    "חבל שלא תוכל/י להגיע — נשמח לראותך בשמחה הבאה.",
   };
-  const inviteUrl = event.inviteToken ? "/invite/" + event.inviteToken : null;
-  const giftUrl   = event.giftToken   ? "/gift/"   + event.giftToken   : null;
+  const { inviteUrl, giftUrl } = rsvpSuccessLinks(event);
 
   return (
     <div className={styles.page}>
