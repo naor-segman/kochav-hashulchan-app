@@ -1,4 +1,8 @@
 import { hasDefiniteArticle } from "../utils/hebrewPrefix.js";
+// Paths come from the ONE list of public links, never retyped here. The message
+// screen building "/rsvp/" by hand while ShareLinksScreen built it from this
+// list is two copies of every guest-facing URL — bug class 6.
+import { SHARE_LINKS, shareUrl } from "../components/share/shareLinks.js";
 
 /**
  * The message sequence a host actually sends.
@@ -69,7 +73,12 @@ export const MESSAGE_STAGES = [
     when: "2-3 ימים לפני",
     // Only the people who are actually coming need directions and a table.
     audience: "confirmed",
-    body: "היי {{שם}} 👋\n\nמתרגשים לקראת {{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n\n{{שולחן}}\nנתראה! 🎉",
+    // 🗺️ {{קישור}} is the event SITE — navigation, parking, the schedule — and
+    // it is the stage the site exists for. Before 28.9 this message carried no
+    // link at all and the site was sent to almost nobody. On its own line so
+    // that, if the site is unpublished, the whole line leaves (renderTemplate
+    // drops a line whose placeholder emptied and left no letter behind).
+    body: "היי {{שם}} 👋\n\nמתרגשים לקראת {{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n🗺️ {{קישור}}\n\n{{שולחן}}\nנתראה! 🎉",
   },
   {
     key: "thanks",
@@ -77,11 +86,84 @@ export const MESSAGE_STAGES = [
     icon: "heart",
     when: "1-2 ימים אחרי",
     audience: "arrived",
-    body: "היי {{שם}} 💛\n\nתודה ענקית שהייתם איתנו ב{{אירוע}} — זה לא היה אותו דבר בלעדיכם!",
+    // 📸 {{קישור}} is the shared ALBUM: the day after is exactly when guests
+    // are holding the photos, and the album had no door — ShareLinksScreen's own
+    // comment calls it "a finished feature with no door on it". Same one-line
+    // shape as above, so no album token means no dangling line.
+    body: "היי {{שם}} 💛\n\nתודה ענקית שהייתם איתנו ב{{אירוע}} — זה לא היה אותו דבר בלעדיכם!\n\nצילמתם? נשמח לתמונות:\n📸 {{קישור}}",
   },
 ];
 
 export const stageByKey = key => MESSAGE_STAGES.find(s => s.key === key) || null;
+
+/* ── Which link each stage carries ────────────────────────────────────────────
+ *
+ * Checklist 88. MessagesScreen used to pick ONE link for all six stages — the
+ * RSVP token if there was one, else the event site — so "שמרו את התאריך", sent
+ * three to six months out, asked guests to confirm attendance at an event whose
+ * invitation did not exist yet, and the event site was sent to almost nobody:
+ * only to hosts who had turned RSVP off.
+ *
+ * Each stage now names the links that MATCH IT, best first. The first one that
+ * will actually work when a guest taps it wins; if none will, the stage goes
+ * out with no link rather than with a link to a page that says "הדף עדיין לא
+ * פורסם" — which is what an unpublished announcement renders.
+ *
+ *   saveTheDate  the save-the-date page, else the site. NEVER the RSVP form:
+ *                the message itself says "הפרטים המלאים בקרוב".
+ *   invitation   the designed invitation — but only when it will SHOW the
+ *                RSVP button, because this message says "נשמח שתאשרו הגעה".
+ *                Otherwise the RSVP form directly.
+ *   reminder1/2  the RSVP form. These exist to get an answer.
+ *   details      the event site — navigation, parking, the schedule.
+ *   thanks       the shared album.
+ */
+export const STAGE_LINKS = {
+  saveTheDate: ["saveTheDate", "site"],
+  invitation:  ["invitation", "rsvp"],
+  reminder1:   ["rsvp"],
+  reminder2:   ["rsvp"],
+  details:     ["site"],
+  thanks:      ["album"],
+};
+
+/**
+ * Will this link work for a guest RIGHT NOW, for this stage?
+ * A token is not enough: a page with an `enabled` flag that is off renders a
+ * "not published yet" screen, and sending that is worse than sending nothing.
+ */
+function linkWorks(key, ev, stageKey) {
+  const t   = ev?.tokens || {};
+  const ann = ev?.announcements || {};
+  switch (key) {
+    case "saveTheDate": return !!t.invite && !!ann.saveTheDate?.enabled;
+    case "invitation":
+      return !!t.invite && !!ann.invitation?.enabled
+        // In the invitation stage the text asks for an answer, so the page has
+        // to be able to take one.
+        && (stageKey !== "invitation" || (!!ann.invitation?.showRsvp && !!t.rsvp));
+    case "site":        return !!t.invite && !!ev?.eventSite?.enabled;
+    case "rsvp":        return !!t.rsvp;
+    case "album":       return !!t.album;
+    default:            return false;
+  }
+}
+
+/**
+ * The link a stage's message carries, or null when none of its links would work.
+ *
+ * @returns {{ key: string, label: string, url: string } | null}
+ */
+export function linkForStage(stageKey, ev, origin) {
+  for (const key of STAGE_LINKS[stageKey] || []) {
+    if (!linkWorks(key, ev, stageKey)) continue;
+    const def = SHARE_LINKS.find(l => l.key === key);
+    if (!def) continue;
+    const token = ev.tokens[def.tokenKey];
+    return { key, label: def.label, url: shareUrl(def, origin, token) };
+  }
+  return null;
+}
 
 export const AUDIENCES = {
   all:       { label: "כל האורחים",        match: () => true },

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { messageSignature } from "../data/company.js";
 import {
   MESSAGE_STAGES, audienceFor, audienceLabel, reachable,
-  renderTemplate, whatsappLink,
+  renderTemplate, whatsappLink, linkForStage,
 } from "../data/messageSequence.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import Field from "../components/ui/Field.jsx";
@@ -27,7 +27,7 @@ import { useShareGate } from "../components/share/useShareGate.jsx";
  * built, so connecting an API later is a connection rather than a project.
  */
 export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast }) {
-  // Every message in this screen carries an RSVP link into it. In guest mode
+  // Every message in this screen carries a public link into it. In guest mode
   // that link resolves to nothing, so sending forty of them is worse than
   // sending none — see useShareGate.
   const { guard, gate } = useShareGate();
@@ -41,19 +41,18 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
   const sent   = useMemo(() => ev.messagesSent     || {}, [ev.messagesSent]);      // { [stageKey]: { [guestId]: ts } }
   const custom = useMemo(() => ev.messageTemplates || {}, [ev.messageTemplates]);  // { [stageKey]: body }
 
-  const link = useMemo(() => {
-    const t = ev.tokens || {};
-    if (t.rsvp)   return `${window.location.origin}/rsvp/${t.rsvp}`;
-    if (t.invite) return `${window.location.origin}/invite/${t.invite}`;
-    return "";
-  }, [ev.tokens]);
-
+  /* ONE LINK PER STAGE (checklist 88). This was a single `link` for all six —
+     the RSVP token if there was one, else the site — so the save-the-date,
+     sent months before any invitation exists, asked guests to confirm
+     attendance, and the event site reached almost nobody. See STAGE_LINKS in
+     messageSequence.js for which link each stage carries and why. */
   const stages = useMemo(() => MESSAGE_STAGES.map(s => {
     const audience  = audienceFor(s, ev.guests);
     const withPhone = reachable(audience);
     const done      = audience.filter(g => sent[s.key]?.[g.id]).length;
-    return { ...s, body: custom[s.key] ?? s.body, audience, withPhone, done };
-  }), [ev.guests, sent, custom]);
+    const link      = linkForStage(s.key, ev, window.location.origin);
+    return { ...s, body: custom[s.key] ?? s.body, audience, withPhone, done, link };
+  }), [ev, sent, custom]);
 
   const totalPlanned = stages.reduce((n, s) => n + s.withPhone.length, 0);
 
@@ -99,7 +98,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
   const textFor = (stage, g) =>
     renderTemplate(stage.body, {
       event: { ...ev, date: fmtDate(ev.date) },
-      guest: g, table: tableOf(g), link,
+      guest: g, table: tableOf(g), link: stage.link?.url || "",
     }) + messageSignature();
 
   return (
@@ -169,6 +168,17 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                 ) : (
                   <>
                     <div className={styles.preview}>{stage.body}</div>
+                    {/* Which page {{קישור}} opens in THIS stage, said out loud.
+                        With one link per stage the host can no longer assume
+                        "the link" means the RSVP form — and when a stage has
+                        none (the site is not published, say), the message goes
+                        out without it, which the host must hear here rather
+                        than discover from a guest. */}
+                    <p className={styles.linkNote}>
+                      {stage.link
+                        ? <>הקישור בהודעה הזאת: <b>{stage.link.label}</b></>
+                        : "ההודעה הזאת תצא בלי קישור — הדף שמתאים לה עוד לא פורסם."}
+                    </p>
                     <div className={styles.stageActions}>
                       <button className={base.btnSm} onClick={() => setEditing(stage.key)}>ערכו תבנית</button>
                       {stage.done > 0 && (

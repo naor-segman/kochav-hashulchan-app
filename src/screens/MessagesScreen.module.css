@@ -145,3 +145,12 @@
     height: 44px;
   }
 }
+
+/* Which page this stage's link opens (checklist 88). Quiet, under the preview:
+   it is a fact the host checks, not a call to action. */
+.linkNote {
+  margin: 8px 0 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--text2);
+}
