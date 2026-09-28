@@ -322,6 +322,9 @@ export async function fetchCollabEvent(token) {
     // migration 20260814000000_collab_parents_type.sql.
     parentsType: data.parents_type ?? "mother-father",
     sideLabels: (data.side_labels && typeof data.side_labels === "object") ? data.side_labels : null,
+    // The host's own groups (migration 20260928000600). Strings only.
+    customGroups: Array.isArray(data.custom_groups)
+      ? data.custom_groups.filter(g => typeof g === "string" && g.trim()) : [],
   };
 }
 

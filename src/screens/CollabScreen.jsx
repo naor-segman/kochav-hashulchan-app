@@ -15,6 +15,7 @@ import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { collabGroupOptions } from "../utils/guestRoutes.js";
 
 // DEV mock so the page can be designed without a live token.
 const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתונה", brideName: "נועה", groomName: "טל", coupleType: "bride-groom", sideLabels: null };
@@ -288,7 +289,7 @@ export default function CollabScreen() {
                   </select>
                   <select className={styles.input} value={r.guest_group || ""} onChange={e => editRow(r.id, { guest_group: e.target.value })}>
                     <option value="" disabled>קבוצה</option>
-                    {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                    {collabGroupOptions(GROUP_OPTIONS, ev.customGroups, r.guest_group).map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                   <select className={styles.input} value={r.guests_count || 1} onChange={e => {
                     const n = Number(e.target.value);

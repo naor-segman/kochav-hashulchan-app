@@ -22,7 +22,7 @@ vi.mock("../lib/supabase.js", () => ({
 const {
   fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift, LinkUnreachableError,
   upsertCollabGuest, fetchCollabGuestsOwner, upsertCollabGuestOwner,
-  fetchEventGifts, setAlbumPhotoHidden, deleteAlbumPhoto, setGiftHidden, deleteEventGift,
+  fetchEventGifts, setAlbumPhotoHidden, deleteAlbumPhoto, setGiftHidden, deleteEventGift, fetchCollabEvent,
 } = await import("./publicTokens.js");
 
 const ok   = data  => rpc.mockResolvedValue({ data, error: null });
@@ -546,4 +546,13 @@ describe("moderation writes — a refusal RLS answers with 0 rows is not a succe
       await expect(call()).resolves.toBe(true);
     });
   }
+});
+
+describe("fetchCollabEvent — the host's own groups (migration 20260928000600)", () => {
+  it("maps custom_groups, strings only", async () => {
+    rpc.mockResolvedValue({ data: { id: "e1", custom_groups: ["חברים מהצבא", "", 3] }, error: null });
+    expect((await fetchCollabEvent("tok12345")).customGroups).toEqual(["חברים מהצבא"]);
+    rpc.mockResolvedValue({ data: { id: "e1" }, error: null });
+    expect((await fetchCollabEvent("tok12345")).customGroups).toEqual([]);
+  });
 });

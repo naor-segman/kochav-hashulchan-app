@@ -34,3 +34,16 @@ export function guestHosts(ev) {
 export function guestEventType(type) {
   return type && type !== "אחר" ? type : "";
 }
+
+/**
+ * The group choices on the shared family table: the built-in list, then the
+ * host's own groups, then — so a select never renders blank — the row's
+ * current value if it is neither. Deduplicated, order kept (106, 28.9).
+ */
+export function collabGroupOptions(builtIn, custom, current) {
+  const out = [];
+  for (const g of [...(builtIn || []), ...(custom || []), current]) {
+    if (typeof g === "string" && g.trim() && !out.includes(g)) out.push(g);
+  }
+  return out;
+}

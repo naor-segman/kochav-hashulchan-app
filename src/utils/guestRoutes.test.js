@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isGuestRoute, guestHosts, guestEventType, GUEST_ROUTE_PREFIXES } from "./guestRoutes.js";
+import { isGuestRoute, guestHosts, guestEventType, GUEST_ROUTE_PREFIXES, collabGroupOptions } from "./guestRoutes.js";
 
 describe("guestRoutes", () => {
   it("knows a guest page from a host page", () => {
@@ -22,5 +22,18 @@ describe("guestRoutes", () => {
     expect(guestHosts({ celebrantName: "איתי", name: "x" })).toBe("איתי");
     expect(guestHosts({ name: "ערב החברה" })).toBe("ערב החברה");
     expect(guestHosts(null)).toBe("");
+  });
+});
+
+describe("collabGroupOptions — the host's own groups on the family table (106)", () => {
+  const BUILT = ["משפחה", "חברים"];
+  it("adds the host's groups after the built-in ones", () => {
+    expect(collabGroupOptions(BUILT, ["חברים מהצבא"], "")).toEqual(["משפחה", "חברים", "חברים מהצבא"]);
+  });
+  it("keeps a row's current group even if it is in neither list", () => {
+    expect(collabGroupOptions(BUILT, [], "ועד הבית")).toEqual(["משפחה", "חברים", "ועד הבית"]);
+  });
+  it("dedupes and drops junk", () => {
+    expect(collabGroupOptions(BUILT, ["חברים", "", null, 7], "משפחה")).toEqual(["משפחה", "חברים"]);
   });
 });
