@@ -316,11 +316,13 @@ export default function EntranceScreen({
     if (!canWrite) return;
     if (isToken) {
       let nextSeats = null;
+      let baseSeats = null;   // what this screen showed before the tap (ג2)
       setRemote(prev => {
         if (!prev) return prev;
         const guests = prev.guests.map(g => {
           if (g.id !== guestId) return g;
           const next = transform(g);
+          baseSeats = arrivedSeatsOf(g);
           nextSeats = arrivedSeatsOf(next);
           return next;
         });
@@ -331,7 +333,7 @@ export default function EntranceScreen({
       // list says otherwise is worse than no check-in at all.
       inFlight.current.add(guestId);
       Promise.resolve().then(() =>
-        markArrivalByToken(token, guestId, nextSeats || []),
+        markArrivalByToken(token, guestId, nextSeats || [], baseSeats || []),
       ).then(() => { inFlight.current.delete(guestId); setSaveError(""); })
        .catch(() => {
          inFlight.current.delete(guestId);

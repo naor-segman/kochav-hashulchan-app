@@ -17,6 +17,29 @@ const sent = () => rpc.mock.calls.at(-1)[1];
 
 beforeEach(() => rpc.mockReset());
 
+describe("markArrivalByToken — the seats the screen started from (ג2)", () => {
+  it("sends `base` so the server merges instead of overwriting", async () => {
+    ok(null);
+    await markArrivalByToken("tok", "g1", [1, 0], [0]);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(sent()).toEqual({ token_value: "tok", guest_id: "g1", seats: [0, 1], base: [0] });
+  });
+
+  it("falls back to the old call when the server has no 4-argument version yet", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "PGRST202", message: "not found" } })
+       .mockResolvedValueOnce({ data: null, error: null });
+    await markArrivalByToken("tok", "g1", [0], []);
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(sent()).toEqual({ token_value: "tok", guest_id: "g1", seats: [0] });
+  });
+
+  it("does NOT fall back on a real refusal — that is the host closing the link", async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: "P0001", message: "invalid token" } });
+    await expect(markArrivalByToken("tok", "g1", [0], [])).rejects.toMatchObject({ message: "invalid token" });
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("markArrivalByToken — what actually reaches the database", () => {
   it("sends the token, the row id and a clean seat array", async () => {
     ok(null);

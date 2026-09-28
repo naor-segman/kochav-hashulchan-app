@@ -97,7 +97,12 @@ try {
       guests: [{ id: 'g1', name: 'יעל כהן', count: 2 }, { id: 'g2', name: 'איתי לוי', count: 1 }],
       tables: [{ id: 't1', name: 'שולחן 1', capacity: 10 }], seating: { g1: 't1', g2: 't1' }, writes_open: true,
     };
+    const marks = [];
     const { ctx, p } = await open('/hostess/xxxxxxxx', r => {
+      if (r.request().url().includes('hostess_mark_arrival_by_token')) {
+        marks.push(JSON.parse(r.request().postData() || '{}'));
+        return r.fulfill({ status: 204, body: '' });
+      }
       if (!r.request().url().includes('hostess_data_by_token')) return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
       calls++;
       if (calls === 1) return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) });
@@ -112,6 +117,18 @@ try {
     const t = await text(p);
     ok(calls >= 2, 'a refresh was attempted and failed', `calls=${calls}`);
     ok(loaded(t) && !/שגיאת חיבור|אינו תקין/.test(t), 'the list is still there after it failed', t.slice(0, 100));
+
+    // ג2: a tap sends what the screen showed BEFORE it, so the server can
+    // merge two greeters instead of letting the last one win.
+    await p.fill('input[type="search"]', 'יעל');
+    await p.waitForTimeout(300);
+    await p.evaluate(() => [...document.querySelectorAll('button')].find(b => /^\d+\/\d+$/.test(b.textContent.trim()))?.click());
+    await p.waitForTimeout(200);
+    await p.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'אורח 2')?.click());
+    await p.waitForTimeout(500);
+    const m = marks.at(-1);
+    ok(!!m && JSON.stringify(m.seats) === '[1]' && JSON.stringify(m.base) === '[]',
+       'a tap sends the seats AND the seats it started from', JSON.stringify(m));
     await ctx.close();
   }
 

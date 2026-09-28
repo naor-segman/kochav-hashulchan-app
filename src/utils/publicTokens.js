@@ -123,21 +123,34 @@ export async function fetchHostessData(token) {
  * @param {string}   guestId the guest row id
  * @param {number[]} seats   seat indices that have arrived
  */
-export async function markArrivalByToken(token, guestId, seats) {
+export async function markArrivalByToken(token, guestId, seats, base) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   // Bounded here so an oversized array is rejected before the round-trip, and
   // bounded again in SQL because this function is not the security boundary.
-  const clean = [...new Set(
-    (Array.isArray(seats) ? seats : [])
+  const bound = (list) => [...new Set(
+    (Array.isArray(list) ? list : [])
       .map(toSeatIndex)
       .filter(i => i !== null && i < 200),
   )].sort((a, b) => a - b).slice(0, 50);
-
-  const { error } = await supabase.rpc("hostess_mark_arrival_by_token", {
+  const clean = bound(seats);
+  const args = {
     token_value: token,
     guest_id:    String(guestId || "").slice(0, 64),
     seats:       clean,
-  });
+  };
+
+  // With `base` — the seats the screen showed BEFORE this tap — the server
+  // applies only the difference, so two greeters on one family inside one
+  // refresh window no longer overwrite each other (ג2, migration
+  // 20260928000700). If that migration has not run yet, PostgREST cannot
+  // find a 4-argument function (PGRST202) and the old full-list write is
+  // used instead: a door that keeps working beats a door that is exact.
+  if (Array.isArray(base)) {
+    const { error } = await supabase.rpc("hostess_mark_arrival_by_token", { ...args, base: bound(base) });
+    if (!error) return;
+    if (error.code !== "PGRST202") throw error;
+  }
+  const { error } = await supabase.rpc("hostess_mark_arrival_by_token", args);
   if (error) throw error;
 }
 
