@@ -16,6 +16,8 @@ const MOCK_EVENT = {
 };
 
 const AMOUNT_CHIPS = [200, 300, 500, 1000];
+/** The blessing's length limit on this page. */
+const MESSAGE_MAX = 600;
 
 // Every other money render in the app pins the locale. A bare toLocaleString()
 // on a PUBLIC page hands the grouping to whatever the guest's device is set to
@@ -268,7 +270,9 @@ export default function GiftScreen() {
                 id="gift-amount"
                 type="number"
                 min="50"
-                placeholder="הזינו סכום"
+                // The minimum was stated only in the error after pressing send
+                // (106). Said up front, where the amount is typed.
+                placeholder="₪50 ומעלה"
                 aria-describedby={errors.amount ? "gift-amount-err" : undefined}
                 value={customAmt}
                 onChange={e => {
@@ -286,12 +290,21 @@ export default function GiftScreen() {
             <textarea
               id="gift-message"
               className={styles.textarea}
-              maxLength={600}
+              maxLength={MESSAGE_MAX}
               rows={4}
               value={message}
               placeholder="כתבו ברכה מהלב..."
               onChange={e => setMessage(e.target.value)}
+              aria-describedby={message.length >= MESSAGE_MAX - 100 ? "gift-message-count" : undefined}
             />
+            {/* The field stopped taking text at the limit with no sign why
+                (106). Shown only near the end, with a Hebrew word between the
+                numbers so bidi keeps them in reading order (bug class 7). */}
+            {message.length >= MESSAGE_MAX - 100 && (
+              <span id="gift-message-count" className={styles.counter}>
+                {message.length} מתוך {MESSAGE_MAX} תווים
+              </span>
+            )}
           </div>
 
           {/* Sender name */}
