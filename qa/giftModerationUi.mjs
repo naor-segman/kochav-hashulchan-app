@@ -72,7 +72,10 @@ await p.route('**/stub.supabase.co/**', async (route) => {
     if (req.method() === 'PATCH') {
       patches.push({ url, body: req.postData() });
       if (failPatch) return route.fulfill({ status: 500, body: '{"message":"nope"}' });
-      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      // One affected row, as for `.select("id")`. '[]' is what an RLS refusal
+      // looks like, and the client now treats it as one (28.9).
+      const id = /id=eq\.([^&]+)/.exec(url)?.[1];
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id }]) });
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(GIFTS) });
   }

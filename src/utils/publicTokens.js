@@ -532,6 +532,22 @@ export async function fetchHostAlbumPhotos(eventCloudId) {
 }
 
 /**
+ * An UPDATE or DELETE that RLS refuses is not an error in PostgREST — it just
+ * matches no rows, and `{ error: null }` comes back. Every moderation call
+ * below reported success on that, so a host could press "delete", watch the
+ * photo leave the screen, and the photo stayed on the guests' album (28.9
+ * audit). Asking for the affected ids back and requiring exactly one turns a
+ * silent refusal into a thrown one, which the screens already roll back on.
+ */
+function exactlyOne({ data, error }) {
+  if (error) throw error;
+  if (!Array.isArray(data) || data.length !== 1) {
+    throw new Error("the change was not applied (no permission, or the row is gone)");
+  }
+  return true;
+}
+
+/**
  * Take a photo out of the public album, or put it back.
  *
  * Only the `hidden` column is writable by the owner — the migration grants
@@ -542,12 +558,11 @@ export async function fetchHostAlbumPhotos(eventCloudId) {
  */
 export async function setAlbumPhotoHidden(photoId, hidden) {
   if (!isSupabaseConfigured || !supabase || !photoId) return false;
-  const { error } = await supabase
+  return exactlyOne(await supabase
     .from("album_photos")
     .update({ hidden: !!hidden })
-    .eq("id", photoId);
-  if (error) throw error;
-  return true;
+    .eq("id", photoId)
+    .select("id"));
 }
 
 /**
@@ -576,9 +591,11 @@ export async function deleteAlbumPhoto(photo) {
   if (!isSupabaseConfigured || !supabase || !photo?.id || !photo?.storagePath) return false;
   const { error: rmErr } = await supabase.storage.from("event-album").remove([photo.storagePath]);
   if (rmErr) throw rmErr;
-  const { error: rowErr } = await supabase.from("album_photos").delete().eq("id", photo.id);
-  if (rowErr) throw rowErr;
-  return true;
+  // An empty `remove` result is NOT checked: it also means "already gone",
+  // which is exactly the state a retry after a half-finished delete is in.
+  // The row delete below is checked, and both are fenced by the same
+  // ownership rule, so a refused file delete is caught there.
+  return exactlyOne(await supabase.from("album_photos").delete().eq("id", photo.id).select("id"));
 }
 
 /**
@@ -633,18 +650,15 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader)
  */
 export async function setGiftHidden(giftId, hidden) {
   if (!isSupabaseConfigured || !supabase || !giftId) return false;
-  const { error } = await supabase
+  return exactlyOne(await supabase
     .from("gifts")
     .update({ hidden: !!hidden })
-    .eq("id", giftId);
-  if (error) throw error;
-  return true;
+    .eq("id", giftId)
+    .select("id"));
 }
 
 /** Remove a blessing entirely — from the wall AND from the host's list. */
 export async function deleteEventGift(giftId) {
   if (!isSupabaseConfigured || !supabase || !giftId) return false;
-  const { error } = await supabase.from("gifts").delete().eq("id", giftId);
-  if (error) throw error;
-  return true;
+  return exactlyOne(await supabase.from("gifts").delete().eq("id", giftId).select("id"));
 }

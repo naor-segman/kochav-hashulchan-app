@@ -14,6 +14,7 @@ vi.mock("../lib/supabase.js", () => ({
   supabase: {
     rpc: (...args) => rpc(...args),
     from: (...args) => fromFn(...args),
+    storage: { from: () => ({ remove: async () => ({ data: [], error: null }) }) },
   },
   isSupabaseConfigured: true,
 }));
@@ -21,7 +22,7 @@ vi.mock("../lib/supabase.js", () => ({
 const {
   fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift, LinkUnreachableError,
   upsertCollabGuest, fetchCollabGuestsOwner, upsertCollabGuestOwner,
-  fetchEventGifts,
+  fetchEventGifts, setAlbumPhotoHidden, deleteAlbumPhoto, setGiftHidden, deleteEventGift,
 } = await import("./publicTokens.js");
 
 const ok   = data  => rpc.mockResolvedValue({ data, error: null });
@@ -508,4 +509,34 @@ describe("fetchEventGifts", () => {
     expect(g.donorName).toBe("");
     expect(g.message).toBe("");
   });
+});
+
+describe("moderation writes — a refusal RLS answers with 0 rows is not a success", () => {
+  // 28.9 audit: PostgREST answers a refused UPDATE/DELETE with no error and no
+  // rows, and all four of these reported success on it. The host watched a
+  // photo leave the screen while it stayed on the guests' album.
+  const rowsBack = (data) => {
+    fromFn.mockReset();
+    const chain = { select: async () => ({ data, error: null }) };
+    fromFn.mockImplementation(() => ({
+      update: () => ({ eq: () => chain }),
+      delete: () => ({ eq: () => chain }),
+    }));
+  };
+  const calls = [
+    ["setAlbumPhotoHidden", () => setAlbumPhotoHidden("p1", true)],
+    ["deleteAlbumPhoto",    () => deleteAlbumPhoto({ id: "p1", storagePath: "e1/a.jpg" })],
+    ["setGiftHidden",       () => setGiftHidden("g1", true)],
+    ["deleteEventGift",     () => deleteEventGift("g1")],
+  ];
+  for (const [name, call] of calls) {
+    it(`${name}: 0 rows affected throws`, async () => {
+      rowsBack([]);
+      await expect(call()).rejects.toThrow(/not applied/);
+    });
+    it(`${name}: exactly one row affected succeeds`, async () => {
+      rowsBack([{ id: "x" }]);
+      await expect(call()).resolves.toBe(true);
+    });
+  }
 });

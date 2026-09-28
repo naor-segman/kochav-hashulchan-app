@@ -76,11 +76,16 @@ try {
           const id = /id=eq\.([^&]+)/.exec(url)?.[1];
           const body = JSON.parse(req.postData() || '{}');
           rows.forEach(r => { if (r.id === id) Object.assign(r, body); });
-          return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+          // The affected row, as PostgREST returns it for `.select("id")`.
+          // This answered '[]' until 28.9 — which is exactly what an RLS
+          // REFUSAL looks like, so the harness could not tell a refused write
+          // from a successful one. The client now requires one row back.
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id }]) });
         }
         if (m === 'DELETE') {
           net.push(['DELETE', 'row']);
-          return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+          const id = /id=eq\.([^&]+)/.exec(url)?.[1];
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id }]) });
         }
         net.push(['GET', 'row', url]);
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
