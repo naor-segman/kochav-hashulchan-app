@@ -55,6 +55,13 @@ describe("exportToExcel — workbook shape", () => {
     expect(sheetNamed("ממתינים לשיבוץ")).toBeUndefined();
   });
 
+  it("a declined guest is not on the waiting sheet", async () => {
+    const ev = { name: "e", guests: [g("a"), g("gone", { rsvp: "declined" })], tables: [t("t1")], seating: { a: "t1" }, constraints: [] };
+    await exportToExcel(ev, sideLabel, []);
+    // The only unseated guest declined, so there is nobody waiting at all.
+    expect(sheetNamed("ממתינים לשיבוץ")).toBeUndefined();
+  });
+
   it("adds the violations sheet only when violations are passed in", async () => {
     const ev = { name: "e", guests: [g("a"), g("b")], tables: [t("t1")], seating: { a: "t1", b: "t1" }, constraints: [] };
     await exportToExcel(ev, sideLabel, []);

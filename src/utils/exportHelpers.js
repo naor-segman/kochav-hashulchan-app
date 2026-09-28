@@ -225,7 +225,10 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
   XLSX.utils.book_append_sheet(wb, ws1, "סידור הושבה");
 
   // ── Sheet 2: Unassigned guests ───────────────────────────────────────
-  const unassigned = ev.guests.filter(g => !ev.seating[g.id]);
+  // Declined guests are not waiting for anything. Listing them here handed the
+  // venue a "still to seat" sheet with people who are not coming (28.9 audit)
+  // — the seating screen, the hub and the table builder all exclude them.
+  const unassigned = ev.guests.filter(g => !ev.seating[g.id] && g.rsvp !== "declined");
   if (unassigned.length > 0) {
     const uRows = [
       ["ממתינים לשיבוץ — " + (ev.name || "")],

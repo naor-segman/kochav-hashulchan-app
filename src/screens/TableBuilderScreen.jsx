@@ -2,6 +2,7 @@ import { useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { TABLE_TYPES, TABLE_SHAPES, DEFAULT_TABLE_SHAPE } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
+import { seatingTotals } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
@@ -70,7 +71,9 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   };
 
   const totalCap       = ev.tables.reduce((s, t) => s + t.capacity, 0);
-  const totalGuestSeats = ev.guests.reduce((s, g) => s + (g.count || 1), 0);
+  // Declined guests need no chair. Summing them here said "חסרים 20 מקומות"
+  // for an event the seating screen called 8 short (browser audit 28.9).
+  const totalGuestSeats = seatingTotals(ev.guests, ev.seating).totalSeats;
   const gap            = totalCap - totalGuestSeats;
   const batchCnt    = Math.max(1, parseInt(batch.count)    || 0);
   const batchCap    = Math.max(1, parseInt(batch.capacity) || 0);

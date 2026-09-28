@@ -13,6 +13,7 @@ import EventPlanCard from "../components/billing/EventPlanCard.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventHubScreen.module.css";
 import { makeOpenScreen, isNameGated } from "../utils/eventNameGate.js";
+import { seatingTotals } from "../utils/eventHelpers.js";
 
 /* ── The event's own front page ───────────────────────────────────────────────
  *
@@ -37,15 +38,21 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   const stats = useMemo(() => {
     const guests = ev.guests || [];
     const tables = ev.tables || [];
-    const seats  = guests.reduce((s, g) => s + (g.count || 1), 0);
+    // Declined guests are not coming, so they need no seat. This tile summed
+    // them anyway, and the hub said "60 מקומות · 28% שובצו" for an event the
+    // seating screen called 48 seats and 35% (browser audit 28.9). One rule,
+    // the one the seating screen uses.
+    const totals = seatingTotals(guests, ev.seating);
+    const seats  = totals.totalSeats;
+    const seated = totals.assignedSeats;
+    const declined = guests.length - totals.totalRecords;
     const cap    = tables.reduce((s, t) => s + (t.capacity || 0), 0);
-    const seated = guests.reduce((s, g) => s + (ev.seating?.[g.id] ? (g.count || 1) : 0), 0);
     const confirmed = guests.filter(g => g.rsvp === "confirmed").length;
     const answered  = guests.filter(g => g.rsvp && g.rsvp !== "pending").length;
     const tasks     = ev.tasks || [];
     const tasksDone = tasks.filter(t => t.status === "done").length;
     return {
-      guests: guests.length, seats, tables: tables.length, cap, seated,
+      guests: guests.length, active: totals.totalRecords, declined, seats, tables: tables.length, cap, seated,
       pct: seats > 0 ? Math.round((seated / seats) * 100) : 0,
       confirmed, answered,
       constraints: (ev.constraints || []).length,
@@ -75,7 +82,9 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   const state = (id) => {
     switch (id) {
       case "setup":       return ev.date ? fmtDate(ev.date) : "עוד אין תאריך";
-      case "guests":      return stats.guests ? `${stats.guests} רשומות · ${stats.seats} מקומות` : "הרשימה ריקה";
+      case "guests":      return stats.active
+        ? `${stats.active} רשומות · ${stats.seats} מקומות${stats.declined ? ` · ${stats.declined} לא מגיעים` : ""}`
+        : stats.declined ? `${stats.declined} לא מגיעים` : "הרשימה ריקה";
       case "tables":      return stats.tables ? `${stats.tables} שולחנות · ${stats.cap} מקומות` : "עוד לא הוגדרו";
       case "constraints": return stats.constraints ? `${stats.constraints} אילוצים` : "אין אילוצים";
       case "seating":     return stats.seated ? `${stats.pct}% מהמקומות שובצו` : "עוד לא חושבה";
