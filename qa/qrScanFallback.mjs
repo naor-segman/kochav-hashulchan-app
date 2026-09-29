@@ -115,6 +115,28 @@ try {
   ok(errs.length === 0, 'no page error', errs[0] || '');
   await ctx.close();
 
+  // ── Offline at the venue, on an iPhone: the decoder download fails. The
+  //    message has to be about the connection, not the camera (29.9 review).
+  {
+    const c = await browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['camera'], serviceWorkers: 'block' });
+    await c.addInitScript(() => { delete window.BarcodeDetector; });
+    await c.route(/jsqr/i, r => r.abort('internetdisconnected'));
+    const pg = await c.newPage();
+    await pg.goto(server.base + '/app', { waitUntil: 'domcontentloaded' });
+    await pg.evaluate(e => {
+      localStorage.setItem('kochav_orientation_v1', '1');
+      localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: [e], activeEventId: 'e1' }));
+    }, EVENT);
+    await pg.goto(server.base + '/events/e1/checkin', { waitUntil: 'domcontentloaded' });
+    await pg.waitForTimeout(1200);
+    await pg.getByRole('button', { name: /סרקו קוד/ }).click();
+    await pg.waitForTimeout(1500);
+    const t = await pg.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
+    ok(/אין חיבור/.test(t) && !/לפתוח את המצלמה/.test(t), 'decoder download failed: the message says connection, not camera',
+       (t.match(/הסורק[^.]*|לא הצלחנו[^.]*/) || [''])[0]);
+    await c.close();
+  }
+
   // ── On a GREETER'S link (29.9 review). The host's screen above saves through
   //    localStorage; the greeter's saves over the wire, and that path read the
   //    seats inside a React state updater — which, for a scan (a callback from

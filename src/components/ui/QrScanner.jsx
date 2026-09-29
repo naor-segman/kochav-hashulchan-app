@@ -59,6 +59,7 @@ export default function QrScanner({ onScan, onClose }) {
   useEffect(() => {
     let cancelled = false;
     let rafId = 0;
+    let timer = 0;
 
     (async () => {
       try {
@@ -71,7 +72,13 @@ export default function QrScanner({ onScan, onClose }) {
           if (!cancelled) setError("unsupported");
           return;
         }
-        const decode = await makeDecoder();
+        // The decoder is a separate download on phones without a native one
+        // (every iPhone). Offline at the venue that download fails, and the
+        // guest used to be told the CAMERA failed — sending them to their
+        // settings for a fault that is the connection (29.9 review).
+        let decode;
+        try { decode = await makeDecoder(); }
+        catch { if (!cancelled) setError("offline"); return; }
         if (cancelled) return;
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
@@ -103,7 +110,10 @@ export default function QrScanner({ onScan, onClose }) {
           } catch {
             // A single failed frame is not worth surfacing; keep scanning.
           }
-          if (!cancelled) rafId = requestAnimationFrame(tick);
+          // About six looks a second, not one per frame: the fallback decoder
+          // measured ~97ms a frame, and running it back to back held the
+          // phone's main thread for the whole time the scanner was open.
+          if (!cancelled) timer = setTimeout(() => { rafId = requestAnimationFrame(tick); }, 150);
         };
         rafId = requestAnimationFrame(tick);
       } catch (err) {
@@ -116,6 +126,7 @@ export default function QrScanner({ onScan, onClose }) {
     return () => {
       cancelled = true;
       cancelAnimationFrame(rafId);
+      clearTimeout(timer);
       streamRef.current?.getTracks().forEach(t => t.stop());
     };
   }, []);
@@ -124,6 +135,7 @@ export default function QrScanner({ onScan, onClose }) {
     error === "unsupported" ? "אין גישה למצלמה בדפדפן הזה. השתמשו בחיפוש לפי שם — הוא עובד בכל מכשיר."
     : error === "denied"    ? "הגישה למצלמה נדחתה. אשרו גישה בהגדרות הדפדפן, או השתמשו בחיפוש לפי שם."
     : error === "camera"    ? "לא הצלחנו לפתוח את המצלמה. השתמשו בחיפוש לפי שם."
+    : error === "offline"   ? "הסורק לא נטען — אין חיבור כרגע. השתמשו בחיפוש לפי שם, ונסו שוב כשיחזור החיבור."
     : "";
 
   return (
