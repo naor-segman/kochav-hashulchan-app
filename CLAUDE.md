@@ -197,6 +197,12 @@ Check for these first — each has bitten more than once:
   and `netlify/tests/edgeFunctionsDir.test.js` enforces it. That guard covers
   the *shape* that broke, not every bundling failure — a syntax error only Deno
   catches still lands silently.
+  **Since 29.9 `node qa/edgeBundle.mjs` runs Netlify's own bundler
+  (`@netlify/edge-bundler` + a real Deno, both from the npm registry, pinned,
+  cached outside the repo) over that directory — run it whenever anything in
+  `netlify/` changes.** Observed failing on the vitest file, a parse error and a
+  missing import. It cannot load a function's in-source `config` export
+  (needs edge.netlify.com, refused) — routes live in netlify.toml, so none has one.
 - **Chromium** is at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` and
   must be launched with `args:['--no-proxy-server']`, or localhost is routed
   through the agent proxy and every request fails. Resolve Playwright with
