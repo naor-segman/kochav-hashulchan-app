@@ -634,9 +634,10 @@ export async function deleteAlbumPhoto(photo) {
 export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const ext  = (file.name?.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
-  // The event id prefix is enforced server-side too — album_add_photo rejects a
-  // path that doesn't belong to the token's event.
-  const path = `${eventCloudId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  // <event id>/<album token>/<file>. The storage policy admits a file only
+  // under the event's CURRENT album token, so changing the album link revokes
+  // uploads (migration 20260930000000); album_add_photo checks the same prefix.
+  const path = `${eventCloudId}/${albumToken}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
   const { error: upErr } = await supabase.storage
     .from("event-album")
