@@ -72,14 +72,17 @@ const HOST_SIDE = [
 
 /* The six-stage sequence — content, audiences and the tracker all exist. */
 const SEQUENCE = [
-  // Hyphen-minus, not an en-dash: "3–6" painted 6–3 on this page (second
-  // review, סב27) — the reason is in messageSequence.js, which fixed the app.
-  { when: "3-6 חודשים לפני", label: "שמרו את התאריך", who: "כל האורחים" },
-  { when: "4-6 שבועות לפני", label: "ההזמנה",         who: "כל האורחים" },
+  // "3 עד 6", not "3–6" (second review, סב27). With a dash the pair is split
+  // by a bidi neutral and which way it paints depends on the character; the
+  // codebase holds two conventions for bare number pairs (CLAUDE.md bug class
+  // 7 vs messageSequence.js) and the choice is the owner's. A Hebrew word
+  // anchors the order under both — "250 מתוך 300", as CLAUDE.md puts it.
+  { when: "3 עד 6 חודשים לפני", label: "שמרו את התאריך", who: "כל האורחים" },
+  { when: "4 עד 6 שבועות לפני", label: "ההזמנה",         who: "כל האורחים" },
   { when: "שבועיים לפני",     label: "תזכורת ראשונה",  who: "רק מי שלא ענה" },
   { when: "שבוע לפני",        label: "תזכורת אחרונה",  who: "רק מי שלא ענה" },
-  { when: "2-3 ימים לפני",    label: "פרטי הגעה",      who: "רק מי שאישר" },
-  { when: "1-2 ימים אחרי",    label: "תודה",           who: "רק מי שהגיע" },
+  { when: "2 עד 3 ימים לפני",    label: "פרטי הגעה",      who: "רק מי שאישר" },
+  { when: "1 עד 2 ימים אחרי",    label: "תודה",           who: "רק מי שהגיע" },
 ];
 
 /* ── COMING_NOT_BUILT ───────────────────────────────────────────────────────

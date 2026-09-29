@@ -1,10 +1,13 @@
-// A number range reads as written: "3-6" paints 3 on the LEFT of 6 (29.9
-// second review, סב27). With an en-dash the pair is split by a neutral and,
-// in an RTL line, painted "6–3" — measured on /services/rsvp ("3–6 חודשים
-// לפני") and /pricing ("ציון 0–100" → 100–0). messageSequence.js explains
-// the bidi rule and fixed the app; the marketing pages had kept the en-dash.
+// Number ranges on the marketing pages (29.9 second review, סב27).
+// "3–6 חודשים לפני" painted 6–3 and "ציון 0–100" painted 100–0. Whether that
+// is wrong depends on a convention this codebase holds two ways (CLAUDE.md
+// bug class 7: the first number on the RIGHT; messageSequence.js and the admin
+// panel: numbers left-to-right) — the owner's call. So ranges here are written
+// "3 עד 6": a Hebrew word anchors the order under either convention.
 //
-// Every "<digits><dash><digits>" in the page's text, measured with Range rects.
+// Two checks, measured with Range rects:
+//   - no bare "<digits><dash><digits>" is left on these pages;
+//   - every "X עד Y" paints X to the RIGHT of Y — read first, in an RTL line.
 //   node qa/rangeOrder.mjs
 import { createRequire } from 'module';
 import { execFileSync } from 'child_process';
@@ -37,20 +40,22 @@ try {
       const out = [];
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       for (let n; (n = walker.nextNode());) {
-        for (const m of n.data.matchAll(/(\d+)\s?[-–]\s?(\d+)(?![\d/])/g)) {
+        for (const m of n.data.matchAll(/(\d+)%?\s?([-–]|עד)\s?(\d+)(?![\d/])/g)) {
           if (!n.parentElement?.getClientRects().length) continue;
           const r = document.createRange();
-          const a = m.index, b = m.index + m[0].length - m[2].length;
+          const a = m.index, b = m.index + m[0].length - m[3].length;
           r.setStart(n, a); r.setEnd(n, a + m[1].length); const ra = r.getBoundingClientRect();
-          r.setStart(n, b); r.setEnd(n, b + m[2].length); const rb = r.getBoundingClientRect();
+          r.setStart(n, b); r.setEnd(n, b + m[3].length); const rb = r.getBoundingClientRect();
           if (!ra.width || !rb.width || Math.abs(ra.top - rb.top) > 4) continue;   // hidden, or wrapped
-          out.push({ text: m[0], firstLeft: ra.left < rb.left });
+          out.push({ text: m[0], bare: m[2] !== 'עד', firstRight: ra.left > rb.left });
         }
       }
       return out;
     });
-    const bad = pairs.filter(x => !x.firstLeft).map(x => x.text);
-    ok(bad.length === 0, `${path}: ${pairs.length} ranges, each paints in the order written`, bad.join(', '));
+    const bare = pairs.filter(x => x.bare).map(x => x.text);
+    ok(bare.length === 0, `${path}: no bare dash between two numbers`, bare.join(', '));
+    const bad = pairs.filter(x => !x.bare && !x.firstRight).map(x => x.text);
+    ok(bad.length === 0, `${path}: ${pairs.length - bare.length} "X עד Y" ranges, X read first`, bad.join(', '));
   }
 } finally {
   await browser.close();
