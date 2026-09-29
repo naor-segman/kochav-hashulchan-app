@@ -803,7 +803,10 @@ export default function EntranceScreen({
                   onClick={async () => {
                     const ok = await confirm(
                       "להחליף את הקישור לדיילת?\n\n"
-                      + "הקישור הנוכחי יפסיק לעבוד מיד — גם בטלפון של דיילת שכבר פתחה אותו. "
+                      // "ברגע שהשינוי נשמר", not "מיד": the old link dies when
+                      // the new token reaches the server, and offline that is
+                      // later (29.9 review — the dialog promised more).
+                      + "הקישור הנוכחי יפסיק לעבוד ברגע שהשינוי יישמר — גם בטלפון של דיילת שכבר פתחה אותו. "
                       + "הסימונים שכבר נעשו נשארים. תצטרכו לשלוח לדיילת את הקישור החדש.",
                       { danger: true, confirmLabel: "החליפו את הקישור" },
                     );

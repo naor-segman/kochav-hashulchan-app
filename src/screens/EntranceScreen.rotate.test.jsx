@@ -28,7 +28,7 @@ describe("the host can revoke the door link", () => {
     fireEvent.click(await screen.findByRole("button", { name: /קישור לדיילת/ }));
     fireEvent.click(screen.getByRole("button", { name: /החליפו קישור/ }));
     expect(patchEventById).not.toHaveBeenCalled();           // nothing before the answer
-    expect(await screen.findByText(/יפסיק לעבוד מיד/)).toBeInTheDocument();
+    expect(await screen.findByText(/יפסיק לעבוד ברגע שהשינוי יישמר/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "החליפו את הקישור" }));
     await waitFor(() => expect(patchEventById).toHaveBeenCalledTimes(1));
     const [id, fn] = patchEventById.mock.calls[0];

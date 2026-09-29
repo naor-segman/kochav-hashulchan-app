@@ -128,7 +128,7 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
               edit, delete and export, and one forward to the wrong WhatsApp
               group was permanent. */}
           <p className={[base.fieldHint, styles.rotateHint].join(" ")}>
-            שלחתם את הקישור למקום הלא נכון? אפשר להחליף אותו בקישור חדש — הישן יפסיק לעבוד מיד.
+            שלחתם את הקישור למקום הלא נכון? אפשר להחליף אותו בקישור חדש — הישן יפסיק לעבוד ברגע שהשינוי יישמר.
           </p>
           <div className={base.actionBar} style={{ marginTop: 14 }}>
             <button className={base.btnPrimary} onClick={() => guard("הקישור לטבלה השיתופית",
@@ -143,7 +143,7 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
                 // once, and the rows they already saved stay.
                 const ok = await confirm(
                   "להחליף את הקישור לטבלה השיתופית?\n\n"
-                  + "הקישור הנוכחי יפסיק לעבוד מיד, וכל מי שקיבל אותו לא יוכל להיכנס יותר. "
+                  + "הקישור הנוכחי יפסיק לעבוד ברגע שהשינוי יישמר, וכל מי שקיבל אותו לא יוכל להיכנס יותר. "
                   + "השורות שכבר מולאו נשארות. תצטרכו לשלוח את הקישור החדש מחדש.",
                   { danger: true, confirmLabel: "החליפו את הקישור" },
                 );
