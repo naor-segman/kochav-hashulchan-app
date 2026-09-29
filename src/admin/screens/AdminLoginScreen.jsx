@@ -33,13 +33,18 @@ export default function AdminLoginScreen() {
   const [error,    setError]    = useState(location.state?.error || "");
   const [loading,  setLoading]  = useState(false);
 
-  // Redirect to dashboard if a valid session already exists.
+  // Redirect to dashboard if a valid session already exists — unless the guard
+  // just sent us HERE because it could not check that session's role. Then the
+  // two bounced between each other: 96 profile requests in 6 seconds, measured
+  // with the database unreachable, and the message below never on screen long
+  // enough to read (second review, סב18).
+  const cameWithError = !!location.state?.error;
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase || cameWithError) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate("/admin/dashboard", { replace: true });
     });
-  }, [navigate]);
+  }, [navigate, cameWithError]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
