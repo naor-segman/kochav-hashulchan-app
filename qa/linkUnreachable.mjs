@@ -190,6 +190,20 @@ try {
     ok(t.includes('משפחת לוי') && !t.includes(UNREACHABLE), 'and the wall is up, with nobody touching it', t.slice(0, 100));
     await ctx.close();
   }
+
+  // סב50: a server that never answers. No request had a deadline, so these
+  // pages said "טוען…" for as long as the guest waited (64 s measured).
+  console.log('\n── a server that never answers: the page gives up and says so');
+  for (const path of ['/rsvp/xxxxxxxx', '/gift/xxxxxxxx', '/hostess/xxxxxxxx']) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+    await ctx.route(SUPA + '/**', () => { /* never answers */ });
+    const p = await ctx.newPage();
+    await p.goto(server.base + path);
+    await p.waitForTimeout(17000);
+    const t = await text(p);
+    ok(t.includes(UNREACHABLE), `${path}: "no connection" after the 15 s deadline, not an endless spinner`, t.slice(0, 80));
+    await ctx.close();
+  }
 } finally {
   await browser.close();
   await server.stop();
