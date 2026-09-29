@@ -37,6 +37,17 @@ function fmtNet(n) {
   return (n < 0 ? "−₪" : "+₪") + abs;
 }
 
+/* Content equality that ignores key ORDER. Postgres jsonb reorders keys, so a
+   plain JSON.stringify compare saw the cloud's copy of the SAME budget as
+   different, adopted it, and wrote it back — a new updatedAt and a push for
+   nothing (29.9 review). */
+const sortedKeys = (v) => (v && typeof v === "object" && !Array.isArray(v)
+  ? Object.fromEntries(Object.keys(v).sort().map(k => [k, sortedKeys(v[k])]))
+  : Array.isArray(v) ? v.map(sortedKeys) : v);
+function sameContent(a, b) {
+  return JSON.stringify(sortedKeys(a)) === JSON.stringify(sortedKeys(b));
+}
+
 export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
   const [cats, setCats]    = useState(() => initCategories(ev));
   const [bulkGift, setBulkGift] = useState("");
@@ -66,7 +77,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
     setSeenCosts(ev.costs);
     const incoming = ev.costs?.categories;
     if (Array.isArray(incoming) && incoming.length &&
-        JSON.stringify(incoming) !== JSON.stringify(cats)) {
+        sameContent(incoming, cats) === false) {
       setCats(initCategories(ev));
     }
   }

@@ -97,3 +97,16 @@ describe("CostScreen — a budget updated elsewhere while the screen is open (10
     expect(written[0].budget).toBe("21000");
   });
 });
+
+describe("CostScreen — the cloud's copy of the SAME budget is not an update (29.9 review)", () => {
+  it("keys in a different order (jsonb reorders them) are not adopted and written back", () => {
+    const patchEvent = vi.fn();
+    const base = { type: "חתונה", guests: [], tables: [], seating: {} };
+    const v1 = { ...base, id: "e1", costs: { categories: [{ id: "c1", name: "קייטרינג", budget: "20000", actual: "" }] } };
+    const { rerender } = render(<CostScreen activeEvent={v1} patchEvent={patchEvent} showToast={() => {}} />);
+    patchEvent.mockClear();
+    const v2 = { ...v1, costs: { categories: [{ id: "c1", name: "קייטרינג", actual: "", budget: "20000" }] } };
+    rerender(<CostScreen activeEvent={v2} patchEvent={patchEvent} showToast={() => {}} />);
+    expect(patchEvent).not.toHaveBeenCalled();
+  });
+});
