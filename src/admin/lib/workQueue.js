@@ -17,7 +17,11 @@ export const QUEUE_WINDOW = 200;
 export function mergeQueue(unseen, recent) {
   const byId = new Map();
   for (const r of [...(recent || []), ...(unseen || [])]) byId.set(r.id, r);
-  return [...byId.values()].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  // By the instant, not the string: localeCompare collates "." before "+", so
+  // "…46+00:00" (Postgres drops a zero fraction) sorted as newer than
+  // "…46.5+00:00" (29.9 review). Id breaks a tie so the order is stable.
+  const t = r => Date.parse(r.created_at) || 0;
+  return [...byId.values()].sort((a, b) => t(b) - t(a) || String(b.id).localeCompare(String(a.id)));
 }
 
 /**

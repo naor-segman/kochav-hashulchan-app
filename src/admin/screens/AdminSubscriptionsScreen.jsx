@@ -317,9 +317,13 @@ export default function AdminSubscriptionsScreen() {
               </div>
               <span className={styles.resultCount}>
                 {filtered.length.toLocaleString()} רכישות
+                {/* What was LOADED, not the page size, and never "500 מתוך 500":
+                    when the count query failed a full window is only a guess
+                    that more exist, and says so (29.9 review). */}
                 {subs?.truncated && (
                   <span className={styles.truncNote}>
-                    {" · "}מוצגות {SUBS_PAGE.toLocaleString()} האחרונות מתוך {subs.total.toLocaleString()}
+                    {" · "}מוצגות {subs.length.toLocaleString()} האחרונות
+                    {subs.total > subs.length ? ` מתוך ${subs.total.toLocaleString()}` : " — ייתכן שיש עוד"}
                   </span>
                 )}
               </span>

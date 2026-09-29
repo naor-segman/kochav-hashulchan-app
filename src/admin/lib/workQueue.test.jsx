@@ -53,6 +53,13 @@ describe("workQueue", () => {
     expect(q.rows[0].created_at >= q.rows.at(-1).created_at).toBe(true);
   });
 
+  it("orders by the instant, not the string — '…46+00:00' is older than '…46.5+00:00' (29.9 review)", () => {
+    const A = { id: "A", created_at: "2026-09-29T10:00:46+00:00" };
+    const B = { id: "B", created_at: "2026-09-29T10:00:46.9+00:00" };
+    const C = { id: "C", created_at: "2026-09-29T10:00:46.5+00:00" };
+    expect(mergeQueue([A, B, C], []).map(r => r.id)).toEqual(["B", "C", "A"]);
+  });
+
   it("mergeQueue unions by id, newest first", () => {
     const a = { id: "a", created_at: at(1) }, b = { id: "b", created_at: at(2) };
     expect(mergeQueue([a, b], [b]).map(r => r.id)).toEqual(["b", "a"]);
@@ -104,6 +111,22 @@ describe("AdminSubscriptionsScreen — a window says it is one", () => {
     const { container } = render(<MemoryRouter><Screen /></MemoryRouter>);
     await waitFor(() => expect(container.textContent).toContain("500 רכישות"));
     expect(container.textContent).toContain("מוצגות 500 האחרונות מתוך 620");
+    vi.doUnmock("../../lib/supabase.js");
+    vi.doUnmock("../lib/useAdminLogout.js");
+  });
+
+  it("the count query failed and a full window loaded: no '500 מתוך 500', a hedge instead (29.9 review)", async () => {
+    vi.resetModules();
+    const base = fakeClient(SUBS);
+    const failingCount = { ...base, from: (t) => { const b = base.from(t); const sel = b.select;
+      b.select = (c, o) => (o?.head ? { then: (res) => Promise.resolve({ data: null, count: null, error: { message: "x" } }).then(res) } : sel(c, o)); return b; } };
+    vi.doMock("../../lib/supabase.js", () => ({ supabase: withAuth(failingCount), isSupabaseConfigured: true }));
+    vi.doMock("../lib/useAdminLogout.js", () => ({ useAdminLogout: () => () => {} }));
+    const Screen = (await import("../screens/AdminSubscriptionsScreen.jsx")).default;
+    const { container } = render(<MemoryRouter><Screen /></MemoryRouter>);
+    await waitFor(() => expect(container.textContent).toContain("500 רכישות"));
+    expect(container.textContent).not.toContain("מתוך 500");
+    expect(container.textContent).toContain("ייתכן שיש עוד");
     vi.doUnmock("../../lib/supabase.js");
     vi.doUnmock("../lib/useAdminLogout.js");
   });
