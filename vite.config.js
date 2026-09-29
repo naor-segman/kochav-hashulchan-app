@@ -43,6 +43,7 @@ function seoPages() {
     configResolved(config) { outDir = config.build.outDir },
     async closeBundle() {
       const { SEO_PAGES, pageTitle, pageCanonical } = await import('./src/data/seo.js')
+      const { COMPANY } = await import('./src/data/company.js')
       const shell = await readFile(join(outDir, 'index.html'), 'utf8')
 
       for (const page of SEO_PAGES) {
@@ -62,6 +63,12 @@ function seoPages() {
           .replace(/(<meta property="og:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
           .replace(/(<meta name="twitter:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)
           .replace(/(<meta name="twitter:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
+          // The share image as an ABSOLUTE url. index.html says "/og-image.png";
+          // Open Graph asks for a full url, and WhatsApp's crawler shows no
+          // image for a relative one — on every link anyone shares, the
+          // invitations included, since they are served this same shell.
+          .replace(/(<meta (?:property="og:image"|name="twitter:image") content=")\/(?!\/)/gi,
+                   (_m, a) => a + COMPANY.site + '/')
 
         // Canonical and og:url are ADDED — index.html carries neither, which is
         // half of what the measurement found.

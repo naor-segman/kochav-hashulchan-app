@@ -41,6 +41,8 @@ const SHELL = `<!doctype html><html><head>
 <meta property="og:description" content="סידור הושבה" />
 <meta name="twitter:title" content="רוויה" />
 <meta name="twitter:description" content="סידור הושבה" />
+<link rel="canonical" href="https://revaya-events.co.il/" />
+<meta property="og:url" content="https://revaya-events.co.il/" />
 </head><body><div id="root"></div></body></html>`;
 
 const htmlResponse = (body = SHELL) =>
@@ -226,6 +228,34 @@ describe("every guest link previews as the event, not the product (WORKPLAN ר)"
   it("the site keeps its original title", async () => {
     const body = await (await run()).text();
     expect(body).toContain("<title>אתר החתונה של דנה &amp; יוסי</title>");
+  });
+});
+
+describe("the link names itself, not the homepage (106)", () => {
+  // The shell comes out of the build as the "/" document, with og:url and
+  // canonical pointing at the homepage — and a crawler that honours og:url
+  // (Facebook's does) goes and previews the homepage instead.
+  it("og:url and canonical are the link itself, without the query string", async () => {
+    const body = await (await run("https://revaya-events.co.il/rsvp/tok123?utm_source=wa")).text();
+    expect(body).toContain('<meta property="og:url" content="https://revaya-events.co.il/rsvp/tok123" />');
+    expect(body).toContain('<link rel="canonical" href="https://revaya-events.co.il/rsvp/tok123" />');
+    expect(body).not.toContain('content="https://revaya-events.co.il/"');
+  });
+
+  it("the fixture above carries the tags the real shell carries", async () => {
+    // A fixture maintained by hand drifts (bug class 6): this one had no og:url
+    // and no canonical, so nothing here could see the homepage in them. The
+    // real index.html is the source; the build adds canonical + og:url.
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+    for (const tag of ['<meta property="og:title" content="', '<meta property="og:description" content="',
+                       '<meta name="twitter:title" content="', '<meta name="twitter:description" content="', "<title>"]) {
+      expect(src, tag).toContain(tag);
+      expect(SHELL, tag).toContain(tag);
+    }
+    const vite = readFileSync(new URL("../../vite.config.js", import.meta.url), "utf8");
+    expect(vite).toContain('<link rel="canonical" href="${c}" />');
+    expect(vite).toContain('<meta property="og:url" content="${c}" />');
   });
 });
 

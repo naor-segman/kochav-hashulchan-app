@@ -71,6 +71,10 @@ for (const page of SEO_PAGES) {
     `${pick(html, OGURL)}`);
   check(`file ${page.path}: og:title follows title`,
     pick(html, OGTIT) === pageTitle(page), `${pick(html, OGTIT)}`);
+  // The share image as a full url (106): WhatsApp shows none for a relative one.
+  for (const re of [/<meta property="og:image" content="([^"]*)"/i, /<meta name="twitter:image" content="([^"]*)"/i])
+    check(`file ${page.path}: ${re.source.match(/"([a-z:]+)"/)[1]} is absolute`,
+      /^https:\/\//.test(pick(html, re) || ''), `${pick(html, re)}`);
   // Exactly one of each — a second canonical is as bad as none.
   check(`file ${page.path}: one canonical`,
     (html.match(/rel="canonical"/g) || []).length === 1);

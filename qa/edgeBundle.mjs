@@ -134,6 +134,16 @@ try {
      broken ? out.split('\n').filter(l => /error/i.test(l)).slice(0, 3).join(' | ').slice(0, 300)
             : real.map(d => `${d.code} ${d.msg} @ ${d.at}`).join(' | ').slice(0, 500));
   console.log(`       (accepted: ${diags.filter(accepted).length} × apiVersion 2024-06-20 on an SDK typed for 2023-10-16)`);
+
+  // ── The OG function RUN in Deno against the built shell ──────────────────
+  if (existsSync(join(ROOT, 'dist/index.html'))) {
+    const og = spawnSync('deno', ['run', '--allow-read', join(ROOT, 'qa/inviteOg.deno.js')], { encoding: 'utf8' });
+    const lines = (og.stdout + og.stderr).replace(/\x1b\[[0-9;]*m/g, '').split('\n');
+    ok(og.status === 0, 'invite-og runs in Deno against dist/index.html (qa/inviteOg.deno.js)',
+      lines.filter(l => /^\s*FAIL|^error/.test(l)).slice(0, 3).join(' | '));
+  } else {
+    ok(false, 'invite-og in Deno needs a build — run `npm run build` first');
+  }
 } finally {
   rmSync(OUT, { recursive: true, force: true });
 }

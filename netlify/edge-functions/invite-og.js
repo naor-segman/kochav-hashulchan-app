@@ -102,6 +102,12 @@ export default async (request, context) => {
     // A function replacement never expands anything.
     const t = esc(title);
     const d = esc(desc);
+    // This page's own address. The shell it is served comes out of the build
+    // with og:url and canonical pointing at the HOMEPAGE (it is the "/"
+    // document), and a crawler that honours og:url — Facebook's does — goes
+    // and previews the homepage instead of the invitation. Query string
+    // dropped: it is tracking, not identity.
+    const self = esc(url.origin + url.pathname);
 
     // `html` WAS NEVER DEFINED. This line read `const out = html…` against a
     // variable that does not exist anywhere in the file, so every request threw
@@ -123,7 +129,9 @@ export default async (request, context) => {
       .replace(/(<meta property="og:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)
       .replace(/(<meta property="og:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
       .replace(/(<meta name="twitter:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)
-      .replace(/(<meta name="twitter:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b);
+      .replace(/(<meta name="twitter:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
+      .replace(/(<meta property="og:url" content=")[^"]*(")/i, (_m, a, b) => a + self + b)
+      .replace(/(<link rel="canonical" href=")[^"]*(")/i, (_m, a, b) => a + self + b);
 
     const headers = new Headers(res.headers);
     headers.delete("content-length");
