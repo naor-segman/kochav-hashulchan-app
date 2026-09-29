@@ -296,6 +296,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                       value={c.name}
                       onChange={e => setField(c.id, "name", e.target.value)}
                       placeholder="שם קטגוריה"
+                      aria-label="שם הקטגוריה"
                     />
                   </div>
                   <div className={styles.colAmt} data-label="תקציב">
@@ -394,6 +395,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   placeholder="שם קטגוריה חדשה"
+                  aria-label="שם קטגוריה חדשה"
                   autoFocus
                   onKeyDown={e => {
                     if (e.key === "Enter") addRow();

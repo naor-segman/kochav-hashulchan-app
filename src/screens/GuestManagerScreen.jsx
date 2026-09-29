@@ -732,6 +732,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             className={base.input}
             style={{ flex: 1, minWidth: 120 }}
             value={filter.search}
+            aria-label="חיפוש אורח לפי שם"
             placeholder="חיפוש לפי שם..."
             onChange={e => setFilter(p => Object.assign({}, p, { search: e.target.value }))}
           />

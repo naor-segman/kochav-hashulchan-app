@@ -167,7 +167,21 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                   />
                 ) : (
                   <>
-                    <div className={styles.preview}>{stage.body}</div>
+                    {/* The message as a guest will read it, not the template:
+                        the raw {{שם}} was what the host saw here (WORKPLAN
+                        108). Filled for a real guest of this stage — the
+                        first one it goes to — through the same textFor that
+                        builds what is sent, so the two cannot differ. With no
+                        guest yet the name slot says what goes there. */}
+                    {(() => {
+                      const sample = stage.audience.find(g => g.name?.trim())
+                        || (ev.guests || []).find(g => g.name?.trim())
+                        || { id: "", name: "שם האורח" };
+                      return <>
+                        <p className={styles.previewFor}>כך ההודעה תיראה אצל {sample.name}:</p>
+                        <div className={styles.preview}>{textFor(stage, sample)}</div>
+                      </>;
+                    })()}
                     {/* Which page {{קישור}} opens in THIS stage, said out loud.
                         With one link per stage the host can no longer assume
                         "the link" means the RSVP form — and when a stage has

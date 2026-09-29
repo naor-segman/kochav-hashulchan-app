@@ -584,11 +584,12 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         {site.faq.map(f => (
           <div key={f.id} className={styles.faqEdit}>
             <div className={styles.faqEditTop}>
-              <input className={base.input} value={f.q} placeholder="השאלה"
+              <input className={base.input} value={f.q} placeholder="השאלה" aria-label="שאלה"
                 onChange={e => editFaq(f.id, { q: e.target.value })} />
-              <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delFaq(f.id)}>✕</button>
+              <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delFaq(f.id)}
+                aria-label={f.q.trim() ? `מחיקת השאלה: ${f.q.trim()}` : "מחיקת השאלה"}>✕</button>
             </div>
-            <textarea className={base.textarea} rows={2} value={f.a} placeholder="התשובה"
+            <textarea className={base.textarea} rows={2} value={f.a} placeholder="התשובה" aria-label="תשובה"
               onChange={e => editFaq(f.id, { a: e.target.value })} />
           </div>
         ))}
