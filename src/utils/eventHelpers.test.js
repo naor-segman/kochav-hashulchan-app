@@ -779,3 +779,12 @@ describe("normalizeEvent — rsvpApplied (ת3)", () => {
     expect(out[0]).toBe("r100");
   });
 });
+
+describe("normalizeEvent — constraint rows (סב16)", () => {
+  it("drops a null or non-object constraint, keeps the real ones", () => {
+    // One null took the seating and constraints screens down.
+    const real = { id: "c1", type: "together", guestA: "a", guestB: "b" };
+    const ev = normalizeEvent({ id: "e", name: "x", constraints: [null, real, "junk", 3] });
+    expect(ev.constraints).toEqual([real]);
+  });
+});

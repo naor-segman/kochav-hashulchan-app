@@ -112,7 +112,13 @@ export function normalizeEvent(ev) {
     tables:      Array.isArray(ev.tables)      ? ev.tables      : [],
     guests:      Array.isArray(ev.guests)      ? ev.guests      : [],
     seating:     (ev.seating && typeof ev.seating === "object") ? ev.seating : {},
-    constraints: Array.isArray(ev.constraints) ? ev.constraints : [],
+    // Rows, not just an array: one `null` in it took the seating AND the
+    // constraints screens down ("אירעה שגיאה בלתי צפויה") — the engine was
+    // guarded against it, eight readers in the analysis and the constraints
+    // screen were not (second review, סב16).
+    constraints: Array.isArray(ev.constraints)
+      ? ev.constraints.filter(c => c && typeof c === "object")
+      : [],
     // Metadata — fall back gracefully for events that predate these fields
     createdAt:   ev.createdAt                  ?? now,
     // updatedAt defaults to the RESOLVED createdAt (not raw ev.createdAt) so an
