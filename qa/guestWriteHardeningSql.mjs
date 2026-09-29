@@ -122,6 +122,23 @@ try {
   for (const fn of ['public.album_event_id(text)', 'public.prune_ai_usage()']) {
     ok(psql(`select has_function_privilege('anon', '${fn}', 'EXECUTE')`) === 'f', `anon cannot execute ${fn}`);
   }
+
+  console.log('\n── the cloud version only rises (סב46, 20260930000300)');
+  {
+    const v0 = Number(psql(`select version from public.events where id = '${EV}'`));
+    // A device whose counter fell behind pushes a LOWER version on the base it holds.
+    const e = tryAs(`begin; set local role authenticated; select set_config('request.jwt.claim.sub', '${OWNER}', true);
+      update public.events set version = 1, venue = 'from a stale counter' where id = '${EV}' and version = ${v0}; commit;`);
+    ok(e === null, 'the push itself is accepted (the base matched)', e || '');
+    const v1 = Number(psql(`select version from public.events where id = '${EV}'`));
+    ok(v1 === v0 + 1, 'but the row goes UP, not down', `${v0} → ${v1}`);
+    const stale = tryAs(`begin; set local role authenticated; select set_config('request.jwt.claim.sub', '${OWNER}', true);
+      update public.events set venue = 'a device holding base 1' where id = '${EV}' and version = 1; commit;`);
+    ok(psql(`select venue from public.events where id = '${EV}'`) === 'from a stale counter',
+       'so a device whose base is the lower number now matches nothing — a conflict, not an overwrite', stale || '');
+    psql(`update public.events set version = ${v1 + 5} where id = '${EV}'`);
+    ok(Number(psql(`select version from public.events where id = '${EV}'`)) === v1 + 5, 'a push that raises the version keeps its number');
+  }
 } finally {
   spawnSync('su', ['postgres', '-c', `${PGBIN}/pg_ctl -D ${DIR} -m immediate stop`]);
   rmSync(DIR, { recursive: true, force: true });
