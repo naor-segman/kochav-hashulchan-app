@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { fetchCloudEvents, createCloudEvent } from "../utils/cloudSync.js";
+import { syncBaseOf } from "../utils/syncBase.js";
 
 // ── Migration status ──────────────────────────────────────────────────────────
 
@@ -99,7 +100,8 @@ export function useMigration(events, patchEventById, user) {
           // version so the first post-migration edit has a concurrency base.
           // patchEventById also bumps updatedAt/version — acceptable for a
           // one-time migration operation.
-          patchEventById(ev.id, { cloudId: created.cloudId, syncedVersion: created.version });
+          patchEventById(ev.id, { cloudId: created.cloudId, syncedVersion: created.version,
+                                  syncBase: syncBaseOf(ev) });
         }
         setProgress({ done: i + 1, total: toMigrate.length });
       }

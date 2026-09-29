@@ -497,6 +497,62 @@ describe("two devices on one account", () => {
     expect(phone.result.current.events.map(e => e.id)).toEqual(["draft"]);
   });
 
+  // סב55 (third review 30.9): the laptop, offline with yesterday's copy,
+  // renames the event; the phone had already moved the venue. The laptop's
+  // copy is newer, and whole-event last-write-wins gave it every field —
+  // the phone's venue was reverted and pushed back over the cloud.
+  it("an offline edit on one device does not revert a different field changed on the other", async () => {
+    cloud.updateCloudEvent.mockImplementation(async (e) => {
+      const i = cloudRows.findIndex(r => r.cloudId === e.cloudId);
+      const v = (cloudRows[i].syncedVersion ?? 1) + 1;
+      const row = { ...e, version: v, syncedVersion: v };
+      delete row.syncBase;                       // client-side only; no mapper carries it
+      cloudRows[i] = row;
+      return v;
+    });
+    cloudRows = [ev("wedding", { cloudId: "c-wedding", syncedVersion: 1, venue: "גן ישן" })];
+
+    // LAPTOP loads while online and goes to sleep with that copy.
+    asDevice([]);
+    let laptop = renderHook(() => useEvents(USER));
+    await settle();
+    const laptopBucket = stored(userKey("u1"));
+    laptop.unmount();
+
+    // PHONE moves the venue; it lands in the cloud.
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    asDevice([]);
+    const phone = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { phone.result.current.patchEventById("wedding", { venue: "אולם בהרצליה" }); });
+    await flushDebounce();
+    expect(cloudRows[0].venue).toBe("אולם בהרצליה");
+    phone.unmount();
+
+    // LAPTOP, later and offline, renames the event. Nothing reaches the cloud.
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    asDevice(laptopBucket);
+    cloud.fetchCloudEvents.mockRejectedValueOnce(new Error("offline"));
+    cloud.updateCloudEvent.mockRejectedValueOnce(new Error("offline"));
+    laptop = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { laptop.result.current.patchEventById("wedding", { name: "החתונה של נוי" }); });
+    await flushDebounce();
+    const offlineBucket = stored(userKey("u1"));
+    laptop.unmount();
+
+    // Back online: both edits survive, on the laptop and in the cloud.
+    asDevice(offlineBucket);
+    laptop = renderHook(() => useEvents(USER));
+    await settle();
+    const e = laptop.result.current.events[0];
+    expect(e.venue).toBe("אולם בהרצליה");
+    expect(e.name).toBe("החתונה של נוי");
+    await settle();
+    expect(cloudRows[0].venue).toBe("אולם בהרצליה");
+    expect(cloudRows[0].name).toBe("החתונה של נוי");
+  });
+
   it("an event added on the phone shows up on the desktop", async () => {
     asDevice([]);
     const phone = renderHook(() => useEvents(USER));

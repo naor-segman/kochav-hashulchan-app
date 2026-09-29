@@ -3,6 +3,7 @@ import { loadState, persist, userStorageKey } from "../utils/storage.js";
 import { normalizeEvent, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
+import { syncBaseOf, threeWayScalars } from "../utils/syncBase.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
@@ -364,9 +365,9 @@ function keepFilledCosts(winner, loser) {
  * retry used to set `version: v2` outright, which is exactly that (third
  * review 30.9, סב46). The server now also refuses to let the version go down
  * (migration 20260930000300), so `v` can be above what was sent. */
-export function afterPush(e, sentVersion, v) {
-  if (e.version === sentVersion) return { ...e, syncedVersion: v, version: v };
-  return { ...e, syncedVersion: v, version: Math.max(e.version ?? 0, v + 1) };
+export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null) {
+  if (e.version === sentVersion) return { ...e, syncedVersion: v, version: v, syncBase };
+  return { ...e, syncedVersion: v, version: Math.max(e.version ?? 0, v + 1), syncBase };
 }
 
 export function mergeCloudWithLocal(
@@ -434,6 +435,9 @@ export function mergeCloudWithLocal(
     // device happened to edit the venue last would decide whether a guest the
     // OTHER device removed stays removed.
     const tombs = mergeTombstoneMaps(localMatch?.deletedRows, ce.deletedRows);
+    // The row just read is, by definition, what the cloud holds at the
+    // syncedVersion every branch below takes — so it is the next merge's base.
+    const cloudBase = syncBaseOf(ce);
 
     // The cloud row is NOT automatically the truth. A write can fail (venue
     // wifi) or simply not have fired yet — the push is debounced 1500ms, so
@@ -462,7 +466,7 @@ export function mergeCloudWithLocal(
       const cloudPositions = ce.floorPlan?.tablePositions || {};
       const extraPositions = Object.fromEntries(Object.entries(cloudPositions)
         .filter(([tid]) => !localTableIds.has(tid) && !(tid in localPositions) && tableIdsAll.has(tid)));
-      return markUnpushed(pruneArrangement(normalizeEvent({
+      const localWon = {
         ...localMatch,
         seating: mergeSeating(localMatch.seating, ce.seating,
                               (id) => localGuestIds.has(id), (id) => tableIdsAll.has(id)),
@@ -534,10 +538,17 @@ export function mergeCloudWithLocal(
         tokens: mergeTokens(ce.tokens, localMatch.tokens, null,
                             ce.tokensRotatedAt, localMatch.tokensRotatedAt,
                             ce.tokenRotations, localMatch.tokenRotations),
+      };
+      // Newer is not the same as "changed everything": a field only the cloud
+      // moved since the last sync takes the cloud's value (סב55, syncBase.js).
+      const { event: scalarsMerged } = threeWayScalars(localWon, localMatch, ce, localMatch.syncBase);
+      return markUnpushed(pruneArrangement(normalizeEvent({
+        ...scalarsMerged, syncBase: cloudBase,
       })), true);
     }
 
-    let result = normalized;
+    let result = { ...normalized, syncBase: cloudBase };
+    let localKept = false;
 
     // The cloud won on scalars — but a row it has never heard of is still this
     // tab's work, so the union runs in BOTH directions. Symmetry is not tidiness
@@ -612,6 +623,12 @@ export function mergeCloudWithLocal(
         customGroups: unionStrings(result.customGroups, localMatch.customGroups),
         customTableTypes: unionStrings(result.customTableTypes, localMatch.customTableTypes),
       };
+      // The mirror of the local-wins case: the cloud copy is newer, but a field
+      // only THIS device moved since the last sync is this device's edit, not
+      // something the cloud overruled (סב55). Kept, and marked for pushing.
+      const tw = threeWayScalars(result, localMatch, ce, localMatch.syncBase);
+      result = tw.event;
+      localKept = tw.localKept;
     }
 
     // Positions for tables the cloud has never seen. The rescue below only fires
@@ -661,7 +678,7 @@ export function mergeCloudWithLocal(
     }
     // Applied at BOTH exits. The local-wins branch above returns early, and
     // putting this only here silently skipped the exact case it is for.
-    return markUnpushed(localMatch ? pruneArrangement(result) : result);
+    return markUnpushed(localMatch ? pruneArrangement(result) : result, localKept);
   });
 
   for (const le of localEvents) {
@@ -868,7 +885,8 @@ export function useEvents(user) {
     try {
       const version = await updateCloudEvent(ev, uid);
       if (Number.isFinite(version)) {
-        setEvents(prev => prev.map(e => e.id === ev.id ? afterPush(e, ev.version, version) : e));
+        const base = syncBaseOf(ev);
+        setEvents(prev => prev.map(e => e.id === ev.id ? afterPush(e, ev.version, version, base) : e));
       }
       setSyncStatus(SYNC_STATUS.SYNCED);
     } catch (err) {
@@ -906,8 +924,9 @@ export function useEvents(user) {
               const v2 = await updateCloudEvent(mergedThis, uid);
               if (ownerRef.current !== uid) return;
               if (Number.isFinite(v2)) {
+                const base = syncBaseOf(mergedThis);
                 setEvents(prev => prev.map(e =>
-                  e.id === ev.id ? afterPush(e, mergedThis.version, v2) : e));
+                  e.id === ev.id ? afterPush(e, mergedThis.version, v2, base) : e));
               }
               setSyncStatus(SYNC_STATUS.SYNCED);
             } catch {
@@ -951,8 +970,9 @@ export function useEvents(user) {
           if (wasDeleted) {
             deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
           } else {
+            const base = syncBaseOf(normalized);
             setEvents(prev => prev.map(e =>
-              e.id === normalized.id ? { ...e, cloudId, syncedVersion: version } : e));
+              e.id === normalized.id ? { ...e, cloudId, syncedVersion: version, syncBase: base } : e));
             // Push any edits that arrived during the round-trip so the cloud row stays current.
             const latest = eventsRef.current.find(e => e.id === normalized.id);
             if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
@@ -1027,8 +1047,9 @@ export function useEvents(user) {
             setSyncStatus(SYNC_STATUS.SYNCED);
             return;
           }
+          const base = syncBaseOf(ev);
           setEvents(prev => prev.map(e =>
-            e.id === id ? { ...e, cloudId, syncedVersion: version } : e));
+            e.id === id ? { ...e, cloudId, syncedVersion: version, syncBase: base } : e));
           // Push whatever arrived during the round-trip, exactly as addEvent
           // does — without this the edit that TRIGGERED the retry was the one
           // change the cloud never received.

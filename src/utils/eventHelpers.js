@@ -172,6 +172,12 @@ export function normalizeEvent(ev) {
     // synced, in which case the update falls back to the old unconditional
     // write rather than blocking a legacy event from syncing at all.
     syncedVersion: Number.isFinite(ev.syncedVersion) ? ev.syncedVersion : null,
+    // Fingerprints of the scalar fields as the cloud held them at
+    // `syncedVersion` — the common ancestor for the merge (סב55, syncBase.js).
+    // Client-side only, like syncedVersion.
+    syncBase: (ev.syncBase && typeof ev.syncBase === "object" && !Array.isArray(ev.syncBase))
+      ? Object.fromEntries(Object.entries(ev.syncBase).filter(([, v]) => typeof v === "string"))
+      : null,
     // Locking — guests/tables excluded from smart-assistant suggestions.
     // Must be preserved here so locks survive page reload (localStorage round-trip).
     lockedGuests: Array.isArray(ev.lockedGuests) ? ev.lockedGuests : [],
@@ -480,6 +486,7 @@ export function duplicateEvent(ev) {
     // conflict-recovery path on its very first save. Survives today only
     // because addEvent's create overwrites it; that is luck, not design.
     syncedVersion: null,
+    syncBase: null,
     // Tombstones are this account's record of rows it DELETED, keyed by the
     // ids of those rows. Every id in the copy is freshly minted, so they can
     // never match anything here — dead weight until the day one id is

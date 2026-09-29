@@ -148,7 +148,7 @@ describe("useMigration — migrate() is one-way, so it must be duplicate-safe", 
 
     await act(async () => { await result.current.migrate(); });
 
-    expect(patch).toHaveBeenCalledWith("a", { cloudId: "c-new", syncedVersion: 7 });
+    expect(patch).toHaveBeenCalledWith("a", expect.objectContaining({ cloudId: "c-new", syncedVersion: 7 }));
   });
 
   it("reports progress as done/total across several events", async () => {
@@ -201,7 +201,7 @@ describe("useMigration — failure", () => {
     await act(async () => { await result.current.migrate(); });
 
     expect(patch).toHaveBeenCalledTimes(1);
-    expect(patch).toHaveBeenCalledWith("a", { cloudId: "c-a", syncedVersion: 1 });
+    expect(patch).toHaveBeenCalledWith("a", expect.objectContaining({ cloudId: "c-a", syncedVersion: 1 }));
     expect(result.current.status).toBe(MIGRATION_STATUS.FAILED);
   });
 
