@@ -93,6 +93,18 @@ describe("latestPerRespondent — one answer per guest for counting (107/ת4)", 
     const rows = [r("a", " יעל  כהן", "", "2026-09-21"), r("b", "יעל כהן", "", "2026-09-20")];
     expect(latestPerRespondent(rows).map(x => x.id)).toEqual(["a"]);
   });
+  it("yes with a phone, then no without one (the decline form asks for none), is ONE guest — the no (29.9 review)", () => {
+    const rows = [r("y", "יעל כהן", "0501234567", "2026-09-20"), r("n", "יעל כהן", null, "2026-09-21")];
+    expect(latestPerRespondent(rows).map(x => x.id)).toEqual(["n"]);
+  });
+  it("and the other order: a phone-less first answer, then one with the phone", () => {
+    const rows = [r("a", "יעל כהן", "", "2026-09-20"), r("b", "יעל כהן", "0501234567", "2026-09-21")];
+    expect(latestPerRespondent(rows).map(x => x.id)).toEqual(["b"]);
+  });
+  it("a phone-less answer under a name two different phones gave is ambiguous and stays apart", () => {
+    const rows = [r("a", "יעל", "0501111111", "1"), r("b", "יעל", "0502222222", "2"), r("c", "יעל", null, "3")];
+    expect(latestPerRespondent(rows).map(x => x.id)).toEqual(["a", "b", "c"]);
+  });
   it("different people stay apart, and rows with no key are kept", () => {
     const rows = [r("a", "יעל", "0501111111", "1"), r("b", "יעל", "0502222222", "1"), r("c", "", "", "1")];
     expect(latestPerRespondent(rows).map(x => x.id)).toEqual(["a", "b", "c"]);

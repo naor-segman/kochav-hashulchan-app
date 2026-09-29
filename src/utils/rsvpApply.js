@@ -83,7 +83,26 @@ export const respStatus = (r) => r.status || (r.attending ? "yes" : "no");
  */
 export function latestPerRespondent(responses) {
   const list = Array.isArray(responses) ? responses : [];
-  const key = r => (normPhone(r?.phone) ? "p:" + normPhone(r.phone) : normName(r?.guest_name) ? "n:" + normName(r.guest_name) : null);
+  // A "no" is sent WITHOUT a phone (RSVPScreen's decline form asks for none),
+  // so a guest who answered "yes" with their phone and then changed their mind
+  // was two respondents — counted as coming, and on the bus (29.9 review). A
+  // name-only answer therefore joins the respondent who gave that name with a
+  // phone — but only when exactly ONE phone gave it; two different phones
+  // under one name are two people, and a name-only answer between them is
+  // ambiguous and stays on its own.
+  const phonesByName = new Map();
+  for (const r of list) {
+    const p = normPhone(r?.phone), n = normName(r?.guest_name);
+    if (p && n) phonesByName.set(n, (phonesByName.get(n) || new Set()).add(p));
+  }
+  const key = r => {
+    const p = normPhone(r?.phone);
+    if (p) return "p:" + p;
+    const n = normName(r?.guest_name);
+    if (!n) return null;
+    const ph = phonesByName.get(n);
+    return ph && ph.size === 1 ? "p:" + [...ph][0] : "n:" + n;
+  };
   const ts  = r => new Date(r?.created_at).getTime() || 0;
   const best = new Map();
   for (const r of list) {
