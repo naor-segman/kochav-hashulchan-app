@@ -197,6 +197,8 @@ try {
     const off = await run(true);
     ok(/לא נשמר: /.test(off.text), 'offline: the failure is said, with the name', off.text.slice(0, 120));
     ok(/0 מתוך 3/.test(off.text), 'offline: the count goes back — the family is not shown as checked in', off.text.slice(0, 90));
+    // סב23: the line under the camera said "2 סומנו כהגיעו" after the save failed.
+    ok(!/סומנו כהגיעו/.test(off.text) && /לא נשמר, ננסה שוב/.test(off.text), 'offline: the scan line does not claim the check-in', off.text.match(/יעל כהן — [^.]*/)?.[0] || '');
   } finally {
     await door.stop();
   }

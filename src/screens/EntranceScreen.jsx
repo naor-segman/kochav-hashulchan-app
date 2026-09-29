@@ -445,6 +445,9 @@ export default function EntranceScreen({
         .catch(() => {
           inFlight.current.delete(guestId);
           failed.current.set(guestId, { name: row.name, seats: nextSeats, base: baseSeats });
+          // A scan's "סומנו כהגיעו" under the camera must not outlive the save
+          // it announced (סב23).
+          setScanMsg(m => (m.startsWith(`${row.name} — `) ? `${row.name} — לא נשמר, ננסה שוב כשהחיבור יחזור` : m));
           // Put the row back as it was, unless a later tap has changed it
           // since — offline, the refresh below fails too and nothing else
           // would undo the optimistic mark.
@@ -499,6 +502,9 @@ export default function EntranceScreen({
   }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId]);
 
   const handleScan = useCallback((raw) => {
+    // The host can close the door link while the camera is open. Before, the
+    // scan still said "3 סומנו כהגיעו" and sent nothing (second review, סב23).
+    if (!canWrite) { setScanning(false); setScanMsg("הקישור במצב צפייה בלבד — לא סומן"); return; }
     const id = parseScanPayload(raw);
     if (!id) { setScanMsg("קוד לא מזוהה — נסו שוב או חפשו לפי שם"); return; }
     const guest = ev?.guests.find(g => g.id === id);
@@ -506,7 +512,7 @@ export default function EntranceScreen({
     if (isFullyArrived(guest)) { setScanMsg(`${guest.name} — כל ${seatsOf(guest)} כבר סומנו`); return; }
     markRow(guest, true);
     setScanMsg(`${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`);
-  }, [ev?.guests, markRow]);
+  }, [canWrite, ev?.guests, markRow]);
 
   // ── Derived, in seats ──────────────────────────────────────────────────────
   const totals = useMemo(
@@ -695,7 +701,7 @@ export default function EntranceScreen({
             )}
           </div>
 
-          {scanning && <QrScanner onScan={handleScan} onClose={() => { setScanning(false); setScanMsg(""); }} />}
+          {scanning && canWrite && <QrScanner onScan={handleScan} onClose={() => { setScanning(false); setScanMsg(""); }} />}
           {scanMsg && <p className={styles.scanMsg} role="status">{scanMsg}</p>}
           {!scanning && isScanSupported() && canWrite && (
             <button className={styles.scanBtn} onClick={() => { setScanning(true); setScanMsg(""); }}>
