@@ -44,6 +44,7 @@ export default function CollabScreen() {
   useGuestTitle(ev && `רשימת האורחים · ${ev.name || ""}`);
   // Rows whose last save failed — kept held so the poll can't revert them.
   const [failed, setFailed] = useState(() => new Set());
+  const [deleteFailed, setDeleteFailed] = useState(null);   // the row's name, or null
   const [me, setMe] = useState(() => { try { return localStorage.getItem("collab_me") || ""; } catch { return ""; } });
 
   const editing   = useRef(new Set());  // row ids being edited locally right now
@@ -209,8 +210,22 @@ export default function CollabScreen() {
   const removeRow = async (id) => {
     if (timers.current.has(id)) { clearTimeout(timers.current.get(id)); timers.current.delete(id); }
     editing.current.delete(id);
+    const gone = rows.find(r => r.id === id);
     setRows(prev => prev.filter(r => r.id !== id));
-    if (ev.cloudId) { try { await deleteCollabGuest(token, id); } catch { /* ignore */ } }
+    if (!ev.cloudId) return;
+    try {
+      await deleteCollabGuest(token, id);
+      setDeleteFailed(null);
+    } catch {
+      // A failed delete used to be silent: the row vanished and came back on
+      // the next 3-second poll, with no word why (second review, סב36). Put it
+      // back now, held, and say so.
+      if (gone) {
+        editing.current.add(id);
+        setRows(prev => (prev.some(r => r.id === id) ? prev : [gone, ...prev]));
+      }
+      setDeleteFailed(gone?.name?.trim() || "השורה");
+    }
   };
 
   const saveMe = (v) => { setMe(v); try { localStorage.setItem("collab_me", v); } catch { /* ignore */ } };
@@ -262,6 +277,11 @@ export default function CollabScreen() {
           <div className={styles.card}><p className={styles.emptyHint}>עדיין אין אורחים. לחצו "הוסיפו שורה" כדי להתחיל.</p></div>
         )}
 
+        {deleteFailed && (
+          <p className={styles.saveWarn} role="alert">
+            המחיקה של {deleteFailed} לא נשמרה — בדקו חיבור ונסו שוב.
+          </p>
+        )}
         <div className={styles.rowsList}>
           {rows.map(r => {
             const miss = collabRowMissing(r);
@@ -283,20 +303,23 @@ export default function CollabScreen() {
                   onChange={e => editRow(r.id, { phone: e.target.value })} />
 
                 <div className={styles.fields3}>
-                  <select className={styles.input} value={r.side || ""} onChange={e => editRow(r.id, { side: e.target.value })}>
+                  <select className={styles.input} aria-label="צד" value={r.side || ""} onChange={e => editRow(r.id, { side: e.target.value })}>
                     <option value="" disabled>צד</option>
                     <option value="bride">{sides.bride}</option>
                     <option value="groom">{sides.groom}</option>
                   </select>
-                  <select className={styles.input} value={r.guest_group || ""} onChange={e => editRow(r.id, { guest_group: e.target.value })}>
+                  <select className={styles.input} aria-label="קבוצה" value={r.guest_group || ""} onChange={e => editRow(r.id, { guest_group: e.target.value })}>
                     <option value="" disabled>קבוצה</option>
                     {collabGroupOptions(GROUP_OPTIONS, ev.customGroups, r.guest_group).map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
-                  <select className={styles.input} value={r.guests_count || 1} onChange={e => {
+                  <select className={styles.input} aria-label="מספר מקומות" value={r.guests_count || 1} onChange={e => {
                     const n = Number(e.target.value);
                     editRow(r.id, { guests_count: n, companions: (r.companions || []).slice(0, Math.max(0, n - 1)) });
                   }}>
-                    {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} {n === 1 ? "מקום" : "מקומות"}</option>)}
+                    {/* Up to the row's own count when the host set more than 20
+                        (their form allows 50): a row of 25 showed "1 מקום" beside
+                        24 companion boxes (second review, סב36). */}
+                    {Array.from({ length: Math.max(20, Number(r.guests_count) || 1) }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} {n === 1 ? "מקום" : "מקומות"}</option>)}
                   </select>
                 </div>
 
