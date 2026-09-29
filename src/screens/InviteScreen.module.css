@@ -155,7 +155,12 @@
 
 /* ── Couple names — the typography that carries the card ─────────────────── */
 
+/* An h1 since 29.9 (סב36): it is whose invitation this is. `font: inherit`
+   keeps it looking exactly as the div did — reset.css gives headings their
+   own family, weight and line-height. */
 .names {
+  font: inherit;
+  letter-spacing: inherit;
   display: flex;
   align-items: center;
   justify-content: center;

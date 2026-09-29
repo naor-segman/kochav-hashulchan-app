@@ -230,7 +230,7 @@ export default function EventSiteScreen({ localEvent }) {
           )}
           <div className={styles.heroInner}>
             {guestEventType(ev.type) && <span className={styles.heroTag}>{guestEventType(ev.type)}</span>}
-            <div className={styles.heroNames}>{hosts}</div>
+            <h1 className={styles.heroNames}>{hosts}</h1>
             {site?.heroEn && <div className={styles.heroEn}>{site.heroEn}</div>}
             <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
             {dateStr && <div className={styles.heroDate}>{dateStr}</div>}

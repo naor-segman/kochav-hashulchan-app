@@ -220,15 +220,15 @@ export default function InviteScreen() {
 
           {/* Hosts — a couple, a single celebrant, or nothing at all */}
           {isCouple ? (
-            <div className={styles.names}>
+            <h1 className={styles.names}>
               <span className={styles.coupleName}>{brideName}</span>
               <span className={styles.nameSep} aria-hidden="true">✦</span>
               <span className={styles.coupleName}>{groomName}</span>
-            </div>
+            </h1>
           ) : soloName ? (
-            <div className={styles.names}>
+            <h1 className={styles.names}>
               <span className={styles.coupleName}>{soloName}</span>
-            </div>
+            </h1>
           ) : null}
 
           {/* Ornamental gold divider */}

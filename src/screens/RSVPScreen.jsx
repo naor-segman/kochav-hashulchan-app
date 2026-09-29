@@ -337,7 +337,7 @@ export default function RSVPScreen() {
 
             <div className={styles.eventBanner}>
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
-              <span className={styles.eventBannerName}>{event.name}</span>
+              <h1 className={styles.eventBannerName}>{event.name}</h1>
               {formattedDate && (
                 <span className={styles.eventBannerDate}>{formattedDate}</span>
               )}
@@ -542,7 +542,7 @@ export default function RSVPScreen() {
 
             <div className={styles.eventBanner}>
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
-              <span className={styles.eventBannerName}>{event.name}</span>
+              <h1 className={styles.eventBannerName}>{event.name}</h1>
             </div>
 
             <div className={styles.noConfirmBlock}>
@@ -624,7 +624,7 @@ export default function RSVPScreen() {
             <div className={styles.checkCircle} aria-hidden="true">
               <span className={styles.checkMark}>{answer === "no" ? <Icon name="heart" size={26} /> : "✓"}</span>
             </div>
-            <h2 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h2>
+            <h1 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h1>
             <p className={styles.successBody}>{bodyByAnswer[answer]}</p>
 
             {site?.rsvpMessage && (
