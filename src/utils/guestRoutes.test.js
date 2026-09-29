@@ -5,6 +5,8 @@ describe("guestRoutes", () => {
   it("knows a guest page from a host page", () => {
     for (const p of GUEST_ROUTE_PREFIXES) expect(isGuestRoute(`/${p}/tok12345`), p).toBe(true);
     expect(isGuestRoute("/gift/tok12345/wall")).toBe(true);
+    // The router matches case-insensitively (29.9 review).
+    expect(isGuestRoute("/RSVP/tok12345")).toBe(true);
     // The host's own door screen and every app/marketing page are not guest pages.
     for (const p of ["/events/e1/entrance", "/app", "/pricing", "/", "/rsvp", "/rsvp/"]) {
       expect(isGuestRoute(p), p).toBe(false);

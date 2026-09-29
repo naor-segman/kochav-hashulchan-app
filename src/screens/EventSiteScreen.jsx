@@ -5,7 +5,7 @@ import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
-import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, eventStartTime, israelInstant } from "../utils/calendarFile.js";
 import { daysUntil } from "../utils/dateFormat.js";
 import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
@@ -246,7 +246,8 @@ export default function EventSiteScreen({ localEvent }) {
       {!visible && (
         <div className={styles.comingSoon}>
           <span className={styles.comingSoonStar} aria-hidden="true">✦</span>
-          <p>האתר בהכנה 💛<br />בעלי השמחה יפרסמו אותו בקרוב.</p>
+          {/* The page's h1 while the hero (which carries it) is hidden (29.9 review). */}
+          <h1 className={styles.comingSoonTitle}>האתר בהכנה 💛<br />בעלי השמחה יפרסמו אותו בקרוב.</h1>
           {rsvpUrl && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
         </div>
       )}
@@ -443,7 +444,8 @@ export default function EventSiteScreen({ localEvent }) {
 function Countdown({ date, time, styles }) {
   // The event's own start time, the same one the calendar button writes. It
   // was "T18:00" for every event, so a 21:00 wedding hit zero at 18:00.
-  const target = useMemo(() => new Date(`${date}T${time}:00`).getTime(), [date, time]);
+  // In ISRAEL time, not the viewer's (29.9 review) — see israelInstant.
+  const target = useMemo(() => israelInstant(date, time), [date, time]);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);

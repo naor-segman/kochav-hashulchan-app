@@ -120,6 +120,9 @@ export default function RSVPScreen() {
   const handleSubmitDetails = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
+    // Enter / "Go" on a phone keyboard submits without a blur, so the field
+    // could still show "25" while 20 was sent. What is shown is what is sent.
+    setCountText(String(guestsCount));
     setSubmitError("");
     setSubmitting(true);
     try {
@@ -390,7 +393,9 @@ export default function RSVPScreen() {
                   min={1}
                   max={20}
                   value={countText}
-                  onChange={e => setCountText(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+                  // The digits it STARTS with, not every digit in it: "2.5" was
+                  // read as 25, clamped to 20 (29.9 review).
+                  onChange={e => setCountText((String(e.target.value).match(/^\d+/) || [""])[0].slice(0, 2))}
                   onBlur={() => setCountText(String(guestsCount))}
                   dir="ltr"
                   disabled={submitting}
@@ -638,7 +643,10 @@ export default function RSVPScreen() {
                     date:  event.date,
                     venue: event.venue,
                     startTime: eventStartTime(site?.schedule),
-                    url:   event.inviteToken ? window.location.origin + "/invite/" + event.inviteToken : null,
+                    // The site only when it is published — the same rule as
+                    // the button below. It linked the site regardless, and a
+                    // calendar keeps "not published yet" for good (29.9 review).
+                    url:   inviteUrl ? window.location.origin + inviteUrl : null,
                   });
                   if (ics) downloadIcs(ics, icsFileName(event.name));
                 }}

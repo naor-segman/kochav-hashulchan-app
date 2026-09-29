@@ -13,7 +13,8 @@ export const GUEST_ROUTE_PREFIXES = ["rsvp", "invite", "gift", "card", "album", 
 /** Whether a pathname is a guest page. */
 export function isGuestRoute(pathname) {
   const seg = String(pathname || "").split("/");
-  return seg.length >= 3 && GUEST_ROUTE_PREFIXES.includes(seg[1]) && !!seg[2];
+  // Case-insensitive, like the router: /RSVP/<token> is the RSVP page.
+  return seg.length >= 3 && GUEST_ROUTE_PREFIXES.includes(seg[1].toLowerCase()) && !!seg[2];
 }
 
 /**

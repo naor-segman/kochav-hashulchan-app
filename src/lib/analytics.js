@@ -69,6 +69,11 @@ export function scrubEvent(ev) {
     const clean = (bag) => {
       if (!bag || typeof bag !== "object") return bag;
       const out = { ...bag };
+      // PostHog attaches document.title to every pageview, and a guest page's
+      // title is the hosts' names ("אישור הגעה · דנה ויוסי" — useGuestTitle).
+      // Names are not what the funnel needs (29.9 review).
+      delete out.title;
+      delete out.$title;
       for (const [k, v] of Object.entries(out)) {
         if (typeof v === "string" && (v.startsWith("/") || /^https?:\/\//i.test(v))) {
           out[k] = scrubRoute(v);

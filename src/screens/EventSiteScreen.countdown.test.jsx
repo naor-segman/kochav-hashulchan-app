@@ -7,7 +7,9 @@ import { defaultEventSite } from "../data/eventSiteTemplates.js";
 
 /* The site countdown aimed at 18:00 for every event (WORKPLAN ס). An event
  * starting at 21:00, viewed at 19:00 on the day, must have 2 hours left —
- * not zero. Local time throughout, like the page. */
+ * not zero. Israel time, like the page since 29.9 (it read the VIEWER's zone,
+ * so a guest abroad counted to the wrong moment) — the clock is set as an
+ * instant, so this holds on a machine in any zone. */
 
 afterEach(() => vi.useRealTimers());
 
@@ -16,7 +18,7 @@ const cells = () => [...document.querySelectorAll("[class*=cdUnit]")].map(el => 
 describe("event site countdown", () => {
   it("counts to the event's own start time", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 9, 1, 19, 0, 0));   // 1 Oct 2026, 19:00 local
+    vi.setSystemTime(new Date("2026-10-01T16:00:00Z"));   // 1 Oct 2026, 19:00 in Israel (UTC+3)
     const site = { ...defaultEventSite("חתונה"), enabled: true,
       schedule: [{ id: "s1", time: "21:00", title: "חופה" }] };
     render(

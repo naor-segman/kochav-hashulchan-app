@@ -135,6 +135,14 @@ describe("and nothing posthog attaches on its own carries a token", () => {
     expect(init.mock.calls[0][1].before_send).toBe(a.scrubEvent);
   });
 
+  it("drops the page title — on a guest page it is the hosts' names (29.9 review)", async () => {
+    const { scrubEvent } = await import("./analytics.js");
+    const out = scrubEvent({ event: "$pageview", properties: { title: "אישור הגעה · דנה ויוסי", $title: "x", $current_url: "/rsvp/abc12345zz" } });
+    expect(out.properties.title).toBeUndefined();
+    expect(out.properties.$title).toBeUndefined();
+    expect(JSON.stringify(out)).not.toContain("דנה");
+  });
+
   it("scrubs every path and URL in properties, $set and $set_once", async () => {
     const { scrubEvent } = await import("./analytics.js");
     const tok = "8f3c2a1b9d7e6f5a";

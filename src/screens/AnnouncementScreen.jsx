@@ -4,7 +4,7 @@ import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncement } from "../data/announcementTemplates.js";
-import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
 import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
@@ -89,6 +89,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
         organizationName: localEvent.organizationName,
         rsvpToken: localEvent.tokens?.rsvp, inviteToken: localEvent.tokens?.invite,
         announcements: localEvent.announcements,
+        site: localEvent.eventSite ?? null,
       });
       setState("ready");
       return;
@@ -154,8 +155,9 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     return (
       <div className={styles.state}>
         <span className={styles.star}>✦</span>
-        <p>הדף עדיין לא פורסם</p>
+        <h1 className={styles.stateTitle}>הדף עדיין לא פורסם</h1>
         <p className={styles.stateSub}>בעלי האירוע עדיין עובדים עליו — נסו שוב מאוחר יותר</p>
+        <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </div>
     );
   }
@@ -164,8 +166,13 @@ export default function AnnouncementScreen({ kind, localEvent }) {
              || event.celebrantName || event.organizationName || "";
 
   const addToCalendar = () => {
+    // The same start time as the site and the RSVP page. Without it this
+    // button wrote 19:00 while the site's said 21:00 — the two-answers bug
+    // WORKPLAN ס closed everywhere else (29.9 review). The invite token only
+    // carries the site once it is published; before that, 19:00 it is.
     const ics = buildEventIcs({
       name: event.name, date: event.date, venue: event.venue,
+      startTime: eventStartTime(event.site?.schedule),
       url: window.location.href,
     });
     if (ics) downloadIcs(ics, icsFileName(event.name));

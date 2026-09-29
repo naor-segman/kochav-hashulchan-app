@@ -70,3 +70,15 @@ describe("reportError never becomes the thing that breaks the page", () => {
     }
   });
 });
+
+describe("scrubRoute — the 29.9 review's two holes", () => {
+  it("a token in the ?ref= query is scrubbed like one in the path", () => {
+    expect(scrubRoute("/signup?ref=INVITETOKEN123")).toBe("/signup?ref=:token");
+    expect(scrubRoute("https://revaya-events.co.il/signup?utm_source=wa&ref=INVITETOKEN123#x"))
+      .toBe("https://revaya-events.co.il/signup?utm_source=wa&ref=:token#x");
+  });
+  it("the router is case-insensitive, so the prefixes are too", () => {
+    expect(scrubRoute("/RSVP/abc12345secret")).toBe("/RSVP/:token");
+    expect(scrubRoute("/Gift/abc12345secret/wall")).toBe("/Gift/:token/wall");
+  });
+});

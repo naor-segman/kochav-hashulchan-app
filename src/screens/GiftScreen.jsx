@@ -6,7 +6,7 @@ import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
-import { guestHosts } from "../utils/guestRoutes.js";
+import { guestHosts, guestEventType } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 const MOCK_EVENT = {
@@ -232,7 +232,12 @@ export default function GiftScreen() {
           <div className={styles.cardTop}>
             {/* Not "מתנה דיגיטלית" any more — the page does not move money,
                 and a tag that says it does is a promise the screen breaks. */}
-            <div className={styles.eventTag}>{ev.type || "חתונה"} · ברכה ומתנה</div>
+            {/* "אחר" is not a word to show a guest (106); with no type the tag
+                is just what the page is. It printed the raw "אחר · ברכה ומתנה"
+                (29.9 review) — the one guest page 45d6e9f missed. */}
+            <div className={styles.eventTag}>
+              {[guestEventType(ev.type || "חתונה"), "ברכה ומתנה"].filter(Boolean).join(" · ")}
+            </div>
             <h1 className={styles.eventName}>{ev.name || coupleLabel}</h1>
             <p className={styles.eventSub}>שלחו מתנה {prefixed("ל", coupleLabel)}</p>
           </div>

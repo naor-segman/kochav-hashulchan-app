@@ -7,8 +7,10 @@ import { render, screen, waitFor, fireEvent } from "../test/dom.js";
  * tab carried the product's title instead of the event's, and its headcount
  * field could not be emptied. */
 
+const submitRSVP = vi.fn(async () => {});
 vi.mock("../utils/publicTokens.js", async (orig) => ({
   ...(await orig()),
+  submitRSVP: (...a) => submitRSVP(...a),
   fetchEventByToken: async () => ({ cloudId: "c1", name: "הערב של דנה ויוסי", type: "אחר",
     brideName: "דנה", groomName: "יוסי", date: "2027-06-01", venue: "אולמי הגן" }),
 }));
@@ -40,5 +42,26 @@ describe("RSVP page, as a guest sees it", () => {
     fireEvent.change(count, { target: { value: "" } });
     fireEvent.blur(count);
     expect(count.value).toBe("1");          // an empty field means one person
+  });
+
+  it("'2.5' is 2, not 25 — the field keeps the digits it starts with (29.9 review)", async () => {
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: /כן, אגיע בשמחה/ }));
+    const count = await screen.findByLabelText("כמה מגיעים?");
+    fireEvent.change(count, { target: { value: "2.5" } });
+    expect(count.value).toBe("2");
+  });
+
+  it("submitted with Enter (no blur): what the field shows is what is sent", async () => {
+    submitRSVP.mockClear();
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: /כן, אגיע בשמחה/ }));
+    const count = await screen.findByLabelText("כמה מגיעים?");
+    fireEvent.change(screen.getByLabelText(/שם/, { selector: "input" }), { target: { value: "יעל כהן" } });
+    fireEvent.change(count, { target: { value: "25" } });
+    fireEvent.submit(count.closest("form"));
+    await waitFor(() => expect(submitRSVP).toHaveBeenCalled());
+    expect(submitRSVP.mock.calls[0][1].guestsCount).toBe(20);
+    expect(count.value).toBe("20");
   });
 });

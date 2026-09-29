@@ -21,16 +21,25 @@ import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 const TOKEN_ROUTES = GUEST_ROUTE_PREFIXES;
 
 export function scrubRoute(pathname) {
-  const parts = String(pathname || "").split("/");
+  // The query and the hash are handled on their own (29.9 review): the site's
+  // footer links to /signup?ref=<invite token>, and a token in a query string
+  // went out untouched while the same token in a path did not.
+  const str = String(pathname || "");
+  const cut = str.search(/[?#]/);
+  const path = cut < 0 ? str : str.slice(0, cut);
+  const tail = cut < 0 ? "" : str.slice(cut).replace(/([?&]ref=)[^&#]*/gi, "$1:token");
+  const parts = path.split("/");
   return parts
     .map((part, i) => {
       if (!part) return part;
-      if (TOKEN_ROUTES.includes(parts[i - 1])) return ":token";
+      // The router matches these case-insensitively, so this must too:
+      // /RSVP/<token> opens the RSVP page (29.9 review).
+      if (TOKEN_ROUTES.includes(String(parts[i - 1] || "").toLowerCase())) return ":token";
       // Event ids are uuids or the app's own uid()s — also not worth carrying.
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(part)) return ":id";
       return part;
     })
-    .join("/");
+    .join("/") + tail;
 }
 
 // Belt and braces on top of the RPC's own 10-minute collapse: a render loop can

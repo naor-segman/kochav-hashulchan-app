@@ -24,6 +24,8 @@
 }
 .comingSoonStar { display: block; font-size: 34px; color: var(--s-accent); margin-bottom: 14px; }
 .comingSoon p { font-size: var(--step-1); line-height: 1.8; color: var(--s-muted); margin: 0; }
+/* The coming-soon line is the page's h1; it looks as the paragraph did. */
+.comingSoonTitle { font: inherit; letter-spacing: inherit; font-size: var(--step-1); line-height: 1.8; color: var(--s-muted); margin: 0; }
 
 /* ── Sticky nav ── */
 .nav {
