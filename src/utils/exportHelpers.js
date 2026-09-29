@@ -162,7 +162,11 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
   ]);
 
   ev.tables.forEach(t => {
-    const tGuests      = ev.guests.filter(g => ev.seating[g.id] === t.id);
+    // Not a guest who declined: the venue reads these counts as chairs, and the
+    // app's own totals (seatingTotals) and the other sheets already leave them
+    // out — "7 מתוך 10" with a declined party of 3 inside disagreed with the
+    // app (29.9 review).
+    const tGuests      = ev.guests.filter(g => ev.seating[g.id] === t.id && g.rsvp !== "declined");
     const typeHe       = TABLE_TYPE_HE[t.type] || t.type;
     const seatedSeats  = tGuests.reduce((s, g) => s + (g.count || 1), 0);
     // "5 מתוך 12", not "5 / 12" — and the honest reason, which is NOT the one

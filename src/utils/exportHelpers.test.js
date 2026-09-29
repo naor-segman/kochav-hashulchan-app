@@ -55,6 +55,16 @@ describe("exportToExcel — workbook shape", () => {
     expect(sheetNamed("ממתינים לשיבוץ")).toBeUndefined();
   });
 
+  it("the seating sheet counts chairs of guests coming — a declined party still seated is not in '7 מתוך 10' (29.9 review)", async () => {
+    const ev = { name: "e", guests: [g("a", { count: 4 }), g("gone", { count: 3, rsvp: "declined" })],
+      tables: [t("t1")], seating: { a: "t1", gone: "t1" }, constraints: [] };
+    await exportToExcel(ev, sideLabel, []);
+    const cells = flat("סידור הושבה");
+    expect(cells).toContain("4 מתוך 10");
+    expect(cells).not.toContain("7 מתוך 10");
+    expect(cells).not.toContain("gone");
+  });
+
   it("a declined guest is not on the waiting sheet", async () => {
     const ev = { name: "e", guests: [g("a"), g("gone", { rsvp: "declined" })], tables: [t("t1")], seating: { a: "t1" }, constraints: [] };
     await exportToExcel(ev, sideLabel, []);
@@ -319,7 +329,10 @@ describe("exportToExcel — translations", () => {
       {
         name: "e",
         guests: [
-          g("a", { rsvp: "declined", meal: "vegan" }),
+          // "maybe", not "declined": a declined guest is no longer on the
+          // seating sheet at all (29.9 review) — the translation is what this
+          // test is about.
+          g("a", { rsvp: "maybe", meal: "vegan" }),
           g("b", { rsvp: "weird",    meal: "weird" }),
         ],
         tables: [t("t1")], seating: { a: "t1", b: "t1" }, constraints: [],
@@ -327,7 +340,7 @@ describe("exportToExcel — translations", () => {
       sideLabel, []
     );
     const all = sheets.map(s => s.rows.flat().join(" | ")).join(" || ");
-    expect(all).toContain("סירב/ה");
+    expect(all).toContain("אולי");
     expect(all).toContain("טבעוני");
     expect(all).toContain("ממתין"); // unknown rsvp falls back
     expect(all).toContain("רגיל");  // unknown meal falls back
