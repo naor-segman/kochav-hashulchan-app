@@ -165,7 +165,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
         <Route path="seating"     element={<Suspense fallback={<Loading />}><SeatingScreen {...sp} /></Suspense>} />
         <Route path="site"        element={<Suspense fallback={<Loading />}><EventSiteEditorScreen {...sp} /></Suspense>} />
         <Route path="share"       element={<Suspense fallback={<Loading />}><ShareLinksScreen {...sp} /></Suspense>} />
-        <Route path="rsvps"       element={<Suspense fallback={<Loading />}><RSVPResponsesScreen {...sp} /></Suspense>} />
+        <Route path="rsvps"       element={<Suspense fallback={<Loading />}><RSVPResponsesScreen {...sp} syncStatus={syncStatus} /></Suspense>} />
         <Route path="collab"      element={<Suspense fallback={<Loading />}><CollabReviewScreen {...sp} /></Suspense>} />
         <Route path="costs"       element={<Suspense fallback={<Loading />}><CostScreen key={activeEvent.id} activeEvent={activeEvent} patchEvent={patchEvent} go={go} showToast={showToast} /></Suspense>} />
         <Route path="tasks"       element={<Suspense fallback={<Loading />}><TasksScreen activeEvent={activeEvent} patchEvent={patchEvent} showToast={showToast} /></Suspense>} />

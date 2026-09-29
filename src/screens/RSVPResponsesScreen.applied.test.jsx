@@ -43,3 +43,22 @@ describe("RSVP auto-sync on a second device", () => {
     expect(localStorage.getItem("rsvp_applied_c1")).toBeNull();
   });
 });
+
+describe("reloaded on this screen (29.9 review)", () => {
+  // The local copy shows first, with a stale list; the cloud copy's list
+  // arrives while the answers are already here. Read once at mount, that list
+  // was never seen and r1 was applied again over the host's "declined".
+  it("waits for the cloud copy, and reads the list that arrives with it", async () => {
+    const patchEvent = vi.fn();
+    const stale = { ...base, rsvpApplied: [] };
+    const props = { patchEvent, go: vi.fn(), showToast: vi.fn() };
+    const { rerender } = render(<RSVPResponsesScreen activeEvent={stale} syncStatus="syncing" {...props} />);
+    await screen.findByText("אישרו הגעה");
+    await new Promise(r => setTimeout(r, 50));
+    expect(patchEvent).not.toHaveBeenCalled();                 // nothing applied mid-sync
+    const synced = { ...base, rsvpApplied: ["r1"] };
+    rerender(<RSVPResponsesScreen activeEvent={synced} syncStatus="synced" {...props} />);
+    await new Promise(r => setTimeout(r, 50));
+    for (const [fn] of patchEvent.mock.calls) expect(fn(synced).guests[0].rsvp).toBe("declined");
+  });
+});

@@ -15,7 +15,7 @@ import styles from "./RSVPResponsesScreen.module.css";
 // Map an RSVP answer to a guest-list rsvp value.
 const GUEST_RSVP = { yes: "confirmed", maybe: "maybe", no: "declined" };
 
-export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, showToast, syncStatus }) {
   const [responses, setResponses] = useState([]);
   const [loadState, setLoadState] = useState("loading"); // "loading" | "ready" | "error" | "offline"
   const [showForecast, setShowForecast] = useState(false);
@@ -166,16 +166,23 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     autoDone.current = new Set();
   }, [appliedKey]);
   useEffect(() => {
+    // The synced list (ת3, 28.9) is what the OTHER device applied — read on
+    // EVERY run, not once at mount. This screen is a URL route: reloaded on
+    // it, the event shows its LOCAL copy first and the cloud copy's list
+    // arrives a moment later; read once, that list was never seen and the
+    // other device's answers were applied again over the host's manual
+    // changes (29.9 review).
+    (ev.rsvpApplied || []).forEach(id => autoDone.current.add(id));
     if (!hydrated.current) {
       hydrated.current = true;
-      // The synced list first (ת3, 28.9) — it is what the OTHER device
-      // applied. The old per-browser list is still read once, so nothing this
-      // browser applied before the change is applied again; it is no longer
-      // written.
-      (ev.rsvpApplied || []).forEach(id => autoDone.current.add(id));
+      // The old per-browser list is still read once, so nothing this browser
+      // applied before the change is applied again; it is no longer written.
       try { JSON.parse(localStorage.getItem(appliedKey) || "[]").forEach(id => autoDone.current.add(id)); }
       catch { /* ignore */ }
     }
+    // And nothing is applied while the cloud copy is still on its way: the
+    // answers can arrive before it, and then the list above is the stale one.
+    if (syncStatus === "syncing") return;
     if (loadState !== "ready" || responses.length === 0) return;
 
     // Pick the NEWEST not-yet-applied response per matched guest — a later "yes"
@@ -215,7 +222,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       guests: n === 0 ? e.guests : e.guests.map(g => updates.has(g.id) ? { ...g, ...updates.get(g.id) } : g),
     }));
     if (n > 0) showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
-  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast, appliedKey, ev.rsvpApplied]);
+  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast, appliedKey, ev.rsvpApplied, syncStatus]);
 
   const rsvpLink = ev.tokens?.rsvp
     ? window.location.origin + "/rsvp/" + ev.tokens.rsvp
