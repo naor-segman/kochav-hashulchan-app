@@ -184,7 +184,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
         <Route path="*"           element={<NotFoundScreen />} />
       </Routes>
       </ErrorBoundary>
-      {toast && <Toast msg={toast.msg} variant={toast.variant} />}
+      <Toast msg={toast?.msg} variant={toast?.variant} />
     </Shell>
   );
 }
@@ -381,7 +381,7 @@ function AppRoutes() {
               onDeleteEvent={deleteEvent}
               onDuplicateEvent={handleDuplicateEvent}
             />
-            {toast && <Toast msg={toast.msg} variant={toast.variant} />}
+            <Toast msg={toast?.msg} variant={toast?.variant} />
           </Shell>
         }
       />
@@ -397,7 +397,7 @@ function AppRoutes() {
               hasEvents={events.length > 0}
               onCancel={() => navigate("/app")}
             />
-            {toast && <Toast msg={toast.msg} variant={toast.variant} />}
+            <Toast msg={toast?.msg} variant={toast?.variant} />
           </Shell>
         }
       />
