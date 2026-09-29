@@ -804,3 +804,17 @@ describe("local wins — the other device's arrangement of rows only it knew (10
     expect(out.seating.g2).toBe("t2");
   });
 });
+
+describe("cloud wins — an unlock on the other device is not undone (107)", () => {
+  it("does not bring back a lock the cloud no longer has, for a row it knows", () => {
+    const local = [ev({ cloudId: "c1", updatedAt: 1_000, guests: [{ id: "g1" }, { id: "g3" }], tables: [{ id: "t1" }, { id: "t3" }],
+                        lockedGuests: ["g1", "g3"], lockedTables: ["t1", "t3"] })];
+    const cloud = [ev({ cloudId: "c1", updatedAt: 9_000, guests: [{ id: "g1" }], tables: [{ id: "t1" }],
+                        lockedGuests: [], lockedTables: [] })];
+    const [out] = mergeCloudWithLocal(local, cloud);
+    expect(out.lockedGuests).not.toContain("g1");   // unlocked on the phone
+    expect(out.lockedTables).not.toContain("t1");
+    expect(out.lockedGuests).toContain("g3");       // a row only this tab has keeps its lock
+    expect(out.lockedTables).toContain("t3");
+  });
+});

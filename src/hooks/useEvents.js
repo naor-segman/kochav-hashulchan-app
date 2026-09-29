@@ -481,6 +481,7 @@ export function mergeCloudWithLocal(
       // opinion about this guest" is answerable. After the union everything
       // looks known.
       const cloudGuestIds = new Set((result.guests || []).map(g => g.id));
+      const cloudTableIds = new Set((result.tables || []).map(t => t.id));
       const tableIds      = new Set(tables.map(t => t.id));
       const guestIds      = new Set(guests.map(g => g.id));
 
@@ -502,8 +503,16 @@ export function mergeCloudWithLocal(
         // tell that from having forgotten to seat it. See mergeSeating.
         seating: mergeSeating(result.seating, localMatch.seating,
                               (id) => cloudGuestIds.has(id), (id) => tableIds.has(id)),
-        lockedGuests: unionIds(result.lockedGuests, localMatch.lockedGuests, (id) => guestIds.has(id)),
-        lockedTables: unionIds(result.lockedTables, localMatch.lockedTables, (id) => tableIds.has(id)),
+        // Locks: the cloud's, plus this tab's for rows the cloud has never seen.
+        // A plain union brought back a lock the OTHER device had removed — the
+        // host unlocks a table on the phone, and the laptop's stale copy locks
+        // it again on its next load (107, 29.9). Same rule as seating.
+        lockedGuests: unionIds(result.lockedGuests,
+                               (localMatch.lockedGuests || []).filter(id => !cloudGuestIds.has(id)),
+                               (id) => guestIds.has(id)),
+        lockedTables: unionIds(result.lockedTables,
+                               (localMatch.lockedTables || []).filter(id => !cloudTableIds.has(id)),
+                               (id) => tableIds.has(id)),
         customGroups: unionStrings(result.customGroups, localMatch.customGroups),
         customTableTypes: unionStrings(result.customTableTypes, localMatch.customTableTypes),
       };
