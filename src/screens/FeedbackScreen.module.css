@@ -106,8 +106,10 @@
   padding: 13px 26px;
   border-radius: 999px;
   border: 1px solid transparent;
-  background: var(--accent);
-  color: #fff;
+  /* --cta, not --accent: white on --accent is 3.8:1, under the 4.5 a 15px
+     label needs (second review, סב25). --cta is 4.7:1. */
+  background: var(--cta);
+  color: var(--on-accent);
   font: inherit;
   font-size: 15px;
   font-weight: 700;
@@ -133,8 +135,8 @@
   max-width: 620px;
 }
 
-.ok  { background: var(--green-bg, #E3F4ED); color: var(--green); }
-.bad { background: var(--warn-bg,  #FBF1DA); color: var(--warn);  }
+.ok  { background: var(--green-bg); color: var(--green); }
+.bad { background: var(--warn-bg); color: var(--warn);  }
 
 .ok a,
 .bad a { color: inherit; }

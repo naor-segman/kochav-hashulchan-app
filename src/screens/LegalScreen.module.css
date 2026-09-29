@@ -207,7 +207,7 @@
   padding: 20px 22px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--surface2);
+  background: var(--surface);   /* was var(--surface2), which is defined nowhere — transparent (סב25) */
 }
 
 .identityTitle {

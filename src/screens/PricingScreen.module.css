@@ -614,7 +614,7 @@
 }
 
 .detailSection {
-  background: var(--surface2);
+  background: var(--surface);   /* was var(--surface2), which is defined nowhere — transparent (סב25) */
   border-top: 1px solid var(--border);
 }
 
