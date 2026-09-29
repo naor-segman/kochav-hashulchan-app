@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 
-const ROOT = '/home/user/kochav-hashulchan-app/src';
+// Relative to THIS file, not the main checkout: run from a worktree, the
+// hard-coded path checked a different tree (second review 29.9, סב29).
+const ROOT = new URL('../src', import.meta.url).pathname.replace(/\/$/, '');
 
 function walk(dir, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -110,3 +112,10 @@ const dyn = summary.filter(s => s.dynamic);
 console.log('\n=== DYNAMIC (computed) ACCESSES - manual check ===');
 for (const s of dyn) console.log(s.jf.replace(ROOT, 'src') + '  binding=' + s.binding + '  count=' + s.dynamic);
 console.log('\nchecked ' + summary.length + ' (jsx,binding) pairs across ' + new Set(summary.map(s=>s.jf)).size + ' files');
+
+// A gate that cannot fail is not a gate. It printed UNDEFINED and exited 0 —
+// proven by renaming a class in a copy (second review 29.9, סב29).
+if (problems.length || composesProblems.length) {
+  console.log(`\nFAILED — ${problems.length} undefined, ${composesProblems.length} composes`);
+  process.exit(1);
+}
