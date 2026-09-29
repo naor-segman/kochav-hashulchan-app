@@ -342,12 +342,19 @@ Deno.serve(async (req: Request) => {
           break;
         }
 
-        const { data: existing } = await supabase
+        const { data: existing, error: readError } = await supabase
           .from("subscriptions")
           .select("is_manually_managed")
           .eq("stripe_payment_intent_id", pi)
           .maybeSingle();
 
+        // A failed READ is not "no purchase row". Answering 200 here told
+        // Stripe the refund was handled and left a refunded customer with a
+        // paid plan, for good (second review, סב17). 500 → Stripe retries.
+        if (readError) {
+          console.error("charge.refunded — lookup failed, asking Stripe to retry:", readError);
+          return new Response("refund lookup failed", { status: 500 });
+        }
         if (!existing) {
           console.warn(`charge.refunded: no purchase row for payment intent ${pi}`);
           break;
