@@ -227,7 +227,7 @@ function AppRoutes() {
   // No event in scope here — AppRoutes sits above /events/:eventId — so this is
   // the account-level form, used for nothing but the event allowance below.
   // Every real gate asks usePlan(ev).
-  const { unpaidEvents }                                                = usePlan();
+  const { unpaidEvents, planFor }                                       = usePlan();
   const navigate                                                        = useNavigate();
   const migration = useMigration(events, patchEventById, user);
 
@@ -374,6 +374,7 @@ function AppRoutes() {
                  the only thing this screen gated on it was the event
                  allowance. */
               unpaidCount={unpaidEvents(events)}
+              isPaid={ev => planFor(ev) !== "free"}
               onStartEvent={startEvent}
               onNewEvent={() => { navigate("/start"); window.scrollTo(0, 0); }}
               onOpenEvent={id => { navigate(`/events/${id}`); window.scrollTo(0, 0); }}

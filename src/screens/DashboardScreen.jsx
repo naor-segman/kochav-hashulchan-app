@@ -20,7 +20,7 @@ import { COMPANY } from "../data/company.js";
    for. Defaulting to 0 rather than events.length keeps the gate open when the
    prop is missing: a screen that hides the "new event" button because a prop
    did not arrive is worse than one that lets a free user try. */
-export default function DashboardScreen({ events, unpaidCount = 0, onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
+export default function DashboardScreen({ events, unpaidCount = 0, isPaid = () => false, onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
   const { confirm, dialog } = useConfirm();
   const orientation = useOrientation();
 
@@ -222,9 +222,15 @@ export default function DashboardScreen({ events, unpaidCount = 0, onStartEvent,
                           const dataNote = details.length > 0
                             ? "\n\nיימחקו: " + details.join(" ו-") + " וכל ההושבה."
                             : "";
+                          // A purchase belongs to ONE event, and deleting the
+                          // event forfeits it — the dialog said nothing of the
+                          // ₪690 going with it (second review, סב28).
+                          const paidNote = isPaid(ev)
+                            ? "\n\nלאירוע הזה נרכשה חבילה. היא שייכת לאירוע הזה בלבד ותאבד עם המחיקה — היא לא עוברת לאירוע אחר."
+                            : "";
                           if (!await confirm(
                             "למחוק לצמיתות את \"" + (ev.name || "אירוע ללא שם") + "\"?" +
-                            dataNote + "\n\nפעולה זו אינה ניתנת לביטול.",
+                            dataNote + paidNote + "\n\nפעולה זו אינה ניתנת לביטול.",
                             { danger: true, confirmLabel: "מחקו לצמיתות" }
                           )) return;
                           onDeleteEvent(ev.id);
