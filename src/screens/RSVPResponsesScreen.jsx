@@ -114,6 +114,23 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     return true;
   }, []);
 
+  /* A "yes" for more seats than the invitation was for used to land in silence
+   * (third review 30.9, E5): invited for 1, answered 6, the list said 6, table
+   * 3 went to 12 of 10, and this screen said "מעודכן ברשימה". The answer still
+   * applies — a guest's answer is data — but the first invited number is kept
+   * on the row, so the difference can be shown here and the table checked. */
+  const invitedFor = (guest, newCount) =>
+    newCount > (guest.count || 1) ? { invitedCount: guest.invitedCount ?? (guest.count || 1) } : {};
+
+  // Seats taken at a guest's table, against its capacity — null when unseated.
+  const tableLoad = useCallback((guest) => {
+    const tid = ev.seating?.[guest.id];
+    const t = tid && (ev.tables || []).find(x => x.id === tid);
+    if (!t) return null;
+    const used = (ev.guests || []).reduce((s, g) => s + (ev.seating[g.id] === tid ? (g.count || 1) : 0), 0);
+    return { name: t.name, used, cap: t.capacity || 0 };
+  }, [ev.seating, ev.tables, ev.guests]);
+
   const applyToGuest = useCallback((r, guest) => {
     const hasCount = respStatus(r) !== "no"; // yes + maybe carry a party size
     // Functional updater so rapid successive edits don't clobber each other
@@ -124,6 +141,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
         g.id === guest.id
           ? {
               ...g,
+              ...(hasCount ? invitedFor(g, r.guests_count || 1) : {}),
               rsvp:  GUEST_RSVP[respStatus(r)],
               count: hasCount ? (r.guests_count || 1) : (g.count || 1),
               phone: g.phone || r.phone || "",
@@ -205,11 +223,14 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     });
 
     const updates = new Map();
-    let n = 0;
+    let n = 0, grew = 0;
     chosen.forEach(({ r, guest }) => {
       if (isApplied(r, guest)) return;          // already reflects it
       const status = respStatus(r), hasCount = status !== "no";
+      const more = hasCount ? invitedFor(guest, r.guests_count || 1) : {};
+      if (more.invitedCount !== undefined) grew++;
       updates.set(guest.id, {
+        ...more,
         rsvp:  GUEST_RSVP[status],
         count: hasCount ? (r.guests_count || 1) : (guest.count || 1),
         phone: guest.phone || r.phone || "",
@@ -226,7 +247,9 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       rsvpApplied: [...new Set([...(e.rsvpApplied || []), ...applied])],
       guests: n === 0 ? e.guests : e.guests.map(g => updates.has(g.id) ? { ...g, ...updates.get(g.id) } : g),
     }));
-    if (n > 0) showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
+    if (grew > 0) {
+      showToast(`${n} אישורי הגעה סונכרנו — ${grew === 1 ? "אחד מהם אישר" : `${grew} מהם אישרו`} יותר מקומות ממה שהוזמנו. בדקו ברשימה למטה`, "warn");
+    } else if (n > 0) showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
   }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast, appliedKey, ev.rsvpApplied, syncStatus]);
 
   const rsvpLink = ev.tokens?.rsvp
@@ -420,6 +443,16 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                     <span className={base.gMeta}>
                       {r.phone ? r.phone + " · " : ""}{fmtDateTime(r.created_at)}
                     </span>
+                    {applied && guest.invitedCount && (guest.count || 1) > guest.invitedCount && (() => {
+                      const load = tableLoad(guest);
+                      return (
+                        <span className={styles.partyGrew}>
+                          הוזמנו {guest.invitedCount === 1 ? "למקום אחד" : `ל-${guest.invitedCount} מקומות`}, אישרו {guest.count}
+                          {load && load.cap > 0 && load.used > load.cap
+                            ? ` · ${load.name} עכשיו ${load.used} מתוך ${load.cap}` : ""}
+                        </span>
+                      );
+                    })()}
                   </div>
                   {applied ? (
                     <span className={base.tagSeated}>מעודכן ברשימה <Icon name="check" size={12} /></span>
