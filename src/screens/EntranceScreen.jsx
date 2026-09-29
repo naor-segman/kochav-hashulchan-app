@@ -457,10 +457,16 @@ export default function EntranceScreen({
       companions: [],
     }, Array.from({ length: walkInCount || 1 }, (_, i) => i));
 
+    // The table is checked again HERE, against the party size being added.
+    // The picker hides tables without room for the current count, but a table
+    // chosen for two stayed selected after the count went up to four, and the
+    // family was seated at a table with room for two (107, 29.9).
+    const room = freeTables.find(a => a.table.id === walkInTable)?.free ?? 0;
+    const seatAt = walkInTable && room >= (walkInCount || 1) ? walkInTable : "";
     patchEventById(eventId, e => ({
       ...e,
       guests: [...e.guests, newGuest],
-      seating: walkInTable ? { ...e.seating, [id]: walkInTable } : e.seating,
+      seating: seatAt ? { ...e.seating, [id]: seatAt } : e.seating,
     }));
     setLastChecked(id);
     setWalkInOpen(false);
@@ -842,6 +848,9 @@ export default function EntranceScreen({
                       <span className={styles.freeCardFree}>{free} פנויים</span>
                     </button>
                   ))}
+                {walkInTable && !freeTables.some(a => a.table.id === walkInTable && a.free >= walkInCount) && (
+                  <p className={styles.sheetNote}>בשולחן שבחרתם אין מקום ל-{walkInCount} — בחרו שולחן אחר, או שהאורח יתווסף בלי שיבוץ.</p>
+                )}
                 {freeTables.filter(a => a.free >= walkInCount).length === 0 && (
                   <p className={styles.sheetNote}>אין שולחן אחד עם {walkInCount} מקומות פנויים.</p>
                 )}
