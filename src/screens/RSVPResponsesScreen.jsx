@@ -64,6 +64,11 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   // party counted twice for catering and twice on the bus (107/ת4, 28.9).
   // Counts use each respondent's latest answer; the list below keeps history.
   const current = useMemo(() => latestPerRespondent(responses), [responses]);
+  // Rows a later answer from the same respondent replaced. They stay on the
+  // list — this screen is what people actually wrote — but nothing may be
+  // APPLIED from them: "עדכנו אורח קיים" on an older "maybe" set a guest who
+  // later said yes back to maybe (29.9 review).
+  const currentIds = useMemo(() => new Set(current.map(r => r.id)), [current]);
   const stats = useMemo(() => {
     const confirmed = current.filter(r => respStatus(r) === "yes");
     const maybe     = current.filter(r => respStatus(r) === "maybe");
@@ -418,6 +423,8 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                   </div>
                   {applied ? (
                     <span className={base.tagSeated}>מעודכן ברשימה <Icon name="check" size={12} /></span>
+                  ) : !currentIds.has(r.id) ? (
+                    <span className={base.gMeta}>הוחלפה בתשובה מאוחרת יותר</span>
                   ) : guest ? (
                     <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => applyToGuest(r, guest)}>
                       עדכנו אורח קיים
