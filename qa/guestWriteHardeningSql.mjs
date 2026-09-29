@@ -100,6 +100,23 @@ try {
     insert into storage.objects (bucket_id, name) values ('event-site', '${EV}/${f}'); commit;`);
   ok(site('n300.jpg') === null, 'the owner\'s 300th file is accepted');
   ok(site('n301.jpg') !== null, 'the 301st is refused');
+
+  console.log('\n── the family table takes a 40-character phone (סב44)');
+  {
+    // The host's own sync writes the table directly, under RLS.
+    const two = '050-1234567, 052-7654321';   // both parents in one field: 24
+    const e = tryAs(`begin; set local role authenticated; select set_config('request.jwt.claim.sub', '${OWNER}', true);
+      insert into public.collab_guests (id, event_id, name, phone, side, guests_count)
+      values ('cccccccc-0000-0000-0000-000000000001', '${EV}', 'משפחת לוי', '${two}', 'bride', 2); commit;`);
+    ok(e === null, "the host's row with two phone numbers is stored", e || '');
+    psql(`update public.events set payload = payload || '{"collabActive":true}' where id = '${EV}'`);
+    const long = '0'.repeat(45);
+    const e2 = tryAs(anon(null, `select public.collab_upsert_by_token('collab-tok-12345',
+      '{"id":"cccccccc-0000-0000-0000-000000000002","name":"דודה","phone":"${long}","side":"bride","guests_count":1}'::jsonb)`));
+    ok(e2 === null, 'the guest-link path accepts a long phone', e2 || '');
+    ok(psql(`select char_length(phone) from public.collab_guests where id = 'cccccccc-0000-0000-0000-000000000002'`) === '40',
+       'and clips it at 40');
+  }
 } finally {
   spawnSync('su', ['postgres', '-c', `${PGBIN}/pg_ctl -D ${DIR} -m immediate stop`]);
   rmSync(DIR, { recursive: true, force: true });

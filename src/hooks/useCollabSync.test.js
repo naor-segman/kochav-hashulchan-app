@@ -311,3 +311,17 @@ describe("remapGuestId — the family submission that dedups onto an existing gu
     expect(before.messagesSent.saveTheDate.old).toBe(1_700_000_000_000);
   });
 });
+
+describe("guestToCollab — the table's widths (סב44)", () => {
+  it("clips to the columns' CHECK widths, so the push is never refused forever", async () => {
+    const { guestToCollab } = await import("./useCollabSync.js");
+    const row = guestToCollab({ id: "g", name: "א".repeat(130), phone: "050-1234567, 052-7654321, 03-1234567",
+      group: "ק".repeat(70), notes: "ה".repeat(600), side: "bride", count: 1 });
+    expect(row.name.length).toBe(120);
+    expect(row.phone.length).toBeLessThanOrEqual(40);
+    expect(row.guest_group.length).toBe(60);
+    expect(row.notes.length).toBe(500);
+    // Two numbers in one field — the common case — go through whole.
+    expect(guestToCollab({ id: "g", phone: "050-1234567, 052-7654321" }).phone).toBe("050-1234567, 052-7654321");
+  });
+});

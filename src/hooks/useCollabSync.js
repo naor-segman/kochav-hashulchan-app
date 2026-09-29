@@ -177,12 +177,17 @@ export function guestFromCollab(r, existing) {
     companions: pickCompanions(r, existing),
   };
 }
+// Clipped to the table's own widths (collab_guests CHECKs). The guest-link path
+// clips in SQL; this path sent values as typed, and one over-long field was
+// refused on every retry while the host was told to check their connection —
+// the family never reached the table (30.9 review, סב44).
+const clip = (v, n) => norm(v).slice(0, n);
 export const guestToCollab = (g) => ({
-  id: g.id, name: norm(g.name), phone: norm(g.phone),
-  side: sideOf(g.side), guest_group: norm(g.group),
+  id: g.id, name: clip(g.name, 120), phone: clip(g.phone, 40),
+  side: sideOf(g.side), guest_group: clip(g.group, 60),
   guests_count: Math.min(50, Math.max(1, g.count || 1)), // DB CHECK caps at 50
   companions: clampComp(g.companions, g.count || 1),
-  notes: norm(g.notes),
+  notes: clip(g.notes, 500),
 });
 
 /**
