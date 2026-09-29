@@ -231,12 +231,20 @@ export async function submitGift(token, gift) {
   // The function returns void: an unpaid gift row is hidden from anon by RLS,
   // so asking for it back with .select().single() returned zero rows and threw
   // — the gift was saved and the guest was still told it had failed.
-  const { error } = await supabase.rpc("submit_gift_by_token", {
-    token_value: token,
-    donor_name:  donor,
-    amount,
-    message:     msg,
-  });
+  const args = { token_value: token, donor_name: donor, amount, message: msg };
+  // One key per filled-in form (the page makes it). The server stores a key
+  // once, so a double tap or a retry after a lost response is one gift — and
+  // two families who happen to share a name and an amount are two
+  // (20260929000000; the old guard matched on name and dropped the second).
+  // Before that migration runs, the 5-argument function does not exist
+  // (PGRST202) and the old call is used.
+  const key = typeof gift.clientKey === "string" && gift.clientKey ? gift.clientKey.slice(0, 64) : null;
+  if (key) {
+    const { error } = await supabase.rpc("submit_gift_by_token", { ...args, client_key: key });
+    if (!error) return;
+    if (error.code !== "PGRST202") throw error;
+  }
+  const { error } = await supabase.rpc("submit_gift_by_token", args);
   if (error) throw error;
 }
 

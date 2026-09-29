@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitGift, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { uid } from "../utils/uid.js";
 import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
 import { prefixed } from "../utils/hebrewPrefix.js";
@@ -37,6 +38,9 @@ export default function GiftScreen() {
   const [name, setName]           = useState("");
   const [step, setStep]           = useState("form"); // "form" | "submitting" | "submitted"
   const [errors, setErrors]       = useState({});
+  // One key per filled-in form: a double tap or a retry sends the same one and
+  // is stored once; a second gift from this page gets a new one (29.9 review).
+  const formKey = useRef(uid());
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +85,7 @@ export default function GiftScreen() {
           donorName: name,
           amountILS: finalAmount,
           message,
+          clientKey: formKey.current,
         });
       } catch {
         setStep("form");
@@ -93,6 +98,7 @@ export default function GiftScreen() {
          all (WORKPLAN מ2). */
       track(EVENTS.GIFT_DECLARED, { amount_band: amountBand(finalAmount), with_message: !!message.trim() });
     }
+    formKey.current = uid();
     setStep("submitted");
   };
 

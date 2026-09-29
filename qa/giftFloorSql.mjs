@@ -5,7 +5,7 @@
 // function AND in the table.
 //
 //   node qa/giftFloorSql.mjs      (starts and stops its own cluster)
-import { execFileSync, spawnSync } from 'child_process';
+import { execFileSync, spawnSync, spawn } from 'child_process';
 import { mkdtempSync, rmSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -21,6 +21,11 @@ const psql = (sql) => execFileSync('psql', [...args, '-c', sql], { encoding: 'ut
 const tryPsql = (sql) => { const r = spawnSync('psql', [...args, '-c', sql], { encoding: 'utf8' }); return r.status === 0 ? null : r.stderr.trim(); };
 const asPostgres = (cmd) => execFileSync('su', ['postgres', '-c', cmd], { stdio: 'pipe' });
 const mig = (f) => readFileSync(new URL(`../supabase/migrations/${f}`, import.meta.url), 'utf8');
+// Many requests AT ONCE, each its own connection — what a hall of phones does.
+const par = (sqls) => Promise.all(sqls.map(sql => new Promise(res => {
+  const c = spawn('psql', [...args, '-c', sql]); let err = '';
+  c.stderr.on('data', d => { err += d; }); c.on('close', code => res(code === 0 ? null : err));
+})));
 const give = (agorot, msg = 'מזל טוב') => tryPsql(`select public.submit_gift_by_token('gifttok11', 'משפחת כהן', ${agorot}, '${msg}')`);
 
 try {
@@ -70,6 +75,60 @@ try {
   ok(/rate limited/.test(give(5000, 'ועוד') || ''), 'the 61st is refused');
   psql(`update public.gifts set created_at = now() - interval '2 minutes'`);
   ok(give(5000, 'אחרי דקה') === null, 'a minute later it is open again');
+
+  // ── The 29.9 review, premises first — on 20260928000900 as shipped ──────────
+  console.log('\n── the review\'s premises (20260928000900 as shipped)');
+  psql(`delete from public.gifts`);
+  give(36000, '');
+  give(36000, '');
+  ok(psql(`select count(*) from public.gifts`) === '1',
+     'premise: two families both called "משפחת כהן", ₪360, no message — one row', psql(`select count(*) from public.gifts`));
+  psql(`insert into public.gifts (event_id, donor_name, amount) select id, 'ישן', 5000 from public.events`);
+  psql(`alter table public.gifts drop constraint ck_gift_amount_range;
+        insert into public.gifts (event_id, donor_name, amount, message) select id, 'פוגעני', 500, 'x' from public.events;
+        alter table public.gifts add constraint ck_gift_amount_range check (amount >= 5000 and amount <= 10000000) not valid;`);
+  ok(/ck_gift_amount_range/.test(tryPsql(`update public.gifts set paid = false where amount = 500`) || ''),
+     'premise: an old ₪5 row cannot be updated (hidden) under the NOT VALID ₪50 CHECK');
+
+  psql(`alter table public.gifts add column if not exists hidden boolean default false`);
+  psql(mig('20260929000000_review_gift_door_fixes.sql'));
+  console.log('\n── after 20260929000000');
+  ok(tryPsql(`update public.gifts set hidden = true where amount = 500`) === null, 'the host can hide an old ₪5 gift again');
+  ok(/amount out of range/.test(give(4999) || ''), 'a guest still cannot declare under ₪50');
+  ok(/ck_gift_amount_range/.test(tryPsql(`insert into public.gifts (event_id, donor_name, amount) select id, 'x', 499 from public.events`) || ''),
+     'the table still refuses under ₪5 on a direct insert');
+
+  psql(`delete from public.gifts`);
+  const k = (name, key, msg = '') => `select public.submit_gift_by_token('gifttok11', '${name}', 36000, '${msg}', ${key ? `'${key}'` : 'null'})`;
+  psql(k('משפחת כהן', 'form-a')); psql(k('משפחת כהן', 'form-b'));
+  ok(psql(`select count(*) from public.gifts`) === '2', 'two families with the same name and amount, two forms — two gifts');
+  psql(k('משפחת כהן', 'form-a'));
+  ok(psql(`select count(*) from public.gifts`) === '2', 'the same form sent again (a double tap, a retry) — still two');
+  ok(/name required/.test(tryPsql(`select public.submit_gift_by_token('gifttok11', E'\n\t ', 36000, '', 'k-blank')`) || ''),
+     'a name of only whitespace is refused (trim() took spaces only)');
+
+  psql(`delete from public.gifts`);
+  // Each request holds its transaction open a moment, so they truly overlap —
+  // separate psql processes alone barely do, and a check that never overlaps
+  // proves nothing about a lock (its first version passed with the lock removed).
+  const held = sql => `begin; ${sql}; select pg_sleep(0.05); commit;`;
+  const errs8 = await par(Array.from({ length: 8 }, () => held(k('משפחת לוי', 'same-form'))));
+  ok(psql(`select count(*) from public.gifts`) === '1', '8 copies of one form AT ONCE — one row', psql(`select count(*) from public.gifts`));
+  ok(errs8.every(e => e === null), '— and every copy was told it worked (no unique-key error)',
+     errs8.filter(Boolean)[0]?.split('\n')[0] || '');
+  psql(`delete from public.gifts`);
+  await par(Array.from({ length: 70 }, (_, i) => held(k('אורח ' + i, 'f' + i))));
+  ok(psql(`select count(*) from public.gifts`) === '60', '70 different gifts AT ONCE — exactly the 60-a-minute limit',
+     psql(`select count(*) from public.gifts`));
+  psql(`delete from public.gifts`);
+  psql(`select public.submit_gift_by_token('gifttok11', 'משפחת כהן', 36000, '')`);
+  psql(`select public.submit_gift_by_token('gifttok11', 'משפחת כהן', 36000, '')`);
+  ok(psql(`select count(*) from public.gifts`) === '1', 'a page without a key (cached before the change) keeps the name guard');
+  psql(`update public.gifts set created_at = now() - interval '61 seconds'`);
+  psql(`select public.submit_gift_by_token('gifttok11', 'משפחת כהן', 36000, '')`);
+  ok(psql(`select count(*) from public.gifts`) === '2', '— for 60 seconds, not 10 minutes');
+  ok(psql(`select has_function_privilege('anon', 'public.submit_gift_by_token(text,text,bigint,text,text)', 'execute')`) === 't',
+     'a guest (anon) can call the keyed form');
 } finally {
   spawnSync('su', ['postgres', '-c', `${PGBIN}/pg_ctl -D ${DIR} -m immediate stop`]);
   rmSync(DIR, { recursive: true, force: true });

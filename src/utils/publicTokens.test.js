@@ -135,6 +135,24 @@ describe("submitGift", () => {
     fail({ message: "nope" });
     await expect(submitGift("tok", { donorName: "ד", amountILS: 1 })).rejects.toBeTruthy();
   });
+
+  it("sends the form's key, so a retry is one gift and a namesake is another (29.9 review)", async () => {
+    ok(null);
+    await submitGift("tok", { donorName: "משפחת כהן", amountILS: 360, clientKey: "form-1" });
+    expect(sent().client_key).toBe("form-1");
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the keyless call only when the keyed function is not there yet", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "PGRST202" } }).mockResolvedValueOnce({ data: null, error: null });
+    await submitGift("tok", { donorName: "ד", amountILS: 100, clientKey: "form-1" });
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(sent().client_key).toBeUndefined();
+    rpc.mockReset();
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "23514", message: "range" } });
+    await expect(submitGift("tok", { donorName: "ד", amountILS: 1, clientKey: "form-2" })).rejects.toBeTruthy();
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("fetchEventByToken — a partial row must not crash a public page", () => {

@@ -47,4 +47,16 @@ describe("gift page analytics", () => {
     await screen.findByText(/אירעה שגיאה/);
     expect(track).not.toHaveBeenCalled();
   });
+
+  it("a retry after a failure sends the SAME form key — the server stores it once (29.9 review)", async () => {
+    submitGift.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(undefined);
+    await fill();
+    await screen.findByText(/אירעה שגיאה/);
+    fireEvent.click(screen.getAllByRole("button").at(-1));
+    await waitFor(() => expect(submitGift).toHaveBeenCalledTimes(2));
+    const k1 = submitGift.mock.calls[0][1].clientKey, k2 = submitGift.mock.calls[1][1].clientKey;
+    expect(typeof k1).toBe("string");
+    expect(k1.length).toBeGreaterThan(8);
+    expect(k2).toBe(k1);
+  });
 });
