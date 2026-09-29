@@ -26,6 +26,8 @@ const MESSAGE_MAX = 600;
 // reconcile against a bank transfer.
 const shekels = (n) => Number(n || 0).toLocaleString("he-IL");
 
+const GIFT_MAX_ILS = 100000;   // = the SQL range, 10,000,000 agorot
+
 export default function GiftScreen() {
   const { token } = useParams();
   const [event, setEvent]         = useState(null);
@@ -72,6 +74,9 @@ export default function GiftScreen() {
     const errs = {};
     if (!name.trim())                    errs.name   = "יש להזין שם מלא";
     if (!finalAmount || finalAmount < 50) errs.amount = "יש לבחור סכום (מינימום ₪50)";
+    // The server's ceiling (10,000,000 agorot), said here: above it the send
+    // failed with "נסו שוב", which could never succeed (second review, סב36).
+    else if (finalAmount > GIFT_MAX_ILS) errs.amount = "הסכום המרבי הוא ₪100,000";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -282,6 +287,7 @@ export default function GiftScreen() {
                 id="gift-amount"
                 type="number"
                 min="50"
+                max={GIFT_MAX_ILS}
                 // The minimum was stated only in the error after pressing send
                 // (106). Said up front, where the amount is typed.
                 placeholder="₪50 ומעלה"

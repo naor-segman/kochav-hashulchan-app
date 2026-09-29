@@ -33,4 +33,12 @@ describe("gift page limits, said before they bite", () => {
     fireEvent.change(msg, { target: { value: "א".repeat(520) } });
     expect(screen.getByText("520 מתוך 600 תווים")).toBeInTheDocument();
   });
+
+  it("refuses more than ₪100,000 before sending, and says so (סב36)", async () => {
+    await open();
+    fireEvent.change(screen.getByLabelText(/שמכם המלא/), { target: { value: "משפחת כהן" } });
+    fireEvent.change(screen.getByLabelText(/סכום המתנה/), { target: { value: "150000" } });
+    fireEvent.click(screen.getByRole("button", { name: /שלחו|שליחה/ }));
+    expect(await screen.findByText("הסכום המרבי הוא ₪100,000")).toBeInTheDocument();
+  });
 });
