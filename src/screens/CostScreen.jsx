@@ -456,12 +456,15 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
               placeholder="למשל 400" onChange={e => setBulkGift(e.target.value)} />
           </div>
           <button className={base.btnSecondary} onClick={applyBulkEstimate} disabled={parseAmt(bulkGift) <= 0}>
-            החל לכל האורחים
+            החל לכל הרשומות
           </button>
         </div>
         {nAttending > 0 && (
           <p className={base.fieldHint} style={{ marginTop: -8, marginBottom: 12 }}>
-            הזנתם הערכה ל-{nEstimated} מתוך {nAttending} אורחים. אפשר לכוונן כל אורח בנפרד במסך האורחים.
+            {/* Rows, and it says so. A gift is per household, so rows are the
+                right unit here — but the word was "אורחים", which the door
+                screen uses for PEOPLE: 16 here and 48 there for one event (107). */}
+            הזנתם הערכה ל-{nEstimated} מתוך {nAttending} רשומות (כל רשומה היא מתנה אחת). אפשר לכוונן כל רשומה בנפרד במסך האורחים.
           </p>
         )}
         <div className={styles.statsRow}>

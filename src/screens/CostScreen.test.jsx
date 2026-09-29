@@ -69,3 +69,13 @@ describe("CostScreen — a guest who said no is not a cover", () => {
     expect(hint.textContent).not.toContain("106");
   });
 });
+
+describe("CostScreen — says which unit it is counting (107)", () => {
+  it("the gift-estimate line counts RECORDS and says so", () => {
+    renderScreen();
+    // 25 attending rows = 100 people. The door screen's "מתוך N אורחים" is
+    // people, so this line must not say "אורחים" for rows.
+    expect(screen.getByText(/מתוך 25 רשומות/)).toBeInTheDocument();
+    expect(screen.queryByText(/מתוך 25 אורחים/)).toBeNull();
+  });
+});
