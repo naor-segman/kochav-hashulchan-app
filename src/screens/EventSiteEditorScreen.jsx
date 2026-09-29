@@ -307,7 +307,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           </p>
           {[
             { key: "invite", label: "הזמנה", text: `היי! אתם מוזמנים ${prefixed("ל", ev.name) || "לאירוע שלנו"} 💛\nכל הפרטים ואישור הגעה כאן:\n${siteUrl}` },
-            { key: "remind", label: "תזכורת", text: `רק תזכורת קטנה — ${ev.name || "האירוע"} מתקרב! 🎉\nפרטים ואישור הגעה:\n${siteUrl}` },
+            { key: "remind", label: "תזכורת", text: `רק תזכורת קטנה — ${ev.name || "האירוע"} כבר ממש בקרוב! 🎉\nפרטים ואישור הגעה:\n${siteUrl}` },
             { key: "thanks", label: "תודה", text: `תודה מכל הלב שחגגתם איתנו! 💛\nהייתם חלק מהרגעים הכי מרגשים שלנו.` },
           ].map(m => (
             <div key={m.key} className={styles.msgRow}>

@@ -536,7 +536,7 @@ export default function EntranceScreen({
     if (!id) { setScanMsg("קוד לא מזוהה — נסו שוב או חפשו לפי שם"); return; }
     const guest = ev?.guests.find(g => g.id === id);
     if (!guest) { setScanMsg("הקוד לא שייך לאירוע הזה"); return; }
-    if (isFullyArrived(guest)) { setScanMsg(`${guest.name} — כל ${seatsOf(guest)} כבר סומנו`); return; }
+    if (isFullyArrived(guest)) { setScanMsg(seatsOf(guest) === 1 ? `${guest.name} — ההגעה כבר סומנה` : `${guest.name} — כל ${seatsOf(guest)} כבר סומנו`); return; }
     markRow(guest, true);
     setScanMsg(`${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`);
   }, [canWrite, ev?.guests, markRow]);
@@ -675,7 +675,7 @@ export default function EntranceScreen({
           <span className={styles.counterBig}>{totals.arrivedSeats}</span>
           <span className={styles.counterOf}>מתוך {totals.totalSeats} אורחים</span>
           {totals.partialRecords > 0 && (
-            <span className={styles.counterPartial}>{totals.partialRecords} משפחות הגיעו חלקית</span>
+            <span className={styles.counterPartial}>{totals.partialRecords === 1 ? "משפחה אחת הגיעה חלקית" : `${totals.partialRecords} משפחות הגיעו חלקית`}</span>
           )}
         </div>
       </div>
