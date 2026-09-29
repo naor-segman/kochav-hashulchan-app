@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { autoAssign, computeViolations } from "./seating.js";
+import { autoAssign, computeViolations, tablesOpenForNewGuests } from "./seating.js";
 
 // Helpers to build fixtures concisely.
 const g = (id, extra = {}) => ({ id, name: id, side: "bride", group: "משפחה", count: 1, ...extra });
@@ -803,5 +803,29 @@ describe("an apart constraint only fires when both guests are actually seated", 
 
   it("still reports the real violation when both share a table", () => {
     expect(computeViolations(gs, ts, apart, { g1: "t1", g2: "t1" })).toHaveLength(1);
+  });
+});
+
+describe("a locked table takes no one new (סב9)", () => {
+  // The tooltip: "נעלו שולחן — לא יוצעו שינויים לשולחן זה". A locked table
+  // holding one guest came back from "חשבו מחדש" holding seven.
+  const guests = ["a", "b", "c", "d", "e", "f", "g"].map(id => ({ id, name: id, count: 1 }));
+  const tables = [{ id: "T1", capacity: 10 }, { id: "T2", capacity: 10 }];
+
+  it("keeps the occupant and seats everyone else elsewhere", () => {
+    const out = autoAssign(guests, tablesOpenForNewGuests(tables, ["T2"]), [], { a: "T2" });
+    expect(out.a).toBe("T2");
+    expect(guests.filter(g => out[g.id] === "T2").map(g => g.id)).toEqual(["a"]);
+    expect(guests.filter(g => g.id !== "a").every(g => out[g.id] === "T1")).toBe(true);
+  });
+
+  it("with every table locked, seats no one new and moves no one", () => {
+    const out = autoAssign(guests, tablesOpenForNewGuests(tables, ["T1", "T2"]), [], { a: "T2" });
+    expect(out).toEqual({ a: "T2" });
+  });
+
+  it("no locks: the table list is passed through untouched", () => {
+    expect(tablesOpenForNewGuests(tables, [])).toBe(tables);
+    expect(tablesOpenForNewGuests(tables)).toBe(tables);
   });
 });

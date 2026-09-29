@@ -11,7 +11,7 @@ import {
   useSensor, useSensors,
   pointerWithin, rectIntersection, MeasuringStrategy,
 } from "@dnd-kit/core";
-import { autoAssign, computeViolations } from "../logic/seating.js";
+import { autoAssign, computeViolations, tablesOpenForNewGuests } from "../logic/seating.js";
 import { canSeatMore } from "../utils/featureGates.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { track, EVENTS } from "../lib/analytics.js";
@@ -272,7 +272,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // be emptiest — see the `positions` note on autoAssign. Without a sketch
     // this is undefined and nothing about the result changes.
     const newSeating = autoAssign(
-      [...activeGuests, ...seatedDeclined], ev.tables, ev.constraints, lockedSeating,
+      [...activeGuests, ...seatedDeclined], tablesOpenForNewGuests(ev.tables, ev.lockedTables),
+      ev.constraints, lockedSeating,
       ev.floorPlan?.tablePositions
     );
     patchEvent(e => Object.assign({}, e, { seating: newSeating }));
@@ -445,7 +446,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       // base) — otherwise their occupied seat is hidden and the table overbooks.
       const seatedDeclined = declinedGuests.filter(g => ev.seating[g.id]);
       const guestsForFill  = [...activeGuests, ...seatedDeclined];
-      const newSeating = autoAssign(guestsForFill, ev.tables, ev.constraints, ev.seating,
+      const newSeating = autoAssign(guestsForFill, tablesOpenForNewGuests(ev.tables, ev.lockedTables),
+                                    ev.constraints, ev.seating,
                                     ev.floorPlan?.tablePositions);
       const added = Object.keys(newSeating).length - Object.keys(ev.seating).length;
       patchEvent(e => Object.assign({}, e, { seating: newSeating }));

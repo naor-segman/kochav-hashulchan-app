@@ -294,6 +294,21 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
  * The second pass only runs when somebody is left over — an event with enough
  * chairs, which is most of them, pays nothing.
  */
+/**
+ * The tables a recompute may put someone NEW at: every table but the locked
+ * ones. The lock's own tooltip promises "לא יוצעו שינויים לשולחן זה", and the
+ * screen kept that promise only for the people already there — the engine
+ * still offered the table's empty chairs to everyone else, so a locked table
+ * holding one guest came back from "חשבו מחדש" holding seven (29.9 second
+ * review, סב9: 2,785 of 5,000 fuzzed events). Its occupants stay in
+ * `lockedSeating` and keep their seats; they simply stop competing for chairs
+ * at a table no one else may join.
+ */
+export function tablesOpenForNewGuests(tables, lockedTableIds = []) {
+  const locked = new Set(lockedTableIds);
+  return locked.size ? tables.filter(t => !locked.has(t.id)) : tables;
+}
+
 export function autoAssign(guests, tables, constraints, lockedSeating = {}, positions = null) {
   const withPositions = assignOnce(guests, tables, constraints, lockedSeating, positions);
 
