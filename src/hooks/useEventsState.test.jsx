@@ -1201,3 +1201,20 @@ describe("useEvents — a guest who declines gives the chair back (סב7)", () =
     expect(result.current.events[0].seating).toEqual({ g1: "t1", g2: "t1" });
   });
 });
+
+describe("useEvents — a re-keyed row leaves a tombstone (סב15)", () => {
+  it("replacing a guest's id at the same list length records the old id as deleted", async () => {
+    // The shared table's dedupe swaps the guest's id for the family's row id.
+    // With a length-only shortcut the old id got no tombstone, and the other
+    // device's copy brought it back as a second guest.
+    seed(userKey("u1"), [ev("a", { guests: [{ id: "b2", name: "דנה", count: 1 }] })]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => {
+      result.current.patchEventById("a", e => ({
+        ...e, guests: e.guests.map(g => g.id === "b2" ? { ...g, id: "collab-r1" } : g),
+      }));
+    });
+    expect(Object.keys(result.current.events[0].deletedRows?.guests || {})).toEqual(["b2"]);
+  });
+});

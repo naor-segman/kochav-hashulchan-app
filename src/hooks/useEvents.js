@@ -153,11 +153,12 @@ function withTombstones(before, after, now = Date.now()) {
   for (const key of TOMBSTONED_COLLECTIONS) {
     const was = before?.[key], is = after?.[key];
     if (!Array.isArray(was) || !Array.isArray(is)) continue;
-    if (is.length >= was.length) {
-      // Fast path: nothing can have been removed without the length dropping,
-      // because ids are unique within a collection.
-      continue;
-    }
+    // No "same length, nothing removed" shortcut. It was wrong: the shared
+    // table's dedupe RE-KEYS a guest (old id out, the family's row id in) at
+    // the same length, so the old id got no tombstone and the other device's
+    // copy brought it back as a second guest (second review, סב15). Building
+    // the id set is a few hundred lookups per patch.
+    if (is === was) continue;
     const stillThere = new Set(is.map(r => r?.id).filter(Boolean));
     for (const row of was) {
       if (!row?.id || stillThere.has(row.id)) continue;
