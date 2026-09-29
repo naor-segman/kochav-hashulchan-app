@@ -399,7 +399,7 @@ export default function AdminEventDetailScreen() {
                   const tName  = tId ? (tableMap.get(tId)?.name || "—") : null;
                   return (
                     <tr key={g.id}>
-                      <td className={styles.guestName}>{g.name || "—"}</td>
+                      <td className={styles.guestName} title={g.name || undefined}>{g.name || "—"}</td>
                       <td>
                         {g.side
                           ? <span className={g.side === "bride" ? styles.sideBride : styles.sideGroom}>
@@ -408,12 +408,12 @@ export default function AdminEventDetailScreen() {
                           : <span className={styles.muted}>—</span>
                         }
                       </td>
-                      <td className={styles.guestGroup}>{g.group || <span className={styles.muted}>—</span>}</td>
+                      <td className={styles.guestGroup} title={g.group || undefined}>{g.group || <span className={styles.muted}>—</span>}</td>
                       <td className={styles.numCell}>{g.count || 1}</td>
-                      <td className={styles.guestSeated}>
+                      <td className={styles.guestSeated} title={tName || undefined}>
                         {tName
                           ? <span className={styles.seatedAt}>{tName}</span>
-                          : <span className={styles.notSeated}>טרם שובץ לשולחן</span>
+                          : <span className={styles.notSeated}>לא שובץ</span>
                         }
                       </td>
                     </tr>
