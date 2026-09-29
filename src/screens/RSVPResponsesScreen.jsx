@@ -3,6 +3,7 @@ import { fetchRSVPResponses } from "../utils/publicTokens.js";
 import { pickMeal, pickCompanions, normName, normPhone, respStatus, latestPerRespondent } from "../utils/rsvpApply.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { uid } from "../utils/uid.js";
+import { fmtDateTime } from "../utils/dateFormat.js";
 import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -13,20 +14,6 @@ import styles from "./RSVPResponsesScreen.module.css";
 
 // Map an RSVP answer to a guest-list rsvp value.
 const GUEST_RSVP = { yes: "confirmed", maybe: "maybe", no: "declined" };
-
-// `new Date(null)` is the epoch and `new Date("nonsense")` is an Invalid Date;
-// neither THROWS, and toLocaleDateString does not throw either — it returns
-// the string "Invalid Date". So the catch here never ran once, and
-// formatDate(null) rendered "1 בינו׳, 02:00" — the epoch, shown to the host as
-// a real response time. Guard the input instead of the call.
-function formatDate(iso) {
-  if (iso == null || iso === "") return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("he-IL", {
-    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-  });
-}
 
 export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [responses, setResponses] = useState([]);
@@ -419,7 +406,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                       </span>
                     )}
                     <span className={base.gMeta}>
-                      {r.phone ? r.phone + " · " : ""}{formatDate(r.created_at)}
+                      {r.phone ? r.phone + " · " : ""}{fmtDateTime(r.created_at)}
                     </span>
                   </div>
                   {applied ? (

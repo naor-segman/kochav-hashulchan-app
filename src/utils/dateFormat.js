@@ -58,3 +58,16 @@ export const fmtDateTime = iso => {
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   });
 };
+
+/**
+ * A server timestamp as a short numeric date ("27.09.2026"), for the account
+ * screen's purchase rows. Was a local copy there with no invalid-date guard:
+ * an unparsable value printed "Invalid Date" beside a payment (107, 29.9).
+ * Returns null for anything that is not a date, so the caller shows nothing.
+ */
+export const fmtShortDate = iso => {
+  if (iso == null || iso === "") return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "numeric" });
+};

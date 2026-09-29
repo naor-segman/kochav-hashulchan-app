@@ -17,13 +17,8 @@ import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/storage.js";
 import { COMPANY, supportMailto } from "../data/company.js";
+import { fmtShortDate } from "../utils/dateFormat.js";
 
-function formatDate(iso) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("he-IL", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  });
-}
 
 // ── Plan card feature rows ────────────────────────────────────────────────────
 
@@ -355,7 +350,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
               {sub?.started_at && (
                 <div className={styles.infoRow}>
                   <span className={styles.infoKey}>תאריך הרכישה</span>
-                  <span className={styles.infoVal}>{formatDate(sub.started_at)}</span>
+                  <span className={styles.infoVal}>{fmtShortDate(sub.started_at)}</span>
                 </div>
               )}
               {/* A "חידוש הבא" row stood here, reading `current_period_end`.
@@ -366,7 +361,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
               {isCancelling && sub?.expires_at && (
                 <div className={styles.infoRow}>
                   <span className={styles.infoKey}>גישה עד</span>
-                  <span className={styles.infoVal}>{formatDate(sub.expires_at)}</span>
+                  <span className={styles.infoVal}>{fmtShortDate(sub.expires_at)}</span>
                 </div>
               )}
               {!sub && (
@@ -430,7 +425,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                 a full refund (charge.refunded sets expires_at to now) or an admin
                 setting an end date by hand. */}
             הגישה לחבילת {getPlanLabel(planKey)} פעילה עד{" "}
-            {formatDate(sub.expires_at)}.
+            {fmtShortDate(sub.expires_at)}.
           </div>
         )}
         {sub && statusKey === "trialing" && (

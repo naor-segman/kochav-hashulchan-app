@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
  * the same way photoRetention.test.js does, so a runner that ignores TZ fails
  * loudly instead of passing a test that measured nothing. */
 process.env.TZ = "Asia/Jerusalem";
-const { fmtDate, fmtDateTime } = await import("./dateFormat.js");
+const { fmtDate, fmtDateTime, fmtShortDate } = await import("./dateFormat.js");
 
 describe("fmtDateTime", () => {
   it("the zone really is Israel (or every assertion below is meaningless)", () => {
@@ -37,5 +37,24 @@ describe("fmtDateTime", () => {
     for (const bad of [null, undefined, "", "not a date"]) {
       expect(fmtDateTime(bad), String(bad)).toBe("");
     }
+  });
+});
+
+describe("fmtShortDate — the account screen's purchase dates (107)", () => {
+  it("prints the LOCAL date of a timestamp", () => {
+    // 22:30 UTC on the 27th is already the 28th in Jerusalem.
+    expect(fmtShortDate("2026-09-27T22:30:00Z")).toBe("28.09.2026");
+  });
+  it("prints nothing — not 'Invalid Date', not the epoch — for a non-date", () => {
+    for (const bad of [null, undefined, "", "nonsense"]) expect(fmtShortDate(bad)).toBeNull();
+  });
+});
+
+describe("no screen keeps its own date formatter (107)", () => {
+  it("screens import from utils/dateFormat.js", async () => {
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const own = readdirSync("src/screens").filter(f => f.endsWith(".jsx") && !f.includes(".test."))
+      .filter(f => /function\s+formatDate\s*\(/.test(readFileSync(`src/screens/${f}`, "utf8")));
+    expect(own).toEqual([]);
   });
 });
