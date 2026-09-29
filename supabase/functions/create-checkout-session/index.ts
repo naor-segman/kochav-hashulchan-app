@@ -269,7 +269,14 @@ Deno.serve(async (req: Request) => {
       success_url:      `${safeReturn}?checkout=success`,
       cancel_url:       `${safeReturn}?checkout=cancelled`,
       allow_promotion_codes: true,
-      locale:           "he",
+      // NOT "he": Stripe Checkout has no Hebrew. "he" is absent from the
+      // locale enum in stripe@14.25.0 AND in the newest SDK (22.6.2), both
+      // generated from Stripe's own API spec, and Stripe rejects a value
+      // outside an enum — so every checkout session would have been refused
+      // (found 29.9 by the type-check in qa/edgeBundle.mjs; not confirmed
+      // against the live API, which this environment cannot reach). "auto"
+      // follows the buyer's browser and falls back to English.
+      locale:           "auto",
       // event_id on BOTH, for the same reason user_id is: charge.refunded sees
       // the payment intent and never the session.
       metadata:         { user_id: user.id, plan, event_id: eventId },
