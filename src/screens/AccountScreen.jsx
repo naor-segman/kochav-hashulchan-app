@@ -339,9 +339,9 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                 <span
                   className={styles.badge}
                   style={{
-                    color:       statusMeta?.color       || "#888",
-                    background:  statusMeta?.bgColor     || "#f4f4f5",
-                    borderColor: statusMeta?.borderColor || "#e5e7eb",
+                    color:       statusMeta?.color       || "var(--muted)",
+                    background:  statusMeta?.bgColor     || "var(--bg)",
+                    borderColor: statusMeta?.borderColor || "var(--border)",
                   }}
                 >
                   {getStatusLabel(statusKey)}
@@ -501,7 +501,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                     <div className={styles.planCardHead}>
                       <span
                         className={styles.planCardIcon}
-                        style={{ color: meta?.color || "#888" }}
+                        style={{ color: meta?.color || "var(--muted)" }}
                       >
                         <Icon name={key === "free" ? "sparkle" : key === "pro" ? "star" : "diamond"} size={16} />
                       </span>
@@ -512,9 +512,9 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                         <span
                           className={styles.planCardBadge}
                           style={{
-                            color:       meta?.color       || "#888",
-                            background:  meta?.bgColor     || "#f4f4f5",
-                            borderColor: meta?.borderColor || "#e5e7eb",
+                            color:       meta?.color       || "var(--muted)",
+                            background:  meta?.bgColor     || "var(--bg)",
+                            borderColor: meta?.borderColor || "var(--border)",
                           }}
                         >
                           פעיל

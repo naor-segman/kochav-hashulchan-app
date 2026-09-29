@@ -275,13 +275,30 @@ describe("planConfig — the ordered key lists cannot drift from the tables", ()
     }
   });
 
-  it("keeps the enterprise plan colour on --accent-text, never the raw accent", () => {
-    // Bug class 4, in a value AccountScreen paints onto TEXT. It was the literal
-    // #E8437B once — that is --accent, which measures 3.80:1 on white and
-    // 3.63:1 on this entry's own cream ground, i.e. below the floor on both.
-    expect(PLAN_META.enterprise.color).toBe("var(--accent-text)");
-    expect(PLAN_META.enterprise.color.toUpperCase()).not.toContain("E8437B");
-    expect(PLAN_META.enterprise.color).not.toBe("var(--accent)");
+  it("every plan and status badge is tokens, and readable on its own ground (107)", async () => {
+    // Bug classes 4 and 5 together. These colours are painted as TEXT on the
+    // account screen (customer-facing) over their own bgColor. Hex values
+    // outside tokens.css kept creeping in (Tailwind blue on `pro`); and the
+    // enterprise entry once used the raw --accent at 3.80:1. So: tokens only,
+    // never raw --accent as text, and each pair measured from tokens.css.
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("src/styles/tokens.css", "utf8");
+    const root = css.slice(css.indexOf(":root"), css.indexOf("}", css.indexOf(":root")));
+    const tok = Object.fromEntries([...root.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)].map(m => [m[1], m[2]]));
+    const lum = h => { h = h.slice(1); if (h.length === 3) h = [...h].map(c => c + c).join("");
+      const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255)
+        .map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const of = v => { const m = /^var\(--([a-z0-9-]+)\)$/.exec(v); return m ? tok[m[1]] : null; };
+    for (const [name, meta] of [...Object.entries(PLAN_META), ...Object.entries(STATUS_META)]) {
+      expect(meta.color, name).toMatch(/^var\(--/);
+      expect(meta.bgColor, name).toMatch(/^var\(--/);
+      expect(meta.color, name).not.toBe("var(--accent)");
+      const fg = of(meta.color), bg = of(meta.bgColor);
+      expect(fg && bg, `${name}: ${meta.color} / ${meta.bgColor} are real tokens`).toBeTruthy();
+      expect(ratio(fg, bg), `${name}: ${meta.color} on ${meta.bgColor}`).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
 

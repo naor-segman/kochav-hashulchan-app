@@ -99,16 +99,19 @@ export const PLAN_META = {
   free: {
     label:       "הרשימה בידיים",
     labelEn:     "Free",
-    color:       "#888",
-    bgColor:     "#f4f4f5",
-    borderColor: "#e5e7eb",
+    // Tokens, not hex (107, 29.9). Each pair measured on its own ground:
+    // --muted on --bg 4.86:1.
+    color:       "var(--muted)",
+    bgColor:     "var(--bg)",
+    borderColor: "var(--border)",
   },
   pro: {
     label:       "בלי הפתעות",
     labelEn:     "Event",
-    color:       "#1d4ed8",
-    bgColor:     "#eff6ff",
-    borderColor: "#bfdbfe",
+    // Was Tailwind blue — outside the palette. --accent-text on --accent-bg 6.04:1.
+    color:       "var(--accent-text)",
+    bgColor:     "var(--accent-bg)",
+    borderColor: "var(--accent-border)",
   },
   enterprise: {
     label:       "אנחנו שם איתכם",
@@ -118,9 +121,10 @@ export const PLAN_META = {
     // i.e. below the text floor on both. --accent-text is the token for accent
     // ON A LIGHT GROUND (6.87:1). The admin panel does not read these at all
     // any more — it is monochrome — but AccountScreen (customer-facing) does.
-    color:       "var(--accent-text)",
-    bgColor:     "#fef9f0",
-    borderColor: "#f3d99e",
+    // Distinct from `pro` without a second hue: ink on blush, 16.06:1.
+    color:       "var(--text)",
+    bgColor:     "var(--blush-soft)",
+    borderColor: "var(--blush-line)",
     /* The ONE thing this package has that the ₪690 package does not: a person
        from us standing at the door. It lives in PLAN_META and not in PLAN_LIMITS
        on purpose — PLAN_LIMITS is read by the gate helpers, and a service
@@ -141,27 +145,27 @@ export const PLAN_META = {
 export const STATUS_META = {
   active: {
     label:       "פעיל",
-    color:       "#166534",
-    bgColor:     "#f0fdf4",
-    borderColor: "#bbf7d0",
+    color:       "var(--green-dark)",      // 7.14:1 on --green-bg
+    bgColor:     "var(--green-bg)",
+    borderColor: "var(--green-border)",
   },
   trialing: {
     label:       "תקופת ניסיון",
-    color:       "#854d0e",
-    bgColor:     "#fefce8",
-    borderColor: "#fde68a",
+    color:       "var(--warn)",            // 4.70:1 on --warn-bg
+    bgColor:     "var(--warn-bg)",
+    borderColor: "var(--warn-border)",
   },
   cancelled: {
     label:       "בוטל",
-    color:       "#b91c1c",
-    bgColor:     "#fef2f2",
-    borderColor: "#fecaca",
+    color:       "var(--red-text)",        // 5.53:1 on --red-bg
+    bgColor:     "var(--red-bg)",
+    borderColor: "var(--red-border)",
   },
   expired: {
     label:       "פג תוקף",
-    color:       "#6b7280",
-    bgColor:     "#f9fafb",
-    borderColor: "#e5e7eb",
+    color:       "var(--muted)",
+    bgColor:     "var(--bg)",
+    borderColor: "var(--border)",
   },
   // Stripe keeps a failing card as `active` through the retry window, and the
   // webhook only raises the separate `payment_past_due` flag. Without an entry
@@ -169,9 +173,9 @@ export const STATUS_META = {
   // green "פעיל" everywhere, so there was no way to see it or act on it.
   past_due: {
     label:       "תשלום נכשל",
-    color:       "#b91c1c",
-    bgColor:     "#fef2f2",
-    borderColor: "#fecaca",
+    color:       "var(--red-text)",
+    bgColor:     "var(--red-bg)",
+    borderColor: "var(--red-border)",
   },
   /* `incomplete`, `incomplete_expired`, `unpaid` and `paused` stood here, and
      were removed in checklist 94. They are Stripe SUBSCRIPTION states, and two
