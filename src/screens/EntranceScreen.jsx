@@ -166,6 +166,8 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
 }
 
 /** Same seat set, order-free. */
+const DOUBLE_TAP_MS = 600;
+
 /** A multiset of guest ids with a write on the wire: has / add / delete / size. */
 function pendingWrites() {
   const n = new Map();
@@ -464,10 +466,22 @@ export default function EntranceScreen({
     }
   }, [canWrite, isToken, token, eventId, patchEventById, loadRemote, showFailed]);
 
+  // A second tap on the same big button within a moment is a double tap, not
+  // a change of mind: two taps 180 ms apart on "כולם הגיעו" sent [0,1,2] and
+  // then [] — the family, or with "כולם" the whole table, un-checked at the
+  // busiest moment of the evening, no confirm and no undo (second review, סב24).
+  const lastTap = useRef(new Map());
+  const isDoubleTap = useCallback((key) => {
+    const now = Date.now(), prev = lastTap.current.get(key);
+    lastTap.current.set(key, now);
+    return prev !== undefined && now - prev < DOUBLE_TAP_MS;
+  }, []);
+
   const markRow = useCallback((g, on) => {
+    if (isDoubleTap("row:" + g.id)) return;
     applyArrival(g.id, row => setRowArrived(row, on));
     if (on) setLastChecked(g.id);
-  }, [applyArrival]);
+  }, [applyArrival, isDoubleTap]);
 
   const markSeat = useCallback((g, seat) => {
     applyArrival(g.id, row => toggleSeat(row, seat));
@@ -481,6 +495,7 @@ export default function EntranceScreen({
 
   const markTable = useCallback((tableId, on) => {
     if (!canWrite) return;
+    if (isDoubleTap("table:" + tableId)) return;
     if (isToken) {
       // `rsvp !== "declined"` on this side too. Without it the same button wrote
       // different data depending on who tapped it, and an arrival on a decliner
@@ -499,7 +514,7 @@ export default function EntranceScreen({
           : g,
       ),
     }));
-  }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId]);
+  }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId, isDoubleTap]);
 
   const handleScan = useCallback((raw) => {
     // The host can close the door link while the camera is open. Before, the

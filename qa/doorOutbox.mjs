@@ -168,6 +168,26 @@ try {
     ok(JSON.stringify(st.seats.g1) === '[0,1]', 'and the server ends with both', JSON.stringify(st.seats.g1));
     await ctx.close();
   }
+
+  console.log('\n── a double tap is one tap; a deliberate second tap still undoes (סב24)');
+  {
+    const st = stub();
+    const { ctx, p } = await door(st);
+    await p.fill('input[type="search"]', 'יעל');
+    await p.waitForTimeout(250);
+    const big = p.locator('button', { hasText: /כולם הגיעו|כל 2 הגיעו/ }).first();
+    await big.click();
+    await p.waitForTimeout(180);
+    await big.click();
+    await p.waitForTimeout(600);
+    ok(st.marks.length === 1 && JSON.stringify(st.seats.g1) === '[0,1]', 'two taps 180 ms apart: one write, the family is in',
+       `${st.marks.length} writes, server ${JSON.stringify(st.seats.g1)}`);
+    await p.waitForTimeout(900);
+    await big.click();
+    await p.waitForTimeout(600);
+    ok(JSON.stringify(st.seats.g1) === '[]', 'a tap a second later still un-checks', JSON.stringify(st.seats.g1));
+    await ctx.close();
+  }
 } finally {
   await browser.close();
   await server.stop();
