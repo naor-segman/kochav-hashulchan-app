@@ -3,6 +3,7 @@ import {
   useEffect, useMemo, useRef, useState,
 } from "react";
 import { supabase } from "../lib/supabase.js";
+import { resetAnalytics } from "../lib/analytics.js";
 import { pruneCloudBackedEvents, userStorageKey } from "../utils/storage.js";
 
 /** The service-worker cache that holds Supabase reads — see vite.config.js. */
@@ -99,6 +100,10 @@ export function AuthProvider({ children }) {
         try {
           globalThis.caches?.delete(SUPABASE_CACHE)?.catch?.(() => {});
         } catch { /* no Cache API here — nothing was cached */ }
+        // PostHog keeps the identified id in localStorage until told otherwise:
+        // without this, whoever uses the device next was recorded as the
+        // account that just left (second review, סב11 — nothing called it).
+        resetAnalytics();
       }
 
       prevUserIdRef.current = session?.user?.id ?? null;

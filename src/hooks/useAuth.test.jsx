@@ -11,6 +11,7 @@ let sessionResult;          // what getSession() resolves (or rejects) with
 let authCallback;           // the handler onAuthStateChange was given
 const unsubscribe = vi.fn();
 const pruneSpy    = vi.fn();
+const resetSpy    = vi.fn();
 
 vi.mock("../lib/supabase.js", () => ({
   supabase: {
@@ -34,6 +35,11 @@ vi.mock("../utils/storage.js", async (orig) => ({
   ...(await orig()),
   pruneCloudBackedEvents: (...a) => pruneSpy(...a),
   userStorageKey: (id) => "kochav_hashulchan_v1::u_" + id,
+}));
+
+vi.mock("../lib/analytics.js", async (orig) => ({
+  ...(await orig()),
+  resetAnalytics: (...a) => resetSpy(...a),
 }));
 
 const { AuthProvider, useAuth } = await import("./useAuth.js");
@@ -84,6 +90,15 @@ describe("useAuth — what signing out is allowed to delete", () => {
     await act(async () => { authCallback("SIGNED_OUT", null); });
     expect(pruneSpy).toHaveBeenCalledTimes(1);
     expect(pruneSpy.mock.calls[0][0]).toContain("u_u1");
+  });
+
+  it("forgets the analytics identity, so the next person is not recorded as this one (סב11)", async () => {
+    sessionResult = { user: { id: "u1" } };
+    resetSpy.mockClear();
+    show();
+    await waitFor(() => expect(text()).toBe("u1"));
+    await act(async () => { authCallback("SIGNED_OUT", null); });
+    expect(resetSpy).toHaveBeenCalledTimes(1);
   });
 
   it("prunes nothing when nobody was signed in to begin with", async () => {
