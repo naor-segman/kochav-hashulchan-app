@@ -72,12 +72,14 @@ const HOST_SIDE = [
 
 /* The six-stage sequence — content, audiences and the tracker all exist. */
 const SEQUENCE = [
-  { when: "3–6 חודשים לפני", label: "שמרו את התאריך", who: "כל האורחים" },
-  { when: "4–6 שבועות לפני", label: "ההזמנה",         who: "כל האורחים" },
+  // Hyphen-minus, not an en-dash: "3–6" painted 6–3 on this page (second
+  // review, סב27) — the reason is in messageSequence.js, which fixed the app.
+  { when: "3-6 חודשים לפני", label: "שמרו את התאריך", who: "כל האורחים" },
+  { when: "4-6 שבועות לפני", label: "ההזמנה",         who: "כל האורחים" },
   { when: "שבועיים לפני",     label: "תזכורת ראשונה",  who: "רק מי שלא ענה" },
   { when: "שבוע לפני",        label: "תזכורת אחרונה",  who: "רק מי שלא ענה" },
-  { when: "2–3 ימים לפני",    label: "פרטי הגעה",      who: "רק מי שאישר" },
-  { when: "1–2 ימים אחרי",    label: "תודה",           who: "רק מי שהגיע" },
+  { when: "2-3 ימים לפני",    label: "פרטי הגעה",      who: "רק מי שאישר" },
+  { when: "1-2 ימים אחרי",    label: "תודה",           who: "רק מי שהגיע" },
 ];
 
 /* ── COMING_NOT_BUILT ───────────────────────────────────────────────────────
