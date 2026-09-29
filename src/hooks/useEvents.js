@@ -1065,6 +1065,10 @@ export function useEvents(user) {
       return;
     }
 
+    // The cloud already holds this exact version — the same predicate the
+    // sign-out prune trusts (isCloudBacked). A debounce that fired for a patch
+    // which changed nothing has nothing to send (סב56).
+    if (ev.version === ev.syncedVersion) return;
     setSyncStatus(SYNC_STATUS.SYNCING);
     pushUpdate(ev, currentUser.id);
   }, [pushUpdate]);
@@ -1126,6 +1130,9 @@ export function useEvents(user) {
       const patched = typeof patch === "function"
         ? patch(e)
         : Object.assign({}, e, patch);
+      // A function patch that hands the row back untouched changed nothing —
+      // no new version, no updatedAt, nothing owed to the cloud (סב56).
+      if (patched === e) return e;
       return updateEventTimestamp(withTombstones(e, freeDeclinedSeats(e, patched)));
     }));
 

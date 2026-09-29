@@ -158,6 +158,9 @@ export function pickNotes(r, existing) {
 }
 
 // Build/merge a guest row from a collab row, preserving app-only fields.
+export const sameGuest = (a, b) =>
+  Object.keys({ ...a, ...b }).every((k) => JSON.stringify(a[k]) === JSON.stringify(b[k]));
+
 export function guestFromCollab(r, existing) {
   return {
     ...(existing || {}),
@@ -301,6 +304,11 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // Same row → straightforward in-place update.
         if (existing && existing.id === row.id) {
           const merged = guestFromCollab(row, existing);
+          // Already reflected: the same event back, so nothing is written. The
+          // pull runs on every visit with `applied` empty, and each row used to
+          // be a real edit — about a dozen version bumps and a cloud write per
+          // page load, with nothing changed (third review 30.9, סב56).
+          if (sameGuest(merged, existing)) return e;
           return { ...e, guests: guests.map((g) => (g.id === row.id ? merged : g)) };
         }
 

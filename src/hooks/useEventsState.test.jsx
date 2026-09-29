@@ -263,6 +263,20 @@ describe("useEvents — patchEventById semantics", () => {
     expect(result.current.events[0].name).toBe("אירוע a");   // untouched fields survive
   });
 
+  // סב56: the shared-table pull hands back the row untouched when it already
+  // reflects the table. That must not be an edit, or every page load writes.
+  it("a function patch that returns the row unchanged is not an edit and sends nothing", async () => {
+    seed(userKey("u1"), [ev("a", { cloudId: "c1", version: 3, syncedVersion: 3, updatedAt: 5000 })]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { result.current.patchEventById("a", (e) => e); });
+    await flushDebounce();
+    const e = result.current.events[0];
+    expect(e.version).toBe(3);
+    expect(e.updatedAt).toBe(5000);
+    expect(cloud.updateCloudEvent).not.toHaveBeenCalled();
+  });
+
   it("changes nothing when the id does not match any event", async () => {
     seed(userKey("u1"), [ev("a", { cloudId: "c1", syncedVersion: 1 })]);
     const { result } = renderHook(() => useEvents(USER));
