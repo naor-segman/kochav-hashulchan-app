@@ -51,7 +51,11 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
     const withPhone = reachable(audience);
     const done      = audience.filter(g => sent[s.key]?.[g.id]).length;
     const link      = linkForStage(s.key, ev, window.location.origin);
-    return { ...s, body: custom[s.key] ?? s.body, audience, withPhone, done, link };
+    // `audienceKey` keeps the stage's own key: `audience` is replaced by the
+    // guest list, and audienceLabel(list) found nothing and said "כל האורחים"
+    // on every stage — the reminder that goes to 2 people said everyone
+    // (third review 30.9, סב53).
+    return { ...s, body: custom[s.key] ?? s.body, audience, audienceKey: s.audience, withPhone, done, link };
   }), [ev, sent, custom]);
 
   const totalPlanned = stages.reduce((n, s) => n + s.withPhone.length, 0);
@@ -147,7 +151,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
               <span className={styles.stageMain}>
                 <span className={styles.stageTitle}>{stage.label}</span>
                 <span className={styles.stageWhen}>
-                  {stage.when} · {audienceLabel(stage.audience)}
+                  {stage.when} · {audienceLabel(stage.audienceKey)}
                 </span>
               </span>
               <span className={styles.stageCount}>
