@@ -354,8 +354,39 @@ export function mergeCloudWithLocal(
     // work and then persisted the deletion, which is unrecoverable. Whichever
     // side was written last wins; the cloud id always comes from the cloud.
     if (localMatch && (localMatch.updatedAt ?? 0) > (ce.updatedAt ?? 0)) {
+      // The mirror of item 76 (28.9, WORKPLAN 107). The union below rescues the
+      // guests and tables the OTHER device added — and until now dropped the
+      // arrangement it gave them: seats, locks, floor-plan positions.
+      // Measured: phone adds g2 + table t2 and seats g2 there; laptop renames
+      // the venue later; the merge kept g2 and t2 and returned seating {g1}.
+      // The rule is 76's, the other way round: the winning side keeps every
+      // decision about rows it KNOWS (an unseating here stays an unseating);
+      // only rows it has never seen take the other side's arrangement.
+      const localGuestIds = new Set((localMatch.guests || []).map(g => g.id));
+      const localTableIds = new Set((localMatch.tables || []).map(t => t.id));
+      const mergedTables  = unionById(localMatch.tables, ce.tables, tombs.tables);
+      const mergedGuests  = mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests);
+      const tableIdsAll   = new Set(mergedTables.map(t => t.id));
+      const guestIdsAll   = new Set(mergedGuests.map(g => g.id));
+      const newFromCloud  = (ids, known, exists) =>
+        (ids || []).filter(id => !known.has(id) && exists.has(id));
+      const localPositions = localMatch.floorPlan?.tablePositions || {};
+      const cloudPositions = ce.floorPlan?.tablePositions || {};
+      const extraPositions = Object.fromEntries(Object.entries(cloudPositions)
+        .filter(([tid]) => !localTableIds.has(tid) && !(tid in localPositions) && tableIdsAll.has(tid)));
       return markUnpushed(normalizeEvent({
         ...localMatch,
+        seating: mergeSeating(localMatch.seating, ce.seating,
+                              (id) => localGuestIds.has(id), (id) => tableIdsAll.has(id)),
+        lockedGuests: [...(localMatch.lockedGuests || []).filter(id => guestIdsAll.has(id)),
+                       ...newFromCloud(ce.lockedGuests, localGuestIds, guestIdsAll)],
+        lockedTables: [...(localMatch.lockedTables || []).filter(id => tableIdsAll.has(id)),
+                       ...newFromCloud(ce.lockedTables, localTableIds, tableIdsAll)],
+        customGroups: unionStrings(localMatch.customGroups, ce.customGroups),
+        customTableTypes: unionStrings(localMatch.customTableTypes, ce.customTableTypes),
+        ...(Object.keys(extraPositions).length && localMatch.floorPlan ? {
+          floorPlan: { ...localMatch.floorPlan, tablePositions: { ...localPositions, ...extraPositions } },
+        } : {}),
         // Arrivals are the one thing on this row written by SOMEONE ELSE, from a
         // device this tab never sees — the greeter, through the entrance token.
         // Whole-event last-write-wins therefore cannot be right for them: the
@@ -369,13 +400,13 @@ export function mergeCloudWithLocal(
         // every collection below. It has to be the UNION: a row the other
         // device deleted is deleted, whichever side won on scalars.
         deletedRows: tombs,
-        guests: mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests),
+        guests: mergedGuests,
         // Tables too: a second device adding tables is the same shape of loss,
         // and an unseated guest is recoverable while a deleted table is not.
-        // `seating` stays local — it references this tab's own ids, and a cloud
-        // guest arrives unseated, which is exactly where the host expects a
-        // newly imported row to be.
-        tables: unionById(localMatch.tables, ce.tables, tombs.tables),
+        // (Seating, locks and positions for those rows: see the top of this
+        // branch. They used to stay local-only, which dropped the other
+        // device's arrangement of rows this device had never seen.)
+        tables: mergedTables,
         // The union was written for guests, then extended to tables, and stopped
         // there — while five other collections stayed whole-event
         // last-write-wins. Measured on the code before this line: the other

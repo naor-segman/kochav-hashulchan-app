@@ -770,3 +770,37 @@ describe("rsvpApplied — an answer applied on either device stays applied (ת3)
     expect([...out.rsvpApplied].sort()).toEqual(["a", "b", "c"]);
   });
 });
+
+describe("local wins — the other device's arrangement of rows only it knew (107, mirror of 76)", () => {
+  // The phone added g2 and table t2 and seated/locked/placed them; the laptop
+  // then renamed the venue, so the laptop's copy is newer and wins.
+  const cloud = () => [ev({
+    cloudId: "c1", updatedAt: 1_000, version: 6,
+    guests: [{ id: "g1" }, { id: "g2" }], tables: [{ id: "t1" }, { id: "t2" }],
+    seating: { g1: "t1", g2: "t2" }, lockedGuests: ["g1", "g2"], lockedTables: ["t2"],
+    floorPlan: { image: "x", tablePositions: { t1: { x: 1 }, t2: { x: 2 } } },
+  })];
+  const local = (over = {}) => [ev({
+    cloudId: "c1", updatedAt: 9_000, version: 6, venue: "אולם חדש",
+    guests: [{ id: "g1" }], tables: [{ id: "t1" }], seating: { g1: "t1" }, lockedGuests: ["g1"],
+    floorPlan: { image: "x", tablePositions: { t1: { x: 1 } } }, ...over,
+  })];
+
+  it("keeps the phone's seat, lock and position for the rows it added", () => {
+    const [out] = mergeCloudWithLocal(local(), cloud());
+    expect(out.venue).toBe("אולם חדש");                       // the laptop still won
+    expect(out.seating).toEqual({ g1: "t1", g2: "t2" });      // was {g1}
+    expect(out.lockedGuests).toContain("g2");
+    expect(out.lockedTables).toContain("t2");
+    expect(out.floorPlan.tablePositions.t2).toEqual({ x: 2 });
+  });
+
+  it("but never overrides what the winning device decided about rows it knows", () => {
+    // The laptop unseated and unlocked g1. The phone's older copy has g1 seated
+    // and locked; that must not come back.
+    const [out] = mergeCloudWithLocal(local({ seating: {}, lockedGuests: [] }), cloud());
+    expect(out.seating.g1).toBeUndefined();
+    expect(out.lockedGuests).not.toContain("g1");
+    expect(out.seating.g2).toBe("t2");
+  });
+});
