@@ -203,6 +203,10 @@ Check for these first — each has bitten more than once:
   `netlify/` changes.** Observed failing on the vitest file, a parse error and a
   missing import. It cannot load a function's in-source `config` export
   (needs edge.netlify.com, refused) — routes live in netlify.toml, so none has one.
+  The same harness TYPE-CHECKS the Supabase functions against the pinned
+  stripe/supabase-js from npm (on a copy with the esm.sh strings rewritten —
+  NOT via an import map, through which Stripe resolves as `any`). Its first
+  run found `locale: "he"`, which Stripe Checkout does not accept.
 - **Chromium** is at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` and
   must be launched with `args:['--no-proxy-server']`, or localhost is routed
   through the agent proxy and every request fails. Resolve Playwright with

@@ -20,16 +20,25 @@
 //   • a stray brace in invite-og.js                   — a parse error
 //   • a function importing a file that does not exist
 //
+// AND THE SUPABASE FUNCTIONS — the billing path. With a real Deno here they
+// can be TYPE-CHECKED for the first time: `deno check` against the exact
+// package versions they pin, with each `https://esm.sh/<pkg>@<v>` import mapped
+// to `npm:<pkg>@<v>` (esm.sh is refused; the registry is not, and esm.sh
+// serves that same npm package's types). A Stripe field that does not exist,
+// or a `mode` Stripe does not accept, fails here instead of at deploy. Observed
+// failing on `mode: "paymnt"` in create-checkout-session and on a misspelled
+// field of the webhook's session object.
+//
 // WHAT IT DOES NOT COVER. The bundler also loads each function's in-source
 // `config` export, and that step fetches https://edge.netlify.com, which the
 // proxy refuses — so it logs "Could not load configuration" here and carries
 // on. A mistake in a `config` export (none of ours has one; routes are in
-// netlify.toml) is not caught. Supabase functions are not bundled either: they
-// import from esm.sh, also refused. qa/edgeFunctions.mjs parses those.
+// netlify.toml) is not caught. The Supabase functions are checked, not run:
+// that is types, not Stripe's behaviour.
 //
 //   node qa/edgeBundle.mjs
-import { execFileSync } from 'child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs';
+import { execFileSync, spawnSync } from 'child_process';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir, homedir } from 'os';
 import { join } from 'path';
 import { createRequire } from 'module';
@@ -87,6 +96,44 @@ try {
     ok(declared.length > 0 && missing.length === 0, 'every netlify.toml route has its function',
       missing.length ? `missing: ${missing.join(', ')}` : `${declared.length} routes`);
   }
+
+  // ── Supabase functions: deno check against the pinned packages ────────────
+  // On a COPY whose esm.sh import strings are rewritten to npm: — nothing else
+  // changes. Not an import map: through one, Stripe's types (an ambient
+  // `declare module 'stripe'`) do not attach and the whole client is `any`,
+  // which is how the first version of this check passed a misspelled field.
+  const FN  = join(ROOT, 'supabase/functions');
+  const CPY = join(OUT, 'functions');
+  cpSync(FN, CPY, { recursive: true });
+  const pkgs = new Set();
+  for (const f of readdirSync(CPY, { recursive: true }).filter(f => /\.(ts|js)$/.test(f))) {
+    const path = join(CPY, f);
+    writeFileSync(path, readFileSync(path, 'utf8').replace(
+      /"https:\/\/esm\.sh\/((?:@[^/"]+\/)?[^@/"]+@[^/"]+)"/g, (_, spec) => { pkgs.add('npm:' + spec); return `"npm:${spec}"`; }));
+  }
+  const entries = readdirSync(CPY, { withFileTypes: true })
+    .filter(d => d.isDirectory() && !d.name.startsWith('_') && existsSync(join(CPY, d.name, 'index.ts')))
+    .map(d => join(CPY, d.name, 'index.ts'));
+  const r = spawnSync('deno', ['check', '--quiet', '--no-config', ...entries], {
+    cwd: CPY, encoding: 'utf8',
+    env: { ...process.env, DENO_DIR: join(CACHE, 'deno-dir'),
+           ...(existsSync('/root/.ccr/ca-bundle.crt') ? { DENO_CERT: '/root/.ccr/ca-bundle.crt' } : {}) },
+  });
+  const out = (r.stdout + r.stderr).replace(/\x1b\[[0-9;]*m/g, '');
+  const diags = [...out.matchAll(/(TS\d+) \[ERROR\]: ([^\n]*)[\s\S]*?at file:\/\/[^\n]*?\/functions\/([^\n]+)/g)]
+    .map(m => ({ code: m[1], msg: m[2].trim(), at: m[3].trim() }));
+  // ACCEPTED, and only this: the code asks Stripe for API version 2024-06-20
+  // while stripe@14 is typed for 2023-10-16. At runtime the SDK sends whatever
+  // version it is given; it is the TYPES that describe the older shapes.
+  // Recorded in WORKPLAN as a question (move the SDK to the matching major).
+  const accepted = d => d.code === 'TS2322' && /"2024-06-20"' is not assignable to type '"2023-10-16"/.test(d.msg);
+  const real = diags.filter(d => !accepted(d));
+  const broken = r.status !== 0 && diags.length === 0;   // failed without a type error: could not run at all
+  ok(!broken && real.length === 0,
+     `the ${entries.length} Supabase functions type-check against ${[...pkgs].join(', ')}`,
+     broken ? out.split('\n').filter(l => /error/i.test(l)).slice(0, 3).join(' | ').slice(0, 300)
+            : real.map(d => `${d.code} ${d.msg} @ ${d.at}`).join(' | ').slice(0, 500));
+  console.log(`       (accepted: ${diags.filter(accepted).length} × apiVersion 2024-06-20 on an SDK typed for 2023-10-16)`);
 } finally {
   rmSync(OUT, { recursive: true, force: true });
 }
