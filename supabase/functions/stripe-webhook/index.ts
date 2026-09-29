@@ -172,10 +172,12 @@ Deno.serve(async (req: Request) => {
         // webhook payload — it has to be listed explicitly, which is the kind of
         // thing that silently yields `plan: "free"` for a host who just paid.
         let priceId: string | null = null;
+        let lineItemsFailed = false;
         try {
           const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
           priceId = items.data[0]?.price?.id ?? null;
         } catch (err: any) {
+          lineItemsFailed = true;
           console.error("checkout.session.completed — listLineItems failed:", err?.message ?? err);
         }
         const plan = planFromPrice(priceId, session.metadata?.plan);
@@ -215,6 +217,14 @@ Deno.serve(async (req: Request) => {
           }
         } else {
           console.error(`checkout.session.completed: no event_id in metadata for session ${session.id} — recording the payment with NO entitlement; needs a person`);
+        }
+        // Not knowing the price is not the same as an unknown price. When
+        // Stripe could not be asked and the metadata names no plan, answering
+        // 200 dropped a paid purchase for good — Stripe does not retry a 200
+        // (30.9 test review, סב52). 500: Stripe asks again.
+        if (plan === "free" && lineItemsFailed) {
+          console.error("checkout.session.completed — no plan without the line items, asking Stripe to retry");
+          return new Response("line items unavailable", { status: 500 });
         }
         if (plan === "free") {
           // Neither the price nor the metadata named a plan we recognise. Writing

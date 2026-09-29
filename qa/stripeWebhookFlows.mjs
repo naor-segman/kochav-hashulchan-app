@@ -273,7 +273,12 @@ try {
   world();
   stripeState.lineItems.cs_1 = 'error';
   r = await send(checkout({ meta: { plan: undefined } }));
-  ok(r.status === 200 && db.subscriptions.length === 0, 'no row written for a plan nobody can name', `status ${r.status}, ${JSON.stringify(db.subscriptions)}`);
+  // Was 200 and nothing written — a paid purchase lost, since Stripe does not
+  // retry a 200 (סב52). Not knowing the price is not an unknown price.
+  ok(r.status === 500 && db.subscriptions.length === 0, 'answered 500 so Stripe asks again; nothing written yet', `status ${r.status}, ${JSON.stringify(db.subscriptions)}`);
+  stripeState.lineItems.cs_1 = PRICE_PRO;
+  r = await send(checkout({ meta: { plan: undefined } }));
+  ok(r.status === 200 && row()?.plan === 'pro', 'and the retry, with Stripe answering, records the purchase', JSON.stringify(row()));
 
   // ── which event ───────────────────────────────────────────────────────────
   console.log('\n── event_id belongs to someone else (or was deleted)');
