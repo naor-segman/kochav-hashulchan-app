@@ -173,6 +173,28 @@ function withTombstones(before, after, now = Date.now()) {
   return { ...after, deletedRows: next };
 }
 
+/* A guest who declines gives their chair back (29.9 second review, סב7).
+   Nothing did: the seat stayed in `seating`, so the seating screen showed the
+   guest at their table, printed them on the staff sheet and counted their chair
+   as taken — "2/2, full" — beside its own line "1 סירבו (לא משובצים)". Every
+   path that records a no (the guest list, a bulk mark, an applied RSVP) goes
+   through patchEventById, so the rule lives here, once.
+   Only on the CHANGE to declined: a decline that was already seated before
+   this rule (an older event) is left as the host arranged it. */
+export function freeDeclinedSeats(before, after) {
+  const seating = after?.seating;
+  if (!seating || !Array.isArray(after.guests)) return after;
+  const was = new Map((before?.guests || []).map(g => [g?.id, g?.rsvp]));
+  let next = null;
+  for (const g of after.guests) {
+    if (g?.rsvp !== "declined" || was.get(g.id) === "declined" || !was.has(g.id)) continue;
+    if (!seating[g.id]) continue;
+    next ??= { ...seating };
+    delete next[g.id];
+  }
+  return next ? { ...after, seating: next } : after;
+}
+
 function mergeTombstoneMaps(localTombs, cloudTombs) {
   const l = (localTombs && typeof localTombs === "object") ? localTombs : {};
   const c = (cloudTombs && typeof cloudTombs === "object") ? cloudTombs : {};
@@ -956,7 +978,7 @@ export function useEvents(user) {
       const patched = typeof patch === "function"
         ? patch(e)
         : Object.assign({}, e, patch);
-      return updateEventTimestamp(withTombstones(e, patched));
+      return updateEventTimestamp(withTombstones(e, freeDeclinedSeats(e, patched)));
     }));
 
     // Debounce cloud writes so rapid-fire patches (e.g. typing in a field)

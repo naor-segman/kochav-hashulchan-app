@@ -1167,3 +1167,37 @@ describe("deleting a row records a tombstone", () => {
     expect(Object.keys(persisted.deletedRows.guests).sort()).toEqual(["g1", "g3"]);
   });
 });
+
+describe("useEvents — a guest who declines gives the chair back (סב7)", () => {
+  const seated = () => ev("a", {
+    guests: [
+      { id: "g1", name: "רונית", count: 1, rsvp: "confirmed" },
+      { id: "g2", name: "דנה",   count: 1, rsvp: "declined" },
+    ],
+    tables: [{ id: "t1", name: "שולחן 1", capacity: 2 }],
+    seating: { g1: "t1", g2: "t1" },
+  });
+
+  it("clears the seat when a patch turns a guest's answer into a no", async () => {
+    // The seating screen showed her at the table, printed her on the staff
+    // sheet and counted her chair as taken — beside "1 סירבו (לא משובצים)".
+    seed(userKey("u1"), [seated()]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => {
+      result.current.patchEventById("a", e => ({
+        ...e, guests: e.guests.map(g => g.id === "g1" ? { ...g, rsvp: "declined" } : g),
+      }));
+    });
+    expect(result.current.events[0].seating.g1).toBeUndefined();
+    expect(stored(userKey("u1"))[0].seating.g1).toBeUndefined();
+  });
+
+  it("leaves a no that was ALREADY seated, and every other seat, as they were", async () => {
+    seed(userKey("u1"), [seated()]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { result.current.patchEventById("a", { venue: "היכל" }); });
+    expect(result.current.events[0].seating).toEqual({ g1: "t1", g2: "t1" });
+  });
+});
