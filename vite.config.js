@@ -109,6 +109,11 @@ export default defineConfig({
     // tests. A doubled count is not cosmetic: it hides the real one, and it made
     // two unrelated failures appear out of a tree that was green.
     exclude: ["**/node_modules/**", "**/.git/**", "**/.claude/**", "**/dist/**", "legacy/**"],
+    // The gate must not depend on how busy the machine is. At the default 5s,
+    // the same tree passed alone and failed 2–6 tests while review agents ran
+    // beside it (29.9: the seating fuzz, workQueue, the entrance walk-in) —
+    // each took ~5.2s under load and ~1s without. A real hang still fails.
+    testTimeout: 20000,
     // The suite is 459 pure-function tests and they stay in the DEFAULT `node`
     // environment — booting jsdom for `parseGuestList` costs ~1s per file and
     // buys nothing. Component tests opt IN, one file at a time, with a
