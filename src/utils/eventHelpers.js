@@ -73,19 +73,54 @@ export function normalizeDeletedRows(raw, now = Date.now()) {
  *
  * TODO(cloud-sync): extend to merge server-sent fields that don't exist locally.
  */
+/* ── Rows and text as the screens assume them (third review 30.9, סב49) ──────
+   Every screen reads a guest as an object and its name as a string. The data
+   does not promise either: a hand-edited cloud row, corrupted storage or a
+   future writer bug can put `null` in `guests` or a number in `name` — and one
+   null guest row took down the dashboard AND every screen of the event, with
+   the "back to home" button looping into the same crash; a number in
+   `sideLabels.bride` threw inside normalizeEvent itself, which runs in the
+   state initializer, so the whole site showed the error page. Nothing in the
+   app writes these shapes today; this is where they stop, once, instead of at
+   forty reading sites. */
+const str  = (v) => (typeof v === "string" ? v : v == null ? "" : String(v));
+const rows = (arr) => (Array.isArray(arr)
+  ? arr.filter(x => x && typeof x === "object" && !Array.isArray(x)) : []);
+const intIn = (v, lo, hi, dflt) => {
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;
+};
+const TEXT_GUEST_FIELDS = ["name", "phone", "group", "notes", "side"];
+function normGuest(g) {
+  const out = { ...g };
+  for (const k of TEXT_GUEST_FIELDS) if (k in g && typeof g[k] !== "string") out[k] = str(g[k]);
+  // 1..50, the width every other writer uses (guest form, shared table CHECK).
+  // "3" was concatenated into "032" seats; "abc" became NaN on every counter.
+  if ("count" in g) out.count = intIn(g.count, 1, 50, 1);
+  if ("companions" in g) out.companions = Array.isArray(g.companions) ? g.companions.map(str) : [];
+  return out;
+}
+function normTable(t) {
+  const out = { ...t };
+  if ("name" in t && typeof t.name !== "string") out.name = str(t.name);
+  if ("capacity" in t) out.capacity = intIn(t.capacity, 0, 500, 0);
+  return out;
+}
+const finiteOr = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== "" ? Number(v) : d);
+
 export function normalizeEvent(ev) {
-  if (!ev || typeof ev !== "object") return null;
+  if (!ev || typeof ev !== "object" || Array.isArray(ev)) return null;
   const now = Date.now();
   return {
     // Core identity — generate a fresh uid if the stored id is missing/undefined
     id:          ev.id ?? uid(),
     // Display fields — default to empty strings
-    name:        ev.name        ?? "",
+    name:        str(ev.name),
     type:        ev.type        ?? "חתונה",
-    date:        ev.date        ?? "",
-    venue:       ev.venue       ?? "",
-    brideName:        ev.brideName        ?? "",
-    groomName:        ev.groomName        ?? "",
+    date:        str(ev.date),
+    venue:       str(ev.venue),
+    brideName:        str(ev.brideName),
+    groomName:        str(ev.groomName),
     // Couple composition for weddings/engagements/henna — drives the default
     // side-role wording so same-sex couples get correct labels.
     // "bride-groom" (default) | "groom-groom" | "bride-bride".
@@ -95,13 +130,13 @@ export function normalizeEvent(ev) {
     // available for EVERY event type. Both must be non-empty to take effect;
     // otherwise getSideLabels() falls back to the type-based defaults.
     sideLabels: (ev.sideLabels && typeof ev.sideLabels === "object")
-      ? { bride: (ev.sideLabels.bride ?? "").trim(), groom: (ev.sideLabels.groom ?? "").trim() }
+      ? { bride: str(ev.sideLabels.bride).trim(), groom: str(ev.sideLabels.groom).trim() }
       : null,
     // Personal fields — populated depending on event type (bar/bat mitzvah, business, etc.)
-    celebrantName:    ev.celebrantName    ?? "",
-    organizationName: ev.organizationName ?? "",
-    contactName:      ev.contactName      ?? "",
-    ownerName:        ev.ownerName        ?? "",
+    celebrantName:    str(ev.celebrantName),
+    organizationName: str(ev.organizationName),
+    contactName:      str(ev.contactName),
+    ownerName:        str(ev.ownerName),
     // Custom groups created by the user for this event.
     // Standard groups come from constants.js GROUP_OPTIONS; this holds only user-created ones.
     customGroups: Array.isArray(ev.customGroups) ? ev.customGroups : [],
@@ -109,8 +144,8 @@ export function normalizeEvent(ev) {
     // Standard types live in constants.js TABLE_TYPES; this holds only extras.
     customTableTypes: Array.isArray(ev.customTableTypes) ? ev.customTableTypes : [],
     // Collections — default to empty arrays/objects
-    tables:      Array.isArray(ev.tables)      ? ev.tables      : [],
-    guests:      Array.isArray(ev.guests)      ? ev.guests      : [],
+    tables:      rows(ev.tables).map(normTable),
+    guests:      rows(ev.guests).map(normGuest),
     seating:     (ev.seating && typeof ev.seating === "object") ? ev.seating : {},
     // Rows, not just an array: one `null` in it took the seating AND the
     // constraints screens down ("אירעה שגיאה בלתי צפויה") — the engine was
@@ -120,12 +155,12 @@ export function normalizeEvent(ev) {
       ? ev.constraints.filter(c => c && typeof c === "object")
       : [],
     // Metadata — fall back gracefully for events that predate these fields
-    createdAt:   ev.createdAt                  ?? now,
+    createdAt:   finiteOr(ev.createdAt, now),
     // updatedAt defaults to the RESOLVED createdAt (not raw ev.createdAt) so an
     // event missing both timestamps doesn't get updatedAt=0 (epoch 1970).
-    updatedAt:   ev.updatedAt                  ?? ev.createdAt ?? now,
+    updatedAt:   finiteOr(ev.updatedAt, finiteOr(ev.createdAt, now)),
     // version 1 = "exists but was never edited under the new schema"
-    version:     ev.version                    ?? 1,
+    version:     finiteOr(ev.version, 1),
     // cloudId — UUID of the Supabase events row; null = never pushed to cloud.
     // Set by cloudSync.createCloudEvent() after first successful upload.
     // Preserved here so it survives localStorage ↔ normalizeEvent round-trips.
@@ -143,10 +178,10 @@ export function normalizeEvent(ev) {
     lockedTables: Array.isArray(ev.lockedTables) ? ev.lockedTables : [],
     // Planning checklist. Kept on the event (not a separate store) so it
     // duplicates, syncs and exports with everything else.
-    tasks:        Array.isArray(ev.tasks) ? ev.tasks : [],
+    tasks:        rows(ev.tasks),
     // Vendor tracking sits beside the budget, not inside it: the budget says
     // how much, this says who and whether they are actually booked.
-    vendors:      Array.isArray(ev.vendors) ? ev.vendors : [],
+    vendors:      rows(ev.vendors),
     // Per-stage record of who was already messaged, and any template the
     // host edited. Both survive an automated-sending switch untouched.
     messagesSent:     (ev.messagesSent && typeof ev.messagesSent === "object") ? ev.messagesSent : {},
@@ -236,20 +271,20 @@ export function normalizeEventSite(site, type) {
     themeKey:     site.themeKey     ?? def.themeKey,
     // Host-owned domain for the public event site. The app stores and uses it;
     // pointing the DNS is the host's step, which the editor spells out.
-    customDomain: (site.customDomain ?? "").trim(),
+    customDomain: str(site.customDomain).trim(),
     fontKey:      site.fontKey      ?? def.fontKey ?? "serif",
     heroEn:       site.heroEn       ?? def.heroEn,
     coverPhoto:   site.coverPhoto   ?? null,
     story:        site.story        ?? "",
-    gallery:      Array.isArray(site.gallery) ? site.gallery : def.gallery,
+    gallery:      Array.isArray(site.gallery) ? site.gallery.filter(x => typeof x === "string") : def.gallery,
     countdown:    typeof site.countdown === "boolean" ? site.countdown : def.countdown,
     dressCode:    site.dressCode    ?? "",
-    schedule:     Array.isArray(site.schedule) ? site.schedule : def.schedule,
+    schedule:     Array.isArray(site.schedule) ? rows(site.schedule) : def.schedule,
     address:      site.address      ?? "",
     wazeUrl:      site.wazeUrl      ?? "",
     parkingNote:  site.parkingNote  ?? "",
-    shuttles:     Array.isArray(site.shuttles) ? site.shuttles : def.shuttles,
-    faq:          Array.isArray(site.faq) ? site.faq : def.faq,
+    shuttles:     Array.isArray(site.shuttles) ? rows(site.shuttles) : def.shuttles,
+    faq:          Array.isArray(site.faq) ? rows(site.faq) : def.faq,
     contactPhone: site.contactPhone ?? "",
     rsvpMessage:  site.rsvpMessage  ?? "",
     sections: (site.sections && typeof site.sections === "object")

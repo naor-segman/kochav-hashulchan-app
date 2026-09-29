@@ -284,3 +284,12 @@ describe("afterPush — an edit made while the push was on the wire stays unpush
     expect(afterPush({ version: 8 }, 7, 9)).toMatchObject({ version: 10, syncedVersion: 9 });
   });
 });
+
+describe("a malformed cloud row does not crash the merge (סב49)", () => {
+  it("null guest and table rows from the cloud, local newer and cloud newer", () => {
+    const bad = cloudEvent({ guests: [null, { id: "g2", name: "רון" }], tables: [null] });
+    expect(() => hydrate(localEvent(), bad)).not.toThrow();
+    expect(() => hydrate(localEvent({ updatedAt: NOW - 999_999 }), bad)).not.toThrow();
+    expect(hydrate(localEvent(), bad).guests.every(g => g && g.id)).toBe(true);
+  });
+});
