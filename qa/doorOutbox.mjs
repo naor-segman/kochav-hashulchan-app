@@ -38,7 +38,7 @@ const browser = await chromium.launch({
 // (ok | fail), and whether the data RPC answers at all.
 function stub() {
   const st = {
-    seats: { g1: [], g2: [] }, marks: [], markMode: 'ok', dataMode: 'ok',
+    seats: { g1: [], g2: [] }, marks: [], markMode: 'ok', dataMode: 'ok', delays: [],
     data() {
       return {
         id: '11111111-1111-4111-8111-111111111111', name: 'החתונה של דנה ויוסי', writes_open: true,
@@ -53,6 +53,13 @@ function stub() {
     if (u.includes('hostess_mark_arrival_by_token')) {
       const b = JSON.parse(r.request().postData() || '{}');
       st.marks.push({ ...b, mode: st.markMode });
+      const wait = st.delays.shift() || 0;
+      if (wait) {
+        // A slow network: the server applies the write only when it answers.
+        return new Promise(done => setTimeout(() => {
+          st.seats[b.guest_id] = b.seats; done(r.fulfill({ status: 204, body: '' }));
+        }, wait));
+      }
       if (st.markMode === 'fail') return r.fulfill({ status: 503, contentType: 'application/json', body: '{"message":"unavailable"}' });
       st.seats[b.guest_id] = b.seats;
       return r.fulfill({ status: 204, body: '' });
@@ -136,6 +143,29 @@ try {
     st.dataMode = 'ok';
     await refresh(p);
     ok(!/הרשימה מעודכנת לשעה/.test(await text(p)), 'the note goes once a refresh works');
+    await ctx.close();
+  }
+
+  console.log('\n── two taps on one family, the first still on the wire when a refresh lands (סב22)');
+  {
+    const st = stub();
+    const { ctx, p } = await door(st);
+    await p.fill('input[type="search"]', 'יעל');
+    await p.waitForTimeout(250);
+    await p.locator('button[aria-label^="סימון חלקי"]').first().click();
+    await p.waitForTimeout(200);
+    const chip = name => p.evaluate(n => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === n)?.click(), name);
+    st.delays = [800, 3000];            // seat 1 answers at 0.8 s, seat 2 at 3 s
+    await chip('יעל כהן');
+    await p.waitForTimeout(50);
+    await chip('אורח 2');
+    await p.waitForTimeout(1500);       // the first write is back, the second is not
+    await p.clock.runFor(26000);        // …and the refresh lands now, reading [0]
+    await p.waitForTimeout(400);
+    const mid = (await text(p)).match(/(\d+) מתוך 3/)?.[1];
+    ok(mid === '2', 'the second tap is still on screen while it is being saved', `shows ${mid} of 3; server has ${JSON.stringify(st.seats.g1)}`);
+    await p.waitForTimeout(2500);
+    ok(JSON.stringify(st.seats.g1) === '[0,1]', 'and the server ends with both', JSON.stringify(st.seats.g1));
     await ctx.close();
   }
 } finally {

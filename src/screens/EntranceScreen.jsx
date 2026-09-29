@@ -166,6 +166,17 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
 }
 
 /** Same seat set, order-free. */
+/** A multiset of guest ids with a write on the wire: has / add / delete / size. */
+function pendingWrites() {
+  const n = new Map();
+  return {
+    has: id => n.has(id),
+    add: id => { n.set(id, (n.get(id) || 0) + 1); },
+    delete: id => { const k = (n.get(id) || 0) - 1; if (k > 0) n.set(id, k); else n.delete(id); },
+    get size() { return n.size; },
+  };
+}
+
 const sameSeats = (a, b) => a.length === b.length && a.every(x => b.includes(x));
 
 export default function EntranceScreen({
@@ -197,7 +208,12 @@ export default function EntranceScreen({
   // that stale copy and wrote it back, silently undoing the correction in the
   // database. Measured: untick יעל, poll lands, untick איתי, and יעל is present
   // again on the server.
-  const inFlight = useRef(new Set());
+  //
+  // COUNTED, not a Set (second review, סב22): two taps on one family with the
+  // first still on the wire — the first reply deleted the id, the row lost its
+  // protection while the second write was still going, a refresh landed, and
+  // the screen showed the family as the server had it BEFORE the second tap.
+  const inFlight = useRef(pendingWrites());
   // Rows whose last save failed. The error stays on screen until THAT row saves;
   // a good tap on another family used to clear it while the failed one still
   // looked checked in (29.9 review).
