@@ -14,7 +14,10 @@ import { VENDOR_STATUSES, PAYMENT_STATUSES } from "../data/vendorConstants.js";
  * values, and every class must exist. The last test fails if a new computed
  * lookup appears that is not listed here. */
 
-const classesIn = (css) => new Set([...readFileSync(css, "utf8").matchAll(/\.([A-Za-z_][\w-]*)/g)].map(m => m[1]));
+// Comments stripped first: a class that survives only inside a comment is
+// not a class (29.9 review).
+const classesIn = (css) => new Set([...readFileSync(css, "utf8").replace(/\/\*[\s\S]*?\*\//g, "")
+  .matchAll(/\.([A-Za-z_][\w-]*)/g)].map(m => m[1]));
 const srcText = (f) => readFileSync(f, "utf8");
 
 // Values that live in a component's local constant are read out of that file,
@@ -36,6 +39,21 @@ const SITES = [
     prefix: "tone_", values: [...new Set([...VENDOR_STATUSES, ...PAYMENT_STATUSES].map(s => s.tone))] },
 ];
 
+// Lookups whose key is an EXPRESSION, not a prefix: each names the object (or
+// array) in its own file that holds the class names, and every one must exist.
+const objectValues = (file, name) => {
+  const m = new RegExp(`const ${name} = ([\\[{][\\s\\S]*?[\\]}]);`).exec(srcText(file));
+  return m ? [...m[1].matchAll(/"([A-Za-z_][\w-]*)"/g)].map(x => x[1]) : [];
+};
+const OPAQUE = [
+  { file: "src/admin/screens/AdminSubscriptionsScreen.jsx", css: "src/admin/screens/AdminSubscriptionsScreen.module.css",
+    expr: "PLAN_BADGE[plan]", values: objectValues("src/admin/screens/AdminSubscriptionsScreen.jsx", "PLAN_BADGE") },
+  { file: "src/admin/screens/AdminSubscriptionsScreen.jsx", css: "src/admin/screens/AdminSubscriptionsScreen.module.css",
+    expr: "STATUS_BADGE[status]", values: objectValues("src/admin/screens/AdminSubscriptionsScreen.jsx", "STATUS_BADGE") },
+  { file: "src/screens/LandingScreen.jsx", css: "src/screens/LandingScreen.module.css",
+    expr: "GROUND_KEYS[i % GROUND_KEYS.length]", values: objectValues("src/screens/LandingScreen.jsx", "GROUND_KEYS") },
+];
+
 describe("computed CSS-module class names all exist", () => {
   for (const site of SITES) {
     it(`${site.file.split("/").pop()}: ${site.prefix}*`, () => {
@@ -46,15 +64,39 @@ describe("computed CSS-module class names all exist", () => {
     });
   }
 
+  for (const site of OPAQUE) {
+    it(`${site.file.split("/").pop()}: styles[${site.expr}]`, () => {
+      expect(site.values.length, "the class list was found").toBeGreaterThan(0);
+      const have = classesIn(site.css);
+      expect(site.values.filter(v => v && !have.has(v))).toEqual([]);
+    });
+  }
+
+  /* Every `[...]` lookup on ANY CSS-module import, in .js and .jsx. Its first
+     version matched only `(styles|base)["x" +`, and a template literal, single
+     quotes or a bare expression slipped past — measured in the 29.9 review. */
   it("every computed lookup in src is listed above", () => {
     const walk = (d, out = []) => { for (const n of readdirSync(d)) { const p = join(d, n);
-      if (statSync(p).isDirectory()) walk(p, out); else if (/\.jsx$/.test(n) && !/\.test\./.test(n)) out.push(p); } return out; };
-    const found = [];
+      if (statSync(p).isDirectory()) walk(p, out); else if (/\.(jsx?|tsx?)$/.test(n) && !/\.test\./.test(n)) out.push(p); } return out; };
+    const prefixes = new Set(SITES.map(s => `${s.file}:${s.prefix}`));
+    const exprs    = new Set(OPAQUE.map(s => `${s.file}:${s.expr}`));
+    const unlisted = [];
     for (const f of walk("src")) {
-      const code = srcText(f).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-      for (const m of code.matchAll(/\b(?:styles|base)\["([A-Za-z_]+)"\s*\+/g)) found.push(`${f}:${m[1]}`);
+      const code = srcText(f).replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+      const names = [...code.matchAll(/import\s+(\w+)\s+from\s+["'][^"']+\.module\.css["']/g)].map(m => m[1]);
+      for (const n of names) {
+        for (const m of code.matchAll(new RegExp(`\\b${n}\\[`, "g"))) {
+          // Balanced: `styles[PLAN_BADGE[plan]]` holds a bracket of its own.
+          let i = m.index + m[0].length, depth = 1;
+          while (i < code.length && depth) { if (code[i] === "[") depth++; else if (code[i] === "]") depth--; i++; }
+          const inner = code.slice(m.index + m[0].length, i - 1).trim();
+          if (/^(["'])[\w-]*\1$/.test(inner)) continue;                 // styles["literal"]: static
+          const pre = /^(["'])([\w-]+)\1\s*\+/.exec(inner) || /^`([\w-]+)\$\{/.exec(inner);
+          if (pre) { const k = `${f}:${pre[2] ?? pre[1]}`; if (!prefixes.has(k)) unlisted.push(k); continue; }
+          if (!exprs.has(`${f}:${inner}`)) unlisted.push(`${f}:[${inner}]`);
+        }
+      }
     }
-    const listed = new Set(SITES.map(s => `${s.file}:${s.prefix}`));
-    expect(found.filter(k => !listed.has(k))).toEqual([]);
+    expect(unlisted).toEqual([]);
   });
 });

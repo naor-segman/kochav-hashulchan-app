@@ -80,13 +80,21 @@ describe("edge functions pin their remote imports (102, 28.9)", () => {
     const { readdirSync, readFileSync, statSync } = await import("node:fs");
     const root = "supabase/functions";
     const loose = [];
-    for (const dir of readdirSync(root)) {
-      const file = `${root}/${dir}/index.ts`;
-      try { statSync(file); } catch { continue; }
-      for (const m of readFileSync(file, "utf8").matchAll(/https:\/\/esm\.sh\/((?:@[^/]+\/)?[^@"']+)@([^"'/?]+)/g)) {
-        if (!/^\d+\.\d+\.\d+$/.test(m[2])) loose.push(`${dir}: ${m[1]}@${m[2]}`);
+    // EVERY remote specifier, then its version checked — the first version of
+    // this matched only specifiers that already carried an "@version", so
+    // `https://esm.sh/stripe` with none at all passed (29.9 review). Every
+    // .ts/.js file, _shared included.
+    const files = readdirSync(root, { recursive: true }).filter(f => /\.(ts|js)$/.test(f));
+    for (const f of files) {
+      const file = `${root}/${f}`;
+      try { if (!statSync(file).isFile()) continue; } catch { continue; }
+      for (const m of readFileSync(file, "utf8").matchAll(/["'](https:\/\/esm\.sh\/[^"']+|npm:[^"']+|jsr:[^"']+)["']/g)) {
+        const spec = m[1].replace(/^https:\/\/esm\.sh\/|^npm:|^jsr:/, "").split(/[?#]/)[0];
+        const v = /^(?:@[^/@]+\/)?[^/@]+@([^/]+)/.exec(spec)?.[1];
+        if (!v || !/^\d+\.\d+\.\d+$/.test(v)) loose.push(`${f}: ${m[1]}`);
       }
     }
+    expect(files.length).toBeGreaterThan(0);
     expect(loose).toEqual([]);
   });
 });

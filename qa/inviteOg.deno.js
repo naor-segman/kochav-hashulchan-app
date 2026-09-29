@@ -33,6 +33,20 @@ ok(pick(r.html, CAN) === "https://revaya-events.co.il/rsvp/tok12345", "rsvp: can
 ok(/^https:\/\//.test(pick(r.html, OGI)), "og:image is absolute", pick(r.html, OGI));
 ok((r.html.match(/<title>/g) || []).length === 1 && (r.html.match(/og:url/g) || []).length === 1, "one title, one og:url");
 
+// Every route in the function's table, not four of them (29.9 review: the
+// record said "all page types" while /invitation, /save-the-date, /card and
+// /gift were never run).
+for (const [path, want] of [
+  ["/invitation/tok12345",    "הזמנה · דנה &amp; יוסי"],
+  ["/save-the-date/tok12345", "שמרו את התאריך · דנה &amp; יוסי"],
+  ["/card/tok12345",          "הזמנה · דנה &amp; יוסי"],
+  ["/gift/tok12345",          "מתנה וברכה · דנה &amp; יוסי"],
+]) {
+  const x = await run(path);
+  ok(pick(x.html, T) === want, `${path.split("/")[1]}: title`, pick(x.html, T));
+  ok(pick(x.html, OGU) === "https://revaya-events.co.il" + path, `${path.split("/")[1]}: og:url is the link`, pick(x.html, OGU));
+}
+
 r = await run("/invite/tok12345");
 ok(pick(r.html, T) === "אתר החתונה של דנה &amp; יוסי", "invite: the site's wording", pick(r.html, T));
 r = await run("/album/tok12345/");

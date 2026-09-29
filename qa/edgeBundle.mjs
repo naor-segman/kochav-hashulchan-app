@@ -108,8 +108,14 @@ try {
   const pkgs = new Set();
   for (const f of readdirSync(CPY, { recursive: true }).filter(f => /\.(ts|js)$/.test(f))) {
     const path = join(CPY, f);
-    writeFileSync(path, readFileSync(path, 'utf8').replace(
-      /"https:\/\/esm\.sh\/((?:@[^/"]+\/)?[^@/"]+@[^/"]+)"/g, (_, spec) => { pkgs.add('npm:' + spec); return `"npm:${spec}"`; }));
+    writeFileSync(path, readFileSync(path, 'utf8')
+      .replace(/"https:\/\/esm\.sh\/((?:@[^/"]+\/)?[^@/"]+@[^/"]+)"/g, (_, spec) => { pkgs.add('npm:' + spec); return `"npm:${spec}"`; })
+      // The code asks Stripe for API version 2024-06-20; stripe@14's types only
+      // know 2023-10-16. That VALUE is cast on the copy — and only it. Until
+      // 29.9 the resulting diagnostic was accepted by name instead, and
+      // TypeScript stops at the first bad property, so a typo elsewhere in the
+      // same config (maxNetworkRetriez) passed unseen (review 29.9).
+      .replace(/apiVersion:\s*"2024-06-20"/g, 'apiVersion: "2024-06-20" as any'));
   }
   const entries = readdirSync(CPY, { withFileTypes: true })
     .filter(d => d.isDirectory() && !d.name.startsWith('_') && existsSync(join(CPY, d.name, 'index.ts')))
@@ -122,18 +128,14 @@ try {
   const out = (r.stdout + r.stderr).replace(/\x1b\[[0-9;]*m/g, '');
   const diags = [...out.matchAll(/(TS\d+) \[ERROR\]: ([^\n]*)[\s\S]*?at file:\/\/[^\n]*?\/functions\/([^\n]+)/g)]
     .map(m => ({ code: m[1], msg: m[2].trim(), at: m[3].trim() }));
-  // ACCEPTED, and only this: the code asks Stripe for API version 2024-06-20
-  // while stripe@14 is typed for 2023-10-16. At runtime the SDK sends whatever
-  // version it is given; it is the TYPES that describe the older shapes.
-  // Recorded in WORKPLAN as a question (move the SDK to the matching major).
-  const accepted = d => d.code === 'TS2322' && /"2024-06-20"' is not assignable to type '"2023-10-16"/.test(d.msg);
-  const real = diags.filter(d => !accepted(d));
+  const real = diags;
   const broken = r.status !== 0 && diags.length === 0;   // failed without a type error: could not run at all
+  ok(entries.length > 0, 'the Supabase functions were found', `${entries.length}`);
   ok(!broken && real.length === 0,
      `the ${entries.length} Supabase functions type-check against ${[...pkgs].join(', ')}`,
      broken ? out.split('\n').filter(l => /error/i.test(l)).slice(0, 3).join(' | ').slice(0, 300)
             : real.map(d => `${d.code} ${d.msg} @ ${d.at}`).join(' | ').slice(0, 500));
-  console.log(`       (accepted: ${diags.filter(accepted).length} × apiVersion 2024-06-20 on an SDK typed for 2023-10-16)`);
+
 
   // ── The OG function RUN in Deno against the built shell ──────────────────
   if (existsSync(join(ROOT, 'dist/index.html'))) {
