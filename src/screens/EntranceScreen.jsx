@@ -186,6 +186,9 @@ export default function EntranceScreen({
   const [remote, setRemote]       = useState(null);
   const [remoteState, setRemoteState] = useState("loading"); // loading|ready|notfound|error
   const [saveError, setSaveError] = useState("");
+  // When the list on screen is not fresh: the time it was fetched, while the
+  // last refresh failed. null when the last refresh worked.
+  const [staleAt, setStaleAt] = useState(null);
   useGuestTitle(isToken && remote && `כניסה · ${remote.name || ""}`);
 
   // Guests with a write still in flight. A refresh that landed mid-write used to
@@ -198,16 +201,65 @@ export default function EntranceScreen({
   // Rows whose last save failed. The error stays on screen until THAT row saves;
   // a good tap on another family used to clear it while the failed one still
   // looked checked in (29.9 review).
-  const failed = useRef(new Set());
+  //
+  // An outbox, not a list of ids (second review, סב12): each entry keeps what
+  // the tap MEANT — the seats it asked for and the seats the screen showed — so
+  // the write is sent again after the next refresh that works. Before, a tap
+  // in a dead spot reverted, the error named nobody, nothing was ever re-sent
+  // (3 sent, 0 applied once the signal was back), and the message stayed up
+  // even after the other greeter had checked those families in.
+  const failed = useRef(new Map());   // guestId → { name, seats, base }
+  const showFailed = useCallback(() => {
+    const names = [...failed.current.values()].map(f => f.name).filter(Boolean);
+    setSaveError(failed.current.size === 0 ? ""
+      : `לא נשמר: ${names.join(", ") || "סימון הגעה"} — ננסה שוב אוטומטית כשהחיבור יחזור`);
+  }, []);
   // The list as the greeter last saw it, readable synchronously by a tap. The
   // write path below must not depend on WHEN React runs a state updater.
   const remoteRef = useRef(null);
   useEffect(() => { remoteRef.current = remote; }, [remote]);
 
+  // The last list that loaded, for this tab only (sessionStorage: it survives
+  // a pull-to-refresh or iOS reloading a tab it put to sleep, and is gone when
+  // the tab closes — a guest list does not outlive the greeter's shift).
+  // Without it, a reload with no signal replaced the whole door with "שגיאת
+  // חיבור — נסו לרענן את הדף", advice that cannot work offline (סב12).
+  const cacheKey = `kh_door:${token}`;
+  const readCache = useCallback(() => {
+    try { return JSON.parse(sessionStorage.getItem(cacheKey) || "null"); } catch { return null; }
+  }, [cacheKey]);
+
+  // Re-send what failed, now that the server answers. A row the server already
+  // shows as asked (the other greeter did it) is simply done.
+  const retryFailed = useCallback((data) => {
+    if (!data?.writesOpen) return;
+    for (const [guestId, f] of failed.current) {
+      if (inFlight.current.has(guestId)) continue;
+      const row = data.guests.find(g => g.id === guestId);
+      if (!row) { failed.current.delete(guestId); continue; }
+      if (sameSeats(arrivedSeatsOf(row), f.seats)) { failed.current.delete(guestId); continue; }
+      inFlight.current.add(guestId);
+      markArrivalByToken(token, guestId, f.seats, f.base)
+        .then(() => {
+          inFlight.current.delete(guestId);
+          if (failed.current.get(guestId) === f) failed.current.delete(guestId);
+          showFailed();
+          const put = prev => prev && ({ ...prev, guests: prev.guests.map(g =>
+            g.id === guestId ? withArrivedSeats(g, f.seats) : g) });
+          remoteRef.current = put(remoteRef.current);
+          setRemote(put);
+        })
+        .catch(() => { inFlight.current.delete(guestId); });
+    }
+    showFailed();
+  }, [token, showFailed]);
+
   const loadRemote = useCallback(async () => {
     try {
       const data = await fetchHostessData(token);
       if (!data) { setRemoteState("notfound"); return null; }
+      try { sessionStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), data })); } catch { /* full or blocked */ }
+      setStaleAt(null);
       setRemote(prev => {
         if (!prev || inFlight.current.size === 0) return data;
         // Keep OUR copy of a row we are still writing; take the server's for
@@ -220,16 +272,28 @@ export default function EntranceScreen({
         };
       });
       setRemoteState("ready");
+      retryFailed(data);
       return data;
     } catch {
       // A failed REFRESH keeps the list on screen. Replacing a working door
       // list with an error because one 25-second poll hit a dead spot in the
       // hall is worse than showing data that is 25 seconds old (28.9 audit).
       // Only a first load with nothing to show becomes the error state.
+      if (!remoteRef.current) {
+        const cached = readCache();
+        if (cached?.data) {
+          remoteRef.current = cached.data;
+          setRemote(cached.data);
+          setRemoteState("ready");
+          setStaleAt(cached.at);
+          return null;
+        }
+      }
       setRemoteState(s => (s === "ready" ? "ready" : "error"));
+      setStaleAt(t => t ?? readCache()?.at ?? null);
       return null;
     }
-  }, [token]);
+  }, [token, cacheKey, readCache, retryFailed]);
 
   useEffect(() => {
     if (!isToken) return undefined;
@@ -239,7 +303,11 @@ export default function EntranceScreen({
     // them double-marking each other's guests; anything faster burns battery
     // on a phone that has to last the whole evening.
     const iv = setInterval(() => { if (alive) loadRemote(); }, 25000);
-    return () => { alive = false; clearInterval(iv); };
+    // The signal is back: refresh now (and re-send what failed) instead of
+    // waiting out the rest of the 25 seconds.
+    const online = () => { if (alive) loadRemote(); };
+    window.addEventListener("online", online);
+    return () => { alive = false; clearInterval(iv); window.removeEventListener("online", online); };
   }, [isToken, loadRemote]);
 
   const localEvent = isToken ? null : events.find(e => e.id === eventId);
@@ -348,21 +416,24 @@ export default function EntranceScreen({
       // Optimistic locally, authoritative in Postgres. A failure has to be
       // visible: a greeter who thinks a family is checked in when the host's
       // list says otherwise is worse than no check-in at all.
+      // A new tap on a row is the greeter's new intent: it replaces whatever
+      // was waiting to be re-sent for that row.
+      failed.current.delete(guestId);
+      showFailed();
       inFlight.current.add(guestId);
       markArrivalByToken(token, guestId, nextSeats, baseSeats)
         .then(() => {
           inFlight.current.delete(guestId);
-          failed.current.delete(guestId);
-          if (failed.current.size === 0) setSaveError("");
+          showFailed();
         })
         .catch(() => {
           inFlight.current.delete(guestId);
-          failed.current.add(guestId);
+          failed.current.set(guestId, { name: row.name, seats: nextSeats, base: baseSeats });
           // Put the row back as it was, unless a later tap has changed it
           // since — offline, the refresh below fails too and nothing else
           // would undo the optimistic mark.
           setRemote(put(g => (sameSeats(arrivedSeatsOf(g), nextSeats) ? withArrivedSeats(g, baseSeats) : g)));
-          setSaveError("השמירה נכשלה — בדקו חיבור ונסו שוב");
+          showFailed();
           loadRemote();
         });
     } else {
@@ -372,7 +443,7 @@ export default function EntranceScreen({
         guests: e.guests.map(g => (g.id === guestId ? transform(shown(g)) : g)),
       }));
     }
-  }, [canWrite, isToken, token, eventId, patchEventById, loadRemote]);
+  }, [canWrite, isToken, token, eventId, patchEventById, loadRemote, showFailed]);
 
   const markRow = useCallback((g, on) => {
     applyArrival(g.id, row => setRowArrived(row, on));
@@ -451,7 +522,7 @@ export default function EntranceScreen({
                 <h1 className={styles.stateText}>
                   {remoteState === "notfound"
                     ? "הקישור אינו תקין או שהאירוע הוסר"
-                    : "שגיאת חיבור — נסו לרענן את הדף"}
+                    : "אין חיבור כרגע — הרשימה תופיע ברגע שהחיבור יחזור"}
                 </h1>
                 {remoteState === "notfound" && <Link to="/" className={styles.homeLink}>לדף הבית</Link>}
               </>}
@@ -566,6 +637,11 @@ export default function EntranceScreen({
       {isToken && !canWrite && (
         <p className={styles.readOnly} role="status">
           <Icon name="lock" size={14} /> הקישור במצב צפייה בלבד — בעל האירוע יכול לפתוח סימון הגעה
+        </p>
+      )}
+      {isToken && staleAt && (
+        <p className={styles.readOnly} role="status">
+          <Icon name="alert" size={14} /> אין חיבור כרגע — הרשימה מעודכנת לשעה {new Date(staleAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
         </p>
       )}
       {saveError && <p className={styles.saveError} role="alert">{saveError}</p>}

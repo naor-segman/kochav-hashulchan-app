@@ -180,7 +180,7 @@ try {
       await pg.goto(door.base + '/entrance/h1234567', { waitUntil: 'domcontentloaded' });
       await pg.waitForTimeout(1500);
       await pg.getByRole('button', { name: /סרקו קוד/ }).click();
-      for (let i = 0; i < 40 && !(offline ? /נכשלה/.test(await pg.evaluate(() => document.body.innerText)) : marks.length); i++) await pg.waitForTimeout(250);
+      for (let i = 0; i < 40 && !(offline ? /לא נשמר/.test(await pg.evaluate(() => document.body.innerText)) : marks.length); i++) await pg.waitForTimeout(250);
       await pg.waitForTimeout(400);
       const text = await pg.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
       await c.close();
@@ -195,7 +195,7 @@ try {
     // Offline at the door: the save fails. The mark must not stay on screen
     // as if it had been saved.
     const off = await run(true);
-    ok(/השמירה נכשלה/.test(off.text), 'offline: the failure is said', off.text.slice(0, 90));
+    ok(/לא נשמר: /.test(off.text), 'offline: the failure is said, with the name', off.text.slice(0, 120));
     ok(/0 מתוך 3/.test(off.text), 'offline: the count goes back — the family is not shown as checked in', off.text.slice(0, 90));
   } finally {
     await door.stop();
