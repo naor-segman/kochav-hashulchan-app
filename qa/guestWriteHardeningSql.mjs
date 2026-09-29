@@ -117,6 +117,11 @@ try {
     ok(psql(`select char_length(phone) from public.collab_guests where id = 'cccccccc-0000-0000-0000-000000000002'`) === '40',
        'and clips it at 40');
   }
+
+  console.log('\n── internal functions stay internal');
+  for (const fn of ['public.album_event_id(text)', 'public.prune_ai_usage()']) {
+    ok(psql(`select has_function_privilege('anon', '${fn}', 'EXECUTE')`) === 'f', `anon cannot execute ${fn}`);
+  }
 } finally {
   spawnSync('su', ['postgres', '-c', `${PGBIN}/pg_ctl -D ${DIR} -m immediate stop`]);
   rmSync(DIR, { recursive: true, force: true });

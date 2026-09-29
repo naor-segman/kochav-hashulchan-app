@@ -5765,6 +5765,14 @@ create policy event_site_objects_insert
     and public.site_folder_has_room((storage.foldername(storage.objects.name))[1])
   );
 
+-- ── 5. Internal functions: revoked from PUBLIC too ───────────────────────────
+-- 20260928000300 revoked album_event_id and prune_ai_usage from anon and
+-- authenticated only, relying on an earlier `revoke … from public`. A function
+-- re-created by hand keeps PostgreSQL's default EXECUTE-to-PUBLIC, and anon
+-- could call it again (30.9 migration review). Said outright here.
+revoke execute on function public.album_event_id(text) from public, anon, authenticated;
+revoke execute on function public.prune_ai_usage()     from public, anon, authenticated;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 20260930000100_purge_bad_dates.sql
 -- ═══════════════════════════════════════════════════════════════════════════
