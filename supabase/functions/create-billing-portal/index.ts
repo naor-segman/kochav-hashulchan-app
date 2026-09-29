@@ -99,7 +99,7 @@ Deno.serve(async (req: Request) => {
 
     if (!profile?.stripe_customer_id) {
       return json({
-        error: "אין חשבון חיוב עבור משתמש זה. שדרג תחילה לתוכנית בתשלום.",
+        error: "עוד אין רכישה בחשבון הזה — הקבלות יופיעו כאן אחרי הרכישה הראשונה.",
       }, 404);
     }
 

@@ -50,7 +50,7 @@ export function useBilling() {
       const url = await createCheckoutSession(planKey, returnUrl, event?.cloudId);
       window.location.href = url; // redirects away — no state cleanup needed
     } catch (err) {
-      setError(err?.message ?? "שגיאה בפתיחת מסך התשלום. נסה שוב.");
+      setError(err?.message ?? "שגיאה בפתיחת מסך התשלום. נסו שוב.");
       setCheckoutTarget(null);
     }
   }, []);
@@ -63,7 +63,7 @@ export function useBilling() {
       const url = await createBillingPortalSession(returnUrl);
       window.location.href = url;
     } catch (err) {
-      setError(err?.message ?? "שגיאה בפתיחת ניהול החיוב. נסה שוב.");
+      setError(err?.message ?? "שגיאה בפתיחת ניהול החיוב. נסו שוב.");
       setCheckoutTarget(null);
     }
   }, []);

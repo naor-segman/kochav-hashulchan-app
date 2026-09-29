@@ -1,5 +1,6 @@
 import { isStripeConfigured } from "../admin/lib/stripeConfig.js";
 import { supabase } from "./supabase.js";
+import { readFunctionFailure } from "../utils/functionError.js";
 
 export { isStripeConfigured };
 
@@ -19,6 +20,29 @@ export { isStripeConfigured };
 //   STRIPE_ENTERPRISE_PRICE_ID
 // ─────────────────────────────────────────────────────────────────────────────
 
+/* What a host reads when a billing call fails (third review 30.9, סב60/CP-H5).
+ *
+ * `if (error) throw new Error(error.message)` showed every failure as "Edge
+ * Function returned a non-2xx status code" — English, and empty: the function's
+ * own answer sits on the response body, which that line never read. That
+ * included the one message written in Hebrew for the host, "האירוע הזה כבר
+ * נרכש", which therefore never reached the screen. The body is read now; a
+ * Hebrew sentence from the server is shown as is, anything else (English
+ * diagnostics meant for the log) becomes a sentence the host can act on. */
+const HEBREW = /[\u0590-\u05FF]/;
+export async function billingErrorMessage(error, data, fallback) {
+  if (error?.name === "FunctionsFetchError") return "אין חיבור כרגע — בדקו את החיבור ונסו שוב";
+  const f = await readFunctionFailure(error, data);
+  if (!f) return fallback;
+  const said = f.note || f.code;
+  if (HEBREW.test(said)) return said;
+  if (f.status === 401) return "פג תוקף ההתחברות — התחברו מחדש ונסו שוב";
+  if (f.status === 403) return "האירוע הזה לא נמצא בחשבון שלך — רעננו את הדף ונסו שוב";
+  return fallback;
+}
+
+const NOT_READY = "התשלום עוד לא זמין כאן — נסו שוב מאוחר יותר";
+
 /**
  * Create a Stripe Checkout session for the given plan.
  * Calls the `create-checkout-session` Supabase Edge Function and returns
@@ -37,10 +61,10 @@ export { isStripeConfigured };
  */
 export async function createCheckoutSession(planKey, returnUrl, eventId) {
   if (!isStripeConfigured) {
-    throw new Error("Stripe is not configured — add VITE_STRIPE_PUBLISHABLE_KEY to .env.local");
+    throw new Error(NOT_READY);   // VITE_STRIPE_PUBLISHABLE_KEY is not set
   }
   if (!supabase) {
-    throw new Error("Supabase is not configured");
+    throw new Error(NOT_READY);   // Supabase is not configured
   }
 
   if (!eventId) {
@@ -54,8 +78,9 @@ export async function createCheckoutSession(planKey, returnUrl, eventId) {
     body: { plan: planKey, returnUrl, eventId },
   });
 
-  if (error) throw new Error(error.message ?? "Edge Function error");
-  if (!data?.url) throw new Error("Edge Function did not return a checkout URL");
+  const CHECKOUT_FAILED = "לא הצלחנו לפתוח את מסך התשלום — נסו שוב בעוד רגע";
+  if (error || data?.error) throw new Error(await billingErrorMessage(error, data, CHECKOUT_FAILED));
+  if (!data?.url) throw new Error(CHECKOUT_FAILED);
   return data.url;
 }
 
@@ -75,17 +100,18 @@ export async function createCheckoutSession(planKey, returnUrl, eventId) {
  */
 export async function createBillingPortalSession(returnUrl) {
   if (!isStripeConfigured) {
-    throw new Error("Stripe is not configured — add VITE_STRIPE_PUBLISHABLE_KEY to .env.local");
+    throw new Error(NOT_READY);
   }
   if (!supabase) {
-    throw new Error("Supabase is not configured");
+    throw new Error(NOT_READY);
   }
 
   const { data, error } = await supabase.functions.invoke("create-billing-portal", {
     body: { returnUrl },
   });
 
-  if (error) throw new Error(error.message ?? "Edge Function error");
-  if (!data?.url) throw new Error("Edge Function did not return a billing portal URL");
+  const PORTAL_FAILED = "לא הצלחנו לפתוח את החשבוניות — נסו שוב בעוד רגע";
+  if (error || data?.error) throw new Error(await billingErrorMessage(error, data, PORTAL_FAILED));
+  if (!data?.url) throw new Error(PORTAL_FAILED);
   return data.url;
 }
