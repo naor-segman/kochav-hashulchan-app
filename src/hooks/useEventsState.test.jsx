@@ -610,7 +610,9 @@ describe("useEvents — the conflict recovery pushes what it merged", () => {
   // the cloud is read once per login and nothing re-reads it.
 
   it("pushes the merged event a second time, against the fresh base", async () => {
-    seed(userKey("u1"), [ev("e1", { cloudId: "c1", version: 6, syncedVersion: 5, venue: "היכל חדש", updatedAt: 9_000 })]);
+    // In step with the cloud at load (same updatedAt, same version), so the
+    // load itself has nothing to send — the conflict is the patch's (סב46).
+    seed(userKey("u1"), [ev("e1", { cloudId: "c1", version: 6, syncedVersion: 6, venue: "היכל ישן", updatedAt: 1_000 })]);
     // The other device already pushed: the cloud row is at 6 with the old venue.
     cloud.fetchCloudEvents.mockImplementation(async () => [
       { ...ev("e1", { cloudId: "c1", version: 6, syncedVersion: 6, venue: "היכל ישן", updatedAt: 1_000 }) },
@@ -639,7 +641,9 @@ describe("useEvents — the conflict recovery pushes what it merged", () => {
     // Deliberately NOT retried — two devices writing in a tight loop would
     // recurse. Staying dirty is the honest state: not in the cloud, so the
     // sign-out prune will not delete it, and the next ordinary edit sends it.
-    seed(userKey("u1"), [ev("e1", { cloudId: "c1", version: 6, syncedVersion: 5, venue: "היכל חדש", updatedAt: 9_000 })]);
+    // In step with the cloud at load (same updatedAt, same version), so the
+    // load itself has nothing to send — the conflict is the patch's (סב46).
+    seed(userKey("u1"), [ev("e1", { cloudId: "c1", version: 6, syncedVersion: 6, venue: "היכל ישן", updatedAt: 1_000 })]);
     cloud.fetchCloudEvents.mockImplementation(async () => [
       { ...ev("e1", { cloudId: "c1", version: 6, syncedVersion: 6, venue: "היכל ישן", updatedAt: 1_000 }) },
     ]);
@@ -1216,5 +1220,56 @@ describe("useEvents — a re-keyed row leaves a tombstone (סב15)", () => {
       }));
     });
     expect(Object.keys(result.current.events[0].deletedRows?.guests || {})).toEqual(["b2"]);
+  });
+});
+
+describe("useEvents — nothing waits for the next edit (סב46)", () => {
+  it("the load sends an edit this device made and the cloud never got", async () => {
+    // Added a guest, closed the tab inside the 1.5 s debounce. The load kept
+    // the newer local copy and pushed nothing; worse, it came out with
+    // version === syncedVersion, so a sign-out pruned it — gone everywhere.
+    seed(userKey("u1"), [ev("e1", { cloudId: "c1", version: 3, syncedVersion: 2, venue: "נסגר לפני השליחה", updatedAt: 9_000 })]);
+    cloud.fetchCloudEvents.mockImplementation(async () => [ev("e1", { cloudId: "c1", version: 2, syncedVersion: 2, venue: "ישן", updatedAt: 1_000 })]);
+    cloud.updateCloudEvent.mockResolvedValue(3);
+    renderHook(() => useEvents(USER));
+    await settle(); await settle();
+    expect(cloud.updateCloudEvent).toHaveBeenCalledTimes(1);
+    expect(cloud.updateCloudEvent.mock.calls[0][0].venue).toBe("נסגר לפני השליחה");
+    expect(cloud.updateCloudEvent.mock.calls[0][0].syncedVersion).toBe(2);
+  });
+
+  it("an event in step with the cloud is not re-sent on load", async () => {
+    seed(userKey("u1"), [ev("e1", { cloudId: "c1", version: 2, syncedVersion: 2, updatedAt: 1_000 })]);
+    cloud.fetchCloudEvents.mockImplementation(async () => [ev("e1", { cloudId: "c1", version: 2, syncedVersion: 2, updatedAt: 1_000 })]);
+    renderHook(() => useEvents(USER));
+    await settle(); await settle();
+    expect(cloud.updateCloudEvent).not.toHaveBeenCalled();
+  });
+
+  it("hiding the tab sends a pending edit at once, not after the debounce", async () => {
+    seed(userKey("u1"), [ev("a", { cloudId: "c1", syncedVersion: 1 })]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { result.current.patchEventById("a", { venue: "היכל" }); });
+    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+    act(() => { document.dispatchEvent(new Event("visibilitychange")); });
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+    await settle();
+    expect(cloud.updateCloudEvent).toHaveBeenCalledTimes(1);
+    expect(cloud.updateCloudEvent.mock.calls[0][0].venue).toBe("היכל");
+  });
+
+  it("the network coming back sends what failed offline", async () => {
+    seed(userKey("u1"), [ev("a", { cloudId: "c1", syncedVersion: 1 })]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+    cloud.updateCloudEvent.mockRejectedValueOnce(new Error("Failed to fetch"));
+    act(() => { result.current.patchEventById("a", { venue: "בלי רשת" }); });
+    await flushDebounce();
+    expect(cloud.updateCloudEvent).toHaveBeenCalledTimes(1);
+    act(() => { window.dispatchEvent(new Event("online")); });
+    await settle();
+    expect(cloud.updateCloudEvent).toHaveBeenCalledTimes(2);
+    expect(cloud.updateCloudEvent.mock.calls[1][0].venue).toBe("בלי רשת");
   });
 });

@@ -260,3 +260,27 @@ describe("the cloud-wins branch keeps the arrangement, not just the rows", () =>
     expect(hydrate(local, cloudSide()).seating.gLOCAL).toBeUndefined();
   });
 });
+
+describe("the load path marks what the cloud lacks (סב46)", () => {
+  it("a local copy NEWER than the cloud's is not cloud-backed after the load", () => {
+    // It was: the counters came out equal and the sign-out prune deleted an
+    // edit that existed only on this device.
+    const m = hydrate(localEvent({ version: 6, syncedVersion: 6 }), cloudEvent());
+    expect(isCloudBacked(m)).toBe(false);
+    expect(m.version).toBe((m.syncedVersion ?? 0) + 1);
+  });
+});
+
+describe("afterPush — an edit made while the push was on the wire stays unpushed", async () => {
+  const { afterPush } = await import("./useEvents.js");
+  it("unchanged since the snapshot: in step at the server's version", () => {
+    expect(afterPush({ version: 7 }, 7, 7)).toMatchObject({ version: 7, syncedVersion: 7 });
+    expect(afterPush({ version: 7 }, 7, 9)).toMatchObject({ version: 9, syncedVersion: 9 });
+  });
+  it("edited since: one past the new base, never equal to it", () => {
+    // The conflict retry set version: v2 outright, so the next push wrote a
+    // version equal to the one it replaced and a stale device got in over it.
+    expect(afterPush({ version: 8 }, 7, 7)).toMatchObject({ version: 8, syncedVersion: 7 });
+    expect(afterPush({ version: 8 }, 7, 9)).toMatchObject({ version: 10, syncedVersion: 9 });
+  });
+});

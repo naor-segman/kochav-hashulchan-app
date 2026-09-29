@@ -356,6 +356,19 @@ function keepFilledCosts(winner, loser) {
 // that lands mid-hydration is deleted locally while its cloud row survives —
 // the orphan is invisible to the user until the next device syncs. Both
 // timestamps come from this device's own clock, so server skew is irrelevant.
+/* After a push is acknowledged at server version `v`: the event is in step
+ * with the cloud only if it has not changed since the snapshot that was sent
+ * (`sentVersion`). An edit made while the push was on the wire must stay
+ * unpushed — one past the new base — or the next push writes a version equal
+ * to the one it replaces and a stale device is accepted over it; the conflict
+ * retry used to set `version: v2` outright, which is exactly that (third
+ * review 30.9, סב46). The server now also refuses to let the version go down
+ * (migration 20260930000300), so `v` can be above what was sent. */
+export function afterPush(e, sentVersion, v) {
+  if (e.version === sentVersion) return { ...e, syncedVersion: v, version: v };
+  return { ...e, syncedVersion: v, version: Math.max(e.version ?? 0, v + 1) };
+}
+
 export function mergeCloudWithLocal(
   localEvents,
   cloudEvents,
@@ -395,8 +408,16 @@ export function mergeCloudWithLocal(
   // `.eq("version", syncedVersion)` and writes `version` from the payload, so
   // any other value either skips numbers the server never issued or — when the
   // local counter is behind — writes a version lower than the row it overwrote.
-  const markUnpushed = (e) =>
-    unpushedIds && unpushedIds.has(e.id)
+  //
+  // `force`: the local-wins branch below. There the local copy is NEWER than
+  // the cloud's (its own updatedAt, stamped on this device, is later than the
+  // one the cloud row carries — equal after any successful push), so by
+  // definition the cloud does not hold it, whoever called. Left unmarked at
+  // load, the counters could come out equal — the sign-out prune then deleted
+  // an edit that existed only here (third review 30.9, סב46: add a guest, close
+  // the tab inside the 1.5 s debounce, reopen, sign out — gone everywhere).
+  const markUnpushed = (e, force = false) =>
+    force || (unpushedIds && unpushedIds.has(e.id))
       ? { ...e, version: (Number.isFinite(e.syncedVersion) ? e.syncedVersion : 0) + 1 }
       : e;
 
@@ -513,7 +534,7 @@ export function mergeCloudWithLocal(
         tokens: mergeTokens(ce.tokens, localMatch.tokens, null,
                             ce.tokensRotatedAt, localMatch.tokensRotatedAt,
                             ce.tokenRotations, localMatch.tokenRotations),
-      })));
+      })), true);
     }
 
     let result = normalized;
@@ -712,6 +733,9 @@ export function useEvents(user) {
   // there, so the `react-hooks/set-state-in-effect` count is unchanged at 20 —
   // measured, not assumed.
   const [hydratedFor, setHydratedFor] = useState(undefined);
+  // Bumped when a load from the cloud has merged — the cue to send what this
+  // device holds and the cloud does not (see pushUnpushed).
+  const [loadedTick, setLoadedTick] = useState(0);
 
   // Refs let callbacks read the latest values without stale-closure issues.
   const eventsRef    = useRef(events);
@@ -819,6 +843,11 @@ export function useEvents(user) {
           fetchedAt,
         }));
         setSyncStatus(SYNC_STATUS.SYNCED);
+        // Then send what this device holds and the cloud does not — an edit
+        // made before the tab closed, or offline. The load never pushed, so it
+        // waited for the next edit (סב46). After the render that applies the
+        // merge, so the push reads the merged events.
+        setLoadedTick(t => t + 1);
       } catch {
         if (cancelled) return;
         setSyncStatus(SYNC_STATUS.ERROR); // keep the seeded local view on failure
@@ -839,7 +868,7 @@ export function useEvents(user) {
     try {
       const version = await updateCloudEvent(ev, uid);
       if (Number.isFinite(version)) {
-        setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, syncedVersion: version } : e));
+        setEvents(prev => prev.map(e => e.id === ev.id ? afterPush(e, ev.version, version) : e));
       }
       setSyncStatus(SYNC_STATUS.SYNCED);
     } catch (err) {
@@ -878,7 +907,7 @@ export function useEvents(user) {
               if (ownerRef.current !== uid) return;
               if (Number.isFinite(v2)) {
                 setEvents(prev => prev.map(e =>
-                  e.id === ev.id ? { ...e, syncedVersion: v2, version: v2 } : e));
+                  e.id === ev.id ? afterPush(e, mergedThis.version, v2) : e));
               }
               setSyncStatus(SYNC_STATUS.SYNCED);
             } catch {
@@ -959,6 +988,103 @@ export function useEvents(user) {
     }
   }, []);
 
+  /* One event's cloud write, now. The debounce below calls it 1.5 s after the
+   * last edit; so do the moments a phone is about to stop running this tab —
+   * hidden, closed — and the moment the network comes back (third review
+   * 30.9, סב46). Before, an edit made inside the debounce and then the tab
+   * closed was never sent at all, and an offline edit waited for the NEXT edit
+   * after the signal returned; the load did not push either. */
+  const pushNow = useCallback((id) => {
+    const ev          = eventsRef.current.find(e => e.id === id);
+    const currentUser = userRef.current;
+    if (!ev || !currentUser || !isSupabaseConfigured) return;
+
+    // No cloudId means the initial create failed — offline on the train, say.
+    // Without a retry the event stayed local-only for good: every later edit
+    // hit this early return, so an hour of guest entry existed on exactly one
+    // browser and vanished with its cache. Retry the create on the next edit.
+    if (!ev.cloudId) {
+      // This retry is the same operation as addEvent's create and needs the
+      // same two guards, which it did not have:
+      //
+      //   • in-flight: two edits 1500ms apart during a slow create fired a
+      //     SECOND create for one event. The unique token indexes turn that
+      //     into an error rather than a duplicate row, so it surfaced as a
+      //     spurious "sync failed" AND the second snapshot was never pushed.
+      //   • pendingDeletes: an event deleted while the retry was in flight
+      //     left an orphaned cloud row that came back on the next hydration.
+      if (creatingRef.current.has(id)) return;
+      creatingRef.current.add(id);
+      setSyncStatus(SYNC_STATUS.SYNCING);
+      createCloudEvent(ev, currentUser.id)
+        .then(created => {
+          creatingRef.current.delete(id);
+          const wasDeleted = pendingDeletes.current.delete(id);
+          if (!created) { setSyncStatus(SYNC_STATUS.ERROR); return; }
+          const { cloudId, version } = created;
+          if (wasDeleted) {
+            deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
+            setSyncStatus(SYNC_STATUS.SYNCED);
+            return;
+          }
+          setEvents(prev => prev.map(e =>
+            e.id === id ? { ...e, cloudId, syncedVersion: version } : e));
+          // Push whatever arrived during the round-trip, exactly as addEvent
+          // does — without this the edit that TRIGGERED the retry was the one
+          // change the cloud never received.
+          const latest = eventsRef.current.find(e => e.id === id);
+          if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
+          setSyncStatus(SYNC_STATUS.SYNCED);
+        })
+        .catch(() => {
+          creatingRef.current.delete(id);
+          pendingDeletes.current.delete(id); // create failed → no orphan to clean
+          setSyncStatus(SYNC_STATUS.ERROR);
+        });
+      return;
+    }
+
+    setSyncStatus(SYNC_STATUS.SYNCING);
+    pushUpdate(ev, currentUser.id);
+  }, [pushUpdate]);
+  const pushNowRef = useRef(pushNow);
+  useEffect(() => { pushNowRef.current = pushNow; }, [pushNow]);
+
+  // Send what is pending: every debounce still running, and every event this
+  // device holds that the cloud does not (version ahead of the base).
+  const flushPending = useCallback(() => {
+    for (const id of Object.keys(syncTimers.current)) {
+      clearTimeout(syncTimers.current[id]);
+      delete syncTimers.current[id];
+      pushNowRef.current(id);
+    }
+  }, []);
+  // Only events the cloud already has a row for. An event with no cloudId is
+  // either a draft that arrived from the logged-out bucket — uploading it at
+  // sign-in, before the import banner asks, would put someone else's draft on a
+  // shared computer into this account — or a failed create, which the next
+  // edit retries as before.
+  const pushUnpushed = useCallback(() => {
+    for (const e of eventsRef.current) {
+      if (syncTimers.current[e.id]) continue;
+      if (e.cloudId && e.version !== e.syncedVersion) pushNowRef.current(e.id);
+    }
+  }, []);
+  // After each load from the cloud (loadedTick), once the merge has rendered.
+  useEffect(() => { if (loadedTick) pushUnpushed(); }, [loadedTick, pushUnpushed]);
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === "hidden") flushPending(); };
+    const onOnline = () => { flushPending(); pushUnpushed(); };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", flushPending);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", flushPending);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [flushPending, pushUnpushed]);
+
   const patchEventById = useCallback((id, patch) => {
     // Internal cloudId-only patches must not bump updatedAt/version or trigger
     // a cloud write — the row was just created by addEvent.
@@ -985,60 +1111,8 @@ export function useEvents(user) {
     // Debounce cloud writes so rapid-fire patches (e.g. typing in a field)
     // don't generate one request per keystroke.
     clearTimeout(syncTimers.current[id]);
-    syncTimers.current[id] = setTimeout(() => {
-      const ev          = eventsRef.current.find(e => e.id === id);
-      const currentUser = userRef.current;
-      if (!ev || !currentUser || !isSupabaseConfigured) return;
-
-      // No cloudId means the initial create failed — offline on the train, say.
-      // Without a retry the event stayed local-only for good: every later edit
-      // hit this early return, so an hour of guest entry existed on exactly one
-      // browser and vanished with its cache. Retry the create on the next edit.
-      if (!ev.cloudId) {
-        // This retry is the same operation as addEvent's create and needs the
-        // same two guards, which it did not have:
-        //
-        //   • in-flight: two edits 1500ms apart during a slow create fired a
-        //     SECOND create for one event. The unique token indexes turn that
-        //     into an error rather than a duplicate row, so it surfaced as a
-        //     spurious "sync failed" AND the second snapshot was never pushed.
-        //   • pendingDeletes: an event deleted while the retry was in flight
-        //     left an orphaned cloud row that came back on the next hydration.
-        if (creatingRef.current.has(id)) return;
-        creatingRef.current.add(id);
-        setSyncStatus(SYNC_STATUS.SYNCING);
-        createCloudEvent(ev, currentUser.id)
-          .then(created => {
-            creatingRef.current.delete(id);
-            const wasDeleted = pendingDeletes.current.delete(id);
-            if (!created) { setSyncStatus(SYNC_STATUS.ERROR); return; }
-            const { cloudId, version } = created;
-            if (wasDeleted) {
-              deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
-              setSyncStatus(SYNC_STATUS.SYNCED);
-              return;
-            }
-            setEvents(prev => prev.map(e =>
-              e.id === id ? { ...e, cloudId, syncedVersion: version } : e));
-            // Push whatever arrived during the round-trip, exactly as addEvent
-            // does — without this the edit that TRIGGERED the retry was the one
-            // change the cloud never received.
-            const latest = eventsRef.current.find(e => e.id === id);
-            if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
-            setSyncStatus(SYNC_STATUS.SYNCED);
-          })
-          .catch(() => {
-            creatingRef.current.delete(id);
-            pendingDeletes.current.delete(id); // create failed → no orphan to clean
-            setSyncStatus(SYNC_STATUS.ERROR);
-          });
-        return;
-      }
-
-      setSyncStatus(SYNC_STATUS.SYNCING);
-      pushUpdate(ev, currentUser.id);
-    }, 1500);
-  }, [pushUpdate]);
+    syncTimers.current[id] = setTimeout(() => { delete syncTimers.current[id]; pushNowRef.current(id); }, 1500);
+  }, []);
 
   /**
    * Is `events` the list a route guard is allowed to draw conclusions from?
