@@ -184,6 +184,10 @@ export function normalizeEvent(ev) {
     // gets the dead link back — and a second device with an older copy pushes
     // it back too. Whichever side rotated more recently wins the whole set.
     tokensRotatedAt: Number.isFinite(ev.tokensRotatedAt) ? ev.tokensRotatedAt : null,
+    // …and per LINK since 29.9: one shared timestamp let a later rotation of
+    // the door link, on a device holding an older copy, bring back a family-
+    // table link revoked elsewhere (review 29.9). See mergeTokens.
+    tokenRotations: normalizeRotations(ev.tokenRotations),
     tokens: Object.fromEntries(
       TOKEN_KEYS.map(k => [k, (ev.tokens && typeof ev.tokens === "object" && ev.tokens[k]) || uid()])
     ),
@@ -423,6 +427,10 @@ export function duplicateEvent(ev) {
     // caller happens to pass the copy back through normalizeEvent, and a caller
     // that doesn't would ship an event with a dead public link.
     tokens:      Object.fromEntries(TOKEN_KEYS.map(k => [k, uid()])),
+    // Fresh tokens were never rotated; the original's rotation times say
+    // nothing about them.
+    tokensRotatedAt: null,
+    tokenRotations:  {},
     cloudId:     null,
     // A copy has never been pushed, so it has no server version to compare
     // against. Carrying the original's meant the copy's FIRST push would send
@@ -694,5 +702,13 @@ export function rotateEventToken(ev, key, now = Date.now()) {
     ...ev,
     tokens: { ...(ev.tokens ?? {}), [key]: uid() },
     tokensRotatedAt: now,
+    tokenRotations: { ...normalizeRotations(ev.tokenRotations), [key]: now },
   };
+}
+
+/** `{ [tokenKey]: ms }`, known keys and finite times only; `{}` otherwise. */
+export function normalizeRotations(r) {
+  if (!r || typeof r !== "object") return {};
+  return Object.fromEntries(Object.entries(r)
+    .filter(([k, v]) => TOKEN_KEYS.includes(k) && Number.isFinite(v)));
 }

@@ -25,7 +25,8 @@ import {
 // it actually has a value. `fallback` is the already-normalized token set, used
 // only where neither side has one — otherwise a key missing on both sides would
 // come out null and, past the normalize gateway, stay null.
-function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRotatedAt) {
+function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRotatedAt,
+                     cloudRotations, localRotations) {
   // Rotation flips the precedence, and only rotation does.
   //
   // Killing a leaked link means minting a new token. But this merge let the
@@ -36,13 +37,31 @@ function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRo
   //
   // `tokensRotatedAt` says which side last did that deliberately. With neither
   // side rotated — every event today — this is exactly the old behaviour.
-  const localWins = Number.isFinite(localRotatedAt) &&
-    localRotatedAt > (Number.isFinite(cloudRotatedAt) ? cloudRotatedAt : 0);
-  const first  = localWins ? localTokens : cloudTokens;
-  const second = localWins ? cloudTokens : localTokens;
-  return Object.fromEntries(
-    TOKEN_KEYS.map(k => [k, first?.[k] || second?.[k] || fallback?.[k] || null])
-  );
+  //
+  // PER LINK since 29.9 (review): with one timestamp for the whole set, the
+  // host revoking the family-table link on the laptop and later rotating the
+  // door link on a phone holding an older copy made the phone "the newer
+  // rotation" for EVERY link — and the revoked family link came back and was
+  // pushed. Each link now compares its own rotation time. A side with no
+  // per-link record (data from before this) falls back to its one timestamp.
+  const rot = (map, scalar, k) => {
+    const m = map && typeof map === "object" && Object.keys(map).length ? map : null;
+    const v = m ? m[k] : scalar;
+    return Number.isFinite(v) ? v : 0;
+  };
+  return Object.fromEntries(TOKEN_KEYS.map(k => {
+    const localWins = rot(localRotations, localRotatedAt, k) > rot(cloudRotations, cloudRotatedAt, k);
+    const first  = localWins ? localTokens : cloudTokens;
+    const second = localWins ? cloudTokens : localTokens;
+    return [k, first?.[k] || second?.[k] || fallback?.[k] || null];
+  }));
+}
+
+/** Per-link rotation times, the later of the two for each link. */
+function mergeRotations(a, b) {
+  const out = { ...(a || {}) };
+  for (const [k, v] of Object.entries(b || {})) if (!(out[k] >= v)) out[k] = v;
+  return out;
 }
 
 // mergeArrivals moved to utils/arrival.js (28.9) — the host's door screen
@@ -249,6 +268,31 @@ function mergeSeating(cloudSeating, localSeating, cloudKnowsGuest, tableExists) 
   return out;
 }
 
+/**
+ * The arrangement may only point at rows that exist (29.9 review). mergeSeating
+ * checks the OTHER side's seats against the merged tables, but the winning
+ * side's own seats were kept as they were — so a guest seated at a table the
+ * other device deleted stayed "seated" at nothing: left out of every
+ * unassigned list and counted as seated. Applied at both exits of the merge.
+ */
+function pruneArrangement(ev) {
+  const guestIds = new Set((ev.guests || []).map(g => g.id));
+  const tableIds = new Set((ev.tables || []).map(t => t.id));
+  const seating = Object.fromEntries(Object.entries(ev.seating || {})
+    .filter(([gid, tid]) => guestIds.has(gid) && tableIds.has(tid)));
+  const fp = ev.floorPlan;
+  const positions = fp?.tablePositions
+    ? Object.fromEntries(Object.entries(fp.tablePositions).filter(([tid]) => tableIds.has(tid)))
+    : null;
+  return {
+    ...ev,
+    seating,
+    lockedGuests: (ev.lockedGuests || []).filter(id => guestIds.has(id)),
+    lockedTables: (ev.lockedTables || []).filter(id => tableIds.has(id)),
+    ...(fp && positions ? { floorPlan: { ...fp, tablePositions: positions } } : {}),
+  };
+}
+
 /** Union two id lists, dropping ids that no longer exist after the merge. */
 function unionIds(cloudIds, localIds, exists) {
   const out = [];
@@ -374,7 +418,7 @@ export function mergeCloudWithLocal(
       const cloudPositions = ce.floorPlan?.tablePositions || {};
       const extraPositions = Object.fromEntries(Object.entries(cloudPositions)
         .filter(([tid]) => !localTableIds.has(tid) && !(tid in localPositions) && tableIdsAll.has(tid)));
-      return markUnpushed(normalizeEvent({
+      return markUnpushed(pruneArrangement(normalizeEvent({
         ...localMatch,
         seating: mergeSeating(localMatch.seating, ce.seating,
                               (id) => localGuestIds.has(id), (id) => tableIdsAll.has(id)),
@@ -384,9 +428,15 @@ export function mergeCloudWithLocal(
                        ...newFromCloud(ce.lockedTables, localTableIds, tableIdsAll)],
         customGroups: unionStrings(localMatch.customGroups, ce.customGroups),
         customTableTypes: unionStrings(localMatch.customTableTypes, ce.customTableTypes),
-        ...(Object.keys(extraPositions).length && localMatch.floorPlan ? {
-          floorPlan: { ...localMatch.floorPlan, tablePositions: { ...localPositions, ...extraPositions } },
-        } : {}),
+        // A null floor plan here means this device never opened it — not a
+        // deletion (nothing sets it to null). Winning on scalars must not throw
+        // the other device's plan, positions and fixtures away and then push
+        // the null (29.9 review).
+        ...(localMatch.floorPlan
+          ? (Object.keys(extraPositions).length ? {
+              floorPlan: { ...localMatch.floorPlan, tablePositions: { ...localPositions, ...extraPositions } },
+            } : {})
+          : (ce.floorPlan ? { floorPlan: ce.floorPlan } : {})),
         // Arrivals are the one thing on this row written by SOMEONE ELSE, from a
         // device this tab never sees — the greeter, through the entrance token.
         // Whole-event last-write-wins therefore cannot be right for them: the
@@ -436,9 +486,11 @@ export function mergeCloudWithLocal(
         // that predates that push resurrect a null token — and never let a
         // cloud row that predates a NEW token (album) erase the local one.
         tokensRotatedAt: Math.max(ce.tokensRotatedAt ?? 0, localMatch.tokensRotatedAt ?? 0) || null,
+        tokenRotations: mergeRotations(ce.tokenRotations, localMatch.tokenRotations),
         tokens: mergeTokens(ce.tokens, localMatch.tokens, null,
-                            ce.tokensRotatedAt, localMatch.tokensRotatedAt),
-      }));
+                            ce.tokensRotatedAt, localMatch.tokensRotatedAt,
+                            ce.tokenRotations, localMatch.tokenRotations),
+      })));
     }
 
     let result = normalized;
@@ -523,9 +575,13 @@ export function mergeCloudWithLocal(
     // here kept its seat and its lock and still had no place on the plan.
     if (localMatch?.floorPlan?.tablePositions && result.floorPlan) {
       const known = result.floorPlan.tablePositions || {};
+      // Only tables the cloud has never SEEN. A table the cloud knows but has
+      // no position for was taken off the plan on the other device — the same
+      // rule as seats and locks (29.9 review; it came back before).
+      const cloudKnows = new Set((normalized.tables || []).map(t => t.id));
       const extra = {};
       for (const [tid, pos] of Object.entries(localMatch.floorPlan.tablePositions)) {
-        if (!(tid in known)) extra[tid] = pos;
+        if (!(tid in known) && !cloudKnows.has(tid)) extra[tid] = pos;
       }
       if (Object.keys(extra).length) {
         result = { ...result, floorPlan: { ...result.floorPlan, tablePositions: { ...known, ...extra } } };
@@ -554,12 +610,14 @@ export function mergeCloudWithLocal(
     if (localMatch?.tokens) {
       result = { ...result,
         tokensRotatedAt: Math.max(ce.tokensRotatedAt ?? 0, localMatch.tokensRotatedAt ?? 0) || null,
+        tokenRotations: mergeRotations(ce.tokenRotations, localMatch.tokenRotations),
         tokens: mergeTokens(ce.tokens, localMatch.tokens, result.tokens,
-                            ce.tokensRotatedAt, localMatch.tokensRotatedAt) };
+                            ce.tokensRotatedAt, localMatch.tokensRotatedAt,
+                            ce.tokenRotations, localMatch.tokenRotations) };
     }
     // Applied at BOTH exits. The local-wins branch above returns early, and
     // putting this only here silently skipped the exact case it is for.
-    return markUnpushed(result);
+    return markUnpushed(localMatch ? pruneArrangement(result) : result);
   });
 
   for (const le of localEvents) {
