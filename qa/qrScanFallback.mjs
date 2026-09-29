@@ -114,6 +114,70 @@ try {
   ok(/יעל כהן/.test(await p.evaluate(() => document.body.innerText)), 'the screen names who was checked in');
   ok(errs.length === 0, 'no page error', errs[0] || '');
   await ctx.close();
+
+  // ── On a GREETER'S link (29.9 review). The host's screen above saves through
+  //    localStorage; the greeter's saves over the wire, and that path read the
+  //    seats inside a React state updater — which, for a scan (a callback from
+  //    requestAnimationFrame after an await), had not run yet. Every scanned
+  //    check-in went out as "seats [] from []": the server changed nothing,
+  //    the screen said the guest was in, the next refresh took it back. The
+  //    request BODY is what is checked here, and a stub server applies it.
+  console.log('\n── on the greeter\'s link');
+  const SUPA = 'https://stub.supabase.co';
+  const door = await startDev(5233, { VITE_SUPABASE_URL: SUPA, VITE_SUPABASE_ANON_KEY: 'stub-anon-key' });
+  try {
+    const DATA = {
+      id: '11111111-1111-4111-8111-111111111111', name: 'החתונה של דנה ויוסי', writes_open: true,
+      guests: [{ id: 'g1', name: 'יעל כהן', count: 2 }, { id: 'g2', name: 'איתי לוי', count: 1 }],
+      tables: [{ id: 't1', name: 'שולחן 1', capacity: 10 }], seating: { g1: 't1', g2: 't1' },
+    };
+    const run = async (offline) => {
+      const serverSeats = {}, marks = [];
+      const c = await browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['camera'], serviceWorkers: 'block' });
+      await c.addInitScript(() => { delete window.BarcodeDetector; });
+      await c.route(SUPA + '/**', r => {
+        const u = r.request().url();
+        if (u.includes('hostess_mark_arrival_by_token')) {
+          if (offline) return r.abort('internetdisconnected');
+          const b = JSON.parse(r.request().postData() || '{}');
+          marks.push(b);
+          const cur = new Set(serverSeats[b.guest_id] || []);
+          for (const x of b.seats) if (!(b.base || []).includes(x)) cur.add(x);
+          for (const x of b.base || []) if (!b.seats.includes(x)) cur.delete(x);
+          serverSeats[b.guest_id] = [...cur].sort();
+          return r.fulfill({ status: 204, body: '' });
+        }
+        if (u.includes('hostess_data_by_token')) {
+          if (offline && marks.length === 0 && c._loaded) return r.abort('internetdisconnected');
+          c._loaded = true;
+          return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DATA) });
+        }
+        return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+      });
+      const pg = await c.newPage();
+      await pg.goto(door.base + '/entrance/h1234567', { waitUntil: 'domcontentloaded' });
+      await pg.waitForTimeout(1500);
+      await pg.getByRole('button', { name: /סרקו קוד/ }).click();
+      for (let i = 0; i < 40 && !(offline ? /נכשלה/.test(await pg.evaluate(() => document.body.innerText)) : marks.length); i++) await pg.waitForTimeout(250);
+      await pg.waitForTimeout(400);
+      const text = await pg.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
+      await c.close();
+      return { marks, serverSeats, text };
+    };
+
+    const on = await run(false);
+    ok(on.marks.length === 1 && JSON.stringify(on.marks[0].seats) === '[0,1]' && JSON.stringify(on.marks[0].base) === '[]',
+       'a scan sends the scanned family\'s seats, and what the screen showed before', JSON.stringify(on.marks[0]));
+    ok(JSON.stringify(on.serverSeats.g1) === '[0,1]', 'and the server ends up with both seats', JSON.stringify(on.serverSeats));
+
+    // Offline at the door: the save fails. The mark must not stay on screen
+    // as if it had been saved.
+    const off = await run(true);
+    ok(/השמירה נכשלה/.test(off.text), 'offline: the failure is said', off.text.slice(0, 90));
+    ok(/0 מתוך 3/.test(off.text), 'offline: the count goes back — the family is not shown as checked in', off.text.slice(0, 90));
+  } finally {
+    await door.stop();
+  }
 } finally {
   await browser.close();
   await server.stop();

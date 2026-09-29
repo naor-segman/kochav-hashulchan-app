@@ -165,6 +165,9 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
   );
 }
 
+/** Same seat set, order-free. */
+const sameSeats = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+
 export default function EntranceScreen({
   mode = "owner",
   events = [],
@@ -192,6 +195,14 @@ export default function EntranceScreen({
   // database. Measured: untick יעל, poll lands, untick איתי, and יעל is present
   // again on the server.
   const inFlight = useRef(new Set());
+  // Rows whose last save failed. The error stays on screen until THAT row saves;
+  // a good tap on another family used to clear it while the failed one still
+  // looked checked in (29.9 review).
+  const failed = useRef(new Set());
+  // The list as the greeter last saw it, readable synchronously by a tap. The
+  // write path below must not depend on WHEN React runs a state updater.
+  const remoteRef = useRef(null);
+  useEffect(() => { remoteRef.current = remote; }, [remote]);
 
   const loadRemote = useCallback(async () => {
     try {
@@ -317,31 +328,43 @@ export default function EntranceScreen({
   const applyArrival = useCallback((guestId, transform) => {
     if (!canWrite) return;
     if (isToken) {
-      let nextSeats = null;
-      let baseSeats = null;   // what this screen showed before the tap (ג2)
-      setRemote(prev => {
-        if (!prev) return prev;
-        const guests = prev.guests.map(g => {
-          if (g.id !== guestId) return g;
-          const next = transform(g);
-          baseSeats = arrivedSeatsOf(g);
-          nextSeats = arrivedSeatsOf(next);
-          return next;
-        });
-        return { ...prev, guests };
-      });
+      // Worked out HERE, synchronously, from the list on screen. Until 29.9
+      // these were assigned inside the setRemote updater and sent from a
+      // microtask — which works for a click (React renders before the
+      // microtask) and NOT for a QR scan, whose callback runs from
+      // requestAnimationFrame after an await: the updater had not run yet,
+      // both lists were null, and every scanned check-in on a greeter's link
+      // went to the server as "seats [] from []" — a no-op that succeeded.
+      // The screen showed the guest in; 25 seconds later they were gone.
+      const cur = remoteRef.current;
+      const row = cur?.guests.find(g => g.id === guestId);
+      if (!row) return;
+      const next      = transform(row);
+      const baseSeats = arrivedSeatsOf(row);   // what this screen showed (ג2)
+      const nextSeats = arrivedSeatsOf(next);
+      const put = r => (prev => prev && ({ ...prev, guests: prev.guests.map(g => (g.id === guestId ? r(g) : g)) }));
+      remoteRef.current = put(() => next)(cur);   // a second tap before the render sees this one
+      setRemote(put(() => next));
       // Optimistic locally, authoritative in Postgres. A failure has to be
       // visible: a greeter who thinks a family is checked in when the host's
       // list says otherwise is worse than no check-in at all.
       inFlight.current.add(guestId);
-      Promise.resolve().then(() =>
-        markArrivalByToken(token, guestId, nextSeats || [], baseSeats || []),
-      ).then(() => { inFlight.current.delete(guestId); setSaveError(""); })
-       .catch(() => {
-         inFlight.current.delete(guestId);
-         setSaveError("השמירה נכשלה — בדקו חיבור ונסו שוב");
-         loadRemote();
-       });
+      markArrivalByToken(token, guestId, nextSeats, baseSeats)
+        .then(() => {
+          inFlight.current.delete(guestId);
+          failed.current.delete(guestId);
+          if (failed.current.size === 0) setSaveError("");
+        })
+        .catch(() => {
+          inFlight.current.delete(guestId);
+          failed.current.add(guestId);
+          // Put the row back as it was, unless a later tap has changed it
+          // since — offline, the refresh below fails too and nothing else
+          // would undo the optimistic mark.
+          setRemote(put(g => (sameSeats(arrivedSeatsOf(g), nextSeats) ? withArrivedSeats(g, baseSeats) : g)));
+          setSaveError("השמירה נכשלה — בדקו חיבור ונסו שוב");
+          loadRemote();
+        });
     } else {
       const shown = g => (cloudGuestsRef.current ? mergeArrivals([g], cloudGuestsRef.current)[0] : g);
       patchEventById(eventId, e => ({
