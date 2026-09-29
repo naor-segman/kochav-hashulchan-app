@@ -42,6 +42,7 @@ export default function AdminFeedbackScreen() {
   // The refresh button's path: it wants the spinner back.
   const load = useCallback(async () => {
     setState("loading");
+    setErr("");   // a retry that works must not leave the old failure up
     try { const q = await loadFeedback(); setRows(q.rows); setUnseenTotal(q.unseenTotal); setState("ready"); }
     catch (e) { setErr(e.message || String(e)); setState("error"); }
   }, []);
@@ -104,7 +105,7 @@ export default function AdminFeedbackScreen() {
 
       <div className={styles.toolbar}>
         <span className={styles.count}>
-          {unseenSummary(unseen, unseenTotal, { one: "הודעה אחת שלא נקראה", many: "הודעות שלא נקראו", none: "אין הודעות חדשות" })}
+          {state !== "error" && unseenSummary(unseen, unseenTotal, { one: "הודעה אחת שלא נקראה", many: "הודעות שלא נקראו", none: "אין הודעות חדשות" })}
         </span>
         <label className={styles.filter}>
           <input
@@ -118,7 +119,9 @@ export default function AdminFeedbackScreen() {
 
       {state === "loading" ? (
         <Loading rows={5} label="טוענים משוב…" />
-      ) : shown.length === 0 ? (
+      ) : state === "error" ? null : shown.length === 0 ? (
+        /* Not on a failed load: it said "הכל נקרא" under the error, which is
+           the one thing a failed read cannot know (second review, סב19). */
         <div className={styles.empty}>
           <SectionMark name="help" size={30} tone="admin" tile />
           <p className={styles.emptyTitle}>{onlyUnseen ? (unseenTotal > 0 ? "יש עוד שלא נטענו" : "הכל נקרא") : "עוד לא נשלח משוב"}</p>

@@ -42,6 +42,7 @@ export default function AdminErrorsScreen() {
 
   const load = useCallback(async () => {
     setState("loading");
+    setErr("");   // a retry that works must not leave the old failure up
     try { const q = await loadErrors(); setRows(q.rows); setUnseenTotal(q.unseenTotal); setState("ready"); }
     catch (e) { setErr(e.message || String(e)); setState("error"); }
   }, []);
@@ -91,7 +92,7 @@ export default function AdminErrorsScreen() {
 
       <div className={styles.toolbar}>
         <span className={styles.count}>
-          {unseenSummary(unseen, unseenTotal, { one: "שגיאה אחת שלא נקראה", many: "שגיאות שלא נקראו", none: "אין שגיאות חדשות" })}
+          {state !== "error" && unseenSummary(unseen, unseenTotal, { one: "שגיאה אחת שלא נקראה", many: "שגיאות שלא נקראו", none: "אין שגיאות חדשות" })}
         </span>
         <label className={styles.filter}>
           <input
@@ -105,7 +106,9 @@ export default function AdminErrorsScreen() {
 
       {state === "loading" ? (
         <Loading rows={5} label="טוענים שגיאות…" />
-      ) : shown.length === 0 ? (
+      ) : state === "error" ? null : shown.length === 0 ? (
+        /* Not on a failed load: it said "הכל נקרא" under the error, which is
+           the one thing a failed read cannot know (second review, סב19). */
         <div className={styles.empty}>
           <SectionMark name="alert" size={30} tone="admin" tile />
           <p className={styles.emptyTitle}>{onlyUnseen ? (unseenTotal > 0 ? "יש עוד שלא נטענו" : "הכל נקרא") : "לא נרשמה אף שגיאה"}</p>

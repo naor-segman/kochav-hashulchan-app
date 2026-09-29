@@ -97,6 +97,26 @@ describe("AdminErrorsScreen after a burst", () => {
   });
 });
 
+describe("a failed load is not an empty queue (סב19)", () => {
+  // It said "הכל נקרא" under the error box — the one thing a failed read
+  // cannot know.
+  const failing = { from: () => { const b = { select: () => b, eq: () => b, order: () => b,
+    limit: () => b, then: (res) => Promise.resolve({ data: null, count: null, error: { message: "db down" } }).then(res) };
+    return b; } };
+  for (const [name, file] of [["errors", "AdminErrorsScreen"], ["feedback", "AdminFeedbackScreen"]]) {
+    it(`${name}: the error, and no "הכל נקרא"`, async () => {
+      vi.resetModules();
+      vi.doMock("../../lib/supabase.js", () => ({ supabase: failing, isSupabaseConfigured: true }));
+      const Screen = (await import(`../screens/${file}.jsx`)).default;
+      const { container } = render(<MemoryRouter><Screen /></MemoryRouter>);
+      await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+      expect(container.textContent).not.toContain("הכל נקרא");
+      expect(container.textContent).not.toMatch(/אין (שגיאות|הודעות) חדשות/);
+      vi.doUnmock("../../lib/supabase.js");
+    });
+  }
+});
+
 describe("AdminSubscriptionsScreen — a window says it is one", () => {
   const SUBS = Array.from({ length: 620 }, (_, i) => ({
     id: "p" + i, plan: "pro", status: "active", created_at: at(i), profiles: { email: `h${i}@x.co` },
