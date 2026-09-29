@@ -198,10 +198,24 @@ export default defineConfig({
             // The self-hosted fonts and the hero footage, cached at runtime
             // rather than precached, so a first visit is not made to wait for
             // 2 MB of video before the page is usable.
-            urlPattern: /\/(fonts|hero|shots)\/.*\.(ttf|woff2?|mp4|jpe?g|png|webp)$/i,
+            urlPattern: /\/(fonts|hero)\/.*\.(ttf|woff2?|mp4|jpe?g|png|webp)$/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'kochav-media',
+              expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // The product screenshots are RETAKEN under the same file names
+            // whenever a screen changes (WORKPLAN 105). Cache-first kept the old
+            // picture for up to 30 days for anyone who had visited — the owner
+            // included, who would read it as a deploy that did not land. Show
+            // the cached copy at once, fetch the new one behind it.
+            urlPattern: /\/shots\/.*\.(jpe?g|png|webp)$/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'kochav-shots',
               expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
             },
