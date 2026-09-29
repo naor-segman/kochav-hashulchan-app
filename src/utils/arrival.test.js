@@ -143,6 +143,11 @@ describe("search finds the person actually standing at the door", () => {
     expect(matchGuest(aunt, "רחל")).toMatchObject({ via: "name", seat: 0 });
   });
 
+  it("finds +972 and 0 forms of the same number, either way round (סב35)", () => {
+    expect(matchGuest({ ...aunt, phone: "+972 52 765 4321" }, "0527654321")).toMatchObject({ via: "phone" });
+    expect(matchGuest({ ...aunt, phone: "052-7654321" }, "+972527654321")).toMatchObject({ via: "phone" });
+  });
+
   it("finds by phone digits, ignoring dashes", () => {
     expect(matchGuest(aunt, "0501234567")).toMatchObject({ via: "phone" });
   });

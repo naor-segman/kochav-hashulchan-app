@@ -238,8 +238,12 @@ export function matchGuest(g, query) {
     }
   }
 
-  const digits = q.replace(/\D/g, "");
-  if (digits && g?.phone && String(g.phone).replace(/\D/g, "").includes(digits)) {
+  // Israeli form on both sides: "+972 52…" and "052…" are one number. A phone
+  // stored as typed in the RSVP or the shared table ("+972 52 765 4321") was
+  // not found by "0527654321" (second review, סב35).
+  const local = d => (d.startsWith("972") ? "0" + d.slice(3) : d);
+  const digits = local(q.replace(/\D/g, ""));
+  if (digits && g?.phone && local(String(g.phone).replace(/\D/g, "")).includes(digits)) {
     return { via: "phone", label: g.name, seat: 0 };
   }
   return null;
