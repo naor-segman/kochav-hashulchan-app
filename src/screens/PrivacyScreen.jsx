@@ -88,6 +88,15 @@ export default function PrivacyScreen() {
             של ספקית התשתית Supabase, המאוחסנים במרכזי נתונים מאובטחים. התקשורת
             מוצפנת (HTTPS/TLS). איננו מוכרים או משכירים מידע אישי לצדדים שלישיים.
           </p>
+          {/* The processors the code actually talks to (second review, סב26):
+              only Supabase was named. Each is here because a request goes to
+              it; none receives the guest list except Supabase. */}
+          <p className={styles.text}>
+            כדי להפעיל את השירות אנחנו נעזרים גם בספקים אלה: Netlify (אירוח
+            האתר), Google Fonts (גופנים), Anthropic (ניתוח תמונת סקיצה של האולם —
+            רק כשבוחרים להעלות אחת), PostHog (מדידת שימוש באתר, בלי שמות אורחים
+            ובלי הקישורים האישיים) ו-Stripe (סליקת תשלום, ברכישה).
+          </p>
         </section>
 
         <section className={styles.section}>
@@ -95,16 +104,17 @@ export default function PrivacyScreen() {
           <p className={styles.text}>
             דפי האירוע הציבוריים (אישור הגעה, הזמנה, מתנה, דיילות) נגישים רק למי
             שמחזיק בקישור הייחודי שיצרת ובחרת לשתף. דף הדיילות מציג שמות אורחים
-            ומספרי שולחן בלבד — ללא טלפונים.
+            ומספרי שולחן בלבד — ללא טלפונים. טבלת המשפחה המשותפת, אם שיתפת אותה,
+            מציגה למי שמחזיק בקישור שלה את השורות שבה, כולל מספרי טלפון.
           </p>
         </section>
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>6. זכויותיך</h2>
           <p className={styles.text}>
-            באפשרותך לעיין במידע שלך, לתקנו או למחוק את חשבונך ואת כל נתוני
-            האירועים שלך בכל עת דרך מסך החשבון, או בפנייה אלינו. מחיקת אירוע
-            מוחקת גם את תשובות אישורי ההגעה והברכות המשויכות אליו.
+            באפשרותך לעיין במידע שלך ולתקן אותו בכל עת. אירוע אפשר למחוק מתוך
+            האפליקציה, ומחיקתו מוחקת גם את תשובות אישורי ההגעה והברכות המשויכות
+            אליו. למחיקת החשבון כולו — פנו אלינו ונמחק אותו.
           </p>
         </section>
 

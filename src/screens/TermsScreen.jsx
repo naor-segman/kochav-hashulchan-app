@@ -65,7 +65,9 @@ export default function TermsScreen() {
           <ul className={styles.list}>
             <li>ההרשמה חינמית. חלק מהיכולות כפופות לתוכנית בתשלום, כמפורט בדף המחירים.</li>
             <li>אתה אחראי לשמירת סודיות פרטי ההתחברות שלך.</li>
-            <li>ניתן לבטל תוכנית בתשלום בכל עת; הביטול ייכנס לתוקף בסוף תקופת החיוב הנוכחית.</li>
+            {/* A subscription's cancellation clause, on a product sold as one
+                payment per event (second review, סב26). */}
+            <li>רכישה היא תשלום חד-פעמי לאירוע אחד — אין מנוי ואין חיוב חוזר.</li>
           </ul>
         </section>
 
@@ -83,8 +85,7 @@ export default function TermsScreen() {
           <h2 className={styles.sectionTitle}>4. ברכות ומתנות</h2>
           <p className={styles.text}>
             דף המתנה מאפשר לאורחים להשאיר ברכה ולציין סכום מתנה. העברת הכסף
-            עצמה מתבצעת ישירות בין האורח לבעל האירוע באמצעות שירותי תשלום
-            חיצוניים (כגון ביט או PayBox) שבחר בעל האירוע. {COMPANY.name} אינה צד
+            עצמה נעשית בין האורח לבעל האירוע, מחוץ לשירות. {COMPANY.name} אינה צד
             להעברות אלה, אינה גובה אותן ואינה אחראית להן.
           </p>
         </section>
