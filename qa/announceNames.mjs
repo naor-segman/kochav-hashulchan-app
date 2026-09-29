@@ -48,6 +48,17 @@ try {
       ok(h1.length === 1 && h1[0] === owner, `${type} · ${kind}: the h1 names ${owner}`, JSON.stringify(h1));
     }
   }
+  // סב36: the "לאתר האירוע" button only when the site is published.
+  for (const enabled of [false, true]) {
+    const ev = { ...EVENTS[0], id: 'site' + enabled, tokens: { invite: 'inv12345', rsvp: 'rsvp1234' },
+      eventSite: { enabled, sections: {} } };
+    await p.evaluate(e => { const st = JSON.parse(localStorage.getItem('kochav_hashulchan_v1')); st.events.push(e);
+      localStorage.setItem('kochav_hashulchan_v1', JSON.stringify(st)); }, ev);
+    await p.goto(`${server.base}/events/${ev.id}/preview-announce/invitation`);
+    await p.waitForTimeout(500);
+    const has = await p.evaluate(() => [...document.querySelectorAll('a')].some(a => /לאתר האירוע/.test(a.textContent)));
+    ok(has === enabled, `site ${enabled ? 'published' : 'not published'}: the site button is ${enabled ? 'there' : 'not there'}`);
+  }
   await ctx.close();
 } finally {
   await browser.close();

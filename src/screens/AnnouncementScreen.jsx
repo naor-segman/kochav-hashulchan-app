@@ -225,7 +225,10 @@ export default function AnnouncementScreen({ kind, localEvent }) {
                 אישור הגעה ←
               </a>
             )}
-            {ann.showSite && event.inviteToken && (
+            {/* Only to a site that is up: `showSite` is on by default, and the
+                button led every guest to "האתר בהכנה" (second review, סב36) —
+                the same rule rsvpSuccessLinks already applies. */}
+            {ann.showSite && event.inviteToken && event.site?.enabled && (
               <a className={styles.btnGhost} href={`/invite/${event.inviteToken}`}>
                 לאתר האירוע ←
               </a>
