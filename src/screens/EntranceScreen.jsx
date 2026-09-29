@@ -216,6 +216,14 @@ export default function EntranceScreen({
   // protection while the second write was still going, a refresh landed, and
   // the screen showed the family as the server had it BEFORE the second tap.
   const inFlight = useRef(pendingWrites());
+  // A refresh can also be OLDER than a write that finished while it was on
+  // the wire: it started, the tap saved, then the pre-tap answer landed and put
+  // the family back as not arrived for 25 seconds (7/11 → 4/11, measured —
+  // second review, סב35). Each finished write gets a tick; a refresh keeps our
+  // copy of every row saved after it started.
+  const saveTick = useRef(0);
+  const savedAt  = useRef(new Map());   // guestId → tick of its last finished write
+  const markSaved = (guestId) => { savedAt.current.set(guestId, ++saveTick.current); };
   // Rows whose last save failed. The error stays on screen until THAT row saves;
   // a good tap on another family used to clear it while the failed one still
   // looked checked in (29.9 review).
@@ -260,6 +268,7 @@ export default function EntranceScreen({
       markArrivalByToken(token, guestId, f.seats, f.base)
         .then(() => {
           inFlight.current.delete(guestId);
+          markSaved(guestId);
           if (failed.current.get(guestId) === f) failed.current.delete(guestId);
           showFailed();
           const put = prev => prev && ({ ...prev, guests: prev.guests.map(g =>
@@ -273,20 +282,22 @@ export default function EntranceScreen({
   }, [token, showFailed]);
 
   const loadRemote = useCallback(async () => {
+    const startedAt = saveTick.current;
     try {
       const data = await fetchHostessData(token);
       if (!data) { setRemoteState("notfound"); return null; }
       try { sessionStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), data })); } catch { /* full or blocked */ }
       setStaleAt(null);
+      const ours = id => inFlight.current.has(id) || (savedAt.current.get(id) ?? 0) > startedAt;
       setRemote(prev => {
-        if (!prev || inFlight.current.size === 0) return data;
-        // Keep OUR copy of a row we are still writing; take the server's for
-        // every other row, which is the whole point of the refresh.
+        if (!prev || !data.guests.some(g => ours(g.id))) return data;
+        // Keep OUR copy of a row we are still writing, or saved after this
+        // refresh left; take the server's for every other row, which is the
+        // whole point of the refresh.
         const mine = new Map(prev.guests.map(g => [g.id, g]));
         return {
           ...data,
-          guests: data.guests.map(g =>
-            inFlight.current.has(g.id) ? (mine.get(g.id) ?? g) : g),
+          guests: data.guests.map(g => (ours(g.id) ? (mine.get(g.id) ?? g) : g)),
         };
       });
       setRemoteState("ready");
@@ -442,6 +453,7 @@ export default function EntranceScreen({
       markArrivalByToken(token, guestId, nextSeats, baseSeats)
         .then(() => {
           inFlight.current.delete(guestId);
+          markSaved(guestId);
           showFailed();
         })
         .catch(() => {

@@ -38,7 +38,7 @@ const browser = await chromium.launch({
 // (ok | fail), and whether the data RPC answers at all.
 function stub() {
   const st = {
-    seats: { g1: [], g2: [] }, marks: [], markMode: 'ok', dataMode: 'ok', delays: [],
+    seats: { g1: [], g2: [] }, marks: [], markMode: 'ok', dataMode: 'ok', delays: [], dataDelay: 0,
     data() {
       return {
         id: '11111111-1111-4111-8111-111111111111', name: 'החתונה של דנה ויוסי', writes_open: true,
@@ -66,7 +66,12 @@ function stub() {
     }
     if (u.includes('hostess_data_by_token')) {
       if (st.dataMode === 'down') return r.abort('internetdisconnected');
-      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(st.data()) });
+      const body = JSON.stringify(st.data());          // the server's state NOW
+      if (st.dataDelay) {                             // …delivered later
+        const wait = st.dataDelay; st.dataDelay = 0;
+        return new Promise(done => setTimeout(() => done(r.fulfill({ status: 200, contentType: 'application/json', body })), wait));
+      }
+      return r.fulfill({ status: 200, contentType: 'application/json', body });
     }
     return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
   };
@@ -186,6 +191,22 @@ try {
     await big.click();
     await p.waitForTimeout(600);
     ok(JSON.stringify(st.seats.g1) === '[]', 'a tap a second later still un-checks', JSON.stringify(st.seats.g1));
+    await ctx.close();
+  }
+
+  console.log('\n── a slow refresh that left before a tap must not undo it (סב35)');
+  {
+    const st = stub();
+    const { ctx, p } = await door(st);
+    await p.fill('input[type="search"]', 'יעל');
+    await p.waitForTimeout(250);
+    st.dataDelay = 1500;                // the next refresh reads [] now, answers in 1.5 s
+    await p.clock.runFor(26000);        // …it leaves
+    await p.waitForTimeout(100);
+    await p.locator('button', { hasText: /כולם הגיעו/ }).first().click();   // the tap saves at once
+    await p.waitForTimeout(2200);       // the stale answer has landed
+    const n = (await text(p)).match(/(\d+) מתוך 3/)?.[1];
+    ok(JSON.stringify(st.seats.g1) === '[0,1]' && n === '2', 'the family stays checked in on screen', `shows ${n} of 3; server ${JSON.stringify(st.seats.g1)}`);
     await ctx.close();
   }
 } finally {
