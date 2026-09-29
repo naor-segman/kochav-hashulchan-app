@@ -102,6 +102,17 @@ export function usePlan(ev) {
   const planFor      = useCallback((other)  => planForEvent(purchases, other), [purchases]);
   const unpaidEvents = useCallback((events) => unpaidEventCount(purchases, events), [purchases]);
 
+  /* Re-read the purchases now, without the loading flag (the card that asks
+     must not blink out while it waits). For the return from checkout, where
+     the redirect usually beats the webhook (29.9 review). Returns the rows. */
+  const userId = user?.id;
+  const refresh = useCallback(async () => {
+    if (!userId) return [];
+    const rows = await fetchPurchases(userId);
+    setPurchases(rows);
+    return rows;
+  }, [userId]);
+
   return {
     plan,
     limits:  getPlanLimits(plan),
@@ -109,5 +120,6 @@ export function usePlan(ev) {
     purchases,
     planFor,
     unpaidEvents,
+    refresh,
   };
 }

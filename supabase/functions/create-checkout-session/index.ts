@@ -282,10 +282,11 @@ Deno.serve(async (req: Request) => {
       metadata:         { user_id: user.id, plan, event_id: eventId },
       payment_intent_data: {
         metadata: { user_id: user.id, plan, event_id: eventId },
-        // What the host sees on their card statement. Without it the statement
-        // shows the Stripe account's default name, which is the wrong company:
-        // the merchant of record is Unica, and "REVAYA" is what they will
-        // recognise next to a charge they made on a wedding-planning site.
+        // The payment's description in Stripe (receipts, the dashboard). NOT the
+        // card statement — that is `statement_descriptor`, set on the Stripe
+        // account (Dashboard → Settings → Public details), Latin letters only.
+        // Until 29.9 this comment claimed otherwise; the statement will show
+        // the account's descriptor until the owner sets it there (WORKPLAN 41).
         description: `רוויה — ${plan === "pro" ? "בלי הפתעות" : "אנחנו שם איתכם"}`,
       },
     });

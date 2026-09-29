@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { usePlan } from "../../hooks/usePlan.js";
 import { useBilling } from "../../hooks/useBilling.js";
 import { useAuth } from "../../hooks/useAuth.js";
 import { getPlanLabel } from "../../admin/lib/planConfig.js";
 import { isStripeConfigured } from "../../admin/lib/stripeConfig.js";
 import { PLANS, PLAN_DB_KEY } from "../../data/pricing.js";
+import { planForEvent } from "../../utils/entitlement.js";
 import Icon from "../ui/Icon.jsx";
 import styles from "./EventPlanCard.module.css";
 
@@ -33,10 +36,49 @@ import styles from "./EventPlanCard.module.css";
  * anywhere right now, so this card describes what the package ADDS and does not
  * pretend anything is currently blocked.
  */
+// The return from checkout: how long to wait for the webhook, and how often
+// to look. Stripe's redirect usually arrives before it.
+export const CONFIRM_TRIES = 10;
+export const CONFIRM_EVERY_MS = 3000;
+
 export default function EventPlanCard({ ev }) {
   const { user } = useAuth();
-  const { plan, loading } = usePlan(ev);
+  const { plan, loading, refresh } = usePlan(ev);
   const billing = useBilling();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  /* ── Back from checkout (29.9 review) ────────────────────────────────────────
+     The checkout returns HERE, to /events/:id?checkout=success, and until 29.9
+     nothing on the event read it: the host who had just paid landed on a card
+     still offering the purchase — the redirect beats the webhook — with no
+     word that anything had happened, and a second click on "רכשו" would have
+     charged them twice. Now: say the payment arrived, take the button away,
+     re-read the purchase every few seconds, and name the package only once
+     the server shows it. Read once, from the URL the page opened with; the
+     parameter is then removed so a refresh does not replay it. */
+  const [returned] = useState(() => new URLSearchParams(location.search).get("checkout"));
+  const [confirm, setConfirm] = useState(returned === "success" ? "waiting" : null); // waiting|done|slow
+  useEffect(() => {
+    if (!returned) return undefined;
+    const params = new URLSearchParams(location.search);
+    params.delete("checkout");
+    const q = params.toString();
+    navigate({ pathname: location.pathname, search: q ? `?${q}` : "" }, { replace: true });
+    if (returned !== "success") return undefined;
+    let alive = true, tries = 0, timer;
+    const look = async () => {
+      const rows = await refresh();
+      if (!alive) return;
+      if (planForEvent(rows, ev) !== "free") { setConfirm("done"); return; }
+      if (++tries >= CONFIRM_TRIES) { setConfirm("slow"); return; }
+      timer = setTimeout(look, CONFIRM_EVERY_MS);
+    };
+    look();
+    return () => { alive = false; clearTimeout(timer); };
+  // Once, for the URL the page opened with.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Prices and names come from the pricing data, never retyped: this card and
   // the pricing page have to agree, and they are the two surfaces a buyer
@@ -44,9 +86,10 @@ export default function EventPlanCard({ ev }) {
   const paidTier = PLANS[1];                       // "בלי הפתעות" · ₪690
   const paidKey  = PLAN_DB_KEY[paidTier.key];      // → "pro"
 
-  if (loading) return null;
+  if (loading && !confirm) return null;
 
   const isPaid = plan !== "free";
+  const waiting = confirm === "waiting" || (confirm === "slow" && !isPaid);
 
   /* One reason, in priority order, why buying is not possible right now. A
      disabled button with no explanation is the thing that makes a host think the
@@ -69,6 +112,18 @@ export default function EventPlanCard({ ev }) {
             </span>
           )}
         </p>
+        {confirm && (
+          <p className={styles.returned} role="status">
+            {isPaid
+              ? "התשלום התקבל — החבילה פעילה לאירוע הזה. תודה!"
+              : confirm === "slow"
+                ? "התשלום התקבל אצל Stripe. החבילה תתעדכן כאן תוך כמה דקות — אין צורך לשלם שוב."
+                : "התשלום התקבל — מעדכנים את החבילה של האירוע…"}
+          </p>
+        )}
+        {returned === "cancelled" && (
+          <p className={styles.returned} role="status">התשלום בוטל — לא חויבתם.</p>
+        )}
         <p className={styles.note}>
           {isPaid
             ? "כל מה שבחבילה פתוח לאירוע הזה. אירוע חדש מתחיל מהחינם."
@@ -76,7 +131,7 @@ export default function EventPlanCard({ ev }) {
         </p>
       </div>
 
-      {!isPaid && (
+      {!isPaid && !waiting && (
         <div className={styles.side}>
           <button
             type="button"
