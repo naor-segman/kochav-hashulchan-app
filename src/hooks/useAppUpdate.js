@@ -90,6 +90,31 @@ export function useAppUpdate() {
     onRegisterError() {},
   });
 
+  /* ── While the reload waits, the OLD build's files are gone (סב47) ─────────
+     Holding the reload back (above) had a cost the first version missed: the
+     new worker is already in control and has dropped the old build's chunks,
+     and Netlify answers a request for a missing file with index.html. A screen
+     this tab had not opened yet then failed to load — "Failed to fetch
+     dynamically imported module" and the error page, measured with two real
+     builds; on a typed-into guest page, for good (third review 30.9).
+     Vite reports exactly that failure as `vite:preloadError`: reload then —
+     the user just asked for another screen, so nothing typed is being
+     interrupted. Once per 10 seconds, so a real outage cannot become a reload
+     loop. (A reload on every navigation while one is pending was tried too; it
+     cannot run when the failing import takes the router down with it.) */
+  useEffect(() => {
+    const onChunkFail = (e) => {
+      let last = 0;
+      try { last = Number(sessionStorage.getItem("kh_chunk_reload") || 0); } catch { /* blocked */ }
+      if (Date.now() - last < 10_000) return;           // already tried; let the error show
+      try { sessionStorage.setItem("kh_chunk_reload", String(Date.now())); } catch { /* blocked */ }
+      e.preventDefault?.();
+      window.location.reload();
+    };
+    window.addEventListener("vite:preloadError", onChunkFail);
+    return () => window.removeEventListener("vite:preloadError", onChunkFail);
+  }, []);
+
   useEffect(() => {
     const onInput = () => { if (isGuestRoute(window.location.pathname)) touchedRef.current = true; };
     document.addEventListener("input", onInput, true);

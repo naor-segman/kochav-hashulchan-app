@@ -11,7 +11,7 @@
 //   node qa/swUpdateSafe.mjs
 import { createRequire } from 'module';
 import { execFileSync } from 'child_process';
-import { mkdtempSync, rmSync, cpSync, appendFileSync, existsSync, statSync, createReadStream } from 'fs';
+import { mkdtempSync, rmSync, cpSync, appendFileSync, existsSync, statSync, createReadStream, symlinkSync, readdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, extname } from 'path';
 import http from 'http';
@@ -31,6 +31,25 @@ execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', A, '
 });
 cpSync(A, B, { recursive: true });
 appendFileSync(join(B, 'sw.js'), '\n// build B\n');
+// C: a REAL second deploy — one source change in the entry chunk, so every
+// chunk hash changes and the old build's files are gone from the server, as on
+// Netlify (סב47: a screen not yet opened then failed to load while the reload
+// waited).
+const C = join(DIR, 'C'), SRCC = join(DIR, 'srcC');
+for (const f of ['src', 'public', 'index.html', 'vite.config.js', 'package.json']) cpSync(join(ROOT, f), join(SRCC, f), { recursive: true });
+symlinkSync(join(ROOT, 'node_modules'), join(SRCC, 'node_modules'));
+// A side effect, not an unused export: an export nothing imports is
+// tree-shaken, the build comes out identical and the check tests nothing —
+// which is what its first version did.
+appendFileSync(join(SRCC, 'src/main.jsx'), '\nglobalThis.__qaBuildC = 1;\n');
+execFileSync('node', [join(ROOT, 'node_modules/vite/bin/vite.js'), 'build', '--outDir', C, '--emptyOutDir', '--logLevel', 'error'], {
+  cwd: SRCC, stdio: 'inherit', env: { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' },
+});
+{
+  const a = new Set(readdirSync(join(A, 'assets'))), c = new Set(readdirSync(join(C, 'assets')));
+  const gone = [...a].filter(f => f.endsWith('.js') && !c.has(f));
+  ok(gone.some(f => /^PricingScreen-/.test(f)), 'premise: the deploy renamed the pricing screen\'s chunk', `${gone.length} js files gone`);
+}
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
   '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2',
@@ -48,7 +67,7 @@ const BASE = 'http://127.0.0.1:4798';
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function session(path) {
+async function session(path, next = B) {
   root = A;
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
@@ -66,7 +85,7 @@ async function session(path) {
   await p.click('#qa-field');
   await p.keyboard.type('half-typed-addr@exam');
   const before = navs;
-  root = B;
+  root = next;
   // What useAppUpdate itself does every 60 seconds.
   await p.evaluate(() => navigator.serviceWorker.getRegistration().then(r => r.update()));
   return { ctx, p, reloaded: () => navs > before };
@@ -93,6 +112,23 @@ try {
     await sleep(8000);
     ok(!s.reloaded(), 'no reload, even with nothing focused');
     ok(await value(s.p) === 'half-typed-addr@exam', 'the guest\'s text is still there', await value(s.p));
+    await s.ctx.close();
+  }
+
+  console.log('\n── a real deploy (every chunk renamed), then moving to a screen not yet opened (סב47)');
+  for (const [label, path, blur] of [['host page, field focused', '/signup', false], ['guest page, typed into', '/rsvp/xxxxxxxx', true]]) {
+    const s = await session(path, C);
+    if (blur) await s.p.evaluate(() => document.activeElement.blur());
+    for (let i = 0; i < 30; i++) {                       // the new worker in control
+      const st = await s.p.evaluate(() => navigator.serviceWorker.getRegistration().then(r => !r.waiting && !r.installing));
+      if (st) break;
+      await sleep(250);
+    }
+    await sleep(1500);
+    await s.p.evaluate(() => { history.pushState({}, '', '/pricing'); dispatchEvent(new PopStateEvent('popstate')); });
+    await sleep(3500);
+    const t = (await s.p.evaluate(() => document.body.innerText)).replace(/\s+/g, ' ');
+    ok(!/שגיאה בלתי צפויה/.test(t) && /₪/.test(t), `${label}: the pricing page loads, no error page`, t.slice(0, 90));
     await s.ctx.close();
   }
 } finally {
