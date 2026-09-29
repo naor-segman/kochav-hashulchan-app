@@ -49,21 +49,31 @@ export default function GiftWallScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    let retry;
+    const loadEvent = async () => {
       let ev;
       try {
         ev = await fetchEventByToken("gift", token);
       } catch {
-        if (!cancelled) { setUnreachable(true); setLoading(false); }
+        if (cancelled) return;
+        setUnreachable(true); setLoading(false);
+        // Keep trying. The wall is opened on the venue's laptop, often before
+        // the wifi is up, and it is not touched again all evening: one failed
+        // first load left "אין חיבור כרגע" on the projector until someone
+        // noticed and refreshed — measured, still there two minutes after the
+        // server was back (second review, סב21).
+        retry = setTimeout(loadEvent, POLL_MS);
         return;
       }
       if (!cancelled) {
+        setUnreachable(false);
         setEvent(ev || null);
         setGifts(!ev && import.meta.env.DEV ? MOCK_GIFTS : []);
         setLoading(false);
       }
-    })();
-    return () => { cancelled = true; };
+    };
+    loadEvent();
+    return () => { cancelled = true; clearTimeout(retry); };
   }, [token]);
 
   // Poll the blessing wall — realtime can't deliver rows RLS hides from anon.

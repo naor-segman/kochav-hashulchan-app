@@ -165,6 +165,31 @@ try {
     ok((await text(p)).includes('משפחת כהן'), 'the blessing is still on the wall');
     await ctx.close();
   }
+
+  // סב21: the wall is opened before the venue wifi is up, then left alone.
+  console.log('\n── the projected wall: a failed FIRST load recovers by itself');
+  {
+    let evCalls = 0;
+    const ev = { id: '11111111-1111-4111-8111-111111111111', name: 'החתונה', bride_name: 'דנה', groom_name: 'יוסי' };
+    const rows = [{ id: 'w1', donor_name: 'משפחת לוי', message: 'מזל טוב!', created_at: new Date().toISOString() }];
+    const { ctx, p } = await open('/gift/xxxxxxxx/wall', r => {
+      const u = r.request().url();
+      if (u.includes('public_event_by_token')) {
+        evCalls++;
+        if (evCalls === 1) return r.fulfill({ status: 503, contentType: 'application/json', body: '{"message":"unavailable"}' });
+        return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ev) });
+      }
+      if (u.includes('gift_wall_by_token')) return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
+      return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    });
+    ok((await text(p)).includes(UNREACHABLE), 'the first load failed and says so');
+    await p.clock.runFor(31000);
+    await p.waitForTimeout(800);
+    const t = await text(p);
+    ok(evCalls >= 2, 'it tried again on its own', `calls=${evCalls}`);
+    ok(t.includes('משפחת לוי') && !t.includes(UNREACHABLE), 'and the wall is up, with nobody touching it', t.slice(0, 100));
+    await ctx.close();
+  }
 } finally {
   await browser.close();
   await server.stop();
