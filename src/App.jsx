@@ -483,7 +483,7 @@ function AppRoutes() {
           out in the world — and both now render the same thing. */}
       <Route
         path="/events/:eventId/entrance"
-        element={<Suspense fallback={<Loading />}><EntranceScreen mode="owner" events={events} patchEventById={patchEventById} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
+        element={<Suspense fallback={<Loading />}><EntranceScreen mode="owner" events={events} patchEventById={patchEventById} loading={authLoading || !eventsReady || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
       />
       <Route
         path="/entrance/:token"
@@ -494,7 +494,7 @@ function AppRoutes() {
           so it was passed to nothing for as long as the shim existed. */}
       <Route
         path="/events/:eventId/checkin"
-        element={<Suspense fallback={<Loading />}><EntranceScreen mode="owner" events={events} patchEventById={patchEventById} loading={authLoading || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
+        element={<Suspense fallback={<Loading />}><EntranceScreen mode="owner" events={events} patchEventById={patchEventById} loading={authLoading || !eventsReady || syncStatus === SYNC_STATUS.SYNCING} /></Suspense>}
       />
       {/* Host-only draft preview of the event site — renders from local data */}
       <Route

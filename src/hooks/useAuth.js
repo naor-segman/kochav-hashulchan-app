@@ -31,6 +31,34 @@ const SUPABASE_CACHE = "supabase-api";
 
 const AuthContext = createContext(null);
 
+/* ── Offline at the venue with a session that expired (second review, סב14) ──
+   supabase-js holds the session in localStorage and refreshes the access token
+   when it has expired (an hour, by default). With no network that refresh
+   retries for ~50 seconds and then resolves with NO session — measured: a
+   blank page for 52 s, then guest mode, the host's own events nowhere, on
+   /app and on the door screen alike. The events were on the device the whole
+   time, under this user's key.
+   So when the restore is slow or fails for want of a network, the user in the
+   stored session is used for what this device already holds. Nothing is
+   widened: that bucket is readable to whoever holds the device anyway, cloud
+   writes still need a live token (they fail and retry, as offline writes do),
+   and a refresh token that the server has revoked still ends the session —
+   supabase-js emits SIGNED_OUT and the handler below runs as usual. */
+const RESTORE_WAIT_MS = 4000;
+
+export function storedSessionUser(client = supabase, storage = globalThis.localStorage) {
+  try {
+    const raw = storage?.getItem(client?.auth?.storageKey);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const u = parsed?.user ?? parsed?.currentSession?.user ?? null;
+    return u?.id ? u : null;
+  } catch { return null; }
+}
+
+const isNetworkFailure = (error) =>
+  !!error && (error.name === "AuthRetryableFetchError" || error.status === 0
+    || /fetch|network/i.test(String(error.message || "")));
+
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(!!supabase);
@@ -43,19 +71,35 @@ export function AuthProvider({ children }) {
     if (!supabase) return;
 
     let cancelled = false;
+    let settled = false;
+    const adoptStoredUser = () => {
+      const stored = storedSessionUser();
+      if (!stored) return false;
+      prevUserIdRef.current = stored.id;
+      setUser(stored);
+      setLoading(false);
+      return true;
+    };
+    // Slow restore: the stored user, now; the real answer replaces it below.
+    const slow = setTimeout(() => { if (!cancelled && !settled) adoptStoredUser(); }, RESTORE_WAIT_MS);
 
     supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (!cancelled) {
-          prevUserIdRef.current = session?.user?.id ?? null;
-          setUser(session?.user ?? null);
-          setLoading(false);
-        }
+      .then(({ data: { session }, error }) => {
+        if (cancelled) return;
+        settled = true;
+        clearTimeout(slow);
+        if (!session && isNetworkFailure(error) && adoptStoredUser()) return;
+        prevUserIdRef.current = session?.user?.id ?? null;
+        setUser(session?.user ?? null);
+        setLoading(false);
       })
       .catch(() => {
-        // Network error during session restore — treat as logged-out so the
-        // app doesn't stay blank with loading=true forever.
-        if (!cancelled) setLoading(false);
+        // Network error during session restore. The stored user if there is
+        // one; otherwise logged-out, so the app never stays blank.
+        if (cancelled) return;
+        settled = true;
+        clearTimeout(slow);
+        if (!adoptStoredUser()) setLoading(false);
       });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -106,12 +150,18 @@ export function AuthProvider({ children }) {
         resetAnalytics();
       }
 
+      // The first event after a failed offline refresh is INITIAL_SESSION with
+      // no session — while the session is still in storage, to be refreshed
+      // when the network returns. That is not a sign-out; keep the user.
+      if (event === "INITIAL_SESSION" && !session && storedSessionUser()) return;
+
       prevUserIdRef.current = session?.user?.id ?? null;
       setUser(session?.user ?? null);
     });
 
     return () => {
       cancelled = true;
+      clearTimeout(slow);
       subscription.unsubscribe();
     };
   }, []);

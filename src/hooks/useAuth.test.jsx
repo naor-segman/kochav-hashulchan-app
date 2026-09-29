@@ -16,6 +16,7 @@ const resetSpy    = vi.fn();
 vi.mock("../lib/supabase.js", () => ({
   supabase: {
     auth: {
+      storageKey: "sb-test-auth-token",
       getSession: () => (sessionResult instanceof Error
         ? Promise.reject(sessionResult)
         : Promise.resolve({ data: { session: sessionResult } })),
@@ -69,6 +70,16 @@ describe("useAuth — restoring the session", () => {
     sessionResult = new Error("network down");
     show();
     await waitFor(() => expect(text()).toBe("anon"));
+  });
+
+  it("offline with the session still stored: the stored user, not logged-out (סב14)", async () => {
+    // A host at a venue with no signal whose token expired: the restore fails,
+    // and their events are under THEIR key on this device.
+    localStorage.setItem("sb-test-auth-token", JSON.stringify({ user: { id: "u9" } }));
+    sessionResult = new Error("Failed to fetch");
+    show();
+    await waitFor(() => expect(text()).toBe("u9"));
+    localStorage.removeItem("sb-test-auth-token");
   });
 
   it("stops loading when there is simply no session", async () => {
