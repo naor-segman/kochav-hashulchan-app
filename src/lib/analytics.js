@@ -117,6 +117,11 @@ export function initAnalytics() {
         disable_session_recording: true,
         persistence: "localStorage",   // no cross-site cookie
         before_send: scrubEvent,       // tokens out of EVERY url posthog attaches
+        // PostHog's feature-flag call does NOT pass through before_send, and it
+        // carried "$initial_current_url": ".../collab/<raw token>" for every
+        // guest route (second review, סב10, measured on its decoded request).
+        // Nothing here reads a flag, so the call goes, and remote config with it.
+        advanced_disable_flags: true,
       });
       ph = p;
       // Flush in the order the app made them, so the funnel keeps its shape.

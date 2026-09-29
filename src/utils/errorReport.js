@@ -27,7 +27,15 @@ export function scrubRoute(pathname) {
   const str = String(pathname || "");
   const cut = str.search(/[?#]/);
   const path = cut < 0 ? str : str.slice(0, cut);
-  const tail = cut < 0 ? "" : str.slice(cut).replace(/([?&]ref=)[^&#]*/gi, "$1:token");
+  // Every other VALUE goes too, in the query and in the hash alike (second
+  // review, סב10): the personal entry card is /card/<t>?g=<guest id>&n=<guest
+  // NAME>&t=<table>, and cleaning `ref=` alone sent a guest's name to
+  // PostHog; a Supabase recovery link lands with #access_token=… in the hash.
+  // Kept: the keys, utm_* (that is what attribution is), and checkout=.
+  const tail = cut < 0 ? "" : str.slice(cut).replace(/([?&#])([^=&#]*)=[^&#]*/g, (m, sep, key) =>
+    /^ref$/i.test(key) ? `${sep}${key}=:token`
+    : /^(utm_[a-z]+|checkout)$/i.test(key) ? m
+    : `${sep}${key}=:v`);
   const parts = path.split("/");
   return parts
     .map((part, i) => {

@@ -72,6 +72,15 @@ describe("reportError never becomes the thing that breaks the page", () => {
 });
 
 describe("scrubRoute — the 29.9 review's two holes", () => {
+  it("every other query or hash VALUE goes too — keys, utm_* and checkout stay (סב10)", () => {
+    // The personal card carried the guest's name in ?n= to PostHog.
+    expect(scrubRoute("/card/:token?g=g_abc123&n=%D7%99%D7%A2%D7%9C&t=4"))
+      .toBe("/card/:token?g=:v&n=:v&t=:v");
+    expect(scrubRoute("/reset#access_token=eyJhbGciOi&type=recovery"))
+      .toBe("/reset#access_token=:v&type=:v");
+    expect(scrubRoute("/events/x?checkout=success&utm_source=wa")).toBe("/events/x?checkout=success&utm_source=wa");
+  });
+
   it("a token in the ?ref= query is scrubbed like one in the path", () => {
     expect(scrubRoute("/signup?ref=INVITETOKEN123")).toBe("/signup?ref=:token");
     expect(scrubRoute("https://revaya-events.co.il/signup?utm_source=wa&ref=INVITETOKEN123#x"))
