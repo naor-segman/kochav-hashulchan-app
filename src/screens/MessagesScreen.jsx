@@ -174,11 +174,18 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                         builds what is sent, so the two cannot differ. With no
                         guest yet the name slot says what goes there. */}
                     {(() => {
-                      const sample = stage.audience.find(g => g.name?.trim())
-                        || (ev.guests || []).find(g => g.name?.trim())
+                      // Someone this stage actually SENDS to: a guest with a
+                      // phone first, then anyone in its audience — never a guest
+                      // outside it. The reminder was previewed "for" a guest who
+                      // had declined, beside "no guests match this stage"
+                      // (29.9 review). Nobody in the audience: a placeholder.
+                      const sample = stage.withPhone.find(g => g.name?.trim())
+                        || stage.audience.find(g => g.name?.trim())
                         || { id: "", name: "שם האורח" };
                       return <>
-                        <p className={styles.previewFor}>כך ההודעה תיראה אצל {sample.name}:</p>
+                        {/* <bdi>: a Latin name ending in a period ("Tal S.")
+                            painted its period on the wrong side (review). */}
+                        <p className={styles.previewFor}>כך ההודעה תיראה אצל <bdi>{sample.name}</bdi>:</p>
                         <div className={styles.preview}>{textFor(stage, sample)}</div>
                       </>;
                     })()}

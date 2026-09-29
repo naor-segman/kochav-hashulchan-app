@@ -467,10 +467,13 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
         </p>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", margin: "8px 0 16px" }}>
           <div style={{ flex: "1 1 160px", minWidth: 0 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>
-              מילוי מהיר — מתנה משוערת לאדם (₪)
+            {/* htmlFor: the field was unnamed to a screen reader (29.9 review).
+                And the label says the amount is multiplied — beside "each
+                record is one gift" it read as a contradiction. */}
+            <label htmlFor="bulk-gift" style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>
+              מילוי מהיר — מתנה משוערת לאדם (₪), כפול מספר האנשים ברשומה
             </label>
-            <input className={base.input} type="number" min="0" step="50" value={bulkGift}
+            <input id="bulk-gift" className={base.input} type="number" min="0" step="50" value={bulkGift}
               placeholder="למשל 400" onChange={e => setBulkGift(e.target.value)} />
           </div>
           <button className={base.btnSecondary} onClick={applyBulkEstimate} disabled={parseAmt(bulkGift) <= 0}>

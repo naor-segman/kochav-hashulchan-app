@@ -53,9 +53,11 @@ const browser = await chromium.launch({
   args: ['--no-proxy-server'],
 });
 
-const outline = p => p.evaluate(() => [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')]
-  .filter(h => h.getClientRects().length > 0)
-  .map(h => ({ level: +h.tagName[1], text: h.textContent.replace(/\s+/g, ' ').trim().slice(0, 40), top: h.getBoundingClientRect().top })));
+// `withHidden`: count visually-hidden headings too (an sr-only h1 is read by a
+// screen reader though it has a 1px box); getClientRects() alone keeps it.
+const outline = (p, withHidden = false) => p.evaluate((withHidden) => [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')]
+  .filter(h => withHidden || h.getClientRects().length > 0)
+  .map(h => ({ level: +h.tagName[1], text: h.textContent.replace(/\s+/g, ' ').trim().slice(0, 40), top: h.getBoundingClientRect().top })), withHidden);
 
 function judge(label, hs) {
   const h1s = hs.filter(h => h.level === 1);
@@ -85,6 +87,29 @@ try {
   judge('hub', hub);
   const name = hub.find(h => h.level === 1);
   ok(name && name.top >= 0 && name.top < 844, "the event's name is above the fold", name ? `top=${Math.round(name.top)}` : '');
+
+  // The dashboard, with the onboarding panel open (29.9 review: it had no h1).
+  console.log('\n── the dashboard (/app)');
+  await p.goto(server.base + '/app');
+  await p.waitForTimeout(600);
+  const howApp = p.getByRole('button', { name: 'איך זה עובד' });
+  if (await howApp.count()) await howApp.click();
+  await p.waitForTimeout(300);
+  judge('dashboard', await outline(p, true));
+
+  // The guest-list import review sits under the page's h1 (review: its h3
+  // skipped a level once PageHeader became the h1).
+  console.log('\n── the guest import review');
+  await p.goto(server.base + '/events/e1/guests');
+  await p.waitForTimeout(600);
+  await p.locator('button[aria-pressed]', { hasText: 'להדביק רשימה' }).click();
+  await p.waitForTimeout(300);
+  await p.fill('textarea[aria-label="הדביקו כאן את רשימת השמות"]', 'דנה כהן\nיוסי לוי');
+  await p.locator('button', { hasText: /לפני ההוספה/ }).last().click();
+  await p.waitForTimeout(400);
+  const imp = await outline(p);
+  ok(imp.some(h => h.text.startsWith('ככה הבנתי')), 'the review is open', imp.map(h => `h${h.level} ${h.text}`).join(' · '));
+  judge('guests + import review', imp);
 
   for (const [id, label] of [['e1', ''], ['e2', ' (empty)']]) {
     console.log(`\n── every event screen${label}`);

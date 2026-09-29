@@ -39,7 +39,9 @@ export default function ImportReview({ rows, existingGuests, onChange, onConfirm
   return (
     <div className={styles.panel}>
       <div className={styles.head}>
-        <h3 className={styles.title}>ככה הבנתי את הרשימה</h3>
+        {/* h2: it sits under the page's h1 (PageHeader, since 108). As h3 it
+            skipped a level (29.9 review). Its size is .title's. */}
+        <h2 className={styles.title}>ככה הבנתי את הרשימה</h2>
         <p className={styles.sub}>
           עברו ותקנו מה שצריך — שום דבר לא נכנס לרשימת האורחים עד שתאשרו.
           {summary.flagged > 0 && (

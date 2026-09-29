@@ -68,6 +68,11 @@ export default function DashboardScreen({ events, unpaidCount = 0, onStartEvent,
   return (
     <div className={base.pageWide}>
       {dialog}
+      {/* The page's h1, for the heading outline (29.9 review: the dashboard had
+          none, and the onboarding panel's h2 came first). Not drawn: the
+          visible heading is the list's own, below, and a second visible title
+          would say the same thing twice. */}
+      <h1 className="sr-only">האירועים שלי</h1>
 
       {/* ── Compact header ── */}
       <div className={styles.heroBar}>
