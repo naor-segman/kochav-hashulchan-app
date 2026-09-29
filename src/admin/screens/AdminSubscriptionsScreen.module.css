@@ -184,6 +184,9 @@
 .filterSelect:focus { border-color: var(--accent); }
 
 .resultCount { font-size: var(--step--1); color: var(--adm-ink-muted); white-space: nowrap; }
+/* The list is a window of the table — said plainly, the same as the events
+   and users screens (.truncNote there). */
+.truncNote { color: var(--adm-ink-dark); font-weight: 700; white-space: nowrap; }
 
 /* ── State boxes ── */
 .stateBox {

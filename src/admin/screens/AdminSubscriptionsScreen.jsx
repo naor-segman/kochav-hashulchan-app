@@ -14,6 +14,7 @@ import {
   STATUS_KEYS,
 } from "../lib/planConfig.js";
 import { formatDate, countPhrase } from "../lib/adminFormat.js";
+import { attachWindowMeta } from "../lib/listWindow.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSubscriptionsScreen.module.css";
@@ -23,18 +24,27 @@ import { COMPANY } from "../../data/company.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function loadSubscriptionsData() {
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .select("id, plan, status, payment_past_due, started_at, expires_at, created_at, updated_at, profiles!user_id(email)")
-    .order("created_at", { ascending: false })
-    .limit(500);
+// The newest SUBS_PAGE purchases, with the table's own count beside them.
+// Until 29.9 the list stopped at 500 and said nothing (WORKPLAN 58) — the
+// events screen already said it; this one now says it the same way.
+const SUBS_PAGE = 500;
 
-  if (error) throw error;
-  return (data || []).map(row => ({
+async function loadSubscriptionsData() {
+  const [listRes, countRes] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("id, plan, status, payment_past_due, started_at, expires_at, created_at, updated_at, profiles!user_id(email)")
+      .order("created_at", { ascending: false })
+      .limit(SUBS_PAGE),
+    supabase.from("subscriptions").select("id", { count: "exact", head: true }),
+  ]);
+
+  if (listRes.error) throw listRes.error;
+  const rows = (listRes.data || []).map(row => ({
     ...row,
     email: row.profiles?.email || "—",
   }));
+  return attachWindowMeta(rows, SUBS_PAGE, countRes.error ? null : countRes.count);
 }
 
 // ── Badge components ──────────────────────────────────────────────────────────
@@ -307,6 +317,11 @@ export default function AdminSubscriptionsScreen() {
               </div>
               <span className={styles.resultCount}>
                 {filtered.length.toLocaleString()} רכישות
+                {subs?.truncated && (
+                  <span className={styles.truncNote}>
+                    {" · "}מוצגות {SUBS_PAGE.toLocaleString()} האחרונות מתוך {subs.total.toLocaleString()}
+                  </span>
+                )}
               </span>
             </div>
 
