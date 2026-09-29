@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
+import { isGuestRoute } from "../utils/guestRoutes.js";
 
 /**
  * Keep the running app on the deployed version, without interrupting anyone.
@@ -33,8 +34,25 @@ import { useRegisterSW } from "virtual:pwa-register/react";
 /** How often to ask the server whether a newer build exists. */
 const CHECK_EVERY_MS = 60_000;
 
+/* ── The reload that never asked (second review 29.9, סב13) ─────────────────
+   Everything above described what SHOULD happen, and none of it ran. With
+   `registerType: 'autoUpdate'` the plugin itself calls
+   `window.location.reload()` the moment the new service worker activates —
+   `needRefresh` never becomes true in that mode, so the safety rule below was
+   never consulted. Measured: a field focused, "half-typed-addr@exam" typed, a
+   new build deployed, the hourly check fired — the page reloaded and the field
+   was empty. The plugin takes an `onNeedReload` that replaces its reload; that
+   is where the rule now sits.
+
+   And a guest's form lives only in memory. A guest who typed into the RSVP or
+   the blessing and switched to WhatsApp came back to a blank form, because a
+   hidden tab counted as safe. So once a guest page has had anything typed into
+   it, it is never reloaded for an update: the guest finishes on this build, and
+   the next visit opens the new one. */
+
 /** Is a reload safe right now — i.e. would it interrupt anybody? */
-export function isSafeToReload(doc = document) {
+export function isSafeToReload(doc = document, guestFormTouched = false) {
+  if (guestFormTouched) return false;                  // a guest's unsent form
   if (doc.visibilityState === "hidden") return true;   // nobody is looking
   const el = doc.activeElement;
   if (!el) return true;
@@ -47,8 +65,13 @@ export function isSafeToReload(doc = document) {
 export function useAppUpdate() {
   const registrationRef = useRef(null);
   const pendingRef      = useRef(false);
+  const touchedRef      = useRef(false);
+  const [needReload, setNeedReload] = useState(false);
 
   const { needRefresh, updateServiceWorker } = useRegisterSW({
+    // autoUpdate mode: the new worker is already in control; only the reload
+    // is left, and it waits for the same safe moment as everything else.
+    onNeedReload() { setNeedReload(true); },
     onRegisteredSW(_swUrl, registration) {
       if (!registration) return;
       registrationRef.current = registration;
@@ -68,14 +91,21 @@ export function useAppUpdate() {
   });
 
   useEffect(() => {
-    if (!needRefresh[0]) return undefined;
+    const onInput = () => { if (isGuestRoute(window.location.pathname)) touchedRef.current = true; };
+    document.addEventListener("input", onInput, true);
+    return () => document.removeEventListener("input", onInput, true);
+  }, []);
+
+  useEffect(() => {
+    if (!needRefresh[0] && !needReload) return undefined;
     pendingRef.current = true;
 
     const applyIfSafe = () => {
       if (!pendingRef.current) return;
-      if (!isSafeToReload()) return;
+      if (!isSafeToReload(document, touchedRef.current)) return;
       pendingRef.current = false;
-      updateServiceWorker(true);   // reloads
+      if (needReload) window.location.reload();
+      else updateServiceWorker(true);   // reloads
     };
 
     applyIfSafe();
@@ -89,7 +119,7 @@ export function useAppUpdate() {
       window.removeEventListener("blur", applyIfSafe);
       clearInterval(poll);
     };
-  }, [needRefresh, updateServiceWorker]);
+  }, [needRefresh, needReload, updateServiceWorker]);
 
   // Ask again whenever the tab wakes up or the network comes back — the two
   // states a phone spends most of its life transitioning between.
