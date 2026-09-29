@@ -79,3 +79,21 @@ describe("CostScreen — says which unit it is counting (107)", () => {
     expect(screen.queryByText(/מתוך 25 אורחים/)).toBeNull();
   });
 });
+
+describe("CostScreen — a budget updated elsewhere while the screen is open (107)", () => {
+  it("shows the incoming budget, and the next edit builds on it — not on the stale copy", async () => {
+    const { fireEvent } = await import("../test/dom.js");
+    const patchEvent = vi.fn();
+    const v1 = { ...ev, costs: { categories: [{ id: "c1", name: "קייטרינג", budget: "20000", actual: "" }] } };
+    const { rerender } = render(<CostScreen activeEvent={v1} patchEvent={patchEvent} showToast={() => {}} />);
+    // The other device added a DJ; hydration hands this screen the new budget.
+    const v2 = { ...ev, costs: { categories: [...v1.costs.categories, { id: "c2", name: "DJ", budget: "6000", actual: "" }] } };
+    rerender(<CostScreen activeEvent={v2} patchEvent={patchEvent} showToast={() => {}} />);
+    expect(screen.getByDisplayValue("DJ")).toBeInTheDocument();
+    // Now the host types — the write must still contain the DJ.
+    fireEvent.change(screen.getByDisplayValue("20000"), { target: { value: "21000" } });
+    const written = patchEvent.mock.calls.at(-1)[0].costs.categories;
+    expect(written.map(c => c.id)).toEqual(["c1", "c2"]);
+    expect(written[0].budget).toBe("21000");
+  });
+});

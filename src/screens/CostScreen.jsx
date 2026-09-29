@@ -55,6 +55,22 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
   // snapshot the moment the host typed a digit, and navigating between two
   // events' budget screens (no remount, the route has no key) wrote one
   // event's categories onto the other.
+  // And an update to THIS event's budget that arrived while the screen was
+  // open — the other device, or hydration — was ignored until the next
+  // keystroke wrote the stale copy over it (107, 29.9). The incoming budget is
+  // adopted during render when its CONTENT differs from what is on screen;
+  // content, not reference, because this screen's own write comes back as a
+  // normalised copy and adopting that would loop.
+  const [seenCosts, setSeenCosts] = useState(ev.costs);
+  if (ev.costs !== seenCosts) {
+    setSeenCosts(ev.costs);
+    const incoming = ev.costs?.categories;
+    if (Array.isArray(incoming) && incoming.length &&
+        JSON.stringify(incoming) !== JSON.stringify(cats)) {
+      setCats(initCategories(ev));
+    }
+  }
+
   const seededFor = useRef(ev.id);
   useEffect(() => {
     if (seededFor.current === ev.id) return;
