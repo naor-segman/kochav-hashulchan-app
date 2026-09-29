@@ -60,6 +60,10 @@ ok(!r.html.includes("<b>"), "no raw tag reaches the page");
 
 r = await run("/rsvp/tok12345", { ...EV, bride_name: null, groom_name: null, celebrant_name: "איתי", type: "בר מצווה" });
 ok(pick(r.html, T) === "אישור הגעה · איתי", "one celebrant", pick(r.html, T));
+// ברית / יום הולדת keep their one name in owner_name. Without it the title
+// fell to the event's own name: "אתר הברית של הברית של איתי" (סב20).
+r = await run("/invite/tok12345", { ...EV, bride_name: null, groom_name: null, owner_name: "איתי", name: "הברית של איתי", type: "ברית" });
+ok(pick(r.html, T) === "אתר הברית של איתי", "a brit: named by owner_name, not twice by the event's name", pick(r.html, T));
 r = await run("/rsvp/tok12345", { ...EV, type: "אחר" });
 ok(!pick(r.html, /<meta property="og:description" content="([^"]*)"/).includes("אחר"), '"אחר" is not shown');
 

@@ -79,7 +79,9 @@ export default async (request, context) => {
     }[ev.type] || "אתר האירוע של";
     const hosts = (ev.bride_name && ev.groom_name)
       ? `${ev.bride_name} & ${ev.groom_name}`
-      : (ev.celebrant_name || ev.organization_name || ev.name);
+      // owner_name: the one name of a ברית, יום הולדת… — without it the title
+      // fell to the event's own name: "אתר הברית של הברית של איתי" (סב20).
+      : (ev.celebrant_name || ev.organization_name || ev.owner_name || ev.name);
     // The site keeps its original wording. Every other page names itself first,
     // then whose event it is — "אישור הגעה · דנה & יוסי".
     const title = route.label ? `${route.label} · ${hosts}` : `${typeSite} ${hosts}`;

@@ -87,6 +87,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
         brideName: localEvent.brideName, groomName: localEvent.groomName,
         celebrantName: localEvent.celebrantName,
         organizationName: localEvent.organizationName,
+        ownerName: localEvent.ownerName,
         rsvpToken: localEvent.tokens?.rsvp, inviteToken: localEvent.tokens?.invite,
         announcements: localEvent.announcements,
         site: localEvent.eventSite ?? null,
@@ -163,7 +164,11 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   }
 
   const names = [event.brideName, event.groomName].filter(Boolean).join(" ♥ ")
-             || event.celebrantName || event.organizationName || "";
+             || event.celebrantName || event.organizationName
+             // ברית, בריתה, יום הולדת, אירוע משפחתי and אחר keep their one
+             // name here — without it a birthday invitation named nobody and
+             // the page had no h1 at all (second review, סב20).
+             || event.ownerName || "";
 
   const addToCalendar = () => {
     // The same start time as the site and the RSVP page. Without it this
