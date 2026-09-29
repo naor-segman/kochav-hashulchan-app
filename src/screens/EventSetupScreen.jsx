@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { EVENT_TYPES } from "../data/constants.js";
 import { BUILD_STEP_COUNT, stepChainAfter, nextBuildStep } from "../data/eventAreas.js";
@@ -42,6 +42,28 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   const [errors, setErrors] = useState({});
   const nameRef = useRef(null);
 
+  /* Leaving with unsaved edits kept nothing (third review 30.9, E4): type a
+   * venue, tap "אורחים" in the nav, and it was gone — on the one screen of the
+   * product that does not save as you go. Now leaving saves (a blank name keeps
+   * the event's current one; the name is the only required field), and closing
+   * the tab with edits pending asks first. Refs, because the cleanup must see
+   * the last keystroke, not the render it was created in. */
+  const pending = useRef({ dirty: false, form, patchEvent, showToast, name: ev.name });
+  useEffect(() => {
+    pending.current = { dirty, form, patchEvent, showToast, name: ev.name };
+  });
+  useEffect(() => {
+    const warn = (e) => { if (pending.current.dirty) { e.preventDefault(); e.returnValue = ""; } };
+    window.addEventListener("beforeunload", warn);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      const p = pending.current;
+      if (!p.dirty) return;
+      p.patchEvent(p.form.name.trim() ? p.form : { ...p.form, name: p.name });
+      p.showToast?.("פרטי האירוע נשמרו ✓");
+    };
+  }, []);
+
   const set = (k, v) => {
     setForm(p => Object.assign({}, p, { [k]: v }));
     setDirty(true);
@@ -69,6 +91,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   const save = () => {
     if (!validate()) return;
     patchEvent(form);
+    pending.current.dirty = false;
     setDirty(false);
     setSaved(true);
     showToast("פרטי האירוע נשמרו ✓");
@@ -83,12 +106,14 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   const goNext = () => {
     if (!validate()) return;
     if (dirty) patchEvent(form);
+    pending.current.dirty = false;
     go(next.id);
   };
 
   const saveAndNext = () => {
     if (!validate()) return;
     if (dirty) patchEvent(form);
+    pending.current.dirty = false;
     setDirty(false);
     setSaved(true);
     go(next.id);
