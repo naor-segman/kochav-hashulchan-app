@@ -5,7 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // dist-shots/ is the build qa/marketingShots*.mjs leave behind (gitignored).
+  // Unlisted, one screenshot run turned `npm run lint` from 10 errors into 739.
+  globalIgnores(['dist', 'dist-shots']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
