@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { autoAssign, computeViolations, tablesOpenForNewGuests } from "./seating.js";
+import { autoAssign, computeViolations } from "./seating.js";
 
 // Helpers to build fixtures concisely.
 const g = (id, extra = {}) => ({ id, name: id, side: "bride", group: "משפחה", count: 1, ...extra });
@@ -806,26 +806,32 @@ describe("an apart constraint only fires when both guests are actually seated", 
   });
 });
 
-describe("a locked table takes no one new (סב9)", () => {
+describe("a locked table takes no one new — except a together-partner (סב9, סב48)", () => {
   // The tooltip: "נעלו שולחן — לא יוצעו שינויים לשולחן זה". A locked table
-  // holding one guest came back from "חשבו מחדש" holding seven.
+  // holding one guest came back from "חשבו מחדש" holding seven (סב9). The first
+  // fix closed the table to everyone — and split a guest from the partner the
+  // host had bound "together" to someone already there, with advice that sent
+  // the host back to recompute, which split them again (סב48).
   const guests = ["a", "b", "c", "d", "e", "f", "g"].map(id => ({ id, name: id, count: 1 }));
   const tables = [{ id: "T1", capacity: 10 }, { id: "T2", capacity: 10 }];
 
   it("keeps the occupant and seats everyone else elsewhere", () => {
-    const out = autoAssign(guests, tablesOpenForNewGuests(tables, ["T2"]), [], { a: "T2" });
+    const out = autoAssign(guests, tables, [], { a: "T2" }, null, ["T2"]);
     expect(out.a).toBe("T2");
     expect(guests.filter(g => out[g.id] === "T2").map(g => g.id)).toEqual(["a"]);
     expect(guests.filter(g => g.id !== "a").every(g => out[g.id] === "T1")).toBe(true);
   });
 
   it("with every table locked, seats no one new and moves no one", () => {
-    const out = autoAssign(guests, tablesOpenForNewGuests(tables, ["T1", "T2"]), [], { a: "T2" });
+    const out = autoAssign(guests, tables, [], { a: "T2" }, null, ["T1", "T2"]);
     expect(out).toEqual({ a: "T2" });
   });
 
-  it("no locks: the table list is passed through untouched", () => {
-    expect(tablesOpenForNewGuests(tables, [])).toBe(tables);
-    expect(tablesOpenForNewGuests(tables)).toBe(tables);
+  it("a guest bound 'together' to someone at a locked table joins them there", () => {
+    const g2 = [{ id: "A", name: "A", count: 1 }, { id: "B", name: "B", count: 1 }];
+    const t2 = [{ id: "T1", capacity: 4 }, { id: "T2", capacity: 10 }];
+    const out = autoAssign(g2, t2, [together("A", "B")], { A: "T1" }, null, ["T1"]);
+    expect(out).toEqual({ A: "T1", B: "T1" });
+    expect(computeViolations(g2, t2, [together("A", "B")], out)).toEqual([]);
   });
 });

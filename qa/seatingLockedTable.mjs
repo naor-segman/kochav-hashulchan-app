@@ -36,5 +36,26 @@ try {
   console.log('  seating', JSON.stringify(seating));
   ok = atT2.join(',') === 'a' && Object.keys(seating).length === 7;
   console.log(ok ? '  ok   the locked table kept only its occupant; the rest are seated' : '  FAIL at the locked table: ' + atT2.join(','));
+
+  // סב48: a guest bound "together" to someone at a locked table joins them —
+  // the first fix split the pair and the assistant sent the host round in a
+  // circle.
+  const EV2 = { id: 'e2', name: 'יחד', type: 'חתונה', date: '2027-06-01',
+    guests: [{ id: 'A', name: 'אבא', side: 'bride', group: 'משפחה', count: 1, rsvp: 'confirmed' },
+             { id: 'B', name: 'בת', side: 'bride', group: 'משפחה', count: 1, rsvp: 'confirmed' }],
+    tables: [{ id: 'T1', name: 'שולחן 1', capacity: 4, type: 'regular', shape: 'round' }, { id: 'T2', name: 'שולחן 2', capacity: 10, type: 'regular', shape: 'round' }],
+    seating: { A: 'T1' }, lockedTables: ['T1'], constraints: [{ id: 'c1', type: 'together', guestA: 'A', guestB: 'B' }] };
+  await p.evaluate(ev => { const st = JSON.parse(localStorage.getItem('kochav_hashulchan_v1')); st.events.push(ev);
+    localStorage.setItem('kochav_hashulchan_v1', JSON.stringify(st)); }, EV2);
+  await p.goto(server.base + '/events/e2/seating');
+  await p.waitForTimeout(800);
+  await p.locator('button', { hasText: 'חשבו מחדש' }).first().click();
+  await p.waitForTimeout(400);
+  await p.locator('[class*=_overlay_]').locator('button', { hasText: 'חשבו מחדש' }).click();
+  await p.waitForTimeout(600);
+  const s2 = await p.evaluate(() => JSON.parse(localStorage.getItem('kochav_hashulchan_v1')).events.find(e => e.id === 'e2').seating);
+  const ok2 = s2.A === 'T1' && s2.B === 'T1';
+  console.log(ok2 ? '  ok   the together-partner joined the locked table' : '  FAIL together-partner split: ' + JSON.stringify(s2));
+  ok = ok && ok2;
 } finally { await browser.close(); await server.stop(); rmSync(OUT, { recursive: true, force: true }); }
 process.exit(ok ? 0 : 1);
