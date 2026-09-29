@@ -315,6 +315,11 @@ export function generateSuggestions(
     const ga = guestMap[c.guestA];
     const gb = guestMap[c.guestB];
     if (!ga || !gb) return;
+    // A guest who declined is not waiting for a seat. With them in, the panel
+    // said "X עדיין ללא שולחן" and offered one click to seat someone who is
+    // not coming — in ~1 of 10 fuzzed events (29.9 second review, סב8) — and
+    // re-offered it after every recompute, since the engine never seats a no.
+    if (ga.rsvp === "declined" || gb.rsvp === "declined") return;
     const ta = seating[c.guestA];
     const tb = seating[c.guestB];
     if (ta && !tb) togetherPending.push({ seated: ga, waiting: gb, tid: ta });

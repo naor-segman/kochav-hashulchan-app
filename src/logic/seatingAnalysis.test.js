@@ -572,6 +572,14 @@ describe("together_pending — the one-click fix must not create the violation i
     expect(find(s, "together_pending").canApply).toBe(true);
   });
 
+  it("never offers to seat a guest who declined (סב8)", () => {
+    // "…ודחה עדיין ללא שולחן" with a one-click fix that seated someone not
+    // coming — 456–514 of every 5,000 fuzzed events.
+    const guests = [g("דנה"), { ...g("יוסי"), rsvp: "declined" }];
+    const s = generateSuggestions(guests, [t("t1", 6)], [together("דנה", "יוסי")], { "דנה": "t1" });
+    expect(find(s, "together_pending")).toBeUndefined();
+  });
+
   it("detects the pair in BOTH directions", () => {
     // The branch `!ta && tb` had no coverage at all: half the feature could be
     // deleted and the suite stayed green.
