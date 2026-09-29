@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
-import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
+import { renderTemplate, whatsappLink, linkForStage } from "../data/messageSequence.js";
+import { useShareGate } from "../components/share/useShareGate.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { getSideLabel, guestCompanionNames } from "../utils/eventHelpers.js";
@@ -36,6 +37,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const next = nextBuildStep("guests");
 
   const { confirm, prompt, dialog } = useConfirm();
+  const { guard, gate } = useShareGate();
   // Corporate events use a business group set + default; everyone else the
   // family-oriented one. Custom groups (below) work regardless of type.
   const isBusiness   = ev.type === "אירוע עסקי";
@@ -304,21 +306,35 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     XLSX.writeFile(wb, `אורחים-${(ev.name || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
   };
 
-  // Open WhatsApp to a specific guest with a personal invite + event-site link.
-  const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
+  // Open WhatsApp to a specific guest with a personal invite.
+  //
+  // The link is the INVITATION stage's own (checklist 88): the event site when
+  // it is published, else the page that stage falls back to — never a raw
+  // /invite/ link to a site that says "not published yet", which is what this
+  // button sent until the 29.9 review. Guarded like every other send (a guest-
+  // mode link resolves to nothing), and recorded as sent on the messages
+  // screen, so the sequence there knows this family already got it.
   // Was a second copy of the phone normaliser with its own divergences (no
   // minimum length, so "050" produced wa.me/97250) and a raw `ל${ev.name}`,
   // which reads "להחתונה של דנה" — in Hebrew the attached ל absorbs the
   // definite article. renderTemplate + whatsappLink already handle both, and
   // they are the versions that have tests.
-  const waGuest = (guest) => {
+  const waGuest = (guest) => guard("ההזמנה לאורח", () => {
+    const link = linkForStage("invitation", ev, window.location.origin)?.url || "";
     const msg = renderTemplate(
       "היי {{שם}}! 💛\nאתם מוזמנים ל{{אירוע}}.\nכל הפרטים ואישור הגעה כאן:\n{{קישור}}",
-      { event: ev, guest, link: siteUrl }
+      { event: ev, guest, link }
     ) + messageSignature();
     const url = whatsappLink(guest.phone, msg);
     window.open(url || ("https://wa.me/?text=" + encodeURIComponent(msg)), "_blank", "noopener");
-  };
+    patchEvent(e => ({
+      ...e,
+      messagesSent: {
+        ...(e.messagesSent || {}),
+        invitation: { ...((e.messagesSent || {}).invitation || {}), [guest.id]: Date.now() },
+      },
+    }));
+  });
 
   const visible = ev.guests.filter(g => {
     if (filter.side !== "all" && g.side !== filter.side) return false;
@@ -328,8 +344,20 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     return true;
   });
 
-  const bulkSetRsvp = (rsvpValue) => {
+  const bulkSetRsvp = async (rsvpValue) => {
     const ids = new Set(visible.map(g => g.id));
+    // One tap used to overwrite every filtered guest's answer — a confirmed
+    // family of 8 became "declined", silently left the meal and seat counts,
+    // and stayed seated (29.9 review). Say how many, and how many answers
+    // that differ will be replaced.
+    const label0 = RSVP_OPTIONS.find(o => o.value === rsvpValue)?.label || rsvpValue;
+    const changing = visible.filter(g => (g.rsvp || "pending") !== rsvpValue && (g.rsvp || "pending") !== "pending").length;
+    const ok = await confirm(
+      `לסמן ${ids.size} אורחים כ"${label0}"?` +
+      (changing ? `\n\n${changing} מהם כבר ענו אחרת — התשובה שלהם תוחלף.` : ""),
+      { confirmLabel: "סמנו", danger: changing > 0 },
+    );
+    if (!ok) return;
     patchEvent(e => ({
       ...e,
       guests: e.guests.map(g => ids.has(g.id) ? { ...g, rsvp: rsvpValue } : g),
@@ -362,6 +390,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   return (
     <div className={base.page}>
       {dialog}
+      {gate}
       <PageHeader
         title="אורחים"
         mark="guests"
