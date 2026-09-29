@@ -139,7 +139,7 @@ export default function InviteScreen() {
       <div className={styles.root}>
         <div className={styles.stateCenter}>
           <span className={styles.notFoundStar} aria-hidden="true">✦</span>
-          <p className={styles.stateText}>{UNREACHABLE_TEXT.title}</p>
+          <h1 className={styles.stateText}>{UNREACHABLE_TEXT.title}</h1>
           <p className={styles.stateSub}>{UNREACHABLE_TEXT.body}</p>
         </div>
       </div>
@@ -152,7 +152,7 @@ export default function InviteScreen() {
       <div className={styles.root}>
         <div className={styles.stateCenter}>
           <span className={styles.notFoundStar} aria-hidden="true">✦</span>
-          <p className={styles.stateText}>ההזמנה לא נמצאה</p>
+          <h1 className={styles.stateText}>ההזמנה לא נמצאה</h1>
           <p className={styles.stateSub}>קישור זה אינו תקף או שפג תוקפו</p>
           <Link to="/" className={styles.stateLink}>חזרה לדף הבית</Link>
         </div>

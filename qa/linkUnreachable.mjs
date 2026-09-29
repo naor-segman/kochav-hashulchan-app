@@ -64,6 +64,10 @@ async function open(path, answer) {
   return { ctx, p, errs };
 }
 const text = p => p.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').trim());
+// WORKPLAN 108: the state's title is the page's one h1, and a dead link has a
+// way out. Until 29.9 seven of these pages had no h1 and six had no way out.
+const h1s  = p => p.evaluate(() => [...document.querySelectorAll('h1')].map(h => h.textContent.trim()));
+const home = p => p.evaluate(() => [...document.querySelectorAll('a')].some(a => new URL(a.href).pathname === '/'));
 
 try {
   console.log('── server down (503): every page says connection, none says invalid link');
@@ -74,6 +78,8 @@ try {
     const conn = t.includes(UNREACHABLE) || t.includes('שגיאת חיבור');
     ok(conn && !INVALID_RE.test(t), `${path}: connection message, not "invalid"`, t.slice(0, 110));
     ok(errs.length === 0, `${path}: no page error`, errs[0] || '');
+    const hs = await h1s(p);
+    ok(hs.length === 1, `${path}: the connection message is the page's one h1`, hs.join(' · '));
     await ctx.close();
   }
 
@@ -86,6 +92,9 @@ try {
     });
     const t = await text(p);
     ok(!t.includes(UNREACHABLE) && !/בדקו את החיבור/.test(t), `${path}: not blamed on the connection`, t.slice(0, 110));
+    const hs = await h1s(p);
+    ok(hs.length === 1, `${path}: the "invalid" message is the page's one h1`, hs.join(' · '));
+    ok(await home(p), `${path}: a way out to the home page`);
     await ctx.close();
   }
 

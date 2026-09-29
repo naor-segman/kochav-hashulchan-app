@@ -380,7 +380,12 @@
   color: var(--nav-muted);
 }
 
+/* Also the h1 of the not-found and unreachable states (WORKPLAN 108): the
+   heading defaults are handed back so it looks as the paragraph did. */
 .stateText {
+  font-family: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
   color: var(--nav-text);
   font-size: var(--step-1);
   font-weight: 600;

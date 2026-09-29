@@ -155,7 +155,7 @@ export default function EventSiteScreen({ localEvent }) {
     return (
       <div className={styles.stateWrap}>
         <span className={styles.stateStar}>✦</span>
-        <p>הקישור אינו תקין או שפג תוקפו</p>
+        <h1 className={styles.stateTitle}>הקישור אינו תקין או שפג תוקפו</h1>
         <Link to="/" className={styles.stateLink}>לדף הבית</Link>
       </div>
     );
@@ -164,7 +164,7 @@ export default function EventSiteScreen({ localEvent }) {
     return (
       <div className={styles.stateWrap}>
         <span className={styles.stateStar}>✦</span>
-        <p>{UNREACHABLE_TEXT.title}</p>
+        <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
         <p>{UNREACHABLE_TEXT.body}</p>
       </div>
     );

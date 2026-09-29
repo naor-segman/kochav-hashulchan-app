@@ -240,6 +240,7 @@ export default function RSVPScreen() {
                 ייתכן שהקישור פג תוקף, שגוי, או שהאירוע בוטל.
                 <br />אנא פנו לבעלי האירוע לקבלת לינק מעודכן.
               </p>
+              <Link to="/" className={styles.homeLink}>לדף הבית</Link>
             </div>
           </div>
         </div>

@@ -132,8 +132,9 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     return (
       <div className={styles.state}>
         <span className={styles.star}>✦</span>
-        <p>הדף לא נמצא</p>
+        <h1 className={styles.stateTitle}>הדף לא נמצא</h1>
         <p className={styles.stateSub}>הקישור אינו תקף או שפג תוקפו</p>
+        <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </div>
     );
   }
@@ -141,7 +142,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     return (
       <div className={styles.state}>
         <span className={styles.star}>✦</span>
-        <p>{UNREACHABLE_TEXT.title}</p>
+        <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
         <p className={styles.stateSub}>{UNREACHABLE_TEXT.body}</p>
       </div>
     );

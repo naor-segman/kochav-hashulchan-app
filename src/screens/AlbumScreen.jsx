@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
@@ -152,7 +152,7 @@ export default function AlbumScreen() {
     return (
       <div className={styles.state}>
         <span className={styles.star}>✦</span>
-        <p>{UNREACHABLE_TEXT.title}</p>
+        <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
         <p className={styles.sub}>{UNREACHABLE_TEXT.body}</p>
       </div>
     );
@@ -161,8 +161,9 @@ export default function AlbumScreen() {
     return (
       <div className={styles.state}>
         <span className={styles.star}>✦</span>
-        <p>האלבום לא נמצא</p>
+        <h1 className={styles.stateTitle}>האלבום לא נמצא</h1>
         <p className={styles.sub}>הקישור אינו תקף או שפג תוקפו</p>
+        <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </div>
     );
   }

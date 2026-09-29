@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import styles from "./GiftWallScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
@@ -120,11 +120,12 @@ export default function GiftWallScreen() {
                 connection problem, and telling the venue to check its wifi
                 for a wrong link sends them chasing the wrong fault. */}
             {unreachable ? <>
-              <p>{UNREACHABLE_TEXT.title}</p>
+              <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
               <p>{UNREACHABLE_TEXT.body}</p>
             </> : <>
-              <p>הקישור לקיר הברכות אינו תקין.</p>
+              <h1 className={styles.stateTitle}>הקישור לקיר הברכות אינו תקין.</h1>
               <p>בקשו מבעלי האירוע את הקישור העדכני.</p>
+              <Link to="/" className={styles.homeLink}>לדף הבית</Link>
             </>}
           </div>
         </main>

@@ -355,3 +355,8 @@
     height: 44px;
   }
 }
+
+/* The error state's title is the page's h1 (WORKPLAN 108) and must look
+   exactly as the paragraph it replaced, so the heading defaults are handed
+   back to the container. */
+.stateTitle { font: inherit; letter-spacing: inherit; }

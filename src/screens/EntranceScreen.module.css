@@ -57,7 +57,8 @@
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
 
 .stateIcon { color: var(--red-border); display: flex; }
-.stateText { font-size: var(--step-1); font-weight: 500; color: var(--nav-text); }
+/* An h1 since 29.9 (WORKPLAN 108); the heading defaults are handed back. */
+.stateText { font-family: inherit; line-height: inherit; letter-spacing: inherit; font-size: var(--step-1); font-weight: 500; color: var(--nav-text); }
 
 /* ── Bar ── */
 .bar {
@@ -106,7 +107,12 @@
   line-height: 1.2;
 }
 
+/* An h1 since 29.9 (WORKPLAN 108) that must look exactly as the span did,
+   so the heading defaults from reset.css are handed back to the bar. */
 .barName {
+  font-family: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
   font-size: var(--step-0);
   font-weight: 800;
   max-width: 100%;
@@ -865,3 +871,6 @@
     box-sizing: border-box;
   }
 }
+
+/* A way out of a dead link (WORKPLAN 108). */
+.homeLink { display: inline-block; padding: 8px 12px; color: var(--accent-on-dark); font-weight: 700; text-decoration: none; }

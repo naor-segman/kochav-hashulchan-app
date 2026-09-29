@@ -305,3 +305,11 @@
     font-size: var(--step-2);
   }
 }
+
+/* The error state's title is the page's h1 (WORKPLAN 108) and must look
+   exactly as the paragraph it replaced, so the heading defaults are handed
+   back to the container. */
+.stateTitle { font: inherit; letter-spacing: inherit; }
+
+/* A way out of a dead link (WORKPLAN 108). */
+.homeLink { display: inline-block; padding: 8px 12px; color: var(--accent-on-dark); font-weight: 700; text-decoration: none; }

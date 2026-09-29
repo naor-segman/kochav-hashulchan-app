@@ -104,10 +104,6 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
 
   return (
     <div className={base.pageWide}>
-      {orientation.open && (
-        <Orientation onDismiss={orientation.dismiss} onGo={go} />
-      )}
-
       <header className={styles.head}>
         <div className={styles.headMain}>
           <p className={styles.eyebrow}>{ev.type || "אירוע"}</p>
@@ -136,6 +132,14 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           )}
         </div>
       </header>
+
+      {/* Under the event's name, not above it: above, its h2 came before the
+          page's h1 and at 390px pushed the name below the fold (WORKPLAN 108).
+          The button that reopens it is in the header, so it opens right under
+          the button. */}
+      {orientation.open && (
+        <Orientation onDismiss={orientation.dismiss} onGo={go} />
+      )}
 
       {/* Above the fold on the screen the host actually lands on. A warning
           about a deletion is only a warning if it is seen before the deletion,

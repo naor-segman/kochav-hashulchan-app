@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   fetchCollabEvent, fetchCollabGuests,
   upsertCollabGuest, deleteCollabGuest, UNREACHABLE_TEXT,
@@ -138,15 +138,16 @@ export default function CollabScreen() {
   if (state === "notfound") return (
     <div className={styles.state}>
       <span className={styles.star}><Icon name="alert" size={26} /></span>
-      <p>הקישור אינו פעיל</p>
+      <h1 className={styles.stateTitle}>הקישור אינו פעיל</h1>
       <p className={styles.stateHint}>ייתכן שבעלי האירוע סגרו אותו, או שהכתובת שגויה. שווה לבקש מהם קישור מעודכן.</p>
+      <Link to="/" className={styles.homeLink}>לדף הבית</Link>
     </div>
   );
 
   if (state === "unreachable") return (
     <div className={styles.state}>
       <span className={styles.star}><Icon name="alert" size={26} /></span>
-      <p>{UNREACHABLE_TEXT.title}</p>
+      <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
       <p className={styles.stateHint}>{UNREACHABLE_TEXT.body}</p>
     </div>
   );

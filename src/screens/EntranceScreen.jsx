@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { tableLabel } from "../components/seating/tableLabel.js";
 import { getSideLabel, rotateEventToken } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
@@ -425,11 +425,12 @@ export default function EntranceScreen({
             ? <><div className={styles.spinner} aria-hidden="true" /><span className={styles.stateText}>טוען...</span></>
             : <>
                 <span className={styles.stateIcon} aria-hidden="true"><Icon name="alert" size={30} /></span>
-                <span className={styles.stateText}>
+                <h1 className={styles.stateText}>
                   {remoteState === "notfound"
                     ? "הקישור אינו תקין או שהאירוע הוסר"
                     : "שגיאת חיבור — נסו לרענן את הדף"}
-                </span>
+                </h1>
+                {remoteState === "notfound" && <Link to="/" className={styles.homeLink}>לדף הבית</Link>}
               </>}
         </div>
       </div>
@@ -515,7 +516,7 @@ export default function EntranceScreen({
           </button>
         )}
         <div className={styles.barTitle}>
-          <span className={styles.barName}>{ev.name || "אירוע"}</span>
+          <h1 className={styles.barName}>{ev.name || "אירוע"}</h1>
           <span className={styles.barRole}>עמדת כניסה</span>
         </div>
         {canManage && (

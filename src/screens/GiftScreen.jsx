@@ -101,7 +101,7 @@ export default function GiftScreen() {
       <div className={styles.root}>
         <div className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
-          <p className={styles.loadingText}>{UNREACHABLE_TEXT.title}</p>
+          <h1 className={styles.loadingText}>{UNREACHABLE_TEXT.title}</h1>
           <p className={styles.loadingText}>{UNREACHABLE_TEXT.body}</p>
         </div>
       </div>
@@ -114,7 +114,8 @@ export default function GiftScreen() {
       <div className={styles.root}>
         <div className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
-          <p className={styles.loadingText}>הלינק לא תקין או שפג תוקפו</p>
+          <h1 className={styles.loadingText}>הלינק לא תקין או שפג תוקפו</h1>
+          <Link to="/" className={styles.homeLink}>לדף הבית</Link>
         </div>
       </div>
     );
