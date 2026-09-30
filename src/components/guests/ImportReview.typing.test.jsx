@@ -9,11 +9,11 @@ import { buildImportRows, readyImportRows } from "../../utils/importReview.js";
  * box stored "יובלסגמן"; clearing the seats box to type 12 cut the names and
  * then read "112". */
 
-let latest = null;
+const store = { rows: null };   // what the screen last handed back
 function Harness() {
   const [rows, setRows] = useState(() => buildImportRows([{ name: "משפחת כהן", phone: "0501234567", count: 3, companions: ["דנה", "רון"] }]));
-  latest = rows;
-  return <ImportReview rows={rows} existingGuests={[]} onChange={setRows} onConfirm={() => {}} onCancel={() => {}} />;
+  const onChange = (next) => { store.rows = next; setRows(next); };
+  return <ImportReview rows={rows} existingGuests={[]} onChange={onChange} onConfirm={() => {}} onCancel={() => {}} />;
 }
 const type = (el, v) => fireEvent.change(el, { target: { value: v } });
 
@@ -25,7 +25,7 @@ describe("the review step keeps what the host types", () => {
     // browser does.
     for (const ch of ", יובל סגמן") type(names, names.value + ch);
     expect(names.value).toBe("דנה, רון, יובל סגמן");
-    expect(readyImportRows(latest)[0].companions).toEqual(["דנה", "רון", "יובל סגמן"]);
+    expect(readyImportRows(store.rows)[0].companions).toEqual(["דנה", "רון", "יובל סגמן"]);
   });
 
   it("clearing the seats to type 12 keeps the names, and reads 12", () => {
@@ -36,7 +36,7 @@ describe("the review step keeps what the host types", () => {
     type(seats, "12");
     fireEvent.blur(seats);
     expect(seats.value).toBe("12");
-    expect(latest[0].count).toBe(12);
-    expect(latest[0].companions).toEqual(["דנה", "רון"]);
+    expect(store.rows[0].count).toBe(12);
+    expect(store.rows[0].companions).toEqual(["דנה", "רון"]);
   });
 });
