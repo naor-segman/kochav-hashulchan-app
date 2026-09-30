@@ -271,12 +271,12 @@ const ADDRESS_START = /^\s*(?:רחוב|רח['\u05F3]?|שדרות|שד['\u05F3]?|
 // is why this guard is keyed on the matched TEXT and not on the form index.
 const EXPLICIT_COUNT = /[xX\u00D7*()]|אנשים|איש|נפשות|מקומות|כיסאות/u;
 
-function readCount(rest) {
-  const isAddress = ADDRESS_START.test(rest);
+function readCount(rest, { explicitOnly = false } = {}) {
+  const bareOk = !explicitOnly && !ADDRESS_START.test(rest);
   for (const re of COUNT_FORMS) {
     const m = rest.match(re);
     if (!m) continue;
-    if (isAddress && !EXPLICIT_COUNT.test(m[0])) continue;
+    if (!bareOk && !EXPLICIT_COUNT.test(m[0])) continue;
     const n = parseInt(m[1], 10);
     if (!Number.isFinite(n) || n < 2) continue;   // "1" adds nothing; 0 is not a count
     const stripped = rest.slice(0, m.index) + " " + rest.slice(m.index + m[0].length);
@@ -334,9 +334,11 @@ function parseColumns(line) {
   // The name cell is read like any typed line — its "+1 (רותי)" is a companion,
   // not part of the name. Read raw, "גיל גולן+1 (רותי)" stayed the guest's name
   // and רותי was dropped (fourth review 30.9).
-  // A spreadsheet has its own count column, so a bare number in the name cell
-  // is part of the name ("דנה בת 12", "בית כנסת 5") — only "+N" and brackets
-  // are read there (fifth review 30.9: "דנה בת 12" was 12 seats).
+  // A spreadsheet has its own count column, so a BARE number in the name cell
+  // is part of the name ("דנה בת 12", "בית כנסת 5" — fifth review 30.9: 12
+  // seats). A count the cell SAYS is one — "+2", "(2)", "x2", "3 איש" — is
+  // still read (sixth review 30.9: turning bare numbers off had turned those
+  // off too, and "סבתא (2)" imported one seat).
   const person = parseOnePerson(nameCell, { bareCount: false });
   if (!person) return null;
 
@@ -395,8 +397,8 @@ function parseOnePerson(segment, { bareCount = true } = {}) {
 
   // Only look for the other count notations once the "+N" and the bracket are
   // gone, so "+1 (שרה)" is never re-read as a trailing number.
-  if (bareCount && declared == null && !companions.length) {
-    const c = readCount(rest);
+  if (declared == null && !companions.length) {
+    const c = readCount(rest, { explicitOnly: !bareCount });
     if (c) { declared = c.count - 1; rest = c.rest; }
   }
   if (plusNames.length) companions = companions.concat(plusNames);

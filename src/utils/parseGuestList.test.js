@@ -633,3 +633,13 @@ describe("a duplicate keeps the names of both copies", () => {
     expect(r.count).toBe(3);
   });
 });
+
+// Sixth review 30.9 (סב90b): bareCount:false turned off the explicit forms too.
+describe("a spreadsheet name cell still reads a count it states", () => {
+  it("(2), x2 and \"- 3 איש\" are seats; a bare number is still part of the name", () => {
+    const rows = parseGuestList(
+      "סבתא (2)\t0501111111\nמשפחת לוי - 3 איש\t0522222222\nדנה כהן x2\t0533333333\nדנה בת 12\t0544444444");
+    expect(rows.map(r => r.count || 1)).toEqual([2, 3, 2, 1]);
+    expect(rows.map(r => r.name)).toEqual(["סבתא", "משפחת לוי", "דנה כהן", "דנה בת 12"]);
+  });
+});
