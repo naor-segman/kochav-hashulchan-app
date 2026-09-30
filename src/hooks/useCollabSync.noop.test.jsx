@@ -70,4 +70,18 @@ describe("useCollabSync — a visit changes nothing that is already in step (ס�
     await settle();
     for (const [fn] of patch.mock.calls) expect(fn(ev).guests[0].phone).toBe(long);
   });
+
+  it("a relative editing another field of that row does not clip the host's value either", async () => {
+    const long = "050-1234567 סבתא, 052-7654321 דודה רחל, 054-0";   // 45 characters
+    const host = { id: "r8", name: "משפחת לוי", phone: long, side: "bride", group: "משפחה", count: 1,
+                   companions: [], notes: "", rsvp: "pending", meal: "רגיל" };
+    const ev = eventWith([host]);
+    pub.fetchCollabGuestsOwner.mockResolvedValueOnce([{ ...guestToCollab(ev.guests[0]), notes: "צמחונית" }]);
+    const patch = vi.fn();
+    renderHook(() => useCollabSync(ev, patch, toast));
+    await settle();
+    const out = patch.mock.calls.map(([fn]) => fn(ev)).find(r => r !== ev);
+    expect(out.guests[0].notes).toBe("צמחונית");   // the relative's edit applies
+    expect(out.guests[0].phone).toBe(long);         // the host's full phone stays
+  });
 });

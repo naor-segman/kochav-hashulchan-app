@@ -165,14 +165,24 @@ export function pickNotes(r, existing) {
 export const sameGuest = (a, b) =>
   Object.keys({ ...a, ...b }).every((k) => JSON.stringify(a[k]) === JSON.stringify(b[k]));
 
+// The table holds at most `n` characters of a field. When what it holds is
+// exactly the host's value clipped, it has no newer opinion — the host's full
+// value stands. Per field: a relative who edits only the notes of a row sends
+// the row whole, clipped phone included, and taking it replaced the host's
+// 45-character phone with 39 characters (fourth review 30.9; סב64 covered the
+// echo, not this).
+const fuller = (existingVal, rowVal, n) =>
+  typeof existingVal === "string" && norm(clip(existingVal, n)) === norm(rowVal) ? existingVal : norm(rowVal);
+
 export function guestFromCollab(r, existing) {
+  const notes = pickNotes(r, existing);
   return {
     ...(existing || {}),
     id:    r.id,
-    name:  norm(r.name),
-    phone: norm(r.phone),
+    name:  fuller(existing?.name, r.name, 120),
+    phone: fuller(existing?.phone, r.phone, 40),
     side:  sideOf(r.side),
-    group: norm(r.guest_group) || "משפחה קרובה",
+    group: fuller(existing?.group, r.guest_group, 60) || "משפחה קרובה",
     count: r.guests_count || 1,
     meal:       existing?.meal       ?? MEAL_DEFAULT,
     rsvp:       existing?.rsvp       ?? "pending",
@@ -180,7 +190,7 @@ export function guestFromCollab(r, existing) {
     // the "יושבים עם הסבים" live, and a relative filling in the shared table
     // had nowhere to put any of it — so the host had to chase it by phone,
     // which is the one thing the shared table exists to prevent.
-    notes:      pickNotes(r, existing),
+    notes:      typeof existing?.notes === "string" && norm(clip(existing.notes, 500)) === notes ? existing.notes : notes,
     companions: pickCompanions(r, existing),
   };
 }
