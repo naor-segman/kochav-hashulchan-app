@@ -121,7 +121,13 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
   const totalActual = useMemo(() =>
     cats.reduce((s, c) => s + parseAmt(c.actual), 0), [cats]);
 
-  const totalDiff = totalActual - totalBudget;
+  // Over or under budget is only known for what has been SPENT. A category
+  // with a budget and nothing paid yet read "−₪45,000" in green — a saving
+  // that has not happened (fourth review 30.9) — and the total summed it.
+  const totalDiff = useMemo(() => cats.reduce((s, c) => {
+    const a = parseAmt(c.actual);
+    return a > 0 ? s + a - parseAmt(c.budget) : s;
+  }, 0), [cats]);
 
   /* Declined guests are excluded — they were not, and this was the ONLY guest
      aggregate on the screen that counted them. The three below it filter
@@ -333,7 +339,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                     />
                   </div>
                   <div className={styles.colDiff} data-label="הפרש">
-                    {b > 0 || a > 0 ? (
+                    {a > 0 ? (
                       <span className={[
                         styles.diffBadge,
                         d > 0 ? styles.over : d < 0 ? styles.under : styles.exact,
@@ -382,7 +388,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                 </span>
               </div>
               <div className={styles.colDiff}>
-                {totalBudget > 0 || totalActual > 0 ? (
+                {totalActual > 0 ? (
                   <span className={[
                     styles.diffBadge,
                     totalDiff > 0 ? styles.over : totalDiff < 0 ? styles.under : styles.exact,

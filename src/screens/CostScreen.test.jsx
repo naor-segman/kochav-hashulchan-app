@@ -110,3 +110,19 @@ describe("CostScreen — the cloud's copy of the SAME budget is not an update (2
     expect(patchEvent).not.toHaveBeenCalled();
   });
 });
+
+// Fourth review 30.9: a budgeted category with nothing spent read "−₪45,000"
+// in green — a saving that has not happened — and the total summed it.
+describe("CostScreen — no saving is shown for money not yet spent", () => {
+  it("shows the difference only for categories with spending", () => {
+    const e = { ...ev, costs: { categories: [
+      { id: "c1", name: "קייטרינג", budget: "45000", actual: "" },
+      { id: "c2", name: "אולם",     budget: "30000", actual: "32000" },
+    ] } };
+    const { container } = render(<CostScreen activeEvent={e} patchEvent={() => {}} showToast={() => {}} />);
+    const txt = container.textContent;
+    expect(txt).not.toContain("45,000−");
+    expect(txt).not.toMatch(/−₪45,000|−₪43,000/);
+    expect(txt).toContain("+₪2,000");          // the hall, over by 2,000 — row and total
+  });
+});
