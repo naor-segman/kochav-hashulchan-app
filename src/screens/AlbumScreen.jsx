@@ -137,7 +137,7 @@ export default function AlbumScreen() {
         // two minutes plus a second per 20 KB.
         const ms = 120_000 + Math.ceil((blob?.size || 0) / 20_000) * 1000;
         await Promise.race([
-          uploadAlbumPhoto(event.cloudId, token, blob, name),
+          uploadAlbumPhoto(event.cloudId, token, blob, name, photoKey(f)),
           new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error("timeout"), { name: "TimeoutError" })), ms)),
         ]);
       } catch (err) {
@@ -150,7 +150,12 @@ export default function AlbumScreen() {
     // full album could never work (fifth review 30.9).
     if (failed) {
       const what = failed === 1 ? "תמונה אחת לא הועלתה" : `${failed} תמונות לא הועלו`;
-      setError(`${what} — ${guestWriteError(lastErr, "נסו שוב.")}`);
+      // A deadline is a SLOW line, not a missing one — and the upload may
+      // still land. "אין חיבור" was wrong on both counts (sixth review 30.9).
+      const why = lastErr?.name === "TimeoutError"
+        ? "החיבור איטי מאוד. ייתכן שהיא עוד תופיע באלבום; אפשר לבחור אותה שוב — היא לא תופיע פעמיים."
+        : guestWriteError(lastErr, "נסו שוב.");
+      setError(`${what} — ${why}`);
     }
     reload();
   };
@@ -243,6 +248,23 @@ export default function AlbumScreen() {
       {lightbox && <Lightbox photo={lightbox} onClose={closeLightbox} />}
     </div>
   );
+}
+
+/* The same photo picked again gets the same name in storage, so a retry after
+ * a slow upload the page gave up on cannot add it twice (sixth review 30.9).
+ * From what the phone reports about the file — name, size, modified time —
+ * not its bytes: reading a 10 MB photo to hash it is a price paid per photo. */
+function photoKey(f) {
+  const str = `${f?.name ?? ""}|${f?.size ?? 0}|${f?.lastModified ?? 0}`;
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `p-${(h2 >>> 0).toString(36)}${(h1 >>> 0).toString(36)}`;
 }
 
 /* The photo, full size. Said aria-modal and was not: no Escape, focus stayed

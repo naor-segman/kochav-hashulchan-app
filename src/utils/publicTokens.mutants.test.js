@@ -103,3 +103,30 @@ describe("uploadAlbumPhoto: a row that fails to write cleans up its file", () =>
       .rejects.toMatchObject({ message: "invalid token (הקובץ נשאר באחסון ולא נוקה)" });
   });
 });
+
+// Sixth review 30.9 (סב90r): a retry after a slow upload added the photo twice.
+describe("uploadAlbumPhoto with a file key: a retry of the same photo is safe", () => {
+  it("the same key gives the same path on every attempt", async () => {
+    storage.upload.mockResolvedValue({ data: {}, error: null });
+    rpc.mockResolvedValue({ data: "id", error: null });
+    await uploadAlbumPhoto("ev1", "albtok", { name: "a.jpg" }, "דנה", "p-abc123");
+    await uploadAlbumPhoto("ev1", "albtok", { name: "a.jpg" }, "דנה", "p-abc123");
+    expect(storage.upload.mock.calls[0][0]).toBe("ev1/albtok/p-abc123.jpg");
+    expect(storage.upload.mock.calls[1][0]).toBe("ev1/albtok/p-abc123.jpg");
+  });
+  it("file already there (the earlier attempt landed) → indexed, not an error", async () => {
+    storage.upload.mockResolvedValue({ data: null, error: { statusCode: "409", message: "The resource already exists" } });
+    rpc.mockResolvedValue({ data: "id", error: null });
+    await expect(uploadAlbumPhoto("ev1", "albtok", { name: "a.jpg" }, "דנה", "p-abc123")).resolves.toBe("ev1/albtok/p-abc123.jpg");
+  });
+  it("index row already there → done, and the file is NOT removed", async () => {
+    storage.upload.mockResolvedValue({ data: null, error: { statusCode: "409", message: "The resource already exists" } });
+    rpc.mockResolvedValue({ data: null, error: { code: "23505", message: "duplicate key value" } });
+    await expect(uploadAlbumPhoto("ev1", "albtok", { name: "a.jpg" }, "דנה", "p-abc123")).resolves.toBe("ev1/albtok/p-abc123.jpg");
+    expect(storage.remove).not.toHaveBeenCalled();
+  });
+  it("without a key a conflict is still an error", async () => {
+    storage.upload.mockResolvedValue({ data: null, error: { statusCode: "409", message: "The resource already exists" } });
+    await expect(uploadAlbumPhoto("ev1", "albtok", { name: "a.jpg" }, "דנה")).rejects.toMatchObject({ statusCode: "409" });
+  });
+});

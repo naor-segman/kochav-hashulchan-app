@@ -667,19 +667,31 @@ export async function deleteAlbumPhoto(photo) {
  * The path is prefixed with the event id so a bucket listing can never mix
  * events, and suffixed with a random segment so two guests uploading
  * "IMG_0001.jpg" at the same moment don't collide.
+ *
+ * With `fileKey` — derived from the photo the guest picked — the name is the
+ * same on every attempt, so a retry is safe: a slow upload the page gave up
+ * on can still land on the server, and the retry the guest was told to make
+ * then added the same photo twice (sixth review 30.9). A file or an index row
+ * that already exists under that name is the earlier attempt, and counts.
  */
-export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader) {
+const alreadyThere = (e) => String(e?.statusCode ?? e?.status ?? "") === "409"
+  || /already exists|duplicate/i.test(String(e?.message ?? e?.error ?? ""));
+
+export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader, fileKey) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const ext  = (file.name?.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
   // <event id>/<album token>/<file>. The storage policy admits a file only
   // under the event's CURRENT album token, so changing the album link revokes
   // uploads (migration 20260930000000); album_add_photo checks the same prefix.
-  const path = `${eventCloudId}/${albumToken}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const name = fileKey && /^[a-z0-9-]{6,64}$/.test(fileKey)
+    ? fileKey
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const path = `${eventCloudId}/${albumToken}/${name}.${ext}`;
 
   const { error: upErr } = await supabase.storage
     .from("event-album")
     .upload(path, file, { cacheControl: "31536000", upsert: false });
-  if (upErr) throw upErr;
+  if (upErr && !(fileKey && alreadyThere(upErr))) throw upErr;
 
   // Indexed through a definer function: an RLS policy here could not validate
   // the token, because anon cannot read the events table it would need.
@@ -691,6 +703,7 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader)
   // A row that fails to write would orphan the file. remove() resolves with
   // { error } instead of rejecting, so a plain .catch() would swallow a real
   // failure — check the result and surface it with the original cause.
+  if (rowErr && fileKey && rowErr.code === "23505") return path;   // indexed by the earlier attempt
   if (rowErr) {
     const { error: rmErr } = await supabase.storage.from("event-album").remove([path]);
     if (rmErr) rowErr.message += " (הקובץ נשאר באחסון ולא נוקה)";
