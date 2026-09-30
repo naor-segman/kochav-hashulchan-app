@@ -102,8 +102,38 @@ export function useAppUpdate() {
      interrupted. Once per 10 seconds, so a real outage cannot become a reload
      loop. (A reload on every navigation while one is pending was tried too; it
      cannot run when the failing import takes the router down with it.) */
+  // When the address last changed to another screen — what tells a failed
+  // screen from a failed library (above). The router moves through
+  // history.pushState / replaceState, which fire no event of their own.
+  const navAtRef = useRef(0);
+  useEffect(() => {
+    const mark = () => { navAtRef.current = Date.now(); };
+    const wrap = (k) => {
+      const orig = window.history[k];
+      window.history[k] = function (...args) {
+        const before = window.location.pathname;
+        const out = orig.apply(this, args);
+        if (window.location.pathname !== before) mark();
+        return out;
+      };
+      return () => { window.history[k] = orig; };
+    };
+    const undoPush = wrap("pushState"), undoReplace = wrap("replaceState");
+    window.addEventListener("popstate", mark);
+    return () => { undoPush(); undoReplace(); window.removeEventListener("popstate", mark); };
+  }, []);
+
   useEffect(() => {
     const onChunkFail = (e) => {
+      // Not every lazy chunk is a screen: analytics, the Excel export and the
+      // door's QR decoder load the same way, at any moment. A failure there
+      // reloaded a guest's half-typed form and a focused field away (fourth
+      // review 30.9, a regression from this very fix). So: right after a
+      // navigation, the failed chunk is the screen that was asked for, and the
+      // page being left is going anyway — reload. Otherwise the update rule
+      // applies (a failed analytics or export load is then just an error).
+      const navigating = Date.now() - navAtRef.current < 10_000;
+      if (!navigating && !isSafeToReload(document, touchedRef.current)) return;
       let last = 0;
       try { last = Number(sessionStorage.getItem("kh_chunk_reload") || 0); } catch { /* blocked */ }
       if (Date.now() - last < 10_000) return;           // already tried; let the error show
