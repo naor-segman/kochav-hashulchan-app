@@ -670,3 +670,16 @@ describe("the same name under two headings", () => {
     expect(parseGuestList("=== חברים ===\nדנה כהן\nדנה כהן +1")).toHaveLength(1);
   });
 });
+
+// Sixth review 30.9 (סב90f).
+describe("an age and a spelling are not new guests or seats", () => {
+  it("\"דנה בת 12\" typed as text is one seat, name kept", () => {
+    expect(parseGuestList("דנה בת 12")).toEqual([{ name: "דנה בת 12", phone: "" }]);
+  });
+  it("\"משפחת כהן 4\" is still four seats", () => {
+    expect(parseGuestList("משפחת כהן 4")[0].count).toBe(4);
+  });
+  it("ד״ר and ד\"ר are one guest", () => {
+    expect(parseGuestList("ד״ר כהן\nד\"ר כהן")).toHaveLength(1);
+  });
+});

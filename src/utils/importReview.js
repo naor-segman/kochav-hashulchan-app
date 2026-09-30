@@ -22,13 +22,13 @@
  * can be tested directly rather than through a rendered table.
  */
 
-import { normalizePhone } from "./parseGuestList.js";
+import { normalizePhone, nameMatchKey } from "./parseGuestList.js";
 
 /** Digits only, so "050-123-4567" and "0501234567" are the same number. */
 const digits = s => String(s ?? "").replace(/\D/g, "");
 
-/** Case- and whitespace-insensitive, for comparing names people typed twice. */
-const nameKey = s => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+/** For comparing names people typed twice — the parser's own rule. */
+const nameKey = nameMatchKey;
 
 /**
  * The warnings a row can carry.

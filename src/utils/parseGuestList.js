@@ -282,12 +282,20 @@ const ADDRESS_START = /^\s*(?:רחוב|רח['\u05F3]?|שדרות|שד['\u05F3]?|
 // is why this guard is keyed on the matched TEXT and not on the form index.
 const EXPLICIT_COUNT = /[xX\u00D7*()]|אנשים|איש|נפשות|מקומות|כיסאות/u;
 
+/** Two spellings of one name compare equal: case, runs of spaces (NBSP too),
+ *  and the Hebrew gershayim/geresh against the ASCII quote — "ד״ר כהן" and
+ *  "ד"ר כהן" were two guests with no duplicate flag (sixth review 30.9). */
+export const nameMatchKey = (s) => String(s ?? "").trim().toLowerCase()
+  .replace(/\s+/g, " ").replace(/[״"]/g, '"').replace(/[׳']/g, "'");
+
 function readCount(rest, { explicitOnly = false } = {}) {
   const bareOk = !explicitOnly && !ADDRESS_START.test(rest);
   for (const re of COUNT_FORMS) {
     const m = rest.match(re);
     if (!m) continue;
     if (!bareOk && !EXPLICIT_COUNT.test(m[0])) continue;
+    // "דנה בת 12" is an age, not twelve seats (sixth review 30.9).
+    if (!EXPLICIT_COUNT.test(m[0]) && /(?:^|\s)(?:בת|בן)\s*$/u.test(rest.slice(0, m.index))) continue;
     const n = parseInt(m[1], 10);
     if (!Number.isFinite(n) || n < 2) continue;   // "1" adds nothing; 0 is not a count
     const stripped = rest.slice(0, m.index) + " " + rest.slice(m.index + m[0].length);
@@ -465,7 +473,7 @@ export function parseGuestList(text) {
   // larger row whole dropped "(יוסי)" from "דנה כהן +1 (יוסי)" when "דנה כהן +2"
   // followed (sixth review 30.9).
   const add = (row) => {
-    const key = `${row.name.toLowerCase()}|${row.phone}`;
+    const key = `${nameMatchKey(row.name)}|${row.phone}`;
     if (!seen.has(key)) { seen.set(key, out.length); out.push(row); return; }
     const i = seen.get(key);
     const [big, small] = (row.count || 1) > (out[i].count || 1) ? [row, out[i]] : [out[i], row];
