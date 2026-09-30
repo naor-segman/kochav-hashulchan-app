@@ -79,7 +79,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 20px;
   align-content: start;
 }
@@ -139,6 +139,9 @@
    content of the wall, set smaller than the timestamps on most dashboards.
    Warm blush ink on the dark panel, 11:1, at a size that carries. */
 .giftMsg {
+  /* A guest-typed link or "מזללללל…" is one unbreakable word: it widened
+     the card past the screen (fifth review 30.9). */
+  overflow-wrap: anywhere;
   font-size: 1.2rem;
   font-style: italic;
   color: var(--blush);
@@ -232,7 +235,7 @@
 /* Wide-screen TV: force 4 columns and scale the type with the room. */
 @media (min-width: 1400px) {
   .grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .giftName {
@@ -256,7 +259,7 @@
   }
 
   .grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
 
@@ -286,7 +289,7 @@
   }
 
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .giftCard {
