@@ -172,6 +172,7 @@ export function normalizeEvent(ev) {
     // synced, in which case the update falls back to the old unconditional
     // write rather than blocking a legacy event from syncing at all.
     syncedVersion: Number.isFinite(ev.syncedVersion) ? ev.syncedVersion : null,
+    localEdits: Number.isFinite(ev.localEdits) ? ev.localEdits : 0,
     // Fingerprints of the scalar fields as the cloud held them at
     // `syncedVersion` — the common ancestor for the merge (סב55, syncBase.js).
     // Client-side only, like syncedVersion.
@@ -323,6 +324,12 @@ export function updateEventTimestamp(ev) {
   return Object.assign({}, ev, {
     updatedAt: Date.now(),
     version:   (ev.version ?? 1) + 1,
+    // Counts THIS device's edits and nothing else: no merge sets it back, no
+    // cloud row carries it. `version` and `updatedAt` both get rewritten by a
+    // merge, so "the same version and timestamp as the copy sent" did not mean
+    // "nothing edited since" — an edit was marked synced unsent (fifth review
+    // 30.9). afterPush compares this.
+    localEdits: (Number.isFinite(ev.localEdits) ? ev.localEdits : 0) + 1,
   });
 }
 

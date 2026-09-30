@@ -312,6 +312,13 @@ const UNION_KEYS = ["guests", "tables", "constraints", "tasks", "vendors", "dele
 function holdsMoreThanCloud(merged, cloudNormalized) {
   const c = pruneArrangement(cloudNormalized);
   if (UNION_KEYS.some(k => canonical(merged[k]) !== canonical(c[k]))) return true;
+  // A rotation this device made and has not pushed: mergeTokens keeps the new
+  // link, and the event came out "in step" — never sent, the cloud kept
+  // serving the REVOKED link, and the sign-out prune then deleted the new one
+  // (fifth review 30.9). Compared by the rotation record, which the cloud row
+  // carries whole; the tokens themselves are minted per read when missing.
+  if (canonical(merged.tokenRotations ?? {}) !== canonical(c.tokenRotations ?? {})) return true;
+  if ((merged.tokensRotatedAt ?? null) !== (c.tokensRotatedAt ?? null)) return true;
   return canonical(merged.floorPlan?.tablePositions ?? {}) !== canonical(c.floorPlan?.tablePositions ?? {})
       || canonical(merged.floorPlan?.elements ?? []) !== canonical(c.floorPlan?.elements ?? []);
 }
@@ -382,13 +389,14 @@ function keepFilledCosts(winner, loser) {
  * retry used to set `version: v2` outright, which is exactly that (third
  * review 30.9, סב46). The server now also refuses to let the version go down
  * (migration 20260930000300), so `v` can be above what was sent. */
-export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null, sentUpdatedAt) {
+export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null, sentUpdatedAt, sentEdits) {
   // The version counter alone is not proof: a merge while the push was on the
   // wire can reset it, and the next edit then lands on the SAME number as the
   // one sent — which read as "nothing changed since", marked the edit synced,
   // and nothing sent it (fourth review 30.9). The edit's timestamp settles it.
   const unchanged = e.version === sentVersion
-    && (sentUpdatedAt === undefined || e.updatedAt === sentUpdatedAt);
+    && (sentUpdatedAt === undefined || e.updatedAt === sentUpdatedAt)
+    && (sentEdits === undefined || (e.localEdits ?? 0) === sentEdits);
   if (unchanged) return { ...e, syncedVersion: v, version: v, syncBase };
   return { ...e, syncedVersion: v, version: Math.max(e.version ?? 0, v + 1), syncBase };
 }
@@ -666,6 +674,8 @@ export function mergeCloudWithLocal(
                                (id) => tableIds.has(id)),
         customGroups: unionStrings(result.customGroups, localMatch.customGroups),
         customTableTypes: unionStrings(result.customTableTypes, localMatch.customTableTypes),
+        // This device's own edit count — never the cloud's (it has none).
+        localEdits: localMatch.localEdits ?? 0,
       };
       // The mirror of the local-wins case: the cloud copy is newer, but a field
       // only THIS device moved since the last sync is this device's edit, not
@@ -932,7 +942,7 @@ export function useEvents(user) {
       const version = await updateCloudEvent(ev, uid);
       if (Number.isFinite(version)) {
         const base = syncBaseOf(ev);
-        setEvents(prev => prev.map(e => e.id === ev.id ? afterPush(e, ev.version, version, base, ev.updatedAt) : e));
+        setEvents(prev => prev.map(e => e.id === ev.id ? afterPush(e, ev.version, version, base, ev.updatedAt, ev.localEdits ?? 0) : e));
       }
       setSyncStatus(SYNC_STATUS.SYNCED);
     } catch (err) {
@@ -979,7 +989,7 @@ export function useEvents(user) {
               if (Number.isFinite(v2)) {
                 const base = syncBaseOf(mergedThis);
                 setEvents(prev => prev.map(e =>
-                  e.id === ev.id ? afterPush(e, mergedThis.version, v2, base, mergedThis.updatedAt) : e));
+                  e.id === ev.id ? afterPush(e, mergedThis.version, v2, base, mergedThis.updatedAt, mergedThis.localEdits ?? 0) : e));
               }
               setSyncStatus(SYNC_STATUS.SYNCED);
             } catch {

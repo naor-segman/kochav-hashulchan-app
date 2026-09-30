@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { mergeCloudWithLocal, afterPush } from "./useEvents.js";
 import { syncBaseOf } from "../utils/syncBase.js";
-import { normalizeEvent } from "../utils/eventHelpers.js";
+import { normalizeEvent, updateEventTimestamp, rotateEventToken } from "../utils/eventHelpers.js";
+import { isCloudBacked } from "../utils/storage.js";
 
 /* סב55 (third review 30.9). Whole-event "newer updatedAt wins on scalars"
  * reverts a field the OTHER device changed whenever this device edited
@@ -161,5 +162,33 @@ describe("what the fifth review found in סב67", () => {
     const [m] = mergeCloudWithLocal([laptop], [cloud]);
     expect(m.customGroups).toEqual(["מילואים"]);
     expect(m.version).not.toBe(m.syncedVersion);
+  });
+});
+
+/* Fifth review 30.9 — the sync agent's repros, as the app makes the edits. */
+describe("what the fifth review's sync agent found", () => {
+  it("an edit made while a conflict retry is on the wire is not marked synced", () => {
+    const cloud = normalizeEvent({ id: "E1", cloudId: "c1", name: "n", version: 3, syncedVersion: 3, updatedAt: 2000,
+      guests: [{ id: "g0", name: "a" }] });
+    const local = normalizeEvent({ ...cloud, version: 3, syncedVersion: 2, updatedAt: 1000, venue: "mine",
+      syncBase: syncBaseOf({ ...cloud, venue: "" }) });
+    const opts = { cloudIsAuthoritative: true, fetchedAt: 5000, unpushedIds: new Set(["E1"]) };
+    const pushed = mergeCloudWithLocal([local], [cloud], opts)[0];
+    // The host adds a guest meanwhile, on a clock behind the cloud's stamp.
+    const edited = { ...updateEventTimestamp({ ...pushed, guests: [...pushed.guests, { id: "gNEW", name: "new" }] }), updatedAt: 1500 };
+    const state = mergeCloudWithLocal([edited], [cloud], opts)[0];
+    expect(state.guests.some(g => g.id === "gNEW")).toBe(true);
+    const after = afterPush(state, pushed.version, 4, syncBaseOf(pushed), pushed.updatedAt, pushed.localEdits ?? 0);
+    expect(isCloudBacked(after)).toBe(false);          // still owed: the pushed copy lacked gNEW
+  });
+
+  it("an unpushed link rotation survives a newer cloud copy AND is pushed", () => {
+    const b = normalizeEvent({ id: "E1", cloudId: "c1", name: "n", venue: "v0", version: 5, syncedVersion: 5, updatedAt: 1000 });
+    const rotated = rotateEventToken(b, "collab", 2000);
+    const local = { ...rotated, syncBase: syncBaseOf(b), version: 6, updatedAt: 2000 };
+    const cloud = { ...b, version: 6, syncedVersion: 6, updatedAt: 3000, venue: "v1" };
+    const [m] = mergeCloudWithLocal([local], [cloud], { cloudIsAuthoritative: true, fetchedAt: 9e12 });
+    expect(m.tokens.collab).toBe(rotated.tokens.collab);
+    expect(isCloudBacked(m)).toBe(false);              // owed: the cloud still serves the revoked link
   });
 });
