@@ -731,10 +731,11 @@
   cursor: grab;
   user-select: none;
   transition: background 0.12s;
-  /* Without this the browser keeps handling the touch as a scroll once the
-     TouchSensor delay elapses, so the row fights the page and the drag reads
-     as "stuck". Required by dnd-kit for touch dragging. */
-  touch-action: none;
+  /* Vertical scrolling stays with the browser: a swipe over the list is a
+     scroll (fifth review 30.9 — with `none`, a swipe starting on a name could
+     not scroll the page at all). The long-press drag still works: once the
+     TouchSensor activates it cancels the touchmove itself. */
+  touch-action: pan-y;
 }
 
 .draggableRow:active {
@@ -742,10 +743,10 @@
 }
 
 /* Hover: reveal drag handle + amber tint */
-/* On a phone this 24px square is the ONLY way to start a drag: the rest of the
-   row is a <select> that stops pointerdown on purpose (qa/seatingFlow.mjs
-   carries the same note), so pressing anywhere else can never begin the
-   gesture. 24px is well under the 44px this codebase uses everywhere else, and
+/* On a phone a drag starts with a long-press (the TouchSensor's 250 ms) — on
+   the handle, or on the row outside its <select>; a plain swipe scrolls
+   (fifth review 30.9: it used to start a drag and block the scroll). The
+   handle is the obvious place to press. 24px is well under the 44px this codebase uses everywhere else, and
    this is the product's central interaction.
    The hit area grows and the glyph does not — the row is dense and inflating
    the mark itself would push every row apart. Nothing here clips, so the

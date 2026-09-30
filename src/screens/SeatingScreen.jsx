@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import {
   DndContext, DragOverlay,
   useDroppable,
-  PointerSensor, TouchSensor,
+  MouseSensor, TouchSensor,
   useSensor, useSensors,
   pointerWithin, rectIntersection, MeasuringStrategy,
 } from "@dnd-kit/core";
@@ -103,7 +103,12 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const [runKey, setRunKey]                 = useState(0);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, POINTER_ACTIVATION),
+    // MouseSensor, not PointerSensor: a pointer sensor also fires for a
+    // FINGER, after 5px — so an ordinary swipe that started on a guest's name
+    // became a drag, the page did not scroll, and a swipe ending over a table
+    // seated the guest there (fifth review 30.9). A finger now needs the
+    // TouchSensor's long-press; a swipe scrolls.
+    useSensor(MouseSensor, POINTER_ACTIVATION),
     useSensor(TouchSensor,   TOUCH_ACTIVATION),
   );
 
