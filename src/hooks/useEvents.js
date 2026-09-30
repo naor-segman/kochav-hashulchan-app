@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { loadState, persist, userStorageKey } from "../utils/storage.js";
-import { normalizeEvent, normalizeDeletedRows, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
+import { normalizeEvent, normalizeDeletedRows, normalizeRotations, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
 import { syncBaseOf, threeWayScalars, threeWayGuests, canonical } from "../utils/syncBase.js";
@@ -318,7 +318,11 @@ function holdsMoreThanCloud(merged, cloudNormalized) {
   // serving the REVOKED link, and the sign-out prune then deleted the new one
   // (fifth review 30.9). Compared by the rotation record, which the cloud row
   // carries whole; the tokens themselves are minted per read when missing.
-  if (canonical(merged.tokenRotations ?? {}) !== canonical(c.tokenRotations ?? {})) return true;
+  // Both sides NORMALISED: a stamp for a link this version does not know (a
+  // newer app added one), or a null stamp, is dropped by normalizeRotations on
+  // one side and kept by mergeRotations on the other — never equal, so the
+  // event was pushed on every load, forever (sixth review 30.9).
+  if (canonical(normalizeRotations(merged.tokenRotations)) !== canonical(normalizeRotations(c.tokenRotations))) return true;
   if ((merged.tokensRotatedAt ?? null) !== (c.tokensRotatedAt ?? null)) return true;
   return canonical(merged.floorPlan?.tablePositions ?? {}) !== canonical(c.floorPlan?.tablePositions ?? {})
       || canonical(merged.floorPlan?.elements ?? []) !== canonical(c.floorPlan?.elements ?? []);
