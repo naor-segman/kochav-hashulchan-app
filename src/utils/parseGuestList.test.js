@@ -619,3 +619,17 @@ describe("a spreadsheet header row (fifth review 30.9)", () => {
     expect(parseGuestList("שם\t0501234567")).toHaveLength(1);
   });
 });
+
+// Sixth review 30.9 (סב90a): the larger duplicate replaced the smaller whole.
+describe("a duplicate keeps the names of both copies", () => {
+  it("\"+1 (יוסי)\" then \"+2\": three seats, יוסי kept", () => {
+    const [r] = parseGuestList("דנה כהן +1 (יוסי)\nדנה כהן +2");
+    expect(r.count).toBe(3);
+    expect(r.companions).toContain("יוסי");
+  });
+  it("different names in each copy: both kept, seats grow to hold them", () => {
+    const [r] = parseGuestList("דנה כהן +1 (יוסי)\nדנה כהן +1 (רון)");
+    expect(r.companions.sort()).toEqual(["יוסי", "רון"].sort());
+    expect(r.count).toBe(3);
+  });
+});

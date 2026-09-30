@@ -431,12 +431,24 @@ export function parseGuestList(text) {
   // or the other: spouses share a household line, and keying on phone alone
   // silently dropped the second of them. When the two copies disagree on the
   // party, the larger one is kept: "דנה כהן" then "דנה כהן +1" kept the first,
-  // one seat (fifth review 30.9).
+  // one seat (fifth review 30.9). And the NAMES of both are kept: taking the
+  // larger row whole dropped "(יוסי)" from "דנה כהן +1 (יוסי)" when "דנה כהן +2"
+  // followed (sixth review 30.9).
   const add = (row) => {
     const key = `${row.name.toLowerCase()}|${row.phone}`;
     if (!seen.has(key)) { seen.set(key, out.length); out.push(row); return; }
     const i = seen.get(key);
-    if ((row.count || 1) > (out[i].count || 1)) out[i] = row;
+    const [big, small] = (row.count || 1) > (out[i].count || 1) ? [row, out[i]] : [out[i], row];
+    const companions = [...(big.companions || [])];
+    for (const n of small.companions || []) {
+      if (!n || companions.includes(n)) continue;
+      const slot = companions.indexOf("");
+      if (slot >= 0) companions[slot] = n; else companions.push(n);
+    }
+    const count = Math.min(MAX_SEATS, Math.max(big.count || 1, companions.length + 1));
+    const merged = { ...big };
+    if (count > 1) { merged.count = count; merged.companions = companions.slice(0, count - 1); }
+    out[i] = merged;
   };
 
   for (const rawLine of String(text || "").split(/\r?\n/)) {
