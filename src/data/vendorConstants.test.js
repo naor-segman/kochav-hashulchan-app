@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  parseAmount, vendorTotals, vendorStatus, vendorCategory, paymentStatus,
+  parseAmount, vendorTotals, vendorStatus, vendorCategory, paymentStatus, shownPayment,
   VENDOR_CATEGORIES,
 } from "./vendorConstants.js";
 
@@ -75,4 +75,11 @@ describe("lookups fall back instead of throwing", () => {
       expect(ids).toContain(shared);
     }
   });
+});
+describe("shownPayment — the amounts outrank an untouched select (fourth review)", () => {
+  it("₪20,000 of ₪85,000 paid is a deposit, not 'לא שולם'", () => {
+    expect(shownPayment("none", 85000, 20000).label).toBe("מקדמה");
+  });
+  it("paid in full is paid", () => { expect(shownPayment("deposit", 85000, 85000).label).toBe("שולם"); });
+  it("no amounts: the select stands", () => { expect(shownPayment("deposit", 0, 0).label).toBe("מקדמה"); });
 });

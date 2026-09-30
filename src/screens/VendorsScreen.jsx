@@ -3,7 +3,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { uid } from "../utils/uid.js";
 import {
   VENDOR_STATUSES, VENDOR_CATEGORIES, PAYMENT_STATUSES,
-  vendorStatus, vendorCategory, paymentStatus,
+  vendorStatus, vendorCategory, shownPayment,
   parseAmount, vendorTotals,
 } from "../data/vendorConstants.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -211,7 +211,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
           <div className={styles.list}>
             {shown.map(v => {
               const st  = vendorStatus(v.status);
-              const pay = paymentStatus(v.payment);
+              const pay = shownPayment(v.payment, parseAmount(v.price), parseAmount(v.paid));
               const due = Math.max(0, parseAmount(v.price) - parseAmount(v.paid));
               const wa  = waLink(v.phone);
               return (

@@ -32,6 +32,15 @@ export const PAYMENT_STATUSES = [
 export const paymentStatus = v =>
   PAYMENT_STATUSES.find(s => s.value === v) || PAYMENT_STATUSES[0];
 
+/** The status to SHOW, when the amounts say more than the select. A vendor
+ *  with ₪20,000 of ₪85,000 paid read "לא שולם" beside "נותר ₪65,000"
+ *  (fourth review 30.9) — the select was never touched, the amount was. */
+export function shownPayment(payment, price, paid) {
+  if (price > 0 && paid >= price) return paymentStatus("paid");
+  if (paid > 0 && (payment === "none" || !payment)) return paymentStatus("deposit");
+  return paymentStatus(payment);
+}
+
 /** Same ids as the budget categories, so spend lines up without a mapping. */
 export const VENDOR_CATEGORIES = [
   { value: "venue",        label: "אולם" },
