@@ -43,7 +43,7 @@ export const AREAS = [
     mark: "seating",
     items: [
       { id: "setup",       label: "פרטי האירוע",  short: "האירוע",  num: 1, hint: "שמות, תאריך ואולם" },
-      { id: "guests",      label: "אורחים",       num: 2, hint: "הרשימה — ידנית, מאקסל או משותפת" },
+      { id: "guests",      label: "אורחים",       num: 2, hint: "הרשימה — ידנית, בהדבקה מאקסל או בטבלה משותפת" },
       { id: "tables",      label: "שולחנות",      num: 3, hint: "כמה שולחנות יש באולם ומה הקיבולת" },
       { id: "constraints", label: "אילוצים",      num: 4, hint: "מי חייב לשבת יחד ומי בשום אופן לא" },
       { id: "seating",     label: "הושבה",        num: 5, hint: "לחיצה אחת — והשולחנות מסתדרים" },
