@@ -357,7 +357,7 @@ export function computeViolations(guests, tables, constraints, seating) {
       if (ta && tb && ta === tb)
         violations.push({ type:"apart",
           text: ga.name + " ו" + gb.name + " לא יכולים לשבת יחד — שניהם שובצו ל" + (tableMap[ta]?.name || "אותו שולחן"),
-          tableA: tableMap[ta]?.name });
+          tableA: tableMap[ta]?.name, guestA: c.guestA, guestB: c.guestB, tableIdA: ta });
     }
   });
 

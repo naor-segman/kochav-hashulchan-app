@@ -141,6 +141,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const lockedGuestsSet = useMemo(() => new Set(ev.lockedGuests || []), [ev.lockedGuests]);
   const lockedTablesSet = useMemo(() => new Set(ev.lockedTables || []), [ev.lockedTables]);
+  // An "apart" pair that shares a locked table — or two locked guests — cannot
+  // be separated by a recompute; it keeps both where they are (fourth review).
+  const lockBlocked = (v) => v.type === "apart" && (
+    lockedTablesSet.has(v.tableIdA) || (lockedGuestsSet.has(v.guestA) && lockedGuestsSet.has(v.guestB)));
 
   // These three feed the memoised table cards. Recomputing them into fresh
   // arrays on every render would change every card's props on every keystroke
@@ -294,8 +298,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
        putting a real person into a third-party tool. */
     track(EVENTS.SEATING_RUN, { placed, of: activeGuests.length, tables: ev.tables.length });
     const missed = activeGuests.length - placed;
+    // "Everything seated ✓" over an "apart" pair still at one locked table
+    // told the host the job was done (fourth review 30.9). Say what is left.
+    const left = computeViolations(ev.guests, ev.tables, ev.constraints, newSeating).length;
     if (missed > 0)
       showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");
+    else if (left > 0)
+      showToast("כל " + placed + " הרשומות שובצו, אבל " + (left === 1 ? "אילוץ אחד לא מתקיים" : left + " אילוצים לא מתקיימים") + " — פירוט למטה", "warn");
     else
       showToast("כל " + placed + " הרשומות שובצו ✓");
     // Deliberately NOT collapsing the open cards. A recompute is the moment the
@@ -793,7 +802,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={runAuto}>חשבו מחדש</button>
               </div>
               <p className={styles.violExplain}>
-                האילוצים הבאים לא מתקיימים — ניתן לתקן אוטומטית באמצעות "חשבו מחדש", או להעביר אורחים ידנית.
+                {violations.some(lockBlocked)
+                  ? "חלק מהאילוצים לא ניתנים לתיקון אוטומטי כי השולחן או האורחים נעולים — פתחו את הנעילה, או העבירו אחד מהם ידנית."
+                  : "האילוצים הבאים לא מתקיימים — ניתן לתקן אוטומטית באמצעות \"חשבו מחדש\", או להעביר אורחים ידנית."}
               </p>
               <div className={styles.violList}>
                 {violations.map((v, i) => (
@@ -807,7 +818,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     <span className={styles.violIcon}>
                       <Icon name={v.type === "capacity" ? "chair" : v.type === "apart" ? "apart" : "together"} size={16} />
                     </span>
-                    <span>{v.text}</span>
+                    <span>
+                      {v.text}
+                      {lockBlocked(v) && <> — נעול, "חשבו מחדש" לא יזיז אותם</>}
+                    </span>
                   </div>
                 ))}
               </div>
