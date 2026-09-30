@@ -661,3 +661,12 @@ describe("a numbered sheet", () => {
     expect(parseGuestList("שם האורח\tמס' טלפון\tכמות אורחים\nדנה\t0501234567\t2").map(r => r.name)).toEqual(["דנה"]);
   });
 });
+
+// Sixth review 30.9 (סב90e): same name under two sides was merged into one row.
+describe("the same name under two headings", () => {
+  it("stays two rows; within one heading it still merges", () => {
+    const rows = parseGuestList("צד כלה:\nמשפחת כהן 4\nצד חתן:\nמשפחת כהן 3");
+    expect(rows.map(r => r.count)).toEqual([4, 3]);
+    expect(parseGuestList("=== חברים ===\nדנה כהן\nדנה כהן +1")).toHaveLength(1);
+  });
+});

@@ -201,6 +201,13 @@ function splitPeople(line) {
  * name. Dropping a real guest is far worse than leaving a header in, and the
  * review step downstream can show a header the host disagrees with.
  */
+// "צד כלה:" / "=== צד חתן ===" — a line that opens a new part of the list.
+function isSectionHeading(line) {
+  const t = line.trim();
+  return (/:\s*$/.test(t) && !/\d/.test(t) && /\p{L}/u.test(t))
+    || (/^[=\-*_~#•]{2,}/.test(t) && /[=\-*_~#•]{2,}\s*$/.test(t) && /\p{L}/u.test(t));
+}
+
 function isNoiseLine(line) {
   const t = line.trim();
   if (!t) return true;
@@ -477,6 +484,11 @@ export function parseGuestList(text) {
   const lines = String(text || "").split(/\r?\n/).map(l => l.replace(BIDI_RE, "").trim());
   const numbered = hasRowNumbers(lines);
   for (const line0 of lines) {
+    // Two "משפחת כהן" under "צד כלה:" and "צד חתן:" are two families: merged,
+    // one family's seats vanished before the review could flag the pair
+    // (sixth review 30.9). The merge is within a section; across sections both
+    // rows reach the review, which marks them as a possible duplicate.
+    if (line0 && isSectionHeading(line0)) { seen.clear(); continue; }
     if (!line0 || isNoiseLine(line0)) continue;
     const raw = numbered && line0.includes("\t") ? line0.replace(/^[^\t]*\t/, "").trim() : line0;
     if (!raw) continue;
