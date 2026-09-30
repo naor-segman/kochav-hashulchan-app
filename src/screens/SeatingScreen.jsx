@@ -7,10 +7,10 @@ import { useNavigate } from "react-router-dom";
 import {
   DndContext, DragOverlay,
   useDroppable,
-  MouseSensor, TouchSensor,
   useSensor, useSensors,
   pointerWithin, rectIntersection, MeasuringStrategy,
 } from "@dnd-kit/core";
+import { RowMouseSensor, RowTouchSensor } from "../components/seating/rowSensors.js";
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { canSeatMore } from "../utils/featureGates.js";
 import { usePlan } from "../hooks/usePlan.js";
@@ -108,8 +108,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // became a drag, the page did not scroll, and a swipe ending over a table
     // seated the guest there (fifth review 30.9). A finger now needs the
     // TouchSensor's long-press; a swipe scrolls.
-    useSensor(MouseSensor, POINTER_ACTIVATION),
-    useSensor(TouchSensor,   TOUCH_ACTIVATION),
+    // Row* variants: a press on a control inside the row is not a drag.
+    useSensor(RowMouseSensor, POINTER_ACTIVATION),
+    useSensor(RowTouchSensor, TOUCH_ACTIVATION),
   );
 
   // Hebrew announcements that name the guest and the table, not dnd-kit's
