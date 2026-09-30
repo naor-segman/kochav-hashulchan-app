@@ -169,7 +169,13 @@ export function editImportRow(rows, id, patch, existingGuests = []) {
       // chair, and making the host then also correct the number would be the
       // product asking them to say the same thing twice.
       next.companions = list.slice(0, 49);
-      next.count = Math.max(next.count || 1, next.companions.filter(Boolean).length + 1);
+      // An empty slot BEFORE a name is a seat too — the unnamed partner of
+      // "דנה (בן/בת זוג, רון)". Counting only the filled names, ", רון, נועה"
+      // kept three seats and the import cut נועה off the end, with no flag
+      // (sixth review 30.9). Empties after the last name are a comma typed on
+      // the way to the next one, not a chair.
+      const lastNamed = next.companions.reduce((at, c, i) => (c ? i : at), -1);
+      next.count = Math.min(50, Math.max(next.count || 1, lastNamed + 2));
     }
     return next;
   });
