@@ -254,6 +254,27 @@ export function remapGuestId(ev, fromId, toId) {
   };
 }
 
+/* Writes to the table that have not landed, kept across a reload (fifth
+ * review 30.9, סב88). The retry queue lives in memory: the host edits a guest
+ * at the venue, the push fails, the page is reloaded — and the next visit's
+ * pull, with nothing to say this guest was waiting to be sent, took the table's
+ * older copy over the host's edit. That is the failure the queue was written to
+ * stop, one reload later. An id here means "this guest's latest edit is ours to
+ * send": the pull leaves it alone and the push effect sends it. */
+const unsentKey = (cloudId) => `kh_collab_unsent:${cloudId}`;
+function readUnsent(cloudId) {
+  try {
+    const v = JSON.parse(localStorage.getItem(unsentKey(cloudId)) || "[]");
+    return new Set(Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
+  } catch { return new Set(); }
+}
+function writeUnsent(cloudId, set) {
+  try {
+    if (set.size) localStorage.setItem(unsentKey(cloudId), JSON.stringify([...set]));
+    else localStorage.removeItem(unsentKey(cloudId));
+  } catch { /* storage full or blocked: the in-memory queue still retries */ }
+}
+
 export function useCollabSync(activeEvent, patchEvent, showToast) {
   const cloudId  = activeEvent?.cloudId || null;
   const collabOn = !!activeEvent?.tokens?.collab;
@@ -279,6 +300,10 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
   // change of event or account resets everything.
   const toastRef = useRef(showToast);
   useEffect(() => { toastRef.current = showToast; });
+  // The event as last rendered — the pull reads its tombstones.
+  const eventRef = useRef(activeEvent);
+  useEffect(() => { eventRef.current = activeEvent; });
+  const unsent = useRef(new Set());
 
   // ── table → app: initial pull + live subscription ──
   useEffect(() => {
@@ -303,9 +328,22 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
     });
     toldRef.current = false;
 
+    unsent.current = readUnsent(cloudId);
+
     const applyRow = (row) => {
       mirror.current.set(row.id, row);
+      // A guest the host deleted, whose row is still in the table — the delete
+      // was never sent (made offline, or the page closed before it landed).
+      // Taken back in, it came back on every open (fifth review 30.9, סב88).
+      // The tombstone says it was deleted here; send the delete instead.
+      const ev = eventRef.current;
+      if (ev?.deletedRows?.guests?.[row.id] && !(ev.guests || []).some(g => g.id === row.id)) {
+        queue.current?.push("delete:" + row.id, () => deleteCollabGuestsOwner(cloudId, [row.id]));
+        return;
+      }
       if (!collabComplete(row)) return;
+      // Our edit is still waiting to be sent: the table's copy is the older one.
+      if (unsent.current.has(row.id) && (ev?.guests || []).some(g => g.id === row.id)) return;
       const sig = sigCollab(row);
       if (applied.current.get(row.id) === sig) return; // already reflected
       applied.current.set(row.id, sig);
@@ -354,6 +392,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
 
     const removeRow = (id) => {
       mirror.current.delete(id);
+      if (unsent.current.delete(id)) writeUnsent(cloudId, unsent.current);
       if (!applied.current.has(id)) return; // was only a draft, never a guest
       applied.current.delete(id);
       let removedName = "";
@@ -406,15 +445,25 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       const sig = sigGuest(g);
       if (applied.current.get(g.id) === sig) return;            // unchanged since last sync
       const m = mirror.current.get(g.id);
-      if (m && sigCollab(m) === sig) { applied.current.set(g.id, sig); return; } // already matches table
+      if (m && sigCollab(m) === sig) {                           // already matches table
+        applied.current.set(g.id, sig);
+        // It landed, even if the page closed before we heard: nothing owed.
+        if (unsent.current.delete(g.id)) writeUnsent(cloudId, unsent.current);
+        return;
+      }
       // NOT marked applied yet. `applied` means "the table has this", and it
       // only has it once the write lands — otherwise a failed push leaves the
       // row looking reconciled and it is never sent again.
       const row = guestToCollab(g);
+      if (!unsent.current.has(g.id)) { unsent.current.add(g.id); writeUnsent(cloudId, unsent.current); }
       queue.current.push(g.id, () =>
         upsertCollabGuestOwner(cloudId, row).then(() => {
           applied.current.set(g.id, sig);
           mirror.current.set(g.id, { ...row });
+          // Only if this is still the newest copy: a later edit owes its own write.
+          if (sigGuest((eventRef.current?.guests || []).find(x => x.id === g.id) || {}) === sig) {
+            unsent.current.delete(g.id); writeUnsent(cloudId, unsent.current);
+          }
           toldRef.current = false;   // the link is back; a later outage may warn again
         }));
     });
@@ -429,7 +478,9 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // A pending write for a row that no longer exists is moot, and letting
         // it land would recreate the row the host just deleted.
         queue.current.cancel(id);
+        unsent.current.delete(id);
       });
+      writeUnsent(cloudId, unsent.current);
       queue.current.push("delete:" + toDelete.join(","), () =>
         deleteCollabGuestsOwner(cloudId, toDelete));
     }
