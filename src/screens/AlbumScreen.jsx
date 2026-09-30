@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
@@ -6,6 +6,7 @@ import styles from "./AlbumScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useRestoreFocus } from "../hooks/useRestoreFocus.js";
 
 /**
  * Public shared album — guests and the photographer upload here.
@@ -80,6 +81,7 @@ export default function AlbumScreen() {
   const [busy, setBusy]     = useState(0);
   const [error, setError]   = useState("");
   const [lightbox, setLightbox] = useState(null);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,13 +225,32 @@ export default function AlbumScreen() {
         </>
       )}
 
-      {lightbox && (
-        <div className={styles.lightbox} onClick={() => setLightbox(null)} role="dialog" aria-modal="true">
-          <button className={styles.close} aria-label="סגרו">✕</button>
-          <img className={styles.full} src={lightbox.url} alt="" onClick={e => e.stopPropagation()} />
-          {lightbox.uploader && <p className={styles.credit}>צולם ע"י {lightbox.uploader}</p>}
-        </div>
-      )}
+      {lightbox && <Lightbox photo={lightbox} onClose={closeLightbox} />}
+    </div>
+  );
+}
+
+/* The photo, full size. Said aria-modal and was not: no Escape, focus stayed
+ * on the thumbnail behind it, and closing left focus nowhere (fourth review
+ * 30.9, AX7). Escape closes, the close button takes focus, Tab stays on it,
+ * and focus goes back to the thumbnail. */
+function Lightbox({ photo, onClose }) {
+  const closeRef = useRef(null);
+  useRestoreFocus();
+  useEffect(() => { closeRef.current?.focus(); }, []);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+      else if (e.key === "Tab") { e.preventDefault(); closeRef.current?.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className={styles.lightbox} onClick={onClose} role="dialog" aria-modal="true" aria-label="תמונה מהאלבום">
+      <button ref={closeRef} className={styles.close} aria-label="סגרו">✕</button>
+      <img className={styles.full} src={photo.url} alt="" onClick={e => e.stopPropagation()} />
+      {photo.uploader && <p className={styles.credit}>צולם ע"י {photo.uploader}</p>}
     </div>
   );
 }
