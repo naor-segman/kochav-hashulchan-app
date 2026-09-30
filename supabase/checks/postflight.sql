@@ -131,7 +131,28 @@ with c(n, check_name, ok, detail) as (
               and prosrc ~ 'where at < now\(\) - interval ''1 minute'';'
        from pg_proc where oid = to_regprocedure('public.guest_throttle(text,uuid,integer,integer)')), false), null
   union all
-  select 16, 'row counts (compare with the preflight row 10 — must be equal)', null::boolean,
+  select 27, 'storage: no write rule for anon other than the known ones (a leftover "with check (true)" names no bucket and opens the album)',
+    not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
+                 and cmd in ('INSERT', 'UPDATE', 'ALL') and roles && array['anon', 'public']::name[]
+                 and policyname not in ('album_objects_insert', 'event_site_objects_insert', 'event_site_objects_update')),
+    (select string_agg(policyname || ' (' || cmd || ')', ', ') from pg_policies where schemaname = 'storage' and tablename = 'objects'
+      and cmd in ('INSERT', 'UPDATE', 'ALL') and roles && array['anon', 'public']::name[]
+      and policyname not in ('album_objects_insert', 'event_site_objects_insert', 'event_site_objects_update'))
+  union all
+  select 28, 'no anon read rule on events, gifts, rsvp_responses, album_photos, collab_guests (re-pasting an old main file restores one)',
+    not exists (select 1 from pg_policies where schemaname = 'public'
+                 and tablename in ('events', 'gifts', 'rsvp_responses', 'album_photos', 'collab_guests')
+                 and cmd in ('SELECT', 'ALL') and roles && array['anon', 'public']::name[]
+                 and coalesce(qual, 'true') !~ '(auth\.uid\(\)|is_admin)'),
+    (select string_agg(tablename || '.' || policyname, ', ') from pg_policies where schemaname = 'public'
+      and tablename in ('events', 'gifts', 'rsvp_responses', 'album_photos', 'collab_guests')
+      and cmd in ('SELECT', 'ALL') and roles && array['anon', 'public']::name[]
+      and coalesce(qual, 'true') !~ '(auth\.uid\(\)|is_admin)')
+  union all
+  select 29, '0930-0: site_folder_has_room is not callable by anon',
+    coalesce(not has_function_privilege('anon', to_regprocedure('public.site_folder_has_room(text)'), 'EXECUTE'), false), null
+  union all
+  select 16, 'row counts (compare with the preflight row 10 — may only GROW: none of the 16 deletes data; guests answering meanwhile add rows)', null::boolean,
     'events=' || (select count(*) from public.events) || ' gifts=' || (select count(*) from public.gifts) ||
     ' album_photos=' || (select count(*) from public.album_photos) || ' subscriptions=' || (select count(*) from public.subscriptions) ||
     ' rsvp_responses=' || (select count(*) from public.rsvp_responses) || ' collab_guests=' || (select count(*) from public.collab_guests) ||

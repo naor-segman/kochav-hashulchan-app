@@ -5793,6 +5793,10 @@ returns boolean language sql stable security definer set search_path = public as
   ) < 300;
 $$;
 revoke all on function public.site_folder_has_room(text) from public;
+-- anon too: Supabase's default privileges give anon its own EXECUTE on every
+-- new function, which `from public` does not reach (fifth review 30.9 — the
+-- same trap 20260928000300 describes).
+revoke all on function public.site_folder_has_room(text) from anon;
 grant execute on function public.site_folder_has_room(text) to authenticated;
 
 drop policy if exists event_site_objects_insert on storage.objects;

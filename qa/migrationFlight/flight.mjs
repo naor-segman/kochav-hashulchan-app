@@ -66,7 +66,7 @@ const res = show('fl_bad', POST, 'postflight after resuming');
 console.log('  → postflight passes:', postOk(res));
 
 console.log('\n══ BROKEN: a clean run, then one superseded file re-pasted');
-for (const f of ['20260928000400_album_link_on_site.sql', '20260928000700_hostess_three_way_arrival.sql', '20260928000800_gift_floor_server.sql', '20260928000900_gift_rate_limit.sql', '20260929000000_review_gift_door_fixes.sql', '20260728000000_public_write_hardening.sql', '20260816010000_fix_storage_folder_ambiguity.sql', '20260818000100_album_objects_cap.sql']) {
+for (const f of ['20260928000400_album_link_on_site.sql', '20260928000700_hostess_three_way_arrival.sql', '20260928000800_gift_floor_server.sql', '20260928000900_gift_rate_limit.sql', '20260929000000_review_gift_door_fixes.sql', '20260728000000_public_write_hardening.sql', '20260816010000_fix_storage_folder_ambiguity.sql', '20260818000100_album_objects_cap.sql', '20260719000000_public_pages_hardening.sql']) {
   base('fl_brk'); applyAll('fl_brk', pendingMigs(), { log: false }); runScript('fl_brk', mig(f));
   const rows = show('fl_brk', POST, `postflight after re-running ${f}`).filter(r => r[2] === 'f');
   console.log(`  → failing rows: ${rows.map(r => r[0]).join(',')}`);

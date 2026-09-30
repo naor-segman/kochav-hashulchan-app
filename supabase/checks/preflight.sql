@@ -22,7 +22,9 @@ req(kind, name, present) as (values
   ('function', 'collab_upsert_by_token(text,jsonb)', to_regprocedure('public.collab_upsert_by_token(text,jsonb)') is not null),
   ('function', 'collab_is_active(events)',     to_regprocedure('public.collab_is_active(public.events)') is not null),
   ('table',    'collab_guests',                to_regclass('public.collab_guests') is not null),
-  ('function', 'storage.foldername(text)',     to_regprocedure('storage.foldername(text)') is not null)
+  ('function', 'storage.foldername(text)',     to_regprocedure('storage.foldername(text)') is not null),
+  ('function', 'photo_retention_days()',       to_regprocedure('public.photo_retention_days()') is not null),
+  ('function', 'photo_retention_today()',      to_regprocedure('public.photo_retention_today()') is not null)
 ),
 already(name, present) as (values
   ('subscriptions.stripe_checkout_session_id', exists (select 1 from information_schema.columns where table_schema='public' and table_name='subscriptions' and column_name='stripe_checkout_session_id')),
@@ -142,6 +144,10 @@ select * from (
   select 13, 'album photos stored under the old <event>/<file> path (info: they stay visible; only NEW uploads use <event>/<albumToken>/)', false,
          (select coalesce(sum(n), 0) from old_album_paths),
          (select count(*) || ' events' from old_album_paths)
+  union all
+  select 14, 'collab_guests: phones longer than 40 characters (20260930000200 adds a 40 limit and fails on them) — shorten them first', true,
+         (select count(*) from public.collab_guests where char_length(phone) > 40),
+         (select string_agg(id::text || ' (' || char_length(phone) || ')', ', ') from (select * from public.collab_guests where char_length(phone) > 40 limit 20) x)
   union all
   select 10, 'row counts (save this; compare with the postflight)', false, null,
          'events=' || (select count(*) from public.events) || ' gifts=' || (select count(*) from public.gifts) ||
