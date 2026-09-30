@@ -40,3 +40,21 @@ describe("walk-in table", () => {
     expect(addWalkIn(3)).toBeUndefined();             // 4 people, 2 free
   });
 });
+
+// Fourth review 30.9 (AX8): no Escape, and closing left focus nowhere.
+describe("walk-in sheet keyboard", () => {
+  it("Escape closes it and focus returns to the button that opened it", () => {
+    localStorage.setItem("kochav_orientation_v1", "1");
+    render(<AuthProvider><MemoryRouter initialEntries={["/events/e1/entrance"]}><Routes>
+      <Route path="/events/:eventId/entrance" element={
+        <EntranceScreen mode="owner" events={[EV]} loading={false} patchEventById={vi.fn()} />} />
+    </Routes></MemoryRouter></AuthProvider>);
+    const open = screen.getByRole("button", { name: /אורח שהגיע/ });
+    open.focus();
+    fireEvent.click(open);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(open);
+  });
+});

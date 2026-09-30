@@ -404,6 +404,21 @@ export default function EntranceScreen({
   const [expanded, setExpanded]       = useState(null);     // guestId with the party panel open
   const [lastChecked, setLastChecked] = useState(null);
   const [walkInOpen, setWalkInOpen]   = useState(false);
+  // The button that opened the walk-in sheet. The sheet had no Escape and gave
+  // focus back to nothing (fourth review 30.9, AX8). Taken from the click, not
+  // from document.activeElement: the sheet's input autofocuses before any
+  // effect could read it, and Safari does not focus a clicked button at all.
+  const walkInOpener = useRef(null);
+  useEffect(() => {
+    if (!walkInOpen) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); setWalkInOpen(false); } };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      const o = walkInOpener.current;
+      if (o && o.isConnected && document.activeElement === document.body) o.focus();
+    };
+  }, [walkInOpen]);
   const [walkInName, setWalkInName]   = useState("");
   const [walkInCount, setWalkInCount] = useState(1);
   const [walkInSide, setWalkInSide]   = useState("bride");
@@ -663,7 +678,7 @@ export default function EntranceScreen({
           <span className={styles.barRole}>עמדת כניסה</span>
         </div>
         {canManage && (
-          <button className={styles.walkInBtn} onClick={() => { setWalkInName(""); setWalkInTable(""); setWalkInOpen(true); }}>
+          <button className={styles.walkInBtn} onClick={(e) => { walkInOpener.current = e.currentTarget; setWalkInName(""); setWalkInTable(""); setWalkInOpen(true); }}>
             <Icon name="plus" size={14} /> אורח שהגיע
           </button>
         )}
@@ -759,7 +774,7 @@ export default function EntranceScreen({
               <p className={styles.emptyTitle}>לא נמצא &ldquo;{search.trim()}&rdquo;</p>
               <p className={styles.emptyHint}>{isToken ? "החיפוש עובר גם על שמות המלווים" : "החיפוש עובר גם על שמות המלווים ועל מספרי טלפון"}</p>
               {canManage && (
-                <button className={styles.emptyCta} onClick={() => { setWalkInName(search.trim()); setWalkInTable(""); setWalkInOpen(true); }}>
+                <button className={styles.emptyCta} onClick={(e) => { walkInOpener.current = e.currentTarget; setWalkInName(search.trim()); setWalkInTable(""); setWalkInOpen(true); }}>
                   <Icon name="plus" size={15} /> הוסיפו כאורח שהגיע עכשיו
                 </button>
               )}
@@ -949,7 +964,7 @@ export default function EntranceScreen({
       {/* ── Walk-in ── */}
       {walkInOpen && canManage && (
         <div className={styles.sheetOverlay} onClick={e => { if (e.target === e.currentTarget) setWalkInOpen(false); }}>
-          <div className={styles.sheet} role="dialog" aria-label="אורח שהגיע ביום האירוע">
+          <div className={styles.sheet} role="dialog" aria-modal="true" aria-label="אורח שהגיע ביום האירוע">
             <div className={styles.sheetTitle}>אורח שהגיע ולא ברשימה</div>
             <input
               className={styles.sheetInput}
