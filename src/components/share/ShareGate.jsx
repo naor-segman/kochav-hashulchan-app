@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useRestoreFocus } from "../../hooks/useRestoreFocus.js";
 import { Link, useLocation } from "react-router-dom";
 import Icon from "../ui/Icon.jsx";
 import styles from "./ShareGate.module.css";
@@ -31,6 +32,7 @@ export default function ShareGateDialog({ what, onClose }) {
   // triggered this instead of dumping the host on the dashboard.
   const from = location.pathname + location.search;
 
+  useRestoreFocus();
   useEffect(() => { firstRef.current?.focus(); }, []);
 
   useEffect(() => {

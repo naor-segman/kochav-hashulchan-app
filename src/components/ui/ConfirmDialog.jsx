@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useRestoreFocus } from "../../hooks/useRestoreFocus.js";
 import Icon from "./Icon.jsx";
 import base from "../../styles/screenBase.module.css";
 import styles from "./ConfirmDialog.module.css";
@@ -54,6 +55,7 @@ export default function ConfirmDialog({
   const cardRef = useRef(null);
   const firstRef = useRef(null);
 
+  useRestoreFocus();
   useEffect(() => {
     firstRef.current?.focus();
   }, []);
