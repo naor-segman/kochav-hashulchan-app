@@ -3,7 +3,7 @@ import { loadState, persist, userStorageKey } from "../utils/storage.js";
 import { normalizeEvent, normalizeDeletedRows, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
-import { syncBaseOf, threeWayScalars, canonical } from "../utils/syncBase.js";
+import { syncBaseOf, threeWayScalars, threeWayGuests, canonical } from "../utils/syncBase.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
@@ -509,7 +509,10 @@ export function mergeCloudWithLocal(
       const localGuestIds = new Set((localMatch.guests || []).map(g => g.id));
       const localTableIds = new Set((localMatch.tables || []).map(t => t.id));
       const mergedTables  = unionById(localMatch.tables, ce.tables, tombs.tables);
-      const mergedGuests  = mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests);
+      // Per guest FIELD against the last-synced base (fifth review): the rows
+      // this side holds no longer win whole just because the event is newer.
+      const mergedGuests  = threeWayGuests(mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests),
+                                           localMatch.guests, ce.guests, localMatch.syncBase?.guests, true).rows;
       const tableIdsAll   = new Set(mergedTables.map(t => t.id));
       const guestIdsAll   = new Set(mergedGuests.map(g => g.id));
       const newFromCloud  = (ids, known, exists) =>
@@ -633,7 +636,9 @@ export function mergeCloudWithLocal(
       // carried the NEWER arrivedAt and mergeArrivals would have kept them.
       // Arguments are (local, cloud) in the other branch; here `result` is the
       // cloud side, so they swap.
-      const guests = mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests);
+      const gw = threeWayGuests(mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests),
+                                localMatch.guests, result.guests, localMatch.syncBase?.guests, false);
+      const guests = gw.rows;
       const tables = unionById(result.tables, localMatch.tables, tombs.tables);
 
       // Who the CLOUD knows, computed before the union, so "the cloud has no
@@ -682,7 +687,7 @@ export function mergeCloudWithLocal(
       // something the cloud overruled (סב55). Kept, and marked for pushing.
       const tw = threeWayScalars(result, localMatch, ce, localMatch.syncBase);
       result = tw.event;
-      localKept = tw.localKept;
+      localKept = tw.localKept || gw.localKept;
     }
 
     // Positions for tables the cloud has never seen. The rescue below only fires

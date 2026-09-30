@@ -192,3 +192,35 @@ describe("what the fifth review's sync agent found", () => {
     expect(isCloudBacked(m)).toBe(false);              // owed: the cloud still serves the revoked link
   });
 });
+
+describe("guest rows merge per field, not whole (fifth review)", () => {
+  const ev0 = normalizeEvent({ id: "E1", cloudId: "c1", name: "n", venue: "v0", version: 5, syncedVersion: 5, updatedAt: 1000,
+    guests: [{ id: "g1", name: "דנה", notes: "", phone: "0501", count: 2 }, { id: "g2", name: "יוסי", notes: "" }] });
+  const opts = { cloudIsAuthoritative: true, fetchedAt: 9e12, unpushedIds: new Set(["E1"]) };
+
+  it("an offline note and count survive the other device renaming the venue later", () => {
+    const local = { ...ev0, syncBase: syncBaseOf(ev0), version: 6, updatedAt: 2000,
+      guests: ev0.guests.map(g => g.id === "g1" ? { ...g, notes: "אלרגיה לאגוזים", count: 3 } : g) };
+    const cloud = { ...ev0, version: 6, syncedVersion: 6, updatedAt: 3000, venue: "v1" };
+    const [m] = mergeCloudWithLocal([local], [cloud], opts);
+    const g1 = m.guests.find(g => g.id === "g1");
+    expect([m.venue, g1.notes, g1.count]).toEqual(["v1", "אלרגיה לאגוזים", 3]);
+    expect(isCloudBacked(m)).toBe(false);
+  });
+
+  it("a stale device renaming the venue does not overwrite a note the phone pushed", () => {
+    const cloud = { ...ev0, version: 6, syncedVersion: 6, updatedAt: 2000,
+      guests: ev0.guests.map(g => g.id === "g1" ? { ...g, notes: "כיסא גלגלים" } : g) };
+    const laptop = { ...ev0, syncBase: syncBaseOf(ev0), version: 6, updatedAt: 3000, venue: "v1" };
+    const [m] = mergeCloudWithLocal([laptop], [cloud], opts);
+    expect([m.venue, m.guests.find(g => g.id === "g1").notes]).toEqual(["v1", "כיסא גלגלים"]);
+  });
+
+  it("both edited the same guest field: the newer copy still wins", () => {
+    const cloud = { ...ev0, version: 6, syncedVersion: 6, updatedAt: 3000,
+      guests: ev0.guests.map(g => g.id === "g1" ? { ...g, notes: "מהטלפון" } : g) };
+    const local = { ...ev0, syncBase: syncBaseOf(ev0), version: 6, updatedAt: 2000,
+      guests: ev0.guests.map(g => g.id === "g1" ? { ...g, notes: "מהמחשב" } : g) };
+    expect(mergeCloudWithLocal([local], [cloud], opts)[0].guests.find(g => g.id === "g1").notes).toBe("מהטלפון");
+  });
+});

@@ -177,7 +177,8 @@ export function normalizeEvent(ev) {
     // `syncedVersion` — the common ancestor for the merge (סב55, syncBase.js).
     // Client-side only, like syncedVersion.
     syncBase: (ev.syncBase && typeof ev.syncBase === "object" && !Array.isArray(ev.syncBase))
-      ? Object.fromEntries(Object.entries(ev.syncBase).filter(([, v]) => typeof v === "string"))
+      ? Object.fromEntries(Object.entries(ev.syncBase).filter(([k, v]) => typeof v === "string"
+          || (k === "guests" && v && typeof v === "object" && !Array.isArray(v))))
       : null,
     // Locking — guests/tables excluded from smart-assistant suggestions.
     // Must be preserved here so locks survive page reload (localStorage round-trip).
