@@ -144,13 +144,18 @@ export function photoRetentionState(ev, now = new Date()) {
   // the same in SQL, where the server enforces it.
   const keep = parseEventDate(ev?.eventSite?.photosKeepUntil);
   if (keep && today < keep) {
-    const left = daysBetween(today, keep);
+    // The server deletes only once BOTH dates have passed (photo_purge_due),
+    // so the countdown runs to the later one. Counting to the keep date alone
+    // warned "יימחקו בעוד 4 ימים" for a host who had postponed and then moved
+    // the event two months later (fourth review 30.9).
+    const until = keep > purgeOn ? keep : purgeOn;
+    const left = daysBetween(today, until);
     // The host who asked to keep the photos gets the same week's warning
     // before the new date as everyone gets before the first one. "kept" drew
     // no banner, and on the last day the state went straight to "due": the one
     // host who had asked was the one host never warned (סב45).
-    if (left <= WARN_BEFORE_DAYS) return { state: "warning", photos, daysLeft: left, purgeOn: keep };
-    return { state: "kept", photos, daysLeft: left, purgeOn: keep };
+    if (left <= WARN_BEFORE_DAYS) return { state: "warning", photos, daysLeft: left, purgeOn: until };
+    return { state: until === keep ? "kept" : "safe", photos, daysLeft: left, purgeOn: until };
   }
 
   const daysLeft = daysBetween(today, purgeOn);

@@ -218,6 +218,16 @@ describe("photoRetentionState", () => {
       expect(photoRetentionState(kept("2026-09-01"), on("2026-09-02")).state).toBe("due");
     });
 
+    // The server deletes once BOTH dates have passed; the countdown runs to
+    // the later one (fourth review 30.9: "יימחקו בעוד 4 ימים" for an event
+    // moved two months later after a postponement).
+    it("counts to the event's own schedule when that is later than the keep date", () => {
+      const moved = withPhotos({ date: "2026-12-01", eventSite: { coverPhoto: URL_A, photosKeepUntil: "2026-10-05" } });
+      const r = photoRetentionState(moved, on("2026-10-01"));
+      expect(r.state).not.toBe("warning");
+      expect(r.daysLeft).toBe(91);                      // to 2026-12-31
+    });
+
     // A postponement in the past must not read as "kept forever", and a
     // malformed one must not read as "kept" either — both would silently
     // disable the whole feature for that event.
