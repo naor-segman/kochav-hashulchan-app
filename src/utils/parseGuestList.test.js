@@ -569,3 +569,20 @@ describe("a street number is a house number, not a seat count", () => {
     expect(parseGuestList("רחובות 5")[0].count).toBe(5);   // a CITY, not a street
   });
 });
+
+// Fourth review 30.9 — a spreadsheet paste, measured in a browser.
+describe("spreadsheet rows and the partner placeholder", () => {
+  it("a name cell's '+1 (רותי)' is a companion, not part of the name", () => {
+    expect(parseGuestList("גיל גולן+1 (רותי)\t501000005")).toEqual([
+      { name: "גיל גולן", phone: "0501000005", count: 2, companions: ["רותי"] },
+    ]);
+  });
+  it("'+1 (בן/בת זוג)' is one seat without a name yet — not two people", () => {
+    const [row] = parseGuestList("נדב גולן +1 (בן/בת זוג)");
+    expect(row.count).toBe(2);
+    expect(row.companions).toEqual([""]);
+  });
+  it("a slash between real names still separates them", () => {
+    expect(parseGuestList("דוד +1 (שרה/רון)")[0].companions).toEqual(["שרה", "רון"]);
+  });
+});

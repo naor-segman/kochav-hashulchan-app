@@ -122,9 +122,15 @@ const MAX_SEATS = 50;
  * alone already produced that many names we stop there and never touch the
  * spaces — "+1 (יובל סגמן)" is ONE companion with a surname, not two people.
  */
+// "בן/בת זוג", "בן זוג", "מלווה/ת" — ONE seat whose name the host does not know
+// yet. Its slash is not a separator: split on it, "+1 (בן/בת זוג)" became
+// three seats named "בן" and "בת זוג" (fourth review 30.9). Kept as an empty
+// name, so the seat is counted and the review asks for the name.
+const PARTNER_RE = /^(?:(?:בן|בת)(?:\s*\/\s*(?:בן|בת))?\s+זוג|מלווה(?:\s*\/\s*ת)?)$/u;
 function splitCompanions(raw, expected) {
   const parts = String(raw || "")
-    .split(/\s*[,;/|•]\s*/).map(s => s.trim()).filter(Boolean);
+    .split(/\s*[,;|•]\s*/).map(s => s.trim()).filter(Boolean)
+    .flatMap(p => (PARTNER_RE.test(p) ? [""] : p.split(/\s*\/\s*/).filter(Boolean)));
   if (expected != null && parts.length >= expected) return parts;
   return parts.flatMap(splitOnVav);
 }
@@ -313,15 +319,17 @@ function parseColumns(line) {
     else extra.push(cell);
   }
 
-  const name = cleanName(nameCell);
-  if (!name) return null;
+  // The name cell is read like any typed line — its "+1 (רותי)" is a companion,
+  // not part of the name. Read raw, "גיל גולן+1 (רותי)" stayed the guest's name
+  // and רותי was dropped (fourth review 30.9).
+  const person = parseOnePerson(nameCell);
+  if (!person) return null;
 
-  const row = { name, phone };
+  const row = { name: person.name, phone: phone || person.phone };
   // A count column and a "+N" in the name cell say the same thing; take the
   // larger, the same way the names win over the number everywhere else.
-  const inline = nameCell.match(PLUS_RE);
-  const seats = Math.max(count || 1, inline ? 1 + parseInt(inline[1], 10) : 1);
-  if (seats > 1) { row.count = Math.min(MAX_SEATS, seats); row.companions = []; }
+  const seats = Math.min(MAX_SEATS, Math.max(count || 1, person.count || 1));
+  if (seats > 1) { row.count = seats; row.companions = (person.companions || []).slice(0, seats - 1); }
   return row;
 }
 
