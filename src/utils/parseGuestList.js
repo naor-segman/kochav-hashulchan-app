@@ -508,7 +508,7 @@ export function parseGuestList(text) {
   // followed (sixth review 30.9).
   const add = (row) => {
     const key = `${nameMatchKey(row.name)}|${row.phone}`;
-    if (!seen.has(key)) { seen.set(key, out.length); out.push(row); return; }
+    if (!seen.has(key)) { seen.set(key, out.length); out.push(row); return out.length - 1; }
     const i = seen.get(key);
     const [big, small] = (row.count || 1) > (out[i].count || 1) ? [row, out[i]] : [out[i], row];
     const companions = [...(big.companions || [])];
@@ -521,17 +521,20 @@ export function parseGuestList(text) {
     const merged = { ...big };
     if (count > 1) { merged.count = count; merged.companions = companions.slice(0, count - 1); }
     out[i] = merged;
+    return i;
   };
 
   const lines = unquoteSheet(String(text || "")).split(/\r?\n/).map(l => l.replace(BIDI_RE, "").trim());
   const numbered = hasRowNumbers(lines);
+  // The one guest the previous line made, while it still has no phone.
+  let waitingForPhone = -1;
   for (const line0 of lines) {
     // Two "משפחת כהן" under "צד כלה:" and "צד חתן:" are two families: merged,
     // one family's seats vanished before the review could flag the pair
     // (sixth review 30.9). The merge is within a section; across sections both
     // rows reach the review, which marks them as a possible duplicate.
-    if (line0 && isSectionHeading(line0)) { seen.clear(); continue; }
-    if (!line0 || isNoiseLine(line0)) continue;
+    if (line0 && isSectionHeading(line0)) { seen.clear(); waitingForPhone = -1; continue; }
+    if (!line0 || isNoiseLine(line0)) { waitingForPhone = -1; continue; }
     const raw = numbered && line0.includes("\t") ? line0.replace(/^[^\t]*\t/, "").trim() : line0;
     if (!raw) continue;
 
@@ -543,12 +546,27 @@ export function parseGuestList(text) {
       if (row) { add(row); continue; }
     }
 
+    // A line that is only a phone, right under a name that has none: the
+    // contact-card layout ("דנה כהן⏎050-1234567"). Read alone, the phone line
+    // made nobody and was dropped (sixth review 30.9).
+    if (waitingForPhone >= 0 && !/\p{L}/u.test(raw)) {
+      const pm = raw.match(PHONE_RE) || raw.match(INTL_PHONE_RE) || raw.match(BARE_MOBILE_RE);
+      if (pm && !raw.replace(pm[0], "").replace(/[\s\-–—.,;:|()]/g, "")) {
+        out[waitingForPhone] = { ...out[waitingForPhone], phone: normalizePhone(pm[0]) };
+        waitingForPhone = -1;
+        continue;
+      }
+    }
+    waitingForPhone = -1;
+
     const line = raw.replace(/\t/g, " , ");
 
+    const made = [];
     for (const segment of splitPeople(line)) {
       const row = parseOnePerson(segment);
-      if (row) add(row);
+      if (row) made.push({ i: add(row), phone: row.phone });
     }
+    if (made.length === 1 && !made[0].phone && !out[made[0].i].phone) waitingForPhone = made[0].i;
   }
 
   return out;

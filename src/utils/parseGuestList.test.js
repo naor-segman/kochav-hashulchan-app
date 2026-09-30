@@ -701,3 +701,15 @@ describe("a stray opening quote does not swallow guests", () => {
     expect(rows).toHaveLength(7);
   });
 });
+
+// Sixth review 30.9 (סב90h): a phone on the line under the name was dropped.
+describe("the contact-card layout", () => {
+  it("a phone line under a name without one belongs to that name", () => {
+    const rows = parseGuestList("דנה כהן\n050-1234567\nרון לוי\n052-7654321");
+    expect(rows.map(r => [r.name, r.phone])).toEqual([["דנה כהן", "0501234567"], ["רון לוי", "0527654321"]]);
+  });
+  it("a phone line under a name that already has one is not moved onto it", () => {
+    const rows = parseGuestList("דנה כהן 050-1234567\n052-7654321");
+    expect(rows).toEqual([{ name: "דנה כהן", phone: "0501234567" }]);
+  });
+});
