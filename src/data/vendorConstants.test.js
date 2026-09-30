@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  parseAmount, vendorTotals, vendorStatus, vendorCategory, paymentStatus, shownPayment,
+  parseAmount, vendorTotals, vendorStatus, vendorCategory, paymentStatus, shownPayment, amountDue,
   VENDOR_CATEGORIES,
 } from "./vendorConstants.js";
 
@@ -82,4 +82,14 @@ describe("shownPayment — the amounts outrank an untouched select (fourth revie
   });
   it("paid in full is paid", () => { expect(shownPayment("deposit", 85000, 85000).label).toBe("שולם"); });
   it("no amounts: the select stands", () => { expect(shownPayment("deposit", 0, 0).label).toBe("מקדמה"); });
+});
+
+describe("the tag and what is owed agree (fifth review 30.9)", () => {
+  it("'שולם' with part paid is a deposit", () => {
+    expect(shownPayment("paid", 12000, 3000).label).toBe("מקדמה");
+  });
+  it("'שולם' with no amount typed owes nothing", () => {
+    expect(amountDue("paid", 9000, 0)).toBe(0);
+    expect(amountDue("deposit", 9000, 3000)).toBe(6000);
+  });
 });

@@ -3,7 +3,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { uid } from "../utils/uid.js";
 import {
   VENDOR_STATUSES, VENDOR_CATEGORIES, PAYMENT_STATUSES,
-  vendorStatus, vendorCategory, shownPayment,
+  vendorStatus, vendorCategory, shownPayment, amountDue,
   parseAmount, vendorTotals,
 } from "../data/vendorConstants.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -212,7 +212,8 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
             {shown.map(v => {
               const st  = vendorStatus(v.status);
               const pay = shownPayment(v.payment, parseAmount(v.price), parseAmount(v.paid));
-              const due = Math.max(0, parseAmount(v.price) - parseAmount(v.paid));
+              const due = amountDue(v.payment, parseAmount(v.price), parseAmount(v.paid));
+              const over = parseAmount(v.price) > 0 ? parseAmount(v.paid) - parseAmount(v.price) : 0;
               const wa  = waLink(v.phone);
               return (
                 <div key={v.id} className={[styles.row, v.status === "declined" ? styles.rowOff : ""].filter(Boolean).join(" ")}>
@@ -241,6 +242,9 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
                         <span className={[styles.tag, styles["tone_" + pay.tone]].join(" ")}>{pay.label}</span>
                         {due > 0 && v.status !== "declined" && (
                           <span className={styles.due}>נותר {ils(due)}</span>
+                        )}
+                        {over > 0 && (
+                          <span className={styles.due}>שולם {ils(over)} יותר מהמחיר</span>
                         )}
                       </>
                     )}

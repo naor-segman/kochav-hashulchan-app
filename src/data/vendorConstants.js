@@ -37,8 +37,17 @@ export const paymentStatus = v =>
  *  (fourth review 30.9) — the select was never touched, the amount was. */
 export function shownPayment(payment, price, paid) {
   if (price > 0 && paid >= price) return paymentStatus("paid");
-  if (paid > 0 && (payment === "none" || !payment)) return paymentStatus("deposit");
+  // Part paid is a deposit whatever the select says: "שולם · נותר ₪9,000"
+  // contradicted itself (fifth review 30.9).
+  if (paid > 0 && (price <= 0 || paid < price)) return price > 0 ? paymentStatus("deposit") : paymentStatus(payment);
   return paymentStatus(payment);
+}
+
+/** What is still owed. A vendor marked "שולם" with no amount typed is taken
+ *  at its word — nothing owed — rather than showing the whole price as due. */
+export function amountDue(payment, price, paid) {
+  if (payment === "paid" && !(paid > 0)) return 0;
+  return Math.max(0, price - paid);
 }
 
 /** Same ids as the budget categories, so spend lines up without a mapping. */
