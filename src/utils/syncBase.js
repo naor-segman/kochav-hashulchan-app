@@ -23,6 +23,7 @@
  * Client-side only — neither cloud mapper carries it.
  */
 import { normalizeEvent } from "./eventHelpers.js";
+import { MEAL_DEFAULT } from "../data/constants.js";
 
 export const SCALAR_FIELDS = [
   "name", "type", "date", "venue",
@@ -87,7 +88,16 @@ const gfp = (v) => hash(canonical(v === undefined ? null : v)).slice(-5);
 const KEY_CODE = { name: "n", phone: "p", side: "s", group: "g", count: "c", notes: "o", rsvp: "r", meal: "m",
   companions: "k", invitedCount: "i", tableType: "t", email: "e" };
 const code = (k) => KEY_CODE[k] ?? k;
-const ABSENT = gfp(null);
+// A field a row does not carry reads as the value the app shows for it. The
+// edit form writes every one of these on save — notes "", rsvp "pending",
+// meal "regular", companions [] — and against a base row that never had the
+// key (a guest added from an RSVP answer, an older version's row) that read as
+// "this device changed it". When the other device really had changed it, both
+// had "moved", the newer device won, and a vegan meal set on the phone was
+// reset to regular by a phone-number fix on the laptop (sixth review 30.9).
+const FIELD_DEFAULT = { notes: "", rsvp: "pending", meal: MEAL_DEFAULT, companions: [], count: 1,
+  group: "", phone: "", side: "bride" };
+const fieldFp = (k, v) => gfp(v === undefined || v === null ? (FIELD_DEFAULT[k] ?? null) : v);
 
 /** `{ [guestId]: "key:fp,key:fp" }`, over the rows as normalizeEvent stores them. */
 export function guestFingerprints(guests) {
@@ -98,8 +108,10 @@ export function guestFingerprints(guests) {
     if (!g || typeof g !== "object" || !g.id) continue;
     const parts = [];
     for (const k of Object.keys(g)) {
-      if (k === "id" || ARRIVAL_KEYS.has(k) || g[k] === undefined || g[k] === null) continue;
-      parts.push(`${code(k)}:${gfp(g[k])}`);
+      if (k === "id" || ARRIVAL_KEYS.has(k)) continue;
+      const fp = fieldFp(k, g[k]);
+      if (fp === fieldFp(k, undefined)) continue;   // absent reads as this anyway
+      parts.push(`${code(k)}:${fp}`);
     }
     out[g.id] = parts.join(",");
   }
@@ -122,8 +134,8 @@ export function threeWayGuestRow(local, cloud, rowBase, preferLocal) {
   let localKept = false;
   for (const k of new Set([...Object.keys(local), ...Object.keys(cloud)])) {
     if (k === "id" || ARRIVAL_KEYS.has(k)) continue;
-    const b = base.get(code(k)) ?? ABSENT;
-    const l = gfp(local[k]), c = gfp(cloud[k]);
+    const b = base.get(code(k)) ?? fieldFp(k, undefined);
+    const l = fieldFp(k, local[k]), c = fieldFp(k, cloud[k]);
     if (l === c) continue;
     const lMoved = l !== b, cMoved = c !== b;
     if (lMoved === cMoved) continue;
