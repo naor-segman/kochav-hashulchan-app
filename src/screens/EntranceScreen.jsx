@@ -820,7 +820,7 @@ export default function EntranceScreen({
               <p className={styles.emptyTitle}>הקלידו שם</p>
               <p className={styles.emptyHint}>
                 {totals.arrivedSeats > 0
-                  ? `${totals.arrivedSeats} אורחים כבר בפנים`
+                  ? (totals.arrivedSeats === 1 ? "אורח אחד כבר בפנים" : `${totals.arrivedSeats} אורחים כבר בפנים`)
                   : "שם של אורח, של מי שהגיע איתו, או מספר טלפון"}
               </p>
             </div>

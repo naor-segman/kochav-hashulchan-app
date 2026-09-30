@@ -26,4 +26,10 @@ describe("door counter, singular and plural", () => {
     mount([partly("a"), partly("b")]);
     expect(screen.getByText("2 משפחות הגיעו חלקית")).toBeTruthy();
   });
+
+  // Fifth review 30.9 (סב88): the empty search read "1 אורחים כבר בפנים".
+  it("one guest inside", () => {
+    mount([{ id: "s", name: "יחיד", count: 1, rsvp: "confirmed", arrivedSeats: [0], arrived: true }]);
+    expect(screen.getByText("אורח אחד כבר בפנים")).toBeTruthy();
+  });
 });
