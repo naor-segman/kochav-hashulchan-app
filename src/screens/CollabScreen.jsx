@@ -126,7 +126,18 @@ export default function CollabScreen() {
           poll = setInterval(async () => {
             try {
               const fresh = await fetchCollabGuests(token);
-              if (!cancelled && Array.isArray(fresh)) mergePolled(fresh);
+              if (cancelled || !Array.isArray(fresh)) return;
+              // A closed or changed link answers with an empty list, not an
+              // error — and merged, it emptied the table in front of the family,
+              // who were then told to check their connection when they added a
+              // row (fifth review 30.9). An empty answer where there were rows
+              // is checked against the link itself.
+              if (fresh.length === 0 && serverIds.current.size > 0) {
+                const still = await fetchCollabEvent(token);
+                if (cancelled) return;
+                if (!still) { clearInterval(poll); setState("notfound"); return; }
+              }
+              mergePolled(fresh);
             } catch { /* a failed poll changes nothing; the next one retries */ }
           }, 3000);
         }
