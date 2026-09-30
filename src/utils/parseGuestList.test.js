@@ -683,3 +683,21 @@ describe("an age and a spelling are not new guests or seats", () => {
     expect(parseGuestList("ד״ר כהן\nד\"ר כהן")).toHaveLength(1);
   });
 });
+
+// Sixth review 30.9 (סב90g): Excel quotes a cell holding a line break.
+describe("a quoted spreadsheet cell", () => {
+  it("a line break inside a cell is one guest with its phone", () => {
+    const rows = parseGuestList('"דנה כהן\nויוסי"\t0501234567\nרון לוי\t0521234567');
+    expect(rows.map(r => [r.name, r.phone])).toEqual([["דנה כהן ויוסי", "0501234567"], ["רון לוי", "0521234567"]]);
+  });
+  it("a doubled quote inside is one quote; ד\"ר mid-cell is untouched", () => {
+    const rows = parseGuestList('"ד""ר כהן"\t0501234567\nד"ר לוי\t0521234567');
+    expect(rows.map(r => r.name)).toEqual(['ד"ר כהן', 'ד"ר לוי']);
+  });
+});
+describe("a stray opening quote does not swallow guests", () => {
+  it("an unclosed quote leaves every line a guest", () => {
+    const rows = parseGuestList('"דנה\t0501234567\nרון\t0521234567\nגיל\t0531234567\nטל\t0541234567\nמור\t0551234567\nשי\t0561234567\nנועה"\t0571234567');
+    expect(rows).toHaveLength(7);
+  });
+});

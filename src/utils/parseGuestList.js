@@ -440,6 +440,40 @@ function parseOnePerson(segment, { bareCount = true } = {}) {
   return row;
 }
 
+/* Excel and Google Sheets copy a cell that holds a line break, a tab or a quote
+ * as a QUOTED field — `"דנה כהן⏎ויוסי"`, with `""` for a quote inside. Split on
+ * newlines as it stood, one guest became two: `"דנה כהן` with no phone and
+ * `ויוסי"` with it (sixth review 30.9). Only a tab-separated paste is read this
+ * way, and only a quote that OPENS a field: ד"ר in the middle of a name is
+ * left alone. */
+function unquoteSheet(text) {
+  if (!text.includes("\t") || !text.includes('"')) return text;
+  let out = "", i = 0;
+  while (i < text.length) {
+    const atStart = i === 0 || text[i - 1] === "\t" || text[i - 1] === "\n";
+    if (atStart && text[i] === '"') {
+      let j = i + 1, cell = "", closed = false;
+      while (j < text.length) {
+        if (text[j] === '"') {
+          if (text[j + 1] === '"') { cell += '"'; j += 2; continue; }
+          closed = true; j++; break;
+        }
+        cell += text[j]; j++;
+      }
+      // A quote that never closes, is followed by more text in the same cell,
+      // or would swallow more than a few lines, was not Excel's quoting —
+      // leave the text exactly as typed rather than merge guests.
+      const breaks = (cell.match(/\n/g) || []).length;
+      if (!closed || breaks > 4 || (j < text.length && !/[\t\r\n]/.test(text[j]))) { out += text[i]; i++; continue; }
+      out += cell.replace(/\s*[\r\n]+\s*/g, " ").replace(/\t/g, " ");
+      i = j;
+      continue;
+    }
+    out += text[i]; i++;
+  }
+  return out;
+}
+
 /* A sheet's first column is very often the row number: 1, 2, 3… Read as a
  * small bare number, it became the seat count — row 17 was seventeen seats, and
  * it won over the real count column further right (sixth review 30.9). A first
@@ -489,7 +523,7 @@ export function parseGuestList(text) {
     out[i] = merged;
   };
 
-  const lines = String(text || "").split(/\r?\n/).map(l => l.replace(BIDI_RE, "").trim());
+  const lines = unquoteSheet(String(text || "")).split(/\r?\n/).map(l => l.replace(BIDI_RE, "").trim());
   const numbered = hasRowNumbers(lines);
   for (const line0 of lines) {
     // Two "משפחת כהן" under "צד כלה:" and "צד חתן:" are two families: merged,
