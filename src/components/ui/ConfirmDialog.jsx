@@ -90,7 +90,7 @@ export default function ConfirmDialog({
   const rest  = lines.slice(1).filter(l => l.trim() !== "");
 
   return (
-    <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) cancel(); }}>
+    <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) { e.preventDefault(); cancel(); } }}>
       <div
         className={styles.card}
         ref={cardRef}

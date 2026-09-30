@@ -34,3 +34,41 @@ describe("focus returns to the opener when a dialog closes", () => {
     });
   }
 });
+
+/* Fifth review 30.9 (סב88): two ways it still landed on <body>. */
+describe("focus does not fall to <body>", () => {
+  it("a backdrop press does not take focus off the page before the dialog closes", () => {
+    render(<MemoryRouter><Opener Dialog={Confirm} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "פתחו" }));
+    const overlay = screen.getByRole("alertdialog").parentElement;
+    // fireEvent returns false when the default (moving focus to <body>) was prevented
+    expect(fireEvent.mouseDown(overlay)).toBe(false);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+
+  it("a confirmed delete: focus goes to the row that took the deleted one's place", async () => {
+    function List() {
+      const [rows, setRows] = useState(["א", "ב", "ג"]);
+      const [asking, setAsking] = useState(null);
+      return (
+        <>
+          <ul>{rows.map(r => <li key={r}><button onClick={() => setAsking(r)}>{`מחיקת ${r}`}</button></li>)}</ul>
+          {asking && <ConfirmDialog message="למחוק?" confirmLabel="מחיקה" onClose={(ok) => {
+            const r = asking;
+            setAsking(null);
+            // the caller awaits the answer, THEN deletes — after the dialog is gone
+            if (ok) Promise.resolve().then(() => setRows(rs => rs.filter(x => x !== r)));
+          }} />}
+        </>
+      );
+    }
+    render(<List />);
+    const opener = screen.getByRole("button", { name: "מחיקת ב" });
+    opener.focus();
+    fireEvent.click(opener);
+    fireEvent.click(screen.getByRole("button", { name: "מחיקה" }));
+    await new Promise(r => setTimeout(r, 350));
+    expect(screen.queryByRole("button", { name: "מחיקת ב" })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "מחיקת ג" }));
+  });
+});
