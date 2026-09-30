@@ -113,10 +113,12 @@ export async function uploadSitePhoto(eventCloudId, blob, ext = "jpg") {
   // received. Saying it here turns one more round trip into none.
   if (error) {
     // The policy that refused this compares the path's first folder against an
-    // event the caller OWNS, so the refusal has exactly two possible causes:
-    // the wrong folder, or no caller. The path alone proved the folder was
-    // right — it matched the events row exactly — which leaves identity, and
-    // that is invisible from the message the server sends back.
+    // event the caller OWNS, and since 20260930000000 also caps the folder at
+    // 300 files — so the refusal has three possible causes: the wrong folder,
+    // no caller, or a full folder (far past the editor's cover + ten photos).
+    // The path alone proved the folder was right — it matched the events row
+    // exactly — which leaves identity and the ceiling, and neither is visible
+    // in the message the server sends back.
     //
     // So the session is read at the moment of failure. `getSession()` is local
     // (it reads the stored session, it does not call the network), so this

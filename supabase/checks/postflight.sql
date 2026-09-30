@@ -92,7 +92,7 @@ with c(n, check_name, ok, detail) as (
   union all
   select 20, '0930-0: album uploads need <event>/<albumToken>/, and are the ONLY insert rule on the album bucket',
     exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'album_objects_insert'
-             and with_check ~ 'album_folder_token_ok' and with_check ~ 'album_folder_has_room')
+             and with_check ~ 'album_folder_token_ok' and with_check ~ 'album_token_folder_has_room')
     and not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and cmd in ('INSERT', 'ALL')
              and coalesce(with_check, qual, '') ~ 'event-album' and policyname <> 'album_objects_insert'),
     (select string_agg(policyname, ', ') from pg_policies where schemaname = 'storage' and tablename = 'objects'
@@ -125,6 +125,11 @@ with c(n, check_name, ok, detail) as (
   select 25, '0930-3: events.version can only go up (trigger enabled)',
     exists (select 1 from pg_trigger where tgrelid = 'public.events'::regclass and tgname = 'trg_events_version_monotone'
              and tgenabled = 'O' and not tgisinternal), null
+  union all
+  select 26, '0930-0: throttle — a per-event ceiling for every sender, IPv6 by /64, old rows pruned for all events',
+    coalesce((select prosrc ~ 'set_masklen' and prosrc ~ 'pg_advisory_xact_lock'
+              and prosrc ~ 'where at < now\(\) - interval ''1 minute'';'
+       from pg_proc where oid = to_regprocedure('public.guest_throttle(text,uuid,integer,integer)')), false), null
   union all
   select 16, 'row counts (compare with the preflight row 10 — must be equal)', null::boolean,
     'events=' || (select count(*) from public.events) || ' gifts=' || (select count(*) from public.gifts) ||

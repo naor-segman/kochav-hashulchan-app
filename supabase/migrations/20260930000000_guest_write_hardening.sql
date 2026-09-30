@@ -27,13 +27,21 @@
 --    everyone — one script at a request a second shut the gift page for the
 --    whole wedding. RSVP: no rate at all, only the 5,000 total, which a loop
 --    reached in seconds and then refused every real guest ("limit reached").
---    Now both are limited PER SENDER (30 a minute), keyed on a hash of the
---    client address and the event, kept for one minute and then deleted. When
---    no address is visible (a direct database call, not through the API), the
---    old per-event limit applies instead, at 300 a minute.
---    Why 30 and not 5: at the venue, a hall's wifi — and Israeli mobile
---    carriers — put many guests behind ONE address. "Scan to leave a blessing"
---    from the DJ is fifty guests in a minute from one address.
+--    Now both are limited PER SENDER (RSVP 30 a minute, gifts 60), keyed on a
+--    hash of the client address and the event, kept for one minute and then
+--    deleted — AND by a per-event ceiling of 300 a minute that applies to every
+--    sender. The ceiling is what bounds a forged address: the address comes
+--    from request headers, and whether the first x-forwarded-for hop can be
+--    set by the client depends on the gateway (the fourth review measured 40
+--    of 40 accepted by rotating it). IPv6 is keyed on its /64, which one
+--    subscriber holds whole.
+--    Why not 5: at the venue, a hall's wifi — and Israeli mobile carriers —
+--    put many guests behind ONE address. "Scan to leave a blessing" from the
+--    DJ is fifty guests in a minute from one address, hence 60 for gifts.
+--    Fourth review, also: the room check for album files counts the CURRENT
+--    album link's folder only, so files dropped there without being indexed
+--    (the host cannot see them) are cleared out of the way by changing the
+--    link; and album_add_photo's 5,000 is per link for the same reason.
 --
 -- 4. The event-site bucket had no ceiling: one signed-up account uploaded
 --    20,000 files into its own event folder. The editor holds a cover, ten
@@ -53,6 +61,8 @@ create table if not exists public.guest_write_throttle (
 );
 create index if not exists idx_guest_write_throttle
   on public.guest_write_throttle (event_id, kind, at);
+create index if not exists idx_guest_write_throttle_at
+  on public.guest_write_throttle (at);
 -- Touched only by the definer functions below. No policy = no direct access.
 alter table public.guest_write_throttle enable row level security;
 revoke all on table public.guest_write_throttle from public, anon, authenticated;
@@ -69,8 +79,13 @@ declare
   s  text;
   n  int;
 begin
+  -- One writer at a time per event and kind, whoever calls: the counts below
+  -- are only true under a lock (measured: 44 of 80 simultaneous calls against
+  -- a limit of 30 without one).
+  perform pg_advisory_xact_lock(hashtextextended('throttle:' || k || ':' || ev::text, 0));
+
   -- PostgREST puts the request headers here. Absent, empty or not JSON: no
-  -- address, and the per-event fallback below applies.
+  -- address, and only the per-event ceiling applies.
   begin
     h := nullif(current_setting('request.headers', true), '')::json;
   exception when others then
@@ -81,17 +96,27 @@ begin
           nullif(split_part(coalesce(h ->> 'x-forwarded-for', ''), ',', 1), ''),
           h ->> 'x-real-ip',
           '')), '');
+  -- One subscriber holds a whole IPv6 /64; keyed per address it is unlimited.
+  if ip like '%:%' then
+    begin
+      ip := network(set_masklen(ip::inet, 64))::text;
+    exception when others then
+      null;   -- not an address after all: keyed as given
+    end;
+  end if;
   s := case when ip is null then null else md5(k || ':' || ev::text || ':' || ip) end;
 
-  -- A minute of memory, no more: this is a rate, not a log of who wrote.
-  delete from public.guest_write_throttle
-   where event_id = ev and kind = k and at < now() - interval '1 minute';
+  -- A minute of memory, no more, for EVERY event — not only the one being
+  -- written, or a quiet event's rows (hashes of client addresses) stay forever.
+  delete from public.guest_write_throttle where at < now() - interval '1 minute';
 
-  if s is null then
-    select count(*) into n from public.guest_write_throttle
-     where event_id = ev and kind = k and sender is null;
-    if n >= per_event then raise exception 'rate limited'; end if;
-  else
+  -- The ceiling for the event, whoever is sending: a forged address buys at
+  -- most this much, and never the 5,000 total in a few seconds.
+  select count(*) into n from public.guest_write_throttle
+   where event_id = ev and kind = k;
+  if n >= per_event then raise exception 'rate limited'; end if;
+
+  if s is not null then
     select count(*) into n from public.guest_write_throttle
      where event_id = ev and kind = k and sender = s;
     if n >= per_sender then raise exception 'rate limited'; end if;
@@ -166,7 +191,7 @@ begin
     raise exception 'limit reached';
   end if;
 
-  perform public.guest_throttle('gift', ev_id, 30, 300);
+  perform public.guest_throttle('gift', ev_id, 60, 300);
 
   insert into public.gifts (event_id, donor_name, amount, message, paid, client_key)
   values (ev_id, nm, amount, msg, false, k);
@@ -254,13 +279,28 @@ $$;
 revoke all on function public.album_folder_token_ok(text, text) from public;
 grant execute on function public.album_folder_token_ok(text, text) to anon, authenticated;
 
+-- Room is counted in the CURRENT link's folder (fourth review 30.9). Counted
+-- per event, files dropped there without ever being indexed — the host's album
+-- screen lists only indexed photos, so it cannot show or delete them — kept the
+-- album full even after the host changed the link.
+create or replace function public.album_token_folder_has_room(folder text, token_folder text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select (
+    select count(*) from storage.objects o
+     where o.bucket_id = 'event-album'
+       and starts_with(o.name, folder || '/' || token_folder || '/')
+  ) < 5000;
+$$;
+revoke all on function public.album_token_folder_has_room(text, text) from public;
+grant execute on function public.album_token_folder_has_room(text, text) to anon, authenticated;
+
 drop policy if exists album_objects_insert on storage.objects;
 create policy album_objects_insert
   on storage.objects for insert to anon, authenticated
   with check (
     bucket_id = 'event-album'
     and public.album_folder_token_ok((storage.foldername(name))[1], (storage.foldername(name))[2])
-    and public.album_folder_has_room((storage.foldername(name))[1])
+    and public.album_token_folder_has_room((storage.foldername(name))[1], (storage.foldername(name))[2])
   );
 
 -- ── 2. album_add_photo: the token folder, and no path tricks ─────────────────
@@ -285,7 +325,10 @@ begin
     raise exception 'path does not belong to this event' using errcode = '42501';
   end if;
 
-  select count(*) into n from public.album_photos where event_id = ev_id;
+  -- Per link, like the room check: after the host changes the link, a flood
+  -- indexed under the old one does not hold the album shut.
+  select count(*) into n from public.album_photos
+   where event_id = ev_id and album_token = token_value;
   if n >= 5000 then raise exception 'limit reached' using errcode = '42501'; end if;
 
   insert into public.album_photos (event_id, album_token, storage_path, uploader)

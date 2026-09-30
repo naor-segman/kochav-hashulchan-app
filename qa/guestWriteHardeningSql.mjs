@@ -63,14 +63,26 @@ try {
   ok(add(`${EV}/c.jpg`) !== null, 'a path without the token folder is refused');
   ok(add(`${EV}/album-tok-NEW99//c.jpg`) !== null, "'//' is refused");
 
-  console.log('\n── 3. gifts: 30 a minute PER SENDER, not 60 for everyone');
+  console.log('\n── 3. gifts: 60 a minute PER SENDER, not 60 for everyone');
   const gift = (ip, i) => tryAs(anon(ip, `select public.submit_gift_by_token('gift-tok-12345', 'אורח ${ip} ${i}', 36000, null, 'k-${ip}-${i}')`));
   let first = null;
-  for (let i = 1; i <= 31; i++) { const e = gift('203.0.113.7', i); if (e && !first) first = i; }
-  ok(first === 31, 'one address: 30 accepted, the 31st refused', `first refusal at #${first}`);
+  for (let i = 1; i <= 61; i++) { const e = gift('203.0.113.7', i); if (e && !first) first = i; }
+  ok(first === 61, 'one address (a hall\'s wifi): 60 accepted, the 61st refused', `first refusal at #${first}`);
   ok(gift('198.51.100.9', 1) === null, 'a real guest from another address still gets through');
   const n = psql(`select count(*) from public.gifts where event_id = '${EV}'`);
-  ok(n === '31', '31 stored (30 + the real one)', n);
+  ok(n === '61', '61 stored (60 + the real one)', n);
+  // Fourth review: rotating a forged first x-forwarded-for hop gave a fresh
+  // bucket per request. The per-event ceiling holds whoever is sending.
+  psql(`delete from public.guest_write_throttle`);
+  let ff = null;
+  for (let i = 1; i <= 301; i++) { if (gift(`10.9.${Math.floor(i / 250)}.${i % 250}`, 1000 + i) && !ff) ff = i; }
+  ok(ff === 301, 'a new forged address per request: stopped at the per-event ceiling of 300', `first refusal at #${ff}`);
+  // One IPv6 subscriber holds a whole /64.
+  psql(`delete from public.guest_write_throttle`);
+  let v6 = null;
+  for (let i = 1; i <= 61; i++) { if (gift(`2001:db8:0:7::${i.toString(16)}`, 2000 + i) && !v6) v6 = i; }
+  ok(v6 === 61, 'IPv6: 60 addresses inside one /64 share a single bucket', `first refusal at #${v6}`);
+  ok(gift('2001:db8:0:8::1', 3000) === null, 'the next /64 is a different sender');
   // No address visible (a direct call): the old per-event fallback, at 300.
   psql(`delete from public.guest_write_throttle`);
   let nf = null;
@@ -89,10 +101,29 @@ try {
 
   console.log('\n── the throttle forgets after a minute');
   psql(`update public.guest_write_throttle set at = now() - interval '2 minutes'`);
+  psql(`insert into public.guest_write_throttle (kind, event_id, sender, at)
+        values ('gift', 'bbbbbbbb-0000-0000-0000-000000000000', 'x', now() - interval '30 days')`);
   ok(gift('203.0.113.7', 99) === null, 'the same address is accepted again a minute later');
   ok(psql(`select count(*) from public.guest_write_throttle where kind = 'gift' and event_id = '${EV}'`) === '1',
      'old rows are deleted, not kept');
+  ok(psql(`select count(*) from public.guest_write_throttle where event_id <> '${EV}'`) === '0',
+     "and a quiet event's old rows too (fourth review: they stayed forever)");
   ok(tryAs(anon(null, `select count(*) from public.guest_write_throttle`)) !== null, 'anon cannot read the throttle table');
+
+  console.log('\n── 1b. a full album is cleared by changing the link (fourth review)');
+  {
+    // Files dropped into the link's folder without being indexed: the host's
+    // album screen lists only indexed photos, so it cannot see or delete them.
+    psql(`insert into storage.objects (bucket_id, name)
+          select 'event-album', '${EV}/album-tok-NEW99/junk' || g || '.jpg' from generate_series(1, 5000) g`);
+    ok(put(`${EV}/album-tok-NEW99/real.jpg`) !== null, 'the full folder refuses the next upload');
+    psql(`update public.events set payload = payload || '{"albumToken":"album-tok-FRESH1"}' where id = '${EV}'`);
+    ok(put(`${EV}/album-tok-FRESH1/real.jpg`) === null, 'after the host changes the link, guests upload again');
+    psql(`insert into public.album_photos (event_id, album_token, storage_path)
+          select '${EV}', 'album-tok-NEW99', '${EV}/album-tok-NEW99/junk' || g || '.jpg' from generate_series(1, 5000) g`);
+    ok(tryAs(anon(null, `select public.album_add_photo('album-tok-FRESH1', '${EV}/album-tok-FRESH1/real.jpg', null)`)) === null,
+       '5,000 indexed under the old link do not hold the new one shut');
+  }
 
   console.log('\n── 4. the event-site bucket has a ceiling');
   psql(`insert into storage.objects (bucket_id, name) select 'event-site', '${EV}/s' || g || '.jpg' from generate_series(1, 299) g`);
