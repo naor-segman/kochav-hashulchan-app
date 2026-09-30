@@ -35,6 +35,7 @@ import { tableCardKeys } from "../components/seating/tableCardKeys.js";
 import { buildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
+import { dndAnnouncements, DND_SCREEN_READER_INSTRUCTIONS } from "../utils/dndAnnouncements.js";
 
 function DroppableWrapper({ id, children }) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -105,6 +106,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     useSensor(PointerSensor, POINTER_ACTIVATION),
     useSensor(TouchSensor,   TOUCH_ACTIVATION),
   );
+
+  // Hebrew announcements that name the guest and the table, not dnd-kit's
+  // English "Draggable item <uuid>" (fourth review 30.9).
+  const dndA11y = useMemo(() => ({
+    announcements: dndAnnouncements(ev.guests, ev.tables),
+    screenReaderInstructions: DND_SCREEN_READER_INSTRUCTIONS,
+  }), [ev.guests, ev.tables]);
 
   const violations = useMemo(() =>
     computeViolations(ev.guests, ev.tables, ev.constraints, ev.seating),
@@ -578,6 +586,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
+        accessibility={dndA11y}
       >
         {/* screenContent class is used only by @media print to hide the interactive UI */}
         <div className={[base.page, styles.screenContent].join(" ")}>
