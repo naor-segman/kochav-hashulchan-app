@@ -941,3 +941,39 @@ describe("useEvents — nothing waits for the next edit (סב46)", () => {
     expect(cloud.updateCloudEvent.mock.calls[1][0].venue).toBe("בלי רשת");
   });
 });
+
+/* Fifth review 30.9 (סב88): an event deleted while the cloud delete could not
+ * land — offline, or the tab closed — came back on the next load, guests and
+ * all, because the load reads the cloud as the truth. */
+describe("useEvents — a delete that did not land is not undone by the next load", () => {
+  it("the next load leaves the row out and sends the delete again", async () => {
+    const row = ev("a", { cloudId: "c1", syncedVersion: 1 });
+    seed(userKey("u1"), [row]);
+    // the cloud still has it, whatever the local bucket says
+    cloud.fetchCloudEvents.mockReset().mockResolvedValue([row]);
+    cloud.deleteCloudEvent.mockReset().mockRejectedValue(new Error("offline"));
+    const first = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { first.result.current.removeEvent("a"); });
+    await settle();
+    expect(first.result.current.events).toHaveLength(0);
+    first.unmount();
+
+    // reload, back online
+    cloud.deleteCloudEvent.mockReset().mockResolvedValue(undefined);
+    const second = renderHook(() => useEvents(USER));
+    await settle(); await settle();
+    expect(second.result.current.events.map(e => e.id)).toEqual([]);
+    expect(stored(userKey("u1")).map(e => e.id)).toEqual([]);
+    expect(cloud.deleteCloudEvent).toHaveBeenCalledWith("c1", "u1");
+  });
+
+  it("once the delete lands, nothing is remembered", async () => {
+    seed(userKey("u1"), [ev("a", { cloudId: "c1", syncedVersion: 1 })]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { result.current.removeEvent("a"); });
+    await settle();
+    expect(localStorage.getItem("kh_pending_event_deletes:u1")).toBeNull();
+  });
+});

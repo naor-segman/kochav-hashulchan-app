@@ -4,6 +4,7 @@ import { normalizeEvent, normalizeDeletedRows, updateEventTimestamp, TOKEN_KEYS,
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
 import { syncBaseOf, threeWayScalars, threeWayGuests, canonical } from "../utils/syncBase.js";
+import { addPendingDelete, clearPendingDelete, readPendingDeletes, withoutPendingDeletes } from "../utils/pendingEventDeletes.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
@@ -399,6 +400,14 @@ export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null, sent
     && (sentEdits === undefined || (e.localEdits ?? 0) === sentEdits);
   if (unchanged) return { ...e, syncedVersion: v, version: v, syncBase };
   return { ...e, syncedVersion: v, version: Math.max(e.version ?? 0, v + 1), syncBase };
+}
+
+// A cloud delete that is remembered until it lands (see pendingEventDeletes.js).
+function sendCloudDelete(cloudId, userId) {
+  addPendingDelete(userId, cloudId);
+  deleteCloudEvent(cloudId, userId)
+    .then(() => clearPendingDelete(userId, cloudId))
+    .catch(() => { /* kept; the next load or "online" sends it again */ });
 }
 
 export function mergeCloudWithLocal(
@@ -911,13 +920,16 @@ export function useEvents(user) {
         // Stamped BEFORE the request goes out: anything created after this
         // moment is newer than the answer coming back.
         const fetchedAt = Date.now();
-        const cloudEvents = await fetchCloudEvents(userId);
+        const fetched = await fetchCloudEvents(userId);
         if (cancelled || ownerRef.current !== userId) return;
+        // The fetch resolved, so it did not error, and it came back short of
+        // the page limit, so nothing was cut off the end. Both have to hold
+        // before an event missing from this list can be read as deleted.
+        const authoritative = fetched.length < CLOUD_EVENTS_LIMIT;
+        const cloudEvents = withoutPendingDeletes(userId, fetched,
+          { authoritative, retry: (id) => sendCloudDelete(id, userId) });
         setEvents(prev => mergeCloudWithLocal(prev, cloudEvents, {
-          // The fetch resolved, so it did not error, and it came back short of
-          // the page limit, so nothing was cut off the end. Both have to hold
-          // before an event missing from this list can be read as deleted.
-          cloudIsAuthoritative: cloudEvents.length < CLOUD_EVENTS_LIMIT,
+          cloudIsAuthoritative: authoritative,
           fetchedAt,
         }));
         setSyncStatus(SYNC_STATUS.SYNCED);
@@ -954,8 +966,10 @@ export function useEvents(user) {
       if (err instanceof CloudConflictError) {
         try {
           const fetchedAt = Date.now();
-          const cloudEvents = await fetchCloudEvents(uid);
+          const fetched = await fetchCloudEvents(uid);
           if (ownerRef.current !== uid) return;
+          const cloudEvents = withoutPendingDeletes(uid, fetched,
+            { authoritative: fetched.length < CLOUD_EVENTS_LIMIT, retry: (id) => sendCloudDelete(id, uid) });
 
           // Merged HERE rather than inside a `setEvents(prev => …)` updater,
           // because the retry below needs the result and React does not run an
@@ -965,7 +979,7 @@ export function useEvents(user) {
           // for the same purpose, and every render has flushed during the
           // awaited fetch above.
           const mergeOpts = {
-            cloudIsAuthoritative: cloudEvents.length < CLOUD_EVENTS_LIMIT,
+            cloudIsAuthoritative: fetched.length < CLOUD_EVENTS_LIMIT,
             fetchedAt,
             // We are here BECAUSE the server rejected this event's write, so
             // this device is holding content the cloud does not have. See the
@@ -1036,7 +1050,7 @@ export function useEvents(user) {
         if (created) {
           const { cloudId, version } = created;
           if (wasDeleted) {
-            deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
+            sendCloudDelete(cloudId, currentUser.id);
           } else {
             const base = syncBaseOf(normalized);
             setEvents(prev => prev.map(e =>
@@ -1068,7 +1082,7 @@ export function useEvents(user) {
     const currentUser = userRef.current;
     if (!currentUser || !isSupabaseConfigured) return;
     if (ev?.cloudId) {
-      deleteCloudEvent(ev.cloudId, currentUser.id).catch(() => {});
+      sendCloudDelete(ev.cloudId, currentUser.id);
     } else if (ev) {
       // No cloudId yet — its initial create may still be in flight. Flag it so
       // the create handler deletes the orphaned cloud row when it resolves.
@@ -1111,7 +1125,7 @@ export function useEvents(user) {
           if (!created) { setSyncStatus(SYNC_STATUS.ERROR); return; }
           const { cloudId, version } = created;
           if (wasDeleted) {
-            deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
+            sendCloudDelete(cloudId, currentUser.id);
             setSyncStatus(SYNC_STATUS.SYNCED);
             return;
           }
@@ -1167,7 +1181,11 @@ export function useEvents(user) {
   useEffect(() => { if (loadedTick) pushUnpushed(); }, [loadedTick, pushUnpushed]);
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === "hidden") flushPending(); };
-    const onOnline = () => { flushPending(); pushUnpushed(); };
+    const onOnline = () => {
+      flushPending(); pushUnpushed();
+      const uid = userRef.current?.id;
+      if (uid && isSupabaseConfigured) readPendingDeletes(uid).forEach(id => sendCloudDelete(id, uid));
+    };
     document.addEventListener("visibilitychange", onHide);
     window.addEventListener("pagehide", flushPending);
     window.addEventListener("online", onOnline);
