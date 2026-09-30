@@ -98,6 +98,17 @@ describe("the invitation's link preview", () => {
     const body = await (await run()).text();
     expect(body).toContain("<title>אתר הבר מצווה של איתי</title>");
   });
+
+  // Sixth review 30.9: a bar mitzvah first set up as a wedding keeps the names.
+  it("a non-couple event never titles itself with bride and groom names", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      name: "בר המצווה של איתי", type: "בר מצווה", celebrant_name: "איתי",
+      bride_name: "נועה", groom_name: "טל", venue: "האחוזה",
+    }), { status: 200 }));
+    const body = await (await run()).text();
+    expect(body).toContain("<title>אתר הבר מצווה של איתי</title>");
+    expect(body).not.toContain("נועה");
+  });
 });
 
 describe("what the host can and cannot inject", () => {

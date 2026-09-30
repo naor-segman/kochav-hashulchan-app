@@ -18,6 +18,8 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
+const COUPLE_TYPES = new Set(["חתונה", "אירוס", "חינה"]);
+
 // Each entry: which paths, which token type the page itself resolves with (the
 // same one — the RPC hands each type only what its page needs), and how the
 // preview names the page. `null` label = the site's own wording (below).
@@ -77,7 +79,13 @@ export default async (request, context) => {
       "בר מצווה": "אתר הבר מצווה של", "בת מצווה": "אתר הבת מצווה של",
       "ברית": "אתר הברית של", "יום הולדת": "אתר יום ההולדת של",
     }[ev.type] || "אתר האירוע של";
-    const hosts = (ev.bride_name && ev.groom_name)
+    // Bride and groom names only on a couple's event, the same rule the guest
+    // pages follow (coupleEvent in src/utils/publicTokens.js — inlined, an edge
+    // function cannot import from src/). A bar mitzvah first set up as a
+    // wedding still carries them, and its WhatsApp preview read "אתר הבר מצווה
+    // של נועה & טל" (sixth review 30.9).
+    const couple = !ev.type || COUPLE_TYPES.has(ev.type);
+    const hosts = (couple && ev.bride_name && ev.groom_name)
       ? `${ev.bride_name} & ${ev.groom_name}`
       // owner_name: the one name of a ברית, יום הולדת… — without it the title
       // fell to the event's own name: "אתר הברית של הברית של איתי" (סב20).
