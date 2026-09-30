@@ -89,9 +89,10 @@ export default function ImportReview({ rows, existingGuests, onChange, onConfirm
                   <span className={styles.fieldLabel}>מקומות</span>
                   <input
                     className={[base.input, styles.seatsInput].join(" ")}
-                    value={r.count}
+                    value={r.countDraft ?? r.count}
                     inputMode="numeric"
-                    onChange={e => edit(r.id, { count: e.target.value })}
+                    onChange={e => edit(r.id, { count: e.target.value, typing: true })}
+                    onBlur={() => edit(r.id, { count: r.count })}
                   />
                 </label>
                 <label className={[styles.field, styles.fieldWide].join(" ")}>
@@ -101,10 +102,10 @@ export default function ImportReview({ rows, existingGuests, onChange, onConfirm
                   </span>
                   <input
                     className={[base.input, styles.smallInput].join(" ")}
-                    value={(r.companions || []).join(", ")}
+                    value={r.companionsText ?? (r.companions || []).join(", ")}
                     placeholder={r.count > 1 ? "מופרדים בפסיק" : "אין"}
                     disabled={r.count < 2}
-                    onChange={e => edit(r.id, { companions: e.target.value.split(",") })}
+                    onChange={e => edit(r.id, { companionsText: e.target.value })}
                   />
                 </label>
               </div>

@@ -138,13 +138,33 @@ export function editImportRow(rows, id, patch, existingGuests = []) {
 
     if (patch.phone !== undefined) next.phone = normalizePhone(patch.phone) || String(patch.phone ?? "").trim();
 
+    // The seats box, while the host is still typing in it (`typing`), is only
+    // a draft: read as 1 on every keystroke, clearing it to type "12" cut every
+    // companion name, and "12" then read "112" (fifth review 30.9). Names are
+    // trimmed to the seats when the number is COMMITTED (blur), in front of the
+    // host, as before.
+    delete next.typing;
     if (patch.count !== undefined) {
-      const n = Math.max(1, Math.min(50, Math.round(Number(patch.count) || 1)));
-      next.count = n;
-      next.companions = (next.companions || []).slice(0, n - 1);
+      delete next.countDraft;
+      const raw = String(patch.count).trim();
+      if (patch.typing) {
+        next.countDraft = raw;
+        if (raw !== "") next.count = Math.max(1, Math.min(50, Math.round(Number(raw) || 1)));
+      } else {
+        const n = Math.max(1, Math.min(50, Math.round(Number(raw) || 1)));
+        next.count = n;
+        next.companions = (next.companions || []).slice(0, n - 1);
+        delete next.companionsText;
+      }
     }
-    if (patch.companions !== undefined) {
-      const list = (patch.companions || []).map(c => String(c ?? "").trim());
+    // The names box is kept AS TYPED while the host types: splitting and
+    // trimming every keystroke ate the space in "יובל סגמן" the moment it was
+    // typed — "יובלסגמן" (fifth review 30.9).
+    if (patch.companionsText !== undefined) next.companionsText = String(patch.companionsText);
+    const compIn = patch.companionsText !== undefined ? next.companionsText.split(",") : patch.companions;
+    if (compIn !== undefined) {
+      if (patch.companionsText === undefined) delete next.companionsText;
+      const list = (compIn || []).map(c => String(c ?? "").trim());
       // Growing the names grows the seats: typing a third name means a third
       // chair, and making the host then also correct the number would be the
       // product asking them to say the same thing twice.
@@ -188,5 +208,7 @@ export function importSummary(rows) {
 
 /** Rows that are ready to become guests — a blank name is not a person. */
 export function readyImportRows(rows) {
-  return (rows || []).filter(r => String(r.name ?? "").trim());
+  return (rows || [])
+    .filter(r => String(r.name ?? "").trim())
+    .map(r => ({ ...r, companions: (r.companions || []).slice(0, Math.max(0, (r.count || 1) - 1)) }));
 }
