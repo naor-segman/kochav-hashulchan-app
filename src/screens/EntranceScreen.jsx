@@ -569,7 +569,10 @@ export default function EntranceScreen({
     if (!guest) { setScanMsg("הקוד לא שייך לאירוע הזה"); return; }
     if (isFullyArrived(guest)) { setScanMsg(seatsOf(guest) === 1 ? `${guest.name} — ההגעה כבר סומנה` : `${guest.name} — כל ${seatsOf(guest)} כבר סומנו`); return; }
     markRow(guest, true);
-    setScanMsg(seatsOf(guest) === 1 ? `${guest.name} — ההגעה סומנה` : `${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`);
+    const done = seatsOf(guest) === 1 ? `${guest.name} — ההגעה סומנה` : `${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`;
+    // Someone who said they would not come, and came: the greeter must know
+    // at that moment — there may be no seat for them (fifth review 30.9).
+    setScanMsg(guest.rsvp === "declined" ? `${done} · שימו לב: סימנו שלא יגיעו — ייתכן שאין להם מקום` : done);
   }, [canWrite, ev?.guests, markRow]);
 
   // ── Derived, in seats ──────────────────────────────────────────────────────
