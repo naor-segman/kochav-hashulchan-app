@@ -1,5 +1,5 @@
--- PREFLIGHT — read-only. Run BEFORE the 16 pending migrations.
--- Every row with blocks = true must show found = 0 before you start.
+-- בדיקה מקדימה — קריאה בלבד, לא משנה כלום. להריץ לפני 16 המיגרציות.
+-- כל שורה שבה "חוסם" = true צריכה להראות "נמצאו" = 0 לפני שמתחילים.
 with
 req(kind, name, present) as (values
   ('function', 'album_event_id(text)',                         to_regprocedure('public.album_event_id(text)') is not null),
@@ -95,63 +95,63 @@ door_events as (
    where hostess_token is not null and payload ? 'guests' and jsonb_typeof(payload->'guests') not in ('array', 'null')
 )
 select * from (
-  select 1 as n, 'required objects missing (the pending files reference them)' as check_name, true as blocks,
-         (select count(*) from req where not present) as found,
-         (select string_agg(kind || ' ' || name, ', ') from req where not present) as detail
+  select 1 as "מס", 'חסרים רכיבים שהקבצים צריכים' as "בדיקה", true as "חוסם",
+         (select count(*) from req where not present) as "נמצאו",
+         (select string_agg(kind || ' ' || name, ', ') from req where not present) as "פירוט"
   union all
-  select 2, 'album token shared by >1 event (20260928000300 stops)', true,
+  select 2, 'קוד אלבום משותף ליותר מאירוע אחד (קובץ 20260928000300 ייעצר)', true,
          (select count(*) from dup_album),
          (select string_agg(tok || ' → ' || ids::text, '; ') from dup_album)
   union all
-  select 3, 'album token longer than 2000 bytes (unique index may refuse it)', true,
+  select 3, 'קוד אלבום ארוך מ-2000 בתים', true,
          (select count(*) from long_album),
          (select string_agg(id || ' (' || len || ' bytes)', ', ') from long_album)
   union all
-  select 4, 'gift amount outside 500..10,000,000 agorot (20260929000000 CHECK fails)', true,
+  select 4, 'סכום מתנה מחוץ לטווח ₪5 עד ₪100,000 (קובץ 20260929000000 ייכשל)', true,
          (select count(*) from bad_gift),
          (select string_agg(id || ' amount=' || amount, ', ') from (select * from bad_gift limit 20) b)
   union all
-  select 5, 'current ck_gift_amount_range (info)', false,
+  select 5, 'מידע: הגבלת סכום המתנה הנוכחית', false,
          (select count(*) from pg_constraint where conname = 'ck_gift_amount_range' and conrelid = 'public.gifts'::regclass),
          (select string_agg(pg_get_constraintdef(oid), ' | ')
             from pg_constraint where conname = 'ck_gift_amount_range' and conrelid = 'public.gifts'::regclass)
   union all
-  select 6, 'paid rows that will grant NOTHING after the new client ships (event_id NULL, is_manually_managed false) — decide per row', false,
+  select 6, 'מנויים בתשלום שלא מקושרים לאירוע — אחרי העדכון לא יפתחו כלום (החלטה לכל שורה)', false,
          (select count(*) from live_unflagged),
          (select string_agg(l.plan || '/' || l.status || ' ' || coalesce(p.email, l.user_id::text) || ' sub=' || l.id, '; ')
             from live_unflagged l left join public.profiles p on p.id = l.user_id)
   union all
-  select 7, 'door: guests the hostess RPC cannot parse (count / arrived shape) — that family cannot be checked in', false,
+  select 7, 'כניסה: אורחים שהמארחת לא תוכל לסמן (כמות או הגעה בפורמט לא תקין)', false,
          (select count(*) from door_guests),
          (select string_agg(event_id || '/' || guest_id || ' ' || why, '; ') from (select * from door_guests limit 20) d)
   union all
-  select 8, 'door: events whose payload.guests is not an array (hostess RPC raises)', false,
+  select 8, 'כניסה: אירועים שרשימת האורחים שלהם לא תקינה', false,
          (select count(*) from door_events),
          (select string_agg(id::text, ', ') from door_events)
   union all
-  select 9, 'pending objects ALREADY present (a partial earlier run — safe, all files are re-runnable in order)', false,
+  select 9, 'חלקים שכבר קיימים מהרצה קודמת (בטוח — אפשר להריץ שוב לפי הסדר)', false,
          (select count(*) from already where present),
          (select string_agg(name, ', ') from already where present)
   union all
-  select 11, 'collab_guests: a phone CHECK under another name (20260930000200 drops only collab_guests_phone_check — this one would keep the 20-char limit)', true,
+  select 11, 'טבלה משותפת: הגבלת טלפון בשם אחר (הייתה משאירה מגבלה של 20 תווים)', true,
          (select count(*) from phone_checks),
          (select string_agg(conname || ': ' || def, '; ') from phone_checks)
   union all
-  select 12, 'storage: an extra INSERT policy on the album/site buckets (policies are OR-ed — a leftover one keeps the hole open after 20260930000000)', true,
+  select 12, 'אחסון: כלל העלאה נוסף לאלבום או לאתר (היה משאיר פרצה פתוחה)', true,
          (select count(*) from stray_insert_policies),
          (select string_agg(policyname || ': ' || rule, '; ') from stray_insert_policies)
   union all
-  select 13, 'album photos stored under the old <event>/<file> path (info: they stay visible; only NEW uploads use <event>/<albumToken>/)', false,
+  select 13, 'מידע: תמונות אלבום בנתיב הישן (נשארות גלויות, רק העלאות חדשות בנתיב החדש)', false,
          (select coalesce(sum(n), 0) from old_album_paths),
-         (select count(*) || ' events' from old_album_paths)
+         (select count(*) || ' אירועים' from old_album_paths)
   union all
-  select 14, 'collab_guests: phones longer than 40 characters (20260930000200 adds a 40 limit and fails on them) — shorten them first', true,
+  select 14, 'טבלה משותפת: טלפונים ארוכים מ-40 תווים — לקצר לפני שממשיכים', true,
          (select count(*) from public.collab_guests where char_length(phone) > 40),
          (select string_agg(id::text || ' (' || char_length(phone) || ')', ', ') from (select * from public.collab_guests where char_length(phone) > 40 limit 20) x)
   union all
-  select 10, 'row counts (save this; compare with the postflight)', false, null,
-         'events=' || (select count(*) from public.events) || ' gifts=' || (select count(*) from public.gifts) ||
-         ' album_photos=' || (select count(*) from public.album_photos) || ' subscriptions=' || (select count(*) from public.subscriptions) ||
-         ' rsvp_responses=' || (select count(*) from public.rsvp_responses) || ' collab_guests=' || (select count(*) from public.collab_guests) ||
-         ' guest_submissions=' || (select count(*) from public.guest_submissions) || ' profiles=' || (select count(*) from public.profiles)
-) x order by n;
+  select 10, 'ספירת שורות — לשמור ולהשוות בסוף', false, null,
+         'אירועים=' || (select count(*) from public.events) || ' מתנות=' || (select count(*) from public.gifts) ||
+         ' תמונות=' || (select count(*) from public.album_photos) || ' מנויים=' || (select count(*) from public.subscriptions) ||
+         ' אישורי_הגעה=' || (select count(*) from public.rsvp_responses) || ' טבלה_משותפת=' || (select count(*) from public.collab_guests) ||
+         ' הגשות_אורחים=' || (select count(*) from public.guest_submissions) || ' משתמשים=' || (select count(*) from public.profiles)
+) x order by 1;
