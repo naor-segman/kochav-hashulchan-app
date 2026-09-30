@@ -3,7 +3,7 @@ import { loadState, persist, userStorageKey } from "../utils/storage.js";
 import { normalizeEvent, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
-import { syncBaseOf, threeWayScalars } from "../utils/syncBase.js";
+import { syncBaseOf, threeWayScalars, canonical } from "../utils/syncBase.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
@@ -299,6 +299,23 @@ function mergeSeating(cloudSeating, localSeating, cloudKnowsGuest, tableExists) 
  * other device deleted stayed "seated" at nothing: left out of every
  * unassigned list and counted as seated. Applied at both exits of the merge.
  */
+/* Everything the cloud-wins branch unions with this device's copy. When the
+ * result differs from the cloud row in any of them, the device holds something
+ * the cloud does not — a guest only it has, a tombstone, an arrival — and the
+ * event must be pushed (fourth review 30.9: a guest kept by the union came out
+ * version === syncedVersion, was never sent, and the sign-out prune deleted it
+ * everywhere). Not eventSite or tokens: normalizeEvent mints ids for those on
+ * the cloud side, so they would read as different on every login. */
+const UNION_KEYS = ["guests", "tables", "constraints", "tasks", "vendors", "deletedRows", "seating",
+  "lockedGuests", "lockedTables", "customGroups", "customTableTypes", "messagesSent", "rsvpApplied",
+  "messageTemplates", "costs"];
+function holdsMoreThanCloud(merged, cloudNormalized) {
+  const c = pruneArrangement(cloudNormalized);
+  if (UNION_KEYS.some(k => canonical(merged[k]) !== canonical(c[k]))) return true;
+  return canonical(merged.floorPlan?.tablePositions ?? {}) !== canonical(c.floorPlan?.tablePositions ?? {})
+      || canonical(merged.floorPlan?.elements ?? []) !== canonical(c.floorPlan?.elements ?? []);
+}
+
 function pruneArrangement(ev) {
   const guestIds = new Set((ev.guests || []).map(g => g.id));
   const tableIds = new Set((ev.tables || []).map(t => t.id));
@@ -365,8 +382,14 @@ function keepFilledCosts(winner, loser) {
  * retry used to set `version: v2` outright, which is exactly that (third
  * review 30.9, סב46). The server now also refuses to let the version go down
  * (migration 20260930000300), so `v` can be above what was sent. */
-export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null) {
-  if (e.version === sentVersion) return { ...e, syncedVersion: v, version: v, syncBase };
+export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null, sentUpdatedAt) {
+  // The version counter alone is not proof: a merge while the push was on the
+  // wire can reset it, and the next edit then lands on the SAME number as the
+  // one sent — which read as "nothing changed since", marked the edit synced,
+  // and nothing sent it (fourth review 30.9). The edit's timestamp settles it.
+  const unchanged = e.version === sentVersion
+    && (sentUpdatedAt === undefined || e.updatedAt === sentUpdatedAt);
+  if (unchanged) return { ...e, syncedVersion: v, version: v, syncBase };
   return { ...e, syncedVersion: v, version: Math.max(e.version ?? 0, v + 1), syncBase };
 }
 
@@ -429,6 +452,14 @@ export function mergeCloudWithLocal(
     const localMatch = localEvents.find(le =>
       le.id === ce.id || (le.cloudId && le.cloudId === ce.cloudId)
     );
+    // A row OLDER than the one this device already synced with — a slow fetch
+    // answering after a faster one (two conflict recoveries in flight). It says
+    // nothing new, and read as "the cloud moved from the base" it put the
+    // previous values back over the other device's edit (fourth review 30.9).
+    if (localMatch && Number.isFinite(localMatch.syncedVersion) && Number.isFinite(ce.syncedVersion)
+        && ce.syncedVersion < localMatch.syncedVersion) {
+      return normalizeEvent(localMatch);
+    }
     // Both sides' tombstones, before either branch decides who wins on scalars.
     // A deletion recorded on either device is a deletion, and the branch that
     // loses on scalars still has to have its deletes honoured — otherwise which
@@ -678,7 +709,9 @@ export function mergeCloudWithLocal(
     }
     // Applied at BOTH exits. The local-wins branch above returns early, and
     // putting this only here silently skipped the exact case it is for.
-    return markUnpushed(localMatch ? pruneArrangement(result) : result, localKept);
+    if (!localMatch) return result;
+    const pruned = pruneArrangement(result);
+    return markUnpushed(pruned, localKept || holdsMoreThanCloud(pruned, normalized));
   });
 
   for (const le of localEvents) {
@@ -886,7 +919,7 @@ export function useEvents(user) {
       const version = await updateCloudEvent(ev, uid);
       if (Number.isFinite(version)) {
         const base = syncBaseOf(ev);
-        setEvents(prev => prev.map(e => e.id === ev.id ? afterPush(e, ev.version, version, base) : e));
+        setEvents(prev => prev.map(e => e.id === ev.id ? afterPush(e, ev.version, version, base, ev.updatedAt) : e));
       }
       setSyncStatus(SYNC_STATUS.SYNCED);
     } catch (err) {
@@ -903,15 +936,22 @@ export function useEvents(user) {
           // never fired. `eventsRef` is what the rest of this hook already uses
           // for the same purpose, and every render has flushed during the
           // awaited fetch above.
-          const next = mergeCloudWithLocal(eventsRef.current, cloudEvents, {
+          const mergeOpts = {
             cloudIsAuthoritative: cloudEvents.length < CLOUD_EVENTS_LIMIT,
             fetchedAt,
             // We are here BECAUSE the server rejected this event's write, so
             // this device is holding content the cloud does not have. See the
             // long note on the option in mergeCloudWithLocal.
             unpushedIds: new Set([ev.id]),
-          });
-          setEvents(next);
+          };
+          const next = mergeCloudWithLocal(eventsRef.current, cloudEvents, mergeOpts);
+          // The STATE is merged against the latest state, not the snapshot
+          // above: eventsRef only catches up after a render, so a second
+          // recovery (or an edit) landing in the same tick was overwritten by
+          // `setEvents(next)` (fourth review 30.9). `next` is only the copy
+          // pushed below — and afterPush compares timestamps, so where the two
+          // differ the event simply stays owed to the cloud.
+          setEvents(prev => mergeCloudWithLocal(prev, cloudEvents, mergeOpts));
           const mergedThis = next.find(e => e.id === ev.id) ?? null;
 
           // AND THEN PUSH IT. Without this the merge was a dead end: it built a
@@ -926,7 +966,7 @@ export function useEvents(user) {
               if (Number.isFinite(v2)) {
                 const base = syncBaseOf(mergedThis);
                 setEvents(prev => prev.map(e =>
-                  e.id === ev.id ? afterPush(e, mergedThis.version, v2, base) : e));
+                  e.id === ev.id ? afterPush(e, mergedThis.version, v2, base, mergedThis.updatedAt) : e));
               }
               setSyncStatus(SYNC_STATUS.SYNCED);
             } catch {

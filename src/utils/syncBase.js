@@ -32,7 +32,7 @@ export const SCALAR_FIELDS = [
   "eventSite", "announcements", "noShowPct", "costs",
 ];
 
-function canonical(v) {
+export function canonical(v) {
   if (v === undefined || v === null) return "null";
   if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
   if (typeof v === "object") {

@@ -92,3 +92,44 @@ describe("three-way merge of single-value fields (סב55)", () => {
     expect(normalizeEvent({ ...synced, syncBase: [1] }).syncBase).toBe(null);
   });
 });
+
+/* Fourth review 30.9 — a fuzz of three devices against a fake cloud with real
+ * version checks, 2,000 seeds: 740 failing before these, 11 after. */
+describe("what the fourth review's fuzz found in סב55/סב56", () => {
+  it("a guest only this device holds keeps the event owed to the cloud, even when the cloud copy is newer", () => {
+    // Added offline here; the other device edited something later.
+    const local = { ...synced, syncBase: base, version: 6, syncedVersion: 5, updatedAt: T + 10,
+      guests: [...synced.guests, { id: "gA", name: "נוסף כאן", count: 1 }] };
+    const cloud = { ...synced, venue: "אולם", version: 6, syncedVersion: 6, updatedAt: T + 20 };
+    const [m] = mergeCloudWithLocal([local], [cloud]);
+    expect(m.guests.map(g => g.id)).toContain("gA");
+    // version === syncedVersion read as "the cloud holds this": never pushed,
+    // and deleted everywhere by the sign-out prune.
+    expect(m.version).not.toBe(m.syncedVersion);
+  });
+
+  it("an identical copy is still NOT marked (no push on every login)", () => {
+    const cloud = { ...synced, version: 6, syncedVersion: 6, updatedAt: T + 20 };
+    const [m] = mergeCloudWithLocal([{ ...cloud, syncBase: base }], [cloud]);
+    expect(m.version).toBe(m.syncedVersion);
+  });
+
+  it("a slow fetch answering after a faster one does not put old values back", () => {
+    const v5 = { ...synced, version: 5, syncedVersion: 5, venue: "מהמכשיר השני", updatedAt: T + 50 };
+    const local = { ...synced, syncBase: base, version: 6, syncedVersion: 5, updatedAt: T + 10 };
+    const [a] = mergeCloudWithLocal([local], [v5], { unpushedIds: new Set(["e1"]) });
+    const stale = { ...synced, version: 4, syncedVersion: 4 };
+    const [b] = mergeCloudWithLocal([{ ...a, syncBase: syncBaseOf(v5) }], [stale], { unpushedIds: new Set(["e1"]) });
+    expect(b.venue).toBe("מהמכשיר השני");
+    expect(b.syncedVersion).toBe(5);
+  });
+
+  it("an acknowledged push does not mark an edit made on the same version number as synced", () => {
+    // A merge on the wire reset the counter; the next edit landed on the number sent.
+    const sent = { ...synced, version: 4, updatedAt: T + 1 };
+    const now  = { ...synced, version: 4, updatedAt: T + 2, name: "נערך אחרי השליחה" };
+    const after = afterPush(now, sent.version, 4, syncBaseOf(sent), sent.updatedAt);
+    expect(after.version).not.toBe(after.syncedVersion);
+    expect(afterPush(sent, sent.version, 4, syncBaseOf(sent), sent.updatedAt).version).toBe(4);
+  });
+});
