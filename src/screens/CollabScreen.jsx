@@ -50,6 +50,7 @@ export default function CollabScreen() {
   const editing   = useRef(new Set());  // row ids being edited locally right now
   const timers    = useRef(new Map());  // id -> debounce timeout
   const serverIds = useRef(new Set());  // ids the server has ever returned
+  const edits     = useRef(new Map());  // id -> edit counter, to know which save is the latest
 
   // Merge a freshly-polled full list into local state without clobbering rows
   // the user is currently editing or a locally-added row not yet saved.
@@ -79,6 +80,13 @@ export default function CollabScreen() {
         // back over the deletion.
         if (fresh) {
           const merged = { ...r, ...fresh };
+          // The server trims what it stores. Its copy of "דנה " is "דנה", and
+          // written back into the field while the relative is mid-word the next
+          // keystroke glued the words: "דנהכהן" (fifth review 30.9). A value
+          // that differs only by outer spaces is the same value — keep ours.
+          for (const k of ["name", "phone", "guest_group", "notes"]) {
+            if (typeof r[k] === "string" && typeof fresh[k] === "string" && r[k].trim() === fresh[k].trim()) merged[k] = r[k];
+          }
           if (!Array.isArray(fresh.companions) && Array.isArray(r.companions)) {
             merged.companions = r.companions;
           }
@@ -169,11 +177,16 @@ export default function CollabScreen() {
     const t = timers.current;
     if (t.has(row.id)) clearTimeout(t.get(row.id));
     if (!(row.name || "").trim() || !ev.cloudId) return;
+    const gen = edits.current.get(row.id) || 0;
     t.set(row.id, setTimeout(async () => {
       t.delete(row.id);
       try {
         await upsertCollabGuest(token, { ...row, updated_by: me || null });
-        editing.current.delete(row.id);
+        // Released only if this save is the LATEST edit and no newer one is
+        // waiting. A slow save finishing after the next keystroke released the
+        // row, the poll wrote the older copy into the field, and the letters
+        // typed in between were lost for good (fifth review 30.9).
+        if ((edits.current.get(row.id) || 0) === gen && !t.has(row.id)) editing.current.delete(row.id);
         setFailed(prev => { const n = new Set(prev); n.delete(row.id); return n; });
       } catch {
         // Do NOT release the row. Clearing `editing` on failure let the 3s poll
@@ -187,6 +200,7 @@ export default function CollabScreen() {
 
   const editRow = (id, patch) => {
     editing.current.add(id);
+    edits.current.set(id, (edits.current.get(id) || 0) + 1);
     setRows(prev => {
       const next = prev.map(r => (r.id === id ? { ...r, ...patch } : r));
       scheduleWrite(next.find(r => r.id === id));
