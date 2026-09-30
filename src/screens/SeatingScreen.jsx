@@ -115,9 +115,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   // Hebrew announcements that name the guest and the table, not dnd-kit's
   // English "Draggable item <uuid>" (fourth review 30.9).
   const dndA11y = useMemo(() => ({
-    announcements: dndAnnouncements(ev.guests, ev.tables),
+    announcements: dndAnnouncements(ev.guests, ev.tables, ev.seating),
     screenReaderInstructions: DND_SCREEN_READER_INSTRUCTIONS,
-  }), [ev.guests, ev.tables]);
+  }), [ev.guests, ev.tables, ev.seating]);
 
   const violations = useMemo(() =>
     computeViolations(ev.guests, ev.tables, ev.constraints, ev.seating),
