@@ -41,4 +41,14 @@ describe("gift page limits, said before they bite", () => {
     fireEvent.click(screen.getByRole("button", { name: /שלחו|שליחה/ }));
     expect(await screen.findByText("הסכום המרבי הוא ₪100,000")).toBeInTheDocument();
   });
+
+  it("an amount under the minimum is explained, not a silently grey button (סב88)", async () => {
+    await open();
+    fireEvent.change(screen.getByLabelText(/שמכם המלא/), { target: { value: "משפחת כהן" } });
+    fireEvent.change(screen.getByLabelText(/סכום המתנה/), { target: { value: "30" } });
+    const send = screen.getByRole("button", { name: /שלחו|שליחה/ });
+    expect(send).not.toBeDisabled();
+    fireEvent.click(send);
+    expect(await screen.findByText("יש לבחור סכום (מינימום ₪50)")).toBeInTheDocument();
+  });
 });

@@ -204,7 +204,6 @@ export default function GiftScreen() {
   }
 
   // ── Form ─────────────────────────────────────────────────────────────────────
-  const canSubmit = finalAmount >= 50 && name.trim().length > 0;
 
   const btnLabel = step === "submitting"
     ? "שולח..."
@@ -360,7 +359,10 @@ export default function GiftScreen() {
           <button
             className={styles.submitBtn}
             onClick={handleSubmit}
-            disabled={!canSubmit || step === "submitting"}
+            // Not disabled for a missing name or an amount under ₪50: a greyed
+            // button with ₪30 typed gave no reason at all (fifth review 30.9,
+            // סב88). Pressed, it says which field and why.
+            disabled={step === "submitting"}
           >
             {btnLabel}
           </button>
