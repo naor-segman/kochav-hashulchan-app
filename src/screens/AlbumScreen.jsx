@@ -130,7 +130,16 @@ export default function AlbumScreen() {
     let failed = 0, lastErr = null;
     for (const f of list) {
       try {
-        await uploadAlbumPhoto(event.cloudId, token, await downscale(f), name);
+        const blob = await downscale(f);
+        // Uploads have no request deadline (a big photo on 3G takes minutes),
+        // and one that never answered left the page on "מעלה…" for good, the
+        // picker disabled (fifth review 30.9). Each file gets a generous one:
+        // two minutes plus a second per 20 KB.
+        const ms = 120_000 + Math.ceil((blob?.size || 0) / 20_000) * 1000;
+        await Promise.race([
+          uploadAlbumPhoto(event.cloudId, token, blob, name),
+          new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error("timeout"), { name: "TimeoutError" })), ms)),
+        ]);
       } catch (err) {
         failed++;
         lastErr = err;
