@@ -78,6 +78,11 @@ export default function GiftScreen() {
     // failed with "נסו שוב", which could never succeed (second review, סב36).
     else if (finalAmount > GIFT_MAX_ILS) errs.amount = "הסכום המרבי הוא ₪100,000";
     setErrors(errs);
+    // To the field, not just a message: on a phone the amount's message sits
+    // far above the send button, and pressing it changed nothing on screen
+    // (sixth review 30.9, measured at 390px). Focusing scrolls it into view.
+    const first = errs.amount ? "gift-amount" : errs.name ? "gift-name" : null;
+    if (first) document.getElementById(first)?.focus();
     return Object.keys(errs).length === 0;
   };
 
@@ -256,9 +261,6 @@ export default function GiftScreen() {
           {/* Amount selector */}
           <div className={styles.section}>
             <label className={styles.sectionLabel} htmlFor="gift-amount">סכום המתנה</label>
-            {errors.amount && (
-              <span className={styles.fieldErr} id="gift-amount-err" role="alert">{errors.amount}</span>
-            )}
             <div className={styles.chips}>
               {AMOUNT_CHIPS.map(a => (
                 <button
@@ -299,6 +301,12 @@ export default function GiftScreen() {
                 }}
               />
             </div>
+            {/* Under the field, not above the chips: on a phone the amount's
+                message sat above the screen when the send button was pressed
+                (sixth review 30.9, measured at 390px). */}
+            {errors.amount && (
+              <span className={styles.fieldErr} id="gift-amount-err" role="alert">{errors.amount}</span>
+            )}
           </div>
 
           {/* Personal blessing */}

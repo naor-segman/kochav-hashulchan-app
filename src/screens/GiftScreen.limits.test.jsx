@@ -50,5 +50,14 @@ describe("gift page limits, said before they bite", () => {
     expect(send).not.toBeDisabled();
     fireEvent.click(send);
     expect(await screen.findByText("יש לבחור סכום (מינימום ₪50)")).toBeInTheDocument();
+    // on a phone the message is off-screen: focus goes to the field
+    expect(document.activeElement).toBe(screen.getByLabelText(/סכום המתנה/));
+  });
+
+  it("a missing name takes focus to the name field", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "₪300" }));   // a preset amount chip
+    fireEvent.click(screen.getByRole("button", { name: /שלחו|שליחה/ }));
+    expect(document.activeElement).toBe(screen.getByLabelText(/שמכם המלא/));
   });
 });
