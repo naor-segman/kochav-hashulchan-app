@@ -241,10 +241,16 @@ export function matchGuest(g, query) {
   // Israeli form on both sides: "+972 52…" and "052…" are one number. A phone
   // stored as typed in the RSVP or the shared table ("+972 52 765 4321") was
   // not found by "0527654321" (second review, סב35).
+  // The query is tried as typed too: "9721" is the END of 054-555-9721 far
+  // more often than an international prefix, and rewriting it alone stopped
+  // those searches matching (fourth review 30.9).
   const local = d => (d.startsWith("972") ? "0" + d.slice(3) : d);
-  const digits = local(q.replace(/\D/g, ""));
-  if (digits && g?.phone && local(String(g.phone).replace(/\D/g, "")).includes(digits)) {
-    return { via: "phone", label: g.name, seat: 0 };
+  const typed = q.replace(/\D/g, "");
+  if (typed && g?.phone) {
+    const stored = local(String(g.phone).replace(/\D/g, ""));
+    if (stored.includes(typed) || stored.includes(local(typed))) {
+      return { via: "phone", label: g.name, seat: 0 };
+    }
   }
   return null;
 }

@@ -148,6 +148,12 @@ describe("search finds the person actually standing at the door", () => {
     expect(matchGuest({ ...aunt, phone: "052-7654321" }, "+972527654321")).toMatchObject({ via: "phone" });
   });
 
+  it("a search that merely starts with 972 still finds the number it is part of (fourth review)", () => {
+    expect(matchGuest({ ...aunt, phone: "054-555-9721" }, "9721")).toMatchObject({ via: "phone" });
+    expect(matchGuest({ ...aunt, phone: "052-119-7254" }, "97254")).toMatchObject({ via: "phone" });
+    expect(matchGuest({ ...aunt, phone: "03-6972123" }, "972123")).toMatchObject({ via: "phone" });
+  });
+
   it("finds by phone digits, ignoring dashes", () => {
     expect(matchGuest(aunt, "0501234567")).toMatchObject({ via: "phone" });
   });
