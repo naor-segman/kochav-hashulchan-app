@@ -574,3 +574,17 @@ describe("fetchCollabEvent — the host's own groups (migration 20260928000600)"
     expect((await fetchCollabEvent("tok12345")).customGroups).toEqual([]);
   });
 });
+
+// Fifth review 30.9: a bar mitzvah that had been a wedding showed the couple.
+describe("couple names reach guests only on a couple event", () => {
+  it("a bar mitzvah with leftover couple names shows none", async () => {
+    ok({ id: "c1", name: "בר המצווה של איתי", type: "בר מצווה", bride_name: "נועה", groom_name: "טל", celebrant_name: "איתי" });
+    const ev = await fetchEventByToken("invite", "tok12345");
+    expect([ev.brideName, ev.groomName, ev.celebrantName]).toEqual(["", "", "איתי"]);
+  });
+  it("a wedding keeps them", async () => {
+    ok({ id: "c1", name: "x", type: "חתונה", bride_name: "נועה", groom_name: "טל" });
+    const ev = await fetchEventByToken("invite", "tok12345");
+    expect([ev.brideName, ev.groomName]).toEqual(["נועה", "טל"]);
+  });
+});

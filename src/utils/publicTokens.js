@@ -1,15 +1,25 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import { toSeatIndex } from "./arrival.js";
+import { getEventPersonalConfig } from "./eventHelpers.js";
+
+/* Couple names belong to couple events. The setup screen keeps them when the
+ * type changes (switching back must not lose them), and the server serves
+ * them — so a bar mitzvah that had once been a wedding showed "נועה✦טל" above
+ * "את שמחת בר המצווה של איתי", titled every tab "נועה וטל" and asked guests to
+ * "שלחו מתנה לנועה וטל" (fifth review 30.9). Guests see them only on a couple
+ * event. */
+const coupleEvent = (type) => getEventPersonalConfig(type ?? "חתונה").kind === "wedding";
 
 function mapPublicEvent(data) {
+  const couple = coupleEvent(data.type);
   return {
     cloudId:          data.id,
     name:             data.name              ?? "",
     type:             data.type              ?? "חתונה",
     date:             data.date              ?? "",
     venue:            data.venue             ?? "",
-    brideName:        data.bride_name        ?? "",
-    groomName:        data.groom_name        ?? "",
+    brideName:        couple ? data.bride_name ?? "" : "",
+    groomName:        couple ? data.groom_name ?? "" : "",
     celebrantName:    data.celebrant_name    ?? "",
     organizationName: data.organization_name ?? "",
     contactName:      data.contact_name      ?? "",
@@ -333,8 +343,8 @@ export async function fetchCollabEvent(token) {
     cloudId:    data.id,
     name:       data.name       ?? "",
     type:       data.type       ?? "חתונה",
-    brideName:  data.bride_name  ?? "",
-    groomName:  data.groom_name  ?? "",
+    brideName:  coupleEvent(data.type) ? data.bride_name ?? "" : "",
+    groomName:  coupleEvent(data.type) ? data.groom_name ?? "" : "",
     coupleType: data.couple_type ?? "bride-groom",
     // The collab table calls getSideLabels(ev) too, so without this an aunt
     // adding names to a two-mother family's bar mitzvah sees "משפחת האם /
