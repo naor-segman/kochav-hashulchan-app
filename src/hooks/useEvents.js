@@ -4,7 +4,7 @@ import { normalizeEvent, normalizeDeletedRows, normalizeRotations, updateEventTi
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
 import { syncBaseOf, threeWayScalars, threeWayGuests, canonical } from "../utils/syncBase.js";
-import { addPendingDelete, clearPendingDelete, readPendingDeletes, withoutPendingDeletes } from "../utils/pendingEventDeletes.js";
+import { addPendingDelete, markDeleteLanded, readPendingDeletes, withoutPendingDeletes } from "../utils/pendingEventDeletes.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
@@ -410,7 +410,7 @@ export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null, sent
 function sendCloudDelete(cloudId, userId) {
   addPendingDelete(userId, cloudId);
   deleteCloudEvent(cloudId, userId)
-    .then(() => clearPendingDelete(userId, cloudId))
+    .then(() => markDeleteLanded(userId, cloudId))
     .catch(() => { /* kept; the next load or "online" sends it again */ });
 }
 

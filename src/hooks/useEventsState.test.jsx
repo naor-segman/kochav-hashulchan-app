@@ -968,12 +968,38 @@ describe("useEvents — a delete that did not land is not undone by the next loa
     expect(cloud.deleteCloudEvent).toHaveBeenCalledWith("c1", "u1");
   });
 
-  it("once the delete lands, nothing is remembered", async () => {
+  it("once the delete lands, nothing is owed; the next complete load forgets it", async () => {
     seed(userKey("u1"), [ev("a", { cloudId: "c1", syncedVersion: 1 })]);
-    const { result } = renderHook(() => useEvents(USER));
+    const first = renderHook(() => useEvents(USER));
     await settle();
-    act(() => { result.current.removeEvent("a"); });
+    act(() => { first.result.current.removeEvent("a"); });
     await settle();
+    const marks = JSON.parse(localStorage.getItem("kh_pending_event_deletes:u1"));
+    expect(marks.c1).toBeGreaterThan(0);          // landed, not owed
+    first.unmount();
+    cloud.deleteCloudEvent.mockClear();
+    const second = renderHook(() => useEvents(USER));   // the cloud no longer has c1
+    await settle(); await settle();
+    expect(second.result.current.events).toHaveLength(0);
+    expect(cloud.deleteCloudEvent).not.toHaveBeenCalled();
     expect(localStorage.getItem("kh_pending_event_deletes:u1")).toBeNull();
+  });
+
+  // Sixth review 30.9: the load went out, the event was deleted, the delete
+  // landed and cleared its mark — and then the load's answer, still holding
+  // the row, brought the event back.
+  it("a load answered after the delete landed does not bring the event back", async () => {
+    const row = ev("a", { cloudId: "c1", syncedVersion: 1 });
+    seed(userKey("u1"), [row]);
+    let answer;
+    cloud.fetchCloudEvents.mockReset().mockImplementation(() => new Promise(r => { answer = r; }));
+    const h = renderHook(() => useEvents(USER));
+    await settle();
+    act(() => { h.result.current.removeEvent("a"); });
+    await settle();                                  // the delete has landed
+    await act(async () => { answer([row]); await vi.advanceTimersByTimeAsync(0); });
+    await settle();
+    expect(h.result.current.events.map(e => e.id)).toEqual([]);
+    expect(stored(userKey("u1")).map(e => e.id)).toEqual([]);
   });
 });
