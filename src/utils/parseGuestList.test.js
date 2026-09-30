@@ -586,3 +586,25 @@ describe("spreadsheet rows and the partner placeholder", () => {
     expect(parseGuestList("דוד +1 (שרה/רון)")[0].companions).toEqual(["שרה", "רון"]);
   });
 });
+
+// Fifth review 30.9 — regressions of the partner placeholder fix, and
+// spreadsheet name cells.
+describe("partner placeholders and spreadsheet cells, second pass", () => {
+  it("'+ בת זוג' is a seat, and leaves the name clean", () => {
+    expect(parseGuestList("יוסי מזרחי + בת זוג")).toEqual([
+      { name: "יוסי מזרחי", phone: "", count: 2, companions: [""] },
+    ]);
+    expect(parseGuestList("דנה כהן + מלווה")[0].count).toBe(2);
+  });
+  it("'(בן/בת זוג)' without +N is two seats, not a note in the name", () => {
+    expect(parseGuestList("דנה כהן (בן/בת זוג)")).toEqual([
+      { name: "דנה כהן", phone: "", count: 2, companions: [""] },
+    ]);
+  });
+  it("a bare number in a spreadsheet name cell is part of the name, not seats", () => {
+    expect(parseGuestList("דנה בת 12\t0501234567\t1")).toEqual([{ name: "דנה בת 12", phone: "0501234567" }]);
+  });
+  it("a duplicate that says more seats wins over the first copy", () => {
+    expect(parseGuestList("דנה כהן\t0501234567\nדנה כהן +1\t0501234567")[0].count).toBe(2);
+  });
+});

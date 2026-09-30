@@ -58,7 +58,10 @@ function warningsFor(row, existingKeys) {
   // "+2" with no names is three seats and only one person we can print. The
   // host may well not know the names yet, so this is a flag and never a block.
   const seats = row.count || 1;
-  if (seats > 1 && (row.companions?.length ?? 0) < seats - 1) out.push("missingNames");
+  // FILLED names: a partner placeholder ("+ בת זוג") is a seat with an empty
+  // name, and counting entries let it pass unflagged (fifth review 30.9).
+  const named = (row.companions || []).filter(c => String(c || "").trim()).length;
+  if (seats > 1 && named < seats - 1) out.push("missingNames");
   if (!phone) out.push("noPhone");
   return out;
 }

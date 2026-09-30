@@ -213,3 +213,10 @@ describe("duplicates INSIDE one paste, not just against the existing list", () =
     expect(back[1].warnings).not.toContain("duplicate");
   });
 });
+
+describe("a partner placeholder asks for the name (fifth review 30.9)", () => {
+  it("flags missingNames when the only companion name is empty", () => {
+    const [row] = buildImportRows([{ name: "יוסי", phone: "0501234567", count: 2, companions: [""] }]);
+    expect(row.warnings).toContain("missingNames");
+  });
+});

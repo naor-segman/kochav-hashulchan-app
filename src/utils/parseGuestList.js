@@ -322,7 +322,10 @@ function parseColumns(line) {
   // The name cell is read like any typed line — its "+1 (רותי)" is a companion,
   // not part of the name. Read raw, "גיל גולן+1 (רותי)" stayed the guest's name
   // and רותי was dropped (fourth review 30.9).
-  const person = parseOnePerson(nameCell);
+  // A spreadsheet has its own count column, so a bare number in the name cell
+  // is part of the name ("דנה בת 12", "בית כנסת 5") — only "+N" and brackets
+  // are read there (fifth review 30.9: "דנה בת 12" was 12 seats).
+  const person = parseOnePerson(nameCell, { bareCount: false });
   if (!person) return null;
 
   const row = { name: person.name, phone: phone || person.phone };
@@ -334,7 +337,7 @@ function parseColumns(line) {
 }
 
 /** One person / group. Returns null when there is nobody to seat. */
-function parseOnePerson(segment) {
+function parseOnePerson(segment, { bareCount = true } = {}) {
   // Israeli form first — it is the common case and the more specific pattern.
   // Only if that misses do we look for a foreign number, and only then for a
   // local number whose leading zero was eaten by a spreadsheet.
@@ -354,7 +357,10 @@ function parseOnePerson(segment) {
   if (declared == null) {
     const pn = rest.match(PLUS_NAME_RE);
     if (pn) {
-      plusNames = splitCompanions(pn[1], null).filter(Boolean);
+      // Not filtered for empty names: "+ בת זוג" IS a seat, whose name is the
+      // empty string (fifth review 30.9 — filtered, the seat was lost and
+      // "+ בת זוג" stayed in the guest's name).
+      plusNames = splitCompanions(pn[1], null);
       if (plusNames.length) rest = rest.slice(0, pn.index) + " " + rest.slice(pn.index + pn[0].length);
     }
   }
@@ -370,13 +376,14 @@ function parseOnePerson(segment) {
   // Cut by INDEX, not by String.replace: replace() would delete the FIRST
   // bracket with that text while `paren` is the LAST one, which on a repeated
   // bracket removes the wrong half of the line.
-  const usesParen = paren && (declared != null || companions.length >= 2);
+  // A partner placeholder is a person too: "דנה (בן/בת זוג)" is two seats.
+  const usesParen = paren && (declared != null || companions.length >= 2 || companions.includes(""));
   if (usesParen) rest = rest.slice(0, paren.index) + " " + rest.slice(paren.index + paren[0].length);
   else companions = [];
 
   // Only look for the other count notations once the "+N" and the bracket are
   // gone, so "+1 (שרה)" is never re-read as a trailing number.
-  if (declared == null && !companions.length) {
+  if (bareCount && declared == null && !companions.length) {
     const c = readCount(rest);
     if (c) { declared = c.count - 1; rest = c.rest; }
   }
@@ -407,7 +414,18 @@ function parseOnePerson(segment) {
  */
 export function parseGuestList(text) {
   const out  = [];
-  const seen = new Set();
+  const seen = new Map();   // name|phone → index in out
+  // Same person pasted twice collapses — but the key is name+phone, not one
+  // or the other: spouses share a household line, and keying on phone alone
+  // silently dropped the second of them. When the two copies disagree on the
+  // party, the larger one is kept: "דנה כהן" then "דנה כהן +1" kept the first,
+  // one seat (fifth review 30.9).
+  const add = (row) => {
+    const key = `${row.name.toLowerCase()}|${row.phone}`;
+    if (!seen.has(key)) { seen.set(key, out.length); out.push(row); return; }
+    const i = seen.get(key);
+    if ((row.count || 1) > (out[i].count || 1)) out[i] = row;
+  };
 
   for (const rawLine of String(text || "").split(/\r?\n/)) {
     const raw = rawLine.replace(BIDI_RE, "").trim();
@@ -418,27 +436,14 @@ export function parseGuestList(text) {
     // prose, which is what always used to happen and is what lost the phone.
     if (raw.includes("\t")) {
       const row = parseColumns(raw);
-      if (row) {
-        const key = `${row.name.toLowerCase()}|${row.phone}`;
-        if (!seen.has(key)) { seen.add(key); out.push(row); }
-        continue;
-      }
+      if (row) { add(row); continue; }
     }
 
     const line = raw.replace(/\t/g, " , ");
 
     for (const segment of splitPeople(line)) {
       const row = parseOnePerson(segment);
-      if (!row) continue;
-
-      // Same person pasted twice collapses — but the key is name+phone, not one
-      // or the other: spouses share a household line, and keying on phone alone
-      // silently dropped the second of them.
-      const key = `${row.name.toLowerCase()}|${row.phone}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      out.push(row);
+      if (row) add(row);
     }
   }
 
