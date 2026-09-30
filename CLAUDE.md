@@ -264,6 +264,15 @@ change is visible to a user. Read the value back out of the DOM or localStorage
 it guards has been reverted and the test observed failing. Restore from bytes
 held in memory, never `git checkout --`.
 
+**A "new" file may already exist — and a green suite can hide it.** On 30.9 a
+helper was written to `src/utils/tableNames.js` without looking; the file
+existed, with a different argument order and 12 tests, and both were
+replaced. FloorPlanEditor's call would have thrown; the suite stayed green
+because the deleted tests were the ones covering it. Look before writing a
+path, and compare the per-file test counts after a round
+(`npx vitest run --reporter=json`) — a count that FALLS after commits that
+only add tests is a deleted test.
+
 **One task, one commit, in checklist order.** The commit message names the item
 number. WORKPLAN's checklist is the only surface that gets updated — tick the
 row, do not open a parallel list.
