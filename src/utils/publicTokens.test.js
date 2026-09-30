@@ -22,7 +22,7 @@ vi.mock("../lib/supabase.js", () => ({
 const {
   fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift, LinkUnreachableError,
   upsertCollabGuest, fetchCollabGuestsOwner, upsertCollabGuestOwner,
-  fetchEventGifts, setAlbumPhotoHidden, deleteAlbumPhoto, setGiftHidden, deleteEventGift, fetchCollabEvent,
+  fetchEventGifts, setAlbumPhotoHidden, deleteAlbumPhoto, setGiftHidden, deleteEventGift, fetchCollabEvent, guestWriteError,
 } = await import("./publicTokens.js");
 
 const ok   = data  => rpc.mockResolvedValue({ data, error: null });
@@ -586,5 +586,20 @@ describe("couple names reach guests only on a couple event", () => {
     ok({ id: "c1", name: "x", type: "חתונה", bride_name: "נועה", groom_name: "טל" });
     const ev = await fetchEventByToken("invite", "tok12345");
     expect([ev.brideName, ev.groomName]).toEqual(["נועה", "טל"]);
+  });
+});
+
+describe("guestWriteError — a reason the guest can act on (fifth review 30.9)", () => {
+  const F = "אנא נסו שוב.";
+  it("says what retrying cannot fix", () => {
+    expect(guestWriteError({ message: "invalid token" }, F)).toMatch(/הקישור כבר לא פעיל/);
+    expect(guestWriteError({ message: "limit reached" }, F)).toMatch(/המספר המרבי/);
+    expect(guestWriteError({ message: "amount out of range" }, F)).toMatch(/מחוץ לטווח/);
+    expect(guestWriteError({ message: "new row violates row-level security policy", statusCode: "403" }, F)).toMatch(/האלבום/);
+  });
+  it("and what retrying can", () => {
+    expect(guestWriteError({ message: "rate limited" }, F)).toMatch(/בעוד דקה/);
+    expect(guestWriteError({ name: "TypeError", message: "Failed to fetch" }, F)).toMatch(/אין חיבור/);
+    expect(guestWriteError({ message: "something else" }, F)).toBe(F);
   });
 });

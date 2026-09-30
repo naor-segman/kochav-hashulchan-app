@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitGift, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitGift, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { uid } from "../utils/uid.js";
 import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
@@ -92,9 +92,9 @@ export default function GiftScreen() {
           message,
           clientKey: formKey.current,
         });
-      } catch {
+      } catch (err) {
         setStep("form");
-        setErrors({ submit: "אירעה שגיאה בשמירת המתנה. אנא נסו שוב." });
+        setErrors({ submit: guestWriteError(err, "אירעה שגיאה בשמירת המתנה. אנא נסו שוב.") });
         return;
       }
       /* Fired only after the server accepted it, and on the GUEST's device —

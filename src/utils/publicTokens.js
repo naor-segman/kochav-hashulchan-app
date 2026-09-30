@@ -59,6 +59,33 @@ export class LinkUnreachableError extends Error {
   }
 }
 
+/**
+ * What a guest reads when a write fails (fifth review 30.9). Every failure
+ * said "אנא נסו שוב" — including the ones retrying can never fix: a closed
+ * link, a full event, an amount out of range. The server's own reason (the
+ * RAISE text) decides; anything unknown keeps the caller's "try again".
+ */
+export function guestWriteError(err, fallback) {
+  const m = String(err?.message || err || "").toLowerCase();
+  if (/rate limited/.test(m))                 return "יותר מדי שליחות בדקה האחרונה — נסו שוב בעוד דקה.";
+  if (/invalid (album )?token/.test(m))       return "הקישור כבר לא פעיל — בקשו מבעלי האירוע קישור מעודכן.";
+  if (/limit reached/.test(m))                return "האירוע כבר קיבל את המספר המרבי — אפשר לפנות לבעלי האירוע.";
+  if (/amount out of range/.test(m))          return "הסכום מחוץ לטווח — בין ₪50 ל־₪100,000.";
+  if (/name required/.test(m))                return "צריך למלא שם.";
+  // Storage's refusals, for the album upload.
+  if (/row-level security|unauthorized|path does not belong/.test(m) || err?.statusCode === "403" || err?.status === 403) {
+    return "הקישור לאלבום השתנה או שהאלבום מלא — בקשו מבעלי האירוע קישור מעודכן.";
+  }
+  if (/too large|payload/.test(m) || err?.statusCode === "413" || err?.status === 413) return "התמונה גדולה מדי.";
+  if (/mime|content type|invalid_mime/.test(m) || err?.statusCode === "415" || err?.status === 415) {
+    return "סוג הקובץ לא נתמך — אפשר JPEG, PNG, WEBP או HEIC.";
+  }
+  if (err?.name === "AbortError" || err?.name === "TimeoutError" || /failed to fetch|network|load failed/.test(m)) {
+    return "אין חיבור כרגע — נסו שוב בעוד רגע.";
+  }
+  return fallback;
+}
+
 /** What a guest page says when the server cannot be reached. One copy. */
 export const UNREACHABLE_TEXT = {
   title: "אין חיבור כרגע",

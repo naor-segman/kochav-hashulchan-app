@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitRSVP, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { rsvpSuccessLinks } from "../utils/rsvpLinks.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
@@ -151,8 +151,8 @@ export default function RSVPScreen() {
          whether a shared link actually produced a reply. */
       track(EVENTS.RSVP_RECEIVED, { answer });
       setStep("submitted");
-    } catch {
-      setSubmitError("אירעה שגיאה בשליחה. אנא נסו שוב.");
+    } catch (err) {
+      setSubmitError(guestWriteError(err, "אירעה שגיאה בשליחה. אנא נסו שוב."));
     } finally {
       setSubmitting(false);
     }
@@ -181,8 +181,8 @@ export default function RSVPScreen() {
          whether a shared link actually produced a reply. */
       track(EVENTS.RSVP_RECEIVED, { answer });
       setStep("submitted");
-    } catch {
-      setSubmitError("אירעה שגיאה בשליחה. אנא נסו שוב.");
+    } catch (err) {
+      setSubmitError(guestWriteError(err, "אירעה שגיאה בשליחה. אנא נסו שוב."));
     } finally {
       setSubmitting(false);
     }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
@@ -127,16 +127,22 @@ export default function AlbumScreen() {
     // nothing at all and said nothing about it.
     writeName(name.trim());
     setBusy(list.length);
-    let failed = 0;
+    let failed = 0, lastErr = null;
     for (const f of list) {
       try {
         await uploadAlbumPhoto(event.cloudId, token, await downscale(f), name);
-      } catch {
+      } catch (err) {
         failed++;
+        lastErr = err;
       }
       setBusy(n => n - 1);
     }
-    if (failed) setError(failed === 1 ? "תמונה אחת לא הועלתה. נסו שוב." : `${failed} תמונות לא הועלו. נסו שוב.`);
+    // The reason, when the server gave one: "נסו שוב" for a changed link or a
+    // full album could never work (fifth review 30.9).
+    if (failed) {
+      const what = failed === 1 ? "תמונה אחת לא הועלתה" : `${failed} תמונות לא הועלו`;
+      setError(`${what} — ${guestWriteError(lastErr, "נסו שוב.")}`);
+    }
     reload();
   };
 
