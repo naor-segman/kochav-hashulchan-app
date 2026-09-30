@@ -93,3 +93,17 @@ describe("the tag and what is owed agree (fifth review 30.9)", () => {
     expect(amountDue("deposit", 9000, 3000)).toBe(6000);
   });
 });
+
+// Sixth review 30.9 (סב90q): the summary and the rows disagreed.
+describe("vendorTotals.remaining is the sum of what each row says is owed", () => {
+  it("a vendor marked paid with no amount owes nothing; an overpayment does not pay another vendor", () => {
+    const vendors = [
+      { status: "booked", payment: "paid", price: "7000", paid: "" },       // row: owes 0
+      { status: "booked", payment: "deposit", price: "1000", paid: "3000" }, // row: owes 0 (overpaid)
+      { status: "booked", payment: "deposit", price: "6000", paid: "2000" }, // row: owes 4,000
+    ];
+    const rows = vendors.map(v => amountDue(v.payment, parseAmount(v.price), parseAmount(v.paid)));
+    expect(rows).toEqual([0, 0, 4000]);
+    expect(vendorTotals(vendors).remaining).toBe(4000);
+  });
+});

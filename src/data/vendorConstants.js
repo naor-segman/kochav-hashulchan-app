@@ -87,6 +87,10 @@ export function vendorTotals(vendors) {
     open:      live.filter(v => v.status !== "booked").length,
     committed: price,
     paid,
-    remaining: Math.max(0, price - paid),
+    // Summed per vendor with the same rule as each row (amountDue): the total
+    // said "נותר לשלם ₪11,000" over rows that owed 0, 0 and 4,000 — a vendor
+    // marked "שולם" with no amount counted in full, and one vendor's
+    // overpayment was netted against another's debt (sixth review 30.9).
+    remaining: live.reduce((s, v) => s + amountDue(v.payment, parseAmount(v.price), parseAmount(v.paid)), 0),
   };
 }
