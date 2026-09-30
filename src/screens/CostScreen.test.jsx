@@ -126,3 +126,12 @@ describe("CostScreen — no saving is shown for money not yet spent", () => {
     expect(txt).toContain("+₪2,000");          // the hall, over by 2,000 — row and total
   });
 });
+
+describe("CostScreen — part paid is remaining, not a saving (fifth review)", () => {
+  it("₪4,000 of ₪10,000 reads 'נותר ₪6,000', not a green −₪6,000", () => {
+    const e = { ...ev, costs: { categories: [{ id: "c1", name: "צילום", budget: "10000", actual: "4000" }] } };
+    const { container } = render(<CostScreen activeEvent={e} patchEvent={() => {}} showToast={() => {}} />);
+    expect(container.textContent).toContain("נותר ₪6,000");
+    expect(container.textContent).not.toMatch(/−₪6,000/);
+  });
+});

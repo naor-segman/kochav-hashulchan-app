@@ -340,13 +340,19 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                   </div>
                   <div className={styles.colDiff} data-label="הפרש">
                     {a > 0 ? (
+                      /* Under budget is not a saving until the category is done:
+                         ₪4,000 paid of ₪10,000 read "−₪6,000" in green (fifth
+                         review 30.9). What is below the budget is "remaining",
+                         neutral; only going OVER is a verdict. */
                       <span className={[
                         styles.diffBadge,
-                        d > 0 ? styles.over : d < 0 ? styles.under : styles.exact,
+                        d > 0 ? styles.over : styles.exact,
                       ].join(" ")}>
                         {d === 0
                           ? <Icon name="check" size={13} />
-                          : (d > 0 ? "+" : "−") + "₪" + Math.abs(d).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
+                          : d > 0
+                            ? "+₪" + d.toLocaleString("he-IL", { maximumFractionDigits: 0 })
+                            : "נותר ₪" + Math.abs(d).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
                       </span>
                     ) : (
                       <span className={styles.diffEmpty}>—</span>
@@ -391,11 +397,14 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                 {totalActual > 0 ? (
                   <span className={[
                     styles.diffBadge,
-                    totalDiff > 0 ? styles.over : totalDiff < 0 ? styles.under : styles.exact,
-                  ].join(" ")}>
+                    totalDiff > 0 ? styles.over : styles.exact,
+                  ].join(" ")}
+                  title="רק קטגוריות שכבר שולם בהן">
                     {totalDiff === 0
                       ? <Icon name="check" size={13} />
-                      : (totalDiff > 0 ? "+" : "−") + "₪" + Math.abs(totalDiff).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
+                      : totalDiff > 0
+                        ? "+₪" + totalDiff.toLocaleString("he-IL", { maximumFractionDigits: 0 })
+                        : "נותר ₪" + Math.abs(totalDiff).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
                   </span>
                 ) : (
                   <span className={styles.diffEmpty}>—</span>
