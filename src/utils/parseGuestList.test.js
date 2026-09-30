@@ -643,3 +643,21 @@ describe("a spreadsheet name cell still reads a count it states", () => {
     expect(rows.map(r => r.name)).toEqual(["סבתא", "משפחת לוי", "דנה כהן", "דנה בת 12"]);
   });
 });
+
+// Sixth review 30.9 (סב90d): a row-number column was read as the seat count,
+// and common header rows became guests.
+describe("a numbered sheet", () => {
+  it("the row number is not the count; the count column is", () => {
+    const rows = parseGuestList("16\tדנה כהן\t0501234567\n17\tיוסי לוי\t0527654321\t3");
+    expect(rows.map(r => r.count || 1)).toEqual([1, 3]);
+    expect(rows.map(r => r.name)).toEqual(["דנה כהן", "יוסי לוי"]);
+  });
+  it("a first column that does not count up is left as a count", () => {
+    const rows = parseGuestList("2\tדנה כהן\t0501234567\n4\tיוסי לוי\t0527654321");
+    expect(rows.map(r => r.count || 1)).toEqual([2, 4]);
+  });
+  it("\"#⇥שם⇥טלפון\" and \"שם האורח⇥מס' טלפון⇥כמות אורחים\" are headers", () => {
+    expect(parseGuestList("#\tשם\tטלפון\n1\tדנה\t0501234567\n2\tרון\t0521234567").map(r => r.name)).toEqual(["דנה", "רון"]);
+    expect(parseGuestList("שם האורח\tמס' טלפון\tכמות אורחים\nדנה\t0501234567\t2").map(r => r.name)).toEqual(["דנה"]);
+  });
+});

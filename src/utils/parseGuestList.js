@@ -224,6 +224,10 @@ const HEADER_WORDS = new Set([
   "שם", "שם מלא", "שם פרטי", "שם משפחה", "שם האורח", "אורח", "אורחים", "טלפון", "נייד", "מספר טלפון",
   "טלפון נייד", "כמות", "מספר אורחים", "מספר מקומות", "מקומות", "כמה", "קבוצה", "צד", "הערות", "הערה",
   "מלווים", "שמות המלווים", "מייל", "אימייל", "סטטוס", "הגעה", "מנה", "שולחן",
+  // The row-number column and the abbreviated forms a real sheet uses (sixth
+  // review 30.9: "#⇥שם⇥טלפון" imported a guest called "טלפון").
+  "#", "מס'", "מס׳", "מס", "מספר", "מס' טלפון", "מס׳ טלפון", "כמות אורחים", "מס' אורחים", "מס׳ אורחים",
+  "מספר סידורי", "no", "no.",
   "name", "full name", "phone", "mobile", "count", "guests", "seats", "group", "side", "notes", "email", "table",
 ]);
 
@@ -421,6 +425,23 @@ function parseOnePerson(segment, { bareCount = true } = {}) {
   return row;
 }
 
+/* A sheet's first column is very often the row number: 1, 2, 3… Read as a
+ * small bare number, it became the seat count — row 17 was seventeen seats, and
+ * it won over the real count column further right (sixth review 30.9). A first
+ * column that counts up by one down every tab-separated row is a row number,
+ * not a party size; one row alone cannot say, and is left as it was. */
+function hasRowNumbers(lines) {
+  const firsts = [];
+  for (const l of lines) {
+    if (!l || !l.includes("\t") || isNoiseLine(l)) continue;
+    const m = l.split("\t")[0].trim().match(/^(\d{1,5})\.?$/);
+    if (!m) return false;
+    firsts.push(parseInt(m[1], 10));
+  }
+  if (firsts.length < 2) return false;
+  return firsts.every((n, i) => i === 0 || n === firsts[i - 1] + 1);
+}
+
 /**
  * @returns {{name: string, phone: string, count?: number, companions?: string[]}[]}
  *   one entry per group. `count` / `companions` appear only when the line
@@ -453,9 +474,12 @@ export function parseGuestList(text) {
     out[i] = merged;
   };
 
-  for (const rawLine of String(text || "").split(/\r?\n/)) {
-    const raw = rawLine.replace(BIDI_RE, "").trim();
-    if (!raw || isNoiseLine(raw)) continue;
+  const lines = String(text || "").split(/\r?\n/).map(l => l.replace(BIDI_RE, "").trim());
+  const numbered = hasRowNumbers(lines);
+  for (const line0 of lines) {
+    if (!line0 || isNoiseLine(line0)) continue;
+    const raw = numbered && line0.includes("\t") ? line0.replace(/^[^\t]*\t/, "").trim() : line0;
+    if (!raw) continue;
 
     // A spreadsheet paste is COLUMNS. Read it as columns first; only if that
     // cannot make sense of the line do we flatten the tabs and read it as
