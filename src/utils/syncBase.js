@@ -30,6 +30,12 @@ export const SCALAR_FIELDS = [
   "celebrantName", "organizationName", "contactName", "ownerName",
   "collabActive", "hostessWriteActive", "giftBitPhone", "giftPayboxLink",
   "eventSite", "announcements", "noShowPct", "costs",
+  // Lists and maps the merge UNIONS but that keep no record of deletions. A
+  // union brings back what the other device removed — a custom group, a
+  // "sent" mark the host reset, an edited template put back to default — and
+  // since סב67 a stale laptop merely opening the app pushed it back (fifth
+  // review 30.9). Against the base: only the cloud changed it → the cloud's.
+  "customGroups", "customTableTypes", "messagesSent", "messageTemplates",
 ];
 
 export function canonical(v) {

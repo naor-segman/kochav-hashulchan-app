@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { loadState, persist, userStorageKey } from "../utils/storage.js";
-import { normalizeEvent, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
+import { normalizeEvent, normalizeDeletedRows, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
 import { syncBaseOf, threeWayScalars, canonical } from "../utils/syncBase.js";
@@ -456,6 +456,13 @@ export function mergeCloudWithLocal(
     // answering after a faster one (two conflict recoveries in flight). It says
     // nothing new, and read as "the cloud moved from the base" it put the
     // previous values back over the other device's edit (fourth review 30.9).
+    //
+    // Skipping it assumes the server version never goes DOWN, which is only
+    // guaranteed once migration 20260930000300 (the monotone trigger) has run —
+    // so that migration must be in place before this client is deployed. The
+    // fifth review tried merging such rows instead (to un-freeze an event whose
+    // version had gone down): the three-device fuzz lost single-editor edits in
+    // two seeds that way, and zero with the skip.
     if (localMatch && Number.isFinite(localMatch.syncedVersion) && Number.isFinite(ce.syncedVersion)
         && ce.syncedVersion < localMatch.syncedVersion) {
       return normalizeEvent(localMatch);
@@ -466,6 +473,12 @@ export function mergeCloudWithLocal(
     // device happened to edit the venue last would decide whether a guest the
     // OTHER device removed stays removed.
     const tombs = mergeTombstoneMaps(localMatch?.deletedRows, ce.deletedRows);
+    // What is STORED is aged exactly as normalizeEvent ages the cloud row:
+    // with an expired entry kept, the merged map always "held more than the
+    // cloud" and the event was pushed on every load, forever (fifth review
+    // 30.9). The raw map above still filters rows — ageing changes nothing
+    // about which deletes the merge honours.
+    const storedTombs = normalizeDeletedRows(tombs);
     // The row just read is, by definition, what the cloud holds at the
     // syncedVersion every branch below takes — so it is the next merge's base.
     const cloudBase = syncBaseOf(ce);
@@ -528,7 +541,7 @@ export function mergeCloudWithLocal(
         // The tombstone set both sides know about, computed once and applied to
         // every collection below. It has to be the UNION: a row the other
         // device deleted is deleted, whichever side won on scalars.
-        deletedRows: tombs,
+        deletedRows: storedTombs,
         guests: mergedGuests,
         // Tables too: a second device adding tables is the same shape of loss,
         // and an unseated guest is recoverable while a deleted table is not.
@@ -625,7 +638,7 @@ export function mergeCloudWithLocal(
 
       result = {
         ...result,
-        deletedRows: tombs,
+        deletedRows: storedTombs,
         guests,
         tables,
         constraints: unionById(result.constraints, localMatch.constraints, tombs.constraints),

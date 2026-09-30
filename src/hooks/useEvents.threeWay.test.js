@@ -133,3 +133,33 @@ describe("what the fourth review's fuzz found in סב55/סב56", () => {
     expect(afterPush(sent, sent.version, 4, syncBaseOf(sent), sent.updatedAt).version).toBe(4);
   });
 });
+
+describe("what the fifth review found in סב67", () => {
+  it("an expired tombstone in the cloud row does not make every load a push", () => {
+    const old = Date.now() - 200 * 86400000;              // past the 180-day age
+    const cloud = { ...synced, version: 6, syncedVersion: 6, updatedAt: T + 20, deletedRows: { guests: { gx: old } } };
+    const [first] = mergeCloudWithLocal([], [cloud]);
+    const [again] = mergeCloudWithLocal([first], [cloud]);
+    expect(again.version).toBe(again.syncedVersion);
+  });
+
+  it("a stale device does not bring back a custom group the other device removed", () => {
+    const withGroup = { ...synced, customGroups: ["עבודה"], messageTemplates: { invite: "טקסט שלי" } };
+    const b = syncBaseOf(withGroup);
+    const laptop = { ...withGroup, syncBase: b, version: 5, syncedVersion: 5, updatedAt: T };
+    const cloud  = { ...withGroup, customGroups: [], messageTemplates: {}, version: 6, syncedVersion: 6, updatedAt: T + 20 };
+    const [m] = mergeCloudWithLocal([laptop], [cloud]);
+    expect(m.customGroups).toEqual([]);
+    expect(m.messageTemplates).toEqual({});
+    expect(m.version).toBe(m.syncedVersion);              // nothing to push
+  });
+
+  it("a group added on this device is still kept, and pushed", () => {
+    const b = syncBaseOf(synced);
+    const laptop = { ...synced, customGroups: ["מילואים"], syncBase: b, version: 6, syncedVersion: 5, updatedAt: T + 5 };
+    const cloud  = { ...synced, venue: "אולם", version: 6, syncedVersion: 6, updatedAt: T + 20 };
+    const [m] = mergeCloudWithLocal([laptop], [cloud]);
+    expect(m.customGroups).toEqual(["מילואים"]);
+    expect(m.version).not.toBe(m.syncedVersion);
+  });
+});
