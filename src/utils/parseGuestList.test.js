@@ -608,3 +608,14 @@ describe("partner placeholders and spreadsheet cells, second pass", () => {
     expect(parseGuestList("דנה כהן\t0501234567\nדנה כהן +1\t0501234567")[0].count).toBe(2);
   });
 });
+
+describe("a spreadsheet header row (fifth review 30.9)", () => {
+  it("is not a guest", () => {
+    expect(parseGuestList("שם\tטלפון\tכמות\nדנה כהן\t0501234567\t2")).toEqual([
+      { name: "דנה כהן", phone: "0501234567", count: 2, companions: [] },
+    ]);
+  });
+  it("a real guest whose name is one of the words is still a guest when not every cell is a header", () => {
+    expect(parseGuestList("שם\t0501234567")).toHaveLength(1);
+  });
+});

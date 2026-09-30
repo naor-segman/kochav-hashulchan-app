@@ -212,8 +212,20 @@ function isNoiseLine(line) {
   if (/^[=\-*_~#•]{2,}/.test(t) && /[=\-*_~#•]{2,}\s*$/.test(t)) return true;
   // A total, not a person.
   if (/^(סה["״']?כ|סך הכל|בסך הכל|total)(?=[\s:.,-]|$)/i.test(t)) return true;
+  // A spreadsheet's header row: every cell a column name. "שם⇥טלפון⇥כמות"
+  // became a guest called "טלפון" (fifth review 30.9).
+  if (t.includes("\t")) {
+    const cells = t.split("\t").map(c => c.trim()).filter(Boolean);
+    if (cells.length >= 2 && cells.every(c => HEADER_WORDS.has(c.toLowerCase()))) return true;
+  }
   return false;
 }
+const HEADER_WORDS = new Set([
+  "שם", "שם מלא", "שם פרטי", "שם משפחה", "שם האורח", "אורח", "אורחים", "טלפון", "נייד", "מספר טלפון",
+  "טלפון נייד", "כמות", "מספר אורחים", "מספר מקומות", "מקומות", "כמה", "קבוצה", "צד", "הערות", "הערה",
+  "מלווים", "שמות המלווים", "מייל", "אימייל", "סטטוס", "הגעה", "מנה", "שולחן",
+  "name", "full name", "phone", "mobile", "count", "guests", "seats", "group", "side", "notes", "email", "table",
+]);
 
 /**
  * How many seats this line asks for, written the way Israelis write it.
