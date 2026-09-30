@@ -62,3 +62,17 @@ describe("a failed chunk load", () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 });
+
+// Fifth review 30.9: a guest page used by TAPPING (RSVP "כן", a gift chip,
+// the greeter's check-ins) counted as untouched and was reloaded away.
+describe("a guest page that was tapped", () => {
+  it("counts as in use, like one that was typed into", () => {
+    at("/rsvp/abcdefgh1234");
+    renderHook(() => useAppUpdate());
+    const btn = document.createElement("button");
+    document.body.appendChild(btn);
+    btn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    chunkFails();
+    expect(reload).not.toHaveBeenCalled();
+  });
+});

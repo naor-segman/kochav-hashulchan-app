@@ -145,10 +145,23 @@ export function useAppUpdate() {
     return () => window.removeEventListener("vite:preloadError", onChunkFail);
   }, []);
 
+  // A guest page is "in use" once anything is typed OR tapped on it. Typing
+  // alone missed the pages used by tapping: an update reloaded the RSVP page
+  // after "כן" back to the choice step, cleared the gift amount chosen with a
+  // chip, and wiped the greeter's queued retries (fifth review 30.9).
   useEffect(() => {
-    const onInput = () => { if (isGuestRoute(window.location.pathname)) touchedRef.current = true; };
-    document.addEventListener("input", onInput, true);
-    return () => document.removeEventListener("input", onInput, true);
+    const onUse = (e) => {
+      if (!isGuestRoute(window.location.pathname)) return;
+      if (e.type === "input" || e.target?.closest?.("button, a, input, select, textarea, label, [role='button'], [role='radio'], [role='tab']")) {
+        touchedRef.current = true;
+      }
+    };
+    document.addEventListener("input", onUse, true);
+    document.addEventListener("click", onUse, true);
+    return () => {
+      document.removeEventListener("input", onUse, true);
+      document.removeEventListener("click", onUse, true);
+    };
   }, []);
 
   useEffect(() => {

@@ -234,12 +234,28 @@ export default function EntranceScreen({
   // in a dead spot reverted, the error named nobody, nothing was ever re-sent
   // (3 sent, 0 applied once the signal was back), and the message stayed up
   // even after the other greeter had checked those families in.
-  const failed = useRef(new Map());   // guestId → { name, seats, base }
+  //
+  // Kept in sessionStorage too (fifth review 30.9): an app update reloaded the
+  // greeter's tab — nothing had been TYPED, so it counted as safe — and the
+  // queued retries were gone with it: "לא נשמר: יעל כהן — ננסה שוב…" vanished
+  // and the check-in was never sent. The tab's own storage survives a reload
+  // and ends with the shift.
+  const outboxKey = `kh_door_outbox:${token || eventId}`;
+  const [restoredOutbox] = useState(() => {
+    try { return new Map(JSON.parse(sessionStorage.getItem(outboxKey) || "[]")); } catch { return new Map(); }
+  });
+  const failed = useRef(restoredOutbox);   // guestId → { name, seats, base }
   const showFailed = useCallback(() => {
+    try {
+      if (failed.current.size) sessionStorage.setItem(outboxKey, JSON.stringify([...failed.current]));
+      else sessionStorage.removeItem(outboxKey);
+    } catch { /* full or blocked: the in-memory queue still works */ }
     const names = [...failed.current.values()].map(f => f.name).filter(Boolean);
     setSaveError(failed.current.size === 0 ? ""
       : `לא נשמר: ${names.join(", ") || "סימון הגעה"} — ננסה שוב אוטומטית כשהחיבור יחזור`);
-  }, []);
+  }, [outboxKey]);
+  // A queue restored from before a reload is shown at once.
+  useEffect(() => { if (failed.current.size) showFailed(); }, [showFailed]);
   // The list as the greeter last saw it, readable synchronously by a tap. The
   // write path below must not depend on WHEN React runs a state updater.
   const remoteRef = useRef(null);
