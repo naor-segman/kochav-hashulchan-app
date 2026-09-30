@@ -22,14 +22,22 @@ export const isSupabaseConfigured = !!(url && key);
  * Not everything is quick: a 10 MB album photo over 3G takes minutes, so file
  * uploads get none, and the AI floor-plan reading gets 90 seconds.
  */
-export function deadlineFor(input) {
+/* And not every database call is small (fourth review 30.9): a 2,000-guest
+ * event is ~620 KB of upsert, which 15 s only carries at ~330 kbps sustained
+ * upload — venue wifi and 3G may not, and every push AND every retry was then
+ * cut off, so the event never reached the cloud at all (before the deadline it
+ * was slow and arrived). A body buys a second per 20 KB (≈160 kbps), up to two
+ * minutes; reading the host's own events — every event, whole — gets 60 s. */
+export function deadlineFor(input, init) {
   const u = String(typeof input === "string" ? input : input?.url || "");
   if (u.includes("/storage/v1/object")) return null;
   if (u.includes("/functions/v1/")) return 90_000;
-  return 15_000;
+  const size = typeof init?.body === "string" ? init.body.length : 0;
+  const base = u.includes("/rest/v1/events") ? 60_000 : 15_000;
+  return Math.min(120_000, base + Math.ceil(size / 20_000) * 1000);
 }
 export function timedFetch(input, init = {}) {
-  const ms = deadlineFor(input);
+  const ms = deadlineFor(input, init);
   if (!ms || typeof AbortSignal?.timeout !== "function") return fetch(input, init);
   const timeout = AbortSignal.timeout(ms);
   let signal = timeout;

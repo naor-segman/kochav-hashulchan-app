@@ -11,6 +11,14 @@ describe("request deadlines", () => {
     expect(deadlineFor("https://x.supabase.co/storage/v1/object/event-album/e/t/a.jpg")).toBeNull();
   });
 
+  it("a big upload gets time in proportion; the host's event list gets 60 s", () => {
+    const body = "x".repeat(622_000);                        // a 2,000-guest event
+    expect(deadlineFor("https://x.supabase.co/rest/v1/events?id=eq.1", { body })).toBe(92_000);
+    expect(deadlineFor("https://x.supabase.co/rest/v1/events?select=*")).toBe(60_000);
+    expect(deadlineFor("https://x.supabase.co/rest/v1/events", { body: "x".repeat(5_000_000) })).toBe(120_000);
+    expect(deadlineFor("https://x.supabase.co/rest/v1/rpc/submit_rsvp_by_token", { body: "{}" })).toBe(16_000);
+  });
+
   it("a request that never answers is aborted at the deadline", async () => {
     vi.useFakeTimers();
     const hung = vi.fn((_u, init) => new Promise((_res, rej) => {
