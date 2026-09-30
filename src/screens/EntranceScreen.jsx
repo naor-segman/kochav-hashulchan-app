@@ -538,7 +538,7 @@ export default function EntranceScreen({
     if (!guest) { setScanMsg("הקוד לא שייך לאירוע הזה"); return; }
     if (isFullyArrived(guest)) { setScanMsg(seatsOf(guest) === 1 ? `${guest.name} — ההגעה כבר סומנה` : `${guest.name} — כל ${seatsOf(guest)} כבר סומנו`); return; }
     markRow(guest, true);
-    setScanMsg(`${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`);
+    setScanMsg(seatsOf(guest) === 1 ? `${guest.name} — ההגעה סומנה` : `${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`);
   }, [canWrite, ev?.guests, markRow]);
 
   // ── Derived, in seats ──────────────────────────────────────────────────────
