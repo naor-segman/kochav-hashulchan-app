@@ -22,9 +22,12 @@ function placeOf(el) {
   return chain;
 }
 
+// Upward until something takes focus: the nearest container still on the page
+// may hold nothing focusable — the only task in its column, just deleted — and
+// stopping there left focus on <body> (sixth review 30.9).
 function refocusNear(chain) {
   for (const { node, next, prev } of chain) {
-    if (node.isConnected) return focusWithin(node);
+    if (node.isConnected) { if (focusWithin(node)) return true; continue; }
     if (focusWithin(next) || focusWithin(prev)) return true;
   }
   return false;

@@ -71,4 +71,29 @@ describe("focus does not fall to <body>", () => {
     expect(screen.queryByRole("button", { name: "מחיקת ב" })).toBeNull();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "מחיקת ג" }));
   });
+
+  it("the only item in its column: focus climbs to the nearest control still there (sixth review)", async () => {
+    function Board() {
+      const [rows, setRows] = useState(["א"]);
+      const [asking, setAsking] = useState(null);
+      return (
+        <section>
+          <button>הוספת משימה</button>
+          <div className="column"><ul>{rows.map(r => <li key={r}><button onClick={() => setAsking(r)}>{`מחיקת ${r}`}</button></li>)}</ul></div>
+          {asking && <ConfirmDialog message="למחוק?" confirmLabel="מחיקה" onClose={(ok) => {
+            const r = asking;
+            setAsking(null);
+            if (ok) Promise.resolve().then(() => setRows(rs => rs.filter(x => x !== r)));
+          }} />}
+        </section>
+      );
+    }
+    render(<Board />);
+    const opener = screen.getByRole("button", { name: "מחיקת א" });
+    opener.focus();
+    fireEvent.click(opener);
+    fireEvent.click(screen.getByRole("button", { name: "מחיקה" }));
+    await new Promise(r => setTimeout(r, 350));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "הוספת משימה" }));
+  });
 });
