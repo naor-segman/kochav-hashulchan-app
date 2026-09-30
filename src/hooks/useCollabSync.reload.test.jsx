@@ -39,7 +39,7 @@ describe("useCollabSync — unsent work survives a reload (סב88)", () => {
     renderHook(() => useCollabSync(ev, patch, toast));
     await settle(); await settle();
     expect(pub.upsertCollabGuestOwner).toHaveBeenCalled();
-    expect(JSON.parse(localStorage.getItem(KEY))).toEqual(["r2"]);
+    expect(Object.keys(JSON.parse(localStorage.getItem(KEY)))).toEqual(["r2"]);
     pub.upsertCollabGuestOwner.mockReset();
   });
 
@@ -74,5 +74,30 @@ describe("useCollabSync — unsent work survives a reload (סב88)", () => {
     await settle();
     const out = patch.mock.calls.map(([fn]) => fn(ev)).find(r => r !== ev);
     expect(out.guests[0].notes).toBe("מהמשפחה");
+  });
+
+  // Sixth review 30.9: a mark the table kept refusing held the family's edits
+  // out of the host's list for good.
+  it("a mark older than the limit lapses: the family's edit comes in again", async () => {
+    localStorage.setItem(KEY, JSON.stringify({ r2: Date.now() - 7 * 60 * 60 * 1000 }));
+    pub.fetchCollabGuestsOwner.mockResolvedValueOnce([{ ...ROW, notes: "מהמשפחה" }]);
+    pub.upsertCollabGuestOwner.mockResolvedValue(undefined);
+    const ev = eventWith([guestFromCollab(ROW, null)]);
+    const patch = vi.fn();
+    renderHook(() => useCollabSync(ev, patch, toast));
+    await settle();
+    const out = patch.mock.calls.map(([fn]) => fn(ev)).find(r => r !== ev);
+    expect(out?.guests[0].notes).toBe("מהמשפחה");
+  });
+
+  it("a mark within the limit still protects the host's edit", async () => {
+    localStorage.setItem(KEY, JSON.stringify({ r2: Date.now() - 60 * 1000 }));
+    pub.fetchCollabGuestsOwner.mockResolvedValueOnce([{ ...ROW }]);
+    pub.upsertCollabGuestOwner.mockResolvedValue(undefined);
+    const ev = eventWith([{ ...guestFromCollab(ROW, null), notes: "צמחוני" }]);
+    const patch = vi.fn();
+    renderHook(() => useCollabSync(ev, patch, toast));
+    await settle(); await settle();
+    for (const [fn] of patch.mock.calls) expect(fn(ev).guests[0].notes).toBe("צמחוני");
   });
 });

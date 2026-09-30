@@ -260,17 +260,28 @@ export function remapGuestId(ev, fromId, toId) {
  * pull, with nothing to say this guest was waiting to be sent, took the table's
  * older copy over the host's edit. That is the failure the queue was written to
  * stop, one reload later. An id here means "this guest's latest edit is ours to
- * send": the pull leaves it alone and the push effect sends it. */
+ * send": the pull leaves it alone and the push effect sends it.
+ *
+ * Not forever. While a mark stands, every change the family makes to that row
+ * is kept out of the host's list — and a write the table keeps refusing held
+ * it out indefinitely, in silence (sixth review 30.9). A mark lapses after
+ * UNSENT_TTL_MS; after that the table's copy is taken again, as before any of
+ * this. The host was already told, at the time, that the change had not been
+ * saved. */
+export const UNSENT_TTL_MS = 6 * 60 * 60 * 1000;
 const unsentKey = (cloudId) => `kh_collab_unsent:${cloudId}`;
-function readUnsent(cloudId) {
+function readUnsent(cloudId, now = Date.now()) {
   try {
-    const v = JSON.parse(localStorage.getItem(unsentKey(cloudId)) || "[]");
-    return new Set(Array.isArray(v) ? v.filter(x => typeof x === "string") : []);
-  } catch { return new Set(); }
+    const v = JSON.parse(localStorage.getItem(unsentKey(cloudId)) || "{}");
+    // The first version stored a bare list of ids: read as marked now.
+    const entries = Array.isArray(v) ? v.map(id => [id, now]) : Object.entries(v || {});
+    return new Map(entries.filter(([id, at]) =>
+      typeof id === "string" && Number.isFinite(at) && now - at < UNSENT_TTL_MS));
+  } catch { return new Map(); }
 }
-function writeUnsent(cloudId, set) {
+function writeUnsent(cloudId, marks) {
   try {
-    if (set.size) localStorage.setItem(unsentKey(cloudId), JSON.stringify([...set]));
+    if (marks.size) localStorage.setItem(unsentKey(cloudId), JSON.stringify(Object.fromEntries(marks)));
     else localStorage.removeItem(unsentKey(cloudId));
   } catch { /* storage full or blocked: the in-memory queue still retries */ }
 }
@@ -303,7 +314,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
   // The event as last rendered — the pull reads its tombstones.
   const eventRef = useRef(activeEvent);
   useEffect(() => { eventRef.current = activeEvent; });
-  const unsent = useRef(new Set());
+  const unsent = useRef(new Map());   // guest id -> when it was first owed
 
   // ── table → app: initial pull + live subscription ──
   useEffect(() => {
@@ -455,7 +466,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       // only has it once the write lands — otherwise a failed push leaves the
       // row looking reconciled and it is never sent again.
       const row = guestToCollab(g);
-      if (!unsent.current.has(g.id)) { unsent.current.add(g.id); writeUnsent(cloudId, unsent.current); }
+      if (!unsent.current.has(g.id)) { unsent.current.set(g.id, Date.now()); writeUnsent(cloudId, unsent.current); }
       queue.current.push(g.id, () =>
         upsertCollabGuestOwner(cloudId, row).then(() => {
           applied.current.set(g.id, sig);
