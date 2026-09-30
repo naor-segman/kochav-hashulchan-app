@@ -1,22 +1,53 @@
 /**
- * The next `count` names for tables with this prefix. Continues from the
- * highest number ALREADY used with the prefix, not from the table count:
- * after deleting "שולחן 2" the count-based version produced a second
- * "שולחן 3" — and the WhatsApp message and the printed entry card both name
- * the table, so two tables answered to one number.
+ * Fresh table names that cannot collide with the ones already in the event.
+ *
+ * Two tables answering to one name is not cosmetic. The WhatsApp message, the
+ * printed entry card and the violation list all address a table BY NAME, so a
+ * duplicate sends two families to the same words and SeatingScreen's rename
+ * guard refuses one outright. Anything that CREATES tables owes the same
+ * promise the rename does.
+ *
+ * Counting from `tables.length` does not keep it: delete "שולחן 5" from a
+ * fourteen-table event and the next table is named "שולחן 14", which is already
+ * on the floor. So the count continues from the highest number ALREADY used
+ * with this prefix, and every candidate is still checked against the names in
+ * hand — a host who renamed a table by hand can have left "שולחן 20" sitting
+ * above a much shorter list.
+ *
+ * TableBuilderScreen's batch-add and its preview call this too (fourth review
+ * 30.9: the preview numbered from the table count and promised "רזרבה 7" for a
+ * table saved as "רזרבה 1").
+ *
+ * @param {Array<{name?: string}>} existing — the event's current tables.
+ * @param {number} count — how many new names are wanted.
+ * @param {string} [prefix] — the word the numbering hangs off.
+ * @returns {string[]} `count` names, unique against `existing` and each other.
  */
-export function nextTableNames(tables, prefix, count) {
-  const used = new Set((tables || []).map(t => (t.name || "").trim()));
-  const rx   = new RegExp("^" + prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+(\\d+)$");
-  let next = 0;
-  for (const t of tables || []) {
-    const m = rx.exec((t.name || "").trim());
-    if (m) next = Math.max(next, Number(m[1]));
+export function nextTableNames(existing, count, prefix = "שולחן") {
+  const n = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+  if (n === 0) return [];
+
+  const tables = Array.isArray(existing) ? existing : [];
+  const taken  = new Set(tables.map(t => String(t?.name ?? "").trim()));
+
+  // The prefix is data — a host can call their tables "שולחן (VIP)" — so it is
+  // escaped before it becomes a pattern.
+  const rx = new RegExp("^" + prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+(\\d+)$");
+  let highest = 0;
+  for (const name of taken) {
+    const m = rx.exec(name);
+    if (m) highest = Math.max(highest, Number(m[1]));
   }
-  return Array.from({ length: count }, () => {
-    let n = ++next;
-    while (used.has(prefix + " " + n)) n = ++next;
-    used.add(prefix + " " + n);
-    return prefix + " " + n;
-  });
+
+  const names = [];
+  let next = highest;
+  while (names.length < n) {
+    let candidate = prefix + " " + (++next);
+    while (taken.has(candidate)) candidate = prefix + " " + (++next);
+    taken.add(candidate);
+    names.push(candidate);
+  }
+  return names;
 }
+
+export default nextTableNames;

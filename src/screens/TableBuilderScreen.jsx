@@ -83,7 +83,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
 
   // The same numbering the add uses. Counted from the table count, the preview
   // promised "רזרבה 7" and the table was saved as "רזרבה 1" (fourth review).
-  const previewNames = nextTableNames(ev.tables, previewPrefix, Math.min(batchCnt, 3)).join(", ");
+  const previewNames = nextTableNames(ev.tables, Math.min(batchCnt, 3), previewPrefix).join(", ");
 
   const addBatch = () => {
     const cap = parseInt(batch.capacity);
@@ -91,7 +91,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     if (!cap || cap < 1) { showToast("יש להזין מספר מקומות תקני", "err"); return; }
     if (!cnt || cnt < 1) { showToast("יש להזין כמות שולחנות תקנית", "err"); return; }
     patchEvent(e => {
-      const names = nextTableNames(e.tables, previewPrefix, cnt);
+      const names = nextTableNames(e.tables, cnt, previewPrefix);
       const rows = names.map(name => ({
         id:       uid(),
         name,
