@@ -73,8 +73,12 @@ const compSig = (arr) => (Array.isArray(arr) ? arr.map((c) => norm(c)).join("~")
 // been lost on this project by being absent from a mapper.
 export const sigCollab = (r) =>
   `${norm(r.name)}|${norm(r.phone)}|${sideOf(r.side)}|${norm(r.guest_group)}|${r.guests_count || 1}|${compSig(clampComp(r.companions, r.guests_count))}|${norm(r.notes)}`;
-export const sigGuest = (g) =>
-  `${norm(g.name)}|${norm(g.phone)}|${sideOf(g.side)}|${norm(g.group)}|${g.count || 1}|${compSig(clampComp(g.companions, g.count))}|${norm(g.notes)}`;
+// A guest's signature is that of the row the TABLE can hold for it — clipped to
+// the table's widths by guestToCollab. Signed as typed, a 49-character phone
+// never matched the 40-character echo of its own push, so the echo was applied
+// back over the host's list and the full number was replaced by the clipped one
+// (fourth review 30.9 — a regression from סב44, which added the clipping).
+export const sigGuest = (g) => sigCollab(guestToCollab(g));
 
 /**
  * Which companion names win when a collab row meets an existing guest.
@@ -303,6 +307,9 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
 
         // Same row → straightforward in-place update.
         if (existing && existing.id === row.id) {
+          // The table holds exactly what this guest clips to: nothing to take,
+          // and taking it would replace the host's full value with the clipped one.
+          if (sigCollab(row) === sigGuest(existing)) return e;
           const merged = guestFromCollab(row, existing);
           // Already reflected: the same event back, so nothing is written. The
           // pull runs on every visit with `applied` empty, and each row used to

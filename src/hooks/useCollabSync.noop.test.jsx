@@ -20,7 +20,8 @@ vi.mock("../utils/publicTokens.js", () => ({
   subscribeCollabGuests: vi.fn(() => () => {}),
 }));
 
-const { useCollabSync, guestFromCollab } = await import("./useCollabSync.js");
+const { useCollabSync, guestFromCollab, guestToCollab } = await import("./useCollabSync.js");
+const pub = await import("../utils/publicTokens.js");
 
 const toast = () => {};
 const settle = () => act(async () => { await new Promise(r => setTimeout(r, 0)); });
@@ -52,5 +53,21 @@ describe("useCollabSync — a visit changes nothing that is already in step (ס�
     const changed = results.filter(r => r !== ev);
     expect(changed).toHaveLength(1);
     expect(changed[0].guests.find(g => g.id === "r2").notes).toBe("צמחוני");
+  });
+
+  // Fourth review 30.9 (a regression from סב44): the host's push is clipped to
+  // the table's widths; its echo — realtime, or the next visit's pull — was
+  // applied back over the host's list, replacing the full value.
+  it("the clipped copy of the host's own row never replaces the full value", async () => {
+    const long = "אמא 050-1234567, אבא 052-7654321, סבתא 03-1234567";   // 49 characters
+    const host = { id: "r9", name: "משפחת כהן", phone: long, side: "bride", group: "משפחה", count: 2,
+                   companions: ["דנה"], notes: "", rsvp: "pending", meal: "רגיל" };
+    const ev = eventWith([host]);
+    expect(guestToCollab(ev.guests[0]).phone).toHaveLength(40);
+    pub.fetchCollabGuestsOwner.mockResolvedValueOnce([guestToCollab(ev.guests[0])]);
+    const patch = vi.fn();
+    renderHook(() => useCollabSync(ev, patch, toast));
+    await settle();
+    for (const [fn] of patch.mock.calls) expect(fn(ev).guests[0].phone).toBe(long);
   });
 });
