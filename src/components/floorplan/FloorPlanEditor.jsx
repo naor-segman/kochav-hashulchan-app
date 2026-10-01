@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import Icon from "../ui/Icon.jsx";
 import { canUseAI } from "../../utils/featureGates.js";
 import { readFunctionFailure, functionFailureMessage } from "../../utils/functionError.js";
@@ -21,6 +21,8 @@ import { VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
 import TableGlyph from "../ui/TableGlyph.jsx";
 import VenueCanvas from "./VenueCanvas.jsx";
 import { arrangeGrid } from "./arrangeGrid.js";
+import { floorPlanAnnouncements, FLOOR_PLAN_SCREEN_READER_INSTRUCTIONS } from "./floorPlanAnnouncements.js";
+import { RowKeyboardSensor } from "../seating/rowSensors.js";
 import styles from "./FloorPlanEditor.module.css";
 
 // AI table-detection reads the uploaded sketch and returns one table per shape
@@ -309,7 +311,18 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor,   { activationConstraint: { delay: 220, tolerance: 6 } }),
+    // The chip handles and guest pills are focusable buttons (dnd-kit's
+    // attributes), and dnd-kit's default instructions promised "press space
+    // to pick up" with no sensor behind it — a keyboard user tabbed onto a
+    // control that did nothing (AX8). Space lifts, arrows move, Space drops.
+    useSensor(RowKeyboardSensor),
   );
+
+  // Hebrew, with names — not dnd-kit's English "Draggable item chip-…".
+  const dndA11y = useMemo(() => ({
+    announcements: floorPlanAnnouncements(ev.guests, ev.tables, ev.seating),
+    screenReaderInstructions: FLOOR_PLAN_SCREEN_READER_INSTRUCTIONS,
+  }), [ev.guests, ev.tables, ev.seating]);
 
   const floorPlan  = ev.floorPlan ?? { image: null, tablePositions: {} };
   const hasImage   = !!floorPlan.image;
@@ -344,7 +357,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
 
   const handleDetect = async () => {
     if (!isSupabaseConfigured || !supabase) {
-      showToast("זיהוי אוטומטי דורש חיבור לענן (Supabase)", "err");
+      showToast("זיהוי אוטומטי דורש חיבור לענן", "err");
       return;
     }
     // The one call in the product that spends the project's Anthropic key, and
@@ -700,6 +713,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   return (
     <DndContext
       sensors={sensors}
+      accessibility={dndA11y}
       collisionDetection={collisionStrategy}
       measuring={measuringConfig}
       onDragStart={handleDragStart}
