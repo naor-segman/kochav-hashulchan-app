@@ -16,7 +16,7 @@ const blend = (fg, bg, alpha) => fg.map((c, i) => c * alpha + bg[i] * (1 - alpha
 
 const css = readFileSync(new URL("./AnnouncementScreen.module.css", import.meta.url), "utf8");
 const brand = /^\.brand \{([^}]*)\}/m.exec(css)[1];
-const opacity = Number((/opacity:\s*([\d.]+)/.exec(brand) || [, "1"])[1]);
+const opacity = Number((/opacity:\s*([\d.]+)/.exec(brand) || [null, "1"])[1]);
 const colorVar = (/color:\s*var\((--a-[a-z-]+)\)/.exec(brand) || [])[1];
 const THEME_KEY = { "--a-muted": "muted", "--a-ink": "ink" };
 
