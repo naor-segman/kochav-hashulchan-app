@@ -299,7 +299,7 @@ export default function AdminSubscriptionsScreen() {
                             { none: "אין רכישות פעילות", one: "רכישה פעילה אחת", many: "%n רכישות פעילות" }
                           )}
                       {subs?.truncated && subs?.scopeKnown !== false && (
-                        <span className={styles.truncNote}>{` · מתוך ${subs.length.toLocaleString()} האחרונות`}</span>
+                        <span className={styles.truncNote}>{` · ב־${subs.length.toLocaleString()} האחרונות שנטענו`}</span>
                       )}
                     </div>
                   </div>
