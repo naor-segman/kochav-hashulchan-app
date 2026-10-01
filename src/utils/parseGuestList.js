@@ -122,9 +122,15 @@ const MAX_SEATS = 50;
  * alone already produced that many names we stop there and never touch the
  * spaces — "+1 (יובל סגמן)" is ONE companion with a surname, not two people.
  */
+// "בן/בת זוג", "בן זוג", "מלווה/ת" — ONE seat whose name the host does not know
+// yet. Its slash is not a separator: split on it, "+1 (בן/בת זוג)" became
+// three seats named "בן" and "בת זוג" (fourth review 30.9). Kept as an empty
+// name, so the seat is counted and the review asks for the name.
+const PARTNER_RE = /^(?:(?:בן|בת)(?:\s*\/\s*(?:בן|בת))?\s+זוג|מלווה(?:\s*\/\s*ת)?)$/u;
 function splitCompanions(raw, expected) {
   const parts = String(raw || "")
-    .split(/\s*[,;/|•]\s*/).map(s => s.trim()).filter(Boolean);
+    .split(/\s*[,;|•]\s*/).map(s => s.trim()).filter(Boolean)
+    .flatMap(p => (PARTNER_RE.test(p) ? [""] : p.split(/\s*\/\s*/).filter(Boolean)));
   if (expected != null && parts.length >= expected) return parts;
   return parts.flatMap(splitOnVav);
 }
@@ -195,6 +201,13 @@ function splitPeople(line) {
  * name. Dropping a real guest is far worse than leaving a header in, and the
  * review step downstream can show a header the host disagrees with.
  */
+// "צד כלה:" / "=== צד חתן ===" — a line that opens a new part of the list.
+function isSectionHeading(line) {
+  const t = line.trim();
+  return (/:\s*$/.test(t) && !/\d/.test(t) && /\p{L}/u.test(t))
+    || (/^[=\-*_~#•]{2,}/.test(t) && /[=\-*_~#•]{2,}\s*$/.test(t) && /\p{L}/u.test(t));
+}
+
 function isNoiseLine(line) {
   const t = line.trim();
   if (!t) return true;
@@ -206,8 +219,24 @@ function isNoiseLine(line) {
   if (/^[=\-*_~#•]{2,}/.test(t) && /[=\-*_~#•]{2,}\s*$/.test(t)) return true;
   // A total, not a person.
   if (/^(סה["״']?כ|סך הכל|בסך הכל|total)(?=[\s:.,-]|$)/i.test(t)) return true;
+  // A spreadsheet's header row: every cell a column name. "שם⇥טלפון⇥כמות"
+  // became a guest called "טלפון" (fifth review 30.9).
+  if (t.includes("\t")) {
+    const cells = t.split("\t").map(c => c.trim()).filter(Boolean);
+    if (cells.length >= 2 && cells.every(c => HEADER_WORDS.has(c.toLowerCase()))) return true;
+  }
   return false;
 }
+const HEADER_WORDS = new Set([
+  "שם", "שם מלא", "שם פרטי", "שם משפחה", "שם האורח", "אורח", "אורחים", "טלפון", "נייד", "מספר טלפון",
+  "טלפון נייד", "כמות", "מספר אורחים", "מספר מקומות", "מקומות", "כמה", "קבוצה", "צד", "הערות", "הערה",
+  "מלווים", "שמות המלווים", "מייל", "אימייל", "סטטוס", "הגעה", "מנה", "שולחן",
+  // The row-number column and the abbreviated forms a real sheet uses (sixth
+  // review 30.9: "#⇥שם⇥טלפון" imported a guest called "טלפון").
+  "#", "מס'", "מס׳", "מס", "מספר", "מס' טלפון", "מס׳ טלפון", "כמות אורחים", "מס' אורחים", "מס׳ אורחים",
+  "מספר סידורי", "no", "no.",
+  "name", "full name", "phone", "mobile", "count", "guests", "seats", "group", "side", "notes", "email", "table",
+]);
 
 /**
  * How many seats this line asks for, written the way Israelis write it.
@@ -253,12 +282,20 @@ const ADDRESS_START = /^\s*(?:רחוב|רח['\u05F3]?|שדרות|שד['\u05F3]?|
 // is why this guard is keyed on the matched TEXT and not on the form index.
 const EXPLICIT_COUNT = /[xX\u00D7*()]|אנשים|איש|נפשות|מקומות|כיסאות/u;
 
-function readCount(rest) {
-  const isAddress = ADDRESS_START.test(rest);
+/** Two spellings of one name compare equal: case, runs of spaces (NBSP too),
+ *  and the Hebrew gershayim/geresh against the ASCII quote — "ד״ר כהן" and
+ *  "ד"ר כהן" were two guests with no duplicate flag (sixth review 30.9). */
+export const nameMatchKey = (s) => String(s ?? "").trim().toLowerCase()
+  .replace(/\s+/g, " ").replace(/[״"]/g, '"').replace(/[׳']/g, "'");
+
+function readCount(rest, { explicitOnly = false } = {}) {
+  const bareOk = !explicitOnly && !ADDRESS_START.test(rest);
   for (const re of COUNT_FORMS) {
     const m = rest.match(re);
     if (!m) continue;
-    if (isAddress && !EXPLICIT_COUNT.test(m[0])) continue;
+    if (!bareOk && !EXPLICIT_COUNT.test(m[0])) continue;
+    // "דנה בת 12" is an age, not twelve seats (sixth review 30.9).
+    if (!EXPLICIT_COUNT.test(m[0]) && /(?:^|\s)(?:בת|בן)\s*$/u.test(rest.slice(0, m.index))) continue;
     const n = parseInt(m[1], 10);
     if (!Number.isFinite(n) || n < 2) continue;   // "1" adds nothing; 0 is not a count
     const stripped = rest.slice(0, m.index) + " " + rest.slice(m.index + m[0].length);
@@ -313,20 +350,27 @@ function parseColumns(line) {
     else extra.push(cell);
   }
 
-  const name = cleanName(nameCell);
-  if (!name) return null;
+  // The name cell is read like any typed line — its "+1 (רותי)" is a companion,
+  // not part of the name. Read raw, "גיל גולן+1 (רותי)" stayed the guest's name
+  // and רותי was dropped (fourth review 30.9).
+  // A spreadsheet has its own count column, so a BARE number in the name cell
+  // is part of the name ("דנה בת 12", "בית כנסת 5" — fifth review 30.9: 12
+  // seats). A count the cell SAYS is one — "+2", "(2)", "x2", "3 איש" — is
+  // still read (sixth review 30.9: turning bare numbers off had turned those
+  // off too, and "סבתא (2)" imported one seat).
+  const person = parseOnePerson(nameCell, { bareCount: false });
+  if (!person) return null;
 
-  const row = { name, phone };
+  const row = { name: person.name, phone: phone || person.phone };
   // A count column and a "+N" in the name cell say the same thing; take the
   // larger, the same way the names win over the number everywhere else.
-  const inline = nameCell.match(PLUS_RE);
-  const seats = Math.max(count || 1, inline ? 1 + parseInt(inline[1], 10) : 1);
-  if (seats > 1) { row.count = Math.min(MAX_SEATS, seats); row.companions = []; }
+  const seats = Math.min(MAX_SEATS, Math.max(count || 1, person.count || 1));
+  if (seats > 1) { row.count = seats; row.companions = (person.companions || []).slice(0, seats - 1); }
   return row;
 }
 
 /** One person / group. Returns null when there is nobody to seat. */
-function parseOnePerson(segment) {
+function parseOnePerson(segment, { bareCount = true } = {}) {
   // Israeli form first — it is the common case and the more specific pattern.
   // Only if that misses do we look for a foreign number, and only then for a
   // local number whose leading zero was eaten by a spreadsheet.
@@ -346,7 +390,10 @@ function parseOnePerson(segment) {
   if (declared == null) {
     const pn = rest.match(PLUS_NAME_RE);
     if (pn) {
-      plusNames = splitCompanions(pn[1], null).filter(Boolean);
+      // Not filtered for empty names: "+ בת זוג" IS a seat, whose name is the
+      // empty string (fifth review 30.9 — filtered, the seat was lost and
+      // "+ בת זוג" stayed in the guest's name).
+      plusNames = splitCompanions(pn[1], null);
       if (plusNames.length) rest = rest.slice(0, pn.index) + " " + rest.slice(pn.index + pn[0].length);
     }
   }
@@ -362,14 +409,15 @@ function parseOnePerson(segment) {
   // Cut by INDEX, not by String.replace: replace() would delete the FIRST
   // bracket with that text while `paren` is the LAST one, which on a repeated
   // bracket removes the wrong half of the line.
-  const usesParen = paren && (declared != null || companions.length >= 2);
+  // A partner placeholder is a person too: "דנה (בן/בת זוג)" is two seats.
+  const usesParen = paren && (declared != null || companions.length >= 2 || companions.includes(""));
   if (usesParen) rest = rest.slice(0, paren.index) + " " + rest.slice(paren.index + paren[0].length);
   else companions = [];
 
   // Only look for the other count notations once the "+N" and the bracket are
   // gone, so "+1 (שרה)" is never re-read as a trailing number.
   if (declared == null && !companions.length) {
-    const c = readCount(rest);
+    const c = readCount(rest, { explicitOnly: !bareCount });
     if (c) { declared = c.count - 1; rest = c.rest; }
   }
   if (plusNames.length) companions = companions.concat(plusNames);
@@ -392,6 +440,57 @@ function parseOnePerson(segment) {
   return row;
 }
 
+/* Excel and Google Sheets copy a cell that holds a line break, a tab or a quote
+ * as a QUOTED field — `"דנה כהן⏎ויוסי"`, with `""` for a quote inside. Split on
+ * newlines as it stood, one guest became two: `"דנה כהן` with no phone and
+ * `ויוסי"` with it (sixth review 30.9). Only a tab-separated paste is read this
+ * way, and only a quote that OPENS a field: ד"ר in the middle of a name is
+ * left alone. */
+function unquoteSheet(text) {
+  if (!text.includes("\t") || !text.includes('"')) return text;
+  let out = "", i = 0;
+  while (i < text.length) {
+    const atStart = i === 0 || text[i - 1] === "\t" || text[i - 1] === "\n";
+    if (atStart && text[i] === '"') {
+      let j = i + 1, cell = "", closed = false;
+      while (j < text.length) {
+        if (text[j] === '"') {
+          if (text[j + 1] === '"') { cell += '"'; j += 2; continue; }
+          closed = true; j++; break;
+        }
+        cell += text[j]; j++;
+      }
+      // A quote that never closes, is followed by more text in the same cell,
+      // or would swallow more than a few lines, was not Excel's quoting —
+      // leave the text exactly as typed rather than merge guests.
+      const breaks = (cell.match(/\n/g) || []).length;
+      if (!closed || breaks > 4 || (j < text.length && !/[\t\r\n]/.test(text[j]))) { out += text[i]; i++; continue; }
+      out += cell.replace(/\s*[\r\n]+\s*/g, " ").replace(/\t/g, " ");
+      i = j;
+      continue;
+    }
+    out += text[i]; i++;
+  }
+  return out;
+}
+
+/* A sheet's first column is very often the row number: 1, 2, 3… Read as a
+ * small bare number, it became the seat count — row 17 was seventeen seats, and
+ * it won over the real count column further right (sixth review 30.9). A first
+ * column that counts up by one down every tab-separated row is a row number,
+ * not a party size; one row alone cannot say, and is left as it was. */
+function hasRowNumbers(lines) {
+  const firsts = [];
+  for (const l of lines) {
+    if (!l || !l.includes("\t") || isNoiseLine(l)) continue;
+    const m = l.split("\t")[0].trim().match(/^(\d{1,5})\.?$/);
+    if (!m) return false;
+    firsts.push(parseInt(m[1], 10));
+  }
+  if (firsts.length < 2) return false;
+  return firsts.every((n, i) => i === 0 || n === firsts[i - 1] + 1);
+}
+
 /**
  * @returns {{name: string, phone: string, count?: number, companions?: string[]}[]}
  *   one entry per group. `count` / `companions` appear only when the line
@@ -399,39 +498,75 @@ function parseOnePerson(segment) {
  */
 export function parseGuestList(text) {
   const out  = [];
-  const seen = new Set();
+  const seen = new Map();   // name|phone → index in out
+  // Same person pasted twice collapses — but the key is name+phone, not one
+  // or the other: spouses share a household line, and keying on phone alone
+  // silently dropped the second of them. When the two copies disagree on the
+  // party, the larger one is kept: "דנה כהן" then "דנה כהן +1" kept the first,
+  // one seat (fifth review 30.9). And the NAMES of both are kept: taking the
+  // larger row whole dropped "(יוסי)" from "דנה כהן +1 (יוסי)" when "דנה כהן +2"
+  // followed (sixth review 30.9).
+  const add = (row) => {
+    const key = `${nameMatchKey(row.name)}|${row.phone}`;
+    if (!seen.has(key)) { seen.set(key, out.length); out.push(row); return out.length - 1; }
+    const i = seen.get(key);
+    const [big, small] = (row.count || 1) > (out[i].count || 1) ? [row, out[i]] : [out[i], row];
+    const companions = [...(big.companions || [])];
+    for (const n of small.companions || []) {
+      if (!n || companions.includes(n)) continue;
+      const slot = companions.indexOf("");
+      if (slot >= 0) companions[slot] = n; else companions.push(n);
+    }
+    const count = Math.min(MAX_SEATS, Math.max(big.count || 1, companions.length + 1));
+    const merged = { ...big };
+    if (count > 1) { merged.count = count; merged.companions = companions.slice(0, count - 1); }
+    out[i] = merged;
+    return i;
+  };
 
-  for (const rawLine of String(text || "").split(/\r?\n/)) {
-    const raw = rawLine.replace(BIDI_RE, "").trim();
-    if (!raw || isNoiseLine(raw)) continue;
+  const lines = unquoteSheet(String(text || "")).split(/\r?\n/).map(l => l.replace(BIDI_RE, "").trim());
+  const numbered = hasRowNumbers(lines);
+  // The one guest the previous line made, while it still has no phone.
+  let waitingForPhone = -1;
+  for (const line0 of lines) {
+    // Two "משפחת כהן" under "צד כלה:" and "צד חתן:" are two families: merged,
+    // one family's seats vanished before the review could flag the pair
+    // (sixth review 30.9). The merge is within a section; across sections both
+    // rows reach the review, which marks them as a possible duplicate.
+    if (line0 && isSectionHeading(line0)) { seen.clear(); waitingForPhone = -1; continue; }
+    if (!line0 || isNoiseLine(line0)) { waitingForPhone = -1; continue; }
+    const raw = numbered && line0.includes("\t") ? line0.replace(/^[^\t]*\t/, "").trim() : line0;
+    if (!raw) continue;
 
     // A spreadsheet paste is COLUMNS. Read it as columns first; only if that
     // cannot make sense of the line do we flatten the tabs and read it as
     // prose, which is what always used to happen and is what lost the phone.
     if (raw.includes("\t")) {
       const row = parseColumns(raw);
-      if (row) {
-        const key = `${row.name.toLowerCase()}|${row.phone}`;
-        if (!seen.has(key)) { seen.add(key); out.push(row); }
+      if (row) { add(row); continue; }
+    }
+
+    // A line that is only a phone, right under a name that has none: the
+    // contact-card layout ("דנה כהן⏎050-1234567"). Read alone, the phone line
+    // made nobody and was dropped (sixth review 30.9).
+    if (waitingForPhone >= 0 && !/\p{L}/u.test(raw)) {
+      const pm = raw.match(PHONE_RE) || raw.match(INTL_PHONE_RE) || raw.match(BARE_MOBILE_RE);
+      if (pm && !raw.replace(pm[0], "").replace(/[\s\-–—.,;:|()]/g, "")) {
+        out[waitingForPhone] = { ...out[waitingForPhone], phone: normalizePhone(pm[0]) };
+        waitingForPhone = -1;
         continue;
       }
     }
+    waitingForPhone = -1;
 
     const line = raw.replace(/\t/g, " , ");
 
+    const made = [];
     for (const segment of splitPeople(line)) {
       const row = parseOnePerson(segment);
-      if (!row) continue;
-
-      // Same person pasted twice collapses — but the key is name+phone, not one
-      // or the other: spouses share a household line, and keying on phone alone
-      // silently dropped the second of them.
-      const key = `${row.name.toLowerCase()}|${row.phone}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      out.push(row);
+      if (row) made.push({ i: add(row), phone: row.phone });
     }
+    if (made.length === 1 && !made[0].phone && !out[made[0].i].phone) waitingForPhone = made[0].i;
   }
 
   return out;

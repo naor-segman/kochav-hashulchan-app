@@ -5,6 +5,7 @@ import Icon from "../../components/ui/Icon.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Loading from "../../components/feedback/Loading.jsx";
 import { formatDateTime, shortAgent } from "../lib/adminFormat.js";
+import { loadQueue, unseenSummary } from "../lib/workQueue.js";
 import styles from "./AdminErrorsScreen.module.css";
 
 // Crashes, as they happen, in one list.
@@ -24,18 +25,16 @@ const KIND_LABEL = {
   promise: "הבטחה שנדחתה",
 };
 
-async function loadErrors() {
-  const { data, error } = await supabase
-    .from("error_reports")
-    .select("id, created_at, message, stack, route, user_agent, kind, seen")
-    .order("created_at", { ascending: false })
-    .limit(200);
-  if (error) throw error;
-  return data || [];
+// A work queue, loaded so nothing unread hides outside the window — see
+// admin/lib/workQueue.js (WORKPLAN 58).
+function loadErrors() {
+  return loadQueue(supabase, "error_reports", "id, created_at, message, stack, route, user_agent, kind, seen");
 }
 
 export default function AdminErrorsScreen() {
   const [rows,  setRows]  = useState([]);
+  // The table's own count of unread rows; null when it could not be read.
+  const [unseenTotal, setUnseenTotal] = useState(null);
   const [state, setState] = useState("loading");   // loading | ready | error
   const [err,   setErr]   = useState("");
   const [open,  setOpen]  = useState(null);
@@ -43,7 +42,8 @@ export default function AdminErrorsScreen() {
 
   const load = useCallback(async () => {
     setState("loading");
-    try { setRows(await loadErrors()); setState("ready"); }
+    setErr("");   // a retry that works must not leave the old failure up
+    try { const q = await loadErrors(); setRows(q.rows); setUnseenTotal(q.unseenTotal); setState("ready"); }
     catch (e) { setErr(e.message || String(e)); setState("error"); }
   }, []);
 
@@ -52,10 +52,14 @@ export default function AdminErrorsScreen() {
   const markSeen = async (id) => {
     // Optimistic: the list is a work queue, and waiting for a round-trip to
     // cross something off is the wrong feel.
+    const was = rows.find(r => r.id === id);
+    if (!was || was.seen) return;
     setRows(prev => prev.map(r => (r.id === id ? { ...r, seen: true } : r)));
+    setUnseenTotal(n => (n == null ? n : Math.max(0, n - 1)));
     const { error } = await supabase.from("error_reports").update({ seen: true }).eq("id", id);
     if (error) {
       setRows(prev => prev.map(r => (r.id === id ? { ...r, seen: false } : r)));
+      setUnseenTotal(n => (n == null ? n : n + 1));
       setErr(`סימון הדיווח נכשל: ${error.message}`);
     }
   };
@@ -88,7 +92,7 @@ export default function AdminErrorsScreen() {
 
       <div className={styles.toolbar}>
         <span className={styles.count}>
-          {unseen === 0 ? "אין שגיאות חדשות" : unseen === 1 ? "שגיאה אחת שלא נקראה" : `${unseen} שגיאות שלא נקראו`}
+          {state !== "error" && unseenSummary(unseen, unseenTotal, { one: "שגיאה אחת שלא נקראה", many: "שגיאות שלא נקראו", none: "אין שגיאות חדשות" })}
         </span>
         <label className={styles.filter}>
           <input
@@ -102,13 +106,17 @@ export default function AdminErrorsScreen() {
 
       {state === "loading" ? (
         <Loading rows={5} label="טוענים שגיאות…" />
-      ) : shown.length === 0 ? (
+      ) : state === "error" ? null : shown.length === 0 ? (
+        /* Not on a failed load: it said "הכל נקרא" under the error, which is
+           the one thing a failed read cannot know (second review, סב19). */
         <div className={styles.empty}>
           <SectionMark name="alert" size={30} tone="admin" tile />
-          <p className={styles.emptyTitle}>{onlyUnseen ? "הכל נקרא" : "לא נרשמה אף שגיאה"}</p>
+          <p className={styles.emptyTitle}>{onlyUnseen ? (unseenTotal > 0 ? "יש עוד שלא נטענו" : "הכל נקרא") : "לא נרשמה אף שגיאה"}</p>
           <p className={styles.emptyHint}>
             {onlyUnseen
-              ? "אין שגיאות חדשות מאז הפעם האחרונה שבדקת."
+              ? (unseenTotal > 0
+                  ? `עוד ${unseenTotal} שלא נקראו מחכות בטבלה — רעננו כדי לטעון אותם.`
+                  : "אין שגיאות חדשות מאז הפעם האחרונה שבדקת.")
               : "כשמשהו ייפול אצל מישהו — הוא יופיע כאן."}
           </p>
         </div>

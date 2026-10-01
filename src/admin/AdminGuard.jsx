@@ -49,7 +49,10 @@ export default function AdminGuard({ children }) {
         .from("profiles")
         .select("role")
         .eq("id", session.user.id)
-        .single();
+        // maybeSingle: an account with no profile row is "not an admin", not
+        // a database error — `.single()` made it one and sent it into the
+        // login redirect below (second review, סב18).
+        .maybeSingle();
 
       if (cancelled) return;
 

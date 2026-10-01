@@ -5,7 +5,7 @@ import { TABLE_TYPES } from "../data/constants.js";
 // string through `new Date()`, which parses it as UTC — so west of Greenwich the
 // exported sheet showed a different date than the screen, and a New Year's Eve
 // event exported as the previous year.
-import { fmtDate } from "./dateFormat.js";
+import { fmtDate, fmtDateTime } from "./dateFormat.js";
 // Arrival is PER PERSON. `arrived` is only a truthful "someone on this row came"
 // mirror, and reading it as if it meant the whole row is what made this report
 // disagree with the app's own door counter.
@@ -133,7 +133,17 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
   XLSX.writeFile(wb, `טבלה-שיתופית-${(eventName || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
 }
 
-export async function exportToExcel(ev, sideLabel, violations) {
+/**
+ * @param {object}   ev
+ * @param {Function} sideLabel
+ * @param {Array}    violations
+ * @param {Array<{donorName:string, amountILS:number, message:string, createdAt:string}>} [declaredGifts]
+ *   Rows from the `gifts` table — what guests declared on the /gift page — as
+ *   fetchEventGifts returns them. Passed IN rather than fetched here so this
+ *   stays a pure builder the tests can drive without a network. Empty when the
+ *   event has no cloud id or the read failed; the sheet is then simply absent.
+ */
+export async function exportToExcel(ev, sideLabel, violations, declaredGifts = []) {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
 
@@ -152,7 +162,11 @@ export async function exportToExcel(ev, sideLabel, violations) {
   ]);
 
   ev.tables.forEach(t => {
-    const tGuests      = ev.guests.filter(g => ev.seating[g.id] === t.id);
+    // Not a guest who declined: the venue reads these counts as chairs, and the
+    // app's own totals (seatingTotals) and the other sheets already leave them
+    // out — "7 מתוך 10" with a declined party of 3 inside disagreed with the
+    // app (29.9 review).
+    const tGuests      = ev.guests.filter(g => ev.seating[g.id] === t.id && g.rsvp !== "declined");
     const typeHe       = TABLE_TYPE_HE[t.type] || t.type;
     const seatedSeats  = tGuests.reduce((s, g) => s + (g.count || 1), 0);
     // "5 מתוך 12", not "5 / 12" — and the honest reason, which is NOT the one
@@ -215,7 +229,10 @@ export async function exportToExcel(ev, sideLabel, violations) {
   XLSX.utils.book_append_sheet(wb, ws1, "סידור הושבה");
 
   // ── Sheet 2: Unassigned guests ───────────────────────────────────────
-  const unassigned = ev.guests.filter(g => !ev.seating[g.id]);
+  // Declined guests are not waiting for anything. Listing them here handed the
+  // venue a "still to seat" sheet with people who are not coming (28.9 audit)
+  // — the seating screen, the hub and the table builder all exclude them.
+  const unassigned = ev.guests.filter(g => !ev.seating[g.id] && g.rsvp !== "declined");
   if (unassigned.length > 0) {
     const uRows = [
       ["ממתינים לשיבוץ — " + (ev.name || "")],
@@ -296,39 +313,41 @@ export async function exportToExcel(ev, sideLabel, violations) {
 
   // (Sheet 5 "דוח מנות לטבח" removed per feedback — caterers don't need it.)
 
-  // ── Sheet 6: Gift reconciliation report ─────────────────────────────────
+  // ── Sheet 6: Who actually came — per PERSON ──────────────────────────────
+  //
+  // This was "דוח מתנות", a gift reconciliation report with a per-guest
+  // "סכום מתנה (₪)" column read from `g.giftAmount` — and NOTHING in src/ writes
+  // giftAmount. The door deliberately has no gift field (EntranceScreen.jsx),
+  // and the two UIs that once did were removed on purpose (SeatingScreen.jsx,
+  // CostScreen.jsx). So every row, the total and the average printed ₪0 or "—",
+  // on the sheet a host opens the morning after to reconcile gifts. Checklist 92.
+  //
+  // The column cannot be FILLED from anywhere either, which is why it was
+  // removed rather than rewired: a row in `gifts` carries no guest id — only the
+  // free-text name the donor typed — so there is no honest way to put a declared
+  // amount on a guest's row. The arrivals half of this sheet was real and stays;
+  // the declared gifts get their own sheet below, as the list they actually are.
   {
-    const tableMap   = Object.fromEntries(ev.tables.map(t => [t.id, t]));
-    const giftAmt    = g => Number(g.giftAmount) || 0;
-    const giftGuests = ev.guests
-      .filter(g => arrivedCountOf(g) > 0 || giftAmt(g) > 0)
-      .sort((a, b) => {
-        if (giftAmt(b) !== giftAmt(a)) return giftAmt(b) - giftAmt(a);
-        return (a.name || '').localeCompare(b.name || '', "he");
-      });
+    const tableMap = Object.fromEntries(ev.tables.map(t => [t.id, t]));
 
-    if (giftGuests.length > 0 || ev.guests.some(g => arrivedCountOf(g) > 0)) {
-      // The number the host reconciles gifts against the morning after, and
-      // the one place it has to be right. It said "סה״כ הגיעו: 2" while the
-      // app's door counter said 3 of 9 people were in the room, because it
-      // counted ROWS. On a real list the two diverge by hundreds.
+    if (ev.guests.some(g => arrivedCountOf(g) > 0)) {
+      // It said "סה״כ הגיעו: 2" while the app's door counter said 3 of 9 people
+      // were in the room, because it counted ROWS. On a real list the two
+      // diverge by hundreds.
       const arrivedSeatCount = arrivalTotals(ev.guests, ev.seating).arrivedSeats;
-      const giftTotal    = ev.guests.reduce((s, g) => s + giftAmt(g), 0);
-      const giftCount    = ev.guests.filter(g => giftAmt(g) > 0).length;
-      const avgGift      = giftCount > 0 ? Math.round(giftTotal / giftCount) : 0;
 
-      const gRows = [
-        ["דוח מתנות — " + (ev.name || "")],
+      const aRows = [
+        ["מי הגיע — " + (ev.name || "")],
         [],
-        ["סיכום:", "", "סה״כ הגיעו:", arrivedSeatCount, "סה״כ מתנות:", "₪" + giftTotal.toLocaleString("he-IL"), "ממוצע:", avgGift > 0 ? "₪" + avgGift.toLocaleString("he-IL") : "—"],
+        ["סה״כ הגיעו:", arrivedSeatCount],
         [],
-        ["שם אורח", "שולחן", "כמות", "הגיע/ה", "סכום מתנה (₪)"],
+        ["שם אורח", "שולחן", "כמות", "הגיע/ה"],
         ...[...ev.guests]
           .sort((a, b) => {
             const aArrived = arrivedCountOf(a) > 0 ? 0 : 1;
             const bArrived = arrivedCountOf(b) > 0 ? 0 : 1;
             if (aArrived !== bArrived) return aArrived - bArrived;
-            return giftAmt(b) - giftAmt(a);
+            return (a.name || "").localeCompare(b.name || "", "he");
           })
           .map(g => [
             g.name || "",
@@ -340,16 +359,50 @@ export async function exportToExcel(ev, sideLabel, violations) {
             arrivedCountOf(g) === 0 ? ""
               : arrivedCountOf(g) >= (g.count || 1) ? "✓"
               : `${arrivedCountOf(g)} מתוך ${g.count || 1}`,
-            giftAmt(g) > 0 ? giftAmt(g) : "",
           ]),
-        [],
-        ["", "", "", "סה״כ", giftTotal],
       ];
 
-      const ws6 = XLSX.utils.aoa_to_sheet(gRows);
-      ws6["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 6 }, { wch: 8 }, { wch: 14 }];
-      XLSX.utils.book_append_sheet(wb, ws6, "דוח מתנות");
+      const ws6 = XLSX.utils.aoa_to_sheet(aRows);
+      ws6["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 6 }, { wch: 10 }];
+      XLSX.utils.book_append_sheet(wb, ws6, "מי הגיע");
     }
+  }
+
+  // ── Sheet 7: Gifts as guests DECLARED them ───────────────────────────────
+  //
+  // The real data, from the `gifts` table (via fetchEventGifts, passed in). What
+  // it is, stated in the sheet itself so a printout cannot be mistaken for a
+  // ledger: a guest typed a name, a sum and a blessing on the gift page. No money
+  // moved through the app — submit_gift_by_token writes paid = false and nothing
+  // ever flips it — so this is a list of DECLARATIONS to compare against what
+  // actually arrived, never a record of payments.
+  //
+  // Names are as the DONOR typed them ("משפחת כהן", "צוות המשרד"), and that is
+  // said too, because none of them is guaranteed to be a guest-row name.
+  //
+  // Amounts are written as NUMBERS, not "₪1,000" strings, so the host can sum,
+  // sort and filter them in Excel. Hidden blessings are included: hiding is about
+  // the projector in the hall, not about the host's own record.
+  if (Array.isArray(declaredGifts) && declaredGifts.length > 0) {
+    const total = declaredGifts.reduce((s, gft) => s + (Number(gft.amountILS) || 0), 0);
+    const dRows = [
+      ["מתנות שהוצהרו — " + (ev.name || "")],
+      ["מה שהאורחים כתבו בדף המתנה. הכסף עצמו לא עבר דרך האתר — זו רשימה להשוואה, לא קבלה."],
+      ["השמות כפי שהתורם הקליד אותם, ולא בהכרח כפי שהם ברשימת האורחים."],
+      [],
+      ["סה״כ הוצהר (₪):", total, "", "מספר מתנות:", declaredGifts.length],
+      [],
+      ["שם (כפי שנכתב)", "סכום (₪)", "ברכה", "מתי"],
+      ...declaredGifts.map(gft => [
+        gft.donorName || "",
+        Number(gft.amountILS) || 0,
+        gft.message || "",
+        fmtDateTime(gft.createdAt),
+      ]),
+    ];
+    const ws7 = XLSX.utils.aoa_to_sheet(dRows);
+    ws7["!cols"] = [{ wch: 22 }, { wch: 12 }, { wch: 40 }, { wch: 16 }];
+    XLSX.utils.book_append_sheet(wb, ws7, "מתנות שהוצהרו");
   }
 
   // xlsx 0.18.5: workbook-level RTL is the only reliable way to set sheet direction.

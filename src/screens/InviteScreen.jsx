@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import QRCode from "qrcode";
-import { fetchEventByToken } from "../utils/publicTokens.js";
+import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { readGuestCardParams, guestScanPayload } from "../utils/guestCard.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
@@ -9,6 +9,8 @@ import { prefixed } from "../utils/hebrewPrefix.js";
 import styles from "./InviteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 // Development fallback — displayed when Supabase is not configured locally
 const MOCK_EVENT = {
@@ -47,6 +49,8 @@ export default function InviteScreen() {
   const [event,    setEvent]    = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [unreachable, setUnreachable] = useState(false);
+  useGuestTitle(event && `הזמנה · ${guestHosts(event)}`);
   const [copied,   setCopied]   = useState(false);
   const [qrUrl,    setQrUrl]    = useState("");
 
@@ -68,7 +72,13 @@ export default function InviteScreen() {
     async function load() {
       setLoading(true);
       setNotFound(false);
-      const data = await fetchEventByToken("invite", token);
+      let data;
+      try {
+        data = await fetchEventByToken("invite", token);
+      } catch {
+        if (!cancelled) { setUnreachable(true); setLoading(false); }
+        return;
+      }
       if (cancelled) return;
       if (data) {
         setEvent(data);
@@ -124,13 +134,25 @@ export default function InviteScreen() {
     );
   }
 
+  if (unreachable) {
+    return (
+      <div className={styles.root}>
+        <div className={styles.stateCenter}>
+          <span className={styles.notFoundStar} aria-hidden="true">✦</span>
+          <h1 className={styles.stateText}>{UNREACHABLE_TEXT.title}</h1>
+          <p className={styles.stateSub}>{UNREACHABLE_TEXT.body}</p>
+        </div>
+      </div>
+    );
+  }
+
   // ── Not found ──────────────────────────────────────────────────────────────
   if (notFound) {
     return (
       <div className={styles.root}>
         <div className={styles.stateCenter}>
           <span className={styles.notFoundStar} aria-hidden="true">✦</span>
-          <p className={styles.stateText}>ההזמנה לא נמצאה</p>
+          <h1 className={styles.stateText}>ההזמנה לא נמצאה</h1>
           <p className={styles.stateSub}>קישור זה אינו תקף או שפג תוקפו</p>
           <Link to="/" className={styles.stateLink}>חזרה לדף הבית</Link>
         </div>
@@ -198,15 +220,15 @@ export default function InviteScreen() {
 
           {/* Hosts — a couple, a single celebrant, or nothing at all */}
           {isCouple ? (
-            <div className={styles.names}>
+            <h1 className={styles.names}>
               <span className={styles.coupleName}>{brideName}</span>
               <span className={styles.nameSep} aria-hidden="true">✦</span>
               <span className={styles.coupleName}>{groomName}</span>
-            </div>
+            </h1>
           ) : soloName ? (
-            <div className={styles.names}>
+            <h1 className={styles.names}>
               <span className={styles.coupleName}>{soloName}</span>
-            </div>
+            </h1>
           ) : null}
 
           {/* Ornamental gold divider */}

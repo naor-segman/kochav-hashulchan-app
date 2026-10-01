@@ -53,8 +53,14 @@ psql(`
   ${ddl}
   insert into public.profiles (id) values ('11111111-1111-1111-1111-111111111111');
 `);
-const MIG = 'supabase/migrations/20260817000000_photo_retention.sql';
-execFileSync('psql', ['-h', HOST, '-p', PORT, '-U', 'postgres', '-d', DB, '-q', '-v', 'ON_ERROR_STOP=1', '-f', MIG]);
+// The function as it stands after EVERY migration that redefines it — the
+// original, then 20260930000100 (סב43: a date with the right shape that is not
+// a date, e.g. 2026-02-30, raised inside the scan and stopped the purge for
+// every account).
+for (const MIG of ['supabase/migrations/20260817000000_photo_retention.sql',
+                   'supabase/migrations/20260930000100_purge_bad_dates.sql']) {
+  execFileSync('psql', ['-h', HOST, '-p', PORT, '-U', 'postgres', '-d', DB, '-q', '-v', 'ON_ERROR_STOP=1', '-f', MIG]);
+}
 
 const OWNER = '11111111-1111-1111-1111-111111111111';
 const U = (n) => `https://x.supabase.co/storage/v1/object/public/event-site/e/${n}.webp`;
@@ -159,6 +165,19 @@ console.log('\n── what must never be due');
   ok(!s.has(base64),   'an event holding only base64 photos is not due');
   ok(!s.has(noPhotos), 'an event with no photos is not due');
   ok(!s.has(emptySite),'an event with an empty eventSite is not due');
+}
+
+console.log('\n── a date-shaped value that is not a date poisons nothing (סב43)');
+{
+  const real   = makeEvent({ date: rel(-99), site: { coverPhoto: U('real'), gallery: [] } });
+  const feb30  = makeEvent({ date: '2026-02-30', site: { coverPhoto: U('f30'), gallery: [] } });
+  const keep13 = makeEvent({ date: rel(-99), site: { coverPhoto: U('k13'), gallery: [], photosKeepUntil: '2026-13-01' } });
+  let s = null, err = '';
+  try { s = dueIds(); } catch (e) { err = String(e.stderr || e.message).split('\n')[0]; }
+  ok(s !== null, 'the scan does not raise', err);
+  ok(!!s && s.has(real), 'and the real, due event is still found');
+  ok(!!s && !s.has(feb30), "'2026-02-30' is not due");
+  ok(!!s && s.has(keep13), "a malformed postponement ('2026-13-01') is ignored, as a missing one is");
 }
 
 console.log('\n── postponement');

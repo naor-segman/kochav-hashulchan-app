@@ -288,3 +288,22 @@ describe("GuestManagerScreen — adding guests", () => {
     expect(container.innerHTML).not.toContain("undefined ");
   });
 });
+
+describe("GuestManagerScreen — meal chips count meals (107)", () => {
+  it("counts seats of guests who are coming, not rows", () => {
+    const ev = {
+      id: "e1", name: "החתונה", type: "חתונה", tables: [], seating: {}, constraints: [], tokens: {},
+      guests: [
+        { id: "a", name: "משפחת כהן", side: "bride", group: "משפחה", count: 4, meal: "vegetarian", rsvp: "confirmed" },
+        { id: "b", name: "דנה",       side: "groom", group: "חברים", count: 1, meal: "vegetarian", rsvp: "pending" },
+        { id: "c", name: "יוסי",      side: "groom", group: "חברים", count: 2, meal: "vegetarian", rsvp: "declined" },
+        { id: "d", name: "רון",       side: "bride", group: "חברים", count: 1, meal: "regular",    rsvp: "confirmed" },
+      ],
+    };
+    render(<AuthProvider><GuestManagerScreen activeEvent={ev} patchEvent={vi.fn()} go={vi.fn()} showToast={vi.fn()} /></AuthProvider>);
+    // 4 + 1 coming; the declined 2 eat nothing. Rows would say 3.
+    const chips = [...document.querySelectorAll("[class*=statChip]")].map(el => el.textContent.replace(/\s+/g, " ").trim());
+    expect(chips).toContain("5 מנות צמחוני");
+    expect(chips).toContain("1 מנה רגיל");
+  });
+});

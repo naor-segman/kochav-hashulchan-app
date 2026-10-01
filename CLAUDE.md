@@ -197,14 +197,30 @@ Check for these first — each has bitten more than once:
   and `netlify/tests/edgeFunctionsDir.test.js` enforces it. That guard covers
   the *shape* that broke, not every bundling failure — a syntax error only Deno
   catches still lands silently.
+  **Since 29.9 `node qa/edgeBundle.mjs` runs Netlify's own bundler
+  (`@netlify/edge-bundler` + a real Deno, both from the npm registry, pinned,
+  cached outside the repo) over that directory — run it whenever anything in
+  `netlify/` changes.** Observed failing on the vitest file, a parse error and a
+  missing import. It cannot load a function's in-source `config` export
+  (needs edge.netlify.com, refused) — routes live in netlify.toml, so none has one.
+  The same harness TYPE-CHECKS the Supabase functions against the pinned
+  stripe/supabase-js from npm (on a copy with the esm.sh strings rewritten —
+  NOT via an import map, through which Stripe resolves as `any`). Its first
+  run found `locale: "he"`, which Stripe Checkout does not accept.
 - **Chromium** is at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` and
   must be launched with `args:['--no-proxy-server']`, or localhost is routed
   through the agent proxy and every request fails. Resolve Playwright with
   `createRequire('/home/user/kochav-hashulchan-app/')`.
 - **Never use `scrollWidth` to detect horizontal overflow.** An internally
-  scrollable child inflates it on every ancestor. Use `window.scrollTo(9999,0)`
-  and check whether `window.scrollX` actually moved. The old method once sent an
-  afternoon into "fixing" CSS that was already correct.
+  scrollable child inflates it on every ancestor. Use
+  `window.scrollTo({ left: -1e5, behavior: "instant" })` and check that
+  `window.scrollX` is `!== 0`. The old method once sent an afternoon into
+  "fixing" CSS that was already correct.
+  🔴 **`scrollTo(9999,0)` — what this file prescribed until 28.9 — is blind
+  here.** RTL overflow scrolls to NEGATIVE `scrollX` (a positive target clamps
+  to 0) and `reset.css` has `scroll-behavior: smooth`. Measured: 0 vs -1618 on
+  a 2000px page. 15 harnesses carried it, two of them written in the same
+  session that found it. Every h-scroll pass before 28.9 proved nothing.
 - **Outbound HTTP is blocked** by the proxy for most hosts, including competitor
   sites. Say so rather than inventing findings.
 - **`npm run lint` runs `eslint .` and reports 10 errors** — in `legacy/` (7),
@@ -247,6 +263,15 @@ change is visible to a user. Read the value back out of the DOM or localStorage
 **Prove the test would fail.** A new assertion is worth nothing until the change
 it guards has been reverted and the test observed failing. Restore from bytes
 held in memory, never `git checkout --`.
+
+**A "new" file may already exist — and a green suite can hide it.** On 30.9 a
+helper was written to `src/utils/tableNames.js` without looking; the file
+existed, with a different argument order and 12 tests, and both were
+replaced. FloorPlanEditor's call would have thrown; the suite stayed green
+because the deleted tests were the ones covering it. Look before writing a
+path, and compare the per-file test counts after a round
+(`npx vitest run --reporter=json`) — a count that FALLS after commits that
+only add tests is a deleted test.
 
 **One task, one commit, in checklist order.** The commit message names the item
 number. WORKPLAN's checklist is the only surface that gets updated — tick the

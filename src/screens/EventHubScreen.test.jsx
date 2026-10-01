@@ -100,6 +100,25 @@ describe("EventHubScreen — rows are not seats", () => {
     expect(screen.getByText("1 אישרו מתוך 3")).toBeInTheDocument();
   });
 
+  it("a declined guest needs no seat — same numbers as the seating screen", () => {
+    // Browser audit 28.9: 60 seats with 12 declined read "60 מקומות · 28%" here
+    // and 48 seats / 35% on the seating screen. g2 (6 seats) declines — and
+    // stays seated, which is the case that also inflated the numerator.
+    renderHub({
+      guests: [guest("g1", 4), { ...guest("g2", 6), rsvp: "declined" }, guest("g3", 1), guest("g4", 2)],
+      seating: { g1: "t1", g2: "t1", g4: "t2" },
+    });
+    // 3 active rows, 4 + 1 + 2 = 7 seats; seated 4 + 2 = 6 → 86%.
+    expect(screen.getByText("3 רשומות · 7 מקומות · 1 לא מגיעים")).toBeInTheDocument();
+    expect(screen.getByText("86% מהמקומות שובצו")).toBeInTheDocument();
+  });
+
+  it("an all-declined list is not called empty", () => {
+    renderHub({ guests: [{ ...guest("g1", 2), rsvp: "declined" }], seating: {} });
+    expect(screen.getByText("1 לא מגיעים")).toBeInTheDocument();
+    expect(screen.queryByText("הרשימה ריקה")).toBeNull();
+  });
+
   it("does not divide by zero on an event with no guests yet", () => {
     renderHub({ guests: [], seating: {} });
     expect(screen.getByText("הרשימה ריקה")).toBeInTheDocument();

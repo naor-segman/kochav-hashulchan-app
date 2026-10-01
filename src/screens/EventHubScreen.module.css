@@ -218,15 +218,18 @@
 }
 
 /* ── The three areas ── */
+/* minmax(0, 1fr), not 1fr: a 1fr track grows to its content's minimum, and a
+   long .areaWhen pill made the one-column grid 340px wide inside 292px at 320
+   — the whole page scrolled sideways (29.9 review). */
 .areaGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
 }
 
 @media (max-width: 960px) {
-  .areaGrid { grid-template-columns: 1fr; }
+  .areaGrid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .area {
@@ -272,7 +275,8 @@
   background: var(--bg);
   border-radius: var(--radius-pill);
   padding: 4px 10px;
-  white-space: nowrap;
+  /* Wraps rather than widening the card on a narrow phone (29.9 review). */
+  white-space: normal;
 }
 
 .itemList { list-style: none; margin: 0; padding: 0; }

@@ -190,3 +190,18 @@
   color: var(--text2);
   white-space: nowrap;
 }
+
+/* A confirmed party larger than the invitation (E5). A line, not a chip: it
+   carries a table name the host typed, and chips do not wrap. */
+.partyGrew {
+  display: block;
+  margin-block-start: 4px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--warn);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  overflow-wrap: anywhere;
+}

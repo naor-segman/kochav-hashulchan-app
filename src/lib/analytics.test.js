@@ -120,3 +120,58 @@ describe("and when it is on, three defaults stay off", () => {
     expect(JSON.stringify(identify.mock.calls)).not.toContain("@");
   });
 });
+
+describe("and nothing posthog attaches on its own carries a token", () => {
+  /* The fourth leak, 28.9 audit. $current_url was scrubbed and the comments
+     said that was enough; posthog-js ALSO attaches $pathname, $referrer and the
+     initial URL to every event and to the person record. /collab/<token> opens
+     the whole guest list with phone numbers. */
+  beforeEach(() => { vi.stubEnv("VITE_POSTHOG_KEY", "phc_test"); });
+
+  it("installs the scrubber as before_send", async () => {
+    const a = await import("./analytics.js");
+    a.initAnalytics();
+    await settle();
+    expect(init.mock.calls[0][1].before_send).toBe(a.scrubEvent);
+  });
+
+  it("drops the page title — on a guest page it is the hosts' names (29.9 review)", async () => {
+    const { scrubEvent } = await import("./analytics.js");
+    const out = scrubEvent({ event: "$pageview", properties: { title: "אישור הגעה · דנה ויוסי", $title: "x", $current_url: "/rsvp/abc12345zz" } });
+    expect(out.properties.title).toBeUndefined();
+    expect(out.properties.$title).toBeUndefined();
+    expect(JSON.stringify(out)).not.toContain("דנה");
+  });
+
+  it("scrubs every path and URL in properties, $set and $set_once", async () => {
+    const { scrubEvent } = await import("./analytics.js");
+    const tok = "8f3c2a1b9d7e6f5a";
+    const out = scrubEvent({
+      event: "rsvp_received",
+      properties: {
+        $current_url: `https://revaya-events.co.il/rsvp/${tok}`,
+        $pathname: `/collab/${tok}`,
+        $referrer: `https://revaya-events.co.il/gift/${tok}/wall`,
+        $host: "revaya-events.co.il",
+        count: 3,
+      },
+      $set: { $current_url: `/entrance/${tok}` },
+      $set_once: { $initial_current_url: `https://revaya-events.co.il/album/${tok}`, $initial_referrer: "$direct" },
+    });
+    const all = JSON.stringify(out);
+    expect(all).not.toContain(tok);
+    expect(out.properties.$pathname).toBe("/collab/:token");
+    expect(out.$set.$current_url).toBe("/entrance/:token");     // was not in TOKEN_ROUTES
+    // Values that are not paths are left alone.
+    expect(out.properties.$host).toBe("revaya-events.co.il");
+    expect(out.properties.count).toBe(3);
+    expect(out.$set_once.$initial_referrer).toBe("$direct");
+  });
+
+  it("never throws, whatever it is handed", async () => {
+    const { scrubEvent } = await import("./analytics.js");
+    for (const junk of [null, undefined, 42, "x", { properties: null }]) {
+      expect(() => scrubEvent(junk)).not.toThrow();
+    }
+  });
+});

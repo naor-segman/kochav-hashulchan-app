@@ -32,7 +32,8 @@
  * Run: node qa/marketingShotsGift.mjs   (builds dist-shots itself)
  */
 import { createRequire } from "node:module";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
+import { startPreview } from "./lib/preview.mjs";
 import { mkdirSync, readFileSync } from "node:fs";
 
 import { COMPANY } from "../src/data/company.js";
@@ -146,16 +147,14 @@ if (build.status !== 0) {
 
 mkdirSync(OUT, { recursive: true });
 
-const server = spawn("npx", ["vite", "preview", "--outDir", "dist-shots",
-  "--port", String(PORT), "--strictPort"], { cwd: ROOT, stdio: "ignore" });
+/* startPreview with the dist-shots outDir — see marketingShots.mjs and
+   qa/lib/preview.mjs for why a hand-rolled npx spawn is not used. Checklist 93. */
+let server = { stop: () => {} };
 
 let served = { event: 0, wall: 0 };
 
 try {
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(BASE)).ok) break; } catch { /* not up yet */ }
-    await new Promise(r => setTimeout(r, 500));
-  }
+  server = await startPreview(PORT, ROOT, ["--outDir", "dist-shots"]);
 
   const browser = await chromium.launch({
     executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
@@ -277,5 +276,5 @@ try {
   await browser.close();
   if (failed) process.exitCode = 1;
 } finally {
-  server.kill();
+  server.stop();
 }

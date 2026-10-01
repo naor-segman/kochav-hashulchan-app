@@ -18,7 +18,7 @@ export const ACTION_META = {
   event_deleted:         { label: "אירוע נמחק",          icon: "trash"     },
   event_exported:        { label: "אירוע יוצא",          icon: "chart"     },
   template_created:      { label: "תבנית נוצרה",         icon: "clipboard" },
-  subscription_changed:  { label: "מנוי שונה",           icon: "card"      },
+  subscription_changed:  { label: "רכישה עודכנה",           icon: "card"      },
   admin_login:           { label: "כניסת מנהל",          icon: "key"       },
 };
 
@@ -42,7 +42,7 @@ export const ENTITY_TYPE_LABELS = {
   user:         "משתמש",
   event:        "אירוע",
   template:     "תבנית",
-  subscription: "מנוי",
+  subscription: "רכישה",
   admin:        "מנהל",
   // Stripe writes these two and both rendered in English mid-table.
   invoice:      "חשבונית",

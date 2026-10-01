@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useRestoreFocus } from "../../hooks/useRestoreFocus.js";
 import Icon from "./Icon.jsx";
 import base from "../../styles/screenBase.module.css";
 import styles from "./ConfirmDialog.module.css";
@@ -54,6 +55,7 @@ export default function ConfirmDialog({
   const cardRef = useRef(null);
   const firstRef = useRef(null);
 
+  useRestoreFocus();
   useEffect(() => {
     firstRef.current?.focus();
   }, []);
@@ -88,7 +90,7 @@ export default function ConfirmDialog({
   const rest  = lines.slice(1).filter(l => l.trim() !== "");
 
   return (
-    <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) cancel(); }}>
+    <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) { e.preventDefault(); cancel(); } }}>
       <div
         className={styles.card}
         ref={cardRef}

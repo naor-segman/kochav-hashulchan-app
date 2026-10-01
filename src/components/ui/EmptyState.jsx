@@ -20,7 +20,7 @@ export default function EmptyState({ mark, icon, title, text, action }) {
       {mark
         ? <SectionMark name={mark} size={34} tile className={styles.emptyMark} />
         : <div className={styles.emptyIcon} aria-hidden="true">{icon}</div>}
-      {title && <h3 className={styles.emptyTitle}>{title}</h3>}
+      {title && <h2 className={styles.emptyTitle}>{title}</h2>}
       {text && <p className={styles.emptyText}>{text}</p>}
       {action && (
         <button className={styles.emptyAction} onClick={action.onClick} type="button">

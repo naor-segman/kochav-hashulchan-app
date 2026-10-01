@@ -32,6 +32,24 @@ export const PAYMENT_STATUSES = [
 export const paymentStatus = v =>
   PAYMENT_STATUSES.find(s => s.value === v) || PAYMENT_STATUSES[0];
 
+/** The status to SHOW, when the amounts say more than the select. A vendor
+ *  with ₪20,000 of ₪85,000 paid read "לא שולם" beside "נותר ₪65,000"
+ *  (fourth review 30.9) — the select was never touched, the amount was. */
+export function shownPayment(payment, price, paid) {
+  if (price > 0 && paid >= price) return paymentStatus("paid");
+  // Part paid is a deposit whatever the select says: "שולם · נותר ₪9,000"
+  // contradicted itself (fifth review 30.9).
+  if (paid > 0 && (price <= 0 || paid < price)) return price > 0 ? paymentStatus("deposit") : paymentStatus(payment);
+  return paymentStatus(payment);
+}
+
+/** What is still owed. A vendor marked "שולם" with no amount typed is taken
+ *  at its word — nothing owed — rather than showing the whole price as due. */
+export function amountDue(payment, price, paid) {
+  if (payment === "paid" && !(paid > 0)) return 0;
+  return Math.max(0, price - paid);
+}
+
 /** Same ids as the budget categories, so spend lines up without a mapping. */
 export const VENDOR_CATEGORIES = [
   { value: "venue",        label: "אולם" },
@@ -69,6 +87,10 @@ export function vendorTotals(vendors) {
     open:      live.filter(v => v.status !== "booked").length,
     committed: price,
     paid,
-    remaining: Math.max(0, price - paid),
+    // Summed per vendor with the same rule as each row (amountDue): the total
+    // said "נותר לשלם ₪11,000" over rows that owed 0, 0 and 4,000 — a vendor
+    // marked "שולם" with no amount counted in full, and one vendor's
+    // overpayment was netted against another's debt (sixth review 30.9).
+    remaining: live.reduce((s, v) => s + amountDue(v.payment, parseAmount(v.price), parseAmount(v.paid)), 0),
   };
 }

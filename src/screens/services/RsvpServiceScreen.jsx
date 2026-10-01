@@ -72,12 +72,17 @@ const HOST_SIDE = [
 
 /* The six-stage sequence — content, audiences and the tracker all exist. */
 const SEQUENCE = [
-  { when: "3–6 חודשים לפני", label: "שמרו את התאריך", who: "כל האורחים" },
-  { when: "4–6 שבועות לפני", label: "ההזמנה",         who: "כל האורחים" },
+  // "3 עד 6", not "3–6" (second review, סב27). With a dash the pair is split
+  // by a bidi neutral and which way it paints depends on the character; the
+  // codebase holds two conventions for bare number pairs (CLAUDE.md bug class
+  // 7 vs messageSequence.js) and the choice is the owner's. A Hebrew word
+  // anchors the order under both — "250 מתוך 300", as CLAUDE.md puts it.
+  { when: "3 עד 6 חודשים לפני", label: "שמרו את התאריך", who: "כל האורחים" },
+  { when: "4 עד 6 שבועות לפני", label: "ההזמנה",         who: "כל האורחים" },
   { when: "שבועיים לפני",     label: "תזכורת ראשונה",  who: "רק מי שלא ענה" },
   { when: "שבוע לפני",        label: "תזכורת אחרונה",  who: "רק מי שלא ענה" },
-  { when: "2–3 ימים לפני",    label: "פרטי הגעה",      who: "רק מי שאישר" },
-  { when: "1–2 ימים אחרי",    label: "תודה",           who: "רק מי שהגיע" },
+  { when: "2 עד 3 ימים לפני",    label: "פרטי הגעה",      who: "רק מי שאישר" },
+  { when: "1 עד 2 ימים אחרי",    label: "תודה",           who: "רק מי שהגיע" },
 ];
 
 /* ── COMING_NOT_BUILT ───────────────────────────────────────────────────────
@@ -185,7 +190,7 @@ export default function RsvpServiceScreen({ user = null }) {
               <h3 className={styles.h3}>כל אורח עם הסטטוס שלו</h3>
               <p className={styles.stepBody}>
                 אישר, סירב, או עדיין שותק — ליד השם, בצבע, בלי לחפש. אפשר לסנן
-                לפי סטטוס, לפי צד ולפי קבוצה, ולהוריד את הכל לאקסל בכל רגע.
+                לפי סטטוס, לפי צד ולפי קבוצה, ולהוריד את הרשימה לאקסל בכל רגע.
               </p>
             </div>
             <figure className={styles.stepFigure}>
@@ -230,7 +235,10 @@ export default function RsvpServiceScreen({ user = null }) {
           <article className={[styles.step, styles.stepFlip].join(" ")}>
             <div className={styles.stepText}>
               <span className={styles.stepNum}>הודעות</span>
-              <h3 className={styles.h3}>ומעקב מי כבר קיבל מה</h3>
+              {/* "מי כבר קיבל" claimed delivery. The mark is set when the host
+                  opens WhatsApp — the app knows what was sent, not what
+                  arrived (same correction as pricing.js, 28.9 audit). */}
+              <h3 className={styles.h3}>וסימון למי כבר שלחתם</h3>
               <p className={styles.stepBody}>
                 כל אורח מסומן אחרי שנשלח אליו, כך שאתם לא מתחילים לספור מהתחלה
                 בכל פעם. ההודעה יוצאת מהוואטסאפ שלכם — ולכן היא לא עולה כלום.

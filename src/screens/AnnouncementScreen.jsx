@@ -1,14 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken } from "../utils/publicTokens.js";
+import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncement } from "../data/announcementTemplates.js";
-import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
 import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 /**
  * Public Save-the-Date / designed invitation.
@@ -75,6 +77,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   const isPreview = !!localEvent;
   const [event, setEvent] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | error
+  useGuestTitle(!localEvent && event && `${kind === "saveTheDate" ? "שמרו את התאריך" : "הזמנה"} · ${guestHosts(event)}`);
 
   useEffect(() => {
     if (localEvent) {
@@ -84,15 +87,23 @@ export default function AnnouncementScreen({ kind, localEvent }) {
         brideName: localEvent.brideName, groomName: localEvent.groomName,
         celebrantName: localEvent.celebrantName,
         organizationName: localEvent.organizationName,
+        ownerName: localEvent.ownerName,
         rsvpToken: localEvent.tokens?.rsvp, inviteToken: localEvent.tokens?.invite,
         announcements: localEvent.announcements,
+        site: localEvent.eventSite ?? null,
       });
       setState("ready");
       return;
     }
     let cancelled = false;
     (async () => {
-      const data = await fetchEventByToken("invite", token);
+      let data;
+      try {
+        data = await fetchEventByToken("invite", token);
+      } catch {
+        if (!cancelled) setState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (data) { setEvent(data); setState("ready"); }
       else if (!isSupabaseConfigured) { setEvent(MOCK); setState("ready"); }
@@ -123,8 +134,18 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     return (
       <div className={styles.state}>
         <span className={styles.star}>✦</span>
-        <p>הדף לא נמצא</p>
+        <h1 className={styles.stateTitle}>הדף לא נמצא</h1>
         <p className={styles.stateSub}>הקישור אינו תקף או שפג תוקפו</p>
+        <Link to="/" className={styles.homeLink}>לדף הבית</Link>
+      </div>
+    );
+  }
+  if (state === "unreachable") {
+    return (
+      <div className={styles.state}>
+        <span className={styles.star}>✦</span>
+        <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
+        <p className={styles.stateSub}>{UNREACHABLE_TEXT.body}</p>
       </div>
     );
   }
@@ -135,18 +156,28 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     return (
       <div className={styles.state}>
         <span className={styles.star}>✦</span>
-        <p>הדף עדיין לא פורסם</p>
+        <h1 className={styles.stateTitle}>הדף עדיין לא פורסם</h1>
         <p className={styles.stateSub}>בעלי האירוע עדיין עובדים עליו — נסו שוב מאוחר יותר</p>
+        <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </div>
     );
   }
 
   const names = [event.brideName, event.groomName].filter(Boolean).join(" ♥ ")
-             || event.celebrantName || event.organizationName || "";
+             || event.celebrantName || event.organizationName
+             // ברית, בריתה, יום הולדת, אירוע משפחתי and אחר keep their one
+             // name here — without it a birthday invitation named nobody and
+             // the page had no h1 at all (second review, סב20).
+             || event.ownerName || "";
 
   const addToCalendar = () => {
+    // The same start time as the site and the RSVP page. Without it this
+    // button wrote 19:00 while the site's said 21:00 — the two-answers bug
+    // WORKPLAN ס closed everywhere else (29.9 review). The invite token only
+    // carries the site once it is published; before that, 19:00 it is.
     const ics = buildEventIcs({
       name: event.name, date: event.date, venue: event.venue,
+      startTime: eventStartTime(event.site?.schedule),
       url: window.location.href,
     });
     if (ics) downloadIcs(ics, icsFileName(event.name));
@@ -194,7 +225,10 @@ export default function AnnouncementScreen({ kind, localEvent }) {
                 אישור הגעה ←
               </a>
             )}
-            {ann.showSite && event.inviteToken && (
+            {/* Only to a site that is up: `showSite` is on by default, and the
+                button led every guest to "האתר בהכנה" (second review, סב36) —
+                the same rule rsvpSuccessLinks already applies. */}
+            {ann.showSite && event.inviteToken && event.site?.enabled && (
               <a className={styles.btnGhost} href={`/invite/${event.inviteToken}`}>
                 לאתר האירוע ←
               </a>

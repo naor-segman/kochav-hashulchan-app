@@ -38,7 +38,9 @@ describe("normalizeEvent — the defaults every screen relies on", () => {
     expect(normalizeEvent(undefined)).toBeNull();
     expect(normalizeEvent("null")).toBeNull();   // valid JSON, wrong shape — froze an account once
     expect(normalizeEvent(42)).toBeNull();
-    expect(normalizeEvent([])).not.toBeNull();   // arrays are objects; documented, not desired
+    // Arrays are objects, and `{events:[[]]}` became a blank event with a fresh
+    // id that was then persisted. Refused since סב49.
+    expect(normalizeEvent([])).toBeNull();
   });
 
   it("fills identity and display fields for a bare event", () => {
@@ -764,5 +766,66 @@ describe("getSideLabels — the couple's own wording", () => {
     const out = getSideLabels({ type: "חתונה", sideLabels: { bride: "משפחת כהן", groom: "" } });
     expect(out.groom).toBeTruthy();
     expect(out.bride).not.toBe("");
+  });
+});
+
+describe("normalizeEvent — rsvpApplied (ת3)", () => {
+  it("defaults to [] and keeps only non-empty strings", () => {
+    expect(normalizeEvent({ id: "e1", name: "x" }).rsvpApplied).toEqual([]);
+    expect(normalizeEvent({ id: "e1", name: "x", rsvpApplied: ["a", 3, null, "", "b"] }).rsvpApplied).toEqual(["a", "b"]);
+  });
+  it("keeps the newest 2,000", () => {
+    const ids = Array.from({ length: 2100 }, (_, i) => `r${i}`);
+    const out = normalizeEvent({ id: "e1", name: "x", rsvpApplied: ids }).rsvpApplied;
+    expect(out).toHaveLength(2000);
+    expect(out[0]).toBe("r100");
+  });
+});
+
+describe("normalizeEvent — constraint rows (סב16)", () => {
+  it("drops a null or non-object constraint, keeps the real ones", () => {
+    // One null took the seating and constraints screens down.
+    const real = { id: "c1", type: "together", guestA: "a", guestB: "b" };
+    const ev = normalizeEvent({ id: "e", name: "x", constraints: [null, real, "junk", 3] });
+    expect(ev.constraints).toEqual([real]);
+  });
+});
+
+describe("normalizeEvent — rows and text as the screens assume them (סב49)", () => {
+  it("drops null and non-object rows from every collection", () => {
+    const ev = normalizeEvent({ id: "e", guests: [null, { id: "g1", name: "דנה" }, 3, []],
+      tables: [null, { id: "t1", capacity: 10 }], tasks: [null], vendors: ["x"],
+      eventSite: { schedule: [null, { time: "19:00" }], faq: [null], shuttles: [null], gallery: [null, "https://x/a.jpg", 5] } });
+    expect(ev.guests.map(g => g.id)).toEqual(["g1"]);
+    expect(ev.tables.map(t => t.id)).toEqual(["t1"]);
+    expect(ev.tasks).toEqual([]);
+    expect(ev.vendors).toEqual([]);
+    expect(ev.eventSite.schedule).toHaveLength(1);
+    expect(ev.eventSite.faq).toEqual([]);
+    expect(ev.eventSite.shuttles).toEqual([]);
+    expect(ev.eventSite.gallery).toEqual(["https://x/a.jpg"]);
+  });
+
+  it("never throws on a number where text belongs", () => {
+    // sideLabels.bride = 5 threw inside normalizeEvent — the whole site down.
+    expect(() => normalizeEvent({ id: "x", sideLabels: { bride: 5, groom: 6 }, eventSite: { customDomain: 5 } })).not.toThrow();
+    const ev = normalizeEvent({ id: "x", name: 12345, venue: 7, guests: [{ id: "g", name: 42, phone: 521234567, companions: [5] }],
+      tables: [{ id: "t", name: 1 }] });
+    expect(ev.name).toBe("12345");
+    expect(ev.guests[0]).toMatchObject({ name: "42", phone: "521234567", companions: ["5"] });
+    expect(ev.tables[0].name).toBe("1");
+  });
+
+  it("clamps counts and capacities to whole numbers the screens can add up", () => {
+    const ev = normalizeEvent({ id: "x", guests: [{ id: "a", count: "3" }, { id: "b", count: "abc" }, { id: "c", count: -4 }, { id: "d", count: 1e7 }],
+      tables: [{ id: "t", capacity: null }, { id: "u", capacity: "12" }], version: "3" });
+    expect(ev.guests.map(g => g.count)).toEqual([3, 1, 1, 50]);
+    expect(ev.tables.map(t => t.capacity)).toEqual([0, 12]);
+    expect(ev.version).toBe(3);
+  });
+
+  it("is idempotent", () => {
+    const once = normalizeEvent({ id: "x", guests: [null, { id: "g", name: 4, count: "2" }], tables: [{ id: "t", capacity: "5" }] });
+    expect(normalizeEvent(JSON.parse(JSON.stringify(once)))).toEqual(once);
   });
 });

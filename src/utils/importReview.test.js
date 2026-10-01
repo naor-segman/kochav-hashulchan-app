@@ -213,3 +213,29 @@ describe("duplicates INSIDE one paste, not just against the existing list", () =
     expect(back[1].warnings).not.toContain("duplicate");
   });
 });
+
+describe("a partner placeholder asks for the name (fifth review 30.9)", () => {
+  it("flags missingNames when the only companion name is empty", () => {
+    const [row] = buildImportRows([{ name: "יוסי", phone: "0501234567", count: 2, companions: [""] }]);
+    expect(row.warnings).toContain("missingNames");
+  });
+});
+
+// Sixth review 30.9 (סב90c): a name typed after an empty partner slot was shown
+// and counted as typed, then cut off by the import.
+describe("an empty slot before a name is a seat", () => {
+  it("\", רון, נועה\" on a partner-placeholder row imports נועה, four seats", () => {
+    const rows = buildImportRows(parseGuestList("דנה (בן/בת זוג, רון)"));
+    expect(rows[0].count).toBe(3);
+    const edited = editImportRow(rows, rows[0].id, { companionsText: ", רון, נועה" });
+    const [ready] = readyImportRows(edited);
+    expect(ready.companions).toContain("נועה");
+    expect(ready.count).toBe(4);
+    expect(importSummary(edited).seats).toBe(4);
+  });
+  it("a trailing comma while typing is not a chair", () => {
+    const rows = buildImportRows(parseGuestList("דנה +1 (רון)"));
+    const edited = editImportRow(rows, rows[0].id, { companionsText: "רון, " });
+    expect(edited[0].count).toBe(2);
+  });
+});

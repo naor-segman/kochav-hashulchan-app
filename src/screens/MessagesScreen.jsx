@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { messageSignature } from "../data/company.js";
 import {
   MESSAGE_STAGES, audienceFor, audienceLabel, reachable,
-  renderTemplate, whatsappLink,
+  renderTemplate, whatsappLink, linkForStage,
 } from "../data/messageSequence.js";
 import { fmtDate } from "../utils/dateFormat.js";
 import Field from "../components/ui/Field.jsx";
@@ -27,7 +27,7 @@ import { useShareGate } from "../components/share/useShareGate.jsx";
  * built, so connecting an API later is a connection rather than a project.
  */
 export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast }) {
-  // Every message in this screen carries an RSVP link into it. In guest mode
+  // Every message in this screen carries a public link into it. In guest mode
   // that link resolves to nothing, so sending forty of them is worse than
   // sending none — see useShareGate.
   const { guard, gate } = useShareGate();
@@ -41,19 +41,22 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
   const sent   = useMemo(() => ev.messagesSent     || {}, [ev.messagesSent]);      // { [stageKey]: { [guestId]: ts } }
   const custom = useMemo(() => ev.messageTemplates || {}, [ev.messageTemplates]);  // { [stageKey]: body }
 
-  const link = useMemo(() => {
-    const t = ev.tokens || {};
-    if (t.rsvp)   return `${window.location.origin}/rsvp/${t.rsvp}`;
-    if (t.invite) return `${window.location.origin}/invite/${t.invite}`;
-    return "";
-  }, [ev.tokens]);
-
+  /* ONE LINK PER STAGE (checklist 88). This was a single `link` for all six —
+     the RSVP token if there was one, else the site — so the save-the-date,
+     sent months before any invitation exists, asked guests to confirm
+     attendance, and the event site reached almost nobody. See STAGE_LINKS in
+     messageSequence.js for which link each stage carries and why. */
   const stages = useMemo(() => MESSAGE_STAGES.map(s => {
     const audience  = audienceFor(s, ev.guests);
     const withPhone = reachable(audience);
     const done      = audience.filter(g => sent[s.key]?.[g.id]).length;
-    return { ...s, body: custom[s.key] ?? s.body, audience, withPhone, done };
-  }), [ev.guests, sent, custom]);
+    const link      = linkForStage(s.key, ev, window.location.origin);
+    // `audienceKey` keeps the stage's own key: `audience` is replaced by the
+    // guest list, and audienceLabel(list) found nothing and said "כל האורחים"
+    // on every stage — the reminder that goes to 2 people said everyone
+    // (third review 30.9, סב53).
+    return { ...s, body: custom[s.key] ?? s.body, audience, audienceKey: s.audience, withPhone, done, link };
+  }), [ev, sent, custom]);
 
   const totalPlanned = stages.reduce((n, s) => n + s.withPhone.length, 0);
 
@@ -99,7 +102,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
   const textFor = (stage, g) =>
     renderTemplate(stage.body, {
       event: { ...ev, date: fmtDate(ev.date) },
-      guest: g, table: tableOf(g), link,
+      guest: g, table: tableOf(g), link: stage.link?.url || "",
     }) + messageSignature();
 
   return (
@@ -108,7 +111,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
       <PageHeader
         title="הודעות לאורחים"
         mark="messages"
-        sub="רצף ההודעות משמירת התאריך ועד התודה — עם מעקב מי כבר קיבל מה."
+        sub="רצף ההודעות משמירת התאריך ועד התודה — עם סימון למי כבר שלחתם."
         aside={
           <div className={base.pills}>
             <StatPill n={stages.reduce((n, s) => n + s.done, 0)} label="נשלחו" color="var(--green)" />
@@ -128,7 +131,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
         <SectionLabel>עלות</SectionLabel>
         <p className={base.fieldHint}>
           השליחה נעשית מהוואטסאפ שלכם, ולכן <b>ללא עלות</b> — כאן רק מכינים את
-          הטקסט, בוחרים למי, ועוקבים אחרי מי כבר קיבל.
+          הטקסט, בוחרים למי, ורואים למי כבר שלחתם.
         </p>
       </div>
 
@@ -148,7 +151,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
               <span className={styles.stageMain}>
                 <span className={styles.stageTitle}>{stage.label}</span>
                 <span className={styles.stageWhen}>
-                  {stage.when} · {audienceLabel(stage.audience)}
+                  {stage.when} · {audienceLabel(stage.audienceKey)}
                 </span>
               </span>
               <span className={styles.stageCount}>
@@ -168,7 +171,39 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                   />
                 ) : (
                   <>
-                    <div className={styles.preview}>{stage.body}</div>
+                    {/* The message as a guest will read it, not the template:
+                        the raw {{שם}} was what the host saw here (WORKPLAN
+                        108). Filled for a real guest of this stage — the
+                        first one it goes to — through the same textFor that
+                        builds what is sent, so the two cannot differ. With no
+                        guest yet the name slot says what goes there. */}
+                    {(() => {
+                      // Someone this stage actually SENDS to: a guest with a
+                      // phone first, then anyone in its audience — never a guest
+                      // outside it. The reminder was previewed "for" a guest who
+                      // had declined, beside "no guests match this stage"
+                      // (29.9 review). Nobody in the audience: a placeholder.
+                      const sample = stage.withPhone.find(g => g.name?.trim())
+                        || stage.audience.find(g => g.name?.trim())
+                        || { id: "", name: "שם האורח" };
+                      return <>
+                        {/* <bdi>: a Latin name ending in a period ("Tal S.")
+                            painted its period on the wrong side (review). */}
+                        <p className={styles.previewFor}>כך ההודעה תיראה אצל <bdi>{sample.name}</bdi>:</p>
+                        <div className={styles.preview}>{textFor(stage, sample)}</div>
+                      </>;
+                    })()}
+                    {/* Which page {{קישור}} opens in THIS stage, said out loud.
+                        With one link per stage the host can no longer assume
+                        "the link" means the RSVP form — and when a stage has
+                        none (the site is not published, say), the message goes
+                        out without it, which the host must hear here rather
+                        than discover from a guest. */}
+                    <p className={styles.linkNote}>
+                      {stage.link
+                        ? <>הקישור בהודעה הזאת: <b>{stage.link.label}</b></>
+                        : "ההודעה הזאת תצא בלי קישור — הדף שמתאים לה עוד לא פורסם."}
+                    </p>
                     <div className={styles.stageActions}>
                       <button className={base.btnSm} onClick={() => setEditing(stage.key)}>ערכו תבנית</button>
                       {stage.done > 0 && (

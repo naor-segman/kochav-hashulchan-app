@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useRestoreFocus } from "../../hooks/useRestoreFocus.js";
 import { Link, useLocation } from "react-router-dom";
 import Icon from "../ui/Icon.jsx";
 import styles from "./ShareGate.module.css";
@@ -31,6 +32,7 @@ export default function ShareGateDialog({ what, onClose }) {
   // triggered this instead of dumping the host on the dashboard.
   const from = location.pathname + location.search;
 
+  useRestoreFocus();
   useEffect(() => { firstRef.current?.focus(); }, []);
 
   useEffect(() => {
@@ -48,7 +50,7 @@ export default function ShareGateDialog({ what, onClose }) {
   }, [onClose]);
 
   return (
-    <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) { e.preventDefault(); onClose(); } }}>
       <div className={styles.card} ref={cardRef} role="alertdialog" aria-modal="true" aria-label="נדרש חשבון לשיתוף">
         <button className={styles.close} onClick={onClose} aria-label="סגירה">
           <Icon name="close" size={16} />

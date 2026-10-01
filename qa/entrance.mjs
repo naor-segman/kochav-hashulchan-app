@@ -247,8 +247,8 @@ for (const [route, label] of [['/events/e1/checkin', 'entrance'], ['/events/e1/n
   await p.goto(BASE + route, { waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(800);
   // NEVER scrollWidth — an internally scrollable child inflates every ancestor.
-  const moved = await p.evaluate(() => { window.scrollTo(9999, 0); return window.scrollX; });
-  check(`${label}: no horizontal scroll (window.scrollX after scrollTo(9999,0))`, moved, 0);
+  const moved = await p.evaluate(() => { window.scrollTo({ left: -1e5, behavior: "instant" }); return window.scrollX; });
+  check(`${label}: no horizontal scroll (scrollX after an instant scroll to the far left)`, moved, 0);
 }
 
 await p.goto(BASE + '/events/e1/checkin', { waitUntil: 'domcontentloaded' });

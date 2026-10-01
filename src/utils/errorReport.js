@@ -1,3 +1,4 @@
+import { GUEST_ROUTE_PREFIXES } from "./guestRoutes.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 
 /**
@@ -14,20 +15,39 @@ import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 // A token in a URL is a credential, and this lands in a table the admin panel
 // reads. `/rsvp/8f3c…` becomes `/rsvp/:token` — enough to know WHICH screen
 // crashed, without carrying the key to somebody's guest list into a log.
-const TOKEN_ROUTES = ["rsvp", "invite", "gift", "card", "album", "collab", "hostess",
-                      "invitation", "save-the-date"];
+// "entrance" was missing — /entrance/<token> is the door station, and its
+// token is the hostess link. Caught only by the uuid rule below, by luck of
+// the token's shape. 28.9 audit.
+const TOKEN_ROUTES = GUEST_ROUTE_PREFIXES;
 
 export function scrubRoute(pathname) {
-  const parts = String(pathname || "").split("/");
+  // The query and the hash are handled on their own (29.9 review): the site's
+  // footer links to /signup?ref=<invite token>, and a token in a query string
+  // went out untouched while the same token in a path did not.
+  const str = String(pathname || "");
+  const cut = str.search(/[?#]/);
+  const path = cut < 0 ? str : str.slice(0, cut);
+  // Every other VALUE goes too, in the query and in the hash alike (second
+  // review, סב10): the personal entry card is /card/<t>?g=<guest id>&n=<guest
+  // NAME>&t=<table>, and cleaning `ref=` alone sent a guest's name to
+  // PostHog; a Supabase recovery link lands with #access_token=… in the hash.
+  // Kept: the keys, utm_* (that is what attribution is), and checkout=.
+  const tail = cut < 0 ? "" : str.slice(cut).replace(/([?&#])([^=&#]*)=[^&#]*/g, (m, sep, key) =>
+    /^ref$/i.test(key) ? `${sep}${key}=:token`
+    : /^(utm_[a-z]+|checkout)$/i.test(key) ? m
+    : `${sep}${key}=:v`);
+  const parts = path.split("/");
   return parts
     .map((part, i) => {
       if (!part) return part;
-      if (TOKEN_ROUTES.includes(parts[i - 1])) return ":token";
+      // The router matches these case-insensitively, so this must too:
+      // /RSVP/<token> opens the RSVP page (29.9 review).
+      if (TOKEN_ROUTES.includes(String(parts[i - 1] || "").toLowerCase())) return ":token";
       // Event ids are uuids or the app's own uid()s — also not worth carrying.
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(part)) return ":id";
       return part;
     })
-    .join("/");
+    .join("/") + tail;
 }
 
 // Belt and braces on top of the RPC's own 10-minute collapse: a render loop can

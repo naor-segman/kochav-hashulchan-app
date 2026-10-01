@@ -1,4 +1,6 @@
+import { useLocation } from "react-router-dom";
 import styles from "./SupportButton.module.css";
+import { isGuestRoute } from "../../utils/guestRoutes.js";
 import { COMPANY } from "../../data/company.js";
 
 // Floating WhatsApp support button. Renders only when a support number is
@@ -9,7 +11,11 @@ const PHONE = RAW.replace(/[^\d]/g, "");
 const GREETING = encodeURIComponent(`היי, אני צריך עזרה עם ${COMPANY.name} 🙂`);
 
 export default function SupportButton() {
-  if (!PHONE) return null;
+  const { pathname } = useLocation();
+  // This number is Revaya's support line, for hosts. On a guest page it sat
+  // over the RSVP form and the gift page, inviting a wedding guest to message
+  // the software company instead of the couple (106, 28.9).
+  if (!PHONE || isGuestRoute(pathname)) return null;
   const href = `https://wa.me/${PHONE}?text=${GREETING}`;
   return (
     <a

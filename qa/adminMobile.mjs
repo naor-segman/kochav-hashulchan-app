@@ -45,7 +45,7 @@ for (const [name, path] of ROUTES) {
   const r = await page.evaluate(() => {
     const out = { coarse: matchMedia('(pointer: coarse)').matches };
 
-    window.scrollTo(9999, 0); out.scrollX = window.scrollX; window.scrollTo(0, 0);
+    window.scrollTo({ left: -1e5, behavior: "instant" }); out.scrollX = window.scrollX; window.scrollTo(0, 0);
 
     // A bar covering the page below it. The admin topbars are NOT sticky, so
     // looking for sticky/fixed elements finds nothing and reports a clean
@@ -190,7 +190,7 @@ await b.close();
 // table with no affordance, a column no amount of scrolling reaches, and a
 // control a finger cannot hit.
 const bad = rows.filter(([, r]) =>
-  r.scrollX > 0 || r.overlap > 0 ||
+  r.scrollX !== 0 || r.overlap > 0 ||
   r.tables.some(t => t.hidden > 0 && !r.hint) ||
   r.unreachable.length > 0 || r.small.length > 0);
 console.log(`\n${rows.length} routes — ${bad.length} with a problem: ${bad.map(b => b[0]).join(', ') || 'none'}`);

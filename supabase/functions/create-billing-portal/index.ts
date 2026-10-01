@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
-import Stripe from "https://esm.sh/stripe@14";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@14.25.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 
 // =============================================================================
 // create-billing-portal — Supabase Edge Function
@@ -99,7 +99,7 @@ Deno.serve(async (req: Request) => {
 
     if (!profile?.stripe_customer_id) {
       return json({
-        error: "אין חשבון חיוב עבור משתמש זה. שדרג תחילה לתוכנית בתשלום.",
+        error: "עוד אין רכישה בחשבון הזה — הקבלות יופיעו כאן אחרי הרכישה הראשונה.",
       }, 404);
     }
 

@@ -471,6 +471,17 @@
   .main   { padding: 16px 12px 40px; }
   .metaGrid { grid-template-columns: 1fr 1fr; }
   .tableGrid { grid-template-columns: 1fr 1fr; }
+  /* WORKPLAN י: the guest table was 91px wider than a 320px phone with every
+     header already visible — 140px of it was cell padding. Tighter cells and
+     narrower free-text columns make it fit instead of scrolling with no hint.
+     They WRAP here rather than truncate: at 64px an ellipsis cut "שולחן 1"
+     to "שולחן…", losing the one thing the column is for. Measured with
+     qa/adminMobile.mjs at 320 and 390. */
+  .guestTable th, .guestTable td { padding-inline: 6px; }
+  .guestName, .guestGroup, .guestSeated { white-space: normal; overflow-wrap: anywhere; }
+  .guestName   { max-width: 88px; }
+  .guestGroup  { max-width: 72px; }
+  .guestSeated { max-width: 64px; }
 }
 
 /* ── Data-state badge ── */

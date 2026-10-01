@@ -1,0 +1,178 @@
+// The anonymous write paths, attacked the way the 30.9 review attacked them —
+// against EVERY migration (supabase/setup_full.sql) on a Supabase stand-in
+// (qa/lib/supabaseShim.sql). Migration 20260930000000 (סב42).
+//
+//   1. album uploads without the album link (any link gave the event id)
+//   2. album_add_photo with '..' in the path
+//   3. the gift and RSVP limits as lockout tools — now per sender
+//   4. the event-site bucket without a ceiling
+//
+//   node qa/guestWriteHardeningSql.mjs      (starts and stops its own cluster)
+import { execFileSync, spawnSync } from 'child_process';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+
+const ROOT  = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
+const PGBIN = '/usr/lib/postgresql/16/bin';
+const PORT  = process.env.PGPORT || '5611';
+const DIR   = mkdtempSync(join(tmpdir(), 'pgguestw-'));
+let fails = 0;
+const ok = (c, what, detail = '') => {
+  if (!c) fails++;
+  console.log(`  ${c ? 'ok  ' : 'FAIL'} ${what}${detail ? '  — ' + detail : ''}`);
+};
+const run = (sql) => spawnSync('psql', ['-h', '/tmp', '-p', PORT, '-U', 'postgres', '-d', 'postgres', '-tAq', '-v', 'ON_ERROR_STOP=1'],
+  { input: sql, encoding: 'utf8' });
+const psql = (sql) => { const r = run(sql); if (r.status) throw new Error(r.stderr); return r.stdout.trim(); };
+const tryAs = (sql) => { const r = run(sql); return r.status === 0 ? null : (r.stderr.match(/ERROR:\s*([^\n]*)/) || [, r.stderr])[1]; };
+const asPg = (cmd) => execFileSync('su', ['postgres', '-c', cmd], { stdio: 'pipe' });
+
+const EV = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', OWNER = '11111111-1111-1111-1111-111111111111';
+const ALBUM = 'album-tok-1234567';
+// anon, with a client address the way PostgREST passes it.
+const anon = (ip, sql) => `begin; set local role anon;
+  ${ip ? `select set_config('request.headers', '{"x-forwarded-for":"${ip}, 10.0.0.1"}', true);` : ''}
+  ${sql}; commit;`;
+
+try {
+  execFileSync('chown', ['-R', 'postgres:postgres', DIR]);
+  asPg(`${PGBIN}/initdb -D ${DIR} -U postgres -A trust`);
+  asPg(`${PGBIN}/pg_ctl -D ${DIR} -o "-p ${PORT} -k /tmp -c listen_addresses=" -l ${join(DIR, 'log')} -w start`);
+  psql(readFileSync(join(ROOT, 'qa/lib/supabaseShim.sql'), 'utf8'));
+  psql(readFileSync(join(ROOT, 'supabase/setup_full.sql'), 'utf8'));
+  psql(`insert into storage.buckets (id, name, public) values ('event-album','event-album',true), ('event-site','event-site',true) on conflict do nothing;
+    insert into auth.users (id, email) values ('${OWNER}', 'host@x.co');
+    insert into public.events (id, user_id, name, rsvp_token, invite_token, gift_token, hostess_token, collab_token, payload)
+    values ('${EV}', '${OWNER}', 'החתונה', 'rsvp-tok-12345', 'invite-tok-12345', 'gift-tok-12345', 'host-tok-12345', 'collab-tok-12345',
+      jsonb_build_object('albumToken', '${ALBUM}'));`);
+
+  console.log('── 1. album uploads need the CURRENT album link');
+  const put = (path) => tryAs(anon(null, `insert into storage.objects (bucket_id, name) values ('event-album', '${path}')`));
+  ok(put(`${EV}/x.jpg`) !== null, 'the event id alone (any link gives it) is refused');
+  ok(put(`${EV}/wrong-token-999/x.jpg`) !== null, 'a made-up token folder is refused');
+  ok(put(`${EV}/${ALBUM}/a.jpg`) === null, 'the album link\'s folder is accepted');
+  psql(`update public.events set payload = payload || '{"albumToken":"album-tok-NEW99"}' where id = '${EV}'`);
+  ok(put(`${EV}/${ALBUM}/b.jpg`) !== null, 'after the host changes the album link, the old one is refused');
+  ok(put(`${EV}/album-tok-NEW99/c.jpg`) === null, 'and the new one works');
+
+  console.log('\n── 2. album_add_photo');
+  const add = (path) => tryAs(anon(null, `select public.album_add_photo('album-tok-NEW99', '${path}', 'יעל')`));
+  ok(add(`${EV}/album-tok-NEW99/c.jpg`) === null, 'a real upload is indexed');
+  ok(add(`${EV}/album-tok-NEW99/../../event-site/bbbbbbbb-0000-0000-0000-000000000000/cover.jpg`) !== null, "'..' is refused");
+  ok(add(`${EV}/c.jpg`) !== null, 'a path without the token folder is refused');
+  ok(add(`${EV}/album-tok-NEW99//c.jpg`) !== null, "'//' is refused");
+
+  console.log('\n── 3. gifts: 60 a minute PER SENDER, not 60 for everyone');
+  const gift = (ip, i) => tryAs(anon(ip, `select public.submit_gift_by_token('gift-tok-12345', 'אורח ${ip} ${i}', 36000, null, 'k-${ip}-${i}')`));
+  let first = null;
+  for (let i = 1; i <= 61; i++) { const e = gift('203.0.113.7', i); if (e && !first) first = i; }
+  ok(first === 61, 'one address (a hall\'s wifi): 60 accepted, the 61st refused', `first refusal at #${first}`);
+  ok(gift('198.51.100.9', 1) === null, 'a real guest from another address still gets through');
+  const n = psql(`select count(*) from public.gifts where event_id = '${EV}'`);
+  ok(n === '61', '61 stored (60 + the real one)', n);
+  // Fourth review: rotating a forged first x-forwarded-for hop gave a fresh
+  // bucket per request. The per-event ceiling holds whoever is sending.
+  psql(`delete from public.guest_write_throttle`);
+  let ff = null;
+  for (let i = 1; i <= 301; i++) { if (gift(`10.9.${Math.floor(i / 250)}.${i % 250}`, 1000 + i) && !ff) ff = i; }
+  ok(ff === 301, 'a new forged address per request: stopped at the per-event ceiling of 300', `first refusal at #${ff}`);
+  // One IPv6 subscriber holds a whole /64.
+  psql(`delete from public.guest_write_throttle`);
+  let v6 = null;
+  for (let i = 1; i <= 61; i++) { if (gift(`2001:db8:0:7::${i.toString(16)}`, 2000 + i) && !v6) v6 = i; }
+  ok(v6 === 61, 'IPv6: 60 addresses inside one /64 share a single bucket', `first refusal at #${v6}`);
+  ok(gift('2001:db8:0:8::1', 3000) === null, 'the next /64 is a different sender');
+  // No address visible (a direct call): the old per-event fallback, at 300.
+  psql(`delete from public.guest_write_throttle`);
+  let nf = null;
+  for (let i = 1; i <= 301; i++) { if (gift(null, i) && !nf) nf = i; }
+  ok(nf === 301, 'no address: the per-event fallback stops at 300', `first refusal at #${nf}`);
+
+  console.log('\n── 3b. RSVP: 30 a minute per sender; the 5,000 total is still there');
+  const rsvp = (ip, i) => tryAs(anon(ip, `select public.submit_rsvp_by_token('rsvp-tok-12345', 'אורח ${i}', null, 'yes', 1, null, null, null)`));
+  let rf = null;
+  for (let i = 1; i <= 31; i++) { if (rsvp('203.0.113.7', i) && !rf) rf = i; }
+  ok(rf === 31, 'one address: the 31st in a minute is refused', `first refusal at #${rf}`);
+  ok(rsvp('198.51.100.9', 1) === null, 'another guest still answers');
+  psql(`insert into public.rsvp_responses (event_id, guest_name, attending, guests_count, status)
+        select '${EV}', 'x' || g, true, 1, 'yes' from generate_series(1, 5000) g`);
+  ok(/limit reached/.test(rsvp('192.0.2.1', 1) || ''), 'the 5,000 total still holds');
+
+  console.log('\n── the throttle forgets after a minute');
+  psql(`update public.guest_write_throttle set at = now() - interval '2 minutes'`);
+  psql(`insert into public.guest_write_throttle (kind, event_id, sender, at)
+        values ('gift', 'bbbbbbbb-0000-0000-0000-000000000000', 'x', now() - interval '30 days')`);
+  ok(gift('203.0.113.7', 99) === null, 'the same address is accepted again a minute later');
+  ok(psql(`select count(*) from public.guest_write_throttle where kind = 'gift' and event_id = '${EV}'`) === '1',
+     'old rows are deleted, not kept');
+  ok(psql(`select count(*) from public.guest_write_throttle where event_id <> '${EV}'`) === '0',
+     "and a quiet event's old rows too (fourth review: they stayed forever)");
+  ok(tryAs(anon(null, `select count(*) from public.guest_write_throttle`)) !== null, 'anon cannot read the throttle table');
+
+  console.log('\n── 1b. a full album is cleared by changing the link (fourth review)');
+  {
+    // Files dropped into the link's folder without being indexed: the host's
+    // album screen lists only indexed photos, so it cannot see or delete them.
+    psql(`insert into storage.objects (bucket_id, name)
+          select 'event-album', '${EV}/album-tok-NEW99/junk' || g || '.jpg' from generate_series(1, 5000) g`);
+    ok(put(`${EV}/album-tok-NEW99/real.jpg`) !== null, 'the full folder refuses the next upload');
+    psql(`update public.events set payload = payload || '{"albumToken":"album-tok-FRESH1"}' where id = '${EV}'`);
+    ok(put(`${EV}/album-tok-FRESH1/real.jpg`) === null, 'after the host changes the link, guests upload again');
+    psql(`insert into public.album_photos (event_id, album_token, storage_path)
+          select '${EV}', 'album-tok-NEW99', '${EV}/album-tok-NEW99/junk' || g || '.jpg' from generate_series(1, 5000) g`);
+    ok(tryAs(anon(null, `select public.album_add_photo('album-tok-FRESH1', '${EV}/album-tok-FRESH1/real.jpg', null)`)) === null,
+       '5,000 indexed under the old link do not hold the new one shut');
+  }
+
+  console.log('\n── 4. the event-site bucket has a ceiling');
+  psql(`insert into storage.objects (bucket_id, name) select 'event-site', '${EV}/s' || g || '.jpg' from generate_series(1, 299) g`);
+  const site = (f) => tryAs(`begin; set local role authenticated; select set_config('request.jwt.claim.sub', '${OWNER}', true);
+    insert into storage.objects (bucket_id, name) values ('event-site', '${EV}/${f}'); commit;`);
+  ok(site('n300.jpg') === null, 'the owner\'s 300th file is accepted');
+  ok(site('n301.jpg') !== null, 'the 301st is refused');
+
+  console.log('\n── the family table takes a 40-character phone (סב44)');
+  {
+    // The host's own sync writes the table directly, under RLS.
+    const two = '050-1234567, 052-7654321';   // both parents in one field: 24
+    const e = tryAs(`begin; set local role authenticated; select set_config('request.jwt.claim.sub', '${OWNER}', true);
+      insert into public.collab_guests (id, event_id, name, phone, side, guests_count)
+      values ('cccccccc-0000-0000-0000-000000000001', '${EV}', 'משפחת לוי', '${two}', 'bride', 2); commit;`);
+    ok(e === null, "the host's row with two phone numbers is stored", e || '');
+    psql(`update public.events set payload = payload || '{"collabActive":true}' where id = '${EV}'`);
+    const long = '0'.repeat(45);
+    const e2 = tryAs(anon(null, `select public.collab_upsert_by_token('collab-tok-12345',
+      '{"id":"cccccccc-0000-0000-0000-000000000002","name":"דודה","phone":"${long}","side":"bride","guests_count":1}'::jsonb)`));
+    ok(e2 === null, 'the guest-link path accepts a long phone', e2 || '');
+    ok(psql(`select char_length(phone) from public.collab_guests where id = 'cccccccc-0000-0000-0000-000000000002'`) === '40',
+       'and clips it at 40');
+  }
+
+  console.log('\n── internal functions stay internal');
+  for (const fn of ['public.album_event_id(text)', 'public.prune_ai_usage()']) {
+    ok(psql(`select has_function_privilege('anon', '${fn}', 'EXECUTE')`) === 'f', `anon cannot execute ${fn}`);
+  }
+
+  console.log('\n── the cloud version only rises (סב46, 20260930000300)');
+  {
+    const v0 = Number(psql(`select version from public.events where id = '${EV}'`));
+    // A device whose counter fell behind pushes a LOWER version on the base it holds.
+    const e = tryAs(`begin; set local role authenticated; select set_config('request.jwt.claim.sub', '${OWNER}', true);
+      update public.events set version = 1, venue = 'from a stale counter' where id = '${EV}' and version = ${v0}; commit;`);
+    ok(e === null, 'the push itself is accepted (the base matched)', e || '');
+    const v1 = Number(psql(`select version from public.events where id = '${EV}'`));
+    ok(v1 === v0 + 1, 'but the row goes UP, not down', `${v0} → ${v1}`);
+    const stale = tryAs(`begin; set local role authenticated; select set_config('request.jwt.claim.sub', '${OWNER}', true);
+      update public.events set venue = 'a device holding base 1' where id = '${EV}' and version = 1; commit;`);
+    ok(psql(`select venue from public.events where id = '${EV}'`) === 'from a stale counter',
+       'so a device whose base is the lower number now matches nothing — a conflict, not an overwrite', stale || '');
+    psql(`update public.events set version = ${v1 + 5} where id = '${EV}'`);
+    ok(Number(psql(`select version from public.events where id = '${EV}'`)) === v1 + 5, 'a push that raises the version keeps its number');
+  }
+} finally {
+  spawnSync('su', ['postgres', '-c', `${PGBIN}/pg_ctl -D ${DIR} -m immediate stop`]);
+  rmSync(DIR, { recursive: true, force: true });
+}
+console.log(`\n${fails} failing checks`);
+process.exit(fails ? 1 : 0);

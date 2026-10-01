@@ -35,6 +35,58 @@ function toTime(hhmm, fallback = "190000") {
   return `${h}${m[2]}00`;
 }
 
+/** When nothing in the schedule says otherwise. One value for every consumer. */
+export const DEFAULT_START = "19:00";
+
+/**
+ * The event's start time, as the guest pages use it: the first schedule entry
+ * with a valid "H:MM", else DEFAULT_START. There is no start-time field on the
+ * event; the schedule is where the host writes it.
+ *
+ * One helper because there were two answers: the calendar button read the
+ * first schedule item (falling back to 19:00) while the site countdown was
+ * hard-coded to 18:00 — so an event starting at 21:00 hit zero three hours
+ * early, beside a calendar entry that said 21:00 (WORKPLAN ס, 28.9 audit).
+ *
+ * @param {Array<{time?: string}>} schedule
+ * @returns {string} "HH:MM"
+ */
+export function eventStartTime(schedule) {
+  for (const item of Array.isArray(schedule) ? schedule : []) {
+    // String(): a non-string time (a number from an import, say) threw here,
+    // and this now runs while the site page renders, for the countdown.
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(item?.time ?? "").trim());
+    if (m && Number(m[1]) <= 23 && Number(m[2]) <= 59) return `${m[1].padStart(2, "0")}:${m[2]}`;
+  }
+  return DEFAULT_START;
+}
+
+/**
+ * The moment an event starts, as epoch ms: "YYYY-MM-DD" + "HH:MM" read as
+ * ISRAEL time, whatever the viewer's device is set to. The countdown used
+ * `new Date(date + "T" + time)`, which is the VIEWER's time — a guest in New
+ * York watched a 21:00 wedding's countdown end seven hours late (29.9 review).
+ * DST-safe: the offset is looked up for the instant itself, twice, so a start
+ * next to a transition settles on the right side of it. NaN if either part is
+ * malformed.
+ */
+export function israelInstant(date, time) {
+  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(date ?? ""));
+  const t = /^(\d{2}):(\d{2})$/.exec(String(time ?? ""));
+  if (!d || !t) return NaN;
+  const wall = Date.UTC(+d[1], +d[2] - 1, +d[3], +t[1], +t[2]);
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jerusalem", hourCycle: "h23",
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
+  });
+  const offsetAt = (ms) => {
+    const p = Object.fromEntries(fmt.formatToParts(ms).map(x => [x.type, x.value]));
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - ms;
+  };
+  const first = wall - offsetAt(wall);
+  return wall - offsetAt(first);
+}
+
 /** YYYYMMDD + n days, so an end time past midnight lands on the next day. */
 function addDays(stamp, n) {
   const d = new Date(

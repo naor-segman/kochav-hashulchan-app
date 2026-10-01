@@ -123,7 +123,9 @@ function base(themeKey, heroEn, extra = {}) {
     faq: extra.faq || [
       { q: "איך מגיעים לאירוע? יש חניה?", a: "" },
       { q: "מתי צריך לאשר הגעה?", a: "מומלץ לאשר בהקדם, כדי שנוכל לתכנן את ההושבה." },
-      { q: "איך אפשר לשלוח מתנה?", a: "דרך כפתור \"מתנה\" באתר — בהעברה מאובטחת." },
+      // Was "בהעברה מאובטחת" — there is no transfer. The gift page records a
+      // blessing and a declared amount; nothing is charged (28.9 audit).
+      { q: "איך אפשר לשלוח מתנה?", a: "דרך כפתור \"מתנה\" באתר משאירים ברכה. את המתנה עצמה מעניקים ביום האירוע." },
     ],
     ...extra,
   };

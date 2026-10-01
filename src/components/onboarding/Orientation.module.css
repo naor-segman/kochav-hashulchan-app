@@ -67,12 +67,15 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, 1fr) and one column below 900px: at 768 three content-sized
+     columns came to 757px inside 678px, and a tablet opened the event's front
+     page already scrolled sideways, its title cut off (29.9 review). */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-@media (max-width: 760px) {
-  .areas { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .areas { grid-template-columns: minmax(0, 1fr); }
 }
 
 .area {

@@ -211,6 +211,12 @@
   text-transform: uppercase;
 }
 
+.counter {
+  font-size: var(--step--1);
+  color: var(--text2);
+  text-align: end;
+}
+
 .fieldErr {
   font-size: var(--step-0);
   font-weight: 600;
@@ -469,7 +475,12 @@
   animation: rotateStar 2s linear infinite;
 }
 
+/* Also the h1 of the not-found and unreachable states (WORKPLAN 108). */
 .loadingText {
+  font-family: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
   color: var(--text2);
   font-size: var(--step-1);
   margin: 0;
@@ -675,3 +686,6 @@
   }
 
 }
+
+/* A way out of a dead link (WORKPLAN 108). */
+.homeLink { display: inline-block; padding: 8px 12px; color: var(--accent-text); font-weight: 700; text-decoration: none; }

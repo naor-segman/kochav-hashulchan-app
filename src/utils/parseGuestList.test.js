@@ -569,3 +569,147 @@ describe("a street number is a house number, not a seat count", () => {
     expect(parseGuestList("רחובות 5")[0].count).toBe(5);   // a CITY, not a street
   });
 });
+
+// Fourth review 30.9 — a spreadsheet paste, measured in a browser.
+describe("spreadsheet rows and the partner placeholder", () => {
+  it("a name cell's '+1 (רותי)' is a companion, not part of the name", () => {
+    expect(parseGuestList("גיל גולן+1 (רותי)\t501000005")).toEqual([
+      { name: "גיל גולן", phone: "0501000005", count: 2, companions: ["רותי"] },
+    ]);
+  });
+  it("'+1 (בן/בת זוג)' is one seat without a name yet — not two people", () => {
+    const [row] = parseGuestList("נדב גולן +1 (בן/בת זוג)");
+    expect(row.count).toBe(2);
+    expect(row.companions).toEqual([""]);
+  });
+  it("a slash between real names still separates them", () => {
+    expect(parseGuestList("דוד +1 (שרה/רון)")[0].companions).toEqual(["שרה", "רון"]);
+  });
+});
+
+// Fifth review 30.9 — regressions of the partner placeholder fix, and
+// spreadsheet name cells.
+describe("partner placeholders and spreadsheet cells, second pass", () => {
+  it("'+ בת זוג' is a seat, and leaves the name clean", () => {
+    expect(parseGuestList("יוסי מזרחי + בת זוג")).toEqual([
+      { name: "יוסי מזרחי", phone: "", count: 2, companions: [""] },
+    ]);
+    expect(parseGuestList("דנה כהן + מלווה")[0].count).toBe(2);
+  });
+  it("'(בן/בת זוג)' without +N is two seats, not a note in the name", () => {
+    expect(parseGuestList("דנה כהן (בן/בת זוג)")).toEqual([
+      { name: "דנה כהן", phone: "", count: 2, companions: [""] },
+    ]);
+  });
+  it("a bare number in a spreadsheet name cell is part of the name, not seats", () => {
+    expect(parseGuestList("דנה בת 12\t0501234567\t1")).toEqual([{ name: "דנה בת 12", phone: "0501234567" }]);
+  });
+  it("a duplicate that says more seats wins over the first copy", () => {
+    expect(parseGuestList("דנה כהן\t0501234567\nדנה כהן +1\t0501234567")[0].count).toBe(2);
+  });
+});
+
+describe("a spreadsheet header row (fifth review 30.9)", () => {
+  it("is not a guest", () => {
+    expect(parseGuestList("שם\tטלפון\tכמות\nדנה כהן\t0501234567\t2")).toEqual([
+      { name: "דנה כהן", phone: "0501234567", count: 2, companions: [] },
+    ]);
+  });
+  it("a real guest whose name is one of the words is still a guest when not every cell is a header", () => {
+    expect(parseGuestList("שם\t0501234567")).toHaveLength(1);
+  });
+});
+
+// Sixth review 30.9 (סב90a): the larger duplicate replaced the smaller whole.
+describe("a duplicate keeps the names of both copies", () => {
+  it("\"+1 (יוסי)\" then \"+2\": three seats, יוסי kept", () => {
+    const [r] = parseGuestList("דנה כהן +1 (יוסי)\nדנה כהן +2");
+    expect(r.count).toBe(3);
+    expect(r.companions).toContain("יוסי");
+  });
+  it("different names in each copy: both kept, seats grow to hold them", () => {
+    const [r] = parseGuestList("דנה כהן +1 (יוסי)\nדנה כהן +1 (רון)");
+    expect(r.companions.sort()).toEqual(["יוסי", "רון"].sort());
+    expect(r.count).toBe(3);
+  });
+});
+
+// Sixth review 30.9 (סב90b): bareCount:false turned off the explicit forms too.
+describe("a spreadsheet name cell still reads a count it states", () => {
+  it("(2), x2 and \"- 3 איש\" are seats; a bare number is still part of the name", () => {
+    const rows = parseGuestList(
+      "סבתא (2)\t0501111111\nמשפחת לוי - 3 איש\t0522222222\nדנה כהן x2\t0533333333\nדנה בת 12\t0544444444");
+    expect(rows.map(r => r.count || 1)).toEqual([2, 3, 2, 1]);
+    expect(rows.map(r => r.name)).toEqual(["סבתא", "משפחת לוי", "דנה כהן", "דנה בת 12"]);
+  });
+});
+
+// Sixth review 30.9 (סב90d): a row-number column was read as the seat count,
+// and common header rows became guests.
+describe("a numbered sheet", () => {
+  it("the row number is not the count; the count column is", () => {
+    const rows = parseGuestList("16\tדנה כהן\t0501234567\n17\tיוסי לוי\t0527654321\t3");
+    expect(rows.map(r => r.count || 1)).toEqual([1, 3]);
+    expect(rows.map(r => r.name)).toEqual(["דנה כהן", "יוסי לוי"]);
+  });
+  it("a first column that does not count up is left as a count", () => {
+    const rows = parseGuestList("2\tדנה כהן\t0501234567\n4\tיוסי לוי\t0527654321");
+    expect(rows.map(r => r.count || 1)).toEqual([2, 4]);
+  });
+  it("\"#⇥שם⇥טלפון\" and \"שם האורח⇥מס' טלפון⇥כמות אורחים\" are headers", () => {
+    expect(parseGuestList("#\tשם\tטלפון\n1\tדנה\t0501234567\n2\tרון\t0521234567").map(r => r.name)).toEqual(["דנה", "רון"]);
+    expect(parseGuestList("שם האורח\tמס' טלפון\tכמות אורחים\nדנה\t0501234567\t2").map(r => r.name)).toEqual(["דנה"]);
+  });
+});
+
+// Sixth review 30.9 (סב90e): same name under two sides was merged into one row.
+describe("the same name under two headings", () => {
+  it("stays two rows; within one heading it still merges", () => {
+    const rows = parseGuestList("צד כלה:\nמשפחת כהן 4\nצד חתן:\nמשפחת כהן 3");
+    expect(rows.map(r => r.count)).toEqual([4, 3]);
+    expect(parseGuestList("=== חברים ===\nדנה כהן\nדנה כהן +1")).toHaveLength(1);
+  });
+});
+
+// Sixth review 30.9 (סב90f).
+describe("an age and a spelling are not new guests or seats", () => {
+  it("\"דנה בת 12\" typed as text is one seat, name kept", () => {
+    expect(parseGuestList("דנה בת 12")).toEqual([{ name: "דנה בת 12", phone: "" }]);
+  });
+  it("\"משפחת כהן 4\" is still four seats", () => {
+    expect(parseGuestList("משפחת כהן 4")[0].count).toBe(4);
+  });
+  it("ד״ר and ד\"ר are one guest", () => {
+    expect(parseGuestList("ד״ר כהן\nד\"ר כהן")).toHaveLength(1);
+  });
+});
+
+// Sixth review 30.9 (סב90g): Excel quotes a cell holding a line break.
+describe("a quoted spreadsheet cell", () => {
+  it("a line break inside a cell is one guest with its phone", () => {
+    const rows = parseGuestList('"דנה כהן\nויוסי"\t0501234567\nרון לוי\t0521234567');
+    expect(rows.map(r => [r.name, r.phone])).toEqual([["דנה כהן ויוסי", "0501234567"], ["רון לוי", "0521234567"]]);
+  });
+  it("a doubled quote inside is one quote; ד\"ר mid-cell is untouched", () => {
+    const rows = parseGuestList('"ד""ר כהן"\t0501234567\nד"ר לוי\t0521234567');
+    expect(rows.map(r => r.name)).toEqual(['ד"ר כהן', 'ד"ר לוי']);
+  });
+});
+describe("a stray opening quote does not swallow guests", () => {
+  it("an unclosed quote leaves every line a guest", () => {
+    const rows = parseGuestList('"דנה\t0501234567\nרון\t0521234567\nגיל\t0531234567\nטל\t0541234567\nמור\t0551234567\nשי\t0561234567\nנועה"\t0571234567');
+    expect(rows).toHaveLength(7);
+  });
+});
+
+// Sixth review 30.9 (סב90h): a phone on the line under the name was dropped.
+describe("the contact-card layout", () => {
+  it("a phone line under a name without one belongs to that name", () => {
+    const rows = parseGuestList("דנה כהן\n050-1234567\nרון לוי\n052-7654321");
+    expect(rows.map(r => [r.name, r.phone])).toEqual([["דנה כהן", "0501234567"], ["רון לוי", "0527654321"]]);
+  });
+  it("a phone line under a name that already has one is not moved onto it", () => {
+    const rows = parseGuestList("דנה כהן 050-1234567\n052-7654321");
+    expect(rows).toEqual([{ name: "דנה כהן", phone: "0501234567" }]);
+  });
+});

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
   fetchCollabEvent, fetchCollabGuests,
-  upsertCollabGuest, deleteCollabGuest,
+  upsertCollabGuest, deleteCollabGuest, UNREACHABLE_TEXT,
 } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
@@ -14,6 +14,8 @@ import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.j
 import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { collabGroupOptions } from "../utils/guestRoutes.js";
 
 // DEV mock so the page can be designed without a live token.
 const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתונה", brideName: "נועה", groomName: "טל", coupleType: "bride-groom", sideLabels: null };
@@ -39,13 +41,16 @@ export default function CollabScreen() {
   const [ev, setEv] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | notfound
   const [rows, setRows] = useState([]);
+  useGuestTitle(ev && `רשימת האורחים · ${ev.name || ""}`);
   // Rows whose last save failed — kept held so the poll can't revert them.
   const [failed, setFailed] = useState(() => new Set());
+  const [deleteFailed, setDeleteFailed] = useState(null);   // the row's name, or null
   const [me, setMe] = useState(() => { try { return localStorage.getItem("collab_me") || ""; } catch { return ""; } });
 
   const editing   = useRef(new Set());  // row ids being edited locally right now
   const timers    = useRef(new Map());  // id -> debounce timeout
   const serverIds = useRef(new Set());  // ids the server has ever returned
+  const edits     = useRef(new Map());  // id -> edit counter, to know which save is the latest
 
   // Merge a freshly-polled full list into local state without clobbering rows
   // the user is currently editing or a locally-added row not yet saved.
@@ -75,6 +80,13 @@ export default function CollabScreen() {
         // back over the deletion.
         if (fresh) {
           const merged = { ...r, ...fresh };
+          // The server trims what it stores. Its copy of "דנה " is "דנה", and
+          // written back into the field while the relative is mid-word the next
+          // keystroke glued the words: "דנהכהן" (fifth review 30.9). A value
+          // that differs only by outer spaces is the same value — keep ours.
+          for (const k of ["name", "phone", "guest_group", "notes"]) {
+            if (typeof r[k] === "string" && typeof fresh[k] === "string" && r[k].trim() === fresh[k].trim()) merged[k] = r[k];
+          }
           if (!Array.isArray(fresh.companions) && Array.isArray(r.companions)) {
             merged.companions = r.companions;
           }
@@ -92,20 +104,41 @@ export default function CollabScreen() {
     let cancelled = false;
     let poll = null;
     (async () => {
-      const data = await fetchCollabEvent(token);
+      let data, list;
+      try {
+        data = await fetchCollabEvent(token);
+        // Fetched BEFORE the table is shown. A failed first read used to come
+        // back as [] and render an empty list — and a relative looking at an
+        // empty list adds everyone again (28.9 audit).
+        list = data ? await fetchCollabGuests(token) : [];
+      } catch {
+        if (!cancelled) setState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (data) {
         setEv(data); setState("ready");
-        const list = await fetchCollabGuests(token);
-        if (cancelled) return;
         list.forEach(r => serverIds.current.add(r.id));
         setRows(list);
         // Poll for others' changes (anon has no direct table read for security,
         // so Realtime isn't available — the token RPC is the safe channel).
         if (data.cloudId) {
           poll = setInterval(async () => {
-            const fresh = await fetchCollabGuests(token);
-            if (!cancelled && Array.isArray(fresh)) mergePolled(fresh);
+            try {
+              const fresh = await fetchCollabGuests(token);
+              if (cancelled || !Array.isArray(fresh)) return;
+              // A closed or changed link answers with an empty list, not an
+              // error — and merged, it emptied the table in front of the family,
+              // who were then told to check their connection when they added a
+              // row (fifth review 30.9). An empty answer where there were rows
+              // is checked against the link itself.
+              if (fresh.length === 0 && serverIds.current.size > 0) {
+                const still = await fetchCollabEvent(token);
+                if (cancelled) return;
+                if (!still) { clearInterval(poll); setState("notfound"); return; }
+              }
+              mergePolled(fresh);
+            } catch { /* a failed poll changes nothing; the next one retries */ }
           }, 3000);
         }
       } else if (!isSupabaseConfigured || import.meta.env.DEV) {
@@ -125,8 +158,17 @@ export default function CollabScreen() {
   if (state === "notfound") return (
     <div className={styles.state}>
       <span className={styles.star}><Icon name="alert" size={26} /></span>
-      <p>הקישור אינו פעיל</p>
+      <h1 className={styles.stateTitle}>הקישור אינו פעיל</h1>
       <p className={styles.stateHint}>ייתכן שבעלי האירוע סגרו אותו, או שהכתובת שגויה. שווה לבקש מהם קישור מעודכן.</p>
+      <Link to="/" className={styles.homeLink}>לדף הבית</Link>
+    </div>
+  );
+
+  if (state === "unreachable") return (
+    <div className={styles.state}>
+      <span className={styles.star}><Icon name="alert" size={26} /></span>
+      <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
+      <p className={styles.stateHint}>{UNREACHABLE_TEXT.body}</p>
     </div>
   );
 
@@ -146,11 +188,16 @@ export default function CollabScreen() {
     const t = timers.current;
     if (t.has(row.id)) clearTimeout(t.get(row.id));
     if (!(row.name || "").trim() || !ev.cloudId) return;
+    const gen = edits.current.get(row.id) || 0;
     t.set(row.id, setTimeout(async () => {
       t.delete(row.id);
       try {
         await upsertCollabGuest(token, { ...row, updated_by: me || null });
-        editing.current.delete(row.id);
+        // Released only if this save is the LATEST edit and no newer one is
+        // waiting. A slow save finishing after the next keystroke released the
+        // row, the poll wrote the older copy into the field, and the letters
+        // typed in between were lost for good (fifth review 30.9).
+        if ((edits.current.get(row.id) || 0) === gen && !t.has(row.id)) editing.current.delete(row.id);
         setFailed(prev => { const n = new Set(prev); n.delete(row.id); return n; });
       } catch {
         // Do NOT release the row. Clearing `editing` on failure let the 3s poll
@@ -164,6 +211,7 @@ export default function CollabScreen() {
 
   const editRow = (id, patch) => {
     editing.current.add(id);
+    edits.current.set(id, (edits.current.get(id) || 0) + 1);
     setRows(prev => {
       const next = prev.map(r => (r.id === id ? { ...r, ...patch } : r));
       scheduleWrite(next.find(r => r.id === id));
@@ -187,8 +235,22 @@ export default function CollabScreen() {
   const removeRow = async (id) => {
     if (timers.current.has(id)) { clearTimeout(timers.current.get(id)); timers.current.delete(id); }
     editing.current.delete(id);
+    const gone = rows.find(r => r.id === id);
     setRows(prev => prev.filter(r => r.id !== id));
-    if (ev.cloudId) { try { await deleteCollabGuest(token, id); } catch { /* ignore */ } }
+    if (!ev.cloudId) return;
+    try {
+      await deleteCollabGuest(token, id);
+      setDeleteFailed(null);
+    } catch {
+      // A failed delete used to be silent: the row vanished and came back on
+      // the next 3-second poll, with no word why (second review, סב36). Put it
+      // back now, held, and say so.
+      if (gone) {
+        editing.current.add(id);
+        setRows(prev => (prev.some(r => r.id === id) ? prev : [gone, ...prev]));
+      }
+      setDeleteFailed(gone?.name?.trim() || "השורה");
+    }
   };
 
   const saveMe = (v) => { setMe(v); try { localStorage.setItem("collab_me", v); } catch { /* ignore */ } };
@@ -240,6 +302,11 @@ export default function CollabScreen() {
           <div className={styles.card}><p className={styles.emptyHint}>עדיין אין אורחים. לחצו "הוסיפו שורה" כדי להתחיל.</p></div>
         )}
 
+        {deleteFailed && (
+          <p className={styles.saveWarn} role="alert">
+            המחיקה של {deleteFailed} לא נשמרה — בדקו חיבור ונסו שוב.
+          </p>
+        )}
         <div className={styles.rowsList}>
           {rows.map(r => {
             const miss = collabRowMissing(r);
@@ -261,20 +328,23 @@ export default function CollabScreen() {
                   onChange={e => editRow(r.id, { phone: e.target.value })} />
 
                 <div className={styles.fields3}>
-                  <select className={styles.input} value={r.side || ""} onChange={e => editRow(r.id, { side: e.target.value })}>
+                  <select className={styles.input} aria-label="צד" value={r.side || ""} onChange={e => editRow(r.id, { side: e.target.value })}>
                     <option value="" disabled>צד</option>
                     <option value="bride">{sides.bride}</option>
                     <option value="groom">{sides.groom}</option>
                   </select>
-                  <select className={styles.input} value={r.guest_group || ""} onChange={e => editRow(r.id, { guest_group: e.target.value })}>
+                  <select className={styles.input} aria-label="קבוצה" value={r.guest_group || ""} onChange={e => editRow(r.id, { guest_group: e.target.value })}>
                     <option value="" disabled>קבוצה</option>
-                    {GROUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                    {collabGroupOptions(GROUP_OPTIONS, ev.customGroups, r.guest_group).map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
-                  <select className={styles.input} value={r.guests_count || 1} onChange={e => {
+                  <select className={styles.input} aria-label="מספר מקומות" value={r.guests_count || 1} onChange={e => {
                     const n = Number(e.target.value);
                     editRow(r.id, { guests_count: n, companions: (r.companions || []).slice(0, Math.max(0, n - 1)) });
                   }}>
-                    {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} {n === 1 ? "מקום" : "מקומות"}</option>)}
+                    {/* Up to the row's own count when the host set more than 20
+                        (their form allows 50): a row of 25 showed "1 מקום" beside
+                        24 companion boxes (second review, סב36). */}
+                    {Array.from({ length: Math.max(20, Number(r.guests_count) || 1) }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n} {n === 1 ? "מקום" : "מקומות"}</option>)}
                   </select>
                 </div>
 

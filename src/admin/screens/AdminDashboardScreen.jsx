@@ -17,7 +17,7 @@ const STAT_DEFS = [
   { mark: "adminUsers",         label: "משתמשים",       key: "users" },
   { mark: "adminEvents",        label: "אירועים",       key: "events" },
   { mark: "adminTemplates",     label: "תבניות",        key: "templates" },
-  { mark: "adminSubscriptions", label: "מנויים פעילים", key: "subscriptions" },
+  { mark: "adminSubscriptions", label: "רכישות פעילות", key: "subscriptions" },
 ];
 
 // Run all four count queries in parallel.

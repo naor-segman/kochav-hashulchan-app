@@ -35,3 +35,12 @@ describe("isSafeToReload", () => {
     expect(isSafeToReload(fakeDoc("visible", el("A")))).toBe(true);
   });
 });
+
+describe("isSafeToReload — a guest's form (סב13)", () => {
+  it("is never safe once a guest page has been typed into — not even hidden", () => {
+    // Hidden counted as safe, so a guest who switched to WhatsApp mid-RSVP came
+    // back to a blank form.
+    expect(isSafeToReload(fakeDoc("hidden", BODY), true)).toBe(false);
+    expect(isSafeToReload(fakeDoc("visible", null), true)).toBe(false);
+  });
+});

@@ -7,14 +7,17 @@ import { useNavigate } from "react-router-dom";
 import {
   DndContext, DragOverlay,
   useDroppable,
-  PointerSensor, TouchSensor,
   useSensor, useSensors,
   pointerWithin, rectIntersection, MeasuringStrategy,
 } from "@dnd-kit/core";
+import { RowMouseSensor, RowTouchSensor } from "../components/seating/rowSensors.js";
 import { autoAssign, computeViolations } from "../logic/seating.js";
+import { canSeatMore } from "../utils/featureGates.js";
+import { usePlan } from "../hooks/usePlan.js";
 import { track, EVENTS } from "../lib/analytics.js";
 import { generateSuggestions, computeQualityScore } from "../logic/seatingAnalysis.js";
 import { exportToExcel } from "../utils/exportHelpers.js";
+import { fetchEventGifts } from "../utils/publicTokens.js";
 import { getSideLabel, getSideLabels, guestCompanionNames, seatingTotals } from "../utils/eventHelpers.js";
 import { arrivalTotals } from "../utils/arrival.js";
 import { fmtDate } from "../utils/dateFormat.js";
@@ -32,6 +35,7 @@ import { tableCardKeys } from "../components/seating/tableCardKeys.js";
 import { buildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
 import base from "../styles/screenBase.module.css";
 import styles from "./SeatingScreen.module.css";
+import { dndAnnouncements, DND_SCREEN_READER_INSTRUCTIONS } from "../utils/dndAnnouncements.js";
 
 function DroppableWrapper({ id, children }) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -79,6 +83,10 @@ const TOUCH_ACTIVATION   = { activationConstraint: { delay: 250, tolerance: 5 } 
 
 export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const navigate = useNavigate();
+  // usePlan(ev), not usePlan(). The package belongs to THIS event: ₪690 buys
+  // one wedding, not the account. Passing the event object and not `ev.id` is
+  // load-bearing — a purchase references `ev.cloudId`.
+  const { plan } = usePlan(ev);
   const { confirm, dialog } = useConfirm();
   // Which table cards are open. A Set, not a single id: opening one table used
   // to close whichever other table was open, which is exactly what the host
@@ -95,9 +103,22 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const [runKey, setRunKey]                 = useState(0);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, POINTER_ACTIVATION),
-    useSensor(TouchSensor,   TOUCH_ACTIVATION),
+    // MouseSensor, not PointerSensor: a pointer sensor also fires for a
+    // FINGER, after 5px — so an ordinary swipe that started on a guest's name
+    // became a drag, the page did not scroll, and a swipe ending over a table
+    // seated the guest there (fifth review 30.9). A finger now needs the
+    // TouchSensor's long-press; a swipe scrolls.
+    // Row* variants: a press on a control inside the row is not a drag.
+    useSensor(RowMouseSensor, POINTER_ACTIVATION),
+    useSensor(RowTouchSensor, TOUCH_ACTIVATION),
   );
+
+  // Hebrew announcements that name the guest and the table, not dnd-kit's
+  // English "Draggable item <uuid>" (fourth review 30.9).
+  const dndA11y = useMemo(() => ({
+    announcements: dndAnnouncements(ev.guests, ev.tables, ev.seating),
+    screenReaderInstructions: DND_SCREEN_READER_INSTRUCTIONS,
+  }), [ev.guests, ev.tables, ev.seating]);
 
   const violations = useMemo(() =>
     computeViolations(ev.guests, ev.tables, ev.constraints, ev.seating),
@@ -126,6 +147,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
 
   const lockedGuestsSet = useMemo(() => new Set(ev.lockedGuests || []), [ev.lockedGuests]);
   const lockedTablesSet = useMemo(() => new Set(ev.lockedTables || []), [ev.lockedTables]);
+  // An "apart" pair that shares a locked table — or two locked guests — cannot
+  // be separated by a recompute; it keeps both where they are (fourth review).
+  const lockBlocked = (v) => v.type === "apart" && (
+    lockedTablesSet.has(v.tableIdA) || (lockedGuestsSet.has(v.guestA) && lockedGuestsSet.has(v.guestB)));
 
   // These three feed the memoised table cards. Recomputing them into fresh
   // arrays on every render would change every card's props on every keystroke
@@ -222,6 +247,25 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   const runAuto = async () => {
     if (noTables) { showToast("יש להגדיר שולחנות תחילה", "err"); return; }
     if (noGuests) { showToast("יש להוסיף אורחים תחילה", "err"); return; }
+    /* THE seat ceiling, at the one entry point it belongs at. It had none.
+     *
+     * `canSeatMore` was written for exactly this and then wired nowhere — zero
+     * call sites in src/ — while the pricing page stated the cap as a fact
+     * ("הושבה אוטומטית עד 200 איש") and charged ₪690 for a group titled
+     * "ההושבה — בלי תקרה". Nothing in the running app treated a 600-person free
+     * event differently from a paid one, so the paid tier's first group was
+     * selling the removal of a limit that did not exist.
+     *
+     * Like every other gate here this is inert while PLAN_GATES_ENFORCED is
+     * false — `allowed` is true for everyone today. It is wiring, not a decision
+     * about what free includes: the decision is in planConfig.js and the switch
+     * is one line in featureGates.js. What it buys is that the switch now means
+     * something for this feature instead of nothing. */
+    const seatGate = canSeatMore(plan, ev.guests);
+    if (!seatGate.allowed) {
+      showToast(seatGate.reason || "ההושבה האוטומטית אינה זמינה בחבילה הנוכחית", "warn");
+      return;
+    }
     if (nAssigned > 0 && !await confirm(
       "לחשב מחדש את ההושבה?\n\n" +
       nAssigned + " שיבוצים קיימים יוחלפו (אורחים נעולים ישמרו במקומם).\n" +
@@ -247,7 +291,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // this is undefined and nothing about the result changes.
     const newSeating = autoAssign(
       [...activeGuests, ...seatedDeclined], ev.tables, ev.constraints, lockedSeating,
-      ev.floorPlan?.tablePositions
+      ev.floorPlan?.tablePositions, ev.lockedTables || []
     );
     patchEvent(e => Object.assign({}, e, { seating: newSeating }));
     // Count only active rows: the declined passengers above are in newSeating
@@ -260,8 +304,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
        putting a real person into a third-party tool. */
     track(EVENTS.SEATING_RUN, { placed, of: activeGuests.length, tables: ev.tables.length });
     const missed = activeGuests.length - placed;
+    // "Everything seated ✓" over an "apart" pair still at one locked table
+    // told the host the job was done (fourth review 30.9). Say what is left.
+    const left = computeViolations(ev.guests, ev.tables, ev.constraints, newSeating).length;
     if (missed > 0)
       showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");
+    else if (left > 0)
+      showToast("כל " + placed + " הרשומות שובצו, אבל " + (left === 1 ? "אילוץ אחד לא מתקיים" : left + " אילוצים לא מתקיימים") + " — פירוט למטה", "warn");
     else
       showToast("כל " + placed + " הרשומות שובצו ✓");
     // Deliberately NOT collapsing the open cards. A recompute is the moment the
@@ -420,12 +469,31 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
       const seatedDeclined = declinedGuests.filter(g => ev.seating[g.id]);
       const guestsForFill  = [...activeGuests, ...seatedDeclined];
       const newSeating = autoAssign(guestsForFill, ev.tables, ev.constraints, ev.seating,
-                                    ev.floorPlan?.tablePositions);
+                                    ev.floorPlan?.tablePositions, ev.lockedTables || []);
       const added = Object.keys(newSeating).length - Object.keys(ev.seating).length;
       patchEvent(e => Object.assign({}, e, { seating: newSeating }));
       if (added > 0) showToast(added + " רשומות שובצו אוטומטית ✓");
       else showToast("לא נמצא מקום פנוי מתאים — הוסיפו שולחנות או מקומות", "err");
     }
+  };
+
+  /* The export reads the DECLARED gifts first (checklist 92), because the gift
+     sheet it used to write was built from `g.giftAmount`, which nothing writes
+     — every row printed ₪0. The declarations live in the `gifts` table under the
+     event's CLOUD id, so an event that never synced simply has none to add.
+     A failed read does not block the file — the seating is what the host came
+     for — but it is SAID, rather than the sheet quietly going missing on the
+     morning the host needed it. */
+  const handleExport = async () => {
+    let declared = [];
+    if (ev.cloudId) {
+      try {
+        declared = await fetchEventGifts(ev.cloudId);
+      } catch {
+        showToast("הקובץ ירד בלי גיליון המתנות — לא הצלחנו לקרוא אותן. נסו שוב", "warn");
+      }
+    }
+    await exportToExcel(ev, sideLabel, violations, declared);
   };
 
   const handlePrint = (mode) => {
@@ -533,6 +601,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
+        accessibility={dndA11y}
       >
         {/* screenContent class is used only by @media print to hide the interactive UI */}
         <div className={[base.page, styles.screenContent].join(" ")}>
@@ -669,7 +738,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 </div>
                 <button
                   className={[base.btnSm, styles.xlsBtn].join(" ")}
-                  onClick={() => exportToExcel(ev, sideLabel, violations)}
+                  onClick={handleExport}
                   title="ייצוא לקובץ אקסל"
                   disabled={ev.guests.length === 0 && ev.tables.length === 0}
                 >
@@ -739,7 +808,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                 <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={runAuto}>חשבו מחדש</button>
               </div>
               <p className={styles.violExplain}>
-                האילוצים הבאים לא מתקיימים — ניתן לתקן אוטומטית באמצעות "חשבו מחדש", או להעביר אורחים ידנית.
+                {violations.some(lockBlocked)
+                  ? "חלק מהאילוצים לא ניתנים לתיקון אוטומטי כי השולחן או האורחים נעולים — פתחו את הנעילה, או העבירו אחד מהם ידנית."
+                  : "האילוצים הבאים לא מתקיימים — ניתן לתקן אוטומטית באמצעות \"חשבו מחדש\", או להעביר אורחים ידנית."}
               </p>
               <div className={styles.violList}>
                 {violations.map((v, i) => (
@@ -753,7 +824,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     <span className={styles.violIcon}>
                       <Icon name={v.type === "capacity" ? "chair" : v.type === "apart" ? "apart" : "together"} size={16} />
                     </span>
-                    <span>{v.text}</span>
+                    <span>
+                      {v.text}
+                      {lockBlocked(v) && <> — נעול, "חשבו מחדש" לא יזיז אותם</>}
+                    </span>
                   </div>
                 ))}
               </div>

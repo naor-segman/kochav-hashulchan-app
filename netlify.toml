@@ -5,9 +5,36 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Per-event OG tags for shared event-site links (WhatsApp/Facebook previews).
+# Per-event OG tags for every guest link the message sequence sends (WhatsApp
+# previews). Until 28.9 only /invite/* was listed, so the other five previewed
+# as the product. netlify/tests/invite-og.test.js fails if a route in the
+# function's ROUTES table has no entry here.
 [[edge_functions]]
   path     = "/invite/*"
+  function = "invite-og"
+
+[[edge_functions]]
+  path     = "/rsvp/*"
+  function = "invite-og"
+
+[[edge_functions]]
+  path     = "/invitation/*"
+  function = "invite-og"
+
+[[edge_functions]]
+  path     = "/save-the-date/*"
+  function = "invite-og"
+
+[[edge_functions]]
+  path     = "/card/*"
+  function = "invite-og"
+
+[[edge_functions]]
+  path     = "/album/*"
+  function = "invite-og"
+
+[[edge_functions]]
+  path     = "/gift/*"
   function = "invite-og"
 
 # ── Per-route documents (checklist 87) ───────────────────────────────────────
@@ -63,3 +90,21 @@
   from   = "/*"
   to     = "/index.html"
   status = 200
+
+# ── Security headers (audit 28.9, A2) ────────────────────────────────────────
+# Nothing was set before, so any site could frame the app (clickjacking a
+# signed-in host into a delete), and every outbound link — Waze, maps,
+# WhatsApp — sent the FULL guest URL as Referer, token included.
+#
+# frame-ancestors is 'self', not 'none': the site and invitation editors
+# preview the real guest page in a same-origin <iframe>. 'none' breaks both.
+# No Permissions-Policy: the door screen needs the camera for QR check-in.
+# No full CSP yet — Supabase, Stripe, PostHog and Google Fonts would each need
+# listing, and a wrong one blanks the app on the one stage that never runs here.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options         = "SAMEORIGIN"
+    Content-Security-Policy = "frame-ancestors 'self'"
+    X-Content-Type-Options  = "nosniff"
+    Referrer-Policy         = "strict-origin-when-cross-origin"

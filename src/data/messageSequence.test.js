@@ -3,7 +3,9 @@ import { readFileSync } from "fs";
 import {
   MESSAGE_STAGES, stageByKey, audienceFor, reachable,
   renderTemplate, whatsappLink, audienceLabel,
+  STAGE_LINKS, linkForStage,
 } from "./messageSequence.js";
+import { normalizeEvent, TOKEN_KEYS } from "../utils/eventHelpers.js";
 
 const g = (id, extra = {}) => ({ id, name: id, phone: "0501234567", rsvp: "pending", ...extra });
 
@@ -239,5 +241,108 @@ describe("renderTemplate — a line whose only content was a placeholder", () =>
       event: { date: "2027" }, guest: {}, table: null, link: "",
     });
     expect(out).toBe("📅 2027");
+  });
+});
+
+/* ── One link per stage — checklist 88 ─────────────────────────────────────────
+ *
+ * MessagesScreen used to pick ONE link for all six stages: RSVP if the token
+ * existed, else the site. Every event HAS an RSVP token (normalizeEvent mints all
+ * six), so in practice every stage sent the RSVP form — including a save-the-date
+ * sent months before any invitation exists — and the event site reached nobody.
+ */
+describe("linkForStage — each stage carries the link that matches it", () => {
+  const O = "https://revaya.test";
+  /** A real, normalized event, with the announcement and site flags set. */
+  const make = ({ stdOn = false, invOn = false, invRsvp = true, siteOn = false } = {}) => {
+    const ev = normalizeEvent({ id: "e1", name: "חתונה", type: "חתונה" });
+    ev.announcements.saveTheDate.enabled = stdOn;
+    ev.announcements.invitation.enabled  = invOn;
+    ev.announcements.invitation.showRsvp = invRsvp;
+    ev.eventSite.enabled = siteOn;
+    return ev;
+  };
+
+  it("names a preference for every stage there is", () => {
+    expect(Object.keys(STAGE_LINKS).sort()).toEqual(MESSAGE_STAGES.map(s => s.key).sort());
+  });
+
+  it("the save-the-date NEVER sends the RSVP form", () => {
+    // The bug in one line. Three to six months out, the message says "הפרטים
+    // המלאים בקרוב" — and the link asked guests to confirm attendance.
+    for (const opts of [{}, { stdOn: true }, { siteOn: true }, { stdOn: true, siteOn: true }]) {
+      expect(linkForStage("saveTheDate", make(opts), O)?.key, JSON.stringify(opts)).not.toBe("rsvp");
+    }
+  });
+
+  it("the save-the-date sends its own page when published, else the site", () => {
+    expect(linkForStage("saveTheDate", make({ stdOn: true, siteOn: true }), O).key).toBe("saveTheDate");
+    expect(linkForStage("saveTheDate", make({ siteOn: true }), O).key).toBe("site");
+  });
+
+  it("sends NO link rather than a page that says it is not published", () => {
+    // An unpublished announcement renders "הדף עדיין לא פורסם". A token alone
+    // is not enough to send it.
+    expect(linkForStage("saveTheDate", make(), O)).toBeNull();
+    expect(linkForStage("details",     make(), O)).toBeNull();
+  });
+
+  it("the invitation sends the designed invitation only when it can take an answer", () => {
+    // The message says "נשמח שתאשרו הגעה". An invitation page with its RSVP
+    // button switched off cannot take one, so the RSVP form goes instead.
+    expect(linkForStage("invitation", make({ invOn: true }), O).key).toBe("invitation");
+    expect(linkForStage("invitation", make({ invOn: true, invRsvp: false }), O).key).toBe("rsvp");
+    expect(linkForStage("invitation", make(), O).key).toBe("rsvp");
+  });
+
+  it("the reminders chase an answer, always with the RSVP form", () => {
+    for (const k of ["reminder1", "reminder2"]) {
+      expect(linkForStage(k, make({ invOn: true, siteOn: true, stdOn: true }), O).key).toBe("rsvp");
+    }
+  });
+
+  it("the arrival details send the event SITE — the stage the site exists for", () => {
+    expect(linkForStage("details", make({ siteOn: true }), O).key).toBe("site");
+  });
+
+  it("the thanks send the shared album", () => {
+    expect(linkForStage("thanks", make(), O).key).toBe("album");
+  });
+
+  it("builds the address from the shared link list, token and all", () => {
+    const ev = make({ siteOn: true });
+    const l = linkForStage("details", ev, O);
+    expect(l.url).toBe(`${O}/invite/${ev.tokens.invite}`);
+    expect(l.label).toBe("אתר האירוע");
+  });
+
+  it("every stage that CAN go out without a link keeps {{קישור}} alone on its line", () => {
+    /* renderTemplate drops a line whose placeholder emptied and left no letter
+       behind. A lead-in on the same line or the line above — "נשמח לתמונות:" —
+       survives and dangles, asking the guest to tap nothing. Only stages that
+       can resolve to null are at risk; the rest always have a token, because
+       normalizeEvent mints all of TOKEN_KEYS. */
+    expect(TOKEN_KEYS).toEqual(expect.arrayContaining(["rsvp", "album"]));
+    const canBeNull = MESSAGE_STAGES.filter(st => linkForStage(st.key, make(), O) === null);
+    expect(canBeNull.map(st => st.key).sort()).toEqual(["details", "saveTheDate"]);
+    for (const st of canBeNull) {
+      const lines = st.body.split("\n");
+      const i = lines.findIndex(l => l.includes("{{קישור}}"));
+      expect(i, st.key).toBeGreaterThan(-1);
+      // Nothing on the link's line but an optional emoji and the placeholder.
+      expect(lines[i].replace("{{קישור}}", "").replace(/[\p{Extended_Pictographic}\uFE0F\s]/gu, ""), st.key).toBe("");
+      // And the line before it is not a lead-in ending in a colon.
+      expect(lines[i - 1] ?? "", st.key).not.toMatch(/:\s*$/);
+    }
+  });
+
+  it("the rendered details message without a site leaves no trace of the link", () => {
+    const body = stageByKey("details").body;
+    const out = renderTemplate(body, {
+      event: { name: "החתונה", date: "1.6", venue: "אולם" }, guest: { name: "דנה" }, table: null,
+      link: linkForStage("details", make(), O)?.url || "",
+    });
+    expect(out).not.toMatch(/🗺/);
+    expect(out).toContain("נתראה");
   });
 });

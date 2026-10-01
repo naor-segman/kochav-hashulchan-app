@@ -1,15 +1,25 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import { toSeatIndex } from "./arrival.js";
+import { getEventPersonalConfig } from "./eventHelpers.js";
+
+/* Couple names belong to couple events. The setup screen keeps them when the
+ * type changes (switching back must not lose them), and the server serves
+ * them — so a bar mitzvah that had once been a wedding showed "נועה✦טל" above
+ * "את שמחת בר המצווה של איתי", titled every tab "נועה וטל" and asked guests to
+ * "שלחו מתנה לנועה וטל" (fifth review 30.9). Guests see them only on a couple
+ * event. */
+const coupleEvent = (type) => getEventPersonalConfig(type ?? "חתונה").kind === "wedding";
 
 function mapPublicEvent(data) {
+  const couple = coupleEvent(data.type);
   return {
     cloudId:          data.id,
     name:             data.name              ?? "",
     type:             data.type              ?? "חתונה",
     date:             data.date              ?? "",
     venue:            data.venue             ?? "",
-    brideName:        data.bride_name        ?? "",
-    groomName:        data.groom_name        ?? "",
+    brideName:        couple ? data.bride_name ?? "" : "",
+    groomName:        couple ? data.groom_name ?? "" : "",
     celebrantName:    data.celebrant_name    ?? "",
     organizationName: data.organization_name ?? "",
     contactName:      data.contact_name      ?? "",
@@ -26,8 +36,61 @@ function mapPublicEvent(data) {
     rsvpToken:        data.rsvp_token        ?? null,
     giftToken:        data.gift_token        ?? null,
     inviteToken:      data.invite_token      ?? null,
+    // Served to the event site only (migration 20260928000400).
+    albumToken:       data.album_token       ?? null,
   };
 }
+
+/**
+ * The server could not be reached, or answered with an error — as opposed to
+ * answering "no such link". Until 28.9 every fetcher below returned null / []
+ * for both, so a guest whose wifi dropped read "הקישור אינו תקין, או שהאירוע
+ * בוטל", a projected gift wall emptied on one failed poll, and the greeter's
+ * guest list at the door was replaced by "invalid link" mid-event.
+ *
+ * None of the token RPCs raises for an unknown token — each returns null or an
+ * empty set — so `error` set means transport or server, never "not found".
+ */
+export class LinkUnreachableError extends Error {
+  constructor(cause) {
+    super("link unreachable");
+    this.name = "LinkUnreachableError";
+    this.cause = cause;
+  }
+}
+
+/**
+ * What a guest reads when a write fails (fifth review 30.9). Every failure
+ * said "אנא נסו שוב" — including the ones retrying can never fix: a closed
+ * link, a full event, an amount out of range. The server's own reason (the
+ * RAISE text) decides; anything unknown keeps the caller's "try again".
+ */
+export function guestWriteError(err, fallback) {
+  const m = String(err?.message || err || "").toLowerCase();
+  if (/rate limited/.test(m))                 return "יותר מדי שליחות בדקה האחרונה — נסו שוב בעוד דקה.";
+  if (/invalid (album )?token/.test(m))       return "הקישור כבר לא פעיל — בקשו מבעלי האירוע קישור מעודכן.";
+  if (/limit reached/.test(m))                return "האירוע כבר קיבל את המספר המרבי — אפשר לפנות לבעלי האירוע.";
+  if (/amount out of range/.test(m))          return "הסכום מחוץ לטווח — בין ₪50 ל־₪100,000.";
+  if (/name required/.test(m))                return "צריך למלא שם.";
+  // Storage's refusals, for the album upload.
+  if (/row-level security|unauthorized|path does not belong/.test(m) || err?.statusCode === "403" || err?.status === 403) {
+    return "הקישור לאלבום השתנה או שהאלבום מלא — בקשו מבעלי האירוע קישור מעודכן.";
+  }
+  if (/too large|payload/.test(m) || err?.statusCode === "413" || err?.status === 413) return "התמונה גדולה מדי.";
+  if (/mime|content type|invalid_mime/.test(m) || err?.statusCode === "415" || err?.status === 415) {
+    return "סוג הקובץ לא נתמך — אפשר JPEG, PNG, WEBP או HEIC.";
+  }
+  if (err?.name === "AbortError" || err?.name === "TimeoutError" || /failed to fetch|network|load failed/.test(m)) {
+    return "אין חיבור כרגע — נסו שוב בעוד רגע.";
+  }
+  return fallback;
+}
+
+/** What a guest page says when the server cannot be reached. One copy. */
+export const UNREACHABLE_TEXT = {
+  title: "אין חיבור כרגע",
+  body:  "לא הצלחנו להגיע לשרת — הקישור עצמו בסדר. נסו לרענן את הדף בעוד רגע.",
+};
 
 /**
  * Fetch the public event data for a given token type and token value.
@@ -46,7 +109,8 @@ export async function fetchEventByToken(tokenType, token) {
     token_type:  tokenType,
     token_value: token,
   });
-  if (error || !data) return null;
+  if (error) throw new LinkUnreachableError(error);
+  if (!data) return null;
   return mapPublicEvent(data);
 }
 
@@ -68,7 +132,8 @@ export async function fetchHostessData(token) {
   const { data, error } = await supabase.rpc("hostess_data_by_token", {
     token_value: token,
   });
-  if (error || !data) return null;
+  if (error) throw new LinkUnreachableError(error);
+  if (!data) return null;
   return {
     cloudId: data.id,
     name:    data.name    ?? "",
@@ -95,21 +160,34 @@ export async function fetchHostessData(token) {
  * @param {string}   guestId the guest row id
  * @param {number[]} seats   seat indices that have arrived
  */
-export async function markArrivalByToken(token, guestId, seats) {
+export async function markArrivalByToken(token, guestId, seats, base) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   // Bounded here so an oversized array is rejected before the round-trip, and
   // bounded again in SQL because this function is not the security boundary.
-  const clean = [...new Set(
-    (Array.isArray(seats) ? seats : [])
+  const bound = (list) => [...new Set(
+    (Array.isArray(list) ? list : [])
       .map(toSeatIndex)
       .filter(i => i !== null && i < 200),
   )].sort((a, b) => a - b).slice(0, 50);
-
-  const { error } = await supabase.rpc("hostess_mark_arrival_by_token", {
+  const clean = bound(seats);
+  const args = {
     token_value: token,
     guest_id:    String(guestId || "").slice(0, 64),
     seats:       clean,
-  });
+  };
+
+  // With `base` — the seats the screen showed BEFORE this tap — the server
+  // applies only the difference, so two greeters on one family inside one
+  // refresh window no longer overwrite each other (ג2, migration
+  // 20260928000700). If that migration has not run yet, PostgREST cannot
+  // find a 4-argument function (PGRST202) and the old full-list write is
+  // used instead: a door that keeps working beats a door that is exact.
+  if (Array.isArray(base)) {
+    const { error } = await supabase.rpc("hostess_mark_arrival_by_token", { ...args, base: bound(base) });
+    if (!error) return;
+    if (error.code !== "PGRST202") throw error;
+  }
+  const { error } = await supabase.rpc("hostess_mark_arrival_by_token", args);
   if (error) throw error;
 }
 
@@ -190,12 +268,20 @@ export async function submitGift(token, gift) {
   // The function returns void: an unpaid gift row is hidden from anon by RLS,
   // so asking for it back with .select().single() returned zero rows and threw
   // — the gift was saved and the guest was still told it had failed.
-  const { error } = await supabase.rpc("submit_gift_by_token", {
-    token_value: token,
-    donor_name:  donor,
-    amount,
-    message:     msg,
-  });
+  const args = { token_value: token, donor_name: donor, amount, message: msg };
+  // One key per filled-in form (the page makes it). The server stores a key
+  // once, so a double tap or a retry after a lost response is one gift — and
+  // two families who happen to share a name and an amount are two
+  // (20260929000000; the old guard matched on name and dropped the second).
+  // Before that migration runs, the 5-argument function does not exist
+  // (PGRST202) and the old call is used.
+  const key = typeof gift.clientKey === "string" && gift.clientKey ? gift.clientKey.slice(0, 64) : null;
+  if (key) {
+    const { error } = await supabase.rpc("submit_gift_by_token", { ...args, client_key: key });
+    if (!error) return;
+    if (error.code !== "PGRST202") throw error;
+  }
+  const { error } = await supabase.rpc("submit_gift_by_token", args);
   if (error) throw error;
 }
 
@@ -267,7 +353,8 @@ export async function fetchGiftWall(token) {
   const { data, error } = await supabase.rpc("gift_wall_by_token", {
     token_value: token,
   });
-  if (error || !Array.isArray(data)) return [];
+  if (error) throw new LinkUnreachableError(error);
+  if (!Array.isArray(data)) return [];
   return data;
 }
 
@@ -277,13 +364,14 @@ export async function fetchGiftWall(token) {
 export async function fetchCollabEvent(token) {
   if (!isSupabaseConfigured || !supabase || !token) return null;
   const { data, error } = await supabase.rpc("collab_event_by_token", { token_value: token });
-  if (error || !data) return null;
+  if (error) throw new LinkUnreachableError(error);
+  if (!data) return null;
   return {
     cloudId:    data.id,
     name:       data.name       ?? "",
     type:       data.type       ?? "חתונה",
-    brideName:  data.bride_name  ?? "",
-    groomName:  data.groom_name  ?? "",
+    brideName:  coupleEvent(data.type) ? data.bride_name ?? "" : "",
+    groomName:  coupleEvent(data.type) ? data.groom_name ?? "" : "",
     coupleType: data.couple_type ?? "bride-groom",
     // The collab table calls getSideLabels(ev) too, so without this an aunt
     // adding names to a two-mother family's bar mitzvah sees "משפחת האם /
@@ -292,6 +380,9 @@ export async function fetchCollabEvent(token) {
     // migration 20260814000000_collab_parents_type.sql.
     parentsType: data.parents_type ?? "mother-father",
     sideLabels: (data.side_labels && typeof data.side_labels === "object") ? data.side_labels : null,
+    // The host's own groups (migration 20260928000600). Strings only.
+    customGroups: Array.isArray(data.custom_groups)
+      ? data.custom_groups.filter(g => typeof g === "string" && g.trim()) : [],
   };
 }
 
@@ -303,7 +394,8 @@ export async function fetchCollabEvent(token) {
 export async function fetchCollabGuests(token) {
   if (!isSupabaseConfigured || !supabase || !token) return [];
   const { data, error } = await supabase.rpc("collab_list_by_token", { token_value: token });
-  if (error || !Array.isArray(data)) return [];
+  if (error) throw new LinkUnreachableError(error);
+  if (!Array.isArray(data)) return [];
   return data;
 }
 
@@ -466,24 +558,140 @@ export async function fetchAlbumPhotos(albumToken) {
   }));
 }
 
+// ── The HOST's view of the album — checklist 57 ──────────────────────────────
+//
+// Until 57 there was none. The owner SELECT and DELETE policies on album_photos
+// and on the storage objects existed and nothing in the client used them, so a
+// host who wanted to see or remove a photo opened the same public link a guest
+// does, with the same powers: none.
+
+/**
+ * Every photo in this event's album, INCLUDING hidden ones, newest first.
+ *
+ * A table read under owner RLS, not the public RPC: album_list_by_token now
+ * leaves hidden photos out (that is what hiding is for), and the host has to be
+ * able to see a hidden photo to un-hide it. Keyed on the CLOUD id — the FK and
+ * the storage folder are both events.id — so an event that has never synced has
+ * no album to read, and the screen says so rather than showing an empty grid.
+ *
+ * @param {string} eventCloudId  ev.cloudId, never ev.id
+ */
+export async function fetchHostAlbumPhotos(eventCloudId) {
+  if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
+  const { data, error } = await supabase
+    .from("album_photos")
+    .select("id, storage_path, uploader, created_at, hidden")
+    .eq("event_id", eventCloudId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(r => ({
+    id:          r.id,
+    storagePath: r.storage_path,
+    uploader:    r.uploader || "",
+    createdAt:   r.created_at,
+    hidden:      r.hidden === true,
+    url: supabase.storage.from("event-album").getPublicUrl(r.storage_path).data.publicUrl,
+  }));
+}
+
+/**
+ * An UPDATE or DELETE that RLS refuses is not an error in PostgREST — it just
+ * matches no rows, and `{ error: null }` comes back. Every moderation call
+ * below reported success on that, so a host could press "delete", watch the
+ * photo leave the screen, and the photo stayed on the guests' album (28.9
+ * audit). Asking for the affected ids back and requiring exactly one turns a
+ * silent refusal into a thrown one, which the screens already roll back on.
+ */
+function exactlyOne({ data, error }) {
+  if (error) throw error;
+  if (!Array.isArray(data) || data.length !== 1) {
+    throw new Error("the change was not applied (no permission, or the row is gone)");
+  }
+  return true;
+}
+
+/**
+ * Take a photo out of the public album, or put it back.
+ *
+ * Only the `hidden` column is writable by the owner — the migration grants
+ * UPDATE on that one column, so this cannot be widened into rewriting a row's
+ * storage path by accident. Hiding does NOT revoke the file's address: the
+ * bucket is public, and anyone who saved the direct URL can still open it. Only
+ * deleteAlbumPhoto takes a photo off the internet.
+ */
+export async function setAlbumPhotoHidden(photoId, hidden) {
+  if (!isSupabaseConfigured || !supabase || !photoId) return false;
+  return exactlyOne(await supabase
+    .from("album_photos")
+    .update({ hidden: !!hidden })
+    .eq("id", photoId)
+    .select("id"));
+}
+
+/**
+ * Delete a photo — the FILE first, then its row.
+ *
+ * The order is the whole design. The two deletes cannot be one transaction
+ * (storage and the table are different APIs), so one of them can fail after the
+ * other succeeded, and the two failure modes are not equal:
+ *
+ *   row gone, file left  →  the photo is still PUBLICLY REACHABLE at its URL,
+ *                           off every list, where the host can no longer see
+ *                           it to try again. The host asked for it to be gone
+ *                           and it is not, and nothing says so.
+ *   file gone, row left  →  a broken tile in the host's own grid, with the
+ *                           delete button still under it. Pressing it again
+ *                           finishes the job: removing a path that no longer
+ *                           exists is not an error.
+ *
+ * So the file goes first, and if that fails nothing has changed at all.
+ * `remove()` resolves with `{ error }` rather than rejecting, so its result is
+ * checked explicitly — a bare await would report success on a failed delete.
+ *
+ * @param {{id: string, storagePath: string}} photo
+ */
+export async function deleteAlbumPhoto(photo) {
+  if (!isSupabaseConfigured || !supabase || !photo?.id || !photo?.storagePath) return false;
+  const { error: rmErr } = await supabase.storage.from("event-album").remove([photo.storagePath]);
+  if (rmErr) throw rmErr;
+  // An empty `remove` result is NOT checked: it also means "already gone",
+  // which is exactly the state a retry after a half-finished delete is in.
+  // The row delete below is checked, and both are fenced by the same
+  // ownership rule, so a refused file delete is caught there.
+  return exactlyOne(await supabase.from("album_photos").delete().eq("id", photo.id).select("id"));
+}
+
 /**
  * Upload one photo and index it.
  *
  * The path is prefixed with the event id so a bucket listing can never mix
  * events, and suffixed with a random segment so two guests uploading
  * "IMG_0001.jpg" at the same moment don't collide.
+ *
+ * With `fileKey` — derived from the photo the guest picked — the name is the
+ * same on every attempt, so a retry is safe: a slow upload the page gave up
+ * on can still land on the server, and the retry the guest was told to make
+ * then added the same photo twice (sixth review 30.9). A file or an index row
+ * that already exists under that name is the earlier attempt, and counts.
  */
-export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader) {
+const alreadyThere = (e) => String(e?.statusCode ?? e?.status ?? "") === "409"
+  || /already exists|duplicate/i.test(String(e?.message ?? e?.error ?? ""));
+
+export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader, fileKey) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const ext  = (file.name?.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
-  // The event id prefix is enforced server-side too — album_add_photo rejects a
-  // path that doesn't belong to the token's event.
-  const path = `${eventCloudId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  // <event id>/<album token>/<file>. The storage policy admits a file only
+  // under the event's CURRENT album token, so changing the album link revokes
+  // uploads (migration 20260930000000); album_add_photo checks the same prefix.
+  const name = fileKey && /^[a-z0-9-]{6,64}$/.test(fileKey)
+    ? fileKey
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const path = `${eventCloudId}/${albumToken}/${name}.${ext}`;
 
   const { error: upErr } = await supabase.storage
     .from("event-album")
     .upload(path, file, { cacheControl: "31536000", upsert: false });
-  if (upErr) throw upErr;
+  if (upErr && !(fileKey && alreadyThere(upErr))) throw upErr;
 
   // Indexed through a definer function: an RLS policy here could not validate
   // the token, because anon cannot read the events table it would need.
@@ -495,6 +703,7 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader)
   // A row that fails to write would orphan the file. remove() resolves with
   // { error } instead of rejecting, so a plain .catch() would swallow a real
   // failure — check the result and surface it with the original cause.
+  if (rowErr && fileKey && rowErr.code === "23505") return path;   // indexed by the earlier attempt
   if (rowErr) {
     const { error: rmErr } = await supabase.storage.from("event-album").remove([path]);
     if (rmErr) rowErr.message += " (הקובץ נשאר באחסון ולא נוקה)";
@@ -518,18 +727,15 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader)
  */
 export async function setGiftHidden(giftId, hidden) {
   if (!isSupabaseConfigured || !supabase || !giftId) return false;
-  const { error } = await supabase
+  return exactlyOne(await supabase
     .from("gifts")
     .update({ hidden: !!hidden })
-    .eq("id", giftId);
-  if (error) throw error;
-  return true;
+    .eq("id", giftId)
+    .select("id"));
 }
 
 /** Remove a blessing entirely — from the wall AND from the host's list. */
 export async function deleteEventGift(giftId) {
   if (!isSupabaseConfigured || !supabase || !giftId) return false;
-  const { error } = await supabase.from("gifts").delete().eq("id", giftId);
-  if (error) throw error;
-  return true;
+  return exactlyOne(await supabase.from("gifts").delete().eq("id", giftId).select("id"));
 }

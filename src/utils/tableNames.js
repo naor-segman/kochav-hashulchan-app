@@ -14,9 +14,9 @@
  * hand — a host who renamed a table by hand can have left "שולחן 20" sitting
  * above a much shorter list.
  *
- * (TableBuilderScreen's batch-add carries the same rule inline, written when
- * that screen hit this bug. It is the older of the two; if it is ever touched
- * again it should call this instead of keeping a second copy.)
+ * TableBuilderScreen's batch-add and its preview call this too (fourth review
+ * 30.9: the preview numbered from the table count and promised "רזרבה 7" for a
+ * table saved as "רזרבה 1").
  *
  * @param {Array<{name?: string}>} existing — the event's current tables.
  * @param {number} count — how many new names are wanted.

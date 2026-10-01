@@ -1,0 +1,113 @@
+/* The host's album. A photo grid first — the host came to LOOK — with two small
+   controls under each tile. */
+
+.status {
+  margin: 20px 0;
+  color: var(--muted);
+  font-size: var(--step-0);
+}
+
+.statusErr {
+  margin: 20px 0;
+  color: var(--red);
+  font-size: var(--step-0);
+}
+
+/* The hide-is-not-delete sentence. --text2 on --surface: it is the one line on
+   this screen a host acting on a privacy worry must actually read, so it does
+   not get --muted. */
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--step--1);
+  line-height: 1.55;
+  color: var(--text2);
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.imgLink { display: block; }
+
+.imgLink:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -2px;
+}
+
+.img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: var(--bg);
+}
+
+/* Hidden photos stay in the grid — the host has to see a hidden photo to
+   un-hide it — dimmed, and labelled in words by .hiddenTag. */
+.tileHidden .img { opacity: 0.4; }
+
+.hiddenTag {
+  position: absolute;
+  inset-block-start: 8px;
+  inset-inline-start: 8px;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--surface);
+  font-size: var(--step--2);
+  font-weight: 700;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 0;
+  min-width: 0;
+}
+
+.who {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.when {
+  font-size: var(--step--2);
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  margin-block-start: auto;
+}
+
+.actions > button { flex: 1 1 0; }

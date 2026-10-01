@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { fetchRSVPResponses } from "../utils/publicTokens.js";
-import { pickMeal, pickCompanions } from "../utils/rsvpApply.js";
+import { pickMeal, pickCompanions, normName, normPhone, respStatus, latestPerRespondent } from "../utils/rsvpApply.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { uid } from "../utils/uid.js";
+import { fmtDateTime } from "../utils/dateFormat.js";
 import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -11,40 +12,10 @@ import Loading from "../components/feedback/Loading.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import styles from "./RSVPResponsesScreen.module.css";
 
-// Normalize a display name for fuzzy matching between an RSVP response and a
-// guest-list row: trim, collapse inner whitespace, lowercase.
-function normName(s) {
-  return (s || "").trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-// Normalize an Israeli phone to a comparable local form (05x…) for matching.
-function normPhone(p) {
-  let d = (p || "").replace(/\D/g, "");
-  if (d.startsWith("00")) d = d.slice(2);
-  if (d.startsWith("972")) d = "0" + d.slice(3);
-  return d;
-}
-
-// A response's answer: prefer the new status column, fall back to the boolean.
-const respStatus = (r) => r.status || (r.attending ? "yes" : "no");
 // Map an RSVP answer to a guest-list rsvp value.
 const GUEST_RSVP = { yes: "confirmed", maybe: "maybe", no: "declined" };
 
-// `new Date(null)` is the epoch and `new Date("nonsense")` is an Invalid Date;
-// neither THROWS, and toLocaleDateString does not throw either — it returns
-// the string "Invalid Date". So the catch here never ran once, and
-// formatDate(null) rendered "1 בינו׳, 02:00" — the epoch, shown to the host as
-// a real response time. Guard the input instead of the call.
-function formatDate(iso) {
-  if (iso == null || iso === "") return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("he-IL", {
-    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-  });
-}
-
-export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, showToast }) {
+export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, showToast, syncStatus }) {
   const [responses, setResponses] = useState([]);
   const [loadState, setLoadState] = useState("loading"); // "loading" | "ready" | "error" | "offline"
   const [showForecast, setShowForecast] = useState(false);
@@ -87,13 +58,25 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     return null;
   }, [guestIndex]);
 
+  // A guest who answers twice is two rows — on purpose: the newest wins and
+  // the auto-sync below keys on row ids. But every COUNT on this screen summed
+  // all rows, so "maybe" then "yes" read as one maybe AND one yes, with the
+  // party counted twice for catering and twice on the bus (107/ת4, 28.9).
+  // Counts use each respondent's latest answer; the list below keeps history.
+  const current = useMemo(() => latestPerRespondent(responses), [responses]);
+  // Rows a later answer from the same respondent replaced. They stay on the
+  // list — this screen is what people actually wrote — but nothing may be
+  // APPLIED from them: "עדכנו אורח קיים" on an older "maybe" set a guest who
+  // later said yes back to maybe (29.9 review).
+  const currentIds = useMemo(() => new Set(current.map(r => r.id)), [current]);
   const stats = useMemo(() => {
-    const confirmed = responses.filter(r => respStatus(r) === "yes");
-    const maybe     = responses.filter(r => respStatus(r) === "maybe");
-    const declined  = responses.filter(r => respStatus(r) === "no");
+    const confirmed = current.filter(r => respStatus(r) === "yes");
+    const maybe     = current.filter(r => respStatus(r) === "maybe");
+    const declined  = current.filter(r => respStatus(r) === "no");
     const coming    = confirmed.reduce((s, r) => s + (r.guests_count || 1), 0);
-    return { total: responses.length, confirmed: confirmed.length, maybe: maybe.length, declined: declined.length, coming };
-  }, [responses]);
+    return { total: current.length, confirmed: confirmed.length, maybe: maybe.length, declined: declined.length, coming,
+             repeats: responses.length - current.length };
+  }, [current, responses.length]);
 
   // ── Shuttle registrations ────────────────────────────────────────────────
   // Guests pick a shuttle on the RSVP form; the host needs seats-per-pickup to
@@ -105,12 +88,12 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       id: sh.id,
       label: [sh.place, sh.time].filter(Boolean).join(" · ") || "הסעה",
       // Whole party per responder — one RSVP can bring four people onto a bus.
-      seats: responses
+      seats: current
         .filter(r => r.shuttle_id === sh.id && respStatus(r) !== "no")
         .reduce((n, r) => n + (r.guests_count || 1), 0),
     }))
     .filter(sh => sh.seats > 0),
-    [responses, ev?.eventSite?.shuttles], // eslint-disable-line react-hooks/exhaustive-deps
+    [current, ev?.eventSite?.shuttles], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Meal forecast — count confirmed seats across the guest list (manual +
@@ -131,6 +114,23 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     return true;
   }, []);
 
+  /* A "yes" for more seats than the invitation was for used to land in silence
+   * (third review 30.9, E5): invited for 1, answered 6, the list said 6, table
+   * 3 went to 12 of 10, and this screen said "מעודכן ברשימה". The answer still
+   * applies — a guest's answer is data — but the first invited number is kept
+   * on the row, so the difference can be shown here and the table checked. */
+  const invitedFor = (guest, newCount) =>
+    newCount > (guest.count || 1) ? { invitedCount: guest.invitedCount ?? (guest.count || 1) } : {};
+
+  // Seats taken at a guest's table, against its capacity — null when unseated.
+  const tableLoad = useCallback((guest) => {
+    const tid = ev.seating?.[guest.id];
+    const t = tid && (ev.tables || []).find(x => x.id === tid);
+    if (!t) return null;
+    const used = (ev.guests || []).reduce((s, g) => s + (ev.seating[g.id] === tid ? (g.count || 1) : 0), 0);
+    return { name: t.name, used, cap: t.capacity || 0 };
+  }, [ev.seating, ev.tables, ev.guests]);
+
   const applyToGuest = useCallback((r, guest) => {
     const hasCount = respStatus(r) !== "no"; // yes + maybe carry a party size
     // Functional updater so rapid successive edits don't clobber each other
@@ -141,6 +141,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
         g.id === guest.id
           ? {
               ...g,
+              ...(hasCount ? invitedFor(g, r.guests_count || 1) : {}),
               rsvp:  GUEST_RSVP[respStatus(r)],
               count: hasCount ? (r.guests_count || 1) : (g.count || 1),
               phone: g.phone || r.phone || "",
@@ -188,11 +189,23 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     autoDone.current = new Set();
   }, [appliedKey]);
   useEffect(() => {
+    // The synced list (ת3, 28.9) is what the OTHER device applied — read on
+    // EVERY run, not once at mount. This screen is a URL route: reloaded on
+    // it, the event shows its LOCAL copy first and the cloud copy's list
+    // arrives a moment later; read once, that list was never seen and the
+    // other device's answers were applied again over the host's manual
+    // changes (29.9 review).
+    (ev.rsvpApplied || []).forEach(id => autoDone.current.add(id));
     if (!hydrated.current) {
       hydrated.current = true;
+      // The old per-browser list is still read once, so nothing this browser
+      // applied before the change is applied again; it is no longer written.
       try { JSON.parse(localStorage.getItem(appliedKey) || "[]").forEach(id => autoDone.current.add(id)); }
       catch { /* ignore */ }
     }
+    // And nothing is applied while the cloud copy is still on its way: the
+    // answers can arrive before it, and then the list above is the stale one.
+    if (syncStatus === "syncing") return;
     if (loadState !== "ready" || responses.length === 0) return;
 
     // Pick the NEWEST not-yet-applied response per matched guest — a later "yes"
@@ -210,11 +223,14 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     });
 
     const updates = new Map();
-    let n = 0;
+    let n = 0, grew = 0;
     chosen.forEach(({ r, guest }) => {
       if (isApplied(r, guest)) return;          // already reflects it
       const status = respStatus(r), hasCount = status !== "no";
+      const more = hasCount ? invitedFor(guest, r.guests_count || 1) : {};
+      if (more.invitedCount !== undefined) grew++;
       updates.set(guest.id, {
+        ...more,
         rsvp:  GUEST_RSVP[status],
         count: hasCount ? (r.guests_count || 1) : (guest.count || 1),
         phone: guest.phone || r.phone || "",
@@ -224,11 +240,17 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       n++;
     });
 
-    if (changed) { try { localStorage.setItem(appliedKey, JSON.stringify([...autoDone.current])); } catch { /* ignore */ } }
-    if (n === 0) return;
-    patchEvent(e => ({ ...e, guests: e.guests.map(g => updates.has(g.id) ? { ...g, ...updates.get(g.id) } : g) }));
-    showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
-  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast, appliedKey]);
+    if (!changed && n === 0) return;
+    const applied = [...autoDone.current];
+    patchEvent(e => ({
+      ...e,
+      rsvpApplied: [...new Set([...(e.rsvpApplied || []), ...applied])],
+      guests: n === 0 ? e.guests : e.guests.map(g => updates.has(g.id) ? { ...g, ...updates.get(g.id) } : g),
+    }));
+    if (grew > 0) {
+      showToast(`${n} אישורי הגעה סונכרנו — ${grew === 1 ? "אחד מהם אישר" : `${grew} מהם אישרו`} יותר מקומות ממה שהוזמנו. בדקו ברשימה למטה`, "warn");
+    } else if (n > 0) showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
+  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast, appliedKey, ev.rsvpApplied, syncStatus]);
 
   const rsvpLink = ev.tokens?.rsvp
     ? window.location.origin + "/rsvp/" + ev.tokens.rsvp
@@ -266,6 +288,13 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
             <span className={styles.statLabel}>לא מגיעים</span>
           </div>
         </div>
+      )}
+      {loadState === "ready" && stats.repeats > 0 && (
+        <p className={base.fieldHint}>
+          {stats.repeats === 1
+            ? "אורח אחד ענה יותר מפעם אחת — נספרה רק התשובה האחרונה שלו."
+            : `${stats.repeats} תשובות הוחלפו בתשובה חדשה יותר של אותו אורח — נספרה רק האחרונה.`}
+        </p>
       )}
 
       {/* ── Meal forecast (optional — collapsed by default) ── */}
@@ -412,11 +441,23 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                       </span>
                     )}
                     <span className={base.gMeta}>
-                      {r.phone ? r.phone + " · " : ""}{formatDate(r.created_at)}
+                      {r.phone ? r.phone + " · " : ""}{fmtDateTime(r.created_at)}
                     </span>
+                    {applied && guest.invitedCount && (guest.count || 1) > guest.invitedCount && (() => {
+                      const load = tableLoad(guest);
+                      return (
+                        <span className={styles.partyGrew}>
+                          הוזמנו {guest.invitedCount === 1 ? "למקום אחד" : `ל-${guest.invitedCount} מקומות`}, אישרו {guest.count}
+                          {load && load.cap > 0 && load.used > load.cap
+                            ? ` · ${load.name} עכשיו ${load.used} מתוך ${load.cap}` : ""}
+                        </span>
+                      );
+                    })()}
                   </div>
                   {applied ? (
                     <span className={base.tagSeated}>מעודכן ברשימה <Icon name="check" size={12} /></span>
+                  ) : !currentIds.has(r.id) ? (
+                    <span className={base.gMeta}>הוחלפה בתשובה מאוחרת יותר</span>
                   ) : guest ? (
                     <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => applyToGuest(r, guest)}>
                       עדכנו אורח קיים

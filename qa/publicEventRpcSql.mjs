@@ -65,11 +65,17 @@ try {
               'brideName','דנה', 'groomName','יוסי',
               'giftBitPhone','${BIT}', 'giftPayboxLink','${PAYBOX}',
               'albumToken','albumtok11',
-              'eventSite', jsonb_build_object('enabled', true, 'themeKey','rose')
+              'eventSite', jsonb_build_object('enabled', true, 'themeKey','rose',
+                             'contactPhone','0529998877', 'rsvpMessage','כיף שאתם באים',
+                             'shuttles', jsonb_build_array(jsonb_build_object('id','s1','from','תל אביב')),
+                             'sections', jsonb_build_object('gift', true, 'shuttles', true)),
+              'announcements', jsonb_build_object('invitation', jsonb_build_object('enabled', true, 'title','הזמנה'))
             ));
   `);
 
   psql(readFileSync(new URL('../supabase/migrations/20260818000200_drop_payment_fields_from_public_event.sql', import.meta.url), 'utf8'));
+  psql(readFileSync(new URL('../supabase/migrations/20260928000400_album_link_on_site.sql', import.meta.url), 'utf8'));
+  psql(readFileSync(new URL('../supabase/migrations/20260928000500_public_event_per_page.sql', import.meta.url), 'utf8'));
 
   const call = (type, tok) =>
     psql(`select coalesce(public.public_event_by_token('${type}', '${tok}')::text, 'NULL')`);
@@ -97,6 +103,40 @@ try {
     ok(!album.includes('rsvptok1') && !album.includes('gifttok11'),
        'the album token still unlocks nothing else — the earlier gating survived');
     ok(album.includes('דנה'), 'but the album page still knows whose wedding it is');
+  }
+
+  console.log('\n── the album link reaches the site, and only the site (WORKPLAN פ)');
+  {
+    ok(call('invite', 'invitetok1').includes('albumtok11'), 'the event site receives the album token');
+    for (const [type, tok] of TOKENS.filter(([t]) => t !== 'invite')) {
+      // The key exists for every type; only the site gets a VALUE in it.
+      const out = call(type, tok);
+      ok(!/"album_token": "/.test(out), `${type.padEnd(8)} — no album token handed out`);
+    }
+  }
+
+  console.log('\n── each page gets what it renders (20260928000500)');
+  {
+    const PHONE = '0529998877';
+    ok(call('invite', 'invitetok1').includes(PHONE), 'the site (invite) still has the contact phone');
+    for (const [type, tok] of TOKENS.filter(([t]) => t !== 'invite')) {
+      ok(!call(type, tok).includes(PHONE), `${type.padEnd(8)} — no contact phone`);
+    }
+    for (const [type, tok] of [['gift', 'gifttok11'], ['album', 'albumtok11'], ['hostess', 'hostesstok1']]) {
+      ok(/"site": null/.test(call(type, tok)), `${type.padEnd(8)} — no site at all`);
+      ok(!call(type, tok).includes('"invitation"'), `${type.padEnd(8)} — no announcements`);
+    }
+    const rsvp = call('rsvp', 'rsvptok1');
+    ok(rsvp.includes('כיף שאתם באים') && rsvp.includes('תל אביב'), 'rsvp — its message and shuttles');
+    ok(rsvp.includes('gifttok11'), 'rsvp — the gift link (ט2)');
+    ok(call('invite', 'invitetok1').includes('"invitation"'), 'invite — the published announcement');
+
+    psql(`update public.events set payload = jsonb_set(payload, '{eventSite,enabled}', 'false')`);
+    const rsvpDraft = call('rsvp', 'rsvptok1');
+    ok(rsvpDraft.includes('כיף שאתם באים') && rsvpDraft.includes('תל אביב'),
+       'rsvp — settings survive an UNPUBLISHED site (they were dropped)');
+    ok(/"site": null/.test(call('invite', 'invitetok1')), 'invite — an unpublished site is still not served');
+    psql(`update public.events set payload = jsonb_set(payload, '{eventSite,enabled}', 'true')`);
   }
 
   console.log('\n── and a wrong token still gets nothing');

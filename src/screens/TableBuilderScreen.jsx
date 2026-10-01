@@ -2,6 +2,7 @@ import { useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { TABLE_TYPES, TABLE_SHAPES, DEFAULT_TABLE_SHAPE } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
+import { seatingTotals } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import Field from "../components/ui/Field.jsx";
@@ -17,6 +18,7 @@ import TableGlyph from "../components/ui/TableGlyph.jsx";
 import TypeTag from "../components/ui/TypeTag.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./TableBuilderScreen.module.css";
+import { nextTableNames } from "../utils/tableNames.js";
 
 const TABS = [
   { id: "list",      label: "רשימת שולחנות", icon: "hexagon" },
@@ -70,17 +72,18 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   };
 
   const totalCap       = ev.tables.reduce((s, t) => s + t.capacity, 0);
-  const totalGuestSeats = ev.guests.reduce((s, g) => s + (g.count || 1), 0);
+  // Declined guests need no chair. Summing them here said "חסרים 20 מקומות"
+  // for an event the seating screen called 8 short (browser audit 28.9).
+  const totalGuestSeats = seatingTotals(ev.guests, ev.seating).totalSeats;
   const gap            = totalCap - totalGuestSeats;
   const batchCnt    = Math.max(1, parseInt(batch.count)    || 0);
   const batchCap    = Math.max(1, parseInt(batch.capacity) || 0);
   const batchTotal  = batchCnt * batchCap;
-  const nextIdx     = ev.tables.length + 1;
   const previewPrefix = batch.prefix.trim() || "שולחן";
 
-  const previewNames = Array.from({ length: Math.min(batchCnt, 3) }, (_, i) =>
-    previewPrefix + " " + (nextIdx + i)
-  ).join(", ");
+  // The same numbering the add uses. Counted from the table count, the preview
+  // promised "רזרבה 7" and the table was saved as "רזרבה 1" (fourth review).
+  const previewNames = nextTableNames(ev.tables, Math.min(batchCnt, 3), previewPrefix).join(", ");
 
   const addBatch = () => {
     const cap = parseInt(batch.capacity);
@@ -88,26 +91,10 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     if (!cap || cap < 1) { showToast("יש להזין מספר מקומות תקני", "err"); return; }
     if (!cnt || cnt < 1) { showToast("יש להזין כמות שולחנות תקנית", "err"); return; }
     patchEvent(e => {
-      // Continue from the highest number ALREADY used with this prefix, not
-      // from the table count. After deleting "שולחן 2", the count-based version
-      // produced a second "שולחן 3" — and the WhatsApp message and printed
-      // entry card both name the table, so two tables answered to one number.
-      const used = new Set((e.tables || []).map(t => (t.name || "").trim()));
-      const rx   = new RegExp("^" + previewPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s+(\\d+)$");
-      let next = 0;
-      for (const t of e.tables || []) {
-        const m = rx.exec((t.name || "").trim());
-        if (m) next = Math.max(next, Number(m[1]));
-      }
-      const nextName = () => {
-        let n = ++next;
-        while (used.has(previewPrefix + " " + n)) n = ++next;
-        used.add(previewPrefix + " " + n);
-        return previewPrefix + " " + n;
-      };
-      const rows = Array.from({ length: cnt }, () => ({
+      const names = nextTableNames(e.tables, cnt, previewPrefix);
+      const rows = names.map(name => ({
         id:       uid(),
-        name:     nextName(),
+        name,
         capacity: cap,
         type:     batch.type,
         shape:    batch.shape,

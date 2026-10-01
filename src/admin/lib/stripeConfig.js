@@ -32,8 +32,15 @@
 // Server-side only (set in Supabase Edge Function secrets — NEVER in VITE_ vars):
 //   STRIPE_SECRET_KEY             sk_live_… or sk_test_…
 //   STRIPE_WEBHOOK_SECRET         whsec_… (from Stripe Dashboard → Webhooks)
-//   STRIPE_PRO_PRICE_ID           price_… (Pro monthly or yearly price ID)
-//   STRIPE_ENTERPRISE_PRICE_ID    price_… (Enterprise price ID)
+//   STRIPE_PRO_PRICE_ID           price_… ONE-TIME price for the ₪690 package
+//   STRIPE_ENTERPRISE_PRICE_ID    price_… ONE-TIME price for the ₪1,290 package
+//
+// ⚠️ ONE-TIME, not recurring, and this is the trap to know about: these two
+// prices were created for the subscription model the product abandoned on 27.9.
+// A recurring price cannot be used with `mode: "payment"` — create-checkout-
+// session checks for it before calling Stripe and returns an error naming the
+// secret, because Stripe's own message ("you passed a recurring price") arrives
+// as a 500 and a Hebrew toast that says the upgrade failed.
 //
 // To add a new plan price (e.g. annual billing):
 //   1. Create the price in Stripe Dashboard → Products
@@ -81,21 +88,24 @@ export function isPaidPlan(plan) {
 
 // ── Webhook event constants ───────────────────────────────────────────────────
 //
-// STRIPE_EVENTS was an exported constant map of the five event.type strings
-// plus their handling notes. Nothing imported it — the Edge Function matches
-// the raw strings — so the constant was dead and only the notes were load
-// bearing. The notes now live with the handler they describe.
+// STRIPE_EVENTS was an exported constant map of the event.type strings plus
+// their handling notes. Nothing imported it — the Edge Function matches the raw
+// strings — so the constant was dead and only the notes were load bearing. The
+// notes now live with the handler they describe.
 //
-//   checkout.session.completed      → upsert subscriptions row, status active
-//   customer.subscription.updated   → remap plan + status, honour
-//                                     is_manually_managed, set expires_at when
-//                                     cancel_at_period_end
-//   customer.subscription.deleted   → status cancelled, keep the row
-//   invoice.payment_failed          → payment_past_due = true, do NOT revoke
-//   invoice.payment_succeeded       → status active, payment_past_due = false
+// TWO events, because a one-time purchase has two states (27.9). The four
+// subscription and invoice handlers that used to be listed here were deleted
+// with the subscription model: Stripe never sends them for `mode: "payment"`.
+//
+//   checkout.session.completed  → upsert a purchase row keyed on the Checkout
+//                                 session id, status active, no period end.
+//                                 Ignored unless payment_status is "paid".
+//   charge.refunded             → FULL refund only: status cancelled and
+//                                 expires_at = now, so usePlan() returns free.
+//                                 A partial refund keeps access.
 
 // ── Webhook implementation ────────────────────────────────────────────────────
 //
 // The live webhook handler is in supabase/functions/stripe-webhook/index.ts.
-// It handles all five events listed above.
+// It handles both events listed above.
 // Deploy with: supabase functions deploy stripe-webhook

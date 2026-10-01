@@ -73,3 +73,12 @@ describe("nextTableNames", () => {
     expect(nextTableNames(tbl("שולחן"), 1)).toEqual(["שולחן 1"]);
   });
 });
+
+// Fourth review 30.9: TableBuilderScreen's preview numbered from the table
+// count; it calls this now, so a new prefix starts at 1.
+describe("nextTableNames — a new prefix on a busy event", () => {
+  it("starts at 1 whatever the table count", () => {
+    const six = Array.from({ length: 6 }, (_, i) => ({ name: "שולחן " + (i + 1) }));
+    expect(nextTableNames(six, 2, "רזרבה")).toEqual(["רזרבה 1", "רזרבה 2"]);
+  });
+});

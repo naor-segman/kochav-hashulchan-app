@@ -70,6 +70,7 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       lockedTables:     Array.isArray(localEvent.lockedTables) ? localEvent.lockedTables : [],
       tokens: localEvent.tokens ?? null,
       tokensRotatedAt: Number.isFinite(localEvent.tokensRotatedAt) ? localEvent.tokensRotatedAt : null,
+      tokenRotations: localEvent.tokenRotations ?? {},
       costs:  localEvent.costs  ?? {},
       collabActive:       localEvent.collabActive === false ? false : true,
       hostessWriteActive: localEvent.hostessWriteActive === false ? false : true,
@@ -91,6 +92,7 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       albumToken:         localEvent.tokens?.album ?? null,
       messagesSent:       localEvent.messagesSent ?? {},
       messageTemplates:   localEvent.messageTemplates ?? {},
+      rsvpApplied:        Array.isArray(localEvent.rsvpApplied) ? localEvent.rsvpApplied : [],
       // Tombstones ride in the payload, and they MUST be in both mappers.
       // A field written locally and missing from either direction here is
       // silent data loss — it has happened three times in this file. For this
@@ -148,12 +150,14 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     vendors:          Array.isArray(p.vendors) ? p.vendors : [],
     messagesSent:     p.messagesSent ?? {},
     messageTemplates: p.messageTemplates ?? {},
+    rsvpApplied:      Array.isArray(p.rsvpApplied) ? p.rsvpApplied : [],
     deletedRows:      p.deletedRows ?? {},
     // Prefer the scalar token column, but fall back per-token to the payload's
     // tokens object. A column that is NULL (e.g. added by a later migration)
     // must not clobber an already-shared token still held in payload.tokens —
     // otherwise normalizeEvent regenerates it and the distributed link breaks.
     tokensRotatedAt: Number.isFinite(p.tokensRotatedAt) ? p.tokensRotatedAt : null,
+    tokenRotations:  p.tokenRotations ?? {},
     tokens: (cloudRow.rsvp_token || p.tokens) ? {
       rsvp:    cloudRow.rsvp_token    ?? p.tokens?.rsvp    ?? null,
       invite:  cloudRow.invite_token  ?? p.tokens?.invite  ?? null,
@@ -319,4 +323,24 @@ export async function fetchCloudEvents(userId) {
 
   if (error) throw error;
   return (data ?? []).map(mapCloudEventToLocalEvent);
+}
+
+/**
+ * The guest rows of ONE event as the cloud holds them right now — for the
+ * host's door screen, which overlays the greeter's marks while it is open
+ * (WORKPLAN ב2). The owner reads their own row under RLS. Read-only: nothing
+ * here writes, and nothing here touches the sync state.
+ *
+ * @param {string} cloudId events.id
+ * @returns {Promise<object[]|null>} null when there is nothing to read
+ */
+export async function fetchCloudEventGuests(cloudId) {
+  if (!isSupabaseConfigured || !supabase || !cloudId) return null;
+  const { data, error } = await supabase
+    .from("events")
+    .select("payload")
+    .eq("id", cloudId)
+    .maybeSingle();
+  if (error) throw error;
+  return Array.isArray(data?.payload?.guests) ? data.payload.guests : null;
 }

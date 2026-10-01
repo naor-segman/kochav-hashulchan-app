@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
 import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import { canCreateEvent } from "../utils/featureGates.js";
 import { eventHealth, dashStats, summaryMessages } from "../utils/eventAnalytics.js";
@@ -14,7 +13,14 @@ import { useConfirm } from "../components/ui/useConfirm.jsx";
 import styles from "./DashboardScreen.module.css";
 import { COMPANY } from "../data/company.js";
 
-export default function DashboardScreen({ events, plan = "free", onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
+/* `unpaidCount`, not `plan`. This screen used to be the only place a plan was
+   prop-drilled, and it used it for exactly one thing: the event allowance. There
+   is no account-level plan any more — a host can hold three events on three
+   different packages — and the allowance counts the events they have NOT paid
+   for. Defaulting to 0 rather than events.length keeps the gate open when the
+   prop is missing: a screen that hides the "new event" button because a prop
+   did not arrive is worse than one that lets a free user try. */
+export default function DashboardScreen({ events, unpaidCount = 0, isPaid = () => false, onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
   const { confirm, dialog } = useConfirm();
   const orientation = useOrientation();
 
@@ -49,7 +55,7 @@ export default function DashboardScreen({ events, plan = "free", onStartEvent, o
     if (i <= 0) return events;
     return [events[i], ...events.slice(0, i), ...events.slice(i + 1)];
   }, [events, featuredId]);
-  const eventGate     = canCreateEvent(plan, events.length);
+  const eventGate     = canCreateEvent(unpaidCount);
 
   // No events yet → this IS the start screen, not a dashboard with an empty
   // state bolted on. Rendered inline rather than redirected to, because on a
@@ -62,6 +68,11 @@ export default function DashboardScreen({ events, plan = "free", onStartEvent, o
   return (
     <div className={base.pageWide}>
       {dialog}
+      {/* The page's h1, for the heading outline (29.9 review: the dashboard had
+          none, and the onboarding panel's h2 came first). Not drawn: the
+          visible heading is the list's own, below, and a second visible title
+          would say the same thing twice. */}
+      <h1 className="sr-only">האירועים שלי</h1>
 
       {/* ── Compact header ── */}
       <div className={styles.heroBar}>
@@ -87,8 +98,11 @@ export default function DashboardScreen({ events, plan = "free", onStartEvent, o
       {/* ── Event limit upgrade tip ── */}
       {!eventGate.allowed && (
         <p className={styles.upgradeTip}>
-          <Icon name="lock" /> {eventGate.reason} —{" "}
-          <Link to="/account" className={styles.upgradeTipLink}>שדרגו את התוכנית</Link>
+          {/* The reason now names the action ("רכשו את החבילה לאירוע הקיים"),
+              and the purchase happens INSIDE an event — the checkout has to know
+              which wedding is being bought — so this points at the event list
+              above rather than at /account, where there is no event to buy. */}
+          <Icon name="lock" /> {eventGate.reason}
         </p>
       )}
 
@@ -208,9 +222,15 @@ export default function DashboardScreen({ events, plan = "free", onStartEvent, o
                           const dataNote = details.length > 0
                             ? "\n\nיימחקו: " + details.join(" ו-") + " וכל ההושבה."
                             : "";
+                          // A purchase belongs to ONE event, and deleting the
+                          // event forfeits it — the dialog said nothing of the
+                          // ₪690 going with it (second review, סב28).
+                          const paidNote = isPaid(ev)
+                            ? "\n\nלאירוע הזה נרכשה חבילה. היא שייכת לאירוע הזה בלבד ותאבד עם המחיקה — היא לא עוברת לאירוע אחר."
+                            : "";
                           if (!await confirm(
                             "למחוק לצמיתות את \"" + (ev.name || "אירוע ללא שם") + "\"?" +
-                            dataNote + "\n\nפעולה זו אינה ניתנת לביטול.",
+                            dataNote + paidNote + "\n\nפעולה זו אינה ניתנת לביטול.",
                             { danger: true, confirmLabel: "מחקו לצמיתות" }
                           )) return;
                           onDeleteEvent(ev.id);

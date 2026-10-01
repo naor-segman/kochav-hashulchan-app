@@ -238,9 +238,19 @@ export function matchGuest(g, query) {
     }
   }
 
-  const digits = q.replace(/\D/g, "");
-  if (digits && g?.phone && String(g.phone).replace(/\D/g, "").includes(digits)) {
-    return { via: "phone", label: g.name, seat: 0 };
+  // Israeli form on both sides: "+972 52…" and "052…" are one number. A phone
+  // stored as typed in the RSVP or the shared table ("+972 52 765 4321") was
+  // not found by "0527654321" (second review, סב35).
+  // The query is tried as typed too: "9721" is the END of 054-555-9721 far
+  // more often than an international prefix, and rewriting it alone stopped
+  // those searches matching (fourth review 30.9).
+  const local = d => (d.startsWith("972") ? "0" + d.slice(3) : d);
+  const typed = q.replace(/\D/g, "");
+  if (typed && g?.phone) {
+    const stored = local(String(g.phone).replace(/\D/g, ""));
+    if (stored.includes(typed) || stored.includes(local(typed))) {
+      return { via: "phone", label: g.name, seat: 0 };
+    }
   }
   return null;
 }
@@ -296,4 +306,50 @@ export function tableAvailability(tables, guests, seating) {
       return { table: t, capacity, taken: used, free: Math.max(0, capacity - used) };
     })
     .sort((a, b) => b.free - a.free);
+}
+
+/**
+ * Take the cloud's arrival state for any guest this tab has never expressed an
+ * opinion about.
+ *
+ * "Never expressed an opinion" is precisely `arrivedSeats === undefined` and no
+ * truthy `arrived`. That is different from `arrivedSeats: []`, which is the host
+ * deliberately un-marking someone — so un-marking still wins, and a host who
+ * marks people on their own device still wins. Only the guests the local copy is
+ * silent about are taken from the cloud, which is exactly the set the greeter
+ * touched after this tab last read the row.
+ *
+ * A guest missing from either side is left alone; this never adds or removes a
+ * row, only two keys on rows that exist on both.
+ */
+export function mergeArrivals(localGuests, cloudGuests) {
+  if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
+  const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
+  const take = c => ({ arrivedSeats: c.arrivedSeats, arrived: c.arrived, arrivedAt: c.arrivedAt });
+  const stamp = g => (Number.isFinite(g?.arrivedAt) ? g.arrivedAt : null);
+  const silent = g => g?.arrivedSeats === undefined && !g?.arrived;
+
+  return localGuests.map(g => {
+    const c = cloudById.get(g.id);
+    if (!c || silent(c)) return g;
+
+    // The rule, once both sides carry a stamp: whoever wrote last wins. That is
+    // the only question about arrivals with a correct answer, because the two
+    // writers are different PEOPLE — the host on their phone and the greeter at
+    // the door — and neither is authoritative over the other.
+    const ls = stamp(g), cs = stamp(c);
+    if (ls !== null && cs !== null) return cs > ls ? { ...g, ...take(c) } : g;
+    if (cs !== null && ls === null) return { ...g, ...take(c) };
+    if (ls !== null && cs === null) return g;
+
+    // NEITHER side is stamped: rows written before this shipped, or by a client
+    // that has not updated. Fall back to the old rule exactly — the local copy
+    // wins if it has said anything at all — so nothing about existing data
+    // changes behaviour until it is next touched.
+    //
+    // The old rule is wrong (it cannot tell a local opinion from a value it
+    // copied from the cloud), and this is the shape of being wrong that loses
+    // the SECOND update rather than the first. Kept only as the legacy path.
+    return silent(g) ? { ...g, ...take(c) } : g;
+  });
 }

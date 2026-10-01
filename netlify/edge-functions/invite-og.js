@@ -1,4 +1,9 @@
-// Netlify Edge Function — per-event Open Graph tags for /invite/:token links.
+// Netlify Edge Function — per-event Open Graph tags for every guest link.
+//
+// Until 28.9 this ran for /invite/* only, so five of the six links the message
+// sequence sends (WORKPLAN ר, 88) previewed in WhatsApp as an advert for the
+// product instead of as the couple's event. ROUTES below maps each guest path
+// to the token type its page resolves with and to the words its preview uses.
 //
 // A single-page app serves the same static OG tags for every route, so a
 // shared event-site link previews as the generic homepage in WhatsApp. This
@@ -13,12 +18,36 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
+const COUPLE_TYPES = new Set(["חתונה", "אירוס", "חינה"]);
+
+// Each entry: which paths, which token type the page itself resolves with (the
+// same one — the RPC hands each type only what its page needs), and how the
+// preview names the page. `null` label = the site's own wording (below).
+// /gift/:t/wall is deliberately absent: it is projected in the hall, not sent.
+export const ROUTES = [
+  { re: /^\/invite\/([^/]+)/,             type: "invite", label: null },
+  { re: /^\/rsvp\/([^/]+)/,               type: "rsvp",   label: "אישור הגעה",       desc: "לחצו כדי לאשר הגעה." },
+  { re: /^\/invitation\/([^/]+)/,         type: "invite", label: "הזמנה" },
+  { re: /^\/save-the-date\/([^/]+)/,      type: "invite", label: "שמרו את התאריך" },
+  { re: /^\/card\/([^/]+)/,               type: "invite", label: "הזמנה" },
+  { re: /^\/album\/([^/]+)\/?$/,          type: "album",  label: "אלבום התמונות",   desc: "העלו תמונות מהאירוע וראו מה צילמו כולם." },
+  { re: /^\/gift\/([^/]+)\/?$/,           type: "gift",   label: "מתנה וברכה",      desc: "השאירו ברכה למארחים." },
+];
+
+// "2026-10-01" → "1.10.2026", from the string's own parts. `new Date()` on a
+// date-only string parses as UTC and lands on the previous day here.
+function fmtDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  return m ? `${Number(m[3])}.${Number(m[2])}.${m[1]}` : "";
+}
+
 export default async (request, context) => {
   const res = await context.next();
   try {
     const url = new URL(request.url);
-    const m = url.pathname.match(/^\/invite\/([^/]+)/);
-    if (!m) return res;
+    let route = null, m = null;
+    for (const r of ROUTES) { m = url.pathname.match(r.re); if (m) { route = r; break; } }
+    if (!route) return res;
     // Only rewrite HTML documents.
     if (!(res.headers.get("content-type") || "").includes("text/html")) return res;
 
@@ -35,7 +64,7 @@ export default async (request, context) => {
       const r = await fetch(`${SUPA}/rest/v1/rpc/public_event_by_token`, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: KEY, Authorization: `Bearer ${KEY}` },
-        body: JSON.stringify({ token_type: "invite", token_value: m[1] }),
+        body: JSON.stringify({ token_type: route.type, token_value: m[1] }),
         signal: ctrl.signal,
       });
       if (r.ok) ev = await r.json();
@@ -50,11 +79,27 @@ export default async (request, context) => {
       "בר מצווה": "אתר הבר מצווה של", "בת מצווה": "אתר הבת מצווה של",
       "ברית": "אתר הברית של", "יום הולדת": "אתר יום ההולדת של",
     }[ev.type] || "אתר האירוע של";
-    const hosts = (ev.bride_name && ev.groom_name)
+    // Bride and groom names only on a couple's event, the same rule the guest
+    // pages follow (coupleEvent in src/utils/publicTokens.js — inlined, an edge
+    // function cannot import from src/). A bar mitzvah first set up as a
+    // wedding still carries them, and its WhatsApp preview read "אתר הבר מצווה
+    // של נועה & טל" (sixth review 30.9).
+    const couple = !ev.type || COUPLE_TYPES.has(ev.type);
+    const hosts = (couple && ev.bride_name && ev.groom_name)
       ? `${ev.bride_name} & ${ev.groom_name}`
-      : (ev.celebrant_name || ev.organization_name || ev.name);
-    const title = `${typeSite} ${hosts}`;
-    const desc  = [ev.type, ev.venue].filter(Boolean).join(" · ") || "אתם מוזמנים! פרטים ואישור הגעה בקישור.";
+      // owner_name: the one name of a ברית, יום הולדת… — without it the title
+      // fell to the event's own name: "אתר הברית של הברית של איתי" (סב20).
+      : (ev.celebrant_name || ev.organization_name || ev.owner_name || ev.name);
+    // The site keeps its original wording. Every other page names itself first,
+    // then whose event it is — "אישור הגעה · דנה & יוסי".
+    const title = route.label ? `${route.label} · ${hosts}` : `${typeSite} ${hosts}`;
+    // "אחר" is a real type and not something to show a guest (106). Inline,
+    // because an edge function cannot import from src/.
+    const type  = ev.type && ev.type !== "אחר" ? ev.type : "";
+    const facts = [type, fmtDate(ev.date), ev.venue].filter(Boolean).join(" · ");
+    const desc  = route.label
+      ? [facts, route.desc].filter(Boolean).join(" — ") || "אתם מוזמנים!"
+      : [type, ev.venue].filter(Boolean).join(" · ") || "אתם מוזמנים! פרטים ואישור הגעה בקישור.";
 
     // Replacement FUNCTIONS, not strings.
     //
@@ -67,6 +112,12 @@ export default async (request, context) => {
     // A function replacement never expands anything.
     const t = esc(title);
     const d = esc(desc);
+    // This page's own address. The shell it is served comes out of the build
+    // with og:url and canonical pointing at the HOMEPAGE (it is the "/"
+    // document), and a crawler that honours og:url — Facebook's does — goes
+    // and previews the homepage instead of the invitation. Query string
+    // dropped: it is tracking, not identity.
+    const self = esc(url.origin + url.pathname);
 
     // `html` WAS NEVER DEFINED. This line read `const out = html…` against a
     // variable that does not exist anywhere in the file, so every request threw
@@ -88,7 +139,9 @@ export default async (request, context) => {
       .replace(/(<meta property="og:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)
       .replace(/(<meta property="og:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
       .replace(/(<meta name="twitter:title" content=")[^"]*(")/i, (_m, a, b) => a + t + b)
-      .replace(/(<meta name="twitter:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b);
+      .replace(/(<meta name="twitter:description" content=")[^"]*(")/i, (_m, a, b) => a + d + b)
+      .replace(/(<meta property="og:url" content=")[^"]*(")/i, (_m, a, b) => a + self + b)
+      .replace(/(<link rel="canonical" href=")[^"]*(")/i, (_m, a, b) => a + self + b);
 
     const headers = new Headers(res.headers);
     headers.delete("content-length");

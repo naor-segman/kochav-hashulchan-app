@@ -4316,3 +4316,1731 @@ $$;
 
 REVOKE ALL ON FUNCTION public.submit_feedback(text, text, text, text, text) FROM public;
 GRANT EXECUTE ON FUNCTION public.submit_feedback(text, text, text, text, text) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260927000000_one_time_purchase.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260927000000_one_time_purchase
+-- Depends on: 20260524000004_stripe_columns
+--
+-- ONE PAYMENT PER EVENT — NOT A SUBSCRIPTION.
+--
+-- The decision is from 27.7 and the public pricing page has been stating it in
+-- two places ("תשלום אחד לאירוע. לא מנוי." on the ₪690 card, and again in the
+-- footnote under the table). The code did not agree: the only checkout path in
+-- the repo created a Stripe session with `mode: "subscription"`, i.e. a
+-- RECURRING charge, and everything downstream was built around that — a billing
+-- portal for managing a subscription, a renewal date on the account screen, and
+-- webhook handlers keyed on `customer.subscription.*` and `invoice.*` events.
+--
+-- Nobody could be charged (Stripe was never configured), so nothing had to be
+-- refunded and no row has to be migrated — this table is empty of Stripe rows.
+-- But "not a subscription" printed above a price, over code that opens a
+-- subscription, is the one line on that page with real exposure, and it is
+-- resolved in the direction the owner decided: the CODE changes.
+--
+-- WHAT A PURCHASE IS KEYED ON NOW
+--   A one-time Checkout session produces no Subscription object, so
+--   `stripe_subscription_id` — the column every webhook upsert used as its
+--   conflict target — is always null. Two new keys replace it:
+--
+--   stripe_checkout_session_id  cs_… The idempotency key. Stripe can deliver
+--                               checkout.session.completed more than once, and
+--                               a host who double-clicks or presses Back can
+--                               complete two sessions; the unique constraint is
+--                               what makes the upsert safe.
+--   stripe_payment_intent_id    pi_… The refund key. For a one-time payment the
+--                               only lifecycle event after "paid" is a REFUND,
+--                               and charge.refunded identifies the charge by
+--                               payment intent, not by session.
+--
+-- WHAT IS NOT DONE HERE, AND MUST NOT BE ASSUMED
+--   The price is per EVENT, but a purchase row is still per USER. Paying once
+--   therefore unlocks the paid plan for the account, not for one event. That is
+--   checklist 41/44 (per-event entitlement) and it is deliberately NOT built
+--   into this migration — adding an event_id here without the enforcement that
+--   goes with it would be a column nothing reads, which is how the gift-amount
+--   field ended up printing ₪0 in an Excel sheet for months.
+-- =============================================================================
+
+ALTER TABLE public.subscriptions
+  ADD COLUMN IF NOT EXISTS stripe_checkout_session_id text UNIQUE,
+  ADD COLUMN IF NOT EXISTS stripe_payment_intent_id   text UNIQUE;
+
+COMMENT ON COLUMN public.subscriptions.stripe_checkout_session_id IS
+  'Stripe cs_… Checkout Session ID of the one-time purchase. Conflict target for the webhook upsert — this is what makes a duplicated checkout.session.completed delivery idempotent.';
+
+COMMENT ON COLUMN public.subscriptions.stripe_payment_intent_id IS
+  'Stripe pi_… Payment Intent ID of the one-time purchase. Looked up by charge.refunded, the only lifecycle event a one-time payment has after it succeeds.';
+
+CREATE INDEX IF NOT EXISTS subs_stripe_session_idx
+  ON public.subscriptions (stripe_checkout_session_id);
+
+CREATE INDEX IF NOT EXISTS subs_stripe_pi_idx
+  ON public.subscriptions (stripe_payment_intent_id);
+
+-- ── The columns the subscription model left behind ───────────────────────────
+--
+-- Kept, not dropped. `is_manually_managed` and `payment_past_due` are still
+-- used (the admin panel comps accounts with the first, and an admin can still
+-- flag a failed payment with the second), and dropping a column is the one
+-- schema change that cannot be undone by re-running a migration. What they get
+-- instead is a comment that says they are no longer written by any webhook, so
+-- the next person does not build on them.
+
+COMMENT ON COLUMN public.subscriptions.stripe_subscription_id IS
+  'LEGACY — Stripe sub_… ID. Always null since 27.9: purchases are one-time (mode: payment) and produce no Subscription object. Kept because dropping a unique column is irreversible, and because a comped or migrated recurring contract would still land here.';
+
+COMMENT ON COLUMN public.subscriptions.current_period_end IS
+  'LEGACY — end of a billing period. Always null for a one-time purchase: there is no next period, which is the whole point. The account screen no longer renders a renewal date.';
+
+COMMENT ON COLUMN public.subscriptions.payment_past_due IS
+  'Set by an ADMIN only since 27.9. It used to be written by invoice.payment_failed / invoice.payment_succeeded; a one-time payment generates no invoices, so those handlers were removed with the subscription model.';
+
+COMMENT ON TABLE public.subscriptions IS
+  'One row per PURCHASE. Since 27.9 these are one-time payments per event (Stripe mode: payment), not subscriptions — see 20260927000000_one_time_purchase. The table name is kept because subscriptions.plan carries a CHECK constraint that the whole app and the Stripe metadata read.';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000000_per_event_entitlement.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000000_per_event_entitlement
+-- Depends on: 20260927000000_one_time_purchase
+--
+-- A PURCHASE BELONGS TO ONE EVENT.
+--
+-- 20260927000000 made the charge one-time and said, in its own header, what it
+-- was leaving undone: "the price is per EVENT, but a purchase row is still per
+-- USER. Paying once therefore unlocks the paid plan for the account, not for one
+-- event." This is that column, and it arrives with the code that reads it.
+--
+-- WHY THE FK IS THE CLOUD ID, WHICH IS NOT THE ID THE APP ROUTES ON
+--   An event has two identities and they are different UUIDs:
+--
+--     local  `ev.id`       minted client-side by uid(), stored in the events
+--                          row's JSONB as payload.localId, and the value the
+--                          URL carries (/events/:eventId) and every screen and
+--                          gate sees. cloudSync.mapLocalEventToCloudPayload
+--                          deliberately sends NO `id` column.
+--     cloud  `events.id`   gen_random_uuid() on the server, kept on the local
+--                          object as `ev.cloudId`.
+--
+--   The FK below is the CLOUD id, for three reasons that all point the same way:
+--     1. It is a real uuid. `uid()` has a third fallback branch that returns
+--        "id-<base36>" when crypto is unavailable (a LAN IP is not a secure
+--        context, which is how you check RTL on a real phone) — that value
+--        cannot be stored in a uuid column at all, and it would fail at the
+--        worst possible moment, mid-purchase.
+--     2. Every other per-event table already keys on it — collab_live_table,
+--        event_album, collab_guests. A second convention here would be the
+--        thing someone gets wrong later.
+--     3. It is the only id the WEBHOOK can verify. The webhook writes with the
+--        service role and must be able to prove the event exists and belongs to
+--        the buyer; payload.localId is self-declared JSON inside a row the user
+--        can edit, so trusting it would let a host point a purchase at anything.
+--
+--   Consequence, stated so nobody has to discover it: an event that has never
+--   reached the cloud (guest-mode draft, or a sync that has not landed yet) has
+--   no cloudId and therefore cannot be bought. That is correct — paying requires
+--   being signed in — but it has to be SAID in the UI rather than shown as a
+--   button that fails.
+--
+-- WHY THERE IS NO UNIQUE (user_id, event_id)
+--   It looks right and it is wrong. A refund followed by a re-purchase of the
+--   same event is a legitimate sequence, and so is buying the ₪1,290 package for
+--   an event that already has the ₪690 one. The uniqueness that matters is one
+--   row per PAYMENT, and that is already enforced by
+--   stripe_checkout_session_id. What stops a host being charged twice for the
+--   same wedding is a check in create-checkout-session BEFORE Stripe is called —
+--   a guard in front of the money, not a constraint behind it.
+--
+-- ON DELETE SET NULL, not CASCADE
+--   Deleting an event must not delete the record that money changed hands. Every
+--   other per-event table cascades because its rows are worthless without the
+--   event; a purchase row is an accounting record. It becomes an account-wide
+--   entitlement if its event is deleted, which is the forgiving direction: the
+--   host keeps what they paid for.
+-- =============================================================================
+
+ALTER TABLE public.subscriptions
+  ADD COLUMN IF NOT EXISTS event_id uuid
+    REFERENCES public.events (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN public.subscriptions.event_id IS
+  'The events.id (CLOUD id, not payload.localId) this purchase unlocks. NULL means account-wide — an admin comp, or a purchase whose event was later deleted. Set from the Stripe session metadata by the webhook, which verifies the event belongs to the buyer first.';
+
+CREATE INDEX IF NOT EXISTS subs_event_idx
+  ON public.subscriptions (event_id);
+
+-- The lookup the app actually makes on every event screen: "what has this user
+-- bought that is still valid?" One index for the whole question.
+CREATE INDEX IF NOT EXISTS subs_user_active_idx
+  ON public.subscriptions (user_id, status)
+  WHERE status IN ('active', 'trialing');
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000100_album_moderation.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000100_album_moderation
+-- Depends on: 20260727000001_event_album, 20260816010000_fix_storage_folder_ambiguity
+--
+-- THE HOST CAN HIDE A GUEST'S PHOTO. Checklist 57.
+--
+-- The shared album has been live since 27.7: anyone holding the link uploads,
+-- and everyone holding it sees everything. The host had no screen for it at all
+-- — no list, no hide, no delete. The database already let the owner SELECT and
+-- DELETE (album_photos_owner_select / _owner_delete, and the storage policies
+-- fixed in 20260816010000), and not one line of client code used either.
+-- WORKPLAN row ע: "מארח שרוצה לראות את התמונות פותח את אותו קישור ציבורי כמו
+-- אורח."
+--
+-- This adds the one thing the schema could not do — HIDE — on the same pattern
+-- as the blessing wall (20260818000300_gift_wall_moderation): a `hidden` column,
+-- an owner UPDATE policy, and the public list filtering it out.
+--
+-- ── ONE DIFFERENCE FROM THE GIFT PRECEDENT, DELIBERATE ───────────────────────
+-- gifts got `grant update ... to authenticated` on the whole row. Here the grant
+-- is on the `hidden` COLUMN ONLY. With a whole-row grant the owner could also
+-- rewrite `storage_path` to any string — including a path inside another
+-- event's folder, since the bucket is public and the row is what the public list
+-- renders — or `album_token`, or `event_id` (WITH CHECK confines that to their
+-- own events, but it is still a move nobody needs). Hiding needs one boolean,
+-- so one boolean is what is granted.
+--
+-- The table-level UPDATE that Supabase's default privileges give `anon` and
+-- `authenticated` on every public table is revoked first, because a column
+-- grant does NOT narrow an existing table grant — it would be silently
+-- redundant. Nothing updates album_photos today (there was no UPDATE policy, so
+-- no update could have succeeded), so the revoke breaks nothing.
+--
+-- ── WHAT HIDING DOES NOT DO, STATED SO THE UI CAN SAY IT ────────────────────
+-- The `event-album` bucket is PUBLIC and images load from getPublicUrl. Hiding
+-- removes a photo from the album page; it does not revoke the file's address.
+-- Anyone who already saved the direct URL can still open it. Only DELETE takes
+-- a photo off the internet, and the host screen says exactly that.
+--
+-- Hidden rows still count toward the 5,000-row cap in album_add_photo. Only
+-- deletion frees room, which is the right way round: a hidden photo is still a
+-- photo the host chose to keep.
+-- =============================================================================
+
+alter table public.album_photos
+  add column if not exists hidden boolean not null default false;
+
+comment on column public.album_photos.hidden is
+  'Set by the event owner from the host album screen. Hidden photos are left out of album_list_by_token (the public album page) but kept in the table. The bucket is public, so a hidden photo''s direct URL still resolves — only deleting removes it.';
+
+-- The public list reads (event_id, created_at desc) where not hidden.
+create index if not exists album_photos_visible_idx
+  on public.album_photos (event_id, created_at desc)
+  where not hidden;
+
+-- ── Column-level UPDATE: `hidden` and nothing else ───────────────────────────
+revoke update on public.album_photos from anon, authenticated;
+grant  update (hidden) on public.album_photos to authenticated;
+
+drop policy if exists album_photos_owner_update on public.album_photos;
+create policy album_photos_owner_update
+  on public.album_photos for update to authenticated
+  using (exists (
+    select 1 from public.events e
+    where e.id = album_photos.event_id and e.user_id = auth.uid()
+  ))
+  -- WITH CHECK as well as USING, as on gifts: a guarantee that depends on a
+  -- sibling policy nobody remembers disappears the day that policy is edited.
+  with check (exists (
+    select 1 from public.events e
+    where e.id = album_photos.event_id and e.user_id = auth.uid()
+  ));
+
+-- ── The public list leaves hidden photos out ────────────────────────────────
+-- Same signature and return type as 20260727000001, so `create or replace` is
+-- enough and no caller changes. The body is copied from there verbatim with one
+-- predicate added; the 3,000-row limit and the ordering are unchanged.
+create or replace function public.album_list_by_token(token_value text)
+returns table (id uuid, storage_path text, uploader text, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.storage_path, p.uploader, p.created_at
+  from public.album_photos p
+  where p.event_id = public.album_event_id(token_value)
+    and not p.hidden
+  order by p.created_at desc
+  limit 3000;
+$$;
+
+revoke all on function public.album_list_by_token(text) from public;
+grant execute on function public.album_list_by_token(text) to anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000200_orphaned_purchase_grants_nothing.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000200_orphaned_purchase_grants_nothing
+-- Depends on: 20260928000000_per_event_entitlement
+--
+-- CORRECTS WHAT event_id NULL MEANS. No schema change — the documented meaning
+-- was wrong, and the client rule built on it was exploitable.
+--
+-- 20260928000000 said of subscriptions.event_id: "NULL means account-wide — an
+-- admin comp, or a purchase whose event was later deleted", and of ON DELETE SET
+-- NULL: "an orphaned purchase becoming account-wide is the forgiving direction:
+-- the host keeps what they paid for."
+--
+-- The security audit of the same day found what that means in practice: pay
+-- ₪690 once, delete the event, and the row becomes account-wide — every event on
+-- the account, including ones created later, unlocked for the price of one. The
+-- webhook produced the same state on purpose whenever it could not match the
+-- event. Written 28.9, found 28.9, never live (Stripe has not been configured).
+--
+-- The rule now (src/utils/entitlement.js isAccountWide):
+--   event_id = <an event>                       → that event only
+--   event_id IS NULL AND is_manually_managed    → every event: an ADMIN COMP
+--   event_id IS NULL AND NOT is_manually_managed → NOTHING. A record of money
+--                                                  that moved, for support and
+--                                                  refunds — a person decides.
+--
+-- ON DELETE SET NULL stays: deleting an event must still not delete the record
+-- of a payment. What changed is only what that orphaned row is worth.
+--
+-- TO COMP AN ACCOUNT BY HAND, set both — a null event alone grants nothing now:
+--   insert into public.subscriptions (user_id, plan, status, is_manually_managed)
+--   values ('<user uuid>', 'pro', 'active', true);
+-- =============================================================================
+
+comment on column public.subscriptions.event_id is
+  'The events.id (CLOUD id) this purchase unlocks. NULL grants NOTHING unless is_manually_managed is true (an admin comp, which applies to every event on the account). A purchase whose event was deleted is kept as a record of the payment and unlocks nothing — see 20260928000200.';
+
+comment on column public.subscriptions.is_manually_managed is
+  'When true, webhook handlers must not overwrite this row — AND, with event_id NULL, this is what makes a row an account-wide admin comp. A NULL event_id without this flag grants nothing (20260928000200).';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000300_internal_functions_and_album_token.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000300_internal_functions_and_album_token
+-- Depends on: 20260727000001_event_album, 20260811040000_ai_rate_limit
+--
+-- Two findings of the 28.9 security audit.
+--
+-- A5 — TWO "INTERNAL" FUNCTIONS WERE PUBLIC.
+--   Both were written `revoke all … from public` and left at that, on the
+--   belief that this made them internal. On Supabase it does not: the project's
+--   default privileges grant EXECUTE on every new function in `public` to anon
+--   and authenticated BY NAME, and revoking from the PUBLIC pseudo-role leaves
+--   those direct grants standing. So, callable by anyone with the anon key:
+--     album_event_id(text) — resolves an album token to the event's cloud id
+--     prune_ai_usage()     — a SECURITY DEFINER DELETE on ai_usage
+--   Neither is called from the client. album_event_id is called only from
+--   inside album_list_by_token and album_add_photo, which are SECURITY DEFINER
+--   and run as their owner, so revoking the caller's grant does not reach them.
+--
+-- B7 — THE ALBUM TOKEN WAS NOT UNIQUE.
+--   rsvp/invite/gift/hostess/collab tokens are columns with unique indexes
+--   (20260716000000, 20260723000002). The album token lives only in the
+--   payload, which its owner writes freely, and album_event_id resolves it with
+--   `limit 1`. So a host who copied another event's album link into their own
+--   payload made the lookup ambiguous — and whichever row Postgres returned
+--   first received the other couple's guests' uploads. The same missing index
+--   made every album lookup a scan of every event (audit A6).
+--
+--   The unique expression index closes both. Duplicating an event already mints
+--   fresh tokens (eventHelpers.js), so no legitimate write produces a clash.
+--   If duplicates already exist this migration STOPS rather than choosing which
+--   couple keeps the link — a person decides. The query to find them is below.
+-- =============================================================================
+
+revoke execute on function public.album_event_id(text) from anon, authenticated;
+revoke execute on function public.prune_ai_usage()     from anon, authenticated;
+
+do $$
+declare
+  dupes int;
+begin
+  select count(*) into dupes from (
+    select payload ->> 'albumToken'
+    from public.events
+    where payload ->> 'albumToken' is not null
+    group by 1 having count(*) > 1
+  ) d;
+  if dupes > 0 then
+    raise exception
+      '% album token(s) are shared by more than one event. Resolve by hand before re-running: select payload->>''albumToken'' t, array_agg(id) from public.events where payload->>''albumToken'' is not null group by 1 having count(*) > 1;',
+      dupes;
+  end if;
+end $$;
+
+create unique index if not exists idx_events_album_token
+  on public.events ((payload ->> 'albumToken'))
+  where payload ->> 'albumToken' is not null;
+
+comment on index public.idx_events_album_token is
+  'One event per album token. Without it album_event_id() resolved an ambiguous token with LIMIT 1 — see 20260928000300.';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000400_album_link_on_site.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000400_album_link_on_site
+-- Depends on: 20260818000200_drop_payment_fields_from_public_event
+--
+-- WORKPLAN פ: the shared album was reachable only from a link the host had to
+-- send separately. The event site — the page guests keep returning to — had
+-- no way to reach it, because this function hands each link type only the
+-- sibling tokens its page links onward to, and the album token went to none.
+--
+-- The site (token type 'invite') now also receives album_token. Nothing else
+-- changes: rsvp/gift/hostess/album links receive exactly what they did, and
+-- hostess/collab tokens are still never served. Verified against a real
+-- Postgres by qa/publicEventRpcSql.mjs.
+--
+-- The whole function is restated because CREATE OR REPLACE replaces it whole;
+-- the body is 20260818000200's with one key added.
+-- =============================================================================
+
+create or replace function public.public_event_by_token(token_type text, token_value text)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'id', e.id, 'name', e.name, 'type', e.type, 'date', e.date, 'venue', e.venue,
+    'bride_name', e.payload->>'brideName', 'groom_name', e.payload->>'groomName',
+    'celebrant_name', e.payload->>'celebrantName', 'organization_name', e.payload->>'organizationName',
+    'contact_name', e.payload->>'contactName', 'owner_name', e.payload->>'ownerName',
+    -- Only serve the site once the host has published it.
+    'site', case when coalesce((e.payload->'eventSite'->>'enabled')::boolean, false)
+                 then e.payload->'eventSite' else null end,
+    -- Same rule, per announcement kind: a draft never leaves the database.
+    'announcements', (
+      select jsonb_object_agg(k, v)
+        from jsonb_each(coalesce(e.payload->'announcements', '{}'::jsonb)) as a(k, v)
+       where coalesce((v->>'enabled')::boolean, false)
+    ),
+    -- Sibling tokens only where a page actually links onward. The invite page
+    -- is the hub and needs RSVP (and, since 20260928000400, the album); the
+    -- RSVP page links back to the site. The album and gift pages link to
+    -- neither, so they get neither. hostess_token
+    -- and collab_token are never exposed here — they unlock the full guest list
+    -- with phone numbers.
+    'rsvp_token',   case when token_type in ('invite', 'rsvp') then e.rsvp_token   end,
+    'gift_token',   case when token_type in ('invite', 'gift') then e.gift_token   end,
+    'invite_token', case when token_type in ('invite', 'rsvp') then e.invite_token end,
+    -- The event site links to the shared album (20260928000400). Only the
+    -- site: the album link is for the same guests who hold the site link,
+    -- and no other page links onward to it.
+    'album_token',  case when token_type = 'invite' then e.payload->>'albumToken' end)
+  from public.events e
+  where token_value is not null and char_length(token_value) >= 8
+    and case token_type
+      when 'rsvp'    then e.rsvp_token    = token_value
+      when 'invite'  then e.invite_token  = token_value
+      when 'gift'    then e.gift_token    = token_value
+      when 'hostess' then e.hostess_token = token_value
+      when 'album'   then e.payload->>'albumToken' = token_value
+      else false end
+  limit 1;
+$$;
+
+revoke all on function public.public_event_by_token(text, text) from public;
+grant execute on function public.public_event_by_token(text, text) to anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000500_public_event_per_page.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000500_public_event_per_page
+-- Depends on: 20260928000400_album_link_on_site
+--
+-- Each guest page gets what it renders, and nothing else (WORKPLAN 106, ט2).
+--
+-- 1. The whole published site — contactPhone included — went to EVERY token
+--    type. The album QR is designed to be photographed off a table by
+--    strangers; it and the gift link now receive no site at all.
+-- 2. The RSVP page reads its own settings (message, shuttles, schedule,
+--    sections) from eventSite, and received them only once the SITE was
+--    published — so a host who never published the site silently lost the
+--    shuttle question and the thank-you line. The rsvp token now gets those
+--    fields always, and the cover photo only once published. Never the phone.
+-- 3. The RSVP success screen's gift button never rendered in production: the
+--    rsvp token was not given gift_token. It is now; the screen itself also
+--    respects the host's gift toggle (RSVPScreen.jsx).
+-- 4. Announcements go only to the invite token, the one page that shows them.
+--
+-- Verified against a real Postgres by qa/publicEventRpcSql.mjs.
+-- =============================================================================
+
+create or replace function public.public_event_by_token(token_type text, token_value text)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'id', e.id, 'name', e.name, 'type', e.type, 'date', e.date, 'venue', e.venue,
+    'bride_name', e.payload->>'brideName', 'groom_name', e.payload->>'groomName',
+    'celebrant_name', e.payload->>'celebrantName', 'organization_name', e.payload->>'organizationName',
+    'contact_name', e.payload->>'contactName', 'owner_name', e.payload->>'ownerName',
+    -- The site, per page (20260928000500):
+    --   invite → the whole site, once published (unchanged)
+    --   rsvp   → only the RSVP page's own settings, published or not — they
+    --            are the host's RSVP settings, not site content — and never
+    --            the host's contact phone
+    --   others → nothing. The album QR on the tables and the gift link had
+    --            been receiving the full published site, contactPhone included.
+    'site', case
+      when token_type = 'invite' and coalesce((e.payload->'eventSite'->>'enabled')::boolean, false)
+        then e.payload->'eventSite'
+      when token_type = 'rsvp' then jsonb_strip_nulls(jsonb_build_object(
+        'enabled',     coalesce((e.payload->'eventSite'->>'enabled')::boolean, false),
+        'coverPhoto',  case when coalesce((e.payload->'eventSite'->>'enabled')::boolean, false)
+                            then e.payload->'eventSite'->'coverPhoto' end,
+        'rsvpMessage', e.payload->'eventSite'->'rsvpMessage',
+        'shuttles',    e.payload->'eventSite'->'shuttles',
+        'schedule',    e.payload->'eventSite'->'schedule',
+        'sections',    e.payload->'eventSite'->'sections'))
+      else null end,
+    -- Published announcements, to the page that renders them: the invite
+    -- token (/invitation, /save-the-date). A draft never leaves the database.
+    'announcements', case when token_type = 'invite' then (
+      select jsonb_object_agg(k, v)
+        from jsonb_each(coalesce(e.payload->'announcements', '{}'::jsonb)) as a(k, v)
+       where coalesce((v->>'enabled')::boolean, false)
+    ) end,
+    -- Sibling tokens only where a page actually links onward. The invite page
+    -- is the hub and needs RSVP (and, since 20260928000400, the album); the
+    -- RSVP page links back to the site. The album and gift pages link to
+    -- neither, so they get neither. hostess_token
+    -- and collab_token are never exposed here — they unlock the full guest list
+    -- with phone numbers.
+    'rsvp_token',   case when token_type in ('invite', 'rsvp') then e.rsvp_token   end,
+    -- rsvp added 20260928000500: the RSVP success screen has a gift button
+    -- that never rendered in production because it never got this (ט2).
+    'gift_token',   case when token_type in ('invite', 'gift', 'rsvp') then e.gift_token end,
+    'invite_token', case when token_type in ('invite', 'rsvp') then e.invite_token end,
+    -- The event site links to the shared album (20260928000400). Only the
+    -- site: the album link is for the same guests who hold the site link,
+    -- and no other page links onward to it.
+    'album_token',  case when token_type = 'invite' then e.payload->>'albumToken' end)
+  from public.events e
+  where token_value is not null and char_length(token_value) >= 8
+    and case token_type
+      when 'rsvp'    then e.rsvp_token    = token_value
+      when 'invite'  then e.invite_token  = token_value
+      when 'gift'    then e.gift_token    = token_value
+      when 'hostess' then e.hostess_token = token_value
+      when 'album'   then e.payload->>'albumToken' = token_value
+      else false end
+  limit 1;
+$$;
+
+revoke all on function public.public_event_by_token(text, text) from public;
+grant execute on function public.public_event_by_token(text, text) to anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000600_collab_custom_groups.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000600_collab_custom_groups
+-- Depends on: 20260814000000_collab_parents_type
+--
+-- WORKPLAN 106: the shared family table offered only the built-in group list.
+-- A host who had made their own groups ("חברים מהצבא", "השכנים מהבניין") saw
+-- their relatives file everyone under the stock names, and a row already in a
+-- custom group rendered with an empty group select. The RPC never sent them.
+--
+-- Adds custom_groups (the host's own group names — labels, nothing personal).
+-- Everything else is 20260814000000's body unchanged; CREATE OR REPLACE keeps
+-- the existing grants.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.collab_event_by_token(token_value text)
+RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT jsonb_build_object(
+    'id',            e.id,
+    'name',          e.name,
+    'type',          e.type,
+    'bride_name',    e.payload->>'brideName',
+    'groom_name',    e.payload->>'groomName',
+    'couple_type',   e.payload->>'coupleType',
+    'parents_type',  e.payload->>'parentsType',
+    'side_labels',   e.payload->'sideLabels',
+    'custom_groups', CASE WHEN jsonb_typeof(e.payload->'customGroups') = 'array'
+                          THEN e.payload->'customGroups' ELSE '[]'::jsonb END
+  )
+  FROM public.events e
+  WHERE token_value IS NOT NULL
+    AND char_length(token_value) >= 8
+    AND e.collab_token = token_value
+    AND public.collab_is_active(e)
+  LIMIT 1;
+$$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000700_hostess_three_way_arrival.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000700_hostess_three_way_arrival
+-- Depends on: 20260813000000_arrival_timestamps
+--
+-- WORKPLAN ג2: two greeters marking the SAME family inside one 25-second
+-- refresh window lost a mark. Each sent the full seat list it believed in, and
+-- the last write replaced the row: greeter A ticks seat 1, greeter B (still
+-- looking at the old list) ticks seat 2, and the family ends with seat 2 only.
+--
+-- This overload takes a fourth argument, `base` — the seat list the greeter's
+-- screen showed BEFORE the tap. The server applies only the difference:
+--
+--     result = (current ∪ (seats − base)) − (base − seats)
+--
+-- so B's tick adds seat 2 to whatever is there now, and an un-tick removes
+-- only the seat that was un-ticked. The 3-argument version is left in place
+-- untouched, so a phone still running the old page keeps working exactly as
+-- before.
+--
+-- Same guards as the original: the hostess token, the writes switch, the
+-- row's own seat count as the ceiling, integers only. Verified against a real
+-- Postgres by qa/hostessThreeWaySql.mjs.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.hostess_mark_arrival_by_token(
+  token_value text,
+  guest_id    text,
+  seats       jsonb,
+  base        jsonb
+)
+RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  ev_id      uuid;
+  seat_count int;
+  want       int[];
+  was        int[];
+  cur        int[];
+  added      int[];
+  removed    int[];
+  result     jsonb;
+  stamp_ms   bigint;
+BEGIN
+  SELECT e.id INTO ev_id
+  FROM public.events e
+  WHERE token_value IS NOT NULL
+    AND char_length(token_value) >= 8
+    AND e.hostess_token = token_value
+    AND public.hostess_writes_active(e)
+  LIMIT 1;
+  IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
+
+  IF guest_id IS NULL OR char_length(guest_id) = 0 OR char_length(guest_id) > 64 THEN
+    RAISE EXCEPTION 'guest id required';
+  END IF;
+
+  SELECT greatest(1, COALESCE((g->>'count')::int, 1))
+    INTO seat_count
+  FROM public.events e,
+       jsonb_array_elements(COALESCE(e.payload->'guests', '[]'::jsonb)) g
+  WHERE e.id = ev_id AND g->>'id' = guest_id
+  LIMIT 1;
+  IF seat_count IS NULL THEN RAISE EXCEPTION 'guest not found'; END IF;
+
+  -- Three seat sets, each sanitised the same way as the original function:
+  -- integers only (the regex inside the CASE, see 20260813000000), inside
+  -- [0, seat_count), deduplicated.
+  SELECT COALESCE(array_agg(DISTINCT v), '{}') INTO want FROM (
+    SELECT CASE WHEN x ~ '^[0-9]{1,3}$' THEN x::int END AS v
+    FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(seats) = 'array' THEN seats ELSE '[]'::jsonb END) AS x
+  ) s WHERE v >= 0 AND v < seat_count;
+
+  SELECT COALESCE(array_agg(DISTINCT v), '{}') INTO was FROM (
+    SELECT CASE WHEN x ~ '^[0-9]{1,3}$' THEN x::int END AS v
+    FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(base) = 'array' THEN base ELSE '[]'::jsonb END) AS x
+  ) s WHERE v >= 0 AND v < seat_count;
+
+  SELECT COALESCE(array_agg(DISTINCT v), '{}') INTO cur FROM (
+    SELECT CASE WHEN x ~ '^[0-9]{1,3}$' THEN x::int END AS v
+    FROM public.events e,
+         jsonb_array_elements(COALESCE(e.payload->'guests', '[]'::jsonb)) g,
+         jsonb_array_elements_text(CASE WHEN jsonb_typeof(g->'arrivedSeats') = 'array'
+                                        THEN g->'arrivedSeats' ELSE '[]'::jsonb END) AS x
+    WHERE e.id = ev_id AND g->>'id' = guest_id
+  ) s WHERE v >= 0 AND v < seat_count;
+
+  -- The two differences first, each on its own — EXCEPT chains associate to
+  -- the left, so writing them inline would compute the wrong set.
+  added   := ARRAY(SELECT unnest(want) EXCEPT SELECT unnest(was));
+  removed := ARRAY(SELECT unnest(was)  EXCEPT SELECT unnest(want));
+
+  -- (current ∪ added) − removed, as a sorted JSON array.
+  SELECT COALESCE(jsonb_agg(v ORDER BY v), '[]'::jsonb) INTO result FROM (
+    SELECT DISTINCT v FROM unnest(cur || added) AS v
+    WHERE NOT (v = ANY (removed))
+  ) s;
+
+  stamp_ms := (extract(epoch from clock_timestamp()) * 1000)::bigint;
+
+  UPDATE public.events e
+  SET payload = jsonb_set(
+        e.payload,
+        '{guests}',
+        COALESCE((
+          SELECT jsonb_agg(
+            CASE WHEN t.g->>'id' = guest_id
+              THEN t.g
+                   || jsonb_build_object('arrivedSeats', result)
+                   || jsonb_build_object('arrived', to_jsonb(jsonb_array_length(result) > 0))
+                   || jsonb_build_object('arrivedAt', to_jsonb(stamp_ms))
+              ELSE t.g
+            END
+            ORDER BY t.ord
+          )
+          FROM jsonb_array_elements(COALESCE(e.payload->'guests', '[]'::jsonb))
+               WITH ORDINALITY AS t(g, ord)
+        ), '[]'::jsonb)
+      ),
+      version    = COALESCE(e.version, 1) + 1,
+      updated_at = now()
+  WHERE e.id = ev_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.hostess_mark_arrival_by_token(text, text, jsonb, jsonb) FROM public, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.hostess_mark_arrival_by_token(text, text, jsonb, jsonb) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000800_gift_floor_server.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000800_gift_floor_server
+-- Depends on: 20260728000000_public_write_hardening
+--
+-- WORKPLAN י2: the ₪50 minimum was enforced in the browser only.
+--
+--   - submit_gift_by_token accepted `amount >= 500` agorot — ₪5.
+--   - The table CHECK ck_gift_amount_range was created by 20260728000000 as
+--     `amount between 500 and 10000000`. 20260811030000 tried to raise it to
+--     5000, but it adds a constraint only when none of that NAME exists — and
+--     one did — so the ₪50 version never took effect.
+--   - The RPC kept up to 1,000 characters of message; the gift page allows
+--     600, and the projected wall was designed around that.
+--
+-- So a direct call to the anon RPC could declare ₪5 and put 1,000 characters
+-- on the wall in front of the hall. Now: ₪50 and 600, in the function and in
+-- the table. The CHECK is replaced NOT VALID: existing rows (all of them
+-- declarations, nothing charged) are not re-checked; new writes are.
+-- Verified against a real Postgres by qa/giftFloorSql.mjs.
+-- =============================================================================
+
+create or replace function public.submit_gift_by_token(
+  token_value text,
+  donor_name  text,
+  amount      bigint,
+  message     text
+) returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  ev_id uuid;
+  n     int;
+begin
+  if token_value is null or char_length(token_value) < 8 then
+    raise exception 'invalid token';
+  end if;
+
+  select e.id into ev_id
+    from public.events e
+   where e.gift_token = token_value
+   limit 1;
+
+  if ev_id is null then
+    raise exception 'invalid token';
+  end if;
+
+  if coalesce(trim(donor_name), '') = '' then
+    raise exception 'name required';
+  end if;
+
+  -- ₪50, the minimum the gift page states (5000 agorot). Was 500 (₪5).
+  if amount is null or amount < 5000 or amount > 10000000 then
+    raise exception 'amount out of range';
+  end if;
+
+  select count(*) into n from public.gifts where event_id = ev_id;
+  if n >= 5000 then
+    raise exception 'limit reached';
+  end if;
+
+  insert into public.gifts (event_id, donor_name, amount, message, paid)
+  values (ev_id, left(trim(donor_name), 200), amount,
+          -- 600, the gift page's own limit (GiftScreen MESSAGE_MAX). Was 1000.
+          nullif(left(trim(coalesce(message, '')), 600), ''), false);
+end; $$;
+
+revoke all on function public.submit_gift_by_token(text, text, bigint, text) from public;
+grant execute on function public.submit_gift_by_token(text, text, bigint, text) to anon, authenticated;
+
+alter table public.gifts drop constraint if exists ck_gift_amount_range;
+alter table public.gifts add constraint ck_gift_amount_range
+  check (amount >= 5000 and amount <= 10000000) not valid;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260928000900_gift_rate_limit.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260928000900_gift_rate_limit
+-- Depends on: 20260928000800_gift_floor_server
+--
+-- WORKPLAN כ2: nothing limited how fast gift declarations could be written —
+-- the only bound was 5,000 rows per event. Adds, inside submit_gift_by_token:
+--   - a double-tap guard (identical declaration within 10 minutes → stored once)
+--   - a burst limit of 60 declarations per event per minute
+-- and the index both lookups need. Everything else is 20260928000800's body.
+--
+-- Not per sender: that needs the client's IP from the request headers, which
+-- cannot be verified from here. Recorded in WORKPLAN 102.
+-- Verified against a real Postgres by qa/giftFloorSql.mjs.
+-- =============================================================================
+
+create index if not exists idx_gifts_event_created on public.gifts (event_id, created_at);
+
+create or replace function public.submit_gift_by_token(
+  token_value text,
+  donor_name  text,
+  amount      bigint,
+  message     text
+) returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  ev_id uuid;
+  n     int;
+begin
+  if token_value is null or char_length(token_value) < 8 then
+    raise exception 'invalid token';
+  end if;
+
+  select e.id into ev_id
+    from public.events e
+   where e.gift_token = token_value
+   limit 1;
+
+  if ev_id is null then
+    raise exception 'invalid token';
+  end if;
+
+  if coalesce(trim(donor_name), '') = '' then
+    raise exception 'name required';
+  end if;
+
+  -- ₪50, the minimum the gift page states (5000 agorot). Was 500 (₪5).
+  if amount is null or amount < 5000 or amount > 10000000 then
+    raise exception 'amount out of range';
+  end if;
+
+  select count(*) into n from public.gifts where event_id = ev_id;
+  if n >= 5000 then
+    raise exception 'limit reached';
+  end if;
+
+  -- A double tap is one gift, not two (20260928000900). Same name, amount and
+  -- message on the same event within ten minutes is accepted and not stored
+  -- again — two identical lines on the host's list of money is the worse
+  -- outcome, and the sender is not told otherwise. Parameters are qualified
+  -- with the function name because they share names with the columns.
+  if exists (
+    select 1 from public.gifts g
+     where g.event_id = ev_id
+       and g.donor_name = left(trim(submit_gift_by_token.donor_name), 200)
+       and g.amount = submit_gift_by_token.amount
+       and coalesce(g.message, '') = coalesce(left(trim(coalesce(submit_gift_by_token.message, '')), 600), '')
+       and g.created_at > now() - interval '10 minutes'
+  ) then
+    return;
+  end if;
+
+  -- A burst limit per event (WORKPLAN כ2). Until now the only bound was the
+  -- 5,000-row ceiling, which a script reaches in seconds; 60 a minute is far
+  -- above a hall of guests and far below a flood.
+  select count(*) into n from public.gifts
+   where event_id = ev_id and created_at > now() - interval '1 minute';
+  if n >= 60 then
+    raise exception 'rate limited';
+  end if;
+
+  insert into public.gifts (event_id, donor_name, amount, message, paid)
+  values (ev_id, left(trim(donor_name), 200), amount,
+          -- 600, the gift page's own limit (GiftScreen MESSAGE_MAX). Was 1000.
+          nullif(left(trim(coalesce(message, '')), 600), ''), false);
+end; $$;
+
+revoke all on function public.submit_gift_by_token(text, text, bigint, text) from public;
+grant execute on function public.submit_gift_by_token(text, text, bigint, text) to anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260929000000_review_gift_door_fixes.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260929000000_review_gift_door_fixes
+-- Depends on: 20260928000700_hostess_three_way_arrival,
+--             20260928000800_gift_floor_server, 20260928000900_gift_rate_limit
+--
+-- Four defects the 29.9 review found in those three, each reproduced against a
+-- real Postgres + PostgREST before it was fixed here:
+--
+-- 1. The double-tap guard dropped a DIFFERENT family's gift. It matched "same
+--    name, amount and message within 10 minutes" — and "משפחת כהן", ₪360, no
+--    message is not one family. Both were told it worked; one row was stored.
+--    Now: the page sends a key made once per form (client_key), and a repeat
+--    of THAT key is the double tap. A page that sends no key (an old cached
+--    one) keeps a name-based guard, cut to 60 seconds.
+--
+-- 2. The ₪50 CHECK made old gifts un-hideable. NOT VALID skips existing rows
+--    only when the constraint is added; every later UPDATE of an old ₪5 row —
+--    the host hiding an abusive blessing — was refused (23514). The table goes
+--    back to its original 500..10,000,000 range for every row, and ₪50 lives in
+--    the function, the only path a guest can insert through.
+--
+-- 3. Neither gift limit held under simultaneous requests (8 identical at once
+--    stored up to 7; 200 different stored 61–67 against 60). The function now
+--    takes a per-event advisory lock before it counts. Advisory, not a row
+--    lock on events: that would stall the host's own sync on the same row.
+--
+-- 4. The door write lost a mark when two greeters' requests overlapped on the
+--    server: it read the row without a lock and wrote back from a stale read
+--    (A marks seat 0, B marks seat 1, result [1]). The token lookup now locks
+--    the event row FOR UPDATE, so the second request reads the first's result.
+--    And a row from before per-seat check-in (arrived: true, no arrivedSeats)
+--    is read as every seat — as the app reads it (arrivedSeatsOf) — instead of
+--    none, which made un-ticking one seat clear the whole family.
+--
+-- Also: blank-name checks use a whitespace trim (a name of just "\n" passed
+-- `trim()`, which removes spaces only).
+--
+-- Verified by qa/giftFloorSql.mjs and qa/hostessThreeWaySql.mjs.
+-- =============================================================================
+
+-- ── 2. The table's range back to what every row satisfies ────────────────────
+alter table public.gifts drop constraint if exists ck_gift_amount_range;
+alter table public.gifts add constraint ck_gift_amount_range
+  check (amount >= 500 and amount <= 10000000);
+
+-- ── 1. The double-tap key ─────────────────────────────────────────────────────
+alter table public.gifts add column if not exists client_key text;
+create unique index if not exists uq_gifts_event_client_key
+  on public.gifts (event_id, client_key) where client_key is not null;
+
+create or replace function public.submit_gift_by_token(
+  token_value text,
+  donor_name  text,
+  amount      bigint,
+  message     text,
+  client_key  text
+) returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  ev_id uuid;
+  n     int;
+  nm    text := left(btrim(coalesce(submit_gift_by_token.donor_name, ''), E' \t\r\n\f\v'), 200);
+  msg   text := nullif(left(btrim(coalesce(submit_gift_by_token.message, ''), E' \t\r\n\f\v'), 600), '');
+  k     text := nullif(left(btrim(coalesce(submit_gift_by_token.client_key, '')), 64), '');
+begin
+  if token_value is null or char_length(token_value) < 8 then
+    raise exception 'invalid token';
+  end if;
+
+  select e.id into ev_id
+    from public.events e
+   where e.gift_token = token_value
+   limit 1;
+
+  if ev_id is null then
+    raise exception 'invalid token';
+  end if;
+
+  if nm = '' then
+    raise exception 'name required';
+  end if;
+
+  -- ₪50, the minimum the gift page states (5000 agorot). Here only: the table
+  -- CHECK must keep accepting the older rows it already holds.
+  if amount is null or amount < 5000 or amount > 10000000 then
+    raise exception 'amount out of range';
+  end if;
+
+  -- One writer per event from here on, so the counts below are true.
+  perform pg_advisory_xact_lock(hashtextextended('gifts:' || ev_id::text, 0));
+
+  -- The double tap. With a key: that key, on this event, already stored.
+  if k is not null then
+    if exists (select 1 from public.gifts g where g.event_id = ev_id and g.client_key = k) then
+      return;
+    end if;
+  -- Without one (a page from before this migration): identical within 60s.
+  elsif exists (
+    select 1 from public.gifts g
+     where g.event_id = ev_id
+       and g.donor_name = nm
+       and g.amount = submit_gift_by_token.amount
+       and coalesce(g.message, '') = coalesce(msg, '')
+       and g.created_at > now() - interval '60 seconds'
+  ) then
+    return;
+  end if;
+
+  select count(*) into n from public.gifts where event_id = ev_id;
+  if n >= 5000 then
+    raise exception 'limit reached';
+  end if;
+
+  select count(*) into n from public.gifts
+   where event_id = ev_id and created_at > now() - interval '1 minute';
+  if n >= 60 then
+    raise exception 'rate limited';
+  end if;
+
+  insert into public.gifts (event_id, donor_name, amount, message, paid, client_key)
+  values (ev_id, nm, amount, msg, false, k);
+end; $$;
+
+revoke all on function public.submit_gift_by_token(text, text, bigint, text, text) from public;
+grant execute on function public.submit_gift_by_token(text, text, bigint, text, text) to anon, authenticated;
+
+-- The 4-argument form stays for a page cached before this migration, and runs
+-- the same body without a key.
+create or replace function public.submit_gift_by_token(
+  token_value text,
+  donor_name  text,
+  amount      bigint,
+  message     text
+) returns void language plpgsql volatile security definer set search_path = public as $$
+begin
+  perform public.submit_gift_by_token(token_value, donor_name, amount, message, null::text);
+end; $$;
+
+revoke all on function public.submit_gift_by_token(text, text, bigint, text) from public;
+grant execute on function public.submit_gift_by_token(text, text, bigint, text) to anon, authenticated;
+
+-- ── 4. The door write, serialised per event, reading legacy rows as the app does
+create or replace function public.hostess_mark_arrival_by_token(
+  token_value text,
+  guest_id    text,
+  seats       jsonb,
+  base        jsonb
+)
+returns void
+language plpgsql volatile security definer set search_path = public
+as $$
+declare
+  ev_id      uuid;
+  seat_count int;
+  legacy_all boolean;
+  want       int[];
+  was        int[];
+  cur        int[];
+  added      int[];
+  removed    int[];
+  result     jsonb;
+  stamp_ms   bigint;
+begin
+  -- FOR UPDATE: a second greeter's request waits here and then reads the
+  -- first one's result, instead of writing back over it from a stale read.
+  select e.id into ev_id
+  from public.events e
+  where token_value is not null
+    and char_length(token_value) >= 8
+    and e.hostess_token = token_value
+    and public.hostess_writes_active(e)
+  limit 1
+  for update;
+  if ev_id is null then raise exception 'invalid token'; end if;
+
+  if guest_id is null or char_length(guest_id) = 0 or char_length(guest_id) > 64 then
+    raise exception 'guest id required';
+  end if;
+
+  select greatest(1, coalesce((g->>'count')::int, 1)),
+         coalesce(jsonb_typeof(g->'arrivedSeats') <> 'array' or g->'arrivedSeats' is null, true)
+           and coalesce((g->>'arrived')::boolean, false)
+    into seat_count, legacy_all
+  from public.events e,
+       jsonb_array_elements(coalesce(e.payload->'guests', '[]'::jsonb)) g
+  where e.id = ev_id and g->>'id' = guest_id
+  limit 1;
+  if seat_count is null then raise exception 'guest not found'; end if;
+
+  select coalesce(array_agg(distinct v), '{}') into want from (
+    select case when x ~ '^[0-9]{1,3}$' then x::int end as v
+    from jsonb_array_elements_text(case when jsonb_typeof(seats) = 'array' then seats else '[]'::jsonb end) as x
+  ) s where v >= 0 and v < seat_count;
+
+  select coalesce(array_agg(distinct v), '{}') into was from (
+    select case when x ~ '^[0-9]{1,3}$' then x::int end as v
+    from jsonb_array_elements_text(case when jsonb_typeof(base) = 'array' then base else '[]'::jsonb end) as x
+  ) s where v >= 0 and v < seat_count;
+
+  if legacy_all then
+    -- arrived: true from before per-seat check-in = every seat (arrivedSeatsOf).
+    cur := array(select generate_series(0, seat_count - 1));
+  else
+    select coalesce(array_agg(distinct v), '{}') into cur from (
+      select case when x ~ '^[0-9]{1,3}$' then x::int end as v
+      from public.events e,
+           jsonb_array_elements(coalesce(e.payload->'guests', '[]'::jsonb)) g,
+           jsonb_array_elements_text(case when jsonb_typeof(g->'arrivedSeats') = 'array'
+                                          then g->'arrivedSeats' else '[]'::jsonb end) as x
+      where e.id = ev_id and g->>'id' = guest_id
+    ) s where v >= 0 and v < seat_count;
+  end if;
+
+  -- The two differences first, each on its own — EXCEPT chains associate to
+  -- the left, so writing them inline would compute the wrong set.
+  added   := array(select unnest(want) except select unnest(was));
+  removed := array(select unnest(was)  except select unnest(want));
+
+  select coalesce(jsonb_agg(v order by v), '[]'::jsonb) into result from (
+    select distinct v from unnest(cur || added) as v
+    where not (v = any (removed))
+  ) s;
+
+  stamp_ms := (extract(epoch from clock_timestamp()) * 1000)::bigint;
+
+  update public.events e
+  set payload = jsonb_set(
+        e.payload,
+        '{guests}',
+        coalesce((
+          select jsonb_agg(
+            case when t.g->>'id' = guest_id
+              then t.g
+                   || jsonb_build_object('arrivedSeats', result)
+                   || jsonb_build_object('arrived', to_jsonb(jsonb_array_length(result) > 0))
+                   || jsonb_build_object('arrivedAt', to_jsonb(stamp_ms))
+              else t.g
+            end
+            order by t.ord
+          )
+          from jsonb_array_elements(coalesce(e.payload->'guests', '[]'::jsonb))
+               with ordinality as t(g, ord)
+        ), '[]'::jsonb)
+      ),
+      version    = coalesce(e.version, 1) + 1,
+      updated_at = now()
+  where e.id = ev_id;
+end;
+$$;
+
+revoke all on function public.hostess_mark_arrival_by_token(text, text, jsonb, jsonb) from public, anon, authenticated;
+grant execute on function public.hostess_mark_arrival_by_token(text, text, jsonb, jsonb) to anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260930000000_guest_write_hardening.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260930000000_guest_write_hardening
+-- Depends on: 20260818000100_album_objects_cap, 20260814020000 (album_add_photo),
+--             20260814010000 (submit_rsvp_by_token), 20260929000000 (gifts),
+--             20260816010000 (event-site storage policies)
+--
+-- The third review round (30.9) attacked every anonymous write path against all
+-- 52 migrations loaded into Postgres. Five defects, each reproduced there:
+--
+-- 1. THE ALBUM UPLOAD NEVER NEEDED THE ALBUM LINK. The storage policy checked
+--    only that the folder is a real event id and that there is room. Every
+--    public link hands out the event id (public_event_by_token returns it, and
+--    it is in every event-site photo address), so the gift or RSVP link was
+--    enough to fill the album's 5,000 slots — and changing the album link did
+--    not stop it. Files uploaded that way never get an album_photos row, so the
+--    host can neither see nor delete them: the album stays locked.
+--    Now: an album file lives at <event id>/<album token>/<file>, and the
+--    policy requires that second folder to be the event's CURRENT album token.
+--    Changing the link revokes uploads. (Older files keep their paths; reading
+--    and the host's delete are by the first folder, as before.)
+--
+-- 2. album_add_photo accepted '..' in the path, so an album-link holder could
+--    index <event>/../../event-site/<other event>/cover.jpg and make the album
+--    show another event's public file. It now also requires the token folder.
+--
+-- 3. THE LIMITS WERE LOCKOUT TOOLS. Gifts: 60 per event per minute, counted for
+--    everyone — one script at a request a second shut the gift page for the
+--    whole wedding. RSVP: no rate at all, only the 5,000 total, which a loop
+--    reached in seconds and then refused every real guest ("limit reached").
+--    Now both are limited PER SENDER (RSVP 30 a minute, gifts 60), keyed on a
+--    hash of the client address and the event, kept for one minute and then
+--    deleted — AND by a per-event ceiling of 300 a minute that applies to every
+--    sender. The ceiling is what bounds a forged address: the address comes
+--    from request headers, and whether the first x-forwarded-for hop can be
+--    set by the client depends on the gateway (the fourth review measured 40
+--    of 40 accepted by rotating it). IPv6 is keyed on its /64, which one
+--    subscriber holds whole.
+--    Why not 5: at the venue, a hall's wifi — and Israeli mobile carriers —
+--    put many guests behind ONE address. "Scan to leave a blessing" from the
+--    DJ is fifty guests in a minute from one address, hence 60 for gifts.
+--    Fourth review, also: the room check for album files counts the CURRENT
+--    album link's folder only, so files dropped there without being indexed
+--    (the host cannot see them) are cleared out of the way by changing the
+--    link; and album_add_photo's 5,000 is per link for the same reason.
+--
+-- 4. The event-site bucket had no ceiling: one signed-up account uploaded
+--    20,000 files into its own event folder. The editor holds a cover, ten
+--    gallery photos and the invitation's photo; 300 objects per event is far
+--    past any real use, and it bounds the bill.
+--
+-- Verified by qa/guestWriteHardeningSql.mjs (Supabase stand-in + every
+-- migration, attacks from 30.9 replayed).
+-- =============================================================================
+
+-- ── 3. The per-sender throttle ───────────────────────────────────────────────
+create table if not exists public.guest_write_throttle (
+  kind     text        not null,
+  event_id uuid        not null,
+  sender   text,                               -- md5(kind:event:address), or null
+  at       timestamptz not null default now()
+);
+create index if not exists idx_guest_write_throttle
+  on public.guest_write_throttle (event_id, kind, at);
+create index if not exists idx_guest_write_throttle_at
+  on public.guest_write_throttle (at);
+-- Touched only by the definer functions below. No policy = no direct access.
+alter table public.guest_write_throttle enable row level security;
+revoke all on table public.guest_write_throttle from public, anon, authenticated;
+
+create or replace function public.guest_throttle(
+  k          text,
+  ev         uuid,
+  per_sender int,
+  per_event  int
+) returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  h  json;
+  ip text;
+  s  text;
+  n  int;
+begin
+  -- One writer at a time per event and kind, whoever calls: the counts below
+  -- are only true under a lock (measured: 44 of 80 simultaneous calls against
+  -- a limit of 30 without one).
+  perform pg_advisory_xact_lock(hashtextextended('throttle:' || k || ':' || ev::text, 0));
+
+  -- PostgREST puts the request headers here. Absent, empty or not JSON: no
+  -- address, and only the per-event ceiling applies.
+  begin
+    h := nullif(current_setting('request.headers', true), '')::json;
+  exception when others then
+    h := null;
+  end;
+  ip := nullif(btrim(coalesce(
+          h ->> 'cf-connecting-ip',
+          nullif(split_part(coalesce(h ->> 'x-forwarded-for', ''), ',', 1), ''),
+          h ->> 'x-real-ip',
+          '')), '');
+  -- One subscriber holds a whole IPv6 /64; keyed per address it is unlimited.
+  if ip like '%:%' then
+    begin
+      ip := network(set_masklen(ip::inet, 64))::text;
+    exception when others then
+      null;   -- not an address after all: keyed as given
+    end;
+  end if;
+  s := case when ip is null then null else md5(k || ':' || ev::text || ':' || ip) end;
+
+  -- A minute of memory, no more, for EVERY event — not only the one being
+  -- written, or a quiet event's rows (hashes of client addresses) stay forever.
+  delete from public.guest_write_throttle where at < now() - interval '1 minute';
+
+  -- The ceiling for the event, whoever is sending: a forged address buys at
+  -- most this much, and never the 5,000 total in a few seconds.
+  select count(*) into n from public.guest_write_throttle
+   where event_id = ev and kind = k;
+  if n >= per_event then raise exception 'rate limited'; end if;
+
+  if s is not null then
+    select count(*) into n from public.guest_write_throttle
+     where event_id = ev and kind = k and sender = s;
+    if n >= per_sender then raise exception 'rate limited'; end if;
+  end if;
+
+  insert into public.guest_write_throttle (kind, event_id, sender) values (k, ev, s);
+end; $$;
+
+-- Called only from inside the definer functions below, which run as their
+-- owner — so no caller needs it.
+revoke all on function public.guest_throttle(text, uuid, int, int) from public, anon, authenticated;
+
+-- ── 3a. Gifts: per sender, not per event ─────────────────────────────────────
+-- The body of 20260929000000 with one change: the per-event "60 in a minute"
+-- count is replaced by guest_throttle. Everything else — the ₪50 floor, the
+-- advisory lock, the client_key double-tap guard, the 5,000 ceiling — is as it
+-- was.
+create or replace function public.submit_gift_by_token(
+  token_value text,
+  donor_name  text,
+  amount      bigint,
+  message     text,
+  client_key  text
+) returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  ev_id uuid;
+  n     int;
+  nm    text := left(btrim(coalesce(submit_gift_by_token.donor_name, ''), E' \t\r\n\f\v'), 200);
+  msg   text := nullif(left(btrim(coalesce(submit_gift_by_token.message, ''), E' \t\r\n\f\v'), 600), '');
+  k     text := nullif(left(btrim(coalesce(submit_gift_by_token.client_key, '')), 64), '');
+begin
+  if token_value is null or char_length(token_value) < 8 then
+    raise exception 'invalid token';
+  end if;
+
+  select e.id into ev_id
+    from public.events e
+   where e.gift_token = token_value
+   limit 1;
+
+  if ev_id is null then
+    raise exception 'invalid token';
+  end if;
+
+  if nm = '' then
+    raise exception 'name required';
+  end if;
+
+  if amount is null or amount < 5000 or amount > 10000000 then
+    raise exception 'amount out of range';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended('gifts:' || ev_id::text, 0));
+
+  if k is not null then
+    if exists (select 1 from public.gifts g where g.event_id = ev_id and g.client_key = k) then
+      return;
+    end if;
+  elsif exists (
+    select 1 from public.gifts g
+     where g.event_id = ev_id
+       and g.donor_name = nm
+       and g.amount = submit_gift_by_token.amount
+       and coalesce(g.message, '') = coalesce(msg, '')
+       and g.created_at > now() - interval '60 seconds'
+  ) then
+    return;
+  end if;
+
+  select count(*) into n from public.gifts where event_id = ev_id;
+  if n >= 5000 then
+    raise exception 'limit reached';
+  end if;
+
+  perform public.guest_throttle('gift', ev_id, 60, 300);
+
+  insert into public.gifts (event_id, donor_name, amount, message, paid, client_key)
+  values (ev_id, nm, amount, msg, false, k);
+end; $$;
+
+revoke all on function public.submit_gift_by_token(text, text, bigint, text, text) from public;
+grant execute on function public.submit_gift_by_token(text, text, bigint, text, text) to anon, authenticated;
+
+-- ── 3b. RSVP: a rate, per sender ─────────────────────────────────────────────
+-- The body of 20260814010000 with two additions: a per-event advisory lock (so
+-- the counts below are true under simultaneous requests) and guest_throttle.
+create or replace function public.submit_rsvp_by_token(
+  token_value   text,
+  guest_name    text,
+  phone         text,
+  status        text,
+  guests_count  int,
+  companions    text[],
+  shuttle_id    text,
+  meal          text
+) returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  ev_id uuid;
+  n     int;
+  comp  jsonb;
+begin
+  if token_value is null or char_length(token_value) < 8 then
+    raise exception 'invalid token';
+  end if;
+
+  select e.id into ev_id
+    from public.events e
+   where e.rsvp_token = token_value
+   limit 1;
+
+  if ev_id is null then raise exception 'invalid token'; end if;
+
+  if coalesce(trim(guest_name), '') = '' then
+    raise exception 'name required';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended('rsvp:' || ev_id::text, 0));
+
+  select count(*) into n from public.rsvp_responses where event_id = ev_id;
+  if n >= 5000 then raise exception 'limit reached'; end if;
+
+  perform public.guest_throttle('rsvp', ev_id, 30, 300);
+
+  comp := (
+    select coalesce(jsonb_agg(left(coalesce(elem, ''), 80) order by ord), '[]'::jsonb)
+    from unnest(coalesce(companions, '{}'::text[])) with ordinality as a(elem, ord)
+    where ord <= 49
+  );
+
+  insert into public.rsvp_responses
+    (event_id, guest_name, phone, attending, guests_count, status, companions, shuttle_id, meal)
+  values (
+    ev_id,
+    left(trim(guest_name), 200),
+    nullif(left(trim(coalesce(phone, '')), 40), ''),
+    status = 'yes',
+    greatest(0, least(50, coalesce(guests_count, 1))),
+    case when status in ('yes', 'no', 'maybe') then status else 'yes' end,
+    comp,
+    nullif(left(trim(coalesce(shuttle_id, '')), 64), ''),
+    case when status = 'no' then null
+         else nullif(left(trim(coalesce(meal, '')), 40), '') end
+  );
+end; $$;
+
+revoke all on function public.submit_rsvp_by_token(text, text, text, text, int, text[], text, text) from public;
+grant execute on function public.submit_rsvp_by_token(text, text, text, text, int, text[], text, text) to anon, authenticated;
+
+-- ── 1. Album uploads need the album link ─────────────────────────────────────
+create or replace function public.album_folder_token_ok(folder text, token_folder text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select token_folder is not null
+     and char_length(token_folder) >= 8
+     and exists (
+       select 1 from public.events e
+        where e.id::text = folder
+          and e.payload ->> 'albumToken' = token_folder
+     );
+$$;
+revoke all on function public.album_folder_token_ok(text, text) from public;
+grant execute on function public.album_folder_token_ok(text, text) to anon, authenticated;
+
+-- Room is counted in the CURRENT link's folder (fourth review 30.9). Counted
+-- per event, files dropped there without ever being indexed — the host's album
+-- screen lists only indexed photos, so it cannot show or delete them — kept the
+-- album full even after the host changed the link.
+create or replace function public.album_token_folder_has_room(folder text, token_folder text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select (
+    select count(*) from storage.objects o
+     where o.bucket_id = 'event-album'
+       and starts_with(o.name, folder || '/' || token_folder || '/')
+  ) < 5000;
+$$;
+revoke all on function public.album_token_folder_has_room(text, text) from public;
+grant execute on function public.album_token_folder_has_room(text, text) to anon, authenticated;
+
+drop policy if exists album_objects_insert on storage.objects;
+create policy album_objects_insert
+  on storage.objects for insert to anon, authenticated
+  with check (
+    bucket_id = 'event-album'
+    and public.album_folder_token_ok((storage.foldername(name))[1], (storage.foldername(name))[2])
+    and public.album_token_folder_has_room((storage.foldername(name))[1], (storage.foldername(name))[2])
+  );
+
+-- ── 2. album_add_photo: the token folder, and no path tricks ─────────────────
+create or replace function public.album_add_photo(
+  token_value text, path_value text, uploader_value text
+) returns uuid language plpgsql volatile security definer set search_path = public as $$
+declare
+  ev_id  uuid;
+  new_id uuid;
+  n      int;
+begin
+  ev_id := public.album_event_id(token_value);
+  if ev_id is null then
+    raise exception 'invalid album token' using errcode = '42501';
+  end if;
+  if path_value is null or char_length(path_value) > 400
+     or left(path_value, char_length(ev_id::text || '/' || token_value || '/'))
+        <> ev_id::text || '/' || token_value || '/'
+     or path_value like '%..%'
+     or path_value like '%//%'
+     or position(E'\\' in path_value) > 0 then
+    raise exception 'path does not belong to this event' using errcode = '42501';
+  end if;
+
+  -- Per link, like the room check: after the host changes the link, a flood
+  -- indexed under the old one does not hold the album shut.
+  select count(*) into n from public.album_photos
+   where event_id = ev_id and album_token = token_value;
+  if n >= 5000 then raise exception 'limit reached' using errcode = '42501'; end if;
+
+  insert into public.album_photos (event_id, album_token, storage_path, uploader)
+  values (ev_id, token_value, path_value,
+          nullif(left(btrim(coalesce(uploader_value, '')), 80), ''))
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+revoke all on function public.album_add_photo(text, text, text) from public;
+grant execute on function public.album_add_photo(text, text, text) to anon, authenticated;
+
+-- ── 4. A ceiling on the event-site bucket ────────────────────────────────────
+create or replace function public.site_folder_has_room(folder text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select (
+    select count(*) from storage.objects o
+     where o.bucket_id = 'event-site'
+       and (storage.foldername(o.name))[1] = folder
+  ) < 300;
+$$;
+revoke all on function public.site_folder_has_room(text) from public;
+-- anon too: Supabase's default privileges give anon its own EXECUTE on every
+-- new function, which `from public` does not reach (fifth review 30.9 — the
+-- same trap 20260928000300 describes).
+revoke all on function public.site_folder_has_room(text) from anon;
+grant execute on function public.site_folder_has_room(text) to authenticated;
+
+drop policy if exists event_site_objects_insert on storage.objects;
+create policy event_site_objects_insert
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'event-site'
+    and exists (
+      select 1 from public.events e
+      where e.user_id = auth.uid()
+        and (storage.foldername(storage.objects.name))[1] = e.id::text
+    )
+    and public.site_folder_has_room((storage.foldername(storage.objects.name))[1])
+  );
+
+-- ── 5. Internal functions: revoked from PUBLIC too ───────────────────────────
+-- 20260928000300 revoked album_event_id and prune_ai_usage from anon and
+-- authenticated only, relying on an earlier `revoke … from public`. A function
+-- re-created by hand keeps PostgreSQL's default EXECUTE-to-PUBLIC, and anon
+-- could call it again (30.9 migration review). Said outright here.
+revoke execute on function public.album_event_id(text) from public, anon, authenticated;
+revoke execute on function public.prune_ai_usage()     from public, anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260930000100_purge_bad_dates.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260930000100_purge_bad_dates
+-- Depends on: 20260817000000_photo_retention
+--
+-- photo_purge_due guarded its date casts with a shape regex (^\d{4}-\d{2}-\d{2}$).
+-- '2026-02-30' and '2026-13-01' have the shape and are not dates: the cast
+-- raised 22008 and the WHOLE scan failed. events.date and
+-- payload.eventSite.photosKeepUntil are both written by the event's owner, so
+-- one signed-in user saving their own event with such a date disabled the
+-- photo purge for every account (30.9 contract review, reproduced through
+-- PostgREST; סב43). Same function otherwise — only the two date reads change.
+--
+-- Verified by qa/photoRetentionSql.mjs.
+-- =============================================================================
+
+-- A date, or NULL for anything that is not one. Never raises.
+create or replace function public.safe_iso_date(v text)
+returns date language plpgsql immutable set search_path = public, pg_temp as $$
+begin
+  if v is null or v !~ '^\d{4}-\d{2}-\d{2}$' then return null; end if;
+  return v::date;
+exception when others then
+  return null;
+end; $$;
+revoke all on function public.safe_iso_date(text) from public, anon, authenticated;
+
+create or replace function public.photo_purge_due(batch_limit integer default 200)
+returns table (event_id uuid, urls text[])
+language sql
+security definer
+set search_path = public, pg_temp
+as $$
+  select
+    e.id,
+    array_agg(u.url)
+  from public.events e
+  -- Every place an event can hold a photo, flattened. The invitation photo
+  -- under `announcements` is the LARGEST object an event has (1400px, q0.82) —
+  -- collecting the gallery but not this one would clear the payload, report
+  -- the event purged, and strand the heaviest file with its only reference
+  -- deleted.
+  cross join lateral (
+    select e.payload->'eventSite'->>'coverPhoto' as url
+    union all
+    select jsonb_array_elements_text(
+      case when jsonb_typeof(e.payload->'eventSite'->'gallery') = 'array'
+           then e.payload->'eventSite'->'gallery' else '[]'::jsonb end)
+    union all
+    select a.value->>'photo'
+    from jsonb_each(
+      case when jsonb_typeof(e.payload->'announcements') = 'object'
+           then e.payload->'announcements' else '{}'::jsonb end) as a
+  ) u
+  where
+    -- Through safe_iso_date, which answers NULL for anything that is not a real
+    -- calendar day. The regex this replaces checked the SHAPE only: '2026-02-30'
+    -- passed it, then the cast raised and aborted the whole scan — so any
+    -- signed-in user could switch retention off for every account by saving
+    -- their own event with that date (30.9 review, סב43). And Postgres does not
+    -- promise to evaluate an AND left to right, so a guard in front of a cast
+    -- is not a guard. A NULL here means "never due", as the old rule meant for
+    -- an event with no date.
+    public.safe_iso_date(e.date) <= (public.photo_retention_today() - public.photo_retention_days())
+    -- `<=`, NOT `<`: on day 30 the host's banner reads "התמונות נמחקות היום"
+    -- (see 20260817000000). A postponement the host asked for outranks it.
+    and coalesce(public.safe_iso_date(e.payload->'eventSite'->>'photosKeepUntil'), '-infinity'::date)
+        <= public.photo_retention_today()
+    -- Only real objects. A legacy base64 photo has nothing behind it to remove,
+    -- and an event holding only those must not be reported as having work — it
+    -- would be finalized, cleared, and the host would lose photos that were
+    -- costing nothing.
+    and u.url is not null
+    and u.url <> ''
+    and u.url not like 'data:%'
+  group by e.id
+  limit batch_limit
+$$;
+
+revoke all on function public.photo_purge_due(integer) from public, anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260930000200_collab_phone_width.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260930000200_collab_phone_width
+-- Depends on: 20260724000000_collab_live_table, 20260812000000_collab_notes
+--
+-- The shared family table held a phone of at most 20 characters. The host's
+-- guest list has no such limit, and "050-1234567, 052-7654321" — both parents
+-- in one field — is 24. The host's own sync pushed it as typed, the CHECK
+-- refused it (23514) on every retry, and the host was told to check their
+-- connection: that family never reached the table (30.9 contract review,
+-- reproduced through PostgREST; סב44). 40, as rsvp_responses.phone already is.
+-- The guest-link path truncated at 20 and now truncates at 40; the host's path
+-- clips to the same widths in useCollabSync.guestToCollab.
+--
+-- Verified by qa/collabEventSql.mjs.
+-- =============================================================================
+
+alter table public.collab_guests drop constraint if exists collab_guests_phone_check;
+alter table public.collab_guests drop constraint if exists ck_collab_phone_len;
+alter table public.collab_guests add constraint ck_collab_phone_len
+  check (phone is null or char_length(phone) <= 40);
+
+CREATE OR REPLACE FUNCTION public.collab_upsert_by_token(token_value text, row_data jsonb)
+RETURNS void
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  ev_id uuid; row_id uuid; comp jsonb;
+  has_notes boolean; note_val text;
+BEGIN
+  SELECT e.id INTO ev_id FROM public.events e
+    WHERE e.collab_token = token_value
+      AND char_length(token_value) >= 8
+      AND public.collab_is_active(e)
+    LIMIT 1;
+  IF ev_id IS NULL THEN RAISE EXCEPTION 'invalid token'; END IF;
+
+  row_id := (row_data->>'id')::uuid;
+  IF row_id IS NULL THEN RAISE EXCEPTION 'id required'; END IF;
+
+  -- Cap total rows per event so a leaked link can't flood the table.
+  IF NOT EXISTS (SELECT 1 FROM public.collab_guests WHERE id = row_id AND event_id = ev_id)
+     AND (SELECT count(*) FROM public.collab_guests WHERE event_id = ev_id) >= 5000 THEN
+    RAISE EXCEPTION 'row limit reached';
+  END IF;
+
+  -- Normalize companions to a bounded jsonb array of ≤80-char strings, in order.
+  comp := (
+    SELECT COALESCE(jsonb_agg(left(COALESCE(elem, ''), 80) ORDER BY ord), '[]'::jsonb)
+    FROM jsonb_array_elements_text(
+      CASE WHEN jsonb_typeof(row_data->'companions') = 'array'
+           THEN row_data->'companions' ELSE '[]'::jsonb END
+    ) WITH ORDINALITY AS a(elem, ord)
+    WHERE ord <= 49
+  );
+
+  -- Only a STRING is an opinion about the note. Absent key, or JSON null, both
+  -- mean "leave the stored value alone" on an existing row.
+  has_notes := (row_data ? 'notes') AND jsonb_typeof(row_data->'notes') = 'string';
+  note_val  := CASE WHEN has_notes
+                    THEN nullif(left(trim(row_data->>'notes'), 500), '')
+                    ELSE NULL END;
+
+  INSERT INTO public.collab_guests (id, event_id, name, phone, side, guest_group, guests_count, companions, notes, updated_by, updated_at)
+  VALUES (
+    row_id, ev_id,
+    nullif(left(trim(coalesce(row_data->>'name','')), 120), ''),
+    nullif(left(trim(coalesce(row_data->>'phone','')), 40), ''),   -- 40 since 20260930000200
+    nullif(left(row_data->>'side', 20), ''),
+    nullif(left(row_data->>'guest_group', 60), ''),
+    greatest(1, least(50, coalesce((row_data->>'guests_count')::int, 1))),
+    comp,
+    note_val,
+    nullif(left(trim(coalesce(row_data->>'updated_by','')), 80), ''),
+    now()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    name         = excluded.name,
+    phone        = excluded.phone,
+    side         = excluded.side,
+    guest_group  = excluded.guest_group,
+    guests_count = excluded.guests_count,
+    companions   = excluded.companions,
+    notes        = CASE WHEN has_notes THEN excluded.notes
+                        ELSE public.collab_guests.notes END,
+    updated_by   = excluded.updated_by,
+    updated_at   = now()
+  WHERE public.collab_guests.event_id = ev_id;  -- never move a row across events
+END;
+$$;
+REVOKE ALL ON FUNCTION public.collab_upsert_by_token(text, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION public.collab_upsert_by_token(text, jsonb) TO anon, authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260930000300_events_version_monotone.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- =============================================================================
+-- Migration: 20260930000300_events_version_monotone
+-- Depends on: the events.version column (optimistic concurrency, 2026-08)
+--
+-- THE CLOUD'S VERSION COULD GO DOWN (30.9 multi-device review, reproduced in a
+-- browser with two host devices and a greeter; סב46).
+--
+-- The client pushes `update … set version = <its local counter> where version
+-- = <its base>`. The greeter's door RPC raises the cloud version without
+-- raising any device's counter, so a device's counter can be BELOW the row's.
+-- Its next push, matching on the base, wrote that lower number over the row —
+-- and any other device whose base happened to equal it was then accepted
+-- WITHOUT a conflict, writing a stale copy over guests the cloud had already
+-- taken. Measured: two guests added on the laptop, both accepted by the cloud,
+-- gone after the phone's push. In a 300-seed fuzz, 39 runs saw the version
+-- fail to rise, and every lost guest, lost arrival mark and revoked link that
+-- came back traced to it; forcing the version up removed all of them.
+--
+-- So the row's version only ever rises: an UPDATE that does not raise it gets
+-- the old version + 1. Every writer returns or re-reads the stored version
+-- (updateCloudEvent selects it back), so a client learns the real number.
+--
+-- Verified by qa/guestWriteHardeningSql.mjs.
+-- =============================================================================
+
+create or replace function public.events_version_monotone()
+returns trigger language plpgsql set search_path = public, pg_temp as $$
+begin
+  if new.version is null or new.version <= coalesce(old.version, 0) then
+    new.version := coalesce(old.version, 0) + 1;
+  end if;
+  return new;
+end; $$;
+
+revoke all on function public.events_version_monotone() from public, anon, authenticated;
+
+drop trigger if exists trg_events_version_monotone on public.events;
+create trigger trg_events_version_monotone
+  before update on public.events
+  for each row execute function public.events_version_monotone();

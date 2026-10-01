@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
+import { useParams, Link } from "react-router-dom";
+import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import styles from "./GiftWallScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 // DEV-only preview blessings — shown only when no live event resolves in dev.
 const MOCK_GIFTS = [
@@ -42,18 +44,36 @@ export default function GiftWallScreen() {
   const [event, setEvent] = useState(null);
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [unreachable, setUnreachable] = useState(false);
+  useGuestTitle(event && `קיר ברכות · ${guestHosts(event)}`);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const ev = await fetchEventByToken("gift", token);
+    let retry;
+    const loadEvent = async () => {
+      let ev;
+      try {
+        ev = await fetchEventByToken("gift", token);
+      } catch {
+        if (cancelled) return;
+        setUnreachable(true); setLoading(false);
+        // Keep trying. The wall is opened on the venue's laptop, often before
+        // the wifi is up, and it is not touched again all evening: one failed
+        // first load left "אין חיבור כרגע" on the projector until someone
+        // noticed and refreshed — measured, still there two minutes after the
+        // server was back (second review, סב21).
+        retry = setTimeout(loadEvent, POLL_MS);
+        return;
+      }
       if (!cancelled) {
+        setUnreachable(false);
         setEvent(ev || null);
         setGifts(!ev && import.meta.env.DEV ? MOCK_GIFTS : []);
         setLoading(false);
       }
-    })();
-    return () => { cancelled = true; };
+    };
+    loadEvent();
+    return () => { cancelled = true; clearTimeout(retry); };
   }, [token]);
 
   // Poll the blessing wall — realtime can't deliver rows RLS hides from anon.
@@ -61,8 +81,13 @@ export default function GiftWallScreen() {
     if (!event?.cloudId) return;
     let cancelled = false;
     const load = async () => {
-      const rows = await fetchGiftWall(token);
-      if (!cancelled) setGifts(rows);
+      // A failed poll keeps the wall as it is. It used to come back as [] and
+      // blank a wall projected in front of the whole hall until the next
+      // successful poll (28.9 audit).
+      try {
+        const rows = await fetchGiftWall(token);
+        if (!cancelled) setGifts(rows);
+      } catch { /* keep what is on the screen */ }
     };
     load();
     const tid = setInterval(load, POLL_MS);
@@ -101,8 +126,17 @@ export default function GiftWallScreen() {
         <main className={styles.content}>
           <div className={styles.empty}>
             <span className={styles.emptyIcon} aria-hidden="true"><Icon name="alert" size={30} /></span>
-            <p>לא הצלחנו לטעון את קיר הברכות.</p>
-            <p>בדקו את החיבור לאינטרנט ורעננו את הדף.</p>
+            {/* Two different answers. A link that resolves to nothing is not a
+                connection problem, and telling the venue to check its wifi
+                for a wrong link sends them chasing the wrong fault. */}
+            {unreachable ? <>
+              <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
+              <p>{UNREACHABLE_TEXT.body}</p>
+            </> : <>
+              <h1 className={styles.stateTitle}>הקישור לקיר הברכות אינו תקין.</h1>
+              <p>בקשו מבעלי האירוע את הקישור העדכני.</p>
+              <Link to="/" className={styles.homeLink}>לדף הבית</Link>
+            </>}
           </div>
         </main>
       </div>
@@ -145,7 +179,9 @@ export default function GiftWallScreen() {
       <footer className={styles.bottomBar}>
         <p className={styles.totalLine}>
           {gifts.length > 0
-            ? `${gifts.length} ברכות התקבלו 💛`
+            // "1 ברכות התקבלו" was the first line of the evening on the big
+            // screen (WORKPLAN ל2).
+            ? (gifts.length === 1 ? "ברכה אחת התקבלה 💛" : `${gifts.length} ברכות התקבלו 💛`)
             : `${COMPANY.name} ✦`}
         </p>
       </footer>

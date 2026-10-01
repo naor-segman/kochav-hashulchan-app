@@ -24,7 +24,7 @@
  * Or just: node qa/marketingShots.mjs   — it starts its own preview server.
  */
 import { createRequire } from "node:module";
-import { spawn } from "node:child_process";
+import { startPreview } from "./lib/preview.mjs";
 import { mkdirSync, readFileSync } from "node:fs";
 
 /** Width/height straight out of a JPEG's SOF marker — no image library. */
@@ -290,15 +290,15 @@ const FRAMES = [
   { name: "messages",    path: "/events/e1/messages" },
 ];
 
-const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
-  cwd: "/home/user/kochav-hashulchan-app", stdio: "ignore",
-});
+/* startPreview, not `spawn("npx", ["vite", "preview", …])` + a poll. That shape
+   leaked a server on every run — SIGTERM reached npx and orphaned the vite it
+   started — and the next run, with --strictPort, measured the PREVIOUS run's
+   build. For a harness that produces the screenshots on the marketing site, that
+   means shipping images of old code. Checklist 93; see qa/lib/preview.mjs. */
+let server = { stop: () => {} };
 
 try {
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(BASE)).ok) break; } catch { /* not up yet */ }
-    await new Promise(r => setTimeout(r, 500));
-  }
+  server = await startPreview(PORT);
 
   const browser = await chromium.launch({
     executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
@@ -487,5 +487,5 @@ try {
   await ctx.close();
   await browser.close();
 } finally {
-  server.kill();
+  server.stop();
 }

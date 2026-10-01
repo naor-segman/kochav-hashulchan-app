@@ -336,7 +336,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
             className={base.btnPrimary}
             onClick={addConstraint}
           >
-            הוסף
+            הוסיפו
           </button>
         </div>
 

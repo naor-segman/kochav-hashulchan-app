@@ -61,9 +61,21 @@ export function addDays(date, days) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
 
-/** Local midnight today — the ground every comparison is made against. */
+/**
+ * Today's date IN ISRAEL, as a local-midnight Date — the ground every
+ * comparison is made against. Israel's, not the device's: the server decides
+ * deletion by Israel's date (photo_retention_today), and a host whose phone is
+ * set to New York was told "יימחקו מחר" at 00:30 on the day the server was
+ * already deleting (30.9 time review, סב45). The calendar parts come from
+ * Asia/Jerusalem; the Date is built from them locally, so every day count
+ * below stays a count of calendar days.
+ */
+const IL_DAY = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit",
+});
 export function startOfToday(now = new Date()) {
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const [y, m, d] = IL_DAY.format(now).split("-").map(Number);
+  return new Date(y, m - 1, d);
 }
 
 /** Whole calendar days from `a` to `b`, both taken at local midnight. */
@@ -132,7 +144,18 @@ export function photoRetentionState(ev, now = new Date()) {
   // the same in SQL, where the server enforces it.
   const keep = parseEventDate(ev?.eventSite?.photosKeepUntil);
   if (keep && today < keep) {
-    return { state: "kept", photos, daysLeft: daysBetween(today, keep), purgeOn: keep };
+    // The server deletes only once BOTH dates have passed (photo_purge_due),
+    // so the countdown runs to the later one. Counting to the keep date alone
+    // warned "יימחקו בעוד 4 ימים" for a host who had postponed and then moved
+    // the event two months later (fourth review 30.9).
+    const until = keep > purgeOn ? keep : purgeOn;
+    const left = daysBetween(today, until);
+    // The host who asked to keep the photos gets the same week's warning
+    // before the new date as everyone gets before the first one. "kept" drew
+    // no banner, and on the last day the state went straight to "due": the one
+    // host who had asked was the one host never warned (סב45).
+    if (left <= WARN_BEFORE_DAYS) return { state: "warning", photos, daysLeft: left, purgeOn: until };
+    return { state: until === keep ? "kept" : "safe", photos, daysLeft: left, purgeOn: until };
   }
 
   const daysLeft = daysBetween(today, purgeOn);

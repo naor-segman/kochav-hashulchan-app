@@ -39,9 +39,18 @@ run from outside the package.
 **Horizontal overflow: do not use `scrollWidth`.** An element that scrolls
 internally inflates `scrollWidth` on every one of its ancestors, so a nav with
 its own scroller makes the whole page look broken. Every honest check here does
-`window.scrollTo(9999, 0)` and then asks whether `window.scrollX` actually
-moved. A false positive from the old method once sent a whole afternoon into
-"fixing" CSS that was correct.
+`window.scrollTo({ left: -1e5, behavior: "instant" })` and then asks whether
+`window.scrollX` moved off 0. A false positive from the old method once sent a
+whole afternoon into "fixing" CSS that was correct.
+
+**And not `scrollTo(9999, 0)` either** — the method this file used to
+prescribe, in 15 harnesses, from the start until 28.9. It could never fire on
+this site, for two reasons: the page is RTL, so sideways overflow scrolls to
+NEGATIVE `scrollX` and a positive target clamps to 0; and `reset.css` sets
+`scroll-behavior: smooth`, so the read happens before the scroll does.
+Measured on a 2000px-wide RTL page: `scrollTo(9999,0)` → 0, the form above →
+-1618. Every "no h-scroll" pass before 28.9 proved nothing. Compare with
+`!== 0`, never `> 0`.
 
 ## Why the flow script reads localStorage
 

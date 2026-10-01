@@ -14,14 +14,15 @@ vi.mock("../lib/supabase.js", () => ({
   supabase: {
     rpc: (...args) => rpc(...args),
     from: (...args) => fromFn(...args),
+    storage: { from: () => ({ remove: async () => ({ data: [], error: null }) }) },
   },
   isSupabaseConfigured: true,
 }));
 
 const {
-  fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift,
+  fetchEventByToken, fetchHostessData, fetchGiftWall, submitRSVP, submitGift, LinkUnreachableError,
   upsertCollabGuest, fetchCollabGuestsOwner, upsertCollabGuestOwner,
-  fetchEventGifts,
+  fetchEventGifts, setAlbumPhotoHidden, deleteAlbumPhoto, setGiftHidden, deleteEventGift, fetchCollabEvent, guestWriteError,
 } = await import("./publicTokens.js");
 
 const ok   = data  => rpc.mockResolvedValue({ data, error: null });
@@ -134,6 +135,24 @@ describe("submitGift", () => {
     fail({ message: "nope" });
     await expect(submitGift("tok", { donorName: "ד", amountILS: 1 })).rejects.toBeTruthy();
   });
+
+  it("sends the form's key, so a retry is one gift and a namesake is another (29.9 review)", async () => {
+    ok(null);
+    await submitGift("tok", { donorName: "משפחת כהן", amountILS: 360, clientKey: "form-1" });
+    expect(sent().client_key).toBe("form-1");
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the keyless call only when the keyed function is not there yet", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "PGRST202" } }).mockResolvedValueOnce({ data: null, error: null });
+    await submitGift("tok", { donorName: "ד", amountILS: 100, clientKey: "form-1" });
+    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(sent().client_key).toBeUndefined();
+    rpc.mockReset();
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "23514", message: "range" } });
+    await expect(submitGift("tok", { donorName: "ד", amountILS: 1, clientKey: "form-2" })).rejects.toBeTruthy();
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("fetchEventByToken — a partial row must not crash a public page", () => {
@@ -173,8 +192,20 @@ describe("fetchEventByToken — a partial row must not crash a public page", () 
   it("returns null for an unknown token instead of a half-built event", async () => {
     ok(null);
     expect(await fetchEventByToken("rsvp", "nope")).toBeNull();
-    fail({ message: "boom" });
-    expect(await fetchEventByToken("rsvp", "tok")).toBeNull();
+  });
+
+  it("THROWS when the server cannot be reached — that is not an unknown token", async () => {
+    // 28.9 audit: both used to be null, so a guest on bad reception read "the
+    // link is invalid, or the event was cancelled".
+    fail({ message: "Failed to fetch" });
+    await expect(fetchEventByToken("rsvp", "tok")).rejects.toBeInstanceOf(LinkUnreachableError);
+  });
+
+  it("maps the album token the site receives (migration 20260928000400)", async () => {
+    ok({ id: "x", album_token: "albumtok11" });
+    expect((await fetchEventByToken("invite", "tok")).albumToken).toBe("albumtok11");
+    ok({ id: "x" });
+    expect((await fetchEventByToken("rsvp", "tok")).albumToken).toBeNull();
   });
 
   it("does not call the database at all without a token", async () => {
@@ -199,18 +230,26 @@ describe("fetchHostessData", () => {
     expect(d.seating).toEqual({});
   });
 
-  it("returns null on error, so the screen shows its own empty state", async () => {
-    fail({ message: "boom" });
+  it("returns null for an unknown token", async () => {
+    ok(null);
     expect(await fetchHostessData("tok")).toBeNull();
+  });
+
+  it("throws on a failed call, so a failed REFRESH at the door keeps the list", async () => {
+    fail({ message: "boom" });
+    await expect(fetchHostessData("tok")).rejects.toBeInstanceOf(LinkUnreachableError);
   });
 });
 
 describe("fetchGiftWall", () => {
-  it("returns an array even when the call fails — the wall is projected in a hall", async () => {
-    fail({ message: "network" });
-    expect(await fetchGiftWall("tok")).toEqual([]);
+  it("returns an array for a malformed answer", async () => {
     ok("not-an-array");
     expect(await fetchGiftWall("tok")).toEqual([]);
+  });
+
+  it("throws on a failed call instead of [] — [] blanked a projected wall", async () => {
+    fail({ message: "network" });
+    await expect(fetchGiftWall("tok")).rejects.toBeInstanceOf(LinkUnreachableError);
   });
 
   it("passes the rows through untouched when they are well formed", async () => {
@@ -494,5 +533,73 @@ describe("fetchEventGifts", () => {
     const [g] = await fetchEventGifts("e1");
     expect(g.donorName).toBe("");
     expect(g.message).toBe("");
+  });
+});
+
+describe("moderation writes — a refusal RLS answers with 0 rows is not a success", () => {
+  // 28.9 audit: PostgREST answers a refused UPDATE/DELETE with no error and no
+  // rows, and all four of these reported success on it. The host watched a
+  // photo leave the screen while it stayed on the guests' album.
+  const rowsBack = (data) => {
+    fromFn.mockReset();
+    const chain = { select: async () => ({ data, error: null }) };
+    fromFn.mockImplementation(() => ({
+      update: () => ({ eq: () => chain }),
+      delete: () => ({ eq: () => chain }),
+    }));
+  };
+  const calls = [
+    ["setAlbumPhotoHidden", () => setAlbumPhotoHidden("p1", true)],
+    ["deleteAlbumPhoto",    () => deleteAlbumPhoto({ id: "p1", storagePath: "e1/a.jpg" })],
+    ["setGiftHidden",       () => setGiftHidden("g1", true)],
+    ["deleteEventGift",     () => deleteEventGift("g1")],
+  ];
+  for (const [name, call] of calls) {
+    it(`${name}: 0 rows affected throws`, async () => {
+      rowsBack([]);
+      await expect(call()).rejects.toThrow(/not applied/);
+    });
+    it(`${name}: exactly one row affected succeeds`, async () => {
+      rowsBack([{ id: "x" }]);
+      await expect(call()).resolves.toBe(true);
+    });
+  }
+});
+
+describe("fetchCollabEvent — the host's own groups (migration 20260928000600)", () => {
+  it("maps custom_groups, strings only", async () => {
+    rpc.mockResolvedValue({ data: { id: "e1", custom_groups: ["חברים מהצבא", "", 3] }, error: null });
+    expect((await fetchCollabEvent("tok12345")).customGroups).toEqual(["חברים מהצבא"]);
+    rpc.mockResolvedValue({ data: { id: "e1" }, error: null });
+    expect((await fetchCollabEvent("tok12345")).customGroups).toEqual([]);
+  });
+});
+
+// Fifth review 30.9: a bar mitzvah that had been a wedding showed the couple.
+describe("couple names reach guests only on a couple event", () => {
+  it("a bar mitzvah with leftover couple names shows none", async () => {
+    ok({ id: "c1", name: "בר המצווה של איתי", type: "בר מצווה", bride_name: "נועה", groom_name: "טל", celebrant_name: "איתי" });
+    const ev = await fetchEventByToken("invite", "tok12345");
+    expect([ev.brideName, ev.groomName, ev.celebrantName]).toEqual(["", "", "איתי"]);
+  });
+  it("a wedding keeps them", async () => {
+    ok({ id: "c1", name: "x", type: "חתונה", bride_name: "נועה", groom_name: "טל" });
+    const ev = await fetchEventByToken("invite", "tok12345");
+    expect([ev.brideName, ev.groomName]).toEqual(["נועה", "טל"]);
+  });
+});
+
+describe("guestWriteError — a reason the guest can act on (fifth review 30.9)", () => {
+  const F = "אנא נסו שוב.";
+  it("says what retrying cannot fix", () => {
+    expect(guestWriteError({ message: "invalid token" }, F)).toMatch(/הקישור כבר לא פעיל/);
+    expect(guestWriteError({ message: "limit reached" }, F)).toMatch(/המספר המרבי/);
+    expect(guestWriteError({ message: "amount out of range" }, F)).toMatch(/מחוץ לטווח/);
+    expect(guestWriteError({ message: "new row violates row-level security policy", statusCode: "403" }, F)).toMatch(/האלבום/);
+  });
+  it("and what retrying can", () => {
+    expect(guestWriteError({ message: "rate limited" }, F)).toMatch(/בעוד דקה/);
+    expect(guestWriteError({ name: "TypeError", message: "Failed to fetch" }, F)).toMatch(/אין חיבור/);
+    expect(guestWriteError({ message: "something else" }, F)).toBe(F);
   });
 });

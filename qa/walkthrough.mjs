@@ -109,9 +109,9 @@ for (const vp of VIEWPORTS) {
 
     // ── horizontal overflow: scroll and see if it actually moved ──
     const scrolled = await page.evaluate(() => {
-      window.scrollTo(9999, 0); const x = window.scrollX; window.scrollTo(0, 0); return x;
+      window.scrollTo({ left: -1e5, behavior: "instant" }); const x = window.scrollX; window.scrollTo(0, 0); return x;
     });
-    if (scrolled > 0)
+    if (scrolled !== 0)
       record({ severity:'FAIL', viewport:vp.name, screen:name, kind:'h-overflow', detail:`scrollX=${scrolled}px` });
 
     // ── tap targets: only things a finger must hit ──

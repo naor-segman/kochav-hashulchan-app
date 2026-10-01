@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { loadState, persist, userStorageKey } from "../utils/storage.js";
-import { normalizeEvent, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
+import { normalizeEvent, normalizeDeletedRows, normalizeRotations, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
+import { mergeArrivals } from "../utils/arrival.js";
+import { syncBaseOf, threeWayScalars, threeWayGuests, canonical } from "../utils/syncBase.js";
+import { addPendingDelete, markDeleteLanded, readPendingDeletes, withoutPendingDeletes } from "../utils/pendingEventDeletes.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
@@ -24,7 +27,8 @@ import {
 // it actually has a value. `fallback` is the already-normalized token set, used
 // only where neither side has one — otherwise a key missing on both sides would
 // come out null and, past the normalize gateway, stay null.
-function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRotatedAt) {
+function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRotatedAt,
+                     cloudRotations, localRotations) {
   // Rotation flips the precedence, and only rotation does.
   //
   // Killing a leaked link means minting a new token. But this merge let the
@@ -35,29 +39,36 @@ function mergeTokens(cloudTokens, localTokens, fallback, cloudRotatedAt, localRo
   //
   // `tokensRotatedAt` says which side last did that deliberately. With neither
   // side rotated — every event today — this is exactly the old behaviour.
-  const localWins = Number.isFinite(localRotatedAt) &&
-    localRotatedAt > (Number.isFinite(cloudRotatedAt) ? cloudRotatedAt : 0);
-  const first  = localWins ? localTokens : cloudTokens;
-  const second = localWins ? cloudTokens : localTokens;
-  return Object.fromEntries(
-    TOKEN_KEYS.map(k => [k, first?.[k] || second?.[k] || fallback?.[k] || null])
-  );
+  //
+  // PER LINK since 29.9 (review): with one timestamp for the whole set, the
+  // host revoking the family-table link on the laptop and later rotating the
+  // door link on a phone holding an older copy made the phone "the newer
+  // rotation" for EVERY link — and the revoked family link came back and was
+  // pushed. Each link now compares its own rotation time. A side with no
+  // per-link record (data from before this) falls back to its one timestamp.
+  const rot = (map, scalar, k) => {
+    const m = map && typeof map === "object" && Object.keys(map).length ? map : null;
+    const v = m ? m[k] : scalar;
+    return Number.isFinite(v) ? v : 0;
+  };
+  return Object.fromEntries(TOKEN_KEYS.map(k => {
+    const localWins = rot(localRotations, localRotatedAt, k) > rot(cloudRotations, cloudRotatedAt, k);
+    const first  = localWins ? localTokens : cloudTokens;
+    const second = localWins ? cloudTokens : localTokens;
+    return [k, first?.[k] || second?.[k] || fallback?.[k] || null];
+  }));
 }
 
-/**
- * Take the cloud's arrival state for any guest this tab has never expressed an
- * opinion about.
- *
- * "Never expressed an opinion" is precisely `arrivedSeats === undefined` and no
- * truthy `arrived`. That is different from `arrivedSeats: []`, which is the host
- * deliberately un-marking someone — so un-marking still wins, and a host who
- * marks people on their own device still wins. Only the guests the local copy is
- * silent about are taken from the cloud, which is exactly the set the greeter
- * touched after this tab last read the row.
- *
- * A guest missing from either side is left alone; this never adds or removes a
- * row, only two keys on rows that exist on both.
- */
+/** Per-link rotation times, the later of the two for each link. */
+function mergeRotations(a, b) {
+  const out = { ...(a || {}) };
+  for (const [k, v] of Object.entries(b || {})) if (!(out[k] >= v)) out[k] = v;
+  return out;
+}
+
+// mergeArrivals moved to utils/arrival.js (28.9) — the host's door screen
+// uses the same rule to overlay the greeter's marks while it is open.
+
 /**
  * Rows the OTHER device added, which whole-event last-write-wins throws away.
  *
@@ -144,11 +155,12 @@ function withTombstones(before, after, now = Date.now()) {
   for (const key of TOMBSTONED_COLLECTIONS) {
     const was = before?.[key], is = after?.[key];
     if (!Array.isArray(was) || !Array.isArray(is)) continue;
-    if (is.length >= was.length) {
-      // Fast path: nothing can have been removed without the length dropping,
-      // because ids are unique within a collection.
-      continue;
-    }
+    // No "same length, nothing removed" shortcut. It was wrong: the shared
+    // table's dedupe RE-KEYS a guest (old id out, the family's row id in) at
+    // the same length, so the old id got no tombstone and the other device's
+    // copy brought it back as a second guest (second review, סב15). Building
+    // the id set is a few hundred lookups per patch.
+    if (is === was) continue;
     const stillThere = new Set(is.map(r => r?.id).filter(Boolean));
     for (const row of was) {
       if (!row?.id || stillThere.has(row.id)) continue;
@@ -162,6 +174,28 @@ function withTombstones(before, after, now = Date.now()) {
   const next = { ...prev };
   for (const [key, rows] of Object.entries(added)) next[key] = { ...(prev[key] ?? {}), ...rows };
   return { ...after, deletedRows: next };
+}
+
+/* A guest who declines gives their chair back (29.9 second review, סב7).
+   Nothing did: the seat stayed in `seating`, so the seating screen showed the
+   guest at their table, printed them on the staff sheet and counted their chair
+   as taken — "2/2, full" — beside its own line "1 סירבו (לא משובצים)". Every
+   path that records a no (the guest list, a bulk mark, an applied RSVP) goes
+   through patchEventById, so the rule lives here, once.
+   Only on the CHANGE to declined: a decline that was already seated before
+   this rule (an older event) is left as the host arranged it. */
+export function freeDeclinedSeats(before, after) {
+  const seating = after?.seating;
+  if (!seating || !Array.isArray(after.guests)) return after;
+  const was = new Map((before?.guests || []).map(g => [g?.id, g?.rsvp]));
+  let next = null;
+  for (const g of after.guests) {
+    if (g?.rsvp !== "declined" || was.get(g.id) === "declined" || !was.has(g.id)) continue;
+    if (!seating[g.id]) continue;
+    next ??= { ...seating };
+    delete next[g.id];
+  }
+  return next ? { ...after, seating: next } : after;
 }
 
 function mergeTombstoneMaps(localTombs, cloudTombs) {
@@ -259,6 +293,59 @@ function mergeSeating(cloudSeating, localSeating, cloudKnowsGuest, tableExists) 
   return out;
 }
 
+/**
+ * The arrangement may only point at rows that exist (29.9 review). mergeSeating
+ * checks the OTHER side's seats against the merged tables, but the winning
+ * side's own seats were kept as they were — so a guest seated at a table the
+ * other device deleted stayed "seated" at nothing: left out of every
+ * unassigned list and counted as seated. Applied at both exits of the merge.
+ */
+/* Everything the cloud-wins branch unions with this device's copy. When the
+ * result differs from the cloud row in any of them, the device holds something
+ * the cloud does not — a guest only it has, a tombstone, an arrival — and the
+ * event must be pushed (fourth review 30.9: a guest kept by the union came out
+ * version === syncedVersion, was never sent, and the sign-out prune deleted it
+ * everywhere). Not eventSite or tokens: normalizeEvent mints ids for those on
+ * the cloud side, so they would read as different on every login. */
+const UNION_KEYS = ["guests", "tables", "constraints", "tasks", "vendors", "deletedRows", "seating",
+  "lockedGuests", "lockedTables", "customGroups", "customTableTypes", "messagesSent", "rsvpApplied",
+  "messageTemplates", "costs"];
+function holdsMoreThanCloud(merged, cloudNormalized) {
+  const c = pruneArrangement(cloudNormalized);
+  if (UNION_KEYS.some(k => canonical(merged[k]) !== canonical(c[k]))) return true;
+  // A rotation this device made and has not pushed: mergeTokens keeps the new
+  // link, and the event came out "in step" — never sent, the cloud kept
+  // serving the REVOKED link, and the sign-out prune then deleted the new one
+  // (fifth review 30.9). Compared by the rotation record, which the cloud row
+  // carries whole; the tokens themselves are minted per read when missing.
+  // Both sides NORMALISED: a stamp for a link this version does not know (a
+  // newer app added one), or a null stamp, is dropped by normalizeRotations on
+  // one side and kept by mergeRotations on the other — never equal, so the
+  // event was pushed on every load, forever (sixth review 30.9).
+  if (canonical(normalizeRotations(merged.tokenRotations)) !== canonical(normalizeRotations(c.tokenRotations))) return true;
+  if ((merged.tokensRotatedAt ?? null) !== (c.tokensRotatedAt ?? null)) return true;
+  return canonical(merged.floorPlan?.tablePositions ?? {}) !== canonical(c.floorPlan?.tablePositions ?? {})
+      || canonical(merged.floorPlan?.elements ?? []) !== canonical(c.floorPlan?.elements ?? []);
+}
+
+function pruneArrangement(ev) {
+  const guestIds = new Set((ev.guests || []).map(g => g.id));
+  const tableIds = new Set((ev.tables || []).map(t => t.id));
+  const seating = Object.fromEntries(Object.entries(ev.seating || {})
+    .filter(([gid, tid]) => guestIds.has(gid) && tableIds.has(tid)));
+  const fp = ev.floorPlan;
+  const positions = fp?.tablePositions
+    ? Object.fromEntries(Object.entries(fp.tablePositions).filter(([tid]) => tableIds.has(tid)))
+    : null;
+  return {
+    ...ev,
+    seating,
+    lockedGuests: (ev.lockedGuests || []).filter(id => guestIds.has(id)),
+    lockedTables: (ev.lockedTables || []).filter(id => tableIds.has(id)),
+    ...(fp && positions ? { floorPlan: { ...fp, tablePositions: positions } } : {}),
+  };
+}
+
 /** Union two id lists, dropping ids that no longer exist after the merge. */
 function unionIds(cloudIds, localIds, exists) {
   const out = [];
@@ -280,37 +367,6 @@ function keepFilledCosts(winner, loser) {
   return (!has(winner) && has(loser)) ? loser : winner;
 }
 
-function mergeArrivals(localGuests, cloudGuests) {
-  if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
-  const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
-  const take = c => ({ arrivedSeats: c.arrivedSeats, arrived: c.arrived, arrivedAt: c.arrivedAt });
-  const stamp = g => (Number.isFinite(g?.arrivedAt) ? g.arrivedAt : null);
-  const silent = g => g?.arrivedSeats === undefined && !g?.arrived;
-
-  return localGuests.map(g => {
-    const c = cloudById.get(g.id);
-    if (!c || silent(c)) return g;
-
-    // The rule, once both sides carry a stamp: whoever wrote last wins. That is
-    // the only question about arrivals with a correct answer, because the two
-    // writers are different PEOPLE — the host on their phone and the greeter at
-    // the door — and neither is authoritative over the other.
-    const ls = stamp(g), cs = stamp(c);
-    if (ls !== null && cs !== null) return cs > ls ? { ...g, ...take(c) } : g;
-    if (cs !== null && ls === null) return { ...g, ...take(c) };
-    if (ls !== null && cs === null) return g;
-
-    // NEITHER side is stamped: rows written before this shipped, or by a client
-    // that has not updated. Fall back to the old rule exactly — the local copy
-    // wins if it has said anything at all — so nothing about existing data
-    // changes behaviour until it is next touched.
-    //
-    // The old rule is wrong (it cannot tell a local opinion from a value it
-    // copied from the cloud), and this is the shape of being wrong that loses
-    // the SECOND update rather than the first. Kept only as the legacy path.
-    return silent(g) ? { ...g, ...take(c) } : g;
-  });
-}
 
 // Cloud events take precedence over local events with the same ID.
 // Local-only events (no cloudId, not present in cloud) are kept as-is.
@@ -330,6 +386,34 @@ function mergeArrivals(localGuests, cloudGuests) {
 // that lands mid-hydration is deleted locally while its cloud row survives —
 // the orphan is invisible to the user until the next device syncs. Both
 // timestamps come from this device's own clock, so server skew is irrelevant.
+/* After a push is acknowledged at server version `v`: the event is in step
+ * with the cloud only if it has not changed since the snapshot that was sent
+ * (`sentVersion`). An edit made while the push was on the wire must stay
+ * unpushed — one past the new base — or the next push writes a version equal
+ * to the one it replaces and a stale device is accepted over it; the conflict
+ * retry used to set `version: v2` outright, which is exactly that (third
+ * review 30.9, סב46). The server now also refuses to let the version go down
+ * (migration 20260930000300), so `v` can be above what was sent. */
+export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null, sentUpdatedAt, sentEdits) {
+  // The version counter alone is not proof: a merge while the push was on the
+  // wire can reset it, and the next edit then lands on the SAME number as the
+  // one sent — which read as "nothing changed since", marked the edit synced,
+  // and nothing sent it (fourth review 30.9). The edit's timestamp settles it.
+  const unchanged = e.version === sentVersion
+    && (sentUpdatedAt === undefined || e.updatedAt === sentUpdatedAt)
+    && (sentEdits === undefined || (e.localEdits ?? 0) === sentEdits);
+  if (unchanged) return { ...e, syncedVersion: v, version: v, syncBase };
+  return { ...e, syncedVersion: v, version: Math.max(e.version ?? 0, v + 1), syncBase };
+}
+
+// A cloud delete that is remembered until it lands (see pendingEventDeletes.js).
+function sendCloudDelete(cloudId, userId) {
+  addPendingDelete(userId, cloudId);
+  deleteCloudEvent(cloudId, userId)
+    .then(() => markDeleteLanded(userId, cloudId))
+    .catch(() => { /* kept; the next load or "online" sends it again */ });
+}
+
 export function mergeCloudWithLocal(
   localEvents,
   cloudEvents,
@@ -369,8 +453,16 @@ export function mergeCloudWithLocal(
   // `.eq("version", syncedVersion)` and writes `version` from the payload, so
   // any other value either skips numbers the server never issued or — when the
   // local counter is behind — writes a version lower than the row it overwrote.
-  const markUnpushed = (e) =>
-    unpushedIds && unpushedIds.has(e.id)
+  //
+  // `force`: the local-wins branch below. There the local copy is NEWER than
+  // the cloud's (its own updatedAt, stamped on this device, is later than the
+  // one the cloud row carries — equal after any successful push), so by
+  // definition the cloud does not hold it, whoever called. Left unmarked at
+  // load, the counters could come out equal — the sign-out prune then deleted
+  // an edit that existed only here (third review 30.9, סב46: add a guest, close
+  // the tab inside the 1.5 s debounce, reopen, sign out — gone everywhere).
+  const markUnpushed = (e, force = false) =>
+    force || (unpushedIds && unpushedIds.has(e.id))
       ? { ...e, version: (Number.isFinite(e.syncedVersion) ? e.syncedVersion : 0) + 1 }
       : e;
 
@@ -381,12 +473,36 @@ export function mergeCloudWithLocal(
     const localMatch = localEvents.find(le =>
       le.id === ce.id || (le.cloudId && le.cloudId === ce.cloudId)
     );
+    // A row OLDER than the one this device already synced with — a slow fetch
+    // answering after a faster one (two conflict recoveries in flight). It says
+    // nothing new, and read as "the cloud moved from the base" it put the
+    // previous values back over the other device's edit (fourth review 30.9).
+    //
+    // Skipping it assumes the server version never goes DOWN, which is only
+    // guaranteed once migration 20260930000300 (the monotone trigger) has run —
+    // so that migration must be in place before this client is deployed. The
+    // fifth review tried merging such rows instead (to un-freeze an event whose
+    // version had gone down): the three-device fuzz lost single-editor edits in
+    // two seeds that way, and zero with the skip.
+    if (localMatch && Number.isFinite(localMatch.syncedVersion) && Number.isFinite(ce.syncedVersion)
+        && ce.syncedVersion < localMatch.syncedVersion) {
+      return normalizeEvent(localMatch);
+    }
     // Both sides' tombstones, before either branch decides who wins on scalars.
     // A deletion recorded on either device is a deletion, and the branch that
     // loses on scalars still has to have its deletes honoured — otherwise which
     // device happened to edit the venue last would decide whether a guest the
     // OTHER device removed stays removed.
     const tombs = mergeTombstoneMaps(localMatch?.deletedRows, ce.deletedRows);
+    // What is STORED is aged exactly as normalizeEvent ages the cloud row:
+    // with an expired entry kept, the merged map always "held more than the
+    // cloud" and the event was pushed on every load, forever (fifth review
+    // 30.9). The raw map above still filters rows — ageing changes nothing
+    // about which deletes the merge honours.
+    const storedTombs = normalizeDeletedRows(tombs);
+    // The row just read is, by definition, what the cloud holds at the
+    // syncedVersion every branch below takes — so it is the next merge's base.
+    const cloudBase = syncBaseOf(ce);
 
     // The cloud row is NOT automatically the truth. A write can fail (venue
     // wifi) or simply not have fired yet — the push is debounced 1500ms, so
@@ -395,8 +511,48 @@ export function mergeCloudWithLocal(
     // work and then persisted the deletion, which is unrecoverable. Whichever
     // side was written last wins; the cloud id always comes from the cloud.
     if (localMatch && (localMatch.updatedAt ?? 0) > (ce.updatedAt ?? 0)) {
-      return markUnpushed(normalizeEvent({
+      // The mirror of item 76 (28.9, WORKPLAN 107). The union below rescues the
+      // guests and tables the OTHER device added — and until now dropped the
+      // arrangement it gave them: seats, locks, floor-plan positions.
+      // Measured: phone adds g2 + table t2 and seats g2 there; laptop renames
+      // the venue later; the merge kept g2 and t2 and returned seating {g1}.
+      // The rule is 76's, the other way round: the winning side keeps every
+      // decision about rows it KNOWS (an unseating here stays an unseating);
+      // only rows it has never seen take the other side's arrangement.
+      const localGuestIds = new Set((localMatch.guests || []).map(g => g.id));
+      const localTableIds = new Set((localMatch.tables || []).map(t => t.id));
+      const mergedTables  = unionById(localMatch.tables, ce.tables, tombs.tables);
+      // Per guest FIELD against the last-synced base (fifth review): the rows
+      // this side holds no longer win whole just because the event is newer.
+      const mergedGuests  = threeWayGuests(mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests),
+                                           localMatch.guests, ce.guests, localMatch.syncBase?.guests, true).rows;
+      const tableIdsAll   = new Set(mergedTables.map(t => t.id));
+      const guestIdsAll   = new Set(mergedGuests.map(g => g.id));
+      const newFromCloud  = (ids, known, exists) =>
+        (ids || []).filter(id => !known.has(id) && exists.has(id));
+      const localPositions = localMatch.floorPlan?.tablePositions || {};
+      const cloudPositions = ce.floorPlan?.tablePositions || {};
+      const extraPositions = Object.fromEntries(Object.entries(cloudPositions)
+        .filter(([tid]) => !localTableIds.has(tid) && !(tid in localPositions) && tableIdsAll.has(tid)));
+      const localWon = {
         ...localMatch,
+        seating: mergeSeating(localMatch.seating, ce.seating,
+                              (id) => localGuestIds.has(id), (id) => tableIdsAll.has(id)),
+        lockedGuests: [...(localMatch.lockedGuests || []).filter(id => guestIdsAll.has(id)),
+                       ...newFromCloud(ce.lockedGuests, localGuestIds, guestIdsAll)],
+        lockedTables: [...(localMatch.lockedTables || []).filter(id => tableIdsAll.has(id)),
+                       ...newFromCloud(ce.lockedTables, localTableIds, tableIdsAll)],
+        customGroups: unionStrings(localMatch.customGroups, ce.customGroups),
+        customTableTypes: unionStrings(localMatch.customTableTypes, ce.customTableTypes),
+        // A null floor plan here means this device never opened it — not a
+        // deletion (nothing sets it to null). Winning on scalars must not throw
+        // the other device's plan, positions and fixtures away and then push
+        // the null (29.9 review).
+        ...(localMatch.floorPlan
+          ? (Object.keys(extraPositions).length ? {
+              floorPlan: { ...localMatch.floorPlan, tablePositions: { ...localPositions, ...extraPositions } },
+            } : {})
+          : (ce.floorPlan ? { floorPlan: ce.floorPlan } : {})),
         // Arrivals are the one thing on this row written by SOMEONE ELSE, from a
         // device this tab never sees — the greeter, through the entrance token.
         // Whole-event last-write-wins therefore cannot be right for them: the
@@ -409,14 +565,14 @@ export function mergeCloudWithLocal(
         // The tombstone set both sides know about, computed once and applied to
         // every collection below. It has to be the UNION: a row the other
         // device deleted is deleted, whichever side won on scalars.
-        deletedRows: tombs,
-        guests: mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests),
+        deletedRows: storedTombs,
+        guests: mergedGuests,
         // Tables too: a second device adding tables is the same shape of loss,
         // and an unseated guest is recoverable while a deleted table is not.
-        // `seating` stays local — it references this tab's own ids, and a cloud
-        // guest arrives unseated, which is exactly where the host expects a
-        // newly imported row to be.
-        tables: unionById(localMatch.tables, ce.tables, tombs.tables),
+        // (Seating, locks and positions for those rows: see the top of this
+        // branch. They used to stay local-only, which dropped the other
+        // device's arrangement of rows this device had never seen.)
+        tables: mergedTables,
         // The union was written for guests, then extended to tables, and stopped
         // there — while five other collections stayed whole-event
         // last-write-wins. Measured on the code before this line: the other
@@ -433,6 +589,8 @@ export function mergeCloudWithLocal(
         tasks:       unionById(localMatch.tasks,       ce.tasks,       tombs.tasks),
         vendors:     unionById(localMatch.vendors,     ce.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(localMatch.messagesSent, ce.messagesSent),
+        // Applied is a one-way fact: an id applied on EITHER device stays applied.
+        rsvpApplied:      unionStrings(ce.rsvpApplied, localMatch.rsvpApplied),
         messageTemplates: unionByKey(localMatch.messageTemplates, ce.messageTemplates),
         costs:            keepFilledCosts(localMatch.costs, ce.costs),
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
@@ -444,12 +602,21 @@ export function mergeCloudWithLocal(
         // that predates that push resurrect a null token — and never let a
         // cloud row that predates a NEW token (album) erase the local one.
         tokensRotatedAt: Math.max(ce.tokensRotatedAt ?? 0, localMatch.tokensRotatedAt ?? 0) || null,
+        tokenRotations: mergeRotations(ce.tokenRotations, localMatch.tokenRotations),
         tokens: mergeTokens(ce.tokens, localMatch.tokens, null,
-                            ce.tokensRotatedAt, localMatch.tokensRotatedAt),
-      }));
+                            ce.tokensRotatedAt, localMatch.tokensRotatedAt,
+                            ce.tokenRotations, localMatch.tokenRotations),
+      };
+      // Newer is not the same as "changed everything": a field only the cloud
+      // moved since the last sync takes the cloud's value (סב55, syncBase.js).
+      const { event: scalarsMerged } = threeWayScalars(localWon, localMatch, ce, localMatch.syncBase);
+      return markUnpushed(pruneArrangement(normalizeEvent({
+        ...scalarsMerged, syncBase: cloudBase,
+      })), true);
     }
 
-    let result = normalized;
+    let result = { ...normalized, syncBase: cloudBase };
+    let localKept = false;
 
     // The cloud won on scalars — but a row it has never heard of is still this
     // tab's work, so the union runs in BOTH directions. Symmetry is not tidiness
@@ -482,25 +649,29 @@ export function mergeCloudWithLocal(
       // carried the NEWER arrivedAt and mergeArrivals would have kept them.
       // Arguments are (local, cloud) in the other branch; here `result` is the
       // cloud side, so they swap.
-      const guests = mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests);
+      const gw = threeWayGuests(mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests),
+                                localMatch.guests, result.guests, localMatch.syncBase?.guests, false);
+      const guests = gw.rows;
       const tables = unionById(result.tables, localMatch.tables, tombs.tables);
 
       // Who the CLOUD knows, computed before the union, so "the cloud has no
       // opinion about this guest" is answerable. After the union everything
       // looks known.
       const cloudGuestIds = new Set((result.guests || []).map(g => g.id));
+      const cloudTableIds = new Set((result.tables || []).map(t => t.id));
       const tableIds      = new Set(tables.map(t => t.id));
       const guestIds      = new Set(guests.map(g => g.id));
 
       result = {
         ...result,
-        deletedRows: tombs,
+        deletedRows: storedTombs,
         guests,
         tables,
         constraints: unionById(result.constraints, localMatch.constraints, tombs.constraints),
         tasks:       unionById(result.tasks,       localMatch.tasks,       tombs.tasks),
         vendors:     unionById(result.vendors,     localMatch.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(result.messagesSent, localMatch.messagesSent),
+        rsvpApplied:      unionStrings(result.rsvpApplied, localMatch.rsvpApplied),
         messageTemplates: unionByKey(result.messageTemplates, localMatch.messageTemplates),
         costs:            keepFilledCosts(result.costs, localMatch.costs),
         // Everything below is the ARRANGEMENT around those rows. Keeping a
@@ -509,11 +680,27 @@ export function mergeCloudWithLocal(
         // tell that from having forgotten to seat it. See mergeSeating.
         seating: mergeSeating(result.seating, localMatch.seating,
                               (id) => cloudGuestIds.has(id), (id) => tableIds.has(id)),
-        lockedGuests: unionIds(result.lockedGuests, localMatch.lockedGuests, (id) => guestIds.has(id)),
-        lockedTables: unionIds(result.lockedTables, localMatch.lockedTables, (id) => tableIds.has(id)),
+        // Locks: the cloud's, plus this tab's for rows the cloud has never seen.
+        // A plain union brought back a lock the OTHER device had removed — the
+        // host unlocks a table on the phone, and the laptop's stale copy locks
+        // it again on its next load (107, 29.9). Same rule as seating.
+        lockedGuests: unionIds(result.lockedGuests,
+                               (localMatch.lockedGuests || []).filter(id => !cloudGuestIds.has(id)),
+                               (id) => guestIds.has(id)),
+        lockedTables: unionIds(result.lockedTables,
+                               (localMatch.lockedTables || []).filter(id => !cloudTableIds.has(id)),
+                               (id) => tableIds.has(id)),
         customGroups: unionStrings(result.customGroups, localMatch.customGroups),
         customTableTypes: unionStrings(result.customTableTypes, localMatch.customTableTypes),
+        // This device's own edit count — never the cloud's (it has none).
+        localEdits: localMatch.localEdits ?? 0,
       };
+      // The mirror of the local-wins case: the cloud copy is newer, but a field
+      // only THIS device moved since the last sync is this device's edit, not
+      // something the cloud overruled (סב55). Kept, and marked for pushing.
+      const tw = threeWayScalars(result, localMatch, ce, localMatch.syncBase);
+      result = tw.event;
+      localKept = tw.localKept || gw.localKept;
     }
 
     // Positions for tables the cloud has never seen. The rescue below only fires
@@ -521,9 +708,13 @@ export function mergeCloudWithLocal(
     // here kept its seat and its lock and still had no place on the plan.
     if (localMatch?.floorPlan?.tablePositions && result.floorPlan) {
       const known = result.floorPlan.tablePositions || {};
+      // Only tables the cloud has never SEEN. A table the cloud knows but has
+      // no position for was taken off the plan on the other device — the same
+      // rule as seats and locks (29.9 review; it came back before).
+      const cloudKnows = new Set((normalized.tables || []).map(t => t.id));
       const extra = {};
       for (const [tid, pos] of Object.entries(localMatch.floorPlan.tablePositions)) {
-        if (!(tid in known)) extra[tid] = pos;
+        if (!(tid in known) && !cloudKnows.has(tid)) extra[tid] = pos;
       }
       if (Object.keys(extra).length) {
         result = { ...result, floorPlan: { ...result.floorPlan, tablePositions: { ...known, ...extra } } };
@@ -552,12 +743,16 @@ export function mergeCloudWithLocal(
     if (localMatch?.tokens) {
       result = { ...result,
         tokensRotatedAt: Math.max(ce.tokensRotatedAt ?? 0, localMatch.tokensRotatedAt ?? 0) || null,
+        tokenRotations: mergeRotations(ce.tokenRotations, localMatch.tokenRotations),
         tokens: mergeTokens(ce.tokens, localMatch.tokens, result.tokens,
-                            ce.tokensRotatedAt, localMatch.tokensRotatedAt) };
+                            ce.tokensRotatedAt, localMatch.tokensRotatedAt,
+                            ce.tokenRotations, localMatch.tokenRotations) };
     }
     // Applied at BOTH exits. The local-wins branch above returns early, and
     // putting this only here silently skipped the exact case it is for.
-    return markUnpushed(result);
+    if (!localMatch) return result;
+    const pruned = pruneArrangement(result);
+    return markUnpushed(pruned, localKept || holdsMoreThanCloud(pruned, normalized));
   });
 
   for (const le of localEvents) {
@@ -629,6 +824,9 @@ export function useEvents(user) {
   // there, so the `react-hooks/set-state-in-effect` count is unchanged at 20 —
   // measured, not assumed.
   const [hydratedFor, setHydratedFor] = useState(undefined);
+  // Bumped when a load from the cloud has merged — the cue to send what this
+  // device holds and the cloud does not (see pushUnpushed).
+  const [loadedTick, setLoadedTick] = useState(0);
 
   // Refs let callbacks read the latest values without stale-closure issues.
   const eventsRef    = useRef(events);
@@ -726,16 +924,24 @@ export function useEvents(user) {
         // Stamped BEFORE the request goes out: anything created after this
         // moment is newer than the answer coming back.
         const fetchedAt = Date.now();
-        const cloudEvents = await fetchCloudEvents(userId);
+        const fetched = await fetchCloudEvents(userId);
         if (cancelled || ownerRef.current !== userId) return;
+        // The fetch resolved, so it did not error, and it came back short of
+        // the page limit, so nothing was cut off the end. Both have to hold
+        // before an event missing from this list can be read as deleted.
+        const authoritative = fetched.length < CLOUD_EVENTS_LIMIT;
+        const cloudEvents = withoutPendingDeletes(userId, fetched,
+          { authoritative, retry: (id) => sendCloudDelete(id, userId) });
         setEvents(prev => mergeCloudWithLocal(prev, cloudEvents, {
-          // The fetch resolved, so it did not error, and it came back short of
-          // the page limit, so nothing was cut off the end. Both have to hold
-          // before an event missing from this list can be read as deleted.
-          cloudIsAuthoritative: cloudEvents.length < CLOUD_EVENTS_LIMIT,
+          cloudIsAuthoritative: authoritative,
           fetchedAt,
         }));
         setSyncStatus(SYNC_STATUS.SYNCED);
+        // Then send what this device holds and the cloud does not — an edit
+        // made before the tab closed, or offline. The load never pushed, so it
+        // waited for the next edit (סב46). After the render that applies the
+        // merge, so the push reads the merged events.
+        setLoadedTick(t => t + 1);
       } catch {
         if (cancelled) return;
         setSyncStatus(SYNC_STATUS.ERROR); // keep the seeded local view on failure
@@ -756,15 +962,18 @@ export function useEvents(user) {
     try {
       const version = await updateCloudEvent(ev, uid);
       if (Number.isFinite(version)) {
-        setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, syncedVersion: version } : e));
+        const base = syncBaseOf(ev);
+        setEvents(prev => prev.map(e => e.id === ev.id ? afterPush(e, ev.version, version, base, ev.updatedAt, ev.localEdits ?? 0) : e));
       }
       setSyncStatus(SYNC_STATUS.SYNCED);
     } catch (err) {
       if (err instanceof CloudConflictError) {
         try {
           const fetchedAt = Date.now();
-          const cloudEvents = await fetchCloudEvents(uid);
+          const fetched = await fetchCloudEvents(uid);
           if (ownerRef.current !== uid) return;
+          const cloudEvents = withoutPendingDeletes(uid, fetched,
+            { authoritative: fetched.length < CLOUD_EVENTS_LIMIT, retry: (id) => sendCloudDelete(id, uid) });
 
           // Merged HERE rather than inside a `setEvents(prev => …)` updater,
           // because the retry below needs the result and React does not run an
@@ -773,15 +982,22 @@ export function useEvents(user) {
           // never fired. `eventsRef` is what the rest of this hook already uses
           // for the same purpose, and every render has flushed during the
           // awaited fetch above.
-          const next = mergeCloudWithLocal(eventsRef.current, cloudEvents, {
-            cloudIsAuthoritative: cloudEvents.length < CLOUD_EVENTS_LIMIT,
+          const mergeOpts = {
+            cloudIsAuthoritative: fetched.length < CLOUD_EVENTS_LIMIT,
             fetchedAt,
             // We are here BECAUSE the server rejected this event's write, so
             // this device is holding content the cloud does not have. See the
             // long note on the option in mergeCloudWithLocal.
             unpushedIds: new Set([ev.id]),
-          });
-          setEvents(next);
+          };
+          const next = mergeCloudWithLocal(eventsRef.current, cloudEvents, mergeOpts);
+          // The STATE is merged against the latest state, not the snapshot
+          // above: eventsRef only catches up after a render, so a second
+          // recovery (or an edit) landing in the same tick was overwritten by
+          // `setEvents(next)` (fourth review 30.9). `next` is only the copy
+          // pushed below — and afterPush compares timestamps, so where the two
+          // differ the event simply stays owed to the cloud.
+          setEvents(prev => mergeCloudWithLocal(prev, cloudEvents, mergeOpts));
           const mergedThis = next.find(e => e.id === ev.id) ?? null;
 
           // AND THEN PUSH IT. Without this the merge was a dead end: it built a
@@ -794,8 +1010,9 @@ export function useEvents(user) {
               const v2 = await updateCloudEvent(mergedThis, uid);
               if (ownerRef.current !== uid) return;
               if (Number.isFinite(v2)) {
+                const base = syncBaseOf(mergedThis);
                 setEvents(prev => prev.map(e =>
-                  e.id === ev.id ? { ...e, syncedVersion: v2, version: v2 } : e));
+                  e.id === ev.id ? afterPush(e, mergedThis.version, v2, base, mergedThis.updatedAt, mergedThis.localEdits ?? 0) : e));
               }
               setSyncStatus(SYNC_STATUS.SYNCED);
             } catch {
@@ -837,10 +1054,11 @@ export function useEvents(user) {
         if (created) {
           const { cloudId, version } = created;
           if (wasDeleted) {
-            deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
+            sendCloudDelete(cloudId, currentUser.id);
           } else {
+            const base = syncBaseOf(normalized);
             setEvents(prev => prev.map(e =>
-              e.id === normalized.id ? { ...e, cloudId, syncedVersion: version } : e));
+              e.id === normalized.id ? { ...e, cloudId, syncedVersion: version, syncBase: base } : e));
             // Push any edits that arrived during the round-trip so the cloud row stays current.
             const latest = eventsRef.current.find(e => e.id === normalized.id);
             if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
@@ -868,13 +1086,119 @@ export function useEvents(user) {
     const currentUser = userRef.current;
     if (!currentUser || !isSupabaseConfigured) return;
     if (ev?.cloudId) {
-      deleteCloudEvent(ev.cloudId, currentUser.id).catch(() => {});
+      sendCloudDelete(ev.cloudId, currentUser.id);
     } else if (ev) {
       // No cloudId yet — its initial create may still be in flight. Flag it so
       // the create handler deletes the orphaned cloud row when it resolves.
       pendingDeletes.current.add(id);
     }
   }, []);
+
+  /* One event's cloud write, now. The debounce below calls it 1.5 s after the
+   * last edit; so do the moments a phone is about to stop running this tab —
+   * hidden, closed — and the moment the network comes back (third review
+   * 30.9, סב46). Before, an edit made inside the debounce and then the tab
+   * closed was never sent at all, and an offline edit waited for the NEXT edit
+   * after the signal returned; the load did not push either. */
+  const pushNow = useCallback((id) => {
+    const ev          = eventsRef.current.find(e => e.id === id);
+    const currentUser = userRef.current;
+    if (!ev || !currentUser || !isSupabaseConfigured) return;
+
+    // No cloudId means the initial create failed — offline on the train, say.
+    // Without a retry the event stayed local-only for good: every later edit
+    // hit this early return, so an hour of guest entry existed on exactly one
+    // browser and vanished with its cache. Retry the create on the next edit.
+    if (!ev.cloudId) {
+      // This retry is the same operation as addEvent's create and needs the
+      // same two guards, which it did not have:
+      //
+      //   • in-flight: two edits 1500ms apart during a slow create fired a
+      //     SECOND create for one event. The unique token indexes turn that
+      //     into an error rather than a duplicate row, so it surfaced as a
+      //     spurious "sync failed" AND the second snapshot was never pushed.
+      //   • pendingDeletes: an event deleted while the retry was in flight
+      //     left an orphaned cloud row that came back on the next hydration.
+      if (creatingRef.current.has(id)) return;
+      creatingRef.current.add(id);
+      setSyncStatus(SYNC_STATUS.SYNCING);
+      createCloudEvent(ev, currentUser.id)
+        .then(created => {
+          creatingRef.current.delete(id);
+          const wasDeleted = pendingDeletes.current.delete(id);
+          if (!created) { setSyncStatus(SYNC_STATUS.ERROR); return; }
+          const { cloudId, version } = created;
+          if (wasDeleted) {
+            sendCloudDelete(cloudId, currentUser.id);
+            setSyncStatus(SYNC_STATUS.SYNCED);
+            return;
+          }
+          const base = syncBaseOf(ev);
+          setEvents(prev => prev.map(e =>
+            e.id === id ? { ...e, cloudId, syncedVersion: version, syncBase: base } : e));
+          // Push whatever arrived during the round-trip, exactly as addEvent
+          // does — without this the edit that TRIGGERED the retry was the one
+          // change the cloud never received.
+          const latest = eventsRef.current.find(e => e.id === id);
+          if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
+          setSyncStatus(SYNC_STATUS.SYNCED);
+        })
+        .catch(() => {
+          creatingRef.current.delete(id);
+          pendingDeletes.current.delete(id); // create failed → no orphan to clean
+          setSyncStatus(SYNC_STATUS.ERROR);
+        });
+      return;
+    }
+
+    // The cloud already holds this exact version — the same predicate the
+    // sign-out prune trusts (isCloudBacked). A debounce that fired for a patch
+    // which changed nothing has nothing to send (סב56).
+    if (ev.version === ev.syncedVersion) return;
+    setSyncStatus(SYNC_STATUS.SYNCING);
+    pushUpdate(ev, currentUser.id);
+  }, [pushUpdate]);
+  const pushNowRef = useRef(pushNow);
+  useEffect(() => { pushNowRef.current = pushNow; }, [pushNow]);
+
+  // Send what is pending: every debounce still running, and every event this
+  // device holds that the cloud does not (version ahead of the base).
+  const flushPending = useCallback(() => {
+    for (const id of Object.keys(syncTimers.current)) {
+      clearTimeout(syncTimers.current[id]);
+      delete syncTimers.current[id];
+      pushNowRef.current(id);
+    }
+  }, []);
+  // Only events the cloud already has a row for. An event with no cloudId is
+  // either a draft that arrived from the logged-out bucket — uploading it at
+  // sign-in, before the import banner asks, would put someone else's draft on a
+  // shared computer into this account — or a failed create, which the next
+  // edit retries as before.
+  const pushUnpushed = useCallback(() => {
+    for (const e of eventsRef.current) {
+      if (syncTimers.current[e.id]) continue;
+      if (e.cloudId && e.version !== e.syncedVersion) pushNowRef.current(e.id);
+    }
+  }, []);
+  // After each load from the cloud (loadedTick), once the merge has rendered.
+  useEffect(() => { if (loadedTick) pushUnpushed(); }, [loadedTick, pushUnpushed]);
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === "hidden") flushPending(); };
+    const onOnline = () => {
+      flushPending(); pushUnpushed();
+      const uid = userRef.current?.id;
+      if (uid && isSupabaseConfigured) readPendingDeletes(uid).forEach(id => sendCloudDelete(id, uid));
+    };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", flushPending);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", flushPending);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [flushPending, pushUnpushed]);
 
   const patchEventById = useCallback((id, patch) => {
     // Internal cloudId-only patches must not bump updatedAt/version or trigger
@@ -896,66 +1220,17 @@ export function useEvents(user) {
       const patched = typeof patch === "function"
         ? patch(e)
         : Object.assign({}, e, patch);
-      return updateEventTimestamp(withTombstones(e, patched));
+      // A function patch that hands the row back untouched changed nothing —
+      // no new version, no updatedAt, nothing owed to the cloud (סב56).
+      if (patched === e) return e;
+      return updateEventTimestamp(withTombstones(e, freeDeclinedSeats(e, patched)));
     }));
 
     // Debounce cloud writes so rapid-fire patches (e.g. typing in a field)
     // don't generate one request per keystroke.
     clearTimeout(syncTimers.current[id]);
-    syncTimers.current[id] = setTimeout(() => {
-      const ev          = eventsRef.current.find(e => e.id === id);
-      const currentUser = userRef.current;
-      if (!ev || !currentUser || !isSupabaseConfigured) return;
-
-      // No cloudId means the initial create failed — offline on the train, say.
-      // Without a retry the event stayed local-only for good: every later edit
-      // hit this early return, so an hour of guest entry existed on exactly one
-      // browser and vanished with its cache. Retry the create on the next edit.
-      if (!ev.cloudId) {
-        // This retry is the same operation as addEvent's create and needs the
-        // same two guards, which it did not have:
-        //
-        //   • in-flight: two edits 1500ms apart during a slow create fired a
-        //     SECOND create for one event. The unique token indexes turn that
-        //     into an error rather than a duplicate row, so it surfaced as a
-        //     spurious "sync failed" AND the second snapshot was never pushed.
-        //   • pendingDeletes: an event deleted while the retry was in flight
-        //     left an orphaned cloud row that came back on the next hydration.
-        if (creatingRef.current.has(id)) return;
-        creatingRef.current.add(id);
-        setSyncStatus(SYNC_STATUS.SYNCING);
-        createCloudEvent(ev, currentUser.id)
-          .then(created => {
-            creatingRef.current.delete(id);
-            const wasDeleted = pendingDeletes.current.delete(id);
-            if (!created) { setSyncStatus(SYNC_STATUS.ERROR); return; }
-            const { cloudId, version } = created;
-            if (wasDeleted) {
-              deleteCloudEvent(cloudId, currentUser.id).catch(() => {});
-              setSyncStatus(SYNC_STATUS.SYNCED);
-              return;
-            }
-            setEvents(prev => prev.map(e =>
-              e.id === id ? { ...e, cloudId, syncedVersion: version } : e));
-            // Push whatever arrived during the round-trip, exactly as addEvent
-            // does — without this the edit that TRIGGERED the retry was the one
-            // change the cloud never received.
-            const latest = eventsRef.current.find(e => e.id === id);
-            if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
-            setSyncStatus(SYNC_STATUS.SYNCED);
-          })
-          .catch(() => {
-            creatingRef.current.delete(id);
-            pendingDeletes.current.delete(id); // create failed → no orphan to clean
-            setSyncStatus(SYNC_STATUS.ERROR);
-          });
-        return;
-      }
-
-      setSyncStatus(SYNC_STATUS.SYNCING);
-      pushUpdate(ev, currentUser.id);
-    }, 1500);
-  }, [pushUpdate]);
+    syncTimers.current[id] = setTimeout(() => { delete syncTimers.current[id]; pushNowRef.current(id); }, 1500);
+  }, []);
 
   /**
    * Is `events` the list a route guard is allowed to draw conclusions from?

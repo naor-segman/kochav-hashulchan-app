@@ -219,7 +219,7 @@ for (const s of SCREENS) {
   await page.waitForTimeout(1100);
   const r = await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = 'auto';
-    window.scrollTo(9999, 0); const sx = Math.abs(window.scrollX); window.scrollTo(0, 0);
+    window.scrollTo({ left: -1e5, behavior: "instant" }); const sx = Math.abs(window.scrollX); window.scrollTo(0, 0);
     const t = (document.body.innerText || '').trim();
     return { sx, empty: t.length < 40, blew: /משהו השתבש|שגיאה בלתי צפויה/.test(t) };
   });
@@ -240,7 +240,7 @@ for (const [kind, path] of [['rsvp', 'rsvp'], ['invite', 'invite'], ['gift', 'gi
   await page.waitForTimeout(1400);
   const r = await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = 'auto';
-    window.scrollTo(9999, 0); const sx = Math.abs(window.scrollX); window.scrollTo(0, 0);
+    window.scrollTo({ left: -1e5, behavior: "instant" }); const sx = Math.abs(window.scrollX); window.scrollTo(0, 0);
     return { sx, len: (document.body.innerText || '').trim().length };
   });
   // These screens read from Supabase, which is not reachable here, so an error

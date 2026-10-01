@@ -25,7 +25,7 @@
  * Run: node qa/seoHeads.mjs   (expects a build)
  */
 import { createRequire } from "node:module";
-import { spawn } from "node:child_process";
+import { startPreview } from "./lib/preview.mjs";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -71,6 +71,10 @@ for (const page of SEO_PAGES) {
     `${pick(html, OGURL)}`);
   check(`file ${page.path}: og:title follows title`,
     pick(html, OGTIT) === pageTitle(page), `${pick(html, OGTIT)}`);
+  // The share image as a full url (106): WhatsApp shows none for a relative one.
+  for (const re of [/<meta property="og:image" content="([^"]*)"/i, /<meta name="twitter:image" content="([^"]*)"/i])
+    check(`file ${page.path}: ${re.source.match(/"([a-z:]+)"/)[1]} is absolute`,
+      /^https:\/\//.test(pick(html, re) || ''), `${pick(html, re)}`);
   // Exactly one of each — a second canonical is as bad as none.
   check(`file ${page.path}: one canonical`,
     (html.match(/rel="canonical"/g) || []).length === 1);
@@ -114,14 +118,12 @@ for (const page of SEO_PAGES) {
 }
 
 // ── C. the browser ───────────────────────────────────────────────────────────
-const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"],
-  { cwd: ROOT, stdio: "ignore" });
+/* startPreview refuses to run when the port already answers — see
+   qa/lib/preview.mjs. */
+let server = { stop: () => {} };
 
 try {
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(BASE)).ok) break; } catch { /* not up */ }
-    await new Promise(r => setTimeout(r, 500));
-  }
+  server = await startPreview(PORT, ROOT);
 
   const browser = await chromium.launch({
     executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
@@ -175,7 +177,7 @@ try {
 } catch (e) {
   check("harness ran", false, e.message);
 } finally {
-  server.kill();
+  server.stop();
 }
 
 const failed = results.filter(r => !r.pass);

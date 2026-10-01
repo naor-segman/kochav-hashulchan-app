@@ -42,7 +42,50 @@ import { scrubRoute } from "../utils/errorReport.js";
  *   is a recording of three hundred names and phone numbers.
  *
  * src/lib/analytics.test.js fails if any of the three comes back.
+ *
+ * ── And a fourth: every URL posthog-js attaches ON ITS OWN ───────────────────
+ * The scrubbed $current_url above was not enough, and the comments said it
+ * was. posthog-js adds `$pathname`, `$referrer`, `$initial_referrer` and the
+ * initial URL to EVERY event and to the person record — so a guest opening
+ * /collab/<token> still sent the raw token in `$pathname` on the pageview, and
+ * `track(RSVP_RECEIVED)` from /rsvp/<token> sent it in both. The collab token
+ * opens the whole guest list, phone numbers included. Found independently by
+ * two agents in the 28.9 audit, confirmed against posthog-js's own bundle.
+ *
+ * `before_send` now runs every outgoing event through scrubEvent(): each string
+ * that looks like a path or a URL, in `properties`, `$set` and `$set_once`,
+ * goes through scrubRoute. One rule for what a token-bearing URL may look like
+ * when it leaves the browser, applied to everything rather than field by field.
  */
+
+/**
+ * Take the tokens out of every URL-ish string in an outgoing PostHog event.
+ * Pure, exported for the test. Returns the event (mutated copy) or null to
+ * drop — never throws, because analytics must never break the app.
+ */
+export function scrubEvent(ev) {
+  try {
+    if (!ev || typeof ev !== "object") return ev;
+    const clean = (bag) => {
+      if (!bag || typeof bag !== "object") return bag;
+      const out = { ...bag };
+      // PostHog attaches document.title to every pageview, and a guest page's
+      // title is the hosts' names ("אישור הגעה · דנה ויוסי" — useGuestTitle).
+      // Names are not what the funnel needs (29.9 review).
+      delete out.title;
+      delete out.$title;
+      for (const [k, v] of Object.entries(out)) {
+        if (typeof v === "string" && (v.startsWith("/") || /^https?:\/\//i.test(v))) {
+          out[k] = scrubRoute(v);
+        }
+      }
+      return out;
+    };
+    return { ...ev, properties: clean(ev.properties), $set: clean(ev.$set), $set_once: clean(ev.$set_once) };
+  } catch {
+    return null;   // if we cannot be sure it is clean, it does not leave
+  }
+}
 
 const KEY  = import.meta.env?.VITE_POSTHOG_KEY;
 const HOST = import.meta.env?.VITE_POSTHOG_HOST || "https://eu.i.posthog.com";
@@ -73,6 +116,12 @@ export function initAnalytics() {
         capture_pageleave: false,
         disable_session_recording: true,
         persistence: "localStorage",   // no cross-site cookie
+        before_send: scrubEvent,       // tokens out of EVERY url posthog attaches
+        // PostHog's feature-flag call does NOT pass through before_send, and it
+        // carried "$initial_current_url": ".../collab/<raw token>" for every
+        // guest route (second review, סב10, measured on its decoded request).
+        // Nothing here reads a flag, so the call goes, and remote config with it.
+        advanced_disable_flags: true,
       });
       ph = p;
       // Flush in the order the app made them, so the funnel keeps its shape.
@@ -116,4 +165,17 @@ export const EVENTS = {
   SEATING_RUN:    "seating_run",
   SHARE_COPIED:   "share_link_copied",
   RSVP_RECEIVED:  "rsvp_received",
+  // The gift page's only step (WORKPLAN מ2). Guest's device, like RSVP.
+  GIFT_DECLARED:  "gift_declared",
 };
+
+/** A declared gift amount as a coarse band — the funnel needs the shape of
+ *  the money, not a guest's exact figure. */
+export function amountBand(ils) {
+  const n = Number(ils);
+  if (!Number.isFinite(n) || n <= 0) return "none";
+  if (n < 200) return "<200";
+  if (n < 500) return "200-499";
+  if (n < 1000) return "500-999";
+  return "1000+";
+}

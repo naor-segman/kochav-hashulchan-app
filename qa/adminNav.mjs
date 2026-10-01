@@ -44,9 +44,14 @@ const rows = await p.evaluate(() => {
   }));
 });
 
+// The rows come from the nav's own source. This harness hardcoded "seven rows"
+// and the label "מנויים ותשלומים", and went red when משוב was added and item 94
+// renamed the row — the check had drifted, not the nav (29.9 review).
+const { NAV_ITEMS } = await import(new URL('../src/admin/lib/adminNav.js', import.meta.url).href);
+
 console.log('── the nav rendered at all (everything below is vacuous otherwise)');
 ok(rows !== null, 'found the nav list');
-ok(rows && rows.length === 7, 'seven rows', rows ? String(rows.length) : '');
+ok(rows && rows.length === NAV_ITEMS.length, `${NAV_ITEMS.length} rows, as adminNav.js lists`, rows ? String(rows.length) : '');
 
 const activity = rows?.find(r => r.text.includes('יומן פעילות'));
 
@@ -56,7 +61,7 @@ ok(activity?.href === null, 'it is not a link', activity?.href || '');
 ok(/בפיתוח/.test(activity?.text || ''), 'and says why', activity?.text || '');
 
 console.log('\n── nothing else lost its link');
-for (const label of ['ניהול משתמשים', 'כל האירועים', 'ניהול תבניות', 'מנויים ותשלומים', 'שגיאות', 'הגדרות מערכת']) {
+for (const label of NAV_ITEMS.filter(i => i.live).map(i => i.label)) {
   const r = rows?.find(x => x.text.includes(label));
   ok(!!r?.href, `${label} still links`, r ? String(r.href) : 'row missing');
 }

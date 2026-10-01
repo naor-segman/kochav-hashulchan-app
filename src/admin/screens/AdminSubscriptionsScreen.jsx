@@ -14,6 +14,7 @@ import {
   STATUS_KEYS,
 } from "../lib/planConfig.js";
 import { formatDate, countPhrase } from "../lib/adminFormat.js";
+import { attachWindowMeta } from "../lib/listWindow.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSubscriptionsScreen.module.css";
@@ -23,18 +24,27 @@ import { COMPANY } from "../../data/company.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function loadSubscriptionsData() {
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .select("id, plan, status, payment_past_due, started_at, expires_at, created_at, updated_at, profiles!user_id(email)")
-    .order("created_at", { ascending: false })
-    .limit(500);
+// The newest SUBS_PAGE purchases, with the table's own count beside them.
+// Until 29.9 the list stopped at 500 and said nothing (WORKPLAN 58) — the
+// events screen already said it; this one now says it the same way.
+const SUBS_PAGE = 500;
 
-  if (error) throw error;
-  return (data || []).map(row => ({
+async function loadSubscriptionsData() {
+  const [listRes, countRes] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("id, plan, status, payment_past_due, started_at, expires_at, created_at, updated_at, profiles!user_id(email)")
+      .order("created_at", { ascending: false })
+      .limit(SUBS_PAGE),
+    supabase.from("subscriptions").select("id", { count: "exact", head: true }),
+  ]);
+
+  if (listRes.error) throw listRes.error;
+  const rows = (listRes.data || []).map(row => ({
     ...row,
     email: row.profiles?.email || "—",
   }));
+  return attachWindowMeta(rows, SUBS_PAGE, countRes.error ? null : countRes.count);
 }
 
 // ── Badge components ──────────────────────────────────────────────────────────
@@ -53,16 +63,14 @@ const PLAN_BADGE = {
   enterprise: "badgeFilled",
 };
 
+// The statuses a row can actually have — see STATUS_KEYS in planConfig.js.
+// Four unreachable Stripe subscription states were removed in checklist 94.
 const STATUS_BADGE = {
-  active:             "badgeFilled",
-  trialing:           "badgeOutline",
-  incomplete:         "badgeOutline",
-  paused:             "badgeOutline",
-  cancelled:          "badgeQuiet",
-  expired:            "badgeQuiet",
-  incomplete_expired: "badgeQuiet",
-  past_due:           "badgeAlarm",
-  unpaid:             "badgeAlarm",
+  active:    "badgeFilled",
+  trialing:  "badgeOutline",
+  cancelled: "badgeQuiet",
+  expired:   "badgeQuiet",
+  past_due:  "badgeAlarm",
 };
 
 function PlanBadge({ plan }) {
@@ -166,7 +174,7 @@ export default function AdminSubscriptionsScreen() {
         setNotConfigured(true);
         setSubs([]);
       } else {
-        setError(err.message || "טעינת המנויים נכשלה.");
+        setError(err.message || "טעינת הרכישות נכשלה.");
         setSubs([]);
       }
     }
@@ -197,7 +205,7 @@ export default function AdminSubscriptionsScreen() {
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminSubscriptions" tone="admin" size={20} className={styles.brandMark} />
-          <span className={styles.brandName}>מנויים ותשלומים</span>
+          <span className={styles.brandName}>רכישות ותשלומים</span>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>{COMPANY.name}</span>
         </div>
@@ -221,7 +229,7 @@ export default function AdminSubscriptionsScreen() {
         {!loading && notConfigured && (
           <div className={styles.notConfiguredBox}>
             <div className={styles.notConfiguredIcon}><Icon name="card" size={30} /></div>
-            <h2 className={styles.notConfiguredTitle}>טבלת מנויים לא נמצאה</h2>
+            <h2 className={styles.notConfiguredTitle}>טבלת הרכישות לא נמצאה</h2>
             <p className={styles.notConfiguredText}>
               הפעל את המיגרציה הבאה ב-Supabase SQL Editor:
             </p>
@@ -262,7 +270,7 @@ export default function AdminSubscriptionsScreen() {
                       {/* Read "1 פעילים" on every plan that had exactly one. */}
                       {countPhrase(
                         (subs || []).filter(s => s.plan === plan && s.status === "active" && !s.payment_past_due).length,
-                        { none: "אין מנויים פעילים", one: "מנוי פעיל אחד", many: "%n מנויים פעילים" }
+                        { none: "אין רכישות פעילות", one: "רכישה פעילה אחת", many: "%n רכישות פעילות" }
                       )}
                     </div>
                   </div>
@@ -308,16 +316,25 @@ export default function AdminSubscriptionsScreen() {
                 </select>
               </div>
               <span className={styles.resultCount}>
-                {filtered.length.toLocaleString()} מנויים
+                {filtered.length.toLocaleString()} רכישות
+                {/* What was LOADED, not the page size, and never "500 מתוך 500":
+                    when the count query failed a full window is only a guess
+                    that more exist, and says so (29.9 review). */}
+                {subs?.truncated && (
+                  <span className={styles.truncNote}>
+                    {" · "}מוצגות {subs.length.toLocaleString()} האחרונות
+                    {subs.total > subs.length ? ` מתוך ${subs.total.toLocaleString()}` : " — ייתכן שיש עוד"}
+                  </span>
+                )}
               </span>
             </div>
 
             {/* Empty state — no data at all */}
             {(subs || []).length === 0 && (
               <div className={styles.stateBox}>
-                <p className={styles.emptyTitle}>אין מנויים עדיין</p>
+                <p className={styles.emptyTitle}>אין רכישות עדיין</p>
                 <p className={styles.emptyHint}>
-                  מנויים יופיעו כאן לאחר שמשתמשים יירשמו למערכת ויוקצה להם תוכנית.
+                  רכישות יופיעו כאן כשמארחים ירכשו חבילה לאירוע.
                 </p>
               </div>
             )}
@@ -326,7 +343,7 @@ export default function AdminSubscriptionsScreen() {
             {(subs || []).length > 0 && filtered.length === 0 && (
               <div className={styles.stateBox}>
                 <p className={styles.emptyTitle}>אין תוצאות</p>
-                <p className={styles.emptyHint}>שנה את הסינון כדי לראות מנויים.</p>
+                <p className={styles.emptyHint}>שנו את הסינון כדי לראות רכישות.</p>
               </div>
             )}
 
@@ -397,7 +414,7 @@ export default function AdminSubscriptionsScreen() {
 
         {/* ── Loading ── */}
         {loading && (
-          <Loading rows={4} label="טוען מנויים…" />
+          <Loading rows={4} label="טוען רכישות…" />
         )}
 
       </main>

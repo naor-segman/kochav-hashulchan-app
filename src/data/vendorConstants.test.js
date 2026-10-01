@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  parseAmount, vendorTotals, vendorStatus, vendorCategory, paymentStatus,
+  parseAmount, vendorTotals, vendorStatus, vendorCategory, paymentStatus, shownPayment, amountDue,
   VENDOR_CATEGORIES,
 } from "./vendorConstants.js";
 
@@ -74,5 +74,36 @@ describe("lookups fall back instead of throwing", () => {
     for (const shared of ["venue", "catering", "music", "photographer", "flowers", "invitations", "other"]) {
       expect(ids).toContain(shared);
     }
+  });
+});
+describe("shownPayment — the amounts outrank an untouched select (fourth review)", () => {
+  it("₪20,000 of ₪85,000 paid is a deposit, not 'לא שולם'", () => {
+    expect(shownPayment("none", 85000, 20000).label).toBe("מקדמה");
+  });
+  it("paid in full is paid", () => { expect(shownPayment("deposit", 85000, 85000).label).toBe("שולם"); });
+  it("no amounts: the select stands", () => { expect(shownPayment("deposit", 0, 0).label).toBe("מקדמה"); });
+});
+
+describe("the tag and what is owed agree (fifth review 30.9)", () => {
+  it("'שולם' with part paid is a deposit", () => {
+    expect(shownPayment("paid", 12000, 3000).label).toBe("מקדמה");
+  });
+  it("'שולם' with no amount typed owes nothing", () => {
+    expect(amountDue("paid", 9000, 0)).toBe(0);
+    expect(amountDue("deposit", 9000, 3000)).toBe(6000);
+  });
+});
+
+// Sixth review 30.9 (סב90q): the summary and the rows disagreed.
+describe("vendorTotals.remaining is the sum of what each row says is owed", () => {
+  it("a vendor marked paid with no amount owes nothing; an overpayment does not pay another vendor", () => {
+    const vendors = [
+      { status: "booked", payment: "paid", price: "7000", paid: "" },       // row: owes 0
+      { status: "booked", payment: "deposit", price: "1000", paid: "3000" }, // row: owes 0 (overpaid)
+      { status: "booked", payment: "deposit", price: "6000", paid: "2000" }, // row: owes 4,000
+    ];
+    const rows = vendors.map(v => amountDue(v.payment, parseAmount(v.price), parseAmount(v.paid)));
+    expect(rows).toEqual([0, 0, 4000]);
+    expect(vendorTotals(vendors).remaining).toBe(4000);
   });
 });

@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitRSVP } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
+import { rsvpSuccessLinks } from "../utils/rsvpLinks.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
-import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
 import { COMPANY } from "../data/company.js";
@@ -24,6 +27,7 @@ const MOCK_EVENT = {
   inviteToken: "bbbbbbbb",
   giftToken: "cccccccc",
   site: {
+    enabled: true,
     rsvpMessage: "היי, כאן נועה וטל — כיף שאתם באים לחגוג איתנו! 💛",
     coverPhoto: null,
     // Shuttles in the dev fixture so the pickup picker is exercisable locally.
@@ -61,23 +65,37 @@ export default function RSVPScreen() {
   const { token } = useParams();
 
   const [event, setEvent] = useState(null);
-  const [loadState, setLoadState] = useState("loading"); // "loading" | "error" | "ready"
+  const [loadState, setLoadState] = useState("loading"); // "loading" | "error" | "unreachable" | "ready"
   const [step, setStep] = useState("choice"); // "choice" | "yes-details" | "no-confirm" | "submitted"
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [guestsCount, setGuestsCount] = useState(1);
+  // What the guest is TYPING, kept apart from the number it means. Clamping
+  // on every keystroke turned an emptied field straight back into "1", so a
+  // guest who deleted the 1 to type 3 got 13 (106, 28.9). The field may be
+  // empty while typing; the count it means is always 1–20.
+  const [countText, setCountText] = useState("1");
+  const guestsCount = Math.max(1, Math.min(20, Number(countText) || 1));
   const [companions, setCompanions] = useState([]);
   const [shuttleId, setShuttleId] = useState("");
   const [meal, setMeal] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [answer, setAnswer] = useState(null); // "yes" | "maybe" | "no"
+  useGuestTitle(event && `אישור הגעה · ${guestHosts(event)}`);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const result = await fetchEventByToken("rsvp", token);
+      let result;
+      try {
+        result = await fetchEventByToken("rsvp", token);
+      } catch {
+        // Not "the link is invalid or the event was cancelled" — which is what
+        // a guest on bad reception used to read (28.9 audit).
+        if (!cancelled) setLoadState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (result) {
         setEvent(result);
@@ -102,6 +120,9 @@ export default function RSVPScreen() {
   const handleSubmitDetails = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
+    // Enter / "Go" on a phone keyboard submits without a blur, so the field
+    // could still show "25" while 20 was sent. What is shown is what is sent.
+    setCountText(String(guestsCount));
     setSubmitError("");
     setSubmitting(true);
     try {
@@ -130,8 +151,8 @@ export default function RSVPScreen() {
          whether a shared link actually produced a reply. */
       track(EVENTS.RSVP_RECEIVED, { answer });
       setStep("submitted");
-    } catch {
-      setSubmitError("אירעה שגיאה בשליחה. אנא נסו שוב.");
+    } catch (err) {
+      setSubmitError(guestWriteError(err, "אירעה שגיאה בשליחה. אנא נסו שוב."));
     } finally {
       setSubmitting(false);
     }
@@ -160,8 +181,8 @@ export default function RSVPScreen() {
          whether a shared link actually produced a reply. */
       track(EVENTS.RSVP_RECEIVED, { answer });
       setStep("submitted");
-    } catch {
-      setSubmitError("אירעה שגיאה בשליחה. אנא נסו שוב.");
+    } catch (err) {
+      setSubmitError(guestWriteError(err, "אירעה שגיאה בשליחה. אנא נסו שוב."));
     } finally {
       setSubmitting(false);
     }
@@ -191,6 +212,23 @@ export default function RSVPScreen() {
     );
   }
 
+  if (loadState === "unreachable") {
+    return (
+      <div className={styles.page}>
+        <PageHeader />
+        <div className={styles.cardWrap}>
+          <div className={styles.card}>
+            <div className={styles.errorState}>
+              <span className={styles.errorIcon} aria-hidden="true"><Icon name="alert" size={26} /></span>
+              <h1 className={styles.errorTitle}>{UNREACHABLE_TEXT.title}</h1>
+              <p className={styles.errorBody}>{UNREACHABLE_TEXT.body}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── Error ───────────────────────────────────────────────────────────────────
   if (loadState === "error") {
     return (
@@ -205,6 +243,7 @@ export default function RSVPScreen() {
                 ייתכן שהקישור פג תוקף, שגוי, או שהאירוע בוטל.
                 <br />אנא פנו לבעלי האירוע לקבלת לינק מעודכן.
               </p>
+              <Link to="/" className={styles.homeLink}>לדף הבית</Link>
             </div>
           </div>
         </div>
@@ -223,8 +262,8 @@ export default function RSVPScreen() {
           <div className={styles.card}>
 
             <div className={styles.eventInfo}>
-              {event.type && (
-                <span className={styles.eventTypePill}>{event.type}</span>
+              {guestEventType(event.type) && (
+                <span className={styles.eventTypePill}>{guestEventType(event.type)}</span>
               )}
               <h1 className={styles.eventName}>{event.name}</h1>
               {formattedDate && (
@@ -298,7 +337,7 @@ export default function RSVPScreen() {
 
             <div className={styles.eventBanner}>
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
-              <span className={styles.eventBannerName}>{event.name}</span>
+              <h1 className={styles.eventBannerName}>{event.name}</h1>
               {formattedDate && (
                 <span className={styles.eventBannerDate}>{formattedDate}</span>
               )}
@@ -353,10 +392,11 @@ export default function RSVPScreen() {
                   type="number"
                   min={1}
                   max={20}
-                  value={guestsCount}
-                  onChange={e =>
-                    setGuestsCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
-                  }
+                  value={countText}
+                  // The digits it STARTS with, not every digit in it: "2.5" was
+                  // read as 25, clamped to 20 (29.9 review).
+                  onChange={e => setCountText((String(e.target.value).match(/^\d+/) || [""])[0].slice(0, 2))}
+                  onBlur={() => setCountText(String(guestsCount))}
                   dir="ltr"
                   disabled={submitting}
                 />
@@ -502,7 +542,7 @@ export default function RSVPScreen() {
 
             <div className={styles.eventBanner}>
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
-              <span className={styles.eventBannerName}>{event.name}</span>
+              <h1 className={styles.eventBannerName}>{event.name}</h1>
             </div>
 
             <div className={styles.noConfirmBlock}>
@@ -570,8 +610,7 @@ export default function RSVPScreen() {
     maybe: "נשמח אם תעדכן/י אותנו ברגע שתדע/י בוודאות.",
     no:    "חבל שלא תוכל/י להגיע — נשמח לראותך בשמחה הבאה.",
   };
-  const inviteUrl = event.inviteToken ? "/invite/" + event.inviteToken : null;
-  const giftUrl   = event.giftToken   ? "/gift/"   + event.giftToken   : null;
+  const { inviteUrl, giftUrl } = rsvpSuccessLinks(event);
 
   return (
     <div className={styles.page}>
@@ -585,7 +624,7 @@ export default function RSVPScreen() {
             <div className={styles.checkCircle} aria-hidden="true">
               <span className={styles.checkMark}>{answer === "no" ? <Icon name="heart" size={26} /> : "✓"}</span>
             </div>
-            <h2 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h2>
+            <h1 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h1>
             <p className={styles.successBody}>{bodyByAnswer[answer]}</p>
 
             {site?.rsvpMessage && (
@@ -603,8 +642,11 @@ export default function RSVPScreen() {
                     name:  event.name,
                     date:  event.date,
                     venue: event.venue,
-                    startTime: (site?.schedule || [])[0]?.time,
-                    url:   event.inviteToken ? window.location.origin + "/invite/" + event.inviteToken : null,
+                    startTime: eventStartTime(site?.schedule),
+                    // The site only when it is published — the same rule as
+                    // the button below. It linked the site regardless, and a
+                    // calendar keeps "not published yet" for good (29.9 review).
+                    url:   inviteUrl ? window.location.origin + inviteUrl : null,
                   });
                   if (ics) downloadIcs(ics, icsFileName(event.name));
                 }}

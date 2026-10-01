@@ -279,7 +279,9 @@ function VenueMarker({ element, containerRef, onMove, onRemove }) {
 }
 
 export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
-  const { plan } = usePlan();
+  // This event's package. Sketch detection is sold in the ₪690 package, and
+  // that package is bought per event.
+  const { plan } = usePlan(ev);
   const [placingId,  setPlacingId]  = useState(null);
   // Kind of venue fixture waiting to be dropped on the sketch (null = none).
   const [placingKind, setPlacingKind] = useState(null);

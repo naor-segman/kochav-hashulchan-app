@@ -37,6 +37,17 @@ function fmtNet(n) {
   return (n < 0 ? "−₪" : "+₪") + abs;
 }
 
+/* Content equality that ignores key ORDER. Postgres jsonb reorders keys, so a
+   plain JSON.stringify compare saw the cloud's copy of the SAME budget as
+   different, adopted it, and wrote it back — a new updatedAt and a push for
+   nothing (29.9 review). */
+const sortedKeys = (v) => (v && typeof v === "object" && !Array.isArray(v)
+  ? Object.fromEntries(Object.keys(v).sort().map(k => [k, sortedKeys(v[k])]))
+  : Array.isArray(v) ? v.map(sortedKeys) : v);
+function sameContent(a, b) {
+  return JSON.stringify(sortedKeys(a)) === JSON.stringify(sortedKeys(b));
+}
+
 export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
   const [cats, setCats]    = useState(() => initCategories(ev));
   const [bulkGift, setBulkGift] = useState("");
@@ -55,6 +66,22 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
   // snapshot the moment the host typed a digit, and navigating between two
   // events' budget screens (no remount, the route has no key) wrote one
   // event's categories onto the other.
+  // And an update to THIS event's budget that arrived while the screen was
+  // open — the other device, or hydration — was ignored until the next
+  // keystroke wrote the stale copy over it (107, 29.9). The incoming budget is
+  // adopted during render when its CONTENT differs from what is on screen;
+  // content, not reference, because this screen's own write comes back as a
+  // normalised copy and adopting that would loop.
+  const [seenCosts, setSeenCosts] = useState(ev.costs);
+  if (ev.costs !== seenCosts) {
+    setSeenCosts(ev.costs);
+    const incoming = ev.costs?.categories;
+    if (Array.isArray(incoming) && incoming.length &&
+        sameContent(incoming, cats) === false) {
+      setCats(initCategories(ev));
+    }
+  }
+
   const seededFor = useRef(ev.id);
   useEffect(() => {
     if (seededFor.current === ev.id) return;
@@ -94,10 +121,26 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
   const totalActual = useMemo(() =>
     cats.reduce((s, c) => s + parseAmt(c.actual), 0), [cats]);
 
-  const totalDiff = totalActual - totalBudget;
+  // Over or under budget is only known for what has been SPENT. A category
+  // with a budget and nothing paid yet read "−₪45,000" in green — a saving
+  // that has not happened (fourth review 30.9) — and the total summed it.
+  const totalDiff = useMemo(() => cats.reduce((s, c) => {
+    const a = parseAmt(c.actual);
+    return a > 0 ? s + a - parseAmt(c.budget) : s;
+  }, 0), [cats]);
 
+  /* Declined guests are excluded — they were not, and this was the ONLY guest
+     aggregate on the screen that counted them. The three below it filter
+     `rsvp !== "declined"`, as do the seating screen, the entrance counter, the
+     name-tag printer, the analytics and the export. So a declined family of six
+     was diluting "עלות לאורח", inflating "מספר אורחים", and — the one that
+     actually costs money — inflating the catering hint, which reads
+     "קייטרינג = N אורחים × ₪X לאורח" and is a number a host quotes to a caterer.
+     Seats, not rows: `count` is people. */
   const totalGuests = useMemo(() =>
-    (ev?.guests ?? []).reduce((s, g) => s + (g.count || 1), 0), [ev]);
+    (ev?.guests ?? [])
+      .filter(g => g.rsvp !== "declined")
+      .reduce((s, g) => s + (g.count || 1), 0), [ev]);
 
   // ── Income forecast: sum of the PER-GUEST estimated gifts the host entered,
   // vs actual gifts, and the net picture. Only attending (not declined) count.
@@ -270,6 +313,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                       value={c.name}
                       onChange={e => setField(c.id, "name", e.target.value)}
                       placeholder="שם קטגוריה"
+                      aria-label="שם הקטגוריה"
                     />
                   </div>
                   <div className={styles.colAmt} data-label="תקציב">
@@ -295,14 +339,20 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                     />
                   </div>
                   <div className={styles.colDiff} data-label="הפרש">
-                    {b > 0 || a > 0 ? (
+                    {a > 0 ? (
+                      /* Under budget is not a saving until the category is done:
+                         ₪4,000 paid of ₪10,000 read "−₪6,000" in green (fifth
+                         review 30.9). What is below the budget is "remaining",
+                         neutral; only going OVER is a verdict. */
                       <span className={[
                         styles.diffBadge,
-                        d > 0 ? styles.over : d < 0 ? styles.under : styles.exact,
+                        d > 0 ? styles.over : styles.exact,
                       ].join(" ")}>
                         {d === 0
                           ? <Icon name="check" size={13} />
-                          : (d > 0 ? "+" : "−") + "₪" + Math.abs(d).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
+                          : d > 0
+                            ? "+₪" + d.toLocaleString("he-IL", { maximumFractionDigits: 0 })
+                            : "נותר ₪" + Math.abs(d).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
                       </span>
                     ) : (
                       <span className={styles.diffEmpty}>—</span>
@@ -344,14 +394,17 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                 </span>
               </div>
               <div className={styles.colDiff}>
-                {totalBudget > 0 || totalActual > 0 ? (
+                {totalActual > 0 ? (
                   <span className={[
                     styles.diffBadge,
-                    totalDiff > 0 ? styles.over : totalDiff < 0 ? styles.under : styles.exact,
-                  ].join(" ")}>
+                    totalDiff > 0 ? styles.over : styles.exact,
+                  ].join(" ")}
+                  title="רק קטגוריות שכבר שולם בהן">
                     {totalDiff === 0
                       ? <Icon name="check" size={13} />
-                      : (totalDiff > 0 ? "+" : "−") + "₪" + Math.abs(totalDiff).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
+                      : totalDiff > 0
+                        ? "+₪" + totalDiff.toLocaleString("he-IL", { maximumFractionDigits: 0 })
+                        : "נותר ₪" + Math.abs(totalDiff).toLocaleString("he-IL", { maximumFractionDigits: 0 })}
                   </span>
                 ) : (
                   <span className={styles.diffEmpty}>—</span>
@@ -368,6 +421,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   placeholder="שם קטגוריה חדשה"
+                  aria-label="שם קטגוריה חדשה"
                   autoFocus
                   onKeyDown={e => {
                     if (e.key === "Enter") addRow();
@@ -439,19 +493,25 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
         </p>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", margin: "8px 0 16px" }}>
           <div style={{ flex: "1 1 160px", minWidth: 0 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>
-              מילוי מהיר — מתנה משוערת לאדם (₪)
+            {/* htmlFor: the field was unnamed to a screen reader (29.9 review).
+                And the label says the amount is multiplied — beside "each
+                record is one gift" it read as a contradiction. */}
+            <label htmlFor="bulk-gift" style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text2)", marginBottom: 6 }}>
+              מילוי מהיר — מתנה משוערת לאדם (₪), כפול מספר האנשים ברשומה
             </label>
-            <input className={base.input} type="number" min="0" step="50" value={bulkGift}
+            <input id="bulk-gift" className={base.input} type="number" min="0" step="50" value={bulkGift}
               placeholder="למשל 400" onChange={e => setBulkGift(e.target.value)} />
           </div>
           <button className={base.btnSecondary} onClick={applyBulkEstimate} disabled={parseAmt(bulkGift) <= 0}>
-            החל לכל האורחים
+            החל לכל הרשומות
           </button>
         </div>
         {nAttending > 0 && (
           <p className={base.fieldHint} style={{ marginTop: -8, marginBottom: 12 }}>
-            הזנתם הערכה ל-{nEstimated} מתוך {nAttending} אורחים. אפשר לכוונן כל אורח בנפרד במסך האורחים.
+            {/* Rows, and it says so. A gift is per household, so rows are the
+                right unit here — but the word was "אורחים", which the door
+                screen uses for PEOPLE: 16 here and 48 there for one event (107). */}
+            הזנתם הערכה ל-{nEstimated} מתוך {nAttending} רשומות (כל רשומה היא מתנה אחת). אפשר לכוונן כל רשומה בנפרד במסך האורחים.
           </p>
         )}
         <div className={styles.statsRow}>

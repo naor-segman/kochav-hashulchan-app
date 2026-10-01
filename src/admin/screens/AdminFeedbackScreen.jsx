@@ -5,6 +5,7 @@ import Icon from "../../components/ui/Icon.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Loading from "../../components/feedback/Loading.jsx";
 import { formatDateTime, shortAgent } from "../lib/adminFormat.js";
+import { loadQueue, unseenSummary } from "../lib/workQueue.js";
 import styles from "./AdminErrorsScreen.module.css";
 
 // What people said, as they said it.  Checklist 25.
@@ -24,18 +25,16 @@ const KIND_LABEL = {
   other: "אחר",
 };
 
-async function loadFeedback() {
-  const { data, error } = await supabase
-    .from("feedback")
-    .select("id, created_at, kind, message, contact, route, user_agent, seen")
-    .order("created_at", { ascending: false })
-    .limit(200);
-  if (error) throw error;
-  return data || [];
+// A work queue, loaded so nothing unread hides outside the window — see
+// admin/lib/workQueue.js (WORKPLAN 58).
+function loadFeedback() {
+  return loadQueue(supabase, "feedback", "id, created_at, kind, message, contact, route, user_agent, seen");
 }
 
 export default function AdminFeedbackScreen() {
   const [rows,  setRows]  = useState([]);
+  // The table's own count of unread rows; null when it could not be read.
+  const [unseenTotal, setUnseenTotal] = useState(null);
   const [state, setState] = useState("loading");   // loading | ready | error
   const [err,   setErr]   = useState("");
   const [onlyUnseen, setOnlyUnseen] = useState(true);
@@ -43,7 +42,8 @@ export default function AdminFeedbackScreen() {
   // The refresh button's path: it wants the spinner back.
   const load = useCallback(async () => {
     setState("loading");
-    try { setRows(await loadFeedback()); setState("ready"); }
+    setErr("");   // a retry that works must not leave the old failure up
+    try { const q = await loadFeedback(); setRows(q.rows); setUnseenTotal(q.unseenTotal); setState("ready"); }
     catch (e) { setErr(e.message || String(e)); setState("error"); }
   }, []);
 
@@ -57,7 +57,7 @@ export default function AdminFeedbackScreen() {
   useEffect(() => {
     let alive = true;
     loadFeedback()
-      .then(rows  => { if (alive) { setRows(rows); setState("ready"); } })
+      .then(q => { if (alive) { setRows(q.rows); setUnseenTotal(q.unseenTotal); setState("ready"); } })
       .catch(e => { if (alive) { setErr(e.message || String(e)); setState("error"); } });
     return () => { alive = false; };
   }, []);
@@ -65,10 +65,14 @@ export default function AdminFeedbackScreen() {
   const markSeen = async (id) => {
     // Optimistic, for the same reason as the errors screen: this is a work
     // queue, and waiting for a round-trip to cross something off feels wrong.
+    const was = rows.find(r => r.id === id);
+    if (!was || was.seen) return;
     setRows(prev => prev.map(r => (r.id === id ? { ...r, seen: true } : r)));
+    setUnseenTotal(n => (n == null ? n : Math.max(0, n - 1)));
     const { error } = await supabase.from("feedback").update({ seen: true }).eq("id", id);
     if (error) {
       setRows(prev => prev.map(r => (r.id === id ? { ...r, seen: false } : r)));
+      setUnseenTotal(n => (n == null ? n : n + 1));
       setErr(`סימון ההודעה נכשל: ${error.message}`);
     }
   };
@@ -101,7 +105,7 @@ export default function AdminFeedbackScreen() {
 
       <div className={styles.toolbar}>
         <span className={styles.count}>
-          {unseen === 0 ? "אין הודעות חדשות" : unseen === 1 ? "הודעה אחת שלא נקראה" : `${unseen} הודעות שלא נקראו`}
+          {state !== "error" && unseenSummary(unseen, unseenTotal, { one: "הודעה אחת שלא נקראה", many: "הודעות שלא נקראו", none: "אין הודעות חדשות" })}
         </span>
         <label className={styles.filter}>
           <input
@@ -115,13 +119,17 @@ export default function AdminFeedbackScreen() {
 
       {state === "loading" ? (
         <Loading rows={5} label="טוענים משוב…" />
-      ) : shown.length === 0 ? (
+      ) : state === "error" ? null : shown.length === 0 ? (
+        /* Not on a failed load: it said "הכל נקרא" under the error, which is
+           the one thing a failed read cannot know (second review, סב19). */
         <div className={styles.empty}>
           <SectionMark name="help" size={30} tone="admin" tile />
-          <p className={styles.emptyTitle}>{onlyUnseen ? "הכל נקרא" : "עוד לא נשלח משוב"}</p>
+          <p className={styles.emptyTitle}>{onlyUnseen ? (unseenTotal > 0 ? "יש עוד שלא נטענו" : "הכל נקרא") : "עוד לא נשלח משוב"}</p>
           <p className={styles.emptyHint}>
             {onlyUnseen
-              ? "אין הודעות חדשות מאז הפעם האחרונה שבדקת."
+              ? (unseenTotal > 0
+                  ? `עוד ${unseenTotal} שלא נקראו מחכות בטבלה — רעננו כדי לטעון אותם.`
+                  : "אין הודעות חדשות מאז הפעם האחרונה שבדקת.")
               : "כשמישהו יכתוב לנו מדף המשוב — זה יופיע כאן."}
           </p>
         </div>

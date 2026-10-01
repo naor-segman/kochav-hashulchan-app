@@ -22,13 +22,13 @@
  * can be tested directly rather than through a rendered table.
  */
 
-import { normalizePhone } from "./parseGuestList.js";
+import { normalizePhone, nameMatchKey } from "./parseGuestList.js";
 
 /** Digits only, so "050-123-4567" and "0501234567" are the same number. */
 const digits = s => String(s ?? "").replace(/\D/g, "");
 
-/** Case- and whitespace-insensitive, for comparing names people typed twice. */
-const nameKey = s => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+/** For comparing names people typed twice — the parser's own rule. */
+const nameKey = nameMatchKey;
 
 /**
  * The warnings a row can carry.
@@ -58,7 +58,10 @@ function warningsFor(row, existingKeys) {
   // "+2" with no names is three seats and only one person we can print. The
   // host may well not know the names yet, so this is a flag and never a block.
   const seats = row.count || 1;
-  if (seats > 1 && (row.companions?.length ?? 0) < seats - 1) out.push("missingNames");
+  // FILLED names: a partner placeholder ("+ בת זוג") is a seat with an empty
+  // name, and counting entries let it pass unflagged (fifth review 30.9).
+  const named = (row.companions || []).filter(c => String(c || "").trim()).length;
+  if (seats > 1 && named < seats - 1) out.push("missingNames");
   if (!phone) out.push("noPhone");
   return out;
 }
@@ -135,18 +138,44 @@ export function editImportRow(rows, id, patch, existingGuests = []) {
 
     if (patch.phone !== undefined) next.phone = normalizePhone(patch.phone) || String(patch.phone ?? "").trim();
 
+    // The seats box, while the host is still typing in it (`typing`), is only
+    // a draft: read as 1 on every keystroke, clearing it to type "12" cut every
+    // companion name, and "12" then read "112" (fifth review 30.9). Names are
+    // trimmed to the seats when the number is COMMITTED (blur), in front of the
+    // host, as before.
+    delete next.typing;
     if (patch.count !== undefined) {
-      const n = Math.max(1, Math.min(50, Math.round(Number(patch.count) || 1)));
-      next.count = n;
-      next.companions = (next.companions || []).slice(0, n - 1);
+      delete next.countDraft;
+      const raw = String(patch.count).trim();
+      if (patch.typing) {
+        next.countDraft = raw;
+        if (raw !== "") next.count = Math.max(1, Math.min(50, Math.round(Number(raw) || 1)));
+      } else {
+        const n = Math.max(1, Math.min(50, Math.round(Number(raw) || 1)));
+        next.count = n;
+        next.companions = (next.companions || []).slice(0, n - 1);
+        delete next.companionsText;
+      }
     }
-    if (patch.companions !== undefined) {
-      const list = (patch.companions || []).map(c => String(c ?? "").trim());
+    // The names box is kept AS TYPED while the host types: splitting and
+    // trimming every keystroke ate the space in "יובל סגמן" the moment it was
+    // typed — "יובלסגמן" (fifth review 30.9).
+    if (patch.companionsText !== undefined) next.companionsText = String(patch.companionsText);
+    const compIn = patch.companionsText !== undefined ? next.companionsText.split(",") : patch.companions;
+    if (compIn !== undefined) {
+      if (patch.companionsText === undefined) delete next.companionsText;
+      const list = (compIn || []).map(c => String(c ?? "").trim());
       // Growing the names grows the seats: typing a third name means a third
       // chair, and making the host then also correct the number would be the
       // product asking them to say the same thing twice.
       next.companions = list.slice(0, 49);
-      next.count = Math.max(next.count || 1, next.companions.filter(Boolean).length + 1);
+      // An empty slot BEFORE a name is a seat too — the unnamed partner of
+      // "דנה (בן/בת זוג, רון)". Counting only the filled names, ", רון, נועה"
+      // kept three seats and the import cut נועה off the end, with no flag
+      // (sixth review 30.9). Empties after the last name are a comma typed on
+      // the way to the next one, not a chair.
+      const lastNamed = next.companions.reduce((at, c, i) => (c ? i : at), -1);
+      next.count = Math.min(50, Math.max(next.count || 1, lastNamed + 2));
     }
     return next;
   });
@@ -185,5 +214,7 @@ export function importSummary(rows) {
 
 /** Rows that are ready to become guests — a blank name is not a person. */
 export function readyImportRows(rows) {
-  return (rows || []).filter(r => String(r.name ?? "").trim());
+  return (rows || [])
+    .filter(r => String(r.name ?? "").trim())
+    .map(r => ({ ...r, companions: (r.companions || []).slice(0, Math.max(0, (r.count || 1) - 1)) }));
 }

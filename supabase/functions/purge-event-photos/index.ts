@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { ownedPaths } from "../_shared/purgePaths.js";
 
 // =============================================================================
 // purge-event-photos — Supabase Edge Function
@@ -60,21 +61,9 @@ function json(data: unknown, status = 200) {
   });
 }
 
-/**
- * The object path inside the bucket, recovered from a public URL.
- *
- * Returns null for anything that is not an object in THIS bucket, so a stray
- * value in a payload cannot turn into a `remove()` call against a path we did
- * not write. Mirrors storagePathFromUrl in src/utils/sitePhotos.js.
- */
-function storagePath(url: string): string | null {
-  if (typeof url !== "string" || url.length === 0 || url.startsWith("data:")) return null;
-  const marker = `/${BUCKET}/`;
-  const i = url.indexOf(marker);
-  if (i === -1) return null;
-  const path = url.slice(i + marker.length).split("?")[0];
-  return path || null;
-}
+// storagePath() lived here and turned ANY "/event-site/" URL into a path to
+// delete. Replaced by ownedPaths() in ../_shared/purgePaths.js, which also
+// requires the path to sit inside the due event's own folder — see there.
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
@@ -116,7 +105,11 @@ Deno.serve(async (req) => {
   let objectsRemoved = 0;
 
   for (const row of rows) {
-    const paths = (row.urls ?? []).map(storagePath).filter((p): p is string => p !== null);
+    // ONLY paths inside this event's own folder. See _shared/purgePaths.js:
+    // this runs as the service role, and the URLs come from a payload the
+    // owner can write — so without the folder check, any user could have the
+    // purge delete another customer's photos by pasting their URLs in.
+    const paths = ownedPaths(row.urls ?? [], row.event_id, BUCKET);
 
     // A due event whose URLs all point somewhere else still has to be
     // finalized: the fields are dead references either way, and skipping it

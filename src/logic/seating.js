@@ -61,7 +61,7 @@ function seatedCount(tState_entry, guestMap) {
  *   "we were split but we could still see each other". That is the whole point
  *   of asking someone to upload their venue sketch.
  */
-function assignOnce(guests, tables, constraints, lockedSeating = {}, positions = null) {
+function assignOnce(guests, tables, constraints, lockedSeating = {}, positions = null, closedTableIds = []) {
   // A COPY, never the caller's object. Returning `lockedSeating` itself made
   // `ev.seating` and the "new" seating the same reference all the way up to
   // SeatingScreen's `patchEvent({ seating: newSeating })` — no live mutation
@@ -86,6 +86,13 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
 
   // Pre-populate table state with locked guests so capacity is respected
   const lockedIds = new Set(Object.keys(lockedSeating).filter(id => lockedSeating[id]));
+  // Locked tables: nobody NEW sits there — except a guest the host bound
+  // "together" to someone already at one. The lock's tooltip promises "לא
+  // יוצעו שינויים לשולחן זה" against strangers; a together-partner is the
+  // host's own instruction. Excluding the table outright (the first version of
+  // this, סב9) split exactly those pairs and sent the assistant in a circle:
+  // "הפעילו חשבו מחדש", which split them again (third review 30.9, סב48).
+  const closed = new Set(closedTableIds);
   const tState    = tables.map(t => ({ id:t.id, capacity:t.capacity, seated:[] }));
   guests.forEach(g => {
     if (lockedIds.has(g.id)) {
@@ -177,7 +184,7 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
             if (here(a) !== here(b)) return here(b) - here(a);
             return (b.capacity - seatedCount(b, guestMap)) - (a.capacity - seatedCount(a, guestMap));
           })
-      : [...tState].sort((a, b) =>
+      : tState.filter(t => !closed.has(t.id)).sort((a, b) =>
           affinityScore(guestMap[pending[0]], b.seated, guestMap) -
           affinityScore(guestMap[pending[0]], a.seated, guestMap)
         );
@@ -211,7 +218,7 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
     // NEXT TO IT. Without the sketch there is no such thing as "next to", so
     // the nearest-first rule only applies when both tables are placed; with no
     // positions this is exactly the old emptiest-first behaviour.
-    const pool = [...tState];
+    const pool = tState.filter(t => !closed.has(t.id));
     const used = new Set();
     let anchorId = null;
 
@@ -294,8 +301,8 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
  * The second pass only runs when somebody is left over — an event with enough
  * chairs, which is most of them, pays nothing.
  */
-export function autoAssign(guests, tables, constraints, lockedSeating = {}, positions = null) {
-  const withPositions = assignOnce(guests, tables, constraints, lockedSeating, positions);
+export function autoAssign(guests, tables, constraints, lockedSeating = {}, positions = null, closedTableIds = []) {
+  const withPositions = assignOnce(guests, tables, constraints, lockedSeating, positions, closedTableIds);
 
   // `ev.floorPlan.tablePositions` is `{}` for every event that has never been
   // near a sketch, and one placed table has nothing to be near — neither can
@@ -309,7 +316,7 @@ export function autoAssign(guests, tables, constraints, lockedSeating = {}, posi
   // Nobody standing — no plan can beat that, so do not compute one.
   if (guests.every(g => withPositions[g.id])) return withPositions;
 
-  const withoutPositions = assignOnce(guests, tables, constraints, lockedSeating, null);
+  const withoutPositions = assignOnce(guests, tables, constraints, lockedSeating, null, closedTableIds);
   return seatsPlaced(withPositions) >= seatsPlaced(withoutPositions)
     ? withPositions
     : withoutPositions;
@@ -350,7 +357,7 @@ export function computeViolations(guests, tables, constraints, seating) {
       if (ta && tb && ta === tb)
         violations.push({ type:"apart",
           text: ga.name + " ו" + gb.name + " לא יכולים לשבת יחד — שניהם שובצו ל" + (tableMap[ta]?.name || "אותו שולחן"),
-          tableA: tableMap[ta]?.name });
+          tableA: tableMap[ta]?.name, guestA: c.guestA, guestB: c.guestB, tableIdA: ta });
     }
   });
 

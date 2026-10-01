@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
-import { renderTemplate, whatsappLink } from "../data/messageSequence.js";
+import { renderTemplate, whatsappLink, linkForStage } from "../data/messageSequence.js";
+import { useShareGate } from "../components/share/useShareGate.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { getSideLabel, guestCompanionNames } from "../utils/eventHelpers.js";
@@ -36,6 +37,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const next = nextBuildStep("guests");
 
   const { confirm, prompt, dialog } = useConfirm();
+  const { guard, gate } = useShareGate();
   // Corporate events use a business group set + default; everyone else the
   // family-oriented one. Custom groups (below) work regardless of type.
   const isBusiness   = ev.type === "אירוע עסקי";
@@ -93,12 +95,23 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const chooseListGroup = (value) =>
     value === "__addgroup__" ? addCustomGroup(setListGroup) : setListGroup(value);
 
-  const { plan, limits } = usePlan();
+  // Scoped to this event — see usePlan's header. (Every guest cap is Infinity
+  // today, so nothing here changes behaviour; it changes which question is
+  // being asked, so it stays right when a cap returns.)
+  const { plan, limits } = usePlan(ev);
   const { maxGuests } = limits;
   // Every cap question on this screen goes through here, so the screen cannot
   // disagree with itself about whether a limit applies.
   const slotsLeft = guestSlotsLeft(plan, ev.guests.length);
   const atCap     = slotsLeft === 0;
+  /* The number the cap messages below print. `maxGuests` is Infinity on every
+     plan today, and the five places that interpolated it raw would have rendered
+     "הגעתם למגבלת Infinity הרשומות" — an English word in a Hebrew toast, on the
+     screen where a host pastes their list. Double-unreachable right now (every
+     message sits behind `atCap`, and slotsLeft is Infinity both when the gates
+     are off and when maxGuests is), so this guards the day a row cap returns
+     rather than fixing something a host can see. */
+  const capLabel  = maxGuests === Infinity ? "הרשומות" : `${maxGuests} הרשומות`;
 
   // Focus the name field once, on mount. Depending on editId would yank focus
   // back to the top of the form every time the host starts editing a row.
@@ -199,7 +212,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const parsed = parseGuestList(listText);
     if (parsed.length === 0) return;
     if (atCap) {
-      showToast(`הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
+      showToast(`הגעתם למגבלת ${capLabel} בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
       return;
     }
     setReviewRows(buildImportRows(parsed, ev.guests));
@@ -211,7 +224,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const allRows = readyImportRows(reviewRows || []);
     if (allRows.length === 0) return;
     if (atCap) {
-      showToast(`הגעתם למגבלת ${maxGuests} הרשומות בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
+      showToast(`הגעתם למגבלת ${capLabel} בתוכנית הנוכחית — שדרגו להוספת אורחים נוספים`, "err");
       return;
     }
     // Take what fits rather than rejecting the whole paste. Refusing 400 names
@@ -235,7 +248,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       "נוספו " + newGuests.length + " אורחים" +
       (seats > newGuests.length ? ` · ${seats} מקומות` : "") +
       (withPhone ? ` · ${withPhone} עם טלפון` : "") +
-      (skipped ? ` · ${skipped} לא נוספו — מגבלת ${maxGuests} רשומות בתוכנית` : "") + " ✓",
+      (skipped ? ` · ${skipped} לא נוספו — מגבלת ${capLabel} בתוכנית` : "") + " ✓",
       skipped ? "warn" : undefined
     );
     setListText("");
@@ -293,21 +306,35 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     XLSX.writeFile(wb, `אורחים-${(ev.name || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
   };
 
-  // Open WhatsApp to a specific guest with a personal invite + event-site link.
-  const siteUrl = window.location.origin + "/invite/" + (ev.tokens?.invite || "");
+  // Open WhatsApp to a specific guest with a personal invite.
+  //
+  // The link is the INVITATION stage's own (checklist 88): the event site when
+  // it is published, else the page that stage falls back to — never a raw
+  // /invite/ link to a site that says "not published yet", which is what this
+  // button sent until the 29.9 review. Guarded like every other send (a guest-
+  // mode link resolves to nothing), and recorded as sent on the messages
+  // screen, so the sequence there knows this family already got it.
   // Was a second copy of the phone normaliser with its own divergences (no
   // minimum length, so "050" produced wa.me/97250) and a raw `ל${ev.name}`,
   // which reads "להחתונה של דנה" — in Hebrew the attached ל absorbs the
   // definite article. renderTemplate + whatsappLink already handle both, and
   // they are the versions that have tests.
-  const waGuest = (guest) => {
+  const waGuest = (guest) => guard("ההזמנה לאורח", () => {
+    const link = linkForStage("invitation", ev, window.location.origin)?.url || "";
     const msg = renderTemplate(
       "היי {{שם}}! 💛\nאתם מוזמנים ל{{אירוע}}.\nכל הפרטים ואישור הגעה כאן:\n{{קישור}}",
-      { event: ev, guest, link: siteUrl }
+      { event: ev, guest, link }
     ) + messageSignature();
     const url = whatsappLink(guest.phone, msg);
     window.open(url || ("https://wa.me/?text=" + encodeURIComponent(msg)), "_blank", "noopener");
-  };
+    patchEvent(e => ({
+      ...e,
+      messagesSent: {
+        ...(e.messagesSent || {}),
+        invitation: { ...((e.messagesSent || {}).invitation || {}), [guest.id]: Date.now() },
+      },
+    }));
+  });
 
   const visible = ev.guests.filter(g => {
     if (filter.side !== "all" && g.side !== filter.side) return false;
@@ -317,8 +344,20 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     return true;
   });
 
-  const bulkSetRsvp = (rsvpValue) => {
+  const bulkSetRsvp = async (rsvpValue) => {
     const ids = new Set(visible.map(g => g.id));
+    // One tap used to overwrite every filtered guest's answer — a confirmed
+    // family of 8 became "declined", silently left the meal and seat counts,
+    // and stayed seated (29.9 review). Say how many, and how many answers
+    // that differ will be replaced.
+    const label0 = RSVP_OPTIONS.find(o => o.value === rsvpValue)?.label || rsvpValue;
+    const changing = visible.filter(g => (g.rsvp || "pending") !== rsvpValue && (g.rsvp || "pending") !== "pending").length;
+    const ok = await confirm(
+      `לסמן ${ids.size} אורחים כ"${label0}"?` +
+      (changing ? `\n\n${changing} מהם כבר ענו אחרת — התשובה שלהם תוחלף.` : ""),
+      { confirmLabel: "סמנו", danger: changing > 0 },
+    );
+    if (!ok) return;
     patchEvent(e => ({
       ...e,
       guests: e.guests.map(g => ids.has(g.id) ? { ...g, rsvp: rsvpValue } : g),
@@ -333,17 +372,25 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const nSeated    = ev.guests.filter(g => ev.seating[g.id]).length;
   const nConfirmed = ev.guests.filter(g => g.rsvp === "confirmed").length;
   const nDeclined  = ev.guests.filter(g => g.rsvp === "declined").length;
+  // MEALS, not rows: a row is a party, and a vegetarian family of four is four
+  // vegetarian meals. And a guest who declined eats nothing. The chips counted
+  // rows including declined ones, which is not a number a kitchen can use
+  // (107, 28.9).
+  const coming     = ev.guests.filter(g => g.rsvp !== "declined");
+  const comingSeats = coming.reduce((s, g) => s + Math.max(1, g.count || 1), 0);
   const mealCounts = MEAL_OPTIONS.reduce((acc, o) => {
-    const n = ev.guests.filter(g => (g.meal || MEAL_DEFAULT) === o.value).length;
+    const n = coming.filter(g => (g.meal || MEAL_DEFAULT) === o.value)
+                    .reduce((s, g) => s + Math.max(1, g.count || 1), 0);
     if (n > 0) acc.push({ ...o, n });
     return acc;
-  }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < ev.guests.length);
+  }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < comingSeats);
   const tableOf    = id => { const tid = ev.seating[id]; return tid ? ev.tables.find(t => t.id === tid) : null; };
   const isFiltered = filter.side !== "all" || filter.group !== "all" || filter.rsvp !== "all" || filter.search;
 
   return (
     <div className={base.page}>
       {dialog}
+      {gate}
       <PageHeader
         title="אורחים"
         mark="guests"
@@ -374,7 +421,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           </span>
           {mealCounts.map(m => (
             <span key={m.value} className={base.statChip}>
-              <span className={base.statChipN}>{m.n}</span> {m.label}
+              <span className={base.statChipN}>{m.n}</span> {m.value === "none" ? "בלי מנה" : m.n === 1 ? `מנה ${m.label}` : `מנות ${m.label}`}
             </span>
           ))}
         </div>
@@ -391,7 +438,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       {/* ── Guest limit upgrade tip ── */}
       {atCap && (
         <p className={styles.upgradeTip}>
-          <Icon name="lock" /> הגעתם למגבלת {maxGuests} הרשומות בתוכנית הנוכחית —{" "}
+          <Icon name="lock" /> הגעתם למגבלת {capLabel} בתוכנית הנוכחית —{" "}
           <a href="/account" className={styles.upgradeTipLink}>שדרגו את התוכנית</a>{" "}
           להוספת אורחים נוספים.
         </p>
@@ -695,7 +742,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             onClick={saveGuest}
             disabled={!editId && atCap}
             title={!editId && atCap
-              ? `הגעתם למגבלת ${maxGuests} האורחים — שדרגו את התוכנית`
+              ? `הגעתם למגבלת ${capLabel} — שדרגו את התוכנית`
               : undefined}
           >
             {editId ? "שמרו שינויים" : "+ הוסיפו אורח"}
@@ -714,6 +761,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             className={base.input}
             style={{ flex: 1, minWidth: 120 }}
             value={filter.search}
+            aria-label="חיפוש אורח לפי שם"
             placeholder="חיפוש לפי שם..."
             onChange={e => setFilter(p => Object.assign({}, p, { search: e.target.value }))}
           />

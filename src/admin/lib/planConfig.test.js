@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
 import {
   PLAN_LIMITS, PLAN_META, STATUS_META, ALARMING_STATUSES,
   PLAN_KEYS, STATUS_KEYS,
@@ -25,21 +26,43 @@ import {
 
 describe("planConfig — the plan limits featureGates actually checks", () => {
   it("pins the exact free-tier numbers", () => {
-    // These two are the entire free tier. Changing either is a pricing decision
-    // (and the free/paid split is frozen), never a refactor.
+    /* The free tier, per the model decided in checklist 31. Changing any of
+       these is a pricing decision, never a refactor.
+
+       `maxGuests` was 80 and is now Infinity: 80 is below every Israeli
+       wedding, so the free tier could not be used for the thing the product is
+       for — and the free tier IS the distribution channel, because every guest
+       message carries "נבנה עם רוויה". The cap that replaced it is
+       `maxSeatedSeats`, counted in PEOPLE rather than rows. */
     expect(PLAN_LIMITS.free.maxEvents).toBe(1);
-    expect(PLAN_LIMITS.free.maxGuests).toBe(80);
+    expect(PLAN_LIMITS.free.maxGuests).toBe(Infinity);
+    expect(PLAN_LIMITS.free.maxSeatedSeats).toBe(200);
     expect(PLAN_LIMITS.free.advancedExports).toBe(false);
     expect(PLAN_LIMITS.free.aiFeatures).toBe(false);
-    expect(PLAN_LIMITS.free.collaboration).toBe(false);
+    /* TRUE, and it was false. The free package sells "טבלה שיתופית: המשפחה
+       ממלאת מהטלפון" — CollabScreen behind a share token — so a false here was
+       a plan row that would delete a free-tier bullet the day the gates go on.
+       The flag differentiates nothing now, which is the honest state. */
+    expect(PLAN_LIMITS.free.collaboration).toBe(true);
   });
 
   it("pins the exact pro-tier numbers", () => {
-    expect(PLAN_LIMITS.pro.maxEvents).toBe(20);
-    expect(PLAN_LIMITS.pro.maxGuests).toBe(500);
+    /* `pro` is the ₪690 per-event package. You pay per event, so capping how
+       many events you may create would be charging twice for the same thing —
+       hence Infinity, where it used to be 20. Collaboration moved down here
+       from enterprise: the shared family table is one of the things this
+       package sells, and gating it above meant the plan row refused a feature
+       the pricing page advertised. */
+    expect(PLAN_LIMITS.pro.maxEvents).toBe(Infinity);
+    expect(PLAN_LIMITS.pro.maxGuests).toBe(Infinity);
+    expect(PLAN_LIMITS.pro.maxSeatedSeats).toBe(Infinity);
     expect(PLAN_LIMITS.pro.advancedExports).toBe(true);
-    expect(PLAN_LIMITS.pro.aiFeatures).toBe(false);
-    expect(PLAN_LIMITS.pro.collaboration).toBe(false);
+    /* TRUE, and it was false — the one gate that contradicted something we
+       charge for. pricing.js sells table detection from an uploaded venue sketch
+       inside this ₪690 package, and that is FloorPlanEditor.handleDetect behind
+       canUseAI(plan) → this flag. */
+    expect(PLAN_LIMITS.pro.aiFeatures).toBe(true);
+    expect(PLAN_LIMITS.pro.collaboration).toBe(true);
   });
 
   it("gives enterprise true Infinity, not a large finite number", () => {
@@ -59,7 +82,7 @@ describe("planConfig — the plan limits featureGates actually checks", () => {
     // The property behind the three tables above: a customer who pays more must
     // never get less. This catches a limit edited in one tier and forgotten in
     // the next, which no single-tier assertion can.
-    const numeric = ["maxEvents", "maxGuests"];
+    const numeric = ["maxEvents", "maxGuests", "maxSeatedSeats"];
     const boolean = ["advancedExports", "aiFeatures", "collaboration"];
     for (const k of numeric) {
       expect(PLAN_LIMITS.free[k]).toBeLessThanOrEqual(PLAN_LIMITS.pro[k]);
@@ -119,9 +142,11 @@ describe("planConfig — Hebrew labels, and the raw DB key never reaching a scre
       expect(getPlanLabel(plan)).toBe(PLAN_META[plan].label);
       expect(getPlanLabel(plan)).toMatch(/[֐-׿]/);
     }
-    expect(getPlanLabel("free")).toBe("חינמי");
-    expect(getPlanLabel("pro")).toBe("מקצועי");
-    expect(getPlanLabel("enterprise")).toBe("ארגוני");
+    // The customer-facing names of the three packages (checklist 31). These are
+    // what appear in the account screen, so they must match the pricing page.
+    expect(getPlanLabel("free")).toBe("הרשימה בידיים");
+    expect(getPlanLabel("pro")).toBe("בלי הפתעות");
+    expect(getPlanLabel("enterprise")).toBe("אנחנו שם איתכם");
   });
 
   it("never falls through to the raw key for an unknown plan", () => {
@@ -148,19 +173,42 @@ describe("planConfig — Hebrew labels, and the raw DB key never reaching a scre
     expect(isKnownPlan("pro")).toBe(true);
     expect(isKnownPlan("enterprise_annual")).toBe(false);
     expect(isKnownPlan(null)).toBe(false);
-    expect(isKnownStatus("incomplete_expired")).toBe(true);
+    expect(isKnownStatus("past_due")).toBe(true);
     expect(isKnownStatus("something_new")).toBe(false);
     expect(isKnownStatus(undefined)).toBe(false);
   });
 
-  it("maps every subscription status Stripe can emit", () => {
-    // All four of these reached the panel unmapped once. They are ordinary
-    // subscription states, not errors — they simply had no label, and one of
-    // them clipped to "te_expired" on a phone.
-    for (const s of ["active", "trialing", "cancelled", "expired", "past_due",
-                     "incomplete", "incomplete_expired", "unpaid", "paused"]) {
-      expect(STATUS_META[s]).toBeDefined();
-      expect(isKnownStatus(s)).toBe(true);
+  /* This test used to insist on labels for nine statuses, including four Stripe
+     SUBSCRIPTION states (incomplete, incomplete_expired, unpaid, paused). None of
+     them can be stored — subscriptions.status has carried
+     CHECK (status IN ('active','trialing','cancelled','expired')) since the first
+     migration and it has never been relaxed — and since 27.9 purchases are
+     one-time, so Stripe does not produce them at all. The test pinned labels for
+     values the database refuses, and the admin filter offered them as options
+     that could never match a row. Checklist 94.
+
+     So the list is now read against the SCHEMA: the statuses the panel knows are
+     exactly the CHECK's, plus past_due, which displayStatus() derives from a flag.
+     A migration that changes the CHECK fails this until the labels follow. */
+  it("knows exactly the statuses the database can hold, plus past_due", () => {
+    const sql = readFileSync("supabase/migrations/20260524000000_admin_foundation.sql", "utf8");
+    const check = /status\s+text[^,]*CHECK \(status IN \(([^)]*)\)\)/.exec(sql);
+    expect(check, "the subscriptions.status CHECK moved or changed shape").toBeTruthy();
+    const dbStatuses = check[1].split(",").map(x => x.trim().replace(/'/g, ""));
+    expect(dbStatuses.sort()).toEqual(["active", "cancelled", "expired", "trialing"]);
+
+    // And no later migration relaxed it — the premise of removing the four.
+    for (const f of readdirSync("supabase/migrations")) {
+      const body = readFileSync(`supabase/migrations/${f}`, "utf8");
+      expect(body, f).not.toMatch(/subscriptions_status_check|alter table public\.subscriptions[^;]*status[^;]*check/i);
+    }
+
+    expect([...STATUS_KEYS].sort()).toEqual([...dbStatuses, "past_due"].sort());
+    for (const s of STATUS_KEYS) expect(isKnownStatus(s), s).toBe(true);
+    for (const gone of ["incomplete", "incomplete_expired", "unpaid", "paused"]) {
+      expect(isKnownStatus(gone), gone).toBe(false);
+      // Still graceful if one ever turns up: a Hebrew "unknown", never the key.
+      expect(getStatusLabel(gone)).toBe("סטטוס לא מוכר");
     }
   });
 });
@@ -189,9 +237,9 @@ describe("planConfig — the delinquency rule", () => {
   });
 
   it("flags exactly the statuses that need somebody to act", () => {
-    expect([...ALARMING_STATUSES].sort()).toEqual(["past_due", "unpaid"]);
+    expect([...ALARMING_STATUSES].sort()).toEqual(["past_due"]);
     for (const s of ALARMING_STATUSES) expect(STATUS_META[s]).toBeDefined();
-    for (const s of ["active", "trialing", "paused", "cancelled", "expired"]) {
+    for (const s of ["active", "trialing", "cancelled", "expired"]) {
       expect(ALARMING_STATUSES.has(s)).toBe(false);
     }
   });
@@ -227,13 +275,30 @@ describe("planConfig — the ordered key lists cannot drift from the tables", ()
     }
   });
 
-  it("keeps the enterprise plan colour on --accent-text, never the raw accent", () => {
-    // Bug class 4, in a value AccountScreen paints onto TEXT. It was the literal
-    // #E8437B once — that is --accent, which measures 3.80:1 on white and
-    // 3.63:1 on this entry's own cream ground, i.e. below the floor on both.
-    expect(PLAN_META.enterprise.color).toBe("var(--accent-text)");
-    expect(PLAN_META.enterprise.color.toUpperCase()).not.toContain("E8437B");
-    expect(PLAN_META.enterprise.color).not.toBe("var(--accent)");
+  it("every plan and status badge is tokens, and readable on its own ground (107)", async () => {
+    // Bug classes 4 and 5 together. These colours are painted as TEXT on the
+    // account screen (customer-facing) over their own bgColor. Hex values
+    // outside tokens.css kept creeping in (Tailwind blue on `pro`); and the
+    // enterprise entry once used the raw --accent at 3.80:1. So: tokens only,
+    // never raw --accent as text, and each pair measured from tokens.css.
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("src/styles/tokens.css", "utf8");
+    const root = css.slice(css.indexOf(":root"), css.indexOf("}", css.indexOf(":root")));
+    const tok = Object.fromEntries([...root.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)].map(m => [m[1], m[2]]));
+    const lum = h => { h = h.slice(1); if (h.length === 3) h = [...h].map(c => c + c).join("");
+      const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255)
+        .map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const of = v => { const m = /^var\(--([a-z0-9-]+)\)$/.exec(v); return m ? tok[m[1]] : null; };
+    for (const [name, meta] of [...Object.entries(PLAN_META), ...Object.entries(STATUS_META)]) {
+      expect(meta.color, name).toMatch(/^var\(--/);
+      expect(meta.bgColor, name).toMatch(/^var\(--/);
+      expect(meta.color, name).not.toBe("var(--accent)");
+      const fg = of(meta.color), bg = of(meta.bgColor);
+      expect(fg && bg, `${name}: ${meta.color} / ${meta.bgColor} are real tokens`).toBeTruthy();
+      expect(ratio(fg, bg), `${name}: ${meta.color} on ${meta.bgColor}`).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
 
@@ -276,7 +341,7 @@ describe("plan lookups do not read through the prototype chain", () => {
   it("still answers correctly for the real keys", () => {
     expect(isKnownPlan("free")).toBe(true);
     expect(getPlanLimits("pro").maxGuests).toBe(getPlanLimits("pro").maxGuests);
-    expect(getPlanMeta("free")?.label).toBe("חינמי");
+    expect(getPlanMeta("free")?.label).toBe("הרשימה בידיים");
   });
 
   it("survives a non-string key without throwing", () => {
@@ -284,5 +349,24 @@ describe("plan lookups do not read through the prototype chain", () => {
       expect(getPlanLimits(key)).toEqual(getPlanLimits("free"));
       expect(isKnownPlan(key)).toBe(false);
     }
+  });
+});
+
+describe("the admin panel's vocabulary follows the product", () => {
+  /* Since 27.9 a purchase is one payment for one event — "תשלום אחד לאירוע. לא
+     מנוי." on the public pricing page. The admin panel kept calling every
+     purchase a מנוי: the nav said "מנויים ותשלומים", the dashboard "מנויים
+     פעילים", the activity log "מנוי שונה". Only the owner sees it, which is why
+     it survived the customer-facing pass — and it is also why it matters: the
+     one person running the business was looking at the model they had rejected.
+     Checklist 94. Comments are stripped first; the history is written in them. */
+  it("no string the admin panel shows says מנוי", () => {
+    const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap(d =>
+      d.isDirectory() ? walk(`${dir}/${d.name}`) : [`${dir}/${d.name}`]);
+    const files = walk("src/admin").filter(f => /\.(jsx?|mjs)$/.test(f) && !/\.test\./.test(f));
+    expect(files.length).toBeGreaterThan(10);   // or this passes by reading nothing
+    const hits = files.filter(f => /מנוי/.test(strip(readFileSync(f, "utf8"))));
+    expect(hits).toEqual([]);
   });
 });

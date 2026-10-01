@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { tableLabel } from "../components/seating/tableLabel.js";
-import { getSideLabel } from "../utils/eventHelpers.js";
+import { getSideLabel, rotateEventToken } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import {
   seatsOf, arrivedSeatsOf, arrivedCountOf, isFullyArrived, withArrivedSeats,
   setRowArrived, toggleSeat, setArrivedCount, arrivalTotals, searchGuests,
-  seatChipLabels, tableAvailability, norm,
+  seatChipLabels, tableAvailability, norm, mergeArrivals,
 } from "../utils/arrival.js";
 import { fetchHostessData, markArrivalByToken } from "../utils/publicTokens.js";
+import { fetchCloudEventGuests } from "../utils/cloudSync.js";
 import { isScanSupported, parseScanPayload } from "../utils/scanPayload.js";
 import QrScanner from "../components/ui/QrScanner.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
@@ -16,7 +17,9 @@ import Icon from "../components/ui/Icon.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import styles from "./EntranceScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { COMPANY } from "../data/company.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 /**
  * עמדת הכניסה — the one screen the door runs on.
@@ -162,6 +165,22 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
   );
 }
 
+/** Same seat set, order-free. */
+const DOUBLE_TAP_MS = 600;
+
+/** A multiset of guest ids with a write on the wire: has / add / delete / size. */
+function pendingWrites() {
+  const n = new Map();
+  return {
+    has: id => n.has(id),
+    add: id => { n.set(id, (n.get(id) || 0) + 1); },
+    delete: id => { const k = (n.get(id) || 0) - 1; if (k > 0) n.set(id, k); else n.delete(id); },
+    get size() { return n.size; },
+  };
+}
+
+const sameSeats = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+
 export default function EntranceScreen({
   mode = "owner",
   events = [],
@@ -180,6 +199,10 @@ export default function EntranceScreen({
   const [remote, setRemote]       = useState(null);
   const [remoteState, setRemoteState] = useState("loading"); // loading|ready|notfound|error
   const [saveError, setSaveError] = useState("");
+  // When the list on screen is not fresh: the time it was fetched, while the
+  // last refresh failed. null when the last refresh worked.
+  const [staleAt, setStaleAt] = useState(null);
+  useGuestTitle(isToken && remote && `כניסה · ${remote.name || ""}`);
 
   // Guests with a write still in flight. A refresh that landed mid-write used to
   // overwrite them with the server's pre-write state: the greeter's correction
@@ -187,30 +210,135 @@ export default function EntranceScreen({
   // that stale copy and wrote it back, silently undoing the correction in the
   // database. Measured: untick יעל, poll lands, untick איתי, and יעל is present
   // again on the server.
-  const inFlight = useRef(new Set());
+  //
+  // COUNTED, not a Set (second review, סב22): two taps on one family with the
+  // first still on the wire — the first reply deleted the id, the row lost its
+  // protection while the second write was still going, a refresh landed, and
+  // the screen showed the family as the server had it BEFORE the second tap.
+  const inFlight = useRef(pendingWrites());
+  // A refresh can also be OLDER than a write that finished while it was on
+  // the wire: it started, the tap saved, then the pre-tap answer landed and put
+  // the family back as not arrived for 25 seconds (7/11 → 4/11, measured —
+  // second review, סב35). Each finished write gets a tick; a refresh keeps our
+  // copy of every row saved after it started.
+  const saveTick = useRef(0);
+  const savedAt  = useRef(new Map());   // guestId → tick of its last finished write
+  const markSaved = (guestId) => { savedAt.current.set(guestId, ++saveTick.current); };
+  // Rows whose last save failed. The error stays on screen until THAT row saves;
+  // a good tap on another family used to clear it while the failed one still
+  // looked checked in (29.9 review).
+  //
+  // An outbox, not a list of ids (second review, סב12): each entry keeps what
+  // the tap MEANT — the seats it asked for and the seats the screen showed — so
+  // the write is sent again after the next refresh that works. Before, a tap
+  // in a dead spot reverted, the error named nobody, nothing was ever re-sent
+  // (3 sent, 0 applied once the signal was back), and the message stayed up
+  // even after the other greeter had checked those families in.
+  //
+  // Kept in sessionStorage too (fifth review 30.9): an app update reloaded the
+  // greeter's tab — nothing had been TYPED, so it counted as safe — and the
+  // queued retries were gone with it: "לא נשמר: יעל כהן — ננסה שוב…" vanished
+  // and the check-in was never sent. The tab's own storage survives a reload
+  // and ends with the shift.
+  const outboxKey = `kh_door_outbox:${token || eventId}`;
+  const [restoredOutbox] = useState(() => {
+    try { return new Map(JSON.parse(sessionStorage.getItem(outboxKey) || "[]")); } catch { return new Map(); }
+  });
+  const failed = useRef(restoredOutbox);   // guestId → { name, seats, base }
+  const showFailed = useCallback(() => {
+    try {
+      if (failed.current.size) sessionStorage.setItem(outboxKey, JSON.stringify([...failed.current]));
+      else sessionStorage.removeItem(outboxKey);
+    } catch { /* full or blocked: the in-memory queue still works */ }
+    const names = [...failed.current.values()].map(f => f.name).filter(Boolean);
+    setSaveError(failed.current.size === 0 ? ""
+      : `לא נשמר: ${names.join(", ") || "סימון הגעה"} — ננסה שוב אוטומטית כשהחיבור יחזור`);
+  }, [outboxKey]);
+  // A queue restored from before a reload is shown at once.
+  useEffect(() => { if (failed.current.size) showFailed(); }, [showFailed]);
+  // The list as the greeter last saw it, readable synchronously by a tap. The
+  // write path below must not depend on WHEN React runs a state updater.
+  const remoteRef = useRef(null);
+  useEffect(() => { remoteRef.current = remote; }, [remote]);
+
+  // The last list that loaded, for this tab only (sessionStorage: it survives
+  // a pull-to-refresh or iOS reloading a tab it put to sleep, and is gone when
+  // the tab closes — a guest list does not outlive the greeter's shift).
+  // Without it, a reload with no signal replaced the whole door with "שגיאת
+  // חיבור — נסו לרענן את הדף", advice that cannot work offline (סב12).
+  const cacheKey = `kh_door:${token}`;
+  const readCache = useCallback(() => {
+    try { return JSON.parse(sessionStorage.getItem(cacheKey) || "null"); } catch { return null; }
+  }, [cacheKey]);
+
+  // Re-send what failed, now that the server answers. A row the server already
+  // shows as asked (the other greeter did it) is simply done.
+  const retryFailed = useCallback((data) => {
+    if (!data?.writesOpen) return;
+    for (const [guestId, f] of failed.current) {
+      if (inFlight.current.has(guestId)) continue;
+      const row = data.guests.find(g => g.id === guestId);
+      if (!row) { failed.current.delete(guestId); continue; }
+      if (sameSeats(arrivedSeatsOf(row), f.seats)) { failed.current.delete(guestId); continue; }
+      inFlight.current.add(guestId);
+      markArrivalByToken(token, guestId, f.seats, f.base)
+        .then(() => {
+          inFlight.current.delete(guestId);
+          markSaved(guestId);
+          if (failed.current.get(guestId) === f) failed.current.delete(guestId);
+          showFailed();
+          const put = prev => prev && ({ ...prev, guests: prev.guests.map(g =>
+            g.id === guestId ? withArrivedSeats(g, f.seats) : g) });
+          remoteRef.current = put(remoteRef.current);
+          setRemote(put);
+        })
+        .catch(() => { inFlight.current.delete(guestId); });
+    }
+    showFailed();
+  }, [token, showFailed]);
 
   const loadRemote = useCallback(async () => {
+    const startedAt = saveTick.current;
     try {
       const data = await fetchHostessData(token);
       if (!data) { setRemoteState("notfound"); return null; }
+      try { sessionStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), data })); } catch { /* full or blocked */ }
+      setStaleAt(null);
+      const ours = id => inFlight.current.has(id) || (savedAt.current.get(id) ?? 0) > startedAt;
       setRemote(prev => {
-        if (!prev || inFlight.current.size === 0) return data;
-        // Keep OUR copy of a row we are still writing; take the server's for
-        // every other row, which is the whole point of the refresh.
+        if (!prev || !data.guests.some(g => ours(g.id))) return data;
+        // Keep OUR copy of a row we are still writing, or saved after this
+        // refresh left; take the server's for every other row, which is the
+        // whole point of the refresh.
         const mine = new Map(prev.guests.map(g => [g.id, g]));
         return {
           ...data,
-          guests: data.guests.map(g =>
-            inFlight.current.has(g.id) ? (mine.get(g.id) ?? g) : g),
+          guests: data.guests.map(g => (ours(g.id) ? (mine.get(g.id) ?? g) : g)),
         };
       });
       setRemoteState("ready");
+      retryFailed(data);
       return data;
     } catch {
-      setRemoteState("error");
+      // A failed REFRESH keeps the list on screen. Replacing a working door
+      // list with an error because one 25-second poll hit a dead spot in the
+      // hall is worse than showing data that is 25 seconds old (28.9 audit).
+      // Only a first load with nothing to show becomes the error state.
+      if (!remoteRef.current) {
+        const cached = readCache();
+        if (cached?.data) {
+          remoteRef.current = cached.data;
+          setRemote(cached.data);
+          setRemoteState("ready");
+          setStaleAt(cached.at);
+          return null;
+        }
+      }
+      setRemoteState(s => (s === "ready" ? "ready" : "error"));
+      setStaleAt(t => t ?? readCache()?.at ?? null);
       return null;
     }
-  }, [token]);
+  }, [token, cacheKey, readCache, retryFailed]);
 
   useEffect(() => {
     if (!isToken) return undefined;
@@ -220,7 +348,11 @@ export default function EntranceScreen({
     // them double-marking each other's guests; anything faster burns battery
     // on a phone that has to last the whole evening.
     const iv = setInterval(() => { if (alive) loadRemote(); }, 25000);
-    return () => { alive = false; clearInterval(iv); };
+    // The signal is back: refresh now (and re-send what failed) instead of
+    // waiting out the rest of the 25 seconds.
+    const online = () => { if (alive) loadRemote(); };
+    window.addEventListener("online", online);
+    return () => { alive = false; clearInterval(iv); window.removeEventListener("online", online); };
   }, [isToken, loadRemote]);
 
   const localEvent = isToken ? null : events.find(e => e.id === eventId);
@@ -232,6 +364,41 @@ export default function EntranceScreen({
     if (!loading && !localEvent) navigate("/app", { replace: true });
   }, [isToken, loading, localEvent, navigate]);
 
+  // ── The host's own door: the greeter's marks while this screen is open ─────
+  // WORKPLAN ב2. The greeter writes to the cloud; this screen read only the
+  // local copy, so a host standing at the door saw none of the greeter's
+  // check-ins until a reload. It now reads its own cloud row every 25s (the
+  // greeter's cadence) and overlays arrivals with the SAME per-row timestamp
+  // rule the sync merge uses. Display only: nothing is written, the sync
+  // engine is untouched, and a failed read keeps the last good overlay.
+  const ownerCloudId = !isToken ? localEvent?.cloudId : null;
+  const [cloudGuests, setCloudGuests] = useState(null);
+  useEffect(() => {
+    if (!ownerCloudId) return undefined;
+    let alive = true;
+    const pull = async () => {
+      try {
+        const g = await fetchCloudEventGuests(ownerCloudId);
+        if (alive && g) setCloudGuests({ forId: ownerCloudId, guests: g });
+      } catch { /* keep the last overlay; the next pull retries */ }
+    };
+    pull();
+    const iv = setInterval(pull, 25000);
+    return () => { alive = false; clearInterval(iv); };
+  }, [ownerCloudId]);
+  // The latest overlay, for the write path below: a host's tap must start
+  // from the row as the screen SHOWS it. Starting from the local row, a tap on
+  // seat 2 of a family the greeter had marked seat 1 of would be stamped newer
+  // and, by the merge's last-writer rule, drop the greeter's seat.
+  const cloudGuestsRef = useRef(null);
+  useEffect(() => {
+    cloudGuestsRef.current = cloudGuests && cloudGuests.forId === localEvent?.cloudId ? cloudGuests.guests : null;
+  }, [cloudGuests, localEvent?.cloudId]);
+  const ownerEvent = useMemo(() => {
+    if (!localEvent || !cloudGuests || cloudGuests.forId !== localEvent.cloudId) return localEvent;
+    return { ...localEvent, guests: mergeArrivals(localEvent.guests, cloudGuests.guests) };
+  }, [localEvent, cloudGuests]);
+
   // ── One shape for both modes ───────────────────────────────────────────────
   const ev = isToken
     ? (remote && {
@@ -241,7 +408,7 @@ export default function EntranceScreen({
         tables: remote.tables,
         seating: remote.seating,
       })
-    : localEvent;
+    : ownerEvent;
 
   const canWrite  = isToken ? !!remote?.writesOpen : true;
   const canManage = !isToken;   // walk-ins, by-table browse, the door-link switch
@@ -253,6 +420,21 @@ export default function EntranceScreen({
   const [expanded, setExpanded]       = useState(null);     // guestId with the party panel open
   const [lastChecked, setLastChecked] = useState(null);
   const [walkInOpen, setWalkInOpen]   = useState(false);
+  // The button that opened the walk-in sheet. The sheet had no Escape and gave
+  // focus back to nothing (fourth review 30.9, AX8). Taken from the click, not
+  // from document.activeElement: the sheet's input autofocuses before any
+  // effect could read it, and Safari does not focus a clicked button at all.
+  const walkInOpener = useRef(null);
+  useEffect(() => {
+    if (!walkInOpen) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); setWalkInOpen(false); } };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      const o = walkInOpener.current;
+      if (o && o.isConnected && document.activeElement === document.body) o.focus();
+    };
+  }, [walkInOpen]);
   const [walkInName, setWalkInName]   = useState("");
   const [walkInCount, setWalkInCount] = useState(1);
   const [walkInSide, setWalkInSide]   = useState("bride");
@@ -260,6 +442,7 @@ export default function EntranceScreen({
   const [scanning, setScanning]       = useState(false);
   const [scanMsg, setScanMsg]         = useState("");
   const [linkOpen, setLinkOpen]       = useState(false);
+  const { confirm, dialog } = useConfirm();
   const searchRef = useRef(null);
 
   // Only the by-name tab. Focusing on the by-table tab raised the phone keyboard
@@ -273,41 +456,75 @@ export default function EntranceScreen({
   const applyArrival = useCallback((guestId, transform) => {
     if (!canWrite) return;
     if (isToken) {
-      let nextSeats = null;
-      setRemote(prev => {
-        if (!prev) return prev;
-        const guests = prev.guests.map(g => {
-          if (g.id !== guestId) return g;
-          const next = transform(g);
-          nextSeats = arrivedSeatsOf(next);
-          return next;
-        });
-        return { ...prev, guests };
-      });
+      // Worked out HERE, synchronously, from the list on screen. Until 29.9
+      // these were assigned inside the setRemote updater and sent from a
+      // microtask — which works for a click (React renders before the
+      // microtask) and NOT for a QR scan, whose callback runs from
+      // requestAnimationFrame after an await: the updater had not run yet,
+      // both lists were null, and every scanned check-in on a greeter's link
+      // went to the server as "seats [] from []" — a no-op that succeeded.
+      // The screen showed the guest in; 25 seconds later they were gone.
+      const cur = remoteRef.current;
+      const row = cur?.guests.find(g => g.id === guestId);
+      if (!row) return;
+      const next      = transform(row);
+      const baseSeats = arrivedSeatsOf(row);   // what this screen showed (ג2)
+      const nextSeats = arrivedSeatsOf(next);
+      const put = r => (prev => prev && ({ ...prev, guests: prev.guests.map(g => (g.id === guestId ? r(g) : g)) }));
+      remoteRef.current = put(() => next)(cur);   // a second tap before the render sees this one
+      setRemote(put(() => next));
       // Optimistic locally, authoritative in Postgres. A failure has to be
       // visible: a greeter who thinks a family is checked in when the host's
       // list says otherwise is worse than no check-in at all.
+      // A new tap on a row is the greeter's new intent: it replaces whatever
+      // was waiting to be re-sent for that row.
+      failed.current.delete(guestId);
+      showFailed();
       inFlight.current.add(guestId);
-      Promise.resolve().then(() =>
-        markArrivalByToken(token, guestId, nextSeats || []),
-      ).then(() => { inFlight.current.delete(guestId); setSaveError(""); })
-       .catch(() => {
-         inFlight.current.delete(guestId);
-         setSaveError("השמירה נכשלה — בדקו חיבור ונסו שוב");
-         loadRemote();
-       });
+      markArrivalByToken(token, guestId, nextSeats, baseSeats)
+        .then(() => {
+          inFlight.current.delete(guestId);
+          markSaved(guestId);
+          showFailed();
+        })
+        .catch(() => {
+          inFlight.current.delete(guestId);
+          failed.current.set(guestId, { name: row.name, seats: nextSeats, base: baseSeats });
+          // A scan's "סומנו כהגיעו" under the camera must not outlive the save
+          // it announced (סב23).
+          setScanMsg(m => (m.startsWith(`${row.name} — `) ? `${row.name} — לא נשמר, ננסה שוב כשהחיבור יחזור` : m));
+          // Put the row back as it was, unless a later tap has changed it
+          // since — offline, the refresh below fails too and nothing else
+          // would undo the optimistic mark.
+          setRemote(put(g => (sameSeats(arrivedSeatsOf(g), nextSeats) ? withArrivedSeats(g, baseSeats) : g)));
+          showFailed();
+          loadRemote();
+        });
     } else {
+      const shown = g => (cloudGuestsRef.current ? mergeArrivals([g], cloudGuestsRef.current)[0] : g);
       patchEventById(eventId, e => ({
         ...e,
-        guests: e.guests.map(g => (g.id === guestId ? transform(g) : g)),
+        guests: e.guests.map(g => (g.id === guestId ? transform(shown(g)) : g)),
       }));
     }
-  }, [canWrite, isToken, token, eventId, patchEventById, loadRemote]);
+  }, [canWrite, isToken, token, eventId, patchEventById, loadRemote, showFailed]);
+
+  // A second tap on the same big button within a moment is a double tap, not
+  // a change of mind: two taps 180 ms apart on "כולם הגיעו" sent [0,1,2] and
+  // then [] — the family, or with "כולם" the whole table, un-checked at the
+  // busiest moment of the evening, no confirm and no undo (second review, סב24).
+  const lastTap = useRef(new Map());
+  const isDoubleTap = useCallback((key) => {
+    const now = Date.now(), prev = lastTap.current.get(key);
+    lastTap.current.set(key, now);
+    return prev !== undefined && now - prev < DOUBLE_TAP_MS;
+  }, []);
 
   const markRow = useCallback((g, on) => {
+    if (isDoubleTap("row:" + g.id)) return;
     applyArrival(g.id, row => setRowArrived(row, on));
     if (on) setLastChecked(g.id);
-  }, [applyArrival]);
+  }, [applyArrival, isDoubleTap]);
 
   const markSeat = useCallback((g, seat) => {
     applyArrival(g.id, row => toggleSeat(row, seat));
@@ -321,6 +538,7 @@ export default function EntranceScreen({
 
   const markTable = useCallback((tableId, on) => {
     if (!canWrite) return;
+    if (isDoubleTap("table:" + tableId)) return;
     if (isToken) {
       // `rsvp !== "declined"` on this side too. Without it the same button wrote
       // different data depending on who tapped it, and an arrival on a decliner
@@ -339,17 +557,23 @@ export default function EntranceScreen({
           : g,
       ),
     }));
-  }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId]);
+  }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId, isDoubleTap]);
 
   const handleScan = useCallback((raw) => {
+    // The host can close the door link while the camera is open. Before, the
+    // scan still said "3 סומנו כהגיעו" and sent nothing (second review, סב23).
+    if (!canWrite) { setScanning(false); setScanMsg("הקישור במצב צפייה בלבד — לא סומן"); return; }
     const id = parseScanPayload(raw);
     if (!id) { setScanMsg("קוד לא מזוהה — נסו שוב או חפשו לפי שם"); return; }
     const guest = ev?.guests.find(g => g.id === id);
     if (!guest) { setScanMsg("הקוד לא שייך לאירוע הזה"); return; }
-    if (isFullyArrived(guest)) { setScanMsg(`${guest.name} — כל ${seatsOf(guest)} כבר סומנו`); return; }
+    if (isFullyArrived(guest)) { setScanMsg(seatsOf(guest) === 1 ? `${guest.name} — ההגעה כבר סומנה` : `${guest.name} — כל ${seatsOf(guest)} כבר סומנו`); return; }
     markRow(guest, true);
-    setScanMsg(`${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`);
-  }, [ev?.guests, markRow]);
+    const done = seatsOf(guest) === 1 ? `${guest.name} — ההגעה סומנה` : `${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`;
+    // Someone who said they would not come, and came: the greeter must know
+    // at that moment — there may be no seat for them (fifth review 30.9).
+    setScanMsg(guest.rsvp === "declined" ? `${done} · שימו לב: סימנו שלא יגיעו — ייתכן שאין להם מקום` : done);
+  }, [canWrite, ev?.guests, markRow]);
 
   // ── Derived, in seats ──────────────────────────────────────────────────────
   const totals = useMemo(
@@ -378,11 +602,12 @@ export default function EntranceScreen({
             ? <><div className={styles.spinner} aria-hidden="true" /><span className={styles.stateText}>טוען...</span></>
             : <>
                 <span className={styles.stateIcon} aria-hidden="true"><Icon name="alert" size={30} /></span>
-                <span className={styles.stateText}>
+                <h1 className={styles.stateText}>
                   {remoteState === "notfound"
                     ? "הקישור אינו תקין או שהאירוע הוסר"
-                    : "שגיאת חיבור — נסו לרענן את הדף"}
-                </span>
+                    : "אין חיבור כרגע — הרשימה תופיע ברגע שהחיבור יחזור"}
+                </h1>
+                {remoteState === "notfound" && <Link to="/" className={styles.homeLink}>לדף הבית</Link>}
               </>}
         </div>
       </div>
@@ -410,10 +635,16 @@ export default function EntranceScreen({
       companions: [],
     }, Array.from({ length: walkInCount || 1 }, (_, i) => i));
 
+    // The table is checked again HERE, against the party size being added.
+    // The picker hides tables without room for the current count, but a table
+    // chosen for two stayed selected after the count went up to four, and the
+    // family was seated at a table with room for two (107, 29.9).
+    const room = freeTables.find(a => a.table.id === walkInTable)?.free ?? 0;
+    const seatAt = walkInTable && room >= (walkInCount || 1) ? walkInTable : "";
     patchEventById(eventId, e => ({
       ...e,
       guests: [...e.guests, newGuest],
-      seating: walkInTable ? { ...e.seating, [id]: walkInTable } : e.seating,
+      seating: seatAt ? { ...e.seating, [id]: seatAt } : e.seating,
     }));
     setLastChecked(id);
     setWalkInOpen(false);
@@ -453,6 +684,7 @@ export default function EntranceScreen({
 
   return (
     <div className={styles.root}>
+      {dialog}
       {/* ── Bar ── */}
       <header className={styles.bar}>
         {!isToken && (
@@ -461,11 +693,11 @@ export default function EntranceScreen({
           </button>
         )}
         <div className={styles.barTitle}>
-          <span className={styles.barName}>{ev.name || "אירוע"}</span>
+          <h1 className={styles.barName}>{ev.name || "אירוע"}</h1>
           <span className={styles.barRole}>עמדת כניסה</span>
         </div>
         {canManage && (
-          <button className={styles.walkInBtn} onClick={() => { setWalkInName(""); setWalkInTable(""); setWalkInOpen(true); }}>
+          <button className={styles.walkInBtn} onClick={(e) => { walkInOpener.current = e.currentTarget; setWalkInName(""); setWalkInTable(""); setWalkInOpen(true); }}>
             <Icon name="plus" size={14} /> אורח שהגיע
           </button>
         )}
@@ -477,7 +709,7 @@ export default function EntranceScreen({
           <span className={styles.counterBig}>{totals.arrivedSeats}</span>
           <span className={styles.counterOf}>מתוך {totals.totalSeats} אורחים</span>
           {totals.partialRecords > 0 && (
-            <span className={styles.counterPartial}>{totals.partialRecords} משפחות הגיעו חלקית</span>
+            <span className={styles.counterPartial}>{totals.partialRecords === 1 ? "משפחה אחת הגיעה חלקית" : `${totals.partialRecords} משפחות הגיעו חלקית`}</span>
           )}
         </div>
       </div>
@@ -488,6 +720,11 @@ export default function EntranceScreen({
       {isToken && !canWrite && (
         <p className={styles.readOnly} role="status">
           <Icon name="lock" size={14} /> הקישור במצב צפייה בלבד — בעל האירוע יכול לפתוח סימון הגעה
+        </p>
+      )}
+      {isToken && staleAt && (
+        <p className={styles.readOnly} role="status">
+          <Icon name="alert" size={14} /> אין חיבור כרגע — הרשימה מעודכנת לשעה {new Date(staleAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
         </p>
       )}
       {saveError && <p className={styles.saveError} role="alert">{saveError}</p>}
@@ -525,7 +762,7 @@ export default function EntranceScreen({
             )}
           </div>
 
-          {scanning && <QrScanner onScan={handleScan} onClose={() => { setScanning(false); setScanMsg(""); }} />}
+          {scanning && canWrite && <QrScanner onScan={handleScan} onClose={() => { setScanning(false); setScanMsg(""); }} />}
           {scanMsg && <p className={styles.scanMsg} role="status">{scanMsg}</p>}
           {!scanning && isScanSupported() && canWrite && (
             <button className={styles.scanBtn} onClick={() => { setScanning(true); setScanMsg(""); }}>
@@ -556,7 +793,7 @@ export default function EntranceScreen({
               <p className={styles.emptyTitle}>לא נמצא &ldquo;{search.trim()}&rdquo;</p>
               <p className={styles.emptyHint}>{isToken ? "החיפוש עובר גם על שמות המלווים" : "החיפוש עובר גם על שמות המלווים ועל מספרי טלפון"}</p>
               {canManage && (
-                <button className={styles.emptyCta} onClick={() => { setWalkInName(search.trim()); setWalkInTable(""); setWalkInOpen(true); }}>
+                <button className={styles.emptyCta} onClick={(e) => { walkInOpener.current = e.currentTarget; setWalkInName(search.trim()); setWalkInTable(""); setWalkInOpen(true); }}>
                   <Icon name="plus" size={15} /> הוסיפו כאורח שהגיע עכשיו
                 </button>
               )}
@@ -583,7 +820,7 @@ export default function EntranceScreen({
               <p className={styles.emptyTitle}>הקלידו שם</p>
               <p className={styles.emptyHint}>
                 {totals.arrivedSeats > 0
-                  ? `${totals.arrivedSeats} אורחים כבר בפנים`
+                  ? (totals.arrivedSeats === 1 ? "אורח אחד כבר בפנים" : `${totals.arrivedSeats} אורחים כבר בפנים`)
                   : "שם של אורח, של מי שהגיע איתו, או מספר טלפון"}
               </p>
             </div>
@@ -716,6 +953,27 @@ export default function EntranceScreen({
                     ? <><Icon name="unlock" size={15} /> פתחו סימון הגעה</>
                     : <><Icon name="lock" size={15} /> סגרו סימון הגעה</>}
                 </button>
+                {/* The door link could be switched to read-only but never
+                    revoked: whoever held it could still open the full guest
+                    list with every table (102, 28.9). Same rotation as the
+                    family table's link, same wording of what is lost. */}
+                <button
+                  className={styles.linkCopy}
+                  onClick={async () => {
+                    const ok = await confirm(
+                      "להחליף את הקישור לדיילת?\n\n"
+                      // "ברגע שהשינוי נשמר", not "מיד": the old link dies when
+                      // the new token reaches the server, and offline that is
+                      // later (29.9 review — the dialog promised more).
+                      + "הקישור הנוכחי יפסיק לעבוד ברגע שהשינוי יישמר — גם בטלפון של דיילת שכבר פתחה אותו. "
+                      + "הסימונים שכבר נעשו נשארים. תצטרכו לשלוח לדיילת את הקישור החדש.",
+                      { danger: true, confirmLabel: "החליפו את הקישור" },
+                    );
+                    if (ok) patchEventById(eventId, e => rotateEventToken(e, "hostess"));
+                  }}
+                >
+                  <Icon name="refresh" size={15} /> החליפו קישור
+                </button>
               </div>
             </div>
           )}
@@ -725,7 +983,7 @@ export default function EntranceScreen({
       {/* ── Walk-in ── */}
       {walkInOpen && canManage && (
         <div className={styles.sheetOverlay} onClick={e => { if (e.target === e.currentTarget) setWalkInOpen(false); }}>
-          <div className={styles.sheet} role="dialog" aria-label="אורח שהגיע ביום האירוע">
+          <div className={styles.sheet} role="dialog" aria-modal="true" aria-label="אורח שהגיע ביום האירוע">
             <div className={styles.sheetTitle}>אורח שהגיע ולא ברשימה</div>
             <input
               className={styles.sheetInput}
@@ -776,6 +1034,9 @@ export default function EntranceScreen({
                       <span className={styles.freeCardFree}>{free} פנויים</span>
                     </button>
                   ))}
+                {walkInTable && !freeTables.some(a => a.table.id === walkInTable && a.free >= walkInCount) && (
+                  <p className={styles.sheetNote}>בשולחן שבחרתם אין מקום ל-{walkInCount} — בחרו שולחן אחר, או שהאורח יתווסף בלי שיבוץ.</p>
+                )}
                 {freeTables.filter(a => a.free >= walkInCount).length === 0 && (
                   <p className={styles.sheetNote}>אין שולחן אחד עם {walkInCount} מקומות פנויים.</p>
                 )}

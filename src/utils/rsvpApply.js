@@ -57,3 +57,59 @@ export function pickCompanions(response, existing) {
     : [];
   return answered.length >= current.length ? answered : current;
 }
+
+// Normalize a display name for fuzzy matching between an RSVP response and a
+// guest-list row: trim, collapse inner whitespace, lowercase.
+export function normName(s) {
+  return (s || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+// Normalize an Israeli phone to a comparable local form (05x…) for matching.
+export function normPhone(p) {
+  let d = (p || "").replace(/\D/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  if (d.startsWith("972")) d = "0" + d.slice(3);
+  return d;
+}
+
+// A response's answer: prefer the new status column, fall back to the boolean.
+export const respStatus = (r) => r.status || (r.attending ? "yes" : "no");
+
+/**
+ * Each respondent's LATEST answer, for counting (107/ת4, 28.9). A respondent
+ * is their phone when they gave one, else their name — the same keys the
+ * screen matches guests with. Rows without either are kept as they are.
+ * Input order is kept for the survivors.
+ */
+export function latestPerRespondent(responses) {
+  const list = Array.isArray(responses) ? responses : [];
+  // A "no" is sent WITHOUT a phone (RSVPScreen's decline form asks for none),
+  // so a guest who answered "yes" with their phone and then changed their mind
+  // was two respondents — counted as coming, and on the bus (29.9 review). A
+  // name-only answer therefore joins the respondent who gave that name with a
+  // phone — but only when exactly ONE phone gave it; two different phones
+  // under one name are two people, and a name-only answer between them is
+  // ambiguous and stays on its own.
+  const phonesByName = new Map();
+  for (const r of list) {
+    const p = normPhone(r?.phone), n = normName(r?.guest_name);
+    if (p && n) phonesByName.set(n, (phonesByName.get(n) || new Set()).add(p));
+  }
+  const key = r => {
+    const p = normPhone(r?.phone);
+    if (p) return "p:" + p;
+    const n = normName(r?.guest_name);
+    if (!n) return null;
+    const ph = phonesByName.get(n);
+    return ph && ph.size === 1 ? "p:" + [...ph][0] : "n:" + n;
+  };
+  const ts  = r => new Date(r?.created_at).getTime() || 0;
+  const best = new Map();
+  for (const r of list) {
+    const k = key(r);
+    if (!k) continue;
+    const prev = best.get(k);
+    if (!prev || ts(r) >= ts(prev)) best.set(k, r);
+  }
+  return list.filter(r => { const k = key(r); return !k || best.get(k) === r; });
+}

@@ -268,6 +268,18 @@ describe("generateSuggestions — the categories that had no coverage", () => {
       .toBeUndefined();                                           // 80+ — nothing to say
   });
 
+  it("says 'one critical issue' in the singular — not '1 נושאים קריטיים'", () => {
+    // Browser audit 28.9 read "הסידור סביר — 1 נושאים קריטיים לטיפול" on the page.
+    const guests  = [g("a"), g("b"), g("c")];
+    const seating = { a: "t1", b: "t1", c: "t2" };
+    const apart   = [{ id: "k1", type: "apart", guestA: "a", guestB: "b" }];
+    const all     = generateSuggestions(guests, [t("t1", 10), t("t2", 10)], apart, seating, 70);
+    expect(all.filter(x => x.section === "critical")).toHaveLength(1);   // the premise
+    const q = find(all, "quality_score");
+    expect(q.whyMatters).toContain("נושא קריטי אחד");
+    expect(q.whyMatters).not.toMatch(/\b1 נושאים/);
+  });
+
   it("orders critical problems before fixes and opportunities", () => {
     const guests = [g("A"), g("B"), g("C"), g("D"), g("E")];
     const tables = [t("t1", 10), t("t2", 10)];
@@ -558,6 +570,14 @@ describe("together_pending — the one-click fix must not create the violation i
     const guests = [g("סבתא"), g("אמא")];
     const s = generateSuggestions(guests, [t("t1", 6)], [together("אמא", "סבתא")], { "סבתא": "t1" });
     expect(find(s, "together_pending").canApply).toBe(true);
+  });
+
+  it("never offers to seat a guest who declined (סב8)", () => {
+    // "…ודחה עדיין ללא שולחן" with a one-click fix that seated someone not
+    // coming — 456–514 of every 5,000 fuzzed events.
+    const guests = [g("דנה"), { ...g("יוסי"), rsvp: "declined" }];
+    const s = generateSuggestions(guests, [t("t1", 6)], [together("דנה", "יוסי")], { "דנה": "t1" });
+    expect(find(s, "together_pending")).toBeUndefined();
   });
 
   it("detects the pair in BOTH directions", () => {

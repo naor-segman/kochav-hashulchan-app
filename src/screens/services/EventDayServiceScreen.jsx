@@ -19,11 +19,10 @@ import styles from "./ServicePage.module.css";
  *   • TWO GREETERS ON THE SAME ROW inside one 25s window: last write wins the
  *     whole seat array, so one tick can be lost. Different rows merge cleanly.
  *     The page claims the second, not the first.
- *   • QR SCANNING IS CHROME/EDGE/ANDROID ONLY. `isScanSupported()` gates the
- *     button on `"BarcodeDetector" in window`, so on an iPhone the button is
- *     not there at all — and an iPhone is the majority phone at an Israeli
- *     wedding. Named plainly, with the name search as the answer, which is what
- *     the product's own error string says too.
+ *   • QR SCANNING was Chrome/Edge/Android only until 28.9 (the button did not
+ *     exist on an iPhone). It now works everywhere with a camera — jsQR where
+ *     there is no native detector, qa/qrScanFallback.mjs. Whether this page
+ *     should ADVERTISE scanning is a copy decision left to the owner (104).
  *   • A SCAN MARKS THE WHOLE ROW, even though the code identifies one person.
  *   • THE GREETER LINK NEEDS A CONNECTION. Both its reads and its writes are
  *     Supabase RPCs with no retry queue: a failed write is discarded and

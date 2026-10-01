@@ -1,9 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitGift } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitGift, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { uid } from "../utils/uid.js";
+import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
+import { guestHosts, guestEventType } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 
 const MOCK_EVENT = {
   name: "חתונת נועה וטל",
@@ -13,6 +17,8 @@ const MOCK_EVENT = {
 };
 
 const AMOUNT_CHIPS = [200, 300, 500, 1000];
+/** The blessing's length limit on this page. */
+const MESSAGE_MAX = 600;
 
 // Every other money render in the app pins the locale. A bare toLocaleString()
 // on a PUBLIC page hands the grouping to whatever the guest's device is set to
@@ -20,21 +26,34 @@ const AMOUNT_CHIPS = [200, 300, 500, 1000];
 // reconcile against a bank transfer.
 const shekels = (n) => Number(n || 0).toLocaleString("he-IL");
 
+const GIFT_MAX_ILS = 100000;   // = the SQL range, 10,000,000 agorot
+
 export default function GiftScreen() {
   const { token } = useParams();
   const [event, setEvent]         = useState(null);
   const [loading, setLoading]     = useState(true);
+  const [unreachable, setUnreachable] = useState(false);
+  useGuestTitle(event && `מתנה וברכה · ${guestHosts(event)}`);
   const [amount, setAmount]       = useState(null);   // number | "custom" | null
   const [customAmt, setCustomAmt] = useState("");
   const [message, setMessage]     = useState("");
   const [name, setName]           = useState("");
   const [step, setStep]           = useState("form"); // "form" | "submitting" | "submitted"
   const [errors, setErrors]       = useState({});
+  // One key per filled-in form: a double tap or a retry sends the same one and
+  // is stored once; a second gift from this page gets a new one (29.9 review).
+  const formKey = useRef(uid());
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const ev = await fetchEventByToken("gift", token);
+      let ev;
+      try {
+        ev = await fetchEventByToken("gift", token);
+      } catch {
+        if (!cancelled) { setUnreachable(true); setLoading(false); }
+        return;
+      }
       if (!cancelled) {
         if (!ev && !import.meta.env.DEV) {
           setEvent(null);
@@ -55,7 +74,15 @@ export default function GiftScreen() {
     const errs = {};
     if (!name.trim())                    errs.name   = "יש להזין שם מלא";
     if (!finalAmount || finalAmount < 50) errs.amount = "יש לבחור סכום (מינימום ₪50)";
+    // The server's ceiling (10,000,000 agorot), said here: above it the send
+    // failed with "נסו שוב", which could never succeed (second review, סב36).
+    else if (finalAmount > GIFT_MAX_ILS) errs.amount = "הסכום המרבי הוא ₪100,000";
     setErrors(errs);
+    // To the field, not just a message: on a phone the amount's message sits
+    // far above the send button, and pressing it changed nothing on screen
+    // (sixth review 30.9, measured at 390px). Focusing scrolls it into view.
+    const first = errs.amount ? "gift-amount" : errs.name ? "gift-name" : null;
+    if (first) document.getElementById(first)?.focus();
     return Object.keys(errs).length === 0;
   };
 
@@ -68,15 +95,34 @@ export default function GiftScreen() {
           donorName: name,
           amountILS: finalAmount,
           message,
+          clientKey: formKey.current,
         });
-      } catch {
+      } catch (err) {
         setStep("form");
-        setErrors({ submit: "אירעה שגיאה בשמירת המתנה. אנא נסו שוב." });
+        setErrors({ submit: guestWriteError(err, "אירעה שגיאה בשמירת המתנה. אנא נסו שוב.") });
         return;
       }
+      /* Fired only after the server accepted it, and on the GUEST's device —
+         so no name, no message, no token, and the amount as a band. Until 28.9
+         the page that is meant to become the revenue feature sent nothing at
+         all (WORKPLAN מ2). */
+      track(EVENTS.GIFT_DECLARED, { amount_band: amountBand(finalAmount), with_message: !!message.trim() });
     }
+    formKey.current = uid();
     setStep("submitted");
   };
+
+  if (unreachable) {
+    return (
+      <div className={styles.root}>
+        <div className={styles.loadingWrap}>
+          <span className={styles.loadingStar} aria-hidden="true">✦</span>
+          <h1 className={styles.loadingText}>{UNREACHABLE_TEXT.title}</h1>
+          <p className={styles.loadingText}>{UNREACHABLE_TEXT.body}</p>
+        </div>
+      </div>
+    );
+  }
 
   // ── Not found (production only) ─────────────────────────────────────────────
   if (!loading && !event) {
@@ -84,7 +130,8 @@ export default function GiftScreen() {
       <div className={styles.root}>
         <div className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
-          <p className={styles.loadingText}>הלינק לא תקין או שפג תוקפו</p>
+          <h1 className={styles.loadingText}>הלינק לא תקין או שפג תוקפו</h1>
+          <Link to="/" className={styles.homeLink}>לדף הבית</Link>
         </div>
       </div>
     );
@@ -162,7 +209,6 @@ export default function GiftScreen() {
   }
 
   // ── Form ─────────────────────────────────────────────────────────────────────
-  const canSubmit = finalAmount >= 50 && name.trim().length > 0;
 
   const btnLabel = step === "submitting"
     ? "שולח..."
@@ -195,7 +241,12 @@ export default function GiftScreen() {
           <div className={styles.cardTop}>
             {/* Not "מתנה דיגיטלית" any more — the page does not move money,
                 and a tag that says it does is a promise the screen breaks. */}
-            <div className={styles.eventTag}>{ev.type || "חתונה"} · ברכה ומתנה</div>
+            {/* "אחר" is not a word to show a guest (106); with no type the tag
+                is just what the page is. It printed the raw "אחר · ברכה ומתנה"
+                (29.9 review) — the one guest page 45d6e9f missed. */}
+            <div className={styles.eventTag}>
+              {[guestEventType(ev.type || "חתונה"), "ברכה ומתנה"].filter(Boolean).join(" · ")}
+            </div>
             <h1 className={styles.eventName}>{ev.name || coupleLabel}</h1>
             <p className={styles.eventSub}>שלחו מתנה {prefixed("ל", coupleLabel)}</p>
           </div>
@@ -210,9 +261,6 @@ export default function GiftScreen() {
           {/* Amount selector */}
           <div className={styles.section}>
             <label className={styles.sectionLabel} htmlFor="gift-amount">סכום המתנה</label>
-            {errors.amount && (
-              <span className={styles.fieldErr} id="gift-amount-err" role="alert">{errors.amount}</span>
-            )}
             <div className={styles.chips}>
               {AMOUNT_CHIPS.map(a => (
                 <button
@@ -240,7 +288,10 @@ export default function GiftScreen() {
                 id="gift-amount"
                 type="number"
                 min="50"
-                placeholder="הזינו סכום"
+                max={GIFT_MAX_ILS}
+                // The minimum was stated only in the error after pressing send
+                // (106). Said up front, where the amount is typed.
+                placeholder="₪50 ומעלה"
                 aria-describedby={errors.amount ? "gift-amount-err" : undefined}
                 value={customAmt}
                 onChange={e => {
@@ -250,6 +301,12 @@ export default function GiftScreen() {
                 }}
               />
             </div>
+            {/* Under the field, not above the chips: on a phone the amount's
+                message sat above the screen when the send button was pressed
+                (sixth review 30.9, measured at 390px). */}
+            {errors.amount && (
+              <span className={styles.fieldErr} id="gift-amount-err" role="alert">{errors.amount}</span>
+            )}
           </div>
 
           {/* Personal blessing */}
@@ -258,12 +315,21 @@ export default function GiftScreen() {
             <textarea
               id="gift-message"
               className={styles.textarea}
-              maxLength={600}
+              maxLength={MESSAGE_MAX}
               rows={4}
               value={message}
               placeholder="כתבו ברכה מהלב..."
               onChange={e => setMessage(e.target.value)}
+              aria-describedby={message.length >= MESSAGE_MAX - 100 ? "gift-message-count" : undefined}
             />
+            {/* The field stopped taking text at the limit with no sign why
+                (106). Shown only near the end, with a Hebrew word between the
+                numbers so bidi keeps them in reading order (bug class 7). */}
+            {message.length >= MESSAGE_MAX - 100 && (
+              <span id="gift-message-count" className={styles.counter}>
+                {message.length} מתוך {MESSAGE_MAX} תווים
+              </span>
+            )}
           </div>
 
           {/* Sender name */}
@@ -289,7 +355,9 @@ export default function GiftScreen() {
           <div className={styles.payCard}>
             <div className={styles.payCardTitle}>מה קורה עכשיו?</div>
             <p className={styles.payComing}>
-              הברכה והסכום נרשמים ומופיעים בקיר הברכות של האירוע.
+              {/* "הברכה והסכום … מופיעים בקיר" was false: the wall shows the
+                  name and the blessing, never an amount (28.9 audit). */}
+              הברכה נרשמת ומופיעה בקיר הברכות של האירוע. הסכום נשמר רק אצל בעלי האירוע.
               את המתנה עצמה מעניקים ביום האירוע.
             </p>
           </div>
@@ -299,7 +367,10 @@ export default function GiftScreen() {
           <button
             className={styles.submitBtn}
             onClick={handleSubmit}
-            disabled={!canSubmit || step === "submitting"}
+            // Not disabled for a missing name or an amount under ₪50: a greyed
+            // button with ₪30 typed gave no reason at all (fifth review 30.9,
+            // סב88). Pressed, it says which field and why.
+            disabled={step === "submitting"}
           >
             {btnLabel}
           </button>

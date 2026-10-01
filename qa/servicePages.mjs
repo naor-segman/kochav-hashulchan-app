@@ -18,7 +18,7 @@
  * Run: node qa/servicePages.mjs   (expects a build)
  */
 import { createRequire } from "node:module";
-import { spawn } from "node:child_process";
+import { startPreview } from "./lib/preview.mjs";
 
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
@@ -32,22 +32,26 @@ const BASE = `http://127.0.0.1:${PORT}`;
  * of the same three screenshots. It was the only marketing page nothing opened
  * an <img> on, which is how it carried a stale 117 and a 1200x720 declaration
  * on a 2400x1520 file. */
-const ROUTES = ["/home", "/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day", "/services/gifts"];
+/* /pricing is here for the heading check above all: its plan names were plain
+ * divs, so the page jumped h1 -> h3 and nothing noticed, because this harness
+ * was the thing that checks for that and /pricing was not in its list. */
+const ROUTES = ["/home", "/pricing", "/services/seating", "/services/event-site", "/services/planning", "/services/rsvp", "/services/event-day", "/services/gifts"];
 const WIDTHS = [320, 360, 390, 414, 768, 1024, 1280, 1440];
 
 const results = [];
 const check = (name, pass, detail = "") =>
   results.push({ name, pass: !!pass, detail: String(detail) });
 
-const server = spawn("npx", ["vite", "preview", "--port", String(PORT), "--strictPort"], {
-  cwd: "/home/user/kochav-hashulchan-app", stdio: "ignore",
-});
+/* startPreview, not a hand-rolled spawn-and-poll. This harness once reported
+   `FAIL /pricing: no skipped heading level` against a stale preview left running
+   on this port by another checkout: --strictPort killed our own server, the poll
+   was answered by the stranger, and 152 checks described a different commit.
+   startPreview refuses to run when the port already answers. */
+let server = { stop: () => {} };
 
 try {
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(BASE)).ok) break; } catch { /* not up */ }
-    await new Promise(r => setTimeout(r, 500));
-  }
+  const preview = await startPreview(PORT);
+  server = preview;
 
   const browser = await chromium.launch({
     executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
@@ -79,7 +83,14 @@ try {
       naturalH: el.naturalHeight,
       complete: el.complete,
     })));
-    check(`${route}: has images`, imgs.length > 0, `${imgs.length}`);
+    /* Only where a page is BUILT out of screenshots. The check exists because a
+       404 on a landing page is a grey box where the proof was — but /pricing is
+       a table and a word list, and demanding an image of it is the check being
+       wrong rather than the page. Everything below still runs on whatever
+       images a page does have. */
+    if (route !== "/pricing") {
+      check(`${route}: has images`, imgs.length > 0, `${imgs.length}`);
+    }
     for (const im of imgs) {
       check(`${route}: loaded ${im.src}`,
         im.complete && im.naturalW > 0, `natural ${im.naturalW}x${im.naturalH}`);
@@ -172,7 +183,7 @@ try {
       await page.setViewportSize({ width: w, height: 900 });
       await page.waitForTimeout(250);
       const x = await page.evaluate(() => {
-        window.scrollTo(9999, 0);
+        window.scrollTo({ left: -1e5, behavior: "instant" });
         const v = window.scrollX;
         window.scrollTo(0, 0);
         return v;
@@ -187,7 +198,7 @@ try {
 } catch (e) {
   check("harness ran", false, e.message);
 } finally {
-  server.kill();
+  server.stop();
 }
 
 const failed = results.filter(r => !r.pass);

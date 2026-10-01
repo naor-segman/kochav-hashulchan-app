@@ -25,6 +25,20 @@ vi.mock("../hooks/useAuth.js", () => ({
   AuthProvider: ({ children }) => children,
 }));
 
+/* The plan cards live behind `{sub !== undefined && …}`, and `useSubscription`
+   never resolves without Supabase — there is no local .env, so a local render is
+   permanently "still loading" and the cards are simply absent. That is why this
+   mock exists: a signed-in host on the FREE plan, which is the state the plan
+   comparison is for. Without it the assertions below would pass on an empty
+   document, which is the shape of hole this repo has hit twice. */
+vi.mock("../hooks/useSubscription.js", () => ({
+  useSubscription: () => ({
+    subscription: null, planKey: "free", statusKey: null,
+    isPaymentFailed: false, isCancelling: false, refresh: () => {},
+    refreshUntilPlanChanges: () => {},
+  }),
+}));
+
 const AccountScreen = (await import("./AccountScreen.jsx")).default;
 
 const renderScreen = () =>
@@ -49,5 +63,47 @@ describe("AccountScreen — reporting a problem", () => {
     renderScreen();
     const link = screen.getByRole("link", { name: /משוב|בעיה/ });
     expect(link.getAttribute("href")).not.toMatch(/^mailto:/);
+  });
+});
+
+/* The plan cards, measured on the rendered DOM rather than read out of the
+ * function that builds them.
+ *
+ * WHAT WENT WRONG. `planFeatures()` built its rows out of `maxEvents` and
+ * `maxGuests`. When both went to Infinity on every paid plan, the ₪690 card and
+ * the ₪1,290 card came out BYTE-IDENTICAL — "∞ אירועים" and "∞ אורחים" twice —
+ * and `free` differed from them in one row. This is the screen where someone
+ * decides to pay, and its comparison table had stopped comparing.
+ *
+ * Nothing failed. No test covered it, `eslint` had nothing to say, and the two
+ * cards still rendered beautifully.
+ */
+describe("AccountScreen — the plan cards actually differ", () => {
+  const cardTexts = () => {
+    renderScreen();
+    return [...document.querySelectorAll("ul")]
+      .map(ul => [...ul.querySelectorAll("li")].map(li => li.textContent.trim()).join(" | "))
+      .filter(t => t.includes("הושבה אוטומטית"));
+  };
+
+  it("renders three feature lists, no two the same", () => {
+    const lists = cardTexts();
+    expect(lists.length).toBe(3);
+    expect(new Set(lists).size).toBe(3);
+  });
+
+  it("the seating ceiling is what separates free from paid", () => {
+    const lists = cardTexts();
+    expect(lists.filter(t => /עד 200 אנשים/.test(t)).length).toBe(1);
+    expect(lists.filter(t => /בלי תקרה/.test(t)).length).toBe(2);
+  });
+
+  it("only the top package names the person at the door, and says it is a service", () => {
+    // The equivalent of the pricing page's "בשטח" badge. A human standing at a
+    // door must never read as something the software does.
+    const lists = cardTexts();
+    const human = lists.filter(t => /מנהל הושבה/.test(t));
+    expect(human.length).toBe(1);
+    expect(human[0]).toMatch(/בשטח/);
   });
 });

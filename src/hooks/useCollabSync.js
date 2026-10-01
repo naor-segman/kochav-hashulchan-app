@@ -73,8 +73,12 @@ const compSig = (arr) => (Array.isArray(arr) ? arr.map((c) => norm(c)).join("~")
 // been lost on this project by being absent from a mapper.
 export const sigCollab = (r) =>
   `${norm(r.name)}|${norm(r.phone)}|${sideOf(r.side)}|${norm(r.guest_group)}|${r.guests_count || 1}|${compSig(clampComp(r.companions, r.guests_count))}|${norm(r.notes)}`;
-export const sigGuest = (g) =>
-  `${norm(g.name)}|${norm(g.phone)}|${sideOf(g.side)}|${norm(g.group)}|${g.count || 1}|${compSig(clampComp(g.companions, g.count))}|${norm(g.notes)}`;
+// A guest's signature is that of the row the TABLE can hold for it — clipped to
+// the table's widths by guestToCollab. Signed as typed, a 49-character phone
+// never matched the 40-character echo of its own push, so the echo was applied
+// back over the host's list and the full number was replaced by the clipped one
+// (fourth review 30.9 — a regression from סב44, which added the clipping).
+export const sigGuest = (g) => sigCollab(guestToCollab(g));
 
 /**
  * Which companion names win when a collab row meets an existing guest.
@@ -158,14 +162,27 @@ export function pickNotes(r, existing) {
 }
 
 // Build/merge a guest row from a collab row, preserving app-only fields.
+export const sameGuest = (a, b) =>
+  Object.keys({ ...a, ...b }).every((k) => JSON.stringify(a[k]) === JSON.stringify(b[k]));
+
+// The table holds at most `n` characters of a field. When what it holds is
+// exactly the host's value clipped, it has no newer opinion — the host's full
+// value stands. Per field: a relative who edits only the notes of a row sends
+// the row whole, clipped phone included, and taking it replaced the host's
+// 45-character phone with 39 characters (fourth review 30.9; סב64 covered the
+// echo, not this).
+const fuller = (existingVal, rowVal, n) =>
+  typeof existingVal === "string" && norm(clip(existingVal, n)) === norm(rowVal) ? existingVal : norm(rowVal);
+
 export function guestFromCollab(r, existing) {
+  const notes = pickNotes(r, existing);
   return {
     ...(existing || {}),
     id:    r.id,
-    name:  norm(r.name),
-    phone: norm(r.phone),
+    name:  fuller(existing?.name, r.name, 120),
+    phone: fuller(existing?.phone, r.phone, 40),
     side:  sideOf(r.side),
-    group: norm(r.guest_group) || "משפחה קרובה",
+    group: fuller(existing?.group, r.guest_group, 60) || "משפחה קרובה",
     count: r.guests_count || 1,
     meal:       existing?.meal       ?? MEAL_DEFAULT,
     rsvp:       existing?.rsvp       ?? "pending",
@@ -173,16 +190,21 @@ export function guestFromCollab(r, existing) {
     // the "יושבים עם הסבים" live, and a relative filling in the shared table
     // had nowhere to put any of it — so the host had to chase it by phone,
     // which is the one thing the shared table exists to prevent.
-    notes:      pickNotes(r, existing),
+    notes:      typeof existing?.notes === "string" && norm(clip(existing.notes, 500)) === notes ? existing.notes : notes,
     companions: pickCompanions(r, existing),
   };
 }
+// Clipped to the table's own widths (collab_guests CHECKs). The guest-link path
+// clips in SQL; this path sent values as typed, and one over-long field was
+// refused on every retry while the host was told to check their connection —
+// the family never reached the table (30.9 review, סב44).
+const clip = (v, n) => norm(v).slice(0, n);
 export const guestToCollab = (g) => ({
-  id: g.id, name: norm(g.name), phone: norm(g.phone),
-  side: sideOf(g.side), guest_group: norm(g.group),
+  id: g.id, name: clip(g.name, 120), phone: clip(g.phone, 40),
+  side: sideOf(g.side), guest_group: clip(g.group, 60),
   guests_count: Math.min(50, Math.max(1, g.count || 1)), // DB CHECK caps at 50
   companions: clampComp(g.companions, g.count || 1),
-  notes: norm(g.notes),
+  notes: clip(g.notes, 500),
 });
 
 /**
@@ -232,6 +254,38 @@ export function remapGuestId(ev, fromId, toId) {
   };
 }
 
+/* Writes to the table that have not landed, kept across a reload (fifth
+ * review 30.9, סב88). The retry queue lives in memory: the host edits a guest
+ * at the venue, the push fails, the page is reloaded — and the next visit's
+ * pull, with nothing to say this guest was waiting to be sent, took the table's
+ * older copy over the host's edit. That is the failure the queue was written to
+ * stop, one reload later. An id here means "this guest's latest edit is ours to
+ * send": the pull leaves it alone and the push effect sends it.
+ *
+ * Not forever. While a mark stands, every change the family makes to that row
+ * is kept out of the host's list — and a write the table keeps refusing held
+ * it out indefinitely, in silence (sixth review 30.9). A mark lapses after
+ * UNSENT_TTL_MS; after that the table's copy is taken again, as before any of
+ * this. The host was already told, at the time, that the change had not been
+ * saved. */
+export const UNSENT_TTL_MS = 6 * 60 * 60 * 1000;
+const unsentKey = (cloudId) => `kh_collab_unsent:${cloudId}`;
+function readUnsent(cloudId, now = Date.now()) {
+  try {
+    const v = JSON.parse(localStorage.getItem(unsentKey(cloudId)) || "{}");
+    // The first version stored a bare list of ids: read as marked now.
+    const entries = Array.isArray(v) ? v.map(id => [id, now]) : Object.entries(v || {});
+    return new Map(entries.filter(([id, at]) =>
+      typeof id === "string" && Number.isFinite(at) && now - at < UNSENT_TTL_MS));
+  } catch { return new Map(); }
+}
+function writeUnsent(cloudId, marks) {
+  try {
+    if (marks.size) localStorage.setItem(unsentKey(cloudId), JSON.stringify(Object.fromEntries(marks)));
+    else localStorage.removeItem(unsentKey(cloudId));
+  } catch { /* storage full or blocked: the in-memory queue still retries */ }
+}
+
 export function useCollabSync(activeEvent, patchEvent, showToast) {
   const cloudId  = activeEvent?.cloudId || null;
   const collabOn = !!activeEvent?.tokens?.collab;
@@ -257,6 +311,10 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
   // change of event or account resets everything.
   const toastRef = useRef(showToast);
   useEffect(() => { toastRef.current = showToast; });
+  // The event as last rendered — the pull reads its tombstones.
+  const eventRef = useRef(activeEvent);
+  useEffect(() => { eventRef.current = activeEvent; });
+  const unsent = useRef(new Map());   // guest id -> when it was first owed
 
   // ── table → app: initial pull + live subscription ──
   useEffect(() => {
@@ -281,9 +339,22 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
     });
     toldRef.current = false;
 
+    unsent.current = readUnsent(cloudId);
+
     const applyRow = (row) => {
       mirror.current.set(row.id, row);
+      // A guest the host deleted, whose row is still in the table — the delete
+      // was never sent (made offline, or the page closed before it landed).
+      // Taken back in, it came back on every open (fifth review 30.9, סב88).
+      // The tombstone says it was deleted here; send the delete instead.
+      const ev = eventRef.current;
+      if (ev?.deletedRows?.guests?.[row.id] && !(ev.guests || []).some(g => g.id === row.id)) {
+        queue.current?.push("delete:" + row.id, () => deleteCollabGuestsOwner(cloudId, [row.id]));
+        return;
+      }
       if (!collabComplete(row)) return;
+      // Our edit is still waiting to be sent: the table's copy is the older one.
+      if (unsent.current.has(row.id) && (ev?.guests || []).some(g => g.id === row.id)) return;
       const sig = sigCollab(row);
       if (applied.current.get(row.id) === sig) return; // already reflected
       applied.current.set(row.id, sig);
@@ -295,7 +366,15 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
 
         // Same row → straightforward in-place update.
         if (existing && existing.id === row.id) {
+          // The table holds exactly what this guest clips to: nothing to take,
+          // and taking it would replace the host's full value with the clipped one.
+          if (sigCollab(row) === sigGuest(existing)) return e;
           const merged = guestFromCollab(row, existing);
+          // Already reflected: the same event back, so nothing is written. The
+          // pull runs on every visit with `applied` empty, and each row used to
+          // be a real edit — about a dozen version bumps and a cloud write per
+          // page load, with nothing changed (third review 30.9, סב56).
+          if (sameGuest(merged, existing)) return e;
           return { ...e, guests: guests.map((g) => (g.id === row.id ? merged : g)) };
         }
 
@@ -324,6 +403,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
 
     const removeRow = (id) => {
       mirror.current.delete(id);
+      if (unsent.current.delete(id)) writeUnsent(cloudId, unsent.current);
       if (!applied.current.has(id)) return; // was only a draft, never a guest
       applied.current.delete(id);
       let removedName = "";
@@ -376,15 +456,25 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       const sig = sigGuest(g);
       if (applied.current.get(g.id) === sig) return;            // unchanged since last sync
       const m = mirror.current.get(g.id);
-      if (m && sigCollab(m) === sig) { applied.current.set(g.id, sig); return; } // already matches table
+      if (m && sigCollab(m) === sig) {                           // already matches table
+        applied.current.set(g.id, sig);
+        // It landed, even if the page closed before we heard: nothing owed.
+        if (unsent.current.delete(g.id)) writeUnsent(cloudId, unsent.current);
+        return;
+      }
       // NOT marked applied yet. `applied` means "the table has this", and it
       // only has it once the write lands — otherwise a failed push leaves the
       // row looking reconciled and it is never sent again.
       const row = guestToCollab(g);
+      if (!unsent.current.has(g.id)) { unsent.current.set(g.id, Date.now()); writeUnsent(cloudId, unsent.current); }
       queue.current.push(g.id, () =>
         upsertCollabGuestOwner(cloudId, row).then(() => {
           applied.current.set(g.id, sig);
           mirror.current.set(g.id, { ...row });
+          // Only if this is still the newest copy: a later edit owes its own write.
+          if (sigGuest((eventRef.current?.guests || []).find(x => x.id === g.id) || {}) === sig) {
+            unsent.current.delete(g.id); writeUnsent(cloudId, unsent.current);
+          }
           toldRef.current = false;   // the link is back; a later outage may warn again
         }));
     });
@@ -399,7 +489,9 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // A pending write for a row that no longer exists is moot, and letting
         // it land would recreate the row the host just deleted.
         queue.current.cancel(id);
+        unsent.current.delete(id);
       });
+      writeUnsent(cloudId, unsent.current);
       queue.current.push("delete:" + toDelete.join(","), () =>
         deleteCollabGuestsOwner(cloudId, toDelete));
     }

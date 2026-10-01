@@ -84,12 +84,17 @@ console.log('\n── and the visible text matches the address behind it');
   }
 }
 
-console.log('\n── the enterprise CTA reaches a sales mailbox, not support');
+// The "contact sales" CTA this checked for left with item 31 (27.9): every
+// package, the top one included, is now bought per event through the checkout,
+// and no page links the sales mailbox (contactMailto() has no callers). This
+// section had failed ever since — the check drifted, not the page (29.9
+// review). What still matters: no sales address is shown where support is meant.
+console.log('\n── no page sends a buyer to a sales mailbox the plans no longer use');
 {
   for (const path of ['/pricing', '/home']) {
     const { links } = await mailtos(path);
     const sales = links.filter(l => l.href.includes('contact@'));
-    ok(sales.length === 1, `${path.padEnd(10)} exactly one sales link`, String(sales.length));
+    ok(sales.length === 0, `${path.padEnd(10)} no leftover sales link`, String(sales.length));
   }
 }
 

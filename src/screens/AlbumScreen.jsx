@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
-import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto } from "../utils/publicTokens.js";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, Link } from "react-router-dom";
+import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
+import { guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useRestoreFocus } from "../hooks/useRestoreFocus.js";
 
 /**
  * Public shared album — guests and the photographer upload here.
@@ -73,15 +76,23 @@ export default function AlbumScreen() {
   const [event, setEvent]   = useState(null);
   const [state, setState]   = useState("loading");
   const [photos, setPhotos] = useState([]);
+  useGuestTitle(event && `אלבום התמונות · ${guestHosts(event)}`);
   const [name, setName]     = useState(readName);
   const [busy, setBusy]     = useState(0);
   const [error, setError]   = useState("");
   const [lightbox, setLightbox] = useState(null);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const ev = await fetchEventByToken("album", token);
+      let ev;
+      try {
+        ev = await fetchEventByToken("album", token);
+      } catch {
+        if (!cancelled) setState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (!ev) { setState(isSupabaseConfigured ? "error" : "nocloud"); return; }
       setEvent(ev);
@@ -116,16 +127,36 @@ export default function AlbumScreen() {
     // nothing at all and said nothing about it.
     writeName(name.trim());
     setBusy(list.length);
-    let failed = 0;
+    let failed = 0, lastErr = null;
     for (const f of list) {
       try {
-        await uploadAlbumPhoto(event.cloudId, token, await downscale(f), name);
-      } catch {
+        const blob = await downscale(f);
+        // Uploads have no request deadline (a big photo on 3G takes minutes),
+        // and one that never answered left the page on "מעלה…" for good, the
+        // picker disabled (fifth review 30.9). Each file gets a generous one:
+        // two minutes plus a second per 20 KB.
+        const ms = 120_000 + Math.ceil((blob?.size || 0) / 20_000) * 1000;
+        await Promise.race([
+          uploadAlbumPhoto(event.cloudId, token, blob, name, photoKey(f)),
+          new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error("timeout"), { name: "TimeoutError" })), ms)),
+        ]);
+      } catch (err) {
         failed++;
+        lastErr = err;
       }
       setBusy(n => n - 1);
     }
-    if (failed) setError(failed === 1 ? "תמונה אחת לא הועלתה. נסו שוב." : `${failed} תמונות לא הועלו. נסו שוב.`);
+    // The reason, when the server gave one: "נסו שוב" for a changed link or a
+    // full album could never work (fifth review 30.9).
+    if (failed) {
+      const what = failed === 1 ? "תמונה אחת לא הועלתה" : `${failed} תמונות לא הועלו`;
+      // A deadline is a SLOW line, not a missing one — and the upload may
+      // still land. "אין חיבור" was wrong on both counts (sixth review 30.9).
+      const why = lastErr?.name === "TimeoutError"
+        ? "החיבור איטי מאוד. ייתכן שהיא עוד תופיע באלבום; אפשר לבחור אותה שוב — היא לא תופיע פעמיים."
+        : guestWriteError(lastErr, "נסו שוב.");
+      setError(`${what} — ${why}`);
+    }
     reload();
   };
 
@@ -139,12 +170,22 @@ export default function AlbumScreen() {
       </div>
     );
   }
+  if (state === "unreachable") {
+    return (
+      <div className={styles.state}>
+        <span className={styles.star}>✦</span>
+        <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
+        <p className={styles.sub}>{UNREACHABLE_TEXT.body}</p>
+      </div>
+    );
+  }
   if (state === "error") {
     return (
       <div className={styles.state}>
         <span className={styles.star}>✦</span>
-        <p>האלבום לא נמצא</p>
+        <h1 className={styles.stateTitle}>האלבום לא נמצא</h1>
         <p className={styles.sub}>הקישור אינו תקף או שפג תוקפו</p>
+        <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </div>
     );
   }
@@ -204,13 +245,49 @@ export default function AlbumScreen() {
         </>
       )}
 
-      {lightbox && (
-        <div className={styles.lightbox} onClick={() => setLightbox(null)} role="dialog" aria-modal="true">
-          <button className={styles.close} aria-label="סגרו">✕</button>
-          <img className={styles.full} src={lightbox.url} alt="" onClick={e => e.stopPropagation()} />
-          {lightbox.uploader && <p className={styles.credit}>צולם ע"י {lightbox.uploader}</p>}
-        </div>
-      )}
+      {lightbox && <Lightbox photo={lightbox} onClose={closeLightbox} />}
+    </div>
+  );
+}
+
+/* The same photo picked again gets the same name in storage, so a retry after
+ * a slow upload the page gave up on cannot add it twice (sixth review 30.9).
+ * From what the phone reports about the file — name, size, modified time —
+ * not its bytes: reading a 10 MB photo to hash it is a price paid per photo. */
+function photoKey(f) {
+  const str = `${f?.name ?? ""}|${f?.size ?? 0}|${f?.lastModified ?? 0}`;
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `p-${(h2 >>> 0).toString(36)}${(h1 >>> 0).toString(36)}`;
+}
+
+/* The photo, full size. Said aria-modal and was not: no Escape, focus stayed
+ * on the thumbnail behind it, and closing left focus nowhere (fourth review
+ * 30.9, AX7). Escape closes, the close button takes focus, Tab stays on it,
+ * and focus goes back to the thumbnail. */
+function Lightbox({ photo, onClose }) {
+  const closeRef = useRef(null);
+  useRestoreFocus();
+  useEffect(() => { closeRef.current?.focus(); }, []);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+      else if (e.key === "Tab") { e.preventDefault(); closeRef.current?.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className={styles.lightbox} onClick={onClose} role="dialog" aria-modal="true" aria-label="תמונה מהאלבום">
+      <button ref={closeRef} className={styles.close} aria-label="סגרו">✕</button>
+      <img className={styles.full} src={photo.url} alt="" onClick={e => e.stopPropagation()} />
+      {photo.uploader && <p className={styles.credit}>צולם ע"י {photo.uploader}</p>}
     </div>
   );
 }

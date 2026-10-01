@@ -24,6 +24,8 @@
 }
 .comingSoonStar { display: block; font-size: 34px; color: var(--s-accent); margin-bottom: 14px; }
 .comingSoon p { font-size: var(--step-1); line-height: 1.8; color: var(--s-muted); margin: 0; }
+/* The coming-soon line is the page's h1; it looks as the paragraph did. */
+.comingSoonTitle { font: inherit; letter-spacing: inherit; font-size: var(--step-1); line-height: 1.8; color: var(--s-muted); margin: 0; }
 
 /* ── Sticky nav ── */
 .nav {
@@ -173,9 +175,9 @@
 /* ── Wishes ── */
 .wishEmpty { text-align: center; color: var(--s-muted); font-size: var(--step-0); padding: 20px; }
 .wishLink { color: var(--s-accent); font-weight: 700; }
-.wishGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wishGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 .wishCard { background: var(--s-surface); border: 1px solid var(--s-line); border-radius: var(--radius); padding: 14px; }
-.wishMsg { font-size: var(--step--1); line-height: 1.6; color: var(--s-ink); margin: 0 0 8px; }
+.wishMsg { font-size: var(--step--1); line-height: 1.6; color: var(--s-ink); margin: 0 0 8px; overflow-wrap: anywhere; }
 .wishName { font-size: var(--step--2); font-weight: 700; color: var(--s-accent); }
 
 /* ── FAQ ── */
@@ -208,7 +210,7 @@
 .footPromo:hover { background: var(--s-accent-soft); }
 
 @media (min-width: 640px) {
-  .wishGrid { grid-template-columns: 1fr 1fr 1fr; }
+  .wishGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* ── Photo gallery ── */
@@ -355,3 +357,8 @@
     height: 44px;
   }
 }
+
+/* The error state's title is the page's h1 (WORKPLAN 108) and must look
+   exactly as the paragraph it replaced, so the heading defaults are handed
+   back to the container. */
+.stateTitle { font: inherit; letter-spacing: inherit; }

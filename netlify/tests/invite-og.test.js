@@ -41,6 +41,8 @@ const SHELL = `<!doctype html><html><head>
 <meta property="og:description" content="סידור הושבה" />
 <meta name="twitter:title" content="רוויה" />
 <meta name="twitter:description" content="סידור הושבה" />
+<link rel="canonical" href="https://revaya-events.co.il/" />
+<meta property="og:url" content="https://revaya-events.co.il/" />
 </head><body><div id="root"></div></body></html>`;
 
 const htmlResponse = (body = SHELL) =>
@@ -95,6 +97,17 @@ describe("the invitation's link preview", () => {
     }), { status: 200 }));
     const body = await (await run()).text();
     expect(body).toContain("<title>אתר הבר מצווה של איתי</title>");
+  });
+
+  // Sixth review 30.9: a bar mitzvah first set up as a wedding keeps the names.
+  it("a non-couple event never titles itself with bride and groom names", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      name: "בר המצווה של איתי", type: "בר מצווה", celebrant_name: "איתי",
+      bride_name: "נועה", groom_name: "טל", venue: "האחוזה",
+    }), { status: 200 }));
+    const body = await (await run()).text();
+    expect(body).toContain("<title>אתר הבר מצווה של איתי</title>");
+    expect(body).not.toContain("נועה");
   });
 });
 
@@ -179,5 +192,94 @@ describe("and it gets out of the way when it cannot help", () => {
     });
     const out = await run("https://kochav.co.il/invite/tok123", res);
     expect(out.headers.get("content-length")).toBeNull();
+  });
+});
+
+describe("every guest link previews as the event, not the product (WORKPLAN ר)", () => {
+  const DATED = { ...EVENT, date: "2026-10-01" };
+  const cases = [
+    ["/rsvp/tok123",          "rsvp",   "אישור הגעה · דנה &amp; יוסי"],
+    ["/invitation/tok123",    "invite", "הזמנה · דנה &amp; יוסי"],
+    ["/save-the-date/tok123", "invite", "שמרו את התאריך · דנה &amp; יוסי"],
+    ["/card/tok123",          "invite", "הזמנה · דנה &amp; יוסי"],
+    ["/album/tok123",         "album",  "אלבום התמונות · דנה &amp; יוסי"],
+    ["/gift/tok123",          "gift",   "מתנה וברכה · דנה &amp; יוסי"],
+  ];
+  for (const [path, type, title] of cases) {
+    it(`${path} → asks as "${type}", titles the event`, async () => {
+      fetchMock.mockResolvedValue(new Response(JSON.stringify(DATED), { status: 200 }));
+      const body = await (await run("https://kochav.co.il" + path)).text();
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body).token_type).toBe(type);
+      expect(body).toContain(`<title>${title}</title>`);
+      expect(body).toContain('<meta property="og:title" content="' + title + '"');
+    });
+  }
+
+  it("prints the date from its own parts — no day lost to UTC", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(DATED), { status: 200 }));
+    const body = await (await run("https://kochav.co.il/rsvp/tok123")).text();
+    expect(body).toContain("1.10.2026");
+    expect(body).not.toContain("30.9.2026");
+  });
+
+  it("leaves the projected gift wall alone", async () => {
+    const { out, res } = await runWith("https://kochav.co.il/gift/tok123/wall");
+    expect(out).toBe(res);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("never shows the raw 'אחר' type in a preview (106)", async () => {
+    for (const path of ["/invite/tok123", "/rsvp/tok123"]) {
+      fetchMock.mockResolvedValue(new Response(JSON.stringify({ ...DATED, type: "אחר" }), { status: 200 }));
+      const body = await (await run("https://kochav.co.il" + path)).text();
+      expect(body, path).not.toMatch(/content="[^"]*אחר/);
+    }
+  });
+
+  it("the site keeps its original title", async () => {
+    const body = await (await run()).text();
+    expect(body).toContain("<title>אתר החתונה של דנה &amp; יוסי</title>");
+  });
+});
+
+describe("the link names itself, not the homepage (106)", () => {
+  // The shell comes out of the build as the "/" document, with og:url and
+  // canonical pointing at the homepage — and a crawler that honours og:url
+  // (Facebook's does) goes and previews the homepage instead.
+  it("og:url and canonical are the link itself, without the query string", async () => {
+    const body = await (await run("https://revaya-events.co.il/rsvp/tok123?utm_source=wa")).text();
+    expect(body).toContain('<meta property="og:url" content="https://revaya-events.co.il/rsvp/tok123" />');
+    expect(body).toContain('<link rel="canonical" href="https://revaya-events.co.il/rsvp/tok123" />');
+    expect(body).not.toContain('content="https://revaya-events.co.il/"');
+  });
+
+  it("the fixture above carries the tags the real shell carries", async () => {
+    // A fixture maintained by hand drifts (bug class 6): this one had no og:url
+    // and no canonical, so nothing here could see the homepage in them. The
+    // real index.html is the source; the build adds canonical + og:url.
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+    for (const tag of ['<meta property="og:title" content="', '<meta property="og:description" content="',
+                       '<meta name="twitter:title" content="', '<meta name="twitter:description" content="', "<title>"]) {
+      expect(src, tag).toContain(tag);
+      expect(SHELL, tag).toContain(tag);
+    }
+    const vite = readFileSync(new URL("../../vite.config.js", import.meta.url), "utf8");
+    expect(vite).toContain('<link rel="canonical" href="${c}" />');
+    expect(vite).toContain('<meta property="og:url" content="${c}" />');
+  });
+});
+
+describe("netlify.toml routes every path in ROUTES to this function", () => {
+  it("has an [[edge_functions]] entry for each", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { ROUTES } = await import("../edge-functions/invite-og.js");
+    const toml = readFileSync(new URL("../../netlify.toml", import.meta.url), "utf8")
+      .split("\n").map(l => l.replace(/#.*$/, "")).join("\n");
+    const paths = [...toml.matchAll(/\[\[edge_functions\]\]\s*path\s*=\s*"([^"]+)"\s*function\s*=\s*"invite-og"/g)].map(x => x[1]);
+    for (const r of ROUTES) {
+      const prefix = r.re.source.match(/^\^\\\/([a-z-]+)\\\//)[1];
+      expect(paths, prefix).toContain(`/${prefix}/*`);
+    }
   });
 });

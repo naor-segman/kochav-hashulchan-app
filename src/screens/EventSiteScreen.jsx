@@ -1,9 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, fetchGiftWall } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
+import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
-import { buildEventIcs, icsFileName, downloadIcs } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, eventStartTime, israelInstant } from "../utils/calendarFile.js";
+import { daysUntil } from "../utils/dateFormat.js";
 import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
@@ -17,6 +20,7 @@ function fromLocalEvent(le) {
     organizationName: le.organizationName, ownerName: le.ownerName,
     site: le.eventSite,
     rsvpToken: le.tokens?.rsvp ?? null, giftToken: le.tokens?.gift ?? null,
+    albumToken: le.tokens?.album ?? null,
   };
 }
 
@@ -89,9 +93,11 @@ export default function EventSiteScreen({ localEvent }) {
   // Host preview: rendered inside the app with the owner's local event data.
   const isPreview = !!localEvent;
   const [ev, setEv] = useState(null);
-  const [state, setState] = useState("loading"); // loading | ready | notfound
+  const [state, setState] = useState("loading"); // loading | ready | notfound | unreachable
   const [wishes, setWishes] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Not in the host's in-app preview: that tab is the host's app.
+  useGuestTitle(!isPreview && ev && guestHosts(ev));
   const scheduleRef = useRef(null);
   const locationRef = useRef(null);
   const shuttlesRef = useRef(null);
@@ -102,7 +108,13 @@ export default function EventSiteScreen({ localEvent }) {
     if (localEvent) { setEv(fromLocalEvent(localEvent)); setState("ready"); return; }
     let cancelled = false;
     (async () => {
-      const data = await fetchEventByToken("invite", token);
+      let data;
+      try {
+        data = await fetchEventByToken("invite", token);
+      } catch {
+        if (!cancelled) setState("unreachable");
+        return;
+      }
       if (cancelled) return;
       if (data) { setEv(data); setState("ready"); }
       else if (!isSupabaseConfigured || import.meta.env.DEV) { setEv(MOCK); setState("ready"); }
@@ -112,10 +124,17 @@ export default function EventSiteScreen({ localEvent }) {
   }, [token, localEvent]);
 
   const site = ev?.site;
+  // A question the host never answered is not shown to guests. The default
+  // template ships "איך מגיעים לאירוע? יש חניה?" with an empty answer, and it
+  // rendered on the live site as a question that opens onto nothing (28.9).
+  const faqAnswered = (Array.isArray(site?.faq) ? site.faq : [])
+    .filter(f => f?.q?.trim() && f?.a?.trim());
   useEffect(() => {
     if (!ev?.giftToken || !site?.sections?.blessings) return;
     let cancelled = false;
-    fetchGiftWall(ev.giftToken).then(rows => { if (!cancelled) setWishes(rows || []); });
+    fetchGiftWall(ev.giftToken)
+      .then(rows => { if (!cancelled) setWishes(rows || []); })
+      .catch(() => { /* the blessings section just stays as it is */ });
     return () => { cancelled = true; };
   }, [ev?.giftToken, site?.sections?.blessings]);
 
@@ -136,8 +155,17 @@ export default function EventSiteScreen({ localEvent }) {
     return (
       <div className={styles.stateWrap}>
         <span className={styles.stateStar}>✦</span>
-        <p>הקישור אינו תקין או שפג תוקפו</p>
+        <h1 className={styles.stateTitle}>הקישור אינו תקין או שפג תוקפו</h1>
         <Link to="/" className={styles.stateLink}>לדף הבית</Link>
+      </div>
+    );
+  }
+  if (state === "unreachable") {
+    return (
+      <div className={styles.stateWrap}>
+        <span className={styles.stateStar}>✦</span>
+        <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
+        <p>{UNREACHABLE_TEXT.body}</p>
       </div>
     );
   }
@@ -154,13 +182,19 @@ export default function EventSiteScreen({ localEvent }) {
   const scrollTo = (key) => { setMenuOpen(false); refByKey[key]?.current?.scrollIntoView({ behavior: "smooth" }); };
   const rsvpUrl = ev.rsvpToken ? `/rsvp/${ev.rsvpToken}` : null;
   const giftUrl = ev.giftToken ? `/gift/${ev.giftToken}` : null;
+  // The shared album, from the day of the event on (WORKPLAN פ). Before then
+  // there is nothing to upload, and a link to an empty album on a site guests
+  // open weeks ahead reads as broken. The thank-you message links it too (88).
+  const albumDays = daysUntil(ev.date);
+  const albumUrl = ev.albumToken && albumDays !== null && albumDays <= 0
+    ? `/album/${ev.albumToken}` : null;
 
   const navItems = !visible ? [] : [
     site?.schedule?.length && sec.schedule && { label: "לוז", key: "schedule" },
     (site?.address) && sec.location && { label: "מיקום", key: "location" },
     site?.shuttles?.length && sec.shuttles && { label: "הסעות", key: "shuttles" },
     sec.blessings && { label: "ברכות", key: "blessings" },
-    site?.faq?.length && sec.faq && { label: "שאלות", key: "faq" },
+    faqAnswered.length > 0 && sec.faq && { label: "שאלות", key: "faq" },
   ].filter(Boolean);
   // RSVP is always reachable — even before the site is published — so a guest
   // who arrives early can still confirm attendance.
@@ -195,8 +229,8 @@ export default function EventSiteScreen({ localEvent }) {
             <div className={styles.heroPhoto} style={{ backgroundImage: `url(${site.coverPhoto})` }} aria-hidden="true" />
           )}
           <div className={styles.heroInner}>
-            <span className={styles.heroTag}>{ev.type}</span>
-            <div className={styles.heroNames}>{hosts}</div>
+            {guestEventType(ev.type) && <span className={styles.heroTag}>{guestEventType(ev.type)}</span>}
+            <h1 className={styles.heroNames}>{hosts}</h1>
             {site?.heroEn && <div className={styles.heroEn}>{site.heroEn}</div>}
             <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
             {dateStr && <div className={styles.heroDate}>{dateStr}</div>}
@@ -212,14 +246,15 @@ export default function EventSiteScreen({ localEvent }) {
       {!visible && (
         <div className={styles.comingSoon}>
           <span className={styles.comingSoonStar} aria-hidden="true">✦</span>
-          <p>האתר בהכנה 💛<br />בעלי השמחה יפרסמו אותו בקרוב.</p>
+          {/* The page's h1 while the hero (which carries it) is hidden (29.9 review). */}
+          <h1 className={styles.comingSoonTitle}>האתר בהכנה 💛<br />בעלי השמחה יפרסמו אותו בקרוב.</h1>
           {rsvpUrl && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
         </div>
       )}
 
       {/* ── Countdown ── */}
       {visible && site?.countdown !== false && ev.date && (
-        <Countdown date={ev.date} styles={styles} />
+        <Countdown date={ev.date} time={eventStartTime(site?.schedule)} styles={styles} />
       )}
 
       {/* ── Story ── */}
@@ -289,7 +324,7 @@ export default function EventSiteScreen({ localEvent }) {
                     name:      ev.name,
                     date:      ev.date,
                     venue:     site.address || ev.venue,
-                    startTime: (site.schedule || [])[0]?.time,
+                    startTime: eventStartTime(site.schedule),
                     url:       window.location.href,
                   });
                   if (ics) downloadIcs(ics, icsFileName(ev.name));
@@ -369,12 +404,23 @@ export default function EventSiteScreen({ localEvent }) {
         </section>
       )}
 
+      {/* ── Shared album ── */}
+      {visible && albumUrl && (
+        <section className={styles.section}>
+          <h2 className={styles.secTitle}>אלבום האירוע</h2>
+          <div className={styles.giftCard}>
+            <p>צילמתם? העלו את התמונות שלכם לאלבום המשותף — וראו מה צילמו כולם.</p>
+            <Link to={albumUrl} className={styles.locBtn}>לאלבום ←</Link>
+          </div>
+        </section>
+      )}
+
       {/* ── FAQ ── */}
-      {visible && sec.faq && site?.faq?.length > 0 && (
+      {visible && sec.faq && faqAnswered.length > 0 && (
         <section ref={faqRef} className={styles.section}>
           <h2 className={styles.secTitle}>שאלות נפוצות</h2>
           <div className={styles.faqList}>
-            {site.faq.filter(f => f.q).map(f => <FaqItem key={f.id} q={f.q} a={f.a} />)}
+            {faqAnswered.map(f => <FaqItem key={f.id} q={f.q} a={f.a} />)}
           </div>
         </section>
       )}
@@ -395,8 +441,11 @@ export default function EventSiteScreen({ localEvent }) {
   );
 }
 
-function Countdown({ date, styles }) {
-  const target = useMemo(() => new Date(date + "T18:00:00").getTime(), [date]);
+function Countdown({ date, time, styles }) {
+  // The event's own start time, the same one the calendar button writes. It
+  // was "T18:00" for every event, so a 21:00 wedding hit zero at 18:00.
+  // In ISRAEL time, not the viewer's (29.9 review) — see israelInstant.
+  const target = useMemo(() => israelInstant(date, time), [date, time]);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -408,7 +457,7 @@ function Countdown({ date, styles }) {
   // This is a live d/h/m/s CLOCK, and its job is "how much time is left". The
   // fixed-millisecond division is exactly right for that: across Israel's
   // October fall-back a wedding seven calendar days out reads "6 ימים 23 שעות",
-  // and that is TRUE — there really are 6 days and 23 hours until 18:00 on the
+  // and that is TRUE — there really are 6 days and 23 hours until the start on the
   // day. Making the day cell calendar-based would print "7 ימים 23 שעות",
   // which is an hour of a day that does not exist.
   //

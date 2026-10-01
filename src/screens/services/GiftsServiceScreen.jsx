@@ -38,11 +38,11 @@ import styles from "./ServicePage.module.css";
  *     only the free-text name the donor typed. So no "see who gave what" and no
  *     matching to the guest list. The app's own sample blessings are
  *     "משפחת כהן", "צוות המשרד", "סבתא מרים": none of them is a guest row.
- *   • NOT REACHABLE FROM THE RSVP LINK. RSVPScreen renders a gift button, but
- *     `public_event_by_token` returns gift_token only for the invite and gift
- *     token types, so on a real RSVP link it is always null and the button never
- *     renders. It IS reachable from the event site, which loads as `invite` —
- *     that is what the page says.
+ *   • REACHABLE FROM THE RSVP LINK since 20260928000500 (28.9): the rsvp token
+ *     type now receives gift_token too, and the RSVP success screen shows the
+ *     gift button unless the host turned the gift section off. Until then it
+ *     never rendered on a real RSVP link. (This note said "not reachable" until
+ *     the 29.9 review.) Also reachable from the event site (`invite`).
  *   • NO GIFT RECONCILIATION REPORT. Sheet 6 of the Excel export reads
  *     `giftAmount`, which nothing in src/ writes, so it is structurally empty on
  *     every event. Marketing does not point at it.
@@ -198,8 +198,8 @@ export default function GiftsServiceScreen({ user = null }) {
               <span className={styles.stepNum}>הדף עצמו</span>
               <h3 className={styles.h3}>אומר בדיוק מה יקרה</h3>
               <p className={styles.stepBody}>
-                לפני הכפתור, לא אחריו, כתוב מה קורה בלחיצה: הברכה והסכום נרשמים
-                ומופיעים בקיר הברכות, ואת המתנה עצמה מעניקים ביום האירוע. אורח
+                לפני הכפתור, לא אחריו, כתוב מה קורה בלחיצה: הברכה מופיעה בקיר
+                הברכות, הסכום נשמר רק אצלכם, ואת המתנה עצמה מעניקים ביום האירוע. אורח
                 שמצפה למסך תשלום לא יופתע — כי לא הבטחנו לו אחד.
               </p>
             </div>

@@ -11,10 +11,12 @@ let sessionResult;          // what getSession() resolves (or rejects) with
 let authCallback;           // the handler onAuthStateChange was given
 const unsubscribe = vi.fn();
 const pruneSpy    = vi.fn();
+const resetSpy    = vi.fn();
 
 vi.mock("../lib/supabase.js", () => ({
   supabase: {
     auth: {
+      storageKey: "sb-test-auth-token",
       getSession: () => (sessionResult instanceof Error
         ? Promise.reject(sessionResult)
         : Promise.resolve({ data: { session: sessionResult } })),
@@ -34,6 +36,11 @@ vi.mock("../utils/storage.js", async (orig) => ({
   ...(await orig()),
   pruneCloudBackedEvents: (...a) => pruneSpy(...a),
   userStorageKey: (id) => "kochav_hashulchan_v1::u_" + id,
+}));
+
+vi.mock("../lib/analytics.js", async (orig) => ({
+  ...(await orig()),
+  resetAnalytics: (...a) => resetSpy(...a),
 }));
 
 const { AuthProvider, useAuth } = await import("./useAuth.js");
@@ -65,6 +72,16 @@ describe("useAuth — restoring the session", () => {
     await waitFor(() => expect(text()).toBe("anon"));
   });
 
+  it("offline with the session still stored: the stored user, not logged-out (סב14)", async () => {
+    // A host at a venue with no signal whose token expired: the restore fails,
+    // and their events are under THEIR key on this device.
+    localStorage.setItem("sb-test-auth-token", JSON.stringify({ user: { id: "u9" } }));
+    sessionResult = new Error("Failed to fetch");
+    show();
+    await waitFor(() => expect(text()).toBe("u9"));
+    localStorage.removeItem("sb-test-auth-token");
+  });
+
   it("stops loading when there is simply no session", async () => {
     sessionResult = null;
     show();
@@ -84,6 +101,15 @@ describe("useAuth — what signing out is allowed to delete", () => {
     await act(async () => { authCallback("SIGNED_OUT", null); });
     expect(pruneSpy).toHaveBeenCalledTimes(1);
     expect(pruneSpy.mock.calls[0][0]).toContain("u_u1");
+  });
+
+  it("forgets the analytics identity, so the next person is not recorded as this one (סב11)", async () => {
+    sessionResult = { user: { id: "u1" } };
+    resetSpy.mockClear();
+    show();
+    await waitFor(() => expect(text()).toBe("u1"));
+    await act(async () => { authCallback("SIGNED_OUT", null); });
+    expect(resetSpy).toHaveBeenCalledTimes(1);
   });
 
   it("prunes nothing when nobody was signed in to begin with", async () => {
@@ -134,5 +160,24 @@ describe("useAuth — teardown", () => {
     await waitFor(() => expect(text()).toBe("u1"));
     unmount();
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useAuth — signing out clears the service worker's Supabase cache (102)", () => {
+  it("deletes the cache vite.config.js stores Supabase reads in", async () => {
+    const del = vi.fn(async () => true);
+    globalThis.caches = { delete: del };
+    try {
+      sessionResult = { user: { id: "u1" } };
+      show();
+      await waitFor(() => expect(text()).toBe("u1"));
+      await act(async () => { authCallback("SIGNED_OUT", null); });
+      expect(del).toHaveBeenCalledWith("supabase-api");
+    } finally { delete globalThis.caches; }
+  });
+
+  it("and it is the same name the service worker uses", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("vite.config.js", "utf8")).toMatch(/cacheName: 'supabase-api'/);
   });
 });
