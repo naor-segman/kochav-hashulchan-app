@@ -7,7 +7,7 @@ import { rsvpSuccessLinks } from "../utils/rsvpLinks.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
-import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, knownStartTime } from "../utils/calendarFile.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
 import { COMPANY } from "../data/company.js";
@@ -645,7 +645,7 @@ export default function RSVPScreen() {
                     name:  event.name,
                     date:  event.date,
                     venue: event.venue,
-                    startTime: eventStartTime(site?.schedule),
+                    startTime: knownStartTime(site?.schedule),
                     // The site only when it is published — the same rule as
                     // the button below. It linked the site regardless, and a
                     // calendar keeps "not published yet" for good (29.9 review).

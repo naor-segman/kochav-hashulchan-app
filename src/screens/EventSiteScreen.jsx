@@ -5,7 +5,7 @@ import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
-import { buildEventIcs, icsFileName, downloadIcs, eventStartTime, israelInstant } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, eventStartTime, knownStartTime, israelInstant } from "../utils/calendarFile.js";
 import { daysUntil } from "../utils/dateFormat.js";
 import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
@@ -324,7 +324,7 @@ export default function EventSiteScreen({ localEvent }) {
                     name:      ev.name,
                     date:      ev.date,
                     venue:     site.address || ev.venue,
-                    startTime: eventStartTime(site.schedule),
+                    startTime: knownStartTime(site.schedule),
                     url:       window.location.href,
                   });
                   if (ics) downloadIcs(ics, icsFileName(ev.name));

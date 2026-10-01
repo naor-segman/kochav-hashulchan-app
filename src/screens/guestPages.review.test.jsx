@@ -30,7 +30,18 @@ describe("the invitation's calendar button", () => {
       eventSite: { schedule: [{ id: "s1", time: "21:00", title: "חופה" }] }, tokens: {},
     }} /></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: /הוסיפו ליומן/ }));
-    expect(downloads[0]).toMatch(/DTSTART[^\n]*20270601T210000/);
+    // 21:00 in Israel in June (+3) is 18:00 UTC — the file carries the instant (61).
+    expect(downloads[0]).toMatch(/DTSTART:20270601T180000Z/);
+  });
+
+  it("with no time in the schedule, writes an all-day entry, not an invented 19:00 (36b)", async () => {
+    render(<MemoryRouter><AnnouncementScreen kind="invitation" localEvent={{
+      name: "החתונה", date: "2027-06-01", venue: "אולמי הגן", type: "חתונה", brideName: "דנה", groomName: "יוסי",
+      tokens: {},
+    }} /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: /הוסיפו ליומן/ }));
+    expect(downloads[0]).toMatch(/DTSTART;VALUE=DATE:20270601\r\n/);
+    expect(downloads[0]).not.toMatch(/T190000/);
   });
 });
 

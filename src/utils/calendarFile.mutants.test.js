@@ -26,9 +26,9 @@ describe("text values: a newline is escaped, never written raw", () => {
 describe("times are always a real time of day", () => {
   // "25:00" is a typo a host can make in the schedule. DTSTART:…T250000 is not
   // a valid DATE-TIME, and the calendar app refuses the whole file.
-  it("start 25:00 → T23…, never T25…", () => {
+  it("start 25:00 → 23:00 Israel (20:00Z), never T25…", () => {
     const ics = buildEventIcs({ name: "x", date: "2026-10-01", startTime: "25:00" });
-    expect(ics).toMatch(/DTSTART:20261001T2300\d\d/);
+    expect(ics).toMatch(/DTSTART:20261001T200000Z/);
     expect(ics).not.toMatch(/T25/);
   });
   // The site countdown and the calendar button both read the start from the

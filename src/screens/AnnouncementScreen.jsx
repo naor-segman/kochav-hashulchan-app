@@ -4,7 +4,7 @@ import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncement } from "../data/announcementTemplates.js";
-import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, knownStartTime } from "../utils/calendarFile.js";
 import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
@@ -174,10 +174,11 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     // The same start time as the site and the RSVP page. Without it this
     // button wrote 19:00 while the site's said 21:00 — the two-answers bug
     // WORKPLAN ס closed everywhere else (29.9 review). The invite token only
-    // carries the site once it is published; before that, 19:00 it is.
+    // carries the site once it is published; before that there is no time to
+    // give, and the file is an all-day entry rather than an invented 19:00.
     const ics = buildEventIcs({
       name: event.name, date: event.date, venue: event.venue,
-      startTime: eventStartTime(event.site?.schedule),
+      startTime: knownStartTime(event.site?.schedule),
       url: window.location.href,
     });
     if (ics) downloadIcs(ics, icsFileName(event.name));
