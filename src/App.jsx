@@ -10,7 +10,8 @@ import { uid } from "./utils/uid.js";
 import { duplicateEvent } from "./utils/eventHelpers.js";
 import { AuthProvider, useAuth } from "./hooks/useAuth.js";
 import { useEvents }        from "./hooks/useEvents.js";
-import { trackPageview, identifyUser, track, EVENTS } from "./lib/analytics.js";
+import { track, EVENTS } from "./lib/analytics.js";
+import { usePageAnalytics } from "./hooks/usePageAnalytics.js";
 import { useToast }         from "./hooks/useToast.js";
 import { usePlan }          from "./hooks/usePlan.js";
 import { useActiveEvent }   from "./hooks/useActiveEvent.js";
@@ -237,21 +238,9 @@ function AppRoutes() {
   // the reload waits for a moment when it will not interrupt anyone.
   useAppUpdate();
 
-  /* Pageviews, with the tokens taken out of the path (checklist 18).
-   *
-   * PostHog's own pageview capture is off, because it sends the raw URL — and
-   * nine public routes carry a token there, which is a credential. This sends
-   * the scrubbed path instead, so `/rsvp/8f3c…` arrives as `/rsvp/:token`.
-   *
-   * `identify` runs on the same effect rather than its own: the funnel's
-   * whole question is "did THIS person get stuck", and events fired before
-   * the id is known are anonymous ones that never join up. The id only — an
-   * email address in a third-party tool is a liability with no benefit. */
-  const trackedPath = useLocation().pathname;
-  useEffect(() => {
-    if (user?.id) identifyUser(user.id);
-    trackPageview(trackedPath);
-  }, [trackedPath, user?.id]);
+  // Pageviews (token-scrubbed path) and identify — two separate effects, so a
+  // session restoring after first paint is not a second pageview (37c).
+  usePageAnalytics(useLocation().pathname, user?.id);
 
   /* <title>, description and canonical per route (checklist 87).
      The build writes a correct <head> into a real document per indexable route,
