@@ -19,11 +19,13 @@ export function fieldOf(ev, f) {
   if (f === "story") return ev.eventSite?.story ?? "";
   if (f === "costs") return ev.costs?.categories?.[0]?.name ?? "";
   if (f === "date") return ev.date || "";
+  if (f === "cap") return String((ev.tables || []).find(t => t.id === "t1")?.capacity ?? "");
   return ev[f] ?? "";
 }
 function patchFor(f, val) {
   if (f === "story") return (e) => ({ ...e, eventSite: { ...e.eventSite, story: val } });
   if (f === "costs") return { costs: { categories: [{ id: "cat1", name: val, amount: 100 }] } };
+  if (f === "cap") return (e) => ({ ...e, tables: e.tables.map(t => t.id === "t1" ? { ...t, capacity: Number(val) } : t) });
   return { [f]: val };
 }
 
@@ -45,12 +47,18 @@ export async function runSeed(seed, devs, cloud, env, opts = {}) {
     d.skew = opts.skew ? Math.round((r() - 0.5) * opts.skew) : 0;
   }
   const EVENTS = opts.events ?? ["E1", "E2"];
+  // SIM_SEAT=1: also seat/unseat guests and edit a table's capacity (ב2).
+  // Off by default, so the default seeds replay exactly as before.
+  const SEAT = !!opts.seating;
+  const FIELDS_ = SEAT ? [...FIELDS, "cap"] : FIELDS;
+  const TABLES = ["t1", "t2", "t3"];
   const ledger = {
     scalar: {},    // ev -> field -> [{dev, val}]
     added: {},     // ev -> gid -> dev
     deleted: {},   // ev -> gid -> true
+    seat: {},      // ev -> gid -> [{dev, val}]
   };
-  for (const e of EVENTS) { ledger.scalar[e] = {}; ledger.added[e] = {}; ledger.deleted[e] = {}; }
+  for (const e of EVENTS) { ledger.scalar[e] = {}; ledger.added[e] = {}; ledger.deleted[e] = {}; ledger.seat[e] = {}; }
 
   const settle = async (ms = 0) => { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); };
   const mount = async (d) => {
@@ -75,7 +83,10 @@ export async function runSeed(seed, devs, cloud, env, opts = {}) {
     if (!row) return `no cloud history for v${ev.syncedVersion}`;
     const ce = mapCloudEventToLocalEvent(row);
     const out = [];
-    for (const f of FIELDS) if (fieldOf(ev, f) !== fieldOf(ce, f)) out.push(`${f}: local=${JSON.stringify(fieldOf(ev, f))} cloud=${JSON.stringify(fieldOf(ce, f))}`);
+    for (const f of FIELDS_) if (fieldOf(ev, f) !== fieldOf(ce, f)) out.push(`${f}: local=${JSON.stringify(fieldOf(ev, f))} cloud=${JSON.stringify(fieldOf(ce, f))}`);
+    if (SEAT) for (const g of ev.guests) {
+      if ((ev.seating[g.id] ?? null) !== (ce.seating[g.id] ?? null)) out.push(`seat ${g.id} local=${ev.seating[g.id]} cloud=${ce.seating[g.id]}`);
+    }
     const cg = new Map(ce.guests.map(g => [g.id, g.notes || ""]));
     for (const g of ev.guests) {
       if (!cg.has(g.id)) out.push(`guest ${g.id} only local`);
@@ -98,7 +109,8 @@ export async function runSeed(seed, devs, cloud, env, opts = {}) {
   await mount(A);
   for (const id of EVENTS) {
     await act(async () => { A.hook.result.current.addEvent({ id, name: `init-${id}`, type: "חתונה", date: "2027-01-01", venue: "init-venue",
-      guests: [{ id: `g0-${id}`, name: "ראשון", count: 1 }], costs: { categories: [{ id: "cat1", name: "init-cost", amount: 1 }] } }); });
+      guests: [{ id: `g0-${id}`, name: "ראשון", count: 1 }], costs: { categories: [{ id: "cat1", name: "init-cost", amount: 1 }] },
+      ...(SEAT ? { tables: TABLES.map(t => ({ id: t, name: t, capacity: 10 })) } : {}) }); });
     await settle(); await settle(10);
   }
   await settle(2000);
@@ -106,7 +118,7 @@ export async function runSeed(seed, devs, cloud, env, opts = {}) {
   await settle(2000);
   const initial = {};
   for (const id of EVENTS) {
-    initial[id] = Object.fromEntries(FIELDS.map(f => [f, fieldOf(cur(A, id), f)]));
+    initial[id] = Object.fromEntries(FIELDS_.map(f => [f, fieldOf(cur(A, id), f)]));
   }
 
   // ── random steps
@@ -117,9 +129,9 @@ export async function runSeed(seed, devs, cloud, env, opts = {}) {
     const id = pick(EVENTS);
     const e = cur(d, id);
     if (x < 0.30 && e) {
-      const f = pick(FIELDS);
+      const f = pick(FIELDS_);
       const n = ++counter;
-      const v = f === "date" ? `${2030 + n}-06-15` : `${d.name}-${f}-${n}`;
+      const v = f === "date" ? `${2030 + n}-06-15` : f === "cap" ? String(10 + n) : `${d.name}-${f}-${n}`;
       (ledger.scalar[id][f] ??= []).push({ dev: d.name, val: v, s });
       trace.push(`${d.name}: edit ${id}.${f}=${v}`);
       edit(d, () => { d.hook.result.current.patchEventById(id, patchFor(f, v)); });
@@ -138,6 +150,16 @@ export async function runSeed(seed, devs, cloud, env, opts = {}) {
       ledger.deleted[id][g.id] = true;
       trace.push(`${d.name}: delete guest ${id}/${g.id}`);
       edit(d, () => { d.hook.result.current.patchEventById(id, (ev) => ({ ...ev, guests: ev.guests.filter(x2 => x2.id !== g.id) })); });
+    } else if (SEAT && x < 0.62 && e && e.guests.length) {
+      const g = pick(e.guests);
+      const t = pick([...TABLES, null]);
+      (ledger.seat[id][g.id] ??= []).push({ dev: d.name, val: t, s });
+      trace.push(`${d.name}: seat ${id}/${g.id}=${t}`);
+      edit(d, () => { d.hook.result.current.patchEventById(id, (ev) => {
+        const seating = { ...ev.seating };
+        if (t) seating[g.id] = t; else delete seating[g.id];
+        return { ...ev, seating };
+      }); });
     } else if (x < 0.62 && e) {
       trace.push(`${d.name}: no-op patch ${id}`);
       edit(d, () => { d.hook.result.current.patchEventById(id, (ev) => ev); });
@@ -225,13 +247,13 @@ export async function runSeed(seed, devs, cloud, env, opts = {}) {
     for (const d of devs) {
       const le = finalFor[d.name][id];
       if (!le) { failures.push({ kind: "event-missing-on-device", dev: d.name, ev: id }); continue; }
-      for (const f of FIELDS) if (fieldOf(le, f) !== fieldOf(ce, f))
+      for (const f of FIELDS_) if (fieldOf(le, f) !== fieldOf(ce, f))
         failures.push({ kind: "diverged", dev: d.name, ev: id, f, local: fieldOf(le, f), cloud: fieldOf(ce, f) });
       const lg = le.guests.map(g => g.id).sort().join(","), cg = ce.guests.map(g => g.id).sort().join(",");
       if (lg !== cg) failures.push({ kind: "diverged-guests", dev: d.name, ev: id, local: lg, cloud: cg });
     }
     // (a)/(b)
-    for (const f of FIELDS) {
+    for (const f of FIELDS_) {
       const edits = ledger.scalar[id][f] || [];
       if (!edits.length) {
         if (fieldOf(ce, f) !== initial[id][f]) failures.push({ kind: "untouched-field-changed", ev: id, f, final: fieldOf(ce, f) });
@@ -254,6 +276,18 @@ export async function runSeed(seed, devs, cloud, env, opts = {}) {
     const finalIds = new Set(ce.guests.map(g => g.id));
     for (const [gid, dev] of Object.entries(ledger.added[id])) {
       if (!ledger.deleted[id][gid] && !finalIds.has(gid)) failures.push({ kind: "C-guest-lost", ev: id, gid, addedBy: dev });
+    }
+    // (s) a seat only one device set must be the final seat (ב2)
+    for (const [gid, edits] of Object.entries(ledger.seat[id])) {
+      if (ledger.deleted[id][gid] || !finalIds.has(gid)) continue;
+      const byDev = {};
+      for (const e of edits) byDev[e.dev] = e.val;
+      const final = ce.seating[gid] ?? null;
+      const devsTouched = Object.keys(byDev);
+      if (devsTouched.length === 1 && final !== byDev[devsTouched[0]])
+        failures.push({ kind: "S-single-editor-seat-lost", ev: id, gid, expected: byDev[devsTouched[0]], final, edits });
+      else if (devsTouched.length > 1 && !Object.values(byDev).includes(final))
+        failures.push({ kind: "S-conflict-stale-seat", ev: id, gid, final, lastPerDev: byDev });
     }
     for (const gid of Object.keys(ledger.deleted[id])) {
       if (finalIds.has(gid)) failures.push({ kind: "info-deleted-guest-back", ev: id, gid });

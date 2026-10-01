@@ -107,10 +107,16 @@ const fieldFp = (k, v) => gfp(v === undefined || v === null ? (FIELD_DEFAULT[k] 
  * fields' namespace. */
 const SEATS_KEY = "@a";
 
+/* The guest's table in the seating map, as a fingerprint (ב2) — "@s:fp", only
+ * for a seated guest; no entry reads as "unseated". */
+const TABLE_KEY = "@s";
+const seatFp = (tableId) => gfp(tableId ?? null);
+
 /** `{ [guestId]: "key:fp,key:fp" }`, over the rows as normalizeEvent stores them. */
-export function guestFingerprints(guests) {
+export function guestFingerprints(guests, seating = null) {
   if (!Array.isArray(guests)) return null;
   const rows = normalizeEvent({ guests }).guests;
+  const map = seating && typeof seating === "object" ? seating : {};
   const out = {};
   for (const g of rows) {
     if (!g || typeof g !== "object" || !g.id) continue;
@@ -123,9 +129,52 @@ export function guestFingerprints(guests) {
     }
     const seats = arrivedSeatsOf(g);
     if (seats.length) parts.push(`${SEATS_KEY}:${seats.join(".")}`);
+    if (map[g.id]) parts.push(`${TABLE_KEY}:${seatFp(map[g.id])}`);
     out[g.id] = parts.join(",");
   }
   return out;
+}
+
+/* Table rows, the same per-field fingerprints as guests (ב2): a capacity the
+ * phone changed was reverted by a stale laptop that won on updatedAt. */
+export function tableFingerprints(tables) {
+  if (!Array.isArray(tables)) return null;
+  const out = {};
+  for (const t of normalizeEvent({ tables }).tables) {
+    if (!t?.id) continue;
+    out[t.id] = Object.keys(t).filter(k => k !== "id")
+      .map(k => [k, fieldFp(k, t[k])]).filter(([k, fp]) => fp !== fieldFp(k, undefined))
+      .map(([k, fp]) => `${code(k)}:${fp}`).join(",");
+  }
+  return out;
+}
+
+/**
+ * Per guest, the seat only one side moved since the base (ב2). The seating map
+ * used to come whole from whichever side won on updatedAt, so a guest seated
+ * on the phone was unseated again by a stale laptop that renamed the venue
+ * later (and the other way round). `merged` is what the old rule built; a seat
+ * that only one side changed is taken from that side, and a seat both changed
+ * — or a guest the base does not know — is left as the old rule decided.
+ * Returns `{ seating, localKept }`.
+ */
+export function threeWaySeating(merged, local, cloud, syncBase) {
+  const base = syncBase?.guests;
+  if (!base || typeof base !== "object" || syncBase.seatingBase !== "1") return { seating: merged, localKept: false };
+  const L = local || {}, C = cloud || {};
+  let out = merged, localKept = false;
+  for (const id of new Set([...Object.keys(L), ...Object.keys(C)])) {
+    if (L[id] === C[id] || typeof base[id] !== "string") continue;
+    const b = parseRowBase(base[id]).get(TABLE_KEY) ?? seatFp(null);
+    const lMoved = seatFp(L[id]) !== b, cMoved = seatFp(C[id]) !== b;
+    if (lMoved === cMoved) continue;
+    const v = lMoved ? L[id] : C[id];
+    if (lMoved) localKept = true;
+    if ((out[id] ?? undefined) === (v ?? undefined)) continue;
+    out = out === merged ? { ...merged } : out;
+    if (v) out[id] = v; else delete out[id];
+  }
+  return { seating: out, localKept };
 }
 
 /**
@@ -214,7 +263,12 @@ export function threeWayGuests(mergedRows, localRows, cloudRows, baseGuests, pre
  *  of every guest's fields, under `guests`. */
 export function syncBaseOf(ev) {
   const f = fingerprints(ev);
-  if (f) { const g = guestFingerprints(ev?.guests); if (g) { f.guests = g; f.arrivalsBase = "1"; } }
+  if (f) {
+    const g = guestFingerprints(ev?.guests, ev?.seating);
+    if (g) { f.guests = g; f.arrivalsBase = "1"; f.seatingBase = "1"; }
+    const t = tableFingerprints(ev?.tables);
+    if (t) f.tables = t;
+  }
   return f;
 }
 

@@ -3,7 +3,7 @@ import { loadState, persist, userStorageKey } from "../utils/storage.js";
 import { normalizeEvent, normalizeDeletedRows, normalizeRotations, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS, RSVP_APPLIED_MAX } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
-import { syncBaseOf, threeWayScalars, threeWayGuests, canonical, arrivalBase } from "../utils/syncBase.js";
+import { syncBaseOf, threeWayScalars, threeWayGuests, threeWaySeating, canonical, arrivalBase } from "../utils/syncBase.js";
 import { addPendingDelete, markDeleteLanded, readPendingDeletes, withoutPendingDeletes } from "../utils/pendingEventDeletes.js";
 import {
   SYNC_STATUS,
@@ -556,7 +556,10 @@ export function mergeCloudWithLocal(
       // only rows it has never seen take the other side's arrangement.
       const localGuestIds = new Set((localMatch.guests || []).map(g => g.id));
       const localTableIds = new Set((localMatch.tables || []).map(t => t.id));
-      const mergedTables  = unionById(localMatch.tables, ce.tables, tombs.tables);
+      // Table rows per field too (ב2): a capacity changed on the other device
+      // is no longer reverted by this one winning on an unrelated edit.
+      const mergedTables  = threeWayGuests(unionById(localMatch.tables, ce.tables, tombs.tables),
+                                           localMatch.tables, ce.tables, localMatch.syncBase?.tables, true).rows;
       // Per guest FIELD against the last-synced base (fifth review): the rows
       // this side holds no longer win whole just because the event is newer.
       const mergedGuests  = threeWayGuests(mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests,
@@ -572,8 +575,11 @@ export function mergeCloudWithLocal(
         .filter(([tid]) => !localTableIds.has(tid) && !(tid in localPositions) && tableIdsAll.has(tid)));
       const localWon = {
         ...localMatch,
-        seating: mergeSeating(localMatch.seating, ce.seating,
-                              (id) => localGuestIds.has(id), (id) => tableIdsAll.has(id)),
+        // Per guest against the base (ב2): a seat only the other device moved
+        // is its seat, whichever side won on updatedAt.
+        seating: threeWaySeating(mergeSeating(localMatch.seating, ce.seating,
+                                              (id) => localGuestIds.has(id), (id) => tableIdsAll.has(id)),
+                                 localMatch.seating, ce.seating, localMatch.syncBase).seating,
         lockedGuests: [...(localMatch.lockedGuests || []).filter(id => guestIdsAll.has(id)),
                        ...newFromCloud(ce.lockedGuests, localGuestIds, guestIdsAll)],
         lockedTables: [...(localMatch.lockedTables || []).filter(id => tableIdsAll.has(id)),
@@ -690,7 +696,9 @@ export function mergeCloudWithLocal(
                                               arrivalBase(localMatch.syncBase)),
                                 localMatch.guests, result.guests, localMatch.syncBase?.guests, false);
       const guests = gw.rows;
-      const tables = unionById(result.tables, localMatch.tables, tombs.tables);
+      const tw2 = threeWayGuests(unionById(result.tables, localMatch.tables, tombs.tables),
+                                 localMatch.tables, result.tables, localMatch.syncBase?.tables, false);
+      const tables = tw2.rows;
 
       // Who the CLOUD knows, computed before the union, so "the cloud has no
       // opinion about this guest" is answerable. After the union everything
@@ -699,6 +707,11 @@ export function mergeCloudWithLocal(
       const cloudTableIds = new Set((result.tables || []).map(t => t.id));
       const tableIds      = new Set(tables.map(t => t.id));
       const guestIds      = new Set(guests.map(g => g.id));
+
+      // Per guest against the base (ב2), as in the other branch.
+      const seatW = threeWaySeating(mergeSeating(result.seating, localMatch.seating,
+                                                 (id) => cloudGuestIds.has(id), (id) => tableIds.has(id)),
+                                    localMatch.seating, result.seating, localMatch.syncBase);
 
       result = {
         ...result,
@@ -716,8 +729,7 @@ export function mergeCloudWithLocal(
         // rescued table while dropping its seat, its lock and its position on
         // the floor plan leaves the host a table nobody sits at and no way to
         // tell that from having forgotten to seat it. See mergeSeating.
-        seating: mergeSeating(result.seating, localMatch.seating,
-                              (id) => cloudGuestIds.has(id), (id) => tableIds.has(id)),
+        seating: seatW.seating,
         // Locks: the cloud's, plus this tab's for rows the cloud has never seen.
         // A plain union brought back a lock the OTHER device had removed — the
         // host unlocks a table on the phone, and the laptop's stale copy locks
@@ -738,7 +750,7 @@ export function mergeCloudWithLocal(
       // something the cloud overruled (סב55). Kept, and marked for pushing.
       const tw = threeWayScalars(result, localMatch, ce, localMatch.syncBase);
       result = tw.event;
-      localKept = tw.localKept || gw.localKept;
+      localKept = tw.localKept || gw.localKept || tw2.localKept || seatW.localKept;
     }
 
     // Positions for tables the cloud has never seen. The rescue below only fires

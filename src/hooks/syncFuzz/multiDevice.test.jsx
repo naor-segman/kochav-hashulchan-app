@@ -10,6 +10,7 @@
  *   npx vitest run src/hooks/syncFuzz                     # 30 seeds, in the gate
  *   SIM_COUNT=2000 SIM_LAT=400 SIM_TICK=150 npx vitest run src/hooks/syncFuzz
  *   SIM_OUT=out.json …                                    # failing seeds + traces
+ *   SIM_SEAT=1 …              # also seat guests and edit a table capacity (ב2)
  *
  * Measured 30.9 at 2,000 seeds: 740 failing before סב67, 11 after — all one
  * open class (two devices editing a field of the same guest).
@@ -65,7 +66,7 @@ describe("multi-device fuzz", () => {
     for (const seed of seeds) {
       let res;
       try {
-        res = await runSeed(seed, devs, cloud, { act, renderHook, useEvents, isCloudBacked }, { steps: STEPS, skew: SKEW, verbose: !!process.env.SIM_VERBOSE, latency: Number(process.env.SIM_LAT ?? 0), tick: Number(process.env.SIM_TICK ?? 0) });
+        res = await runSeed(seed, devs, cloud, { act, renderHook, useEvents, isCloudBacked }, { steps: STEPS, skew: SKEW, verbose: !!process.env.SIM_VERBOSE, latency: Number(process.env.SIM_LAT ?? 0), tick: Number(process.env.SIM_TICK ?? 0), seating: !!process.env.SIM_SEAT });
       } catch (err) {
         res = { failures: [{ kind: "harness-throw", msg: String(err?.stack || err).slice(0, 600) }], trace: [] };
         for (const d of devs) { try { d.hook?.unmount(); } catch { /* */ } d.hook = null; }
