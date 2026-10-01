@@ -628,7 +628,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
             aria-describedby={signOutError ? "account-signout-error" : undefined}
             type="button"
           >
-            {signingOut ? "מתנתק…" : "התנתקות"}
+            {signingOut ? "מתנתקים…" : "התנתקות"}
           </button>
           <button
             className={styles.clearLocalBtn}
