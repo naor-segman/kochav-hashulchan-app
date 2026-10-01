@@ -42,6 +42,9 @@ export const TOMBSTONED_COLLECTIONS = ["guests", "tables", "constraints", "tasks
  */
 export const TOMBSTONE_TTL_MS = 180 * 24 * 60 * 60 * 1000;
 
+/** How many applied RSVP response ids an event keeps — the newest, oldest dropped. */
+export const RSVP_APPLIED_MAX = 2000;
+
 /**
  * Coerce whatever came out of storage or the cloud into
  * `{ collection: { rowId: timestamp } }`, dropping anything expired or
@@ -223,7 +226,7 @@ export function normalizeEvent(ev) {
     // answer over the host's manual changes. Synced with the event now; the
     // newest 2,000 are kept.
     rsvpApplied: Array.isArray(ev.rsvpApplied)
-      ? ev.rsvpApplied.filter(x => typeof x === "string" && x).slice(-2000) : [],
+      ? ev.rsvpApplied.filter(x => typeof x === "string" && x).slice(-RSVP_APPLIED_MAX) : [],
     // Which rows this account has DELETED, as `{ collection: { rowId: when } }`.
     //
     // The merge unions id-keyed collections in both directions, which is what

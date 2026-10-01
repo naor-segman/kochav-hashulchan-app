@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { loadState, persist, userStorageKey } from "../utils/storage.js";
-import { normalizeEvent, normalizeDeletedRows, normalizeRotations, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
+import { normalizeEvent, normalizeDeletedRows, normalizeRotations, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS, RSVP_APPLIED_MAX } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
 import { syncBaseOf, threeWayScalars, threeWayGuests, canonical, arrivalBase } from "../utils/syncBase.js";
@@ -373,6 +373,30 @@ function unionStrings(cloudList, localList) {
   return out;
 }
 
+/* Applied RSVP ids, both sides, in the order they were applied, capped (ב5).
+ *
+ * A plain union (cloud first, then this device's extras) went wrong two ways.
+ * The cloud-wins branch never normalised it, so a merge of two full lists was
+ * stored 4,000 long; and the cap keeps the LAST ids, so the next normalise kept
+ * this device's old ids and dropped every id the cloud held — answers already
+ * applied elsewhere, applied again over the host's changes.
+ *
+ * Each list is chronological. An id only this device holds is either newer
+ * than the cloud's list (applied here, not pushed yet) or older than it (the
+ * cloud's copy already trimmed it). Its position says which: before the first
+ * id both share → older, after it → newer. With nothing shared, the cloud's
+ * list goes last — the side every device agrees on is what the cap keeps. */
+function mergeApplied(cloudList, localList) {
+  const c = (Array.isArray(cloudList) ? cloudList : []).filter(x => typeof x === "string" && x);
+  const l = (Array.isArray(localList) ? localList : []).filter(x => typeof x === "string" && x);
+  const inCloud = new Set(c);
+  let first = l.findIndex(id => inCloud.has(id));
+  if (first < 0) first = l.length;
+  const older = l.slice(0, first).filter(id => !inCloud.has(id));
+  const newer = l.slice(first).filter(id => !inCloud.has(id));
+  return [...new Set([...older, ...c, ...newer])].slice(-RSVP_APPLIED_MAX);
+}
+
 function keepFilledCosts(winner, loser) {
   const has = v => Array.isArray(v?.categories) && v.categories.length > 0;
   return (!has(winner) && has(loser)) ? loser : winner;
@@ -602,7 +626,7 @@ export function mergeCloudWithLocal(
         vendors:     unionById(localMatch.vendors,     ce.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(localMatch.messagesSent, ce.messagesSent),
         // Applied is a one-way fact: an id applied on EITHER device stays applied.
-        rsvpApplied:      unionStrings(ce.rsvpApplied, localMatch.rsvpApplied),
+        rsvpApplied:      mergeApplied(ce.rsvpApplied, localMatch.rsvpApplied),
         messageTemplates: unionByKey(localMatch.messageTemplates, ce.messageTemplates),
         costs:            keepFilledCosts(localMatch.costs, ce.costs),
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
@@ -685,7 +709,7 @@ export function mergeCloudWithLocal(
         tasks:       unionById(result.tasks,       localMatch.tasks,       tombs.tasks),
         vendors:     unionById(result.vendors,     localMatch.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(result.messagesSent, localMatch.messagesSent),
-        rsvpApplied:      unionStrings(result.rsvpApplied, localMatch.rsvpApplied),
+        rsvpApplied:      mergeApplied(result.rsvpApplied, localMatch.rsvpApplied),
         messageTemplates: unionByKey(result.messageTemplates, localMatch.messageTemplates),
         costs:            keepFilledCosts(result.costs, localMatch.costs),
         // Everything below is the ARRANGEMENT around those rows. Keeping a
