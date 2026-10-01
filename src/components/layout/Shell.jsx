@@ -109,11 +109,22 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
   // these lines, and the two had already drifted apart once.
   const openScreen = makeOpenScreen(activeEvent, { go, showToast });
 
+  // Skip link (AX9). On an event screen a keyboard user tabbed through the
+  // topbar, the three area tabs and up to eleven sub-nav buttons on every
+  // screen before reaching the first field. It focuses <main> directly rather
+  // than following the #main hash, so the URL the router owns is not touched.
+  const mainRef = useRef(null);
+  const skipToMain = (e) => {
+    e.preventDefault();
+    mainRef.current?.focus();
+  };
+
   return (
     <div className={styles.root}>
+      <a href="#main" className={styles.skipLink} onClick={skipToMain}>דלגו לתוכן</a>
       <header className={styles.topbar}>
         <button className={styles.logo} onClick={() => go("dashboard")}>
-          <span className={styles.logoMark}>✦</span>
+          <span className={styles.logoMark} aria-hidden="true">✦</span>
           <span className={styles.logoName}>{COMPANY.name}</span>
         </button>
 
@@ -260,7 +271,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
         </nav>
       )}
 
-      <main className={styles.main}>{children}</main>
+      <main id="main" tabIndex={-1} ref={mainRef} className={styles.main}>{children}</main>
     </div>
   );
 }

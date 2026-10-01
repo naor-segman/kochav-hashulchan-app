@@ -77,7 +77,8 @@ export default function LoginScreen() {
 
   if (loading) return (
     <div className={styles.page}>
-      <span className={styles.loadingMark}>✦</span>
+      <span className={styles.loadingMark} aria-hidden="true">✦</span>
+      <span className="sr-only" role="status">טוען…</span>
     </div>
   );
 
@@ -92,7 +93,7 @@ export default function LoginScreen() {
       <div className={styles.card}>
 
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandMark} aria-hidden="true">✦</span>
           <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 

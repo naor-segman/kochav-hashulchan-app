@@ -110,7 +110,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
       {/* ── The promise ── */}
       <section className={styles.hero}>
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandMark} aria-hidden="true">✦</span>
           <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 

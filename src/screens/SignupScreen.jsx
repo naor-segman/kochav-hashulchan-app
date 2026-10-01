@@ -112,7 +112,7 @@ export default function SignupScreen() {
       <div className={styles.page}>
         <div className={styles.card}>
           <div className={styles.brand}>
-            <span className={styles.brandMark}>✦</span>
+            <span className={styles.brandMark} aria-hidden="true">✦</span>
             <span className={styles.brandName}>{COMPANY.name}</span>
           </div>
           <h1 className={styles.title} tabIndex={-1} ref={doneHeadingRef}>בדקו את האימייל שלכם</h1>
@@ -155,7 +155,7 @@ export default function SignupScreen() {
       <div className={styles.card}>
 
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandMark} aria-hidden="true">✦</span>
           <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 

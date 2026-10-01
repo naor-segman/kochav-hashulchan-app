@@ -33,8 +33,8 @@ export default function AuthCallbackScreen() {
       textAlign: "center",
       direction: "rtl",
     }}>
-      <div style={{ fontSize: "36px" }}>✦</div>
-      <p style={{ fontSize: "16px", fontWeight: 600 }}>{msg}</p>
+      <div style={{ fontSize: "36px" }} aria-hidden="true">✦</div>
+      <p style={{ fontSize: "16px", fontWeight: 600 }} role="status">{msg}</p>
     </div>
   );
 }

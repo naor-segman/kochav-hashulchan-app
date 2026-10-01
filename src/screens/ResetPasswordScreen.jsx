@@ -73,7 +73,7 @@ export default function ResetPasswordScreen() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandMark} aria-hidden="true">✦</span>
           <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
         <h1 className={styles.title}>בחירת סיסמה חדשה</h1>

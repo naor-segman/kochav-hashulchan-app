@@ -546,6 +546,31 @@
   padding: 0 0 80px;
 }
 
+/* Focused only by the skip link (tabIndex -1); a ring around the whole page
+   body would say nothing the jump itself does not. */
+.main:focus { outline: none; }
+
+/* Off-screen until it has the keyboard focus, then over the topbar's start
+   edge. It sits on the dark bar, so it takes the bar's colours. */
+.skipLink {
+  position: absolute;
+  inset-inline-start: 8px;
+  top: 8px;
+  z-index: 300;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--nav-text);
+  color: var(--nav-bg);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skipLink:focus-visible {
+  transform: none;
+  outline: 2px solid var(--accent-on-dark);
+  outline-offset: 2px;
+}
+
 /* ── Mobile overrides ── */
 @media (max-width: 480px) {
   .logoName { display: none; }

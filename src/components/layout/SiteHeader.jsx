@@ -95,7 +95,7 @@ export default function SiteHeader({ user = null, active = null }) {
     <header className={styles.nav}>
       <div className={styles.navInner}>
         <Link to="/" className={styles.navLogo}>
-          <span className={styles.navLogoMark}>✦</span>
+          <span className={styles.navLogoMark} aria-hidden="true">✦</span>
           <span className={styles.navLogoName}>{COMPANY.name}</span>
         </Link>
 

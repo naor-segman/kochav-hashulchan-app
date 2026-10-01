@@ -140,6 +140,11 @@ select option:disabled {
 
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
+  /* The smooth scroll set on <html> above is motion too, and the rules below
+     did not reach it: every in-page anchor and scrollTo still glided (AX9). */
+  html {
+    scroll-behavior: auto;
+  }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;

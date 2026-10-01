@@ -239,7 +239,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
 
         {/* Brand */}
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandMark} aria-hidden="true">✦</span>
           <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 
@@ -445,7 +445,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         )}
         {sub && statusKey === "trialing" && (
           <div className={styles.trialBanner}>
-            ✦ אתם בתקופת ניסיון. ניתן לשדרג בכל עת.
+            <span aria-hidden="true">✦</span> אתם בתקופת ניסיון. ניתן לשדרג בכל עת.
           </div>
         )}
 
@@ -609,7 +609,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                 the owner took the beta label off the whole product, 1.10). */}
             {!isStripeConfigured && (
               <div className={styles.inactiveNote}>
-                <span className={styles.inactiveNoteIcon}>✦</span>
+                <span className={styles.inactiveNoteIcon} aria-hidden="true">✦</span>
                 <span>
                   כרגע כל הפונקציות זמינות ללא תשלום.
                   רכישה תהיה זמינה בקרוב.

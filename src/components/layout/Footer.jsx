@@ -8,7 +8,7 @@ export default function Footer() {
       <div className={styles.inner}>
         <div className={styles.brand}>
           <Link to="/" className={styles.logo}>
-            <span className={styles.logoMark}>✦</span>
+            <span className={styles.logoMark} aria-hidden="true">✦</span>
             <span className={styles.logoName}>{COMPANY.name}</span>
           </Link>
           {/* Factual, not superlative. "המובילה" is the same unearned claim as
