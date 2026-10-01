@@ -25,6 +25,7 @@ export default function ConfirmDialog({
   cancelLabel = "ביטול",
   placeholder = "",
   defaultValue = "",
+  maxLength,
   onClose,
   ...unknown
 }) {
@@ -119,6 +120,7 @@ export default function ConfirmDialog({
             className={[base.input, styles.field].join(" ")}
             value={value}
             placeholder={placeholder}
+            maxLength={maxLength}
             onChange={e => setValue(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") submit(); }}
           />

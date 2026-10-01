@@ -4,7 +4,7 @@ import { messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink, linkForStage } from "../data/messageSequence.js";
 import { useShareGate } from "../components/share/useShareGate.jsx";
 import Icon from "../components/ui/Icon.jsx";
-import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
+import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT, GROUP_NAME_MAX } from "../data/constants.js";
 import { getSideLabel, guestCompanionNames } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
 import { guestListSheetRows, GUEST_SHEET_COLS } from "../utils/guestListSheet.js";
@@ -174,6 +174,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const name = (await prompt("שם הקבוצה החדשה (למשל: חברים מהגן / צוות שיווק)", {
       placeholder: "שם הקבוצה",
       confirmLabel: "צרו קבוצה",
+      maxLength: GROUP_NAME_MAX,
     }) || "").trim();
     if (!name) return;
     if (!allGroupOptions.includes(name)) {
@@ -730,6 +731,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   className={base.input}
                   value={customGroupInput}
                   placeholder="שם הקבוצה החדשה..."
+                  maxLength={GROUP_NAME_MAX}
                   autoFocus
                   onChange={e => setCustomGroupInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") saveGuest(); }}
