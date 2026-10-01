@@ -543,10 +543,16 @@ export default function EntranceScreen({
   // then [] — the family, or with "כולם" the whole table, un-checked at the
   // busiest moment of the evening, no confirm and no undo (second review, סב24).
   const lastTap = useRef(new Map());
+  //
+  // Only an APPLIED tap starts the window (RG5). Recording the ignored ones
+  // too let a run of taps keep the window open forever: tap, 400ms, tap
+  // (ignored), 500ms, tap — 900ms after the one that counted, and ignored
+  // again, so a deliberate second action was swallowed.
   const isDoubleTap = useCallback((key) => {
     const now = Date.now(), prev = lastTap.current.get(key);
+    if (prev !== undefined && now - prev < DOUBLE_TAP_MS) return true;
     lastTap.current.set(key, now);
-    return prev !== undefined && now - prev < DOUBLE_TAP_MS;
+    return false;
   }, []);
 
   const markRow = useCallback((g, on) => {
