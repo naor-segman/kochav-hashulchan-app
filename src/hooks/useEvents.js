@@ -3,7 +3,7 @@ import { loadState, persist, userStorageKey } from "../utils/storage.js";
 import { normalizeEvent, normalizeDeletedRows, normalizeRotations, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
-import { syncBaseOf, threeWayScalars, threeWayGuests, canonical } from "../utils/syncBase.js";
+import { syncBaseOf, threeWayScalars, threeWayGuests, canonical, arrivalBase } from "../utils/syncBase.js";
 import { addPendingDelete, markDeleteLanded, readPendingDeletes, withoutPendingDeletes } from "../utils/pendingEventDeletes.js";
 import {
   SYNC_STATUS,
@@ -535,7 +535,8 @@ export function mergeCloudWithLocal(
       const mergedTables  = unionById(localMatch.tables, ce.tables, tombs.tables);
       // Per guest FIELD against the last-synced base (fifth review): the rows
       // this side holds no longer win whole just because the event is newer.
-      const mergedGuests  = threeWayGuests(mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests),
+      const mergedGuests  = threeWayGuests(mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests,
+                                                         arrivalBase(localMatch.syncBase)),
                                            localMatch.guests, ce.guests, localMatch.syncBase?.guests, true).rows;
       const tableIdsAll   = new Set(mergedTables.map(t => t.id));
       const guestIdsAll   = new Set(mergedGuests.map(g => g.id));
@@ -660,7 +661,9 @@ export function mergeCloudWithLocal(
       // carried the NEWER arrivedAt and mergeArrivals would have kept them.
       // Arguments are (local, cloud) in the other branch; here `result` is the
       // cloud side, so they swap.
-      const gw = threeWayGuests(mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests),
+      // With a base, the seat sets merge three-way and the swap does not matter.
+      const gw = threeWayGuests(mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests,
+                                              arrivalBase(localMatch.syncBase)),
                                 localMatch.guests, result.guests, localMatch.syncBase?.guests, false);
       const guests = gw.rows;
       const tables = unionById(result.tables, localMatch.tables, tombs.tables);

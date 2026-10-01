@@ -322,7 +322,27 @@ export function tableAvailability(tables, guests, seating) {
  * A guest missing from either side is left alone; this never adds or removes a
  * row, only two keys on rows that exist on both.
  */
-export function mergeArrivals(localGuests, cloudGuests) {
+/**
+ * Three-way merge of one row's arrived seats against the set both sides last
+ * agreed on — the rule the greeter's RPC applies on the server
+ * (20260928000700): `(current ∪ added) − removed`, here with BOTH sides'
+ * additions and removals, because both are edits:
+ *
+ *     result = (base − removedHere − removedThere) ∪ addedHere ∪ addedThere
+ *
+ * It cannot conflict: "added" is a seat not in the base and "removed" one that
+ * was, so no seat is both. Returns null when nothing has to change.
+ */
+export function mergeSeatSets(localSeats, cloudSeats, baseSeats) {
+  const L = new Set(localSeats), C = new Set(cloudSeats), B = new Set(baseSeats);
+  const out = new Set();
+  for (const s of B) if (L.has(s) && C.has(s)) out.add(s);
+  for (const s of L) if (!B.has(s)) out.add(s);
+  for (const s of C) if (!B.has(s)) out.add(s);
+  return [...out].sort((a, b) => a - b);
+}
+
+export function mergeArrivals(localGuests, cloudGuests, baseSeatsOf = null) {
   if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
   const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
   const take = c => ({ arrivedSeats: c.arrivedSeats, arrived: c.arrived, arrivedAt: c.arrivedAt });
@@ -332,6 +352,26 @@ export function mergeArrivals(localGuests, cloudGuests) {
   return localGuests.map(g => {
     const c = cloudById.get(g.id);
     if (!c || silent(c)) return g;
+
+    // With a common ancestor, no clock is asked at all (ב1/ב8). Newest-row-wins
+    // lost a seat whenever both sides touched the same family: the host taps
+    // the second child on their phone while the greeter taps the mother at the
+    // door, and one of the two marks was dropped — and with the host's clock
+    // three minutes fast, an un-mark made BEFORE the greeter's tap still won.
+    // `baseSeatsOf(id)` is the seat list the cloud held when this device last
+    // synced (syncBase.arrivalBase); null means "not known" — the stamp rule.
+    const base = typeof baseSeatsOf === "function" ? baseSeatsOf(g.id) : null;
+    if (Array.isArray(base)) {
+      const l = arrivedSeatsOf(g), cs = arrivedSeatsOf(c);
+      if (l.length === cs.length && l.every((s, i) => s === cs[i])) return g;
+      const merged = mergeSeatSets(l, cs, base);
+      const ls = stamp(g), cst = stamp(c);
+      const at = ls === null ? cst : cst === null ? ls : Math.max(ls, cst);
+      return {
+        ...g, arrivedSeats: merged, arrived: merged.length > 0,
+        ...(at === null ? {} : { arrivedAt: at }),
+      };
+    }
 
     // The rule, once both sides carry a stamp: whoever wrote last wins. That is
     // the only question about arrivals with a correct answer, because the two

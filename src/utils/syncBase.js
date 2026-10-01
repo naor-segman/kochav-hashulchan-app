@@ -24,6 +24,7 @@
  */
 import { normalizeEvent } from "./eventHelpers.js";
 import { MEAL_DEFAULT } from "../data/constants.js";
+import { arrivedSeatsOf } from "./arrival.js";
 
 export const SCALAR_FIELDS = [
   "name", "type", "date", "venue",
@@ -99,6 +100,13 @@ const FIELD_DEFAULT = { notes: "", rsvp: "pending", meal: MEAL_DEFAULT, companio
   group: "", phone: "", side: "bride" };
 const fieldFp = (k, v) => gfp(v === undefined || v === null ? (FIELD_DEFAULT[k] ?? null) : v);
 
+/* The arrived seats themselves, not a fingerprint (ב1/ב8): a three-way merge
+ * of a SET needs the base set, to tell "the greeter added seat 2" from "the
+ * host removed it". A few small integers per arrived row — "@a:0.1.3" — and
+ * nothing for a row nobody has marked. `@` keeps the key out of the guest
+ * fields' namespace. */
+const SEATS_KEY = "@a";
+
 /** `{ [guestId]: "key:fp,key:fp" }`, over the rows as normalizeEvent stores them. */
 export function guestFingerprints(guests) {
   if (!Array.isArray(guests)) return null;
@@ -113,9 +121,28 @@ export function guestFingerprints(guests) {
       if (fp === fieldFp(k, undefined)) continue;   // absent reads as this anyway
       parts.push(`${code(k)}:${fp}`);
     }
+    const seats = arrivedSeatsOf(g);
+    if (seats.length) parts.push(`${SEATS_KEY}:${seats.join(".")}`);
     out[g.id] = parts.join(",");
   }
   return out;
+}
+
+/**
+ * `id → number[] | null`: the seats the cloud held for that guest at the last
+ * sync, for mergeArrivals. null for a guest the base does not know, and for a
+ * base written before seats were recorded (no `arrivalsBase` mark) — where an
+ * absent entry would otherwise read as "nobody had arrived" and un-mark people.
+ */
+export function arrivalBase(syncBase) {
+  const guests = syncBase?.guests;
+  if (!guests || typeof guests !== "object" || syncBase.arrivalsBase !== "1") return null;
+  return (id) => {
+    const s = guests[id];
+    if (typeof s !== "string") return null;
+    const v = parseRowBase(s).get(SEATS_KEY);
+    return v ? v.split(".").map(Number).filter(n => Number.isInteger(n) && n >= 0) : [];
+  };
 }
 
 function parseRowBase(s) {
@@ -187,7 +214,7 @@ export function threeWayGuests(mergedRows, localRows, cloudRows, baseGuests, pre
  *  of every guest's fields, under `guests`. */
 export function syncBaseOf(ev) {
   const f = fingerprints(ev);
-  if (f) { const g = guestFingerprints(ev?.guests); if (g) f.guests = g; }
+  if (f) { const g = guestFingerprints(ev?.guests); if (g) { f.guests = g; f.arrivalsBase = "1"; } }
   return f;
 }
 
