@@ -414,13 +414,17 @@ function parseOnePerson(segment, { bareCount = true } = {}) {
   // "דנה + יוסי" — the plus with a name after it rather than a number.
   let plusNames = [];
   if (declared == null) {
-    const pn = rest.match(PLUS_NAME_RE);
-    if (pn) {
+    // Every "+ name" group at the end, not only the last: "דנה כהן + בת זוג
+    // + ילד" read only "+ ילד", and the guest was called "דנה כהן + בת זוג"
+    // with one seat too few (91). Peeled from the right, kept in line order.
+    for (let pn = rest.match(PLUS_NAME_RE); pn; pn = rest.match(PLUS_NAME_RE)) {
       // Not filtered for empty names: "+ בת זוג" IS a seat, whose name is the
       // empty string (fifth review 30.9 — filtered, the seat was lost and
       // "+ בת זוג" stayed in the guest's name).
-      plusNames = splitCompanions(pn[1], null);
-      if (plusNames.length) rest = rest.slice(0, pn.index) + " " + rest.slice(pn.index + pn[0].length);
+      const names = splitCompanions(pn[1], null);
+      if (!names.length) break;
+      plusNames = names.concat(plusNames);
+      rest = rest.slice(0, pn.index) + " " + rest.slice(pn.index + pn[0].length);
     }
   }
 
