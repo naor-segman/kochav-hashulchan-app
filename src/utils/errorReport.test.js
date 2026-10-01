@@ -84,7 +84,16 @@ describe("scrubRoute — the 29.9 review's two holes", () => {
   it("a token in the ?ref= query is scrubbed like one in the path", () => {
     expect(scrubRoute("/signup?ref=INVITETOKEN123")).toBe("/signup?ref=:token");
     expect(scrubRoute("https://revaya-events.co.il/signup?utm_source=wa&ref=INVITETOKEN123#x"))
-      .toBe("https://revaya-events.co.il/signup?utm_source=wa&ref=:token#x");
+      .toBe("https://revaya-events.co.il/signup?utm_source=wa&ref=:token#:v");
+  });
+
+  // RG8: a value with no key matched nothing and went out whole.
+  it("a keyless query or hash value is scrubbed too", () => {
+    expect(scrubRoute("/x?SECRETTOKEN123")).toBe("/x?:v");
+    expect(scrubRoute("/x#SECRETTOKEN123")).toBe("/x#:v");
+    expect(scrubRoute("/card/a?g=1&%D7%99%D7%A2%D7%9C")).toBe("/card/:token?g=:v&:v");
+    expect(scrubRoute("/x?utm_source=wa&SECRET#tok")).toBe("/x?utm_source=wa&:v#:v");
+    expect(scrubRoute("/x?")).toBe("/x?");
   });
   it("the router is case-insensitive, so the prefixes are too", () => {
     expect(scrubRoute("/RSVP/abc12345secret")).toBe("/RSVP/:token");
