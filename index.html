@@ -26,10 +26,23 @@
     <meta name="twitter:image" content="/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Loaded WITHOUT blocking first render. As a plain rel="stylesheet" the
+         whole page waited on fonts.googleapis.com: with that request hanging,
+         first paint came at 8.2 s for an 8 s stall (measured 1.10). Preloaded
+         and switched to a stylesheet on load, the text paints at once in the
+         fallback font and swaps (display=swap) when Heebo/Rubik arrive. -->
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@500;600;700;800&display=swap"
-      rel="stylesheet"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@500;600;700;800&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>
