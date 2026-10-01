@@ -13,6 +13,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventSetupScreen.module.css";
+import { setUnsavedWork } from "../utils/unsavedWork.js";
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [form, setForm] = useState({
@@ -52,11 +53,17 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   useEffect(() => {
     pending.current = { dirty, form, patchEvent, showToast, name: ev.name };
   });
+  // The update reload waits while this form holds edits (71d, utils/unsavedWork):
+  // a reload cannot run the save-on-leave below.
+  useEffect(() => {
+    setUnsavedWork("event-setup", dirty);
+  }, [dirty]);
   useEffect(() => {
     const warn = (e) => { if (pending.current.dirty) { e.preventDefault(); e.returnValue = ""; } };
     window.addEventListener("beforeunload", warn);
     return () => {
       window.removeEventListener("beforeunload", warn);
+      setUnsavedWork("event-setup", false);
       const p = pending.current;
       if (!p.dirty) return;
       p.patchEvent(p.form.name.trim() ? p.form : { ...p.form, name: p.name });
