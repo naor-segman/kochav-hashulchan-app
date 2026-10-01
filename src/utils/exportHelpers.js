@@ -411,7 +411,9 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
         gft.donorName || "",
         Number(gft.amountILS) || 0,
         gft.message || "",
-        fmtDateTime(gft.createdAt),
+        // With the year: a gift list kept past New Year cannot otherwise tell
+        // 3 Jan of one year from the next (T5).
+        fmtDateTime(gft.createdAt, { year: true }),
       ]),
     ];
     const ws7 = XLSX.utils.aoa_to_sheet(dRows);
