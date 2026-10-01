@@ -20,6 +20,7 @@ import { nextTableNames } from "../../utils/tableNames.js";
 import { VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
 import TableGlyph from "../ui/TableGlyph.jsx";
 import VenueCanvas from "./VenueCanvas.jsx";
+import { arrangeGrid } from "./arrangeGrid.js";
 import styles from "./FloorPlanEditor.module.css";
 
 // AI table-detection reads the uploaded sketch and returns one table per shape
@@ -62,6 +63,24 @@ async function compressImage(file, maxPx = 1400, quality = 0.82) {
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
     img.src = url;
   });
+}
+
+// The sketch and chip sizes "סדרו על הסקיצה" lays out against (סב34d).
+// Chips that are already on the sketch are measured (they include any resize);
+// with none placed yet, the CSS max-width is used — a chip's width depends on
+// the table's name, and the widest one is the one that collides.
+const CHIP_MAX_W = 180, CHIP_MAX_W_PHONE = 150, CHIP_H = 72;
+function measureArrangeBox(container) {
+  if (!container) return {};
+  const r = container.getBoundingClientRect();
+  const chips = [...container.querySelectorAll("[data-table-chip]")].map(c => c.getBoundingClientRect());
+  const phone = typeof window !== "undefined" && window.matchMedia?.("(max-width: 600px)")?.matches;
+  return {
+    width:  r.width,
+    height: r.height,
+    chipW:  Math.max(phone ? CHIP_MAX_W_PHONE : CHIP_MAX_W, ...chips.map(c => c.width)),
+    chipH:  Math.max(CHIP_H, ...chips.map(c => c.height)),
+  };
 }
 
 // ── DnD sub-components ───────────────────────────────────────────────────────
@@ -123,6 +142,7 @@ function TableChipOnImage({ table, guests, size = 1, onRemove, onResize }) {
   return (
     <div
       ref={mergedRef}
+      data-table-chip=""
       className={[
         styles.tableChip,
         isDragging ? styles.chipDragging : "",
@@ -394,6 +414,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   // from something beats arranging from nothing.
   const autoArrange = () => {
     const missingNow = (ev.tables ?? []).filter(t => !positions[t.id]).length;
+    const box = measureArrangeBox(containerRef.current);
 
     patchEvent(e => {
       const cur     = e.floorPlan?.tablePositions ?? {};
@@ -411,24 +432,13 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       // again: with one table missing the grid collapses to a single slot at
       // (0.82, 0.5), which is where the sixth table of a fourteen-table grid
       // already is.
-      const cols = Math.max(1, Math.ceil(Math.sqrt(all.length * 1.4)));
-      const rows = Math.max(1, Math.ceil(all.length / cols));
-      const dx   = cols > 1 ? 0.64 / (cols - 1) : 1;
-      const dy   = rows > 1 ? 0.52 / (rows - 1) : 1;
+      //
+      // Columns come from the sketch's measured width and a chip's width, not
+      // from the table count (סב34d) — see arrangeGrid.
+      const { cols, rows, dx, dy, slot } = arrangeGrid(all.length, box);
       // Comfortably under half the grid pitch, so one occupied chip can never
       // block more than the one slot it actually sits on.
       const minSep = Math.min(0.07, 0.4 * Math.min(dx, dy));
-
-      const slot = (i) => {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x = cols === 1 ? 0.5 : 0.82 - col * dx;
-        const y = rows === 1 ? 0.5 : 0.24 + row * dy;
-        return {
-          x: Math.min(0.94, Math.max(0.06, x)),
-          y: Math.min(0.94, Math.max(0.06, y)),
-        };
-      };
 
       const taken = Object.values(cur)
         .filter(p => Number.isFinite(p?.x) && Number.isFinite(p?.y))
@@ -449,10 +459,15 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       return { ...e, floorPlan: { ...e.floorPlan, tablePositions: next } };
     });
 
+    // A sketch too small for every chip (a phone, a very wide photo) cannot
+    // hold them apart; say so instead of a ✓ over a pile.
+    const fits = arrangeGrid((ev.tables ?? []).length, box).fits;
     showToast(
       missingNow === 0 ? "כל השולחנות כבר על הסקיצה"
       : missingNow === 1 ? "שולחן אחד הונח על הסקיצה — גררו אותו למקום הנכון ✓"
-      : `${missingNow} שולחנות הונחו על הסקיצה — גררו אותם למקום הנכון ✓`
+      : !fits ? `${missingNow} שולחנות הונחו על הסקיצה, וחלקם חופפים כי היא קטנה מדי — גררו אותם למקום, או פתחו במסך רחב יותר`
+      : `${missingNow} שולחנות הונחו על הסקיצה — גררו אותם למקום הנכון ✓`,
+      !fits && missingNow > 1 ? "warn" : undefined
     );
   };
 
