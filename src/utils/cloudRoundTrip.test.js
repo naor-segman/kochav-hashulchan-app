@@ -31,7 +31,9 @@ import { normalizeEvent } from "./eventHelpers.js";
 const MAXIMAL = {
   id: "e-local-1",
   name: "החתונה של דנה ויוסי",
-  type: "חתונה",
+  // NOT "חתונה": that is also normalizeEvent's fallback, so a hardcoded type
+  // column would pass a fixture that happens to be a wedding (bug class 1).
+  type: "בר מצווה",
   date: "2027-06-01",
   venue: "אולמי הגן",
   startTime: "19:00",
@@ -81,15 +83,25 @@ const MAXIMAL = {
   collabActive: false,
   hostessWriteActive: false,
   tokensRotatedAt: 1_700_000_500_000,
+  tokenRotations: { rsvp: 1_700_000_400_000, hostess: 1_700_000_450_000 },
+  // RSVP responses already applied to the guest list. Lost on the way up, a
+  // second device re-applies every old answer over the host's manual changes.
+  rsvpApplied: ["resp-1", "resp-2"],
   giftBitPhone: "0501234567",
   giftPayboxLink: "https://payboxapp.page.link/abc",
   tokens: { rsvp: "TK-rsvp", album: "TK-album", invite: "TK-invite",
             gift: "TK-gift", hostess: "TK-hostess", collab: "TK-collab" },
   eventSite: {
-    published: true, heroTitle: "דנה ויוסי", heroEn: "Dana & Yossi",
+    // Every boolean here is the OPPOSITE of its default, or dropping it would
+    // pass unnoticed.
+    enabled: true, heroEn: "Dana & Yossi",
     coverPhoto: "data:image/png;base64,COVER", story: "אחרי שבע שנים",
     gallery: ["data:image/png;base64,G1", "data:image/png;base64,G2"],
-    countdown: true, dressCode: "אלגנטי",
+    countdown: false, dressCode: "אלגנטי",
+    address: "רחוב הגפן 3, רמת גן", parkingNote: "חניון בתשלום מאחורי האולם",
+    rsvpMessage: "מחכים לכם!",
+    sections: { countdown: false, gallery: false, schedule: false, location: false,
+                shuttles: true, dressCode: true, gift: false, blessings: false, faq: false },
     schedule: [{ id: "s1", time: "19:00", title: "קבלת פנים", icon: "🥂" }],
     shuttles: [{ id: "sh1", from: "תל אביב", time: "18:00", contact: "רן",
                  phone: "0500000000", note: "ליד התחנה" }],
@@ -106,12 +118,17 @@ const MAXIMAL = {
     photosPurgedAt:  "2026-12-01",
   },
   announcements: {
-    invitation: { themeKey: "plum", fontKey: "display", layout: "card",
-                  headline: "אתם מוזמנים", body: "נשמח לראותכם",
-                  photo: "data:image/png;base64,PH", published: true },
-    saveTheDate: { themeKey: "sand", fontKey: "serif", layout: "centered",
-                   headline: "שמרו את התאריך", body: "בקרוב",
-                   photo: null, published: false },
+    // Booleans inverted from defaultAnnouncement(), layouts not the default.
+    invitation: { enabled: true, themeKey: "plum", fontKey: "display", layout: "bottom",
+                  headline: "בואו לחגוג איתנו", subheadline: "בשעה טובה",
+                  message: "נשמח לראותכם",
+                  photo: "data:image/png;base64,PH",
+                  showCountdown: true, showRsvp: false, showSite: false, showLocation: false },
+    saveTheDate: { enabled: true, themeKey: "sand", fontKey: "display", layout: "card",
+                   headline: "תשמרו לנו את הערב", subheadline: "יוני 2027",
+                   message: "הזמנה בהמשך",
+                   photo: "data:image/png;base64,STD",
+                   showCountdown: false, showRsvp: true, showSite: false, showLocation: true },
   },
   floorPlan: {
     image: "data:image/png;base64,PLAN",
@@ -176,6 +193,54 @@ function diffPaths(a, b, path = "", out = []) {
   return out;
 }
 
+// Every path of `def` whose value in `max` is identical. Plain objects are
+// walked key by key (eventSite, announcements.*, floorPlan, tokens …); an
+// object whose default is EMPTY is a map keyed by ids (costs, messagesSent)
+// and is compared whole, since it has no default keys to walk.
+function defaultPaths(def, max, path = "", out = []) {
+  const plain = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  for (const k of Object.keys(def)) {
+    const p = path ? `${path}.${k}` : k;
+    if (plain(def[k]) && plain(max?.[k]) && Object.keys(def[k]).length) {
+      defaultPaths(def[k], max[k], p, out);
+    } else if (JSON.stringify(def[k]) === JSON.stringify(max?.[k])) {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+// Fields MAXIMAL may leave at their default, each with the reason. All of them
+// are CLIENT-SIDE ONLY: they describe this browser's knowledge of the row, are
+// deliberately in neither mapper, and so cannot be given a value here without
+// the round-trip diff (correctly) reporting them as lost.
+const ALLOWED_AT_DEFAULT = {
+  cloudId:       "assigned by the DB row; see EXPECTED_DIFFS",
+  syncedVersion: "set by the fromCloud mapper; see EXPECTED_DIFFS",
+  syncBase:      "the merge ancestor, rebuilt locally after each sync (syncBase.js)",
+  localEdits:    "counts this device's edits; no cloud row carries it",
+};
+
+// Paths whose default is RANDOM (uid() ids, Date.now()) differ from MAXIMAL
+// whatever MAXIMAL says, so defaultPaths() cannot see them. For those, require
+// that MAXIMAL at least states the path.
+function randomDefaultPaths() {
+  const a = normalizeEvent({ id: "probe" });
+  const b = normalizeEvent({ id: "probe", createdAt: 1, updatedAt: 1 });
+  // Timestamps default to Date.now(): make them differ explicitly rather than
+  // depend on the clock ticking between the two calls.
+  const differ = [];
+  (function walk(x, y, path) {
+    for (const k of Object.keys(x)) {
+      const p = path ? `${path}.${k}` : k;
+      const plain = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+      if (plain(x[k]) && plain(y[k]) && Object.keys(x[k]).length) walk(x[k], y[k], p);
+      else if (JSON.stringify(x[k]) !== JSON.stringify(y[k])) differ.push(p);
+    }
+  })(a, b, "");
+  return differ;
+}
+
 describe("full cloud round-trip", () => {
   it("changes nothing except the documented exceptions", () => {
     const { n1, n2 } = pipeline(MAXIMAL);
@@ -193,7 +258,7 @@ describe("full cloud round-trip", () => {
     // public-token RPCs directly from the columns.
     const { row } = pipeline(MAXIMAL);
     expect(row.name).toBe("החתונה של דנה ויוסי");
-    expect(row.type).toBe("חתונה");
+    expect(row.type).toBe("בר מצווה");
     expect(row.date).toBe("2027-06-01");
     expect(row.venue).toBe("אולמי הגן");
     expect(row.collab_token).toBe("TK-collab");
@@ -268,13 +333,43 @@ describe("full cloud round-trip", () => {
     expect(n2.sideLabels).toEqual(MAXIMAL.sideLabels);
   });
 
+  it("MAXIMAL sets every field normalizeEvent knows about", () => {
+    // The diff above can only catch a dropped field if MAXIMAL gives it a value
+    // that differs from its default: a field left at default survives being
+    // dropped, because normalizeEvent puts the default back on the far side.
+    // Measured 1.10: rsvpApplied, tokenRotations, type and six eventSite keys
+    // were all at default here, so none of them was actually covered.
+    //
+    // This fails when a NEW field is added to normalizeEvent and not to
+    // MAXIMAL — which is the moment it would otherwise go untested.
+    // Against BOTH the bare default and the default for MAXIMAL's own type:
+    // headlines, themes and schedules are seeded per type, and a value equal to
+    // that type's seed survives being dropped just as well.
+    const max = normalizeEvent(MAXIMAL);
+    const atDefault = new Set([
+      ...defaultPaths(normalizeEvent({ id: "probe" }), max),
+      ...defaultPaths(normalizeEvent({ id: "probe", type: MAXIMAL.type }), max)
+        .filter(p => p !== "type"),
+    ]);
+    expect([...atDefault].sort()).toEqual(Object.keys(ALLOWED_AT_DEFAULT).sort());
+
+    const random = randomDefaultPaths();
+    // Sanity: the probe really found the random ones (timestamps, tokens, the
+    // seeded FAQ's uid() ids).
+    expect(random).toEqual(expect.arrayContaining(["createdAt", "tokens.rsvp", "eventSite.faq"]));
+    const unstated = random.filter(p => p.split(".").reduce((o, k) => o?.[k], MAXIMAL) === undefined);
+    expect(unstated).toEqual([]);
+  });
+
   it("carries a NON-default event type", () => {
     // "חתונה" is also the fallback, so a hardcoded type column passes a fixture
     // that happens to be a wedding. Event types are the Hebrew strings in
     // constants.js EVENT_TYPES — CLAUDE.md bug class #1.
-    const { row, n2 } = pipeline({ ...MAXIMAL, type: "בר מצווה" });
-    expect(row.type).toBe("בר מצווה");
-    expect(n2.type).toBe("בר מצווה");
+    // MAXIMAL itself is a bar mitzvah now; a second non-default type makes a
+    // column hardcoded to MAXIMAL's value fail too.
+    const { row, n2 } = pipeline({ ...MAXIMAL, type: "ברית" });
+    expect(row.type).toBe("ברית");
+    expect(n2.type).toBe("ברית");
   });
 
   it("survives a cloud row written before the album token existed", () => {
