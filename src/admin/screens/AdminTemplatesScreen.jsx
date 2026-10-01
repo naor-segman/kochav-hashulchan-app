@@ -203,15 +203,20 @@ export default function AdminTemplatesScreen() {
     });
   }, []);
 
+  /* A REFRESH keeps what is on screen (RG10b). This runs again after every
+     save and from "רענן מהשרת", and it used to blank the list first and set it
+     to [] on failure — so one failed refresh after an edit made every template
+     vanish behind an error banner, with "ערוך" / "השבת" gone with them. Now
+     the rows stay, the banner says they are from the last load, and only the
+     very first load (state still null) shows the skeleton. */
   const loadTemplates = useCallback(async () => {
     if (!supabase) return;
-    setTemplates(null);
     setError(null);
     try {
       setTemplates(await loadTemplatesData());
     } catch (err) {
       setError(err.message || "טעינת התבניות נכשלה.");
-      setTemplates([]);
+      setTemplates((prev) => prev ?? []);
     }
   }, []);
 
@@ -343,6 +348,7 @@ export default function AdminTemplatesScreen() {
         {error && (
           <div className={styles.errorBanner}>
             {error}
+            {templates?.length > 0 && " · מוצגות התבניות מהטעינה הקודמת"}
             <button className={styles.retryBtn} onClick={loadTemplates}>נסה שוב</button>
           </div>
         )}
@@ -359,7 +365,7 @@ export default function AdminTemplatesScreen() {
 
         {/* ── Toolbar ── */}
         <div className={styles.toolbar}>
-          {!loading && !error && (
+          {!loading && (!error || templates.length > 0) && (
             <span className={styles.resultCount}>
               {(templates || []).length.toLocaleString()} תבניות
             </span>
@@ -384,7 +390,7 @@ export default function AdminTemplatesScreen() {
         )}
 
         {/* ── Templates table ── */}
-        {!loading && !error && templates.length > 0 && (
+        {!loading && templates.length > 0 && (
           <>
           {/* Eight columns, 693px. At 390 the phone shows four and the פעולות
               column — ערוך / השבת, the only way to change a template — was
