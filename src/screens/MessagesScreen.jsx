@@ -99,6 +99,26 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
     return tid ? ev.tables?.find(t => t.id === tid) : null;
   };
 
+  // RG9: a template that asks for {{קישור}} on a stage whose page is not
+  // published goes out without it — "נשמח שתאשרו הגעה:" and then nothing. It
+  // was sent, and marked sent, with one tap. Now the first send of such a
+  // stage asks, once per stage per visit; "no" sends and marks nothing.
+  const [noLinkOk, setNoLinkOk] = useState(() => new Set());
+  const missingLink = stage => !stage.link && /\{\{\s*קישור\s*\}\}/.test(stage.body || "");
+  const sendTo = async (stage, g, url) => {
+    if (missingLink(stage) && !noLinkOk.has(stage.key)) {
+      const ok = await confirm(
+        "בהודעה הזאת יש מקום לקישור, אבל הדף שלה עוד לא פורסם — היא תצא בלי קישור.\n\n"
+        + "אפשר לפרסם את הדף קודם, או לשלוח בכל זאת.",
+        { confirmLabel: "שלחו בלי קישור" },
+      );
+      if (!ok) return;
+      setNoLinkOk(prev => new Set(prev).add(stage.key));
+    }
+    markSent(stage.key, g.id);
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const textFor = (stage, g) =>
     renderTemplate(stage.body, {
       event: { ...ev, date: fmtDate(ev.date) },
@@ -235,10 +255,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                               <button
                                 className={styles.waBtn}
                                 type="button"
-                                onClick={() => guard("ההודעה לאורחים", () => {
-                                  markSent(stage.key, g.id);
-                                  window.open(url, "_blank", "noopener,noreferrer");
-                                })}
+                                onClick={() => guard("ההודעה לאורחים", () => { sendTo(stage, g, url); })}
                               >
                                 {already ? "שלחו שוב" : "שלחו בוואטסאפ"}
                               </button>
