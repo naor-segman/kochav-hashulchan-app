@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "../test/dom.js";
 import { normalizeEvent } from "../utils/eventHelpers.js";
 
@@ -30,6 +30,10 @@ function eventWith(guests) {
   return normalizeEvent({ id: "e1", cloudId: "c1", name: "x", guests,
     tokens: { rsvp: "a", invite: "b", gift: "c", album: "d", hostess: "e", collab: "f" } });
 }
+
+// Each case is a first visit: no last-agreed rows left behind by the one
+// before (89 — the hook now remembers them in localStorage per event).
+beforeEach(() => { localStorage.clear(); });
 
 describe("useCollabSync — a visit changes nothing that is already in step (סב56)", () => {
   it("rows the guest list already reflects produce no edit", async () => {
