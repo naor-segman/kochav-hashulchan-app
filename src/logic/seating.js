@@ -45,8 +45,11 @@ function affinityScore(guest, tableGuestIds, guestMap) {
 
 function guestSeats(g) { return g.count || 1; }
 
-function seatedCount(tState_entry, guestMap) {
-  return tState_entry.seated.reduce((s, id) => s + guestSeats(guestMap[id] || {}), 0);
+// Seats taken at a table. Kept as a running total by `sit` below instead of
+// re-summing `seated` on every call — that sum was the single hottest line of
+// the engine at 800 guests (סב58).
+function seatedCount(tState_entry) {
+  return tState_entry.used;
 }
 
 /**
@@ -93,11 +96,13 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
   // this, סב9) split exactly those pairs and sent the assistant in a circle:
   // "הפעילו חשבו מחדש", which split them again (third review 30.9, סב48).
   const closed = new Set(closedTableIds);
-  const tState    = tables.map(t => ({ id:t.id, capacity:t.capacity, seated:[] }));
+  const tState    = tables.map(t => ({ id:t.id, capacity:t.capacity, seated:[], used:0 }));
+  // The ONLY way anyone joins a table, so `used` cannot drift from `seated`.
+  const sit = (t, id) => { t.seated.push(id); t.used += guestSeats(guestMap[id] || {}); };
   guests.forEach(g => {
     if (lockedIds.has(g.id)) {
       const t = tState.find(t => t.id === lockedSeating[g.id]);
-      if (t) t.seated.push(g.id);
+      if (t) sit(t, g.id);
     }
   });
 
@@ -144,7 +149,7 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
     for (const t of candidates) {
       if (seatedCount(t, guestMap) + guestSeats(g) > t.capacity) continue;
       if (apartConflict(apartSet, unlockedId, t.seated)) continue;
-      t.seated.push(unlockedId);
+      sit(t, unlockedId);
       seating[unlockedId] = t.id;
       break;
     }
@@ -191,13 +196,19 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
       // measured 52 of 1,908 feasible events). `fitOnly` drops affinity
       // altogether; autoAssign uses it as a second opinion, never as the
       // default, because affinity is what keeps a side's guests together.
-      : tState.filter(t => !closed.has(t.id)).sort((a, b) =>
-          (opts.fitOnly ? 0 :
-            affinityScore(guestMap[pending[0]], b.seated, guestMap) -
-            affinityScore(guestMap[pending[0]], a.seated, guestMap)) ||
-          (opts.legacyOrder ? 0 :
-            (a.capacity - seatedCount(a, guestMap)) - (b.capacity - seatedCount(b, guestMap)))
-        );
+      //
+      // Both keys are computed ONCE per table, before the sort (סב58). In the
+      // comparator they were recomputed on every comparison — O(T log T)
+      // walks over every seated row, per family. Same keys, same stable sort,
+      // same order.
+      : tState.filter(t => !closed.has(t.id))
+          .map(t => ({
+            t,
+            aff: opts.fitOnly ? 0 : affinityScore(guestMap[pending[0]], t.seated, guestMap),
+            free: opts.legacyOrder ? 0 : t.capacity - seatedCount(t, guestMap),
+          }))
+          .sort((a, b) => (b.aff - a.aff) || (a.free - b.free))
+          .map(k => k.t);
 
     for (const t of candidates) {
       const used = seatedCount(t, guestMap);
@@ -209,7 +220,7 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
         combined.push(id);
       }
       if (!ok) continue;
-      pending.forEach(id => { t.seated.push(id); seating[id] = t.id; });
+      pending.forEach(id => { sit(t, id); seating[id] = t.id; });
       return true;
     }
     return false;
@@ -254,7 +265,7 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
       for (const id of remaining) {
         if (seatedCount(next, guestMap) + guestSeats(guestMap[id]) <= next.capacity
             && !apartConflict(apartSet, id, next.seated)) {
-          next.seated.push(id);
+          sit(next, id);
           seating[id] = next.id;
         } else {
           still.push(id);
