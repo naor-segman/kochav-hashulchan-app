@@ -29,22 +29,38 @@ import { COMPANY } from "../../data/company.js";
 // events screen already said it; this one now says it the same way.
 const SUBS_PAGE = 500;
 
+const SUBS_COLUMNS = "id, plan, status, payment_past_due, started_at, expires_at, created_at, updated_at, profiles!user_id(email)";
+const listSubs = (cols) => supabase
+  .from("subscriptions")
+  .select(cols)
+  .order("created_at", { ascending: false })
+  .limit(SUBS_PAGE);
+
 async function loadSubscriptionsData() {
-  const [listRes, countRes] = await Promise.all([
-    supabase
-      .from("subscriptions")
-      .select("id, plan, status, payment_past_due, started_at, expires_at, created_at, updated_at, profiles!user_id(email)")
-      .order("created_at", { ascending: false })
-      .limit(SUBS_PAGE),
+  const [firstRes, countRes] = await Promise.all([
+    // event_id and the event's name: since 28.9 a purchase unlocks ONE event,
+    // and the list could not say which (WORKPLAN 122).
+    listSubs(`${SUBS_COLUMNS}, event_id, is_manually_managed, events!event_id(name)`),
     supabase.from("subscriptions").select("id", { count: "exact", head: true }),
   ]);
+  // The embed was never run against the live API from here. If it is refused,
+  // the list still loads without the event column rather than not at all.
+  const listRes = firstRes.error ? await listSubs(SUBS_COLUMNS) : firstRes;
 
   if (listRes.error) throw listRes.error;
   const rows = (listRes.data || []).map(row => ({
     ...row,
     email: row.profiles?.email || "—",
+    eventLabel: firstRes.error ? "—" : purchaseScope(row),
   }));
   return attachWindowMeta(rows, SUBS_PAGE, countRes.error ? null : countRes.count);
+}
+
+/** What a purchase unlocks, in words: the event by name, an admin comp on the
+ *  whole account, or nothing (its event was deleted — 20260928000200). */
+function purchaseScope(row) {
+  if (row.event_id) return row.events?.name?.trim() || "אירוע ללא שם";
+  return row.is_manually_managed ? "כל החשבון (ידני)" : "— לא פותח אירוע";
 }
 
 // ── Badge components ──────────────────────────────────────────────────────────
@@ -190,7 +206,7 @@ export default function AdminSubscriptionsScreen() {
     if (filterStatus !== "all" && displayStatus(s) !== filterStatus) return false;
     if (search) {
       const q = search.toLowerCase();
-      if (!s.email.toLowerCase().includes(q)) return false;
+      if (!s.email.toLowerCase().includes(q) && !s.eventLabel.toLowerCase().includes(q)) return false;
     }
     return true;
   });
@@ -362,6 +378,7 @@ export default function AdminSubscriptionsScreen() {
                     <tr>
                       <th>אימייל</th>
                       <th>תוכנית</th>
+                      <th>אירוע</th>
                       <th>סטטוס</th>
                       <th>נוצר</th>
                       <th>פג תוקף</th>
@@ -379,6 +396,7 @@ export default function AdminSubscriptionsScreen() {
                         >
                           <td className={styles.emailCell} dir="ltr" title={s.email}>{s.email}</td>
                           <td><PlanBadge plan={s.plan} /></td>
+                          <td title={s.eventLabel}>{s.eventLabel}</td>
                           <td><StatusBadge status={displayStatus(s)} /></td>
                           <td className={styles.dateCell}>{formatDate(s.created_at)}</td>
                           <td className={styles.dateCell}>{formatDate(s.expires_at)}</td>
@@ -394,7 +412,7 @@ export default function AdminSubscriptionsScreen() {
                         </tr>
                         {expandedId === s.id && (
                           <tr className={styles.expandRow}>
-                            <td colSpan={6} className={styles.expandCell}>
+                            <td colSpan={7} className={styles.expandCell}>
                               <div className={styles.expandContent}>
                                 <span className={styles.expandTitle}>גבולות תוכנית {getPlanLabel(s.plan)}:</span>
                                 <PlanLimitsPanel plan={s.plan} />
