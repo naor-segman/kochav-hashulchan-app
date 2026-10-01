@@ -6,7 +6,7 @@ import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs, eventStartTime, knownStartTime, israelInstant } from "../utils/calendarFile.js";
-import { daysUntil } from "../utils/dateFormat.js";
+import { daysUntilIsrael } from "../utils/dateFormat.js";
 import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
@@ -185,7 +185,9 @@ export default function EventSiteScreen({ localEvent }) {
   // The shared album, from the day of the event on (WORKPLAN פ). Before then
   // there is nothing to upload, and a link to an empty album on a site guests
   // open weeks ahead reads as broken. The thank-you message links it too (88).
-  const albumDays = daysUntil(ev.date);
+  // Israel's today, not the device's: a guest abroad on the evening before is
+  // already on the day in Israel (T5).
+  const albumDays = daysUntilIsrael(ev.date);
   const albumUrl = ev.albumToken && albumDays !== null && albumDays <= 0
     ? `/album/${ev.albumToken}` : null;
 

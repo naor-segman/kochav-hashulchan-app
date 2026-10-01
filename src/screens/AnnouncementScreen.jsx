@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncement } from "../data/announcementTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs, knownStartTime } from "../utils/calendarFile.js";
-import { fmtDate, daysUntil } from "../utils/dateFormat.js";
+import { fmtDate, daysUntilIsrael } from "../utils/dateFormat.js";
 import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
@@ -53,6 +53,9 @@ const MOCK = {
  * `daysUntil` counts CALENDAR days from local midnight to local midnight, which
  * is what "ימים לאירוע" means. The interval stays: the page can sit open past
  * midnight and the number has to change when the date does.
+ *
+ * Midnight IN ISRAEL (daysUntilIsrael, T5): a guest abroad is on a different
+ * date for part of every day, and the event's date is Israel's.
  */
 function useCountdown(date) {
   const [, setTick] = useState(0);
@@ -62,7 +65,7 @@ function useCountdown(date) {
     return () => clearInterval(id);
   }, [date]);
   if (!date) return null;
-  const days = daysUntil(date);
+  const days = daysUntilIsrael(date);
   // null on an unparseable date; nothing on the day itself or after it, which
   // is where the page switches to its own "today" copy.
   if (days === null || days <= 0) return null;

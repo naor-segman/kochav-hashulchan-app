@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AREAS, BUILD_STEPS } from "../data/eventAreas.js";
 import { fmtDate, daysUntil } from "../utils/dateFormat.js";
@@ -100,7 +100,6 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   // nothing in it yet. It is a suggestion, not a gate — every other step stays
   // one click away, because some venues fix the table count in the contract.
   const nextStep = BUILD_STEPS.find(s => !done(s.id)) || null;
-  const days = daysUntil(ev.date);
 
   return (
     <div className={base.pageWide}>
@@ -117,14 +116,7 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
         </div>
 
         <div className={styles.headSide}>
-          {days != null && days >= 0 && (
-            <div className={styles.countdown}>
-              <span className={styles.countBig}>{days}</span>
-              <span className={styles.countCaption}>
-                {days === 0 ? "האירוע היום" : days === 1 ? "יום לאירוע" : "ימים לאירוע"}
-              </span>
-            </div>
-          )}
+          <HubCountdown date={ev.date} />
           {!orientation.open && (
             <button className={styles.howBtn} onClick={orientation.show}>
               <Icon name="question" size={14} /> איך זה עובד
@@ -232,6 +224,29 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           </section>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* Days to the event. It was computed once per render of the hub, so a hub
+ * left open overnight — the screen a host keeps open — still said "1 יום
+ * לאירוע" on the morning of the event (T5). It re-reads the date every minute,
+ * in its own component so the tick re-renders the number and not the page. */
+function HubCountdown({ date }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!date) return;
+    const id = setInterval(() => setTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, [date]);
+  const days = daysUntil(date);
+  if (days == null || days < 0) return null;
+  return (
+    <div className={styles.countdown}>
+      <span className={styles.countBig}>{days}</span>
+      <span className={styles.countCaption}>
+        {days === 0 ? "האירוע היום" : days === 1 ? "יום לאירוע" : "ימים לאירוע"}
+      </span>
     </div>
   );
 }
