@@ -128,6 +128,24 @@
   padding: 28px 0;
 }
 
+/* The list did not load — not the same thing as an empty album (36i). */
+.listError {
+  text-align: center;
+  padding: 20px 0;
+}
+.listErrorText { margin: 0 0 6px; font-size: var(--step-0); color: var(--text2); }
+.retry {
+  padding: 8px 12px;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--accent-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.retry:disabled { color: var(--muted); cursor: default; }
+
 /* ── Lightbox ────────────────────────────────────────────────────────────── */
 .lightbox {
   position: fixed;

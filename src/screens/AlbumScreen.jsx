@@ -48,6 +48,11 @@ export default function AlbumScreen() {
   const [name, setName]     = useState(readName);
   const [busy, setBusy]     = useState(0);
   const [error, setError]   = useState("");
+  // The photo list failing to load is not the same as an empty album (36i):
+  // "no photos yet — be the first" over a list that never arrived told a
+  // guest the album was empty when it was full.
+  const [listError, setListError] = useState(false);
+  const [listing, setListing]     = useState(false);
   const [lightbox, setLightbox] = useState(null);
   const closeLightbox = useCallback(() => setLightbox(null), []);
 
@@ -65,14 +70,27 @@ export default function AlbumScreen() {
       if (!ev) { setState(isSupabaseConfigured ? "error" : "nocloud"); return; }
       setEvent(ev);
       setState("ready");
-      try { setPhotos(await fetchAlbumPhotos(token)); } catch { /* gallery just stays empty */ }
+      try {
+        const list = await fetchAlbumPhotos(token);
+        if (!cancelled) { setPhotos(list); setListError(false); }
+      } catch {
+        if (!cancelled) setListError(true);
+      }
     })();
     return () => { cancelled = true; };
   }, [token]);
 
   const reload = useCallback(async () => {
     if (!event?.cloudId) return;
-    try { setPhotos(await fetchAlbumPhotos(token)); } catch { /* keep what we have */ }
+    setListing(true);
+    try {
+      setPhotos(await fetchAlbumPhotos(token));
+      setListError(false);
+    } catch {
+      setListError(true);              // keep what we have, and say it may be stale
+    } finally {
+      setListing(false);
+    }
   }, [event, token]);
 
   const MAX_BATCH = 30;
@@ -201,8 +219,19 @@ export default function AlbumScreen() {
         <GuestPrivacyNote text="התמונות והשם שתכתבו גלויים לכל מי שיש לו את הקישור לאלבום." />
       </div>
 
+      {listError && (
+        <div className={styles.listError} role="alert">
+          <p className={styles.listErrorText}>
+            {photos.length === 0 ? "לא הצלחנו לטעון את התמונות שבאלבום." : "לא הצלחנו לרענן את האלבום — ייתכן שחסרות תמונות חדשות."}
+          </p>
+          <button type="button" className={styles.retry} onClick={reload} disabled={listing}>
+            {listing ? "טוען…" : "נסו שוב"}
+          </button>
+        </div>
+      )}
+
       {photos.length === 0 ? (
-        <p className={styles.empty}>עדיין אין תמונות — תהיו הראשונים 🎉</p>
+        !listError && <p className={styles.empty}>עדיין אין תמונות — תהיו הראשונים 🎉</p>
       ) : (
         <>
           <p className={styles.count}>{photos.length === 1 ? "תמונה אחת" : `${photos.length} תמונות`}</p>
