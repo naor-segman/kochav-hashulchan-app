@@ -171,7 +171,7 @@ export default function AdminUsersScreen() {
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminUsers" tone="admin" size={20} className={styles.brandMark} />
-          <span className={styles.brandName}>ניהול משתמשים</span>
+          <h1 className={styles.brandName}>ניהול משתמשים</h1>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>{COMPANY.name}</span>
           {/* Was green and unconditional — including with a 500 banner under

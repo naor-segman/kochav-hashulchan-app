@@ -30,6 +30,9 @@
 }
 
 .brandName {
+  /* An <h1> since AX9 (the screen had none). It keeps the span's look:
+     reset.css gives headings the display face and a tight line-height. */
+  font-family: inherit; line-height: inherit;
   font-size: var(--step-1);
   font-weight: 800;
   color: var(--adm-ink);

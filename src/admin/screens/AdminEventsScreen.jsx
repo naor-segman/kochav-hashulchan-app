@@ -144,7 +144,7 @@ export default function AdminEventsScreen() {
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminEvents" tone="admin" size={20} className={styles.brandMark} />
-          <span className={styles.brandName}>כל האירועים</span>
+          <h1 className={styles.brandName}>כל האירועים</h1>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>{COMPANY.name}</span>
           {/* Was green and unconditional, including with a 500 banner under it

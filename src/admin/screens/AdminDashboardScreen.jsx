@@ -100,7 +100,7 @@ export default function AdminDashboardScreen() {
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <SectionMark name="adminOverview" tone="admin" size={20} className={styles.brandMark} />
-          <span className={styles.brandName}>לוח בקרה</span>
+          <h1 className={styles.brandName}>לוח בקרה</h1>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>{COMPANY.name}</span>
           {/* Was green and unconditional — it stayed green with a red error
