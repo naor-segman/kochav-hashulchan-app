@@ -93,6 +93,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
     refresh:         refreshSub,
   } = useSubscription();
   const [signingOut,      setSigningOut]      = useState(false);
+  const [signOutError,    setSignOutError]    = useState("");
   const [checkoutResult,  setCheckoutResult]  = useState(null); // "success" | "cancelled" | null
   const [pwForm,          setPwForm]          = useState({ current: "", next: "", confirm: "" });
   const [pwSaving,        setPwSaving]        = useState(false);
@@ -125,9 +126,22 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A sign-out that failed (offline, server down) used to navigate home
+  // anyway — it looked exactly like success while the session, and the
+  // account's events, stayed on the device (37a). It stays here and says so.
+  // The button is aria-disabled rather than disabled while it works, so the
+  // keyboard focus is still on it when the error is announced.
   const handleSignOut = async () => {
+    if (signingOut) return;
     setSigningOut(true);
-    await signOut();
+    setSignOutError("");
+    try {
+      await signOut();
+    } catch {
+      setSigningOut(false);
+      setSignOutError("ההתנתקות לא הושלמה ואתם עדיין מחוברים. בדקו את החיבור לאינטרנט ונסו שוב.");
+      return;
+    }
     navigate("/", { replace: true });
   };
 
@@ -607,7 +621,9 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
           <button
             className={styles.signOutBtn}
             onClick={handleSignOut}
-            disabled={signingOut}
+            aria-disabled={signingOut || undefined}
+            aria-describedby={signOutError ? "account-signout-error" : undefined}
+            type="button"
           >
             {signingOut ? "מתנתק…" : "התנתקות"}
           </button>
@@ -619,6 +635,11 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
             מחיקת נתונים מקומיים מהמכשיר
           </button>
         </div>
+        {signOutError && (
+          <p id="account-signout-error" role="alert" className={styles.billingError}>
+            {signOutError}
+          </p>
+        )}
         <p className={styles.clearLocalHint}>
           העותק של האירועים נשמר גם בדפדפן הזה כדי שהאפליקציה תעבוד גם בלי רשת.
           בהתנתקות נמחק מהמכשיר כל מה שכבר מסונכרן לענן; מה שטרם הספיק

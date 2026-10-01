@@ -420,13 +420,14 @@
   transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
-.signOutBtn:hover:not(:disabled) {
+.signOutBtn:hover:not(:disabled, [aria-disabled="true"]) {
   background: var(--red-bg);
   border-color: var(--red-border);
   color: var(--red);
 }
 
-.signOutBtn:disabled {
+.signOutBtn:disabled,
+.signOutBtn[aria-disabled="true"] {
   opacity: 0.55;
   cursor: not-allowed;
 }

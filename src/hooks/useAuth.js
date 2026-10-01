@@ -27,7 +27,7 @@ const SUPABASE_CACHE = "supabase-api";
 //             Supabase is not configured
 //   signIn(email, password) — throws on error
 //   signUp(email, password, meta?) — resolves { needsConfirmation: bool }; throws on error
-//   signOut()               — no-op when not configured
+//   signOut()               — throws on error; no-op when not configured
 
 const AuthContext = createContext(null);
 
@@ -189,9 +189,14 @@ export function AuthProvider({ children }) {
     return { needsConfirmation: !data.session };
   }, []);
 
+  // Throws when the server refused or could not be reached (37a). supabase-js
+  // then KEEPS the session — it only clears it after a successful logout call,
+  // and even `scope: "local"` makes that call first — so the caller must not
+  // carry on as though the user had left: the next page would still be theirs.
   const signOut = useCallback(async () => {
     if (!supabase) return;
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   }, []);
 
   const value = useMemo(
