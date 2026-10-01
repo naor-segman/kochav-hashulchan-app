@@ -9,6 +9,7 @@ import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
 import { formatDate } from "../lib/adminFormat.js";
+import { attachWindowMeta } from "../lib/listWindow.js";
 import { COMPANY } from "../../data/company.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -83,10 +84,10 @@ async function loadUsersData() {
   });
 
   // The true row count, so the screen can say "500 of 1,240" instead of
-  // presenting a truncated window as the whole customer base.
-  rows.total = totalRes.count ?? rows.length;
-  rows.truncated = rows.length >= USERS_PAGE;
-  return rows;
+  // presenting a truncated window as the whole customer base. Through the
+  // shared helper: `rows.length >= USERS_PAGE` on its own called a base of
+  // exactly 500 users truncated (WORKPLAN 112).
+  return attachWindowMeta(rows, USERS_PAGE, totalRes.error ? null : totalRes.count);
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -209,7 +210,8 @@ export default function AdminUsersScreen() {
                 : ""
               } משתמשים
               {users?.truncated && (
-                <span className={styles.truncNote}> · מוצגים {USERS_PAGE} הראשונים</span>
+                // Ordered newest first: these are the LATEST signups, not the first.
+                <span className={styles.truncNote}> · מוצגים {USERS_PAGE} שנרשמו אחרונים</span>
               )}
             </span>
           )}
@@ -224,7 +226,13 @@ export default function AdminUsersScreen() {
         {!loading && !error && filtered.length === 0 && (
           <div className={styles.stateBox}>
             {search.trim()
-              ? <><p className={styles.emptyTitle}>לא נמצאו תוצאות</p><p className={styles.emptyHint}>נסה לחפש מונח אחר</p></>
+              ? <><p className={styles.emptyTitle}>לא נמצאו תוצאות</p><p className={styles.emptyHint}>
+                  {/* The search runs over the loaded window only. Past it, "not
+                      found" read as "no such customer" (WORKPLAN 112). */}
+                  {users?.truncated
+                    ? `החיפוש רץ על ${USERS_PAGE} המשתמשים שנרשמו אחרונים, מתוך ${(users.total ?? users.length).toLocaleString()} — משתמש ותיק יותר לא נכלל בו.`
+                    : "נסה לחפש מונח אחר"}
+                </p></>
               : <><p className={styles.emptyTitle}>אין משתמשים עדיין</p><p className={styles.emptyHint}>משתמשים יופיעו כאן לאחר הרשמה ראשונה</p></>
             }
           </div>
