@@ -63,8 +63,16 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
   // exists to collect. This screen is about the SHARED TABLE, so that is what
   // it hands you; the full guest list has its own export in the guest manager.
   // xlsx is still loaded on demand inside the helper.
-  const downloadExcel = () =>
-    exportCollabTableToExcel(rows, { eventName: ev.name, sideLabels: sides });
+  // A failure was silent: the promise rejected into nothing and the button
+  // simply did nothing (89, 1.10) — xlsx loads on demand, so a dropped
+  // connection is the usual cause.
+  const downloadExcel = async () => {
+    try {
+      await exportCollabTableToExcel(rows, { eventName: ev.name, sideLabels: sides });
+    } catch {
+      showToast("ההורדה לא הצליחה — בדקו את החיבור ונסו שוב", "err");
+    }
+  };
 
   return (
     <div className={base.page}>
