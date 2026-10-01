@@ -87,6 +87,7 @@ const HelpScreen          = lazy(() => import("./screens/HelpScreen.jsx"));
 const FeedbackScreen      = lazy(() => import("./screens/FeedbackScreen.jsx"));
 const PrivacyScreen       = lazy(() => import("./screens/PrivacyScreen.jsx"));
 const TermsScreen         = lazy(() => import("./screens/TermsScreen.jsx"));
+const RefundScreen        = lazy(() => import("./screens/RefundScreen.jsx"));
 const AccessibilityScreen = lazy(() => import("./screens/AccessibilityScreen.jsx"));
 
 // ── Event layout + nested routes ─────────────────────────────────────────────
@@ -535,6 +536,7 @@ function AppRoutes() {
       <Route path="/help"          element={<Suspense fallback={<Loading />}><HelpScreen /></Suspense>} />
       <Route path="/privacy"       element={<Suspense fallback={<Loading />}><PrivacyScreen /></Suspense>} />
       <Route path="/terms"         element={<Suspense fallback={<Loading />}><TermsScreen /></Suspense>} />
+      <Route path="/refunds"       element={<Suspense fallback={<Loading />}><RefundScreen /></Suspense>} />
       <Route path="/accessibility" element={<Suspense fallback={<Loading />}><AccessibilityScreen /></Suspense>} />
       <Route path="/feedback"      element={<Suspense fallback={<Loading />}><FeedbackScreen /></Suspense>} />
 

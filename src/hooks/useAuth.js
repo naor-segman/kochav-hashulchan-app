@@ -26,7 +26,7 @@ const SUPABASE_CACHE = "supabase-api";
 //   loading — true only during initial session restore; false immediately when
 //             Supabase is not configured
 //   signIn(email, password) — throws on error
-//   signUp(email, password) — resolves { needsConfirmation: bool }; throws on error
+//   signUp(email, password, meta?) — resolves { needsConfirmation: bool }; throws on error
 //   signOut()               — no-op when not configured
 
 const AuthContext = createContext(null);
@@ -172,12 +172,17 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   }, []);
 
-  const signUp = useCallback(async (email, password) => {
+  // `meta` lands in the auth user's metadata — the signup records which
+  // version of the terms was agreed to and when (checklist 103).
+  const signUp = useCallback(async (email, password, meta) => {
     if (!supabase) throw new Error("Supabase not configured");
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin + "/auth/callback" },
+      options: {
+        emailRedirectTo: window.location.origin + "/auth/callback",
+        ...(meta ? { data: meta } : {}),
+      },
     });
     if (error) throw error;
     // session is null when email confirmation is required

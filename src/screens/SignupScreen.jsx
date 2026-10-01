@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { track, EVENTS } from "../lib/analytics.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
-import { COMPANY } from "../data/company.js";
+import { COMPANY, LEGAL_DOCS } from "../data/company.js";
 import styles from "./LoginScreen.module.css"; // shares layout styles
 
 function friendlyError(message) {
@@ -36,6 +36,7 @@ export default function SignupScreen() {
   const [confirm,  setConfirm]  = useState("");
   const [error,    setError]    = useState("");
   const [showPw,   setShowPw]   = useState(false);
+  const [agree,    setAgree]    = useState(false);
   const [busy,        setBusy]        = useState(false);
   const [done,        setDone]        = useState(false); // email confirmation sent
   const [resentDone,  setResentDone]  = useState(false);
@@ -58,10 +59,19 @@ export default function SignupScreen() {
       setError("הסיסמה חייבת להכיל לפחות 6 תווים.");
       return;
     }
+    // Checklist 103: agreeing to the terms is an act, not a side effect of
+    // pressing "הרשמה" — and the version agreed to is recorded with the user.
+    if (!agree) {
+      setError("כדי להירשם צריך לאשר את תנאי השימוש ומדיניות הפרטיות.");
+      return;
+    }
 
     setBusy(true);
     try {
-      const { needsConfirmation } = await signUp(email.trim(), password);
+      const { needsConfirmation } = await signUp(email.trim(), password, {
+        terms_version: LEGAL_DOCS.version,
+        terms_accepted_at: new Date().toISOString(),
+      });
       // Step 1 of the funnel. Fired on success only — a failed attempt is a
       // different question, and counting it here would inflate the top of the
       // funnel with people who never got in.
@@ -212,7 +222,23 @@ export default function SignupScreen() {
             />
           </div>
 
-          {error && <p className={styles.errorMsg}>{error}</p>}
+          <label className={styles.consent}>
+            <input
+              type="checkbox"
+              className={styles.consentBox}
+              checked={agree}
+              onChange={e => setAgree(e.target.checked)}
+              disabled={!isSupabaseConfigured || busy}
+            />
+            <span>
+              אני מעל גיל 18, וקראתי ואני מסכים/ה ל
+              <Link to="/terms" target="_blank" rel="noopener" className={styles.consentLink}>תנאי השימוש</Link>
+              {" "}ול
+              <Link to="/privacy" target="_blank" rel="noopener" className={styles.consentLink}>מדיניות הפרטיות</Link>
+            </span>
+          </label>
+
+          {error && <p className={styles.errorMsg} role="alert">{error}</p>}
 
           <button
             type="submit"

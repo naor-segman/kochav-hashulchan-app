@@ -76,6 +76,11 @@
   status = 200
 
 [[redirects]]
+  from   = "/refunds"
+  to     = "/refunds/index.html"
+  status = 200
+
+[[redirects]]
   from   = "/privacy"
   to     = "/privacy/index.html"
   status = 200

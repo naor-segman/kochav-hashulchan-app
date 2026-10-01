@@ -7,6 +7,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { useRestoreFocus } from "../hooks/useRestoreFocus.js";
+import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 /**
  * Public shared album — guests and the photographer upload here.
@@ -228,6 +229,7 @@ export default function AlbumScreen() {
         </label>
 
         {error && <p className={styles.error} role="alert">{error}</p>}
+        <GuestPrivacyNote text="התמונות והשם שתכתבו גלויים לכל מי שיש לו את הקישור לאלבום." />
       </div>
 
       {photos.length === 0 ? (

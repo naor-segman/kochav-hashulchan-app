@@ -8,6 +8,7 @@ import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
 import { guestHosts, guestEventType } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 const MOCK_EVENT = {
   name: "חתונת נועה וטל",
@@ -374,6 +375,7 @@ export default function GiftScreen() {
           >
             {btnLabel}
           </button>
+          <GuestPrivacyNote text="השם, הברכה והסכום נשמרים אצל בעלי האירוע. הסכום לא מוצג לאף אחד אחר." />
 
           {/* The "what happens now" card above already says where the blessing
               goes; repeating it here was the same sentence twice on one card. */}

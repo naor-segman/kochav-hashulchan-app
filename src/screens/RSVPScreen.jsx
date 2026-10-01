@@ -12,6 +12,7 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
 import { COMPANY } from "../data/company.js";
 import { track, EVENTS } from "../lib/analytics.js";
+import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 // DEV-only preview fallback — used only when import.meta.env.DEV and Supabase
 // returns no event, so the page can be designed without a live token.
@@ -515,6 +516,7 @@ export default function RSVPScreen() {
               >
                 {submitting ? "שולח…" : (answer === "maybe" ? "שלחו תשובה ←" : "שלחו אישור הגעה ←")}
               </button>
+              <GuestPrivacyNote />
             </form>
 
             <button
@@ -582,6 +584,7 @@ export default function RSVPScreen() {
             >
               {submitting ? "שולח…" : "שלחו"}
             </button>
+            <GuestPrivacyNote />
 
             <button
               type="button"

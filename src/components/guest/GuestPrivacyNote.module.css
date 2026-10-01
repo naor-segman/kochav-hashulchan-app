@@ -1,0 +1,22 @@
+/* Quiet on purpose: it sits under a submit button. --text2, not --muted —
+   these forms sit on --bg and on white cards, and --muted is the one that
+   drops below 4.5:1 on a tint (CLAUDE.md bug class 5). */
+.note {
+  margin: 10px 0 0;
+  font-size: var(--step--2);
+  line-height: 1.6;
+  color: var(--text2);
+  text-align: center;
+}
+
+.link {
+  color: var(--accent-text);
+  font-weight: 600;
+  text-underline-offset: 2px;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--cta);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}

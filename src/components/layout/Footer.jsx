@@ -43,6 +43,7 @@ export default function Footer() {
             <a href={supportMailto()} className={styles.colLink}>צרו קשר</a>
             <Link to="/privacy" className={styles.colLink}>מדיניות פרטיות</Link>
             <Link to="/terms" className={styles.colLink}>תנאי שימוש</Link>
+            <Link to="/refunds" className={styles.colLink}>ביטול והחזרים</Link>
             <Link to="/accessibility" className={styles.colLink}>הצהרת נגישות</Link>
           </div>
         </div>

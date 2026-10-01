@@ -16,6 +16,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { collabGroupOptions } from "../utils/guestRoutes.js";
+import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 // DEV mock so the page can be designed without a live token.
 const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתונה", brideName: "נועה", groomName: "טל", coupleType: "bride-groom", sideLabels: null };
@@ -292,6 +293,7 @@ export default function CollabScreen() {
                 the guest manager's button, which hands you a different file. */}
             <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}><Icon name="download" /> הורדת הטבלה לאקסל</button>
           </div>
+          <GuestPrivacyNote text="מה שתוסיפו גלוי לכל מי שיש לו את הקישור לטבלה, ועובר לבעלי האירוע." />
           <div className={styles.counts}>
             {rows.length} רשומות · <span className={styles.ok}>{completeCount} מלאות ומסונכרנות</span>
             {rows.length - completeCount > 0 && <> · <span className={styles.warn}>{rows.length - completeCount} חסרות פרטים</span></>}

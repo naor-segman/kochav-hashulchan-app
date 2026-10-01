@@ -81,6 +81,19 @@ export const LEGAL = {
   address: "גלוסקין 38, רחובות",
 };
 
+/**
+ * The version of the terms, privacy and refund pages (checklist 103).
+ *
+ * One date for the three of them, because a signup records which version the
+ * person agreed to (`terms_version` in the auth user's metadata) and that has
+ * to name the text they actually saw. Change `version` and `updated` together,
+ * whenever any of the three pages changes in substance.
+ */
+export const LEGAL_DOCS = {
+  version: "2026-10-01",
+  updated: "1 באוקטובר 2026",
+};
+
 /** "נאור סגמן, עוסק פטור 313614067" — the identity line, built once. */
 export function legalLine() {
   return `${LEGAL.name}, ${LEGAL.type} ${LEGAL.taxId}`;
