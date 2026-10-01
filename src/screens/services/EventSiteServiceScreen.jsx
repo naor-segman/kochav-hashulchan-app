@@ -14,9 +14,9 @@ import styles from "./ServicePage.module.css";
  * things came back that look advertisable and are not. They are recorded in
  * WORKPLAN (rows נ–ש); the ones that shaped this page's copy:
  *
- *   • CUSTOM DOMAIN is dead. The editor has a "דומיין משלכם" field and even
- *     prints CNAME instructions, but `site.customDomain` is read by nothing in
- *     src/ or netlify/. Not mentioned here, at all.
+ *   • CUSTOM DOMAIN is dead. `site.customDomain` is read by nothing in src/ or
+ *     netlify/, and the editor's field for it was removed (נ). Not mentioned
+ *     here, at all.
  *   • The ALBUM had no host gallery and no moderation until checklist 57
  *     (28.9). It now has both — AFTER the fact: the host can hide or delete a
  *     photo, but there is still no approval before a photo appears. So this page

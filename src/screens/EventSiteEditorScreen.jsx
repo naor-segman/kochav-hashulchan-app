@@ -368,27 +368,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           </Field>
         </div>
 
-        <div className={styles.domainBox}>
-          <Field label="דומיין משלכם" hint="אופציונלי — למשל dana-and-yossi.co.il">
-            <input
-              className={base.input}
-              value={site.customDomain || ""}
-              dir="ltr"
-              placeholder="example.co.il"
-              onChange={e => set({ customDomain: e.target.value.trim().replace(/^https?:\/\//, "") })}
-            />
-          </Field>
-          {site.customDomain
-            ? <p className={base.fieldHint}>
-                כדי שזה יעבוד, הפנו את הדומיין לשרת שלנו אצל רשם הדומיינים:
-                רשומת <code>CNAME</code> בשם <code>www</code> אל <code>{window.location.hostname}</code>.
-                עד שההפניה תתפוס, הקישור הרגיל למעלה ממשיך לעבוד כרגיל.
-              </p>
-            : <p className={base.fieldHint}>
-                בלי דומיין משלכם האתר עובד מצוין בקישור שלמעלה — זו תוספת נוחות, לא דרישה.
-              </p>}
-        </div>
-
+        {/* There was a "דומיין משלכם" field here, with CNAME instructions.
+            Nothing in src/ or netlify/ ever read `site.customDomain`, so a host
+            who bought a domain and pointed it at us got nothing (נ). The field
+            is gone; the key stays in normalizeEvent/defaultEventSite so a value
+            already stored still round-trips through the cloud. */}
         <p className={[base.fieldHint, styles.sectionHint].join(" ")}>גופן הכותרות באתר.</p>
         <div className={styles.fontGrid}>
           {SITE_FONTS.map(f => (
