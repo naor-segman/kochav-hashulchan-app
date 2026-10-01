@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { MemoryRouter } from "react-router-dom";
 import { render, screen, fireEvent } from "../../test/dom.js";
 import { normalizeEvent } from "../../utils/eventHelpers.js";
+import { COMPANY } from "../../data/company.js";
 
 /* AX9 — skip link, decorative ✦, reduced motion. */
 
@@ -48,7 +49,7 @@ describe("Shell skip link (AX9)", () => {
     const logo = screen.getAllByRole("button").find(b => b.textContent.includes("✦"));
     expect(logo).toBeTruthy();
     // jsdom's accessible-name computation honours aria-hidden.
-    expect(screen.getByRole("button", { name: /רוויה|כוכב/ })).toBe(logo);
+    expect(screen.getByRole("button", { name: new RegExp("^" + COMPANY.name) })).toBe(logo);
     expect(screen.queryByRole("button", { name: /✦/ })).toBeNull();
   });
 });
