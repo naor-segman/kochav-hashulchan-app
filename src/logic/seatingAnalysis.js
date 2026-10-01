@@ -853,8 +853,11 @@ export function generateSuggestions(
       const dominantPct = Math.max(bc, gc) / tg.length;
       if (dominantPct < 0.8) return;
 
-      const dominant = bc > gc ? "כלה" : "חתן";
-      const minority = bc > gc ? "חתן" : "כלה";
+      // The event's own side labels — "משפחת האם" at a bar mitzvah, not a
+      // hard-coded "כלה" (סב34e). Each label is a full phrase ("צד כלה"), so it
+      // takes the מ- prefix as it stands.
+      const dominant = bc > gc ? brideLabel : groomLabel;
+      const minority = bc > gc ? groomLabel : brideLabel;
       const minSide  = Math.min(bc, gc);
       imbalanceCount++;
       suggestions.push({
@@ -862,10 +865,14 @@ export function generateSuggestions(
         type:              "side_imbalance",
         severity:          "info",
         section:           "opportunities",
-        explanation:       `${t.name}: ${Math.round(dominantPct * 100)}% מצד ${dominant}`,
-        whyMatters:        `${minSide} אורחים מצד ${minority} עלולים להרגיש "חיצוניים" בשולחן זה`,
+        explanation:       `${t.name}: ${Math.round(dominantPct * 100)}% מ${dominant}`,
+        whyMatters:        minSide === 1
+          ? `אורח אחד מ${minority} עלול להרגיש "חיצוני" בשולחן זה`
+          : `${minSide} אורחים מ${minority} עלולים להרגיש "חיצוניים" בשולחן זה`,
         impact:            `חוסר איזון בין ${dominant} ל${minority} בשולחן אחד`,
-        recommendedAction: `שקלו לשבץ את ${minSide} אורחי צד ${minority} עם בני ביתם בשולחן אחר`,
+        recommendedAction: minSide === 1
+          ? `שקלו להושיב את האורח מ${minority} עם בני ביתו בשולחן אחר`
+          : `שקלו לשבץ את ${minSide} האורחים מ${minority} עם בני ביתם בשולחן אחר`,
         canApply:          false,
         applyAction:       null,
         score:             2,
