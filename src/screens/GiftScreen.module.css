@@ -163,6 +163,7 @@
   margin: 0 0 6px;
   line-height: 1.18;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 .eventSub {
@@ -564,6 +565,7 @@
   margin: 0 0 24px;
   text-wrap: balance;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 /* Summary details block.

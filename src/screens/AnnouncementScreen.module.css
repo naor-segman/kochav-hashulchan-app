@@ -94,6 +94,7 @@
   font-weight: 700;
   line-height: 1.12;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 .headline {

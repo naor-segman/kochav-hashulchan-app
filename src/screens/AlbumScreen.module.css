@@ -23,6 +23,7 @@
   margin: 0 0 6px;
   text-wrap: balance;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .sub { margin: 0; font-size: var(--step-0); color: var(--muted); line-height: 1.6; }

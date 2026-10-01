@@ -21,7 +21,7 @@
 }
 /* --accent-text is 2.6:1 on the near-black bar; --accent-on-dark is 9.3:1. */
 .headerMark { color: var(--accent-on-dark); font-size: var(--step-1); }
-.headerName { font-size: var(--step-1); font-weight: 700; color: var(--nav-text); }
+.headerName { font-size: var(--step-1); font-weight: 700; color: var(--nav-text); overflow-wrap: anywhere; min-width: 0; }
 
 .wrapWide { flex: 1; width: 100%; max-width: 680px; margin: 0 auto; padding: 20px 16px 48px; }
 
@@ -32,8 +32,9 @@
 .title {
   font-family: var(--font-family-serif); font-size: var(--step-3); font-weight: 700; color: var(--text);
   margin: 0 0 8px; line-height: 1.2;
+  overflow-wrap: anywhere;
 }
-.sub { font-size: var(--step-0); color: var(--text2); line-height: 1.7; margin: 0 0 18px; }
+.sub { font-size: var(--step-0); color: var(--text2); line-height: 1.7; margin: 0 0 18px; overflow-wrap: anywhere; }
 
 /* Fields are the whole job of this page, so they are drawn, not implied.
    --border at 1px on white is a 1.2:1 line — on a phone in a hall it simply
