@@ -74,6 +74,38 @@ function fingerprints(ev) {
   return Object.fromEntries(SCALAR_FIELDS.map(f => [f, hash(canonical(n[f]))]));
 }
 
+/* ── The event site, per key (33e) ───────────────────────────────────────────
+ * `eventSite` is one scalar field above, so when BOTH devices touched the
+ * site — one deleted a gallery photo, the other edited the story — the newer
+ * copy won whole and the deleted photo came back (and a stale cover with it).
+ * The base also keeps one fingerprint per site key, "key:fp,…", and a site
+ * both sides changed is merged key by key: the side that moved each key wins
+ * it, a key both moved goes to the newer copy as before. */
+const siteOf = (ev) => normalizeEvent({ eventSite: ev?.eventSite, type: ev?.type }).eventSite;
+function siteKeyFps(site) {
+  return new Map(Object.keys(site || {}).map(k => [k, hash(canonical(site[k])).slice(-7)]));
+}
+const siteKeysString = (site) => [...siteKeyFps(site)].map(([k, fp]) => `${k}:${fp}`).join(",");
+
+function mergeSiteByKey(merged, local, cloud, baseString) {
+  const base = parseRowBase(baseString);
+  const nm = siteOf(merged), nl = siteOf(local), nc = siteOf(cloud);
+  const fl = siteKeyFps(nl), fc = siteKeyFps(nc), fm = siteKeyFps(nm);
+  let out = nm, changed = false, localKept = false;
+  for (const k of new Set([...fl.keys(), ...fc.keys()])) {
+    const l = fl.get(k), c = fc.get(k), b = base.get(k);
+    if (l === c || b === undefined) continue;
+    const lMoved = l !== b, cMoved = c !== b;
+    if (lMoved === cMoved) continue;
+    const src = lMoved ? nl : nc;
+    if (lMoved) localKept = true;
+    if (fm.get(k) === (lMoved ? l : c)) continue;
+    if (!changed) { out = { ...nm }; changed = true; }
+    out[k] = src[k];
+  }
+  return { site: changed ? out : merged.eventSite, changed, localKept };
+}
+
 /* ── Per guest field (fifth review 30.9) ─────────────────────────────────────
  * Guest rows merged WHOLE: whichever side won on the event's updatedAt kept its
  * copy of every row both sides hold, so a note typed offline was lost the
@@ -268,6 +300,7 @@ export function syncBaseOf(ev) {
     if (g) { f.guests = g; f.arrivalsBase = "1"; f.seatingBase = "1"; }
     const t = tableFingerprints(ev?.tables);
     if (t) f.tables = t;
+    f.siteKeys = siteKeysString(siteOf(ev));
   }
   return f;
 }
@@ -289,6 +322,12 @@ export function threeWayScalars(merged, local, cloud, base) {
     if (typeof b !== "string") continue;
     const lMoved = fl[f] !== b;
     const cMoved = fc[f] !== b;
+    if (lMoved && cMoved && f === "eventSite" && typeof base.siteKeys === "string") {
+      const r = mergeSiteByKey(event, local, cloud, base.siteKeys);
+      if (r.changed) event = { ...event, eventSite: r.site };
+      if (r.localKept) localKept = true;
+      continue;
+    }
     if (lMoved === cMoved) continue;   // a real conflict (old rule), or no change
     if (cMoved) {
       if (fm[f] !== fc[f]) event = { ...event, [f]: cloud[f] };
