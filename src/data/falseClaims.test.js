@@ -42,6 +42,9 @@ const FALSE = [
   [/הכל לאקסל/, "everything exports to Excel"],
   // There is no PDF export anywhere in the product (checklist 36).
   [/\(PDF/, "a PDF export"],
+  // RSVP answers update the list only for matched guests, when the RSVP
+  // screen is opened (ת, 1.10).
+  [/כל תשובה נכנסת לרשימת האורחים מעצמה/, "every RSVP answer enters the list by itself"],
 ];
 
 describe("claims measured false stay out of the shipped source", () => {

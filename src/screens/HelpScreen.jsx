@@ -27,9 +27,10 @@ const FAQ = [
     q: "איך אורחים מאשרים הגעה?",
     // Four things in the old answer were wrong (סב60c): the link is not under
     // "האירוע" → "שיתוף" but in "קישורים לאורחים"; the screen is "אישורי
-    // הגעה", not "אישורים"; and the answers enter the guest list by
-    // themselves — there is no button to press.
-    a: "כל אירוע מקבל קישור לאישור הגעה, במסך \"קישורים לאורחים\". שולחים אותו לאורחים, הם עונים מהטלפון, וכל תשובה נכנסת לרשימת האורחים מעצמה. מי אישר, מי סירב ומי עוד לא ענה — במסך \"אישורי הגעה\".",
+    // הגעה", not "אישורים". An answer updates the guest list only when it
+    // matches a guest already there (by phone, else a unique name), and only
+    // when that screen is opened; the rest wait there (ת, 1.10).
+    a: "כל אירוע מקבל קישור לאישור הגעה, במסך \"קישורים לאורחים\". שולחים אותו לאורחים והם עונים מהטלפון. תשובה של מי שכבר ברשימה מתעדכנת בו כשנכנסים למסך \"אישורי הגעה\", ותשובה שלא נמצאה לה התאמה מחכה לכם שם לשיוך. שם רואים גם מי אישר, מי סירב ומי עוד לא ענה.",
   },
   {
     q: "כמה מנות כדאי להזמין מול האולם?",
