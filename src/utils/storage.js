@@ -74,21 +74,59 @@ export function pruneCloudBackedEvents(key) {
   return { removed: all.length - kept.length, kept: kept.length };
 }
 
-/** Persist the full app state snapshot to localStorage. Returns true on success. */
+/* ── When the floor-plan sketch does not fit (33b) ───────────────────────────
+ * The sketch is a base64 image — by far the largest thing in storage, and the
+ * one thing never synced. When a write hit the quota, NOTHING was written: the
+ * guest list typed since the last save was lost on reload along with the
+ * image, and FloorPlanEditor had already said "saved". Now the write is
+ * retried without the images: the event data is kept, the images stay in
+ * memory for this visit, and the app is told which events' sketches are not
+ * on the device — `FLOORPLAN_NOT_SAVED_EVENT` (detail: { eventIds }) and
+ * floorPlansNotSaved(). */
+export const FLOORPLAN_NOT_SAVED_EVENT = "storage-floorplan-not-saved";
+const notSaved = new Map();   // storage key -> Set of event ids
+/** Ids of events whose floor-plan image the last write (to any bucket) had to leave out. */
+export function floorPlansNotSaved() {
+  return new Set([...notSaved.values()].flatMap(s => [...s]));
+}
+
+const isQuota = (err) => err instanceof DOMException && (
+  err.name === "QuotaExceededError" || err.name === "NS_ERROR_DOM_QUOTA_REACHED");
+
+function withoutImages(state) {
+  const ids = [];
+  const events = (state?.events || []).map(e => {
+    if (!e?.floorPlan?.image) return e;
+    ids.push(e.id);
+    return { ...e, floorPlan: { ...e.floorPlan, image: null } };
+  });
+  return { ids, state: { ...state, events } };
+}
+
+/** Persist the full app state snapshot to localStorage. Returns true on success
+ *  (true also when only the floor-plan images had to be left out — see above). */
 export function persist(state, key = STORAGE_KEY) {
   try {
     localStorage.setItem(key, JSON.stringify(state));
+    notSaved.delete(key);
     return true;
   } catch (err) {
-    if (err instanceof DOMException && (
-      err.name === "QuotaExceededError" ||
-      err.name === "NS_ERROR_DOM_QUOTA_REACHED"
-    )) {
-      // No console here: CLAUDE.md forbids it, and no host reads a console
-      // anyway. The event below is the signal the app can actually surface —
-      // silent data loss is the one failure that must never be quiet.
-      window.dispatchEvent(new CustomEvent("storage-quota-exceeded"));
+    if (!isQuota(err)) return false;
+    const lean = withoutImages(state);
+    if (lean.ids.length) {
+      try {
+        localStorage.setItem(key, JSON.stringify(lean.state));
+        notSaved.set(key, new Set(lean.ids));
+        window.dispatchEvent(new CustomEvent(FLOORPLAN_NOT_SAVED_EVENT, { detail: { eventIds: lean.ids } }));
+        return true;
+      } catch (err2) {
+        if (!isQuota(err2)) return false;
+      }
     }
+    // No console here: CLAUDE.md forbids it, and no host reads a console
+    // anyway. The event below is the signal the app can actually surface —
+    // silent data loss is the one failure that must never be quiet.
+    window.dispatchEvent(new CustomEvent("storage-quota-exceeded"));
     return false;
   }
 }
