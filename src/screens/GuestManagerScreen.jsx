@@ -7,6 +7,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
 import { getSideLabel, guestCompanionNames } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
+import { guestListSheetRows, GUEST_SHEET_COLS } from "../utils/guestListSheet.js";
 import { parseGuestList, countWithPhone, countSeats } from "../utils/parseGuestList.js";
 import { buildImportRows, readyImportRows } from "../utils/importReview.js";
 import ImportReview from "../components/guests/ImportReview.jsx";
@@ -293,14 +294,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   // full, current guest list as a spreadsheet.
   const exportGuestsExcel = async () => {
     const XLSX = await import("xlsx");
-    const rsvpTxt = { confirmed: "אישרו", declined: "לא מגיעים", maybe: "אולי", pending: "ממתין" };
-    const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות", "מנה", "אישור הגעה", "הערות"]];
-    ev.guests.forEach(g => aoa.push([
-      g.name || "", g.phone || "", sideLabel(g.side), g.group || "",
-      g.count || 1, mealLabel(g.meal), rsvpTxt[g.rsvp || "pending"] || "", g.notes || "",
-    ]));
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 }, { wch: 6 }, { wch: 12 }, { wch: 12 }, { wch: 20 }];
+    // Rows built in utils/guestListSheet.js — which also carries the
+    // companion names this export used to drop (89).
+    const ws = XLSX.utils.aoa_to_sheet(guestListSheetRows(ev.guests, { sideLabel, mealLabel }));
+    ws["!cols"] = GUEST_SHEET_COLS;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "רשימת אורחים");
     XLSX.writeFile(wb, `אורחים-${(ev.name || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
