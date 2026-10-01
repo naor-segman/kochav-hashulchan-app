@@ -20,7 +20,7 @@ const EV = {
 };
 
 let open;
-beforeEach(() => { open = vi.spyOn(window, "open").mockImplementation(() => null); open.mockClear(); });
+beforeEach(() => { sessionStorage.clear(); open = vi.spyOn(window, "open").mockImplementation(() => null); open.mockClear(); });
 afterEach(() => { open.mockRestore(); });
 
 const mount = (ev = EV) => {
@@ -45,7 +45,8 @@ describe("a message whose link is missing", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "שלחו בוואטסאפ" })[0]);
     fireEvent.click(await screen.findByRole("button", { name: "שלחו בלי קישור" }));
     await waitFor(() => expect(open).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getAllByRole("button", { name: "שלחו בוואטסאפ" })[1]);   // דן לוי
+    // טל's row now asks "נשלח?" (ת2), so דן's is the one send button left.
+    fireEvent.click(screen.getByRole("button", { name: "שלחו בוואטסאפ" }));   // דן לוי
     await waitFor(() => expect(open).toHaveBeenCalledTimes(2));
     expect(screen.queryByText(/היא תצא בלי קישור/)).toBeNull();
   });

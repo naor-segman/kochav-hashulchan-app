@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { messageSignature } from "../data/company.js";
 import {
   MESSAGE_STAGES, audienceFor, audienceLabel, reachable,
@@ -68,6 +68,46 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
     },
   }));
 
+  /* ── Opened is not sent (ת2) ───────────────────────────────────────────────
+     A tap on "שלחו" opens WhatsApp with the text ready; the guest is sent
+     nothing until the host presses send THERE. The guest used to be marked
+     "נשלח" at the tap — a host who closed WhatsApp without sending saw the
+     guest done, the count went up, and the reminders skipped them.
+
+     So the tap only records that WhatsApp was OPENED, and the row asks
+     "נשלח?" — focused when the host comes back to this tab. Only "כן" writes
+     to messagesSent, the synced field, in the same shape as before. "Opened"
+     is this device's, kept in sessionStorage: it is a question waiting for
+     the person who tapped, not a fact about the guest, so it is not synced. */
+  const openedKey = `kh_msg_opened:${ev.id}`;
+  const [opened, setOpened] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem(openedKey) || "{}") || {}; } catch { return {}; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem(openedKey, JSON.stringify(opened)); } catch { /* full or blocked */ }
+  }, [openedKey, opened]);
+  const setOpenedFor = (stageKey, guestId, on) => setOpened(prev => {
+    const stage = { ...(prev[stageKey] || {}) };
+    if (on) stage[guestId] = Date.now(); else delete stage[guestId];
+    return { ...prev, [stageKey]: stage };
+  });
+  const confirmSent = (stageKey, guestId) => { markSent(stageKey, guestId); setOpenedFor(stageKey, guestId, false); };
+
+  // Back from WhatsApp: put focus on the question for the guest just opened.
+  const lastOpened = useRef(null);
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.hidden || !lastOpened.current) return;
+      document.querySelector(`[data-ask-sent="${lastOpened.current}"]`)?.focus();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, []);
+
   const clearStage = async (stageKey) => {
     if (!await confirm("לאפס את הסימונים של השלב הזה?", { danger: true, confirmLabel: "אפסו" })) return;
     patchEvent(e => {
@@ -115,7 +155,8 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
       if (!ok) return;
       setNoLinkOk(prev => new Set(prev).add(stage.key));
     }
-    markSent(stage.key, g.id);
+    setOpenedFor(stage.key, g.id, true);
+    lastOpened.current = `${stage.key}:${g.id}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -246,12 +287,30 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                     <div className={styles.guestList}>
                       {stage.withPhone.map(g => {
                         const already = !!sent[stage.key]?.[g.id];
+                        const asking  = !!opened[stage.key]?.[g.id];
                         const url = whatsappLink(g.phone, textFor(stage, g));
                         return (
-                          <div key={g.id} className={[styles.guestRow, already ? styles.guestDone : ""].filter(Boolean).join(" ")}>
+                          <div key={g.id} className={[styles.guestRow, already && !asking ? styles.guestDone : ""].filter(Boolean).join(" ")}>
                             <span className={styles.guestName}>{g.name}</span>
-                            {already && <span className={styles.sentTag}>נשלח <Icon name="check" size={11} /></span>}
-                            {url && (
+                            {already && !asking && <span className={styles.sentTag}>נשלח <Icon name="check" size={11} /></span>}
+                            {asking ? (
+                              <span className={styles.askSent} role="group" aria-label={`נשלחה ההודעה ל${g.name}?`}>
+                                <span className={styles.askText}>נפתח בוואטסאפ — נשלח?</span>
+                                <button
+                                  type="button"
+                                  className={styles.askYes}
+                                  data-ask-sent={`${stage.key}:${g.id}`}
+                                  onClick={() => confirmSent(stage.key, g.id)}
+                                  aria-label={`כן, נשלחה ל${g.name}`}
+                                >כן</button>
+                                <button
+                                  type="button"
+                                  className={styles.askNo}
+                                  onClick={() => setOpenedFor(stage.key, g.id, false)}
+                                  aria-label={`לא נשלחה ל${g.name}`}
+                                >לא</button>
+                              </span>
+                            ) : url && (
                               <button
                                 className={styles.waBtn}
                                 type="button"
@@ -267,8 +326,8 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
 
                     {pending.length > 0 && (
                       <p className={styles.hint}>
-                        <Icon name="bulb" /> לחיצה על "שלחו" פותחת את וואטסאפ עם הטקסט מוכן ומסמנת את האורח כנשלח.
-                        עדיין צריך ללחוץ "שלח" בוואטסאפ עצמו.
+                        <Icon name="bulb" /> לחיצה על "שלחו" פותחת את וואטסאפ עם הטקסט מוכן. אחרי שתלחצו "שלח"
+                        בוואטסאפ ותחזרו לכאן, סמנו "כן" — רק אז האורח נספר כמי שקיבל את ההודעה.
                       </p>
                     )}
                   </>
