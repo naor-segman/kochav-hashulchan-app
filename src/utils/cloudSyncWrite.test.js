@@ -41,8 +41,18 @@ const builder = {
   then(res, rej) { return Promise.resolve(response).then(res, rej); },
 };
 
+// Storage, for deleteCloudEvent's file purge (eventFiles.js): every folder is
+// empty unless a test says otherwise, and the calls are recorded in `chain`
+// so the ORDER — files before the row — can be read back.
+let storageList;
 vi.mock("../lib/supabase.js", () => ({
-  supabase: { from: (t) => builder.from(t) },
+  supabase: {
+    from: (t) => builder.from(t),
+    storage: { from: (b) => ({
+      list: async (prefix) => { chain.push(["list", b, prefix]); return storageList(b, prefix); },
+      remove: async (paths) => { chain.push(["remove", b, paths]); return { data: [], error: null }; },
+    }) },
+  },
   isSupabaseConfigured: true,
 }));
 
@@ -57,7 +67,10 @@ const event = (over = {}) => ({
   version: 4, syncedVersion: 3, updatedAt: 1000, createdAt: 500, ...over,
 });
 
-beforeEach(() => { chain = []; response = { data: [{ version: 5 }], error: null }; });
+beforeEach(() => {
+  chain = []; response = { data: [{ version: 5 }], error: null };
+  storageList = async () => ({ data: [], error: null });
+});
 
 describe("updateCloudEvent — the guard that stops a stale tab overwriting a newer one", () => {
   // Without this predicate the UPDATE matches the row whatever its version is:
@@ -116,6 +129,28 @@ describe("updateCloudEvent — the guard that stops a stale tab overwriting a ne
 });
 
 describe("deleteCloudEvent", () => {
+  // 1.10, checklist 103: the files went nowhere — and once the row is gone the
+  // storage policies no longer let the owner remove them.
+  it("removes the event's files BEFORE the row", async () => {
+    response = { data: null, error: null };
+    storageList = async (b, prefix) => ({
+      data: prefix === "cloud-9" && b === "event-site" ? [{ name: "cover.jpg", id: "x" }] : [],
+      error: null,
+    });
+    await deleteCloudEvent("cloud-9", "user-1");
+    const rm  = chain.findIndex(c => c[0] === "remove" && c[1] === "event-site");
+    const del = chain.findIndex(c => c[0] === "delete");
+    expect(chain[rm][2]).toEqual(["cloud-9/cover.jpg"]);
+    expect(rm).toBeGreaterThanOrEqual(0);
+    expect(rm).toBeLessThan(del);
+  });
+
+  it("keeps the row when the files cannot be listed — the delete stays owed", async () => {
+    storageList = async () => ({ data: null, error: new Error("offline") });
+    await expect(deleteCloudEvent("cloud-9", "user-1")).rejects.toThrow("offline");
+    expect(chain.some(c => c[0] === "delete")).toBe(false);
+  });
+
   it("filters on both the row id and the owner", async () => {
     response = { data: null, error: null };
     await deleteCloudEvent("cloud-9", "user-1");

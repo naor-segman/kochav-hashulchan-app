@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
+import { purgeEventFiles } from "./eventFiles.js";
 
 // ── Sync status constants ─────────────────────────────────────────────────────
 //
@@ -270,7 +271,8 @@ export async function updateCloudEvent(localEvent, userId) {
 }
 
 /**
- * Delete a cloud events row by cloudId.
+ * Delete a cloud events row by cloudId — its files first (eventFiles.js): the
+ * storage policies stop letting the owner remove them once the row is gone.
  *
  * @param {string} cloudId — UUID of the Supabase row
  * @param {string} userId
@@ -279,6 +281,8 @@ export async function updateCloudEvent(localEvent, userId) {
 export async function deleteCloudEvent(cloudId, userId) {
   if (!isSupabaseConfigured || !supabase) return;
   if (!cloudId) return;
+
+  await purgeEventFiles(cloudId);
 
   const { error } = await supabase
     .from("events")
