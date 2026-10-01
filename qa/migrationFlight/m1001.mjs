@@ -24,7 +24,9 @@ const seed = `
    ('e3000000-0000-0000-0000-000000000003', '${A}', 'לא פורסם', '2020-01-01', 'rsvpUNPaaaaa', 'invUNPaaaaaa', 'giftUNPaaaaa', 'hostUNPaaaaa', 'collUNPaaaaa',
      '{"albumToken":"albUNPaaaaaa","eventSite":{"enabled":false}}'),
    ('e4000000-0000-0000-0000-000000000004', '${A}', 'ערך משובש', '2020-01-01', 'rsvpODDaaaaa', 'invODDaaaaaa', 'giftODDaaaaa', 'hostODDaaaaa', 'collODDaaaaa',
-     '{"albumToken":"albODDaaaaaa","eventSite":{"enabled":"maybe"}}');`;
+     '{"albumToken":"albODDaaaaaa","eventSite":{"enabled":"maybe"}}'),
+   ('e5000000-0000-0000-0000-000000000005', '${A}', 'דלת', '2020-01-01', 'rsvpDORaaaaa', 'invDORaaaaaa', 'giftDORaaaaa', 'hostDORaaaaa', 'collDORaaaaa',
+     '{"guests":[{"id":"d1","name":"משפחת לוי","count":2},{"id":"d2","name":"דנה","count":1,"arrived":"maybe"}]}');`;
 
 const checks = [];
 async function run(db, label) {
@@ -51,6 +53,12 @@ async function run(db, label) {
   // ב6 / MG6 — what the invite link returns.
   const tok = (t) => { const r = as(db, 'anon', `select public.public_event_by_token('invite', '${t}')->>'album_token'`); return r.ok ? (r.out.split('\n').pop() || null) : 'ERR ' + r.err.split('\n')[0]; };
   out.album = { past: tok('invPASTaaaaa'), future: tok('invFUTaaaaaa'), unpublished: tok('invUNPaaaaaa'), odd: tok('invODDaaaaaa') };
+  // ו2 / MG6 — the greeter's link marks a seat.
+  psql(db, `update public.events set payload = jsonb_set(payload, '{guests}', '[{"id":"d1","name":"משפחת לוי","count":2},{"id":"d2","name":"דנה","count":1,"arrived":"maybe"}]') where id = 'e5000000-0000-0000-0000-000000000005'`);
+  const m1 = as(db, 'anon', `select public.hostess_mark_arrival_by_token('hostDORaaaaa', 'd1', '[0]'::jsonb, '[]'::jsonb)`);
+  out.doorBy = m1.ok ? psql(db, `select coalesce(g->>'arrivedBy', '-') from public.events e, jsonb_array_elements(e.payload->'guests') g where e.id = 'e5000000-0000-0000-0000-000000000005' and g->>'id' = 'd1'`) : 'ERR ' + m1.err.split('\n')[0];
+  const m2 = as(db, 'anon', `select public.hostess_mark_arrival_by_token('hostDORaaaaa', 'd2', '[0]'::jsonb, '[]'::jsonb)`);
+  out.doorOdd = m2.ok ? 'ok' : 'ERR ' + m2.err.split('\n')[0];
   // 102d
   out.noPgTemp = +psql(db, `select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and p.prosecdef
@@ -82,8 +90,10 @@ cmp('ב6 no album token before the event day', b.album.future === 'albFUTaaaaaa'
 cmp('ב6 no album token when the site is not published', b.album.unpublished === 'albUNPaaaaaa', a.album.unpublished === null);
 cmp('ב6 album token on/after the event day, site published', b.album.past === 'albPASTaaaaa', a.album.past === 'albPASTaaaaa');
 cmp('MG6 a stray "maybe" does not take the page down', String(b.album.odd).startsWith('ERR'), !String(a.album.odd).startsWith('ERR'));
+cmp('ו2 a greeter\'s mark records arrivedBy = דיילת', b.doorBy === '-', a.doorBy === 'דיילת');
+cmp('MG6 a stray arrived value does not break the door', String(b.doorOdd).startsWith('ERR'), a.doorOdd === 'ok');
 cmp('102d every SECURITY DEFINER has pg_temp', b.noPgTemp > 0, a.noPgTemp === 0);
-cmp('postflight_20261001.sql: fails before, all תקין after', postBefore.some(x => x !== 'תקין'), postAfter.length === 6 && postAfter.every(x => x === 'תקין'));
+cmp('postflight_20261001.sql: fails before, all תקין after', postBefore.some(x => x !== 'תקין'), postAfter.length === 7 && postAfter.every(x => x === 'תקין'));
 const failed = checks.filter(([, bad, good]) => !(bad && good));
 console.log(failed.length ? `\n${failed.length} FAILED` : `\nall ${checks.length} passed`);
 process.exit(failed.length ? 1 : 0);

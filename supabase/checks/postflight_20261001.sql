@@ -25,4 +25,8 @@ union all
 select 6, 'קישור האלבום רק מיום האירוע ובאתר שפורסם',
   case when bool_or(prosrc like '%safe_iso_date(e.date) <=%') then 'תקין' else 'חסר' end, count(*)
   from pg_proc where proname = 'public_event_by_token'
+union all
+select 7, 'סימון בקישור הדיילת רושם מי סימן',
+  case when bool_or(prosrc like '%arrivedBy%') then 'תקין' else 'חסר' end, count(*)
+  from pg_proc where proname = 'hostess_mark_arrival_by_token'
 order by 1;

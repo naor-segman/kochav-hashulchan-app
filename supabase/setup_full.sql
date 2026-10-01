@@ -6070,7 +6070,10 @@ create trigger trg_events_version_monotone
 --   102d  29 of 31 SECURITY DEFINER functions in public had a search_path
 --         without pg_temp.
 --   MG6   (folded in) public_event_by_token cast eventSite.enabled with
---         ::boolean, which raises on a stray value and takes the page down.
+--         ::boolean, which raises on a stray value and takes the page down;
+--         the door function did the same with a guest's `arrived`.
+--   ו2    the greeter's marks now record arrivedBy = 'דיילת'.
+--   MG7   the door function's row lock no longer blocks gift/RSVP inserts.
 --
 -- Safe to run more than once: every statement is CREATE OR REPLACE or an
 -- idempotent ALTER.
@@ -6361,6 +6364,126 @@ $$;
 
 revoke all on function public.public_event_by_token(text, text) from public;
 grant execute on function public.public_event_by_token(text, text) to anon, authenticated;
+
+-- ── 6. ו2 + MG6 + MG7 — the greeter's arrival marks say who made them ───────
+-- The body of 20260929000000 with three changes: every seat the greeter's link
+-- marks carries arrivedBy = 'דיילת' (the host's own taps already write
+-- 'מארח' on the device — 1.10, ו2), the legacy `arrived` flag is read through
+-- safe_bool, and the row lock is FOR NO KEY UPDATE — FOR UPDATE also blocked
+-- a gift or RSVP insert for the same event (they take a KEY SHARE lock on the
+-- event row) for as long as the door call held it. Measured 1.10: blocked
+-- under FOR UPDATE, 112ms under FOR NO KEY UPDATE.
+create or replace function public.hostess_mark_arrival_by_token(
+  token_value text,
+  guest_id    text,
+  seats       jsonb,
+  base        jsonb
+)
+returns void
+language plpgsql volatile security definer set search_path = public, pg_temp
+as $$
+declare
+  ev_id      uuid;
+  seat_count int;
+  legacy_all boolean;
+  want       int[];
+  was        int[];
+  cur        int[];
+  added      int[];
+  removed    int[];
+  result     jsonb;
+  stamp_ms   bigint;
+begin
+  -- FOR NO KEY UPDATE: a second greeter's request waits here and then reads the
+  -- first one's result, instead of writing back over it from a stale read.
+  select e.id into ev_id
+  from public.events e
+  where token_value is not null
+    and char_length(token_value) >= 8
+    and e.hostess_token = token_value
+    and public.hostess_writes_active(e)
+  limit 1
+  for no key update;
+  if ev_id is null then raise exception 'invalid token'; end if;
+
+  if guest_id is null or char_length(guest_id) = 0 or char_length(guest_id) > 64 then
+    raise exception 'guest id required';
+  end if;
+
+  select greatest(1, coalesce((g->>'count')::int, 1)),
+         coalesce(jsonb_typeof(g->'arrivedSeats') <> 'array' or g->'arrivedSeats' is null, true)
+           and coalesce(public.safe_bool(g->>'arrived'), false)
+    into seat_count, legacy_all
+  from public.events e,
+       jsonb_array_elements(coalesce(e.payload->'guests', '[]'::jsonb)) g
+  where e.id = ev_id and g->>'id' = guest_id
+  limit 1;
+  if seat_count is null then raise exception 'guest not found'; end if;
+
+  select coalesce(array_agg(distinct v), '{}') into want from (
+    select case when x ~ '^[0-9]{1,3}$' then x::int end as v
+    from jsonb_array_elements_text(case when jsonb_typeof(seats) = 'array' then seats else '[]'::jsonb end) as x
+  ) s where v >= 0 and v < seat_count;
+
+  select coalesce(array_agg(distinct v), '{}') into was from (
+    select case when x ~ '^[0-9]{1,3}$' then x::int end as v
+    from jsonb_array_elements_text(case when jsonb_typeof(base) = 'array' then base else '[]'::jsonb end) as x
+  ) s where v >= 0 and v < seat_count;
+
+  if legacy_all then
+    -- arrived: true from before per-seat check-in = every seat (arrivedSeatsOf).
+    cur := array(select generate_series(0, seat_count - 1));
+  else
+    select coalesce(array_agg(distinct v), '{}') into cur from (
+      select case when x ~ '^[0-9]{1,3}$' then x::int end as v
+      from public.events e,
+           jsonb_array_elements(coalesce(e.payload->'guests', '[]'::jsonb)) g,
+           jsonb_array_elements_text(case when jsonb_typeof(g->'arrivedSeats') = 'array'
+                                          then g->'arrivedSeats' else '[]'::jsonb end) as x
+      where e.id = ev_id and g->>'id' = guest_id
+    ) s where v >= 0 and v < seat_count;
+  end if;
+
+  -- The two differences first, each on its own — EXCEPT chains associate to
+  -- the left, so writing them inline would compute the wrong set.
+  added   := array(select unnest(want) except select unnest(was));
+  removed := array(select unnest(was)  except select unnest(want));
+
+  select coalesce(jsonb_agg(v order by v), '[]'::jsonb) into result from (
+    select distinct v from unnest(cur || added) as v
+    where not (v = any (removed))
+  ) s;
+
+  stamp_ms := (extract(epoch from clock_timestamp()) * 1000)::bigint;
+
+  update public.events e
+  set payload = jsonb_set(
+        e.payload,
+        '{guests}',
+        coalesce((
+          select jsonb_agg(
+            case when t.g->>'id' = guest_id
+              then t.g
+                   || jsonb_build_object('arrivedSeats', result)
+                   || jsonb_build_object('arrived', to_jsonb(jsonb_array_length(result) > 0))
+                   || jsonb_build_object('arrivedAt', to_jsonb(stamp_ms))
+                   || jsonb_build_object('arrivedBy', 'דיילת')
+              else t.g
+            end
+            order by t.ord
+          )
+          from jsonb_array_elements(coalesce(e.payload->'guests', '[]'::jsonb))
+               with ordinality as t(g, ord)
+        ), '[]'::jsonb)
+      ),
+      version    = coalesce(e.version, 1) + 1,
+      updated_at = now()
+  where e.id = ev_id;
+end;
+$$;
+
+revoke all on function public.hostess_mark_arrival_by_token(text, text, jsonb, jsonb) from public, anon, authenticated;
+grant execute on function public.hostess_mark_arrival_by_token(text, text, jsonb, jsonb) to anon, authenticated;
 
 -- ── 5. 102d — pg_temp last on every SECURITY DEFINER search_path ────────────
 -- A definer function resolves unqualified names through search_path; with
