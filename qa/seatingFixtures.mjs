@@ -12,12 +12,21 @@ function makeGuests(n) {
   for (let i = 0; i < n; i++) {
     // Deterministic: the same fixture every run, so two measurements compare.
     const count = i % 9 === 0 ? 2 : 1;
+    // Every other multi-seat row names its companion, so the TableCard's
+    // companions line is on the page and measured (WORKPLAN 118 — the fixture
+    // had none, and seatingPerf printed "(not rendered by this fixture)" for
+    // exactly the row the placeholder estimate was least sure of). The rest
+    // stay unnamed, so the "+1" path is still covered.
+    const companions = count > 1 && i % 18 === 0
+      ? [FIRST[(i + 5) % FIRST.length] + ' ' + LAST[(i * 7) % LAST.length]]
+      : undefined;
     out.push({
       id: 'g' + (i + 1),
       name: FIRST[i % FIRST.length] + ' ' + LAST[(i * 7) % LAST.length] + ' ' + (i + 1),
       side: i % 2 === 0 ? 'bride' : 'groom',
       group: GROUPS[i % GROUPS.length],
       count,
+      ...(companions ? { companions } : {}),
       phone: '05' + String(10000000 + i * 137).slice(0, 8),
       rsvp: i % 17 === 0 ? 'declined' : i % 3 === 0 ? 'pending' : 'confirmed',
     });

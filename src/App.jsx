@@ -222,7 +222,7 @@ export default function App() {
 
 function AppRoutes() {
   const { user, loading: authLoading }                                  = useAuth();
-  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady } = useEvents(user);
+  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped } = useEvents(user);
   const { toast, showToast }                                            = useToast();
   // No event in scope here — AppRoutes sits above /events/:eventId — so this is
   // the account-level form, used for nothing but the event allowance below.
@@ -369,6 +369,7 @@ function AppRoutes() {
             )}
             <DashboardScreen
               events={events}
+              cloudCapped={cloudCapped}
               /* The unpaid count, not a plan. There is no account-level plan any
                  more — three events can sit on three different packages — and
                  the only thing this screen gated on it was the event

@@ -19,7 +19,7 @@ export default function PrivacyScreen() {
           <SectionMark name="privacy" size={26} tile />
           <h1 className={styles.title}>מדיניות פרטיות</h1>
         </div>
-        <p className={styles.updated}>עודכן לאחרונה: 11 בספטמבר 2026</p>
+        <p className={styles.updated}>עודכן לאחרונה: 29 בספטמבר 2026</p>
 
         {/* Operator identity — checklist 19–20. `address` is empty until the
             owner supplies one, and an empty field prints NO ROW rather than a

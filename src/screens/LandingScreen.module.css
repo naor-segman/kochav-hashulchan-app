@@ -802,11 +802,6 @@
   gap: 48px;
 }
 
-.heroVisual {
-  display: none;
-  flex-shrink: 0;
-}
-
 @media (min-width: 900px) {
   .hero {
     padding: 100px 24px 128px;
@@ -825,14 +820,6 @@
   }
   .heroActions {
     justify-content: flex-start;
-  }
-  .heroVisual {
-    display: block;
-  }
-  /* With footage behind it, the mock card is a second picture competing with
-     the first. The copy takes the start edge alone and the frame stays open. */
-  .heroCinematic .heroVisual {
-    display: none;
   }
   /* Anchored to the start edge, which is where the scrim is darkest. Centred
      copy would drift onto the open part of the frame and lose its ground. */
@@ -871,111 +858,6 @@
 .heroCinematic .heroNote {
   color: rgba(var(--nav-text-rgb), .9);
   text-shadow: 0 1px 10px rgba(var(--text-rgb), .5);
-}
-
-/* ── App mock preview card ── */
-
-.mockCard {
-  /* A real card, not a 5%-white ghost. This is the product proof — the one
-     place a visitor sees what they are actually buying — and at 5% opacity on
-     a near-black hero it was invisible. */
-  background: rgba(var(--nav-text-rgb), 0.97);
-  border: 1px solid rgba(var(--text-rgb), 0.10);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  width: 280px;
-  transform: perspective(1000px) rotateY(8deg) rotateX(3deg);
-  box-shadow:
-    0 30px 80px rgba(var(--text-rgb), 0.4),
-    0 0 0 1px rgba(var(--nav-text-rgb), 0.08);
-  transition: transform var(--transition-slow);
-}
-
-.mockCard:hover {
-  transform: perspective(1000px) rotateY(4deg) rotateX(1deg);
-}
-
-.mockCardHead {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(var(--text-rgb), 0.10);
-  margin-bottom: 14px;
-}
-
-/* The mock card is a near-white surface, so this is the LIGHT case of the
-   brand-mark rule and --accent-text is already the right token (6.51:1 on the
-   composited #F0F1F1). It is the only one of the page's four marks that was
-   correct: the other three all sit on the ink ground and are now all
-   --accent-on-dark. The rule is per-ground, so "one colour everywhere" would
-   be the wrong fix — "one colour per ground, chosen by the same rule" is the
-   right one. */
-.mockCardMark {
-  color: var(--accent-text);
-  font-size: var(--step-0);
-  line-height: 1;
-  animation: landingSpin 20s linear infinite;
-}
-
-.mockCardTitle {
-  font-size: var(--step--3);
-  font-weight: 700;
-  color: var(--text);
-  flex: 1;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.mockCardStat {
-  font-size: 9px;
-  background: rgba(var(--accent-rgb), 0.14);
-  color: var(--accent-text);
-  border: 1px solid rgba(var(--accent-rgb), 0.28);
-  border-radius: var(--radius-pill);
-  padding: 2px 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.mockTables {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.mockTable {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-/* The mock tables now render the real TableGlyph, so the three dot classes
-   that used to draw a flat row of pips are gone with them. */
-
-
-.mockTableLabel {
-  font-size: 7px;
-  font-weight: 700;
-  color: var(--muted);
-  text-align: center;
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-}
-
-.mockCardFoot {
-  border-top: 1px solid rgba(var(--text-rgb), 0.10);
-  padding-top: 10px;
-  text-align: center;
-}
-
-.mockCardFootBadge {
-  font-size: var(--step--3);
-  font-weight: 700;
-  color: var(--accent-text);
-  letter-spacing: 0.04em;
 }
 
 /* ── Responsive ── */

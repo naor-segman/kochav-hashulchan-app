@@ -1003,3 +1003,21 @@ describe("useEvents — a delete that did not land is not undone by the next loa
     expect(stored(userKey("u1")).map(e => e.id)).toEqual([]);
   });
 });
+
+// WORKPLAN 115 (1.10): a full cloud read (CLOUD_EVENTS_LIMIT rows) means older
+// events were not loaded, and nothing told the host.
+describe("useEvents — a capped cloud read is reported", () => {
+  it("a full read sets cloudCapped; a shorter one does not", async () => {
+    const full = Array.from({ length: cloud.CLOUD_EVENTS_LIMIT }, (_, i) => ev("x" + i, { cloudId: "c" + i, syncedVersion: 1 }));
+    cloud.fetchCloudEvents.mockReset().mockResolvedValue(full);
+    const a = renderHook(() => useEvents(USER));
+    await settle(); await settle();
+    expect(a.result.current.cloudCapped).toBe(true);
+    a.unmount();
+    localStorage.clear();
+    cloud.fetchCloudEvents.mockReset().mockResolvedValue(full.slice(0, 3));
+    const b = renderHook(() => useEvents({ id: "u2" }));
+    await settle(); await settle();
+    expect(b.result.current.cloudCapped).toBe(false);
+  });
+});

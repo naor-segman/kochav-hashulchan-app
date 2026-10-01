@@ -9,6 +9,7 @@ import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
 import { formatDate } from "../lib/adminFormat.js";
+import { attachWindowMeta } from "../lib/listWindow.js";
 import { COMPANY } from "../../data/company.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -43,9 +44,11 @@ async function loadUsersData() {
     // PostgREST's max-rows (1000 by default), so past that the per-user counts
     // were computed from an arbitrary subset — a customer with 8 events showed
     // "3", with nothing indicating the number was wrong.
+    // With the exact count beside it: past the range the column under-counted
+    // with no sign at all (WORKPLAN 113). Now the screen can say so.
     supabase
       .from("events")
-      .select("user_id")
+      .select("user_id", { count: "exact" })
       .order("user_id", { ascending: true })
       .range(0, 99999),
     supabase.from("profiles").select("id", { count: "exact", head: true }),
@@ -83,10 +86,13 @@ async function loadUsersData() {
   });
 
   // The true row count, so the screen can say "500 of 1,240" instead of
-  // presenting a truncated window as the whole customer base.
-  rows.total = totalRes.count ?? rows.length;
-  rows.truncated = rows.length >= USERS_PAGE;
-  return rows;
+  // presenting a truncated window as the whole customer base. Through the
+  // shared helper: `rows.length >= USERS_PAGE` on its own called a base of
+  // exactly 500 users truncated (WORKPLAN 112).
+  const loadedEvents = (eventsRes.data || []).length;
+  rows.eventCountsPartial = !!eventsRes.error
+    || (typeof eventsRes.count === "number" && eventsRes.count > loadedEvents);
+  return attachWindowMeta(rows, USERS_PAGE, totalRes.error ? null : totalRes.count);
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -208,8 +214,12 @@ export default function AdminUsersScreen() {
                 ? ` מתוך ${(users.total ?? users.length).toLocaleString()}`
                 : ""
               } משתמשים
+              {users?.eventCountsPartial && (
+                <span className={styles.truncNote}> · ספירת האירועים חלקית</span>
+              )}
               {users?.truncated && (
-                <span className={styles.truncNote}> · מוצגים {USERS_PAGE} הראשונים</span>
+                // Ordered newest first: these are the LATEST signups, not the first.
+                <span className={styles.truncNote}> · מוצגים {USERS_PAGE} שנרשמו אחרונים</span>
               )}
             </span>
           )}
@@ -224,7 +234,13 @@ export default function AdminUsersScreen() {
         {!loading && !error && filtered.length === 0 && (
           <div className={styles.stateBox}>
             {search.trim()
-              ? <><p className={styles.emptyTitle}>לא נמצאו תוצאות</p><p className={styles.emptyHint}>נסה לחפש מונח אחר</p></>
+              ? <><p className={styles.emptyTitle}>לא נמצאו תוצאות</p><p className={styles.emptyHint}>
+                  {/* The search runs over the loaded window only. Past it, "not
+                      found" read as "no such customer" (WORKPLAN 112). */}
+                  {users?.truncated
+                    ? `החיפוש רץ על ${USERS_PAGE} המשתמשים שנרשמו אחרונים, מתוך ${(users.total ?? users.length).toLocaleString()} — משתמש ותיק יותר לא נכלל בו.`
+                    : "נסה לחפש מונח אחר"}
+                </p></>
               : <><p className={styles.emptyTitle}>אין משתמשים עדיין</p><p className={styles.emptyHint}>משתמשים יופיעו כאן לאחר הרשמה ראשונה</p></>
             }
           </div>

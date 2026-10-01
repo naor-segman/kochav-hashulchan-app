@@ -827,6 +827,10 @@ export function useEvents(user) {
   // Bumped when a load from the cloud has merged — the cue to send what this
   // device holds and the cloud does not (see pushUnpushed).
   const [loadedTick, setLoadedTick] = useState(0);
+  // The cloud read is capped at CLOUD_EVENTS_LIMIT, newest first. When it comes
+  // back full, older events were not loaded and the host has to be told — the
+  // merge already refuses to treat them as deleted (WORKPLAN 115).
+  const [cloudCapped, setCloudCapped] = useState(false);
 
   // Refs let callbacks read the latest values without stale-closure issues.
   const eventsRef    = useRef(events);
@@ -930,6 +934,7 @@ export function useEvents(user) {
         // the page limit, so nothing was cut off the end. Both have to hold
         // before an event missing from this list can be read as deleted.
         const authoritative = fetched.length < CLOUD_EVENTS_LIMIT;
+        setCloudCapped(!authoritative);
         const cloudEvents = withoutPendingDeletes(userId, fetched,
           { authoritative, retry: (id) => sendCloudDelete(id, userId) });
         setEvents(prev => mergeCloudWithLocal(prev, cloudEvents, {
@@ -1249,5 +1254,5 @@ export function useEvents(user) {
    */
   const eventsReady = userId ? hydratedFor === userId : true;
 
-  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady };
+  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped };
 }

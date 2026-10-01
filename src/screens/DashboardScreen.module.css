@@ -345,6 +345,14 @@
   max-width: 180px;
 }
 
+.featMore {
+  align-self: center;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+
 /* The 26px strip in the body would be the same tables a second time, six
    inches away. The panel is where they are drawn now. */
 .eventCardFeatured .tableStrip {

@@ -858,6 +858,10 @@ export default function EntranceScreen({
                     {tableLabel(table)} <b>{free}</b>
                   </span>
                 ))}
+                {/* Eight shown; the rest are counted, not dropped (WORKPLAN 114). */}
+                {freeTables.length > 8 && (
+                  <span className={styles.freePill}>ועוד {freeTables.length - 8} שולחנות</span>
+                )}
               </div>
             </div>
           )}
@@ -1034,6 +1038,11 @@ export default function EntranceScreen({
                       <span className={styles.freeCardFree}>{free} פנויים</span>
                     </button>
                   ))}
+                {freeTables.filter(a => a.free >= walkInCount).length > 12 && (
+                  <p className={styles.sheetNote}>
+                    ועוד {freeTables.filter(a => a.free >= walkInCount).length - 12} שולחנות עם מקום — מוצגים 12 עם הכי הרבה מקום.
+                  </p>
+                )}
                 {walkInTable && !freeTables.some(a => a.table.id === walkInTable && a.free >= walkInCount) && (
                   <p className={styles.sheetNote}>בשולחן שבחרתם אין מקום ל-{walkInCount} — בחרו שולחן אחר, או שהאורח יתווסף בלי שיבוץ.</p>
                 )}

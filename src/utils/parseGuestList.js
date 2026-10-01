@@ -414,6 +414,22 @@ function parseOnePerson(segment, { bareCount = true } = {}) {
   if (usesParen) rest = rest.slice(0, paren.index) + " " + rest.slice(paren.index + paren[0].length);
   else companions = [];
 
+  // "משפחת לוי (דוד ושרה)" — the family is the two people named, not a third
+  // seat for the word "משפחת". The owner's rule (1.10, 117): every name is a
+  // person and the seats are the names. With no count stated, the first name
+  // becomes the row (with the family's surname when it has none of its own)
+  // and the rest are its companions: "דוד לוי" + "שרה", 2 seats. A stated
+  // count ("+2", "x3") is the host's own number and is left as it was.
+  if (declared == null && usesParen && companions.length >= 2 && companions.every(Boolean)) {
+    const label = cleanName(rest.replace(/[,;|]+/g, " "));
+    const fam = label.match(/^משפחת\s+(.+)$/u);
+    if (fam) {
+      const [first, ...others] = companions;
+      rest = /\s/.test(first.trim()) ? first : `${first} ${fam[1]}`;
+      companions = others;
+    }
+  }
+
   // Only look for the other count notations once the "+N" and the bracket are
   // gone, so "+1 (שרה)" is never re-read as a trailing number.
   if (declared == null && !companions.length) {

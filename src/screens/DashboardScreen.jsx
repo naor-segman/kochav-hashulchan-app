@@ -20,7 +20,7 @@ import { COMPANY } from "../data/company.js";
    for. Defaulting to 0 rather than events.length keeps the gate open when the
    prop is missing: a screen that hides the "new event" button because a prop
    did not arrive is worse than one that lets a free user try. */
-export default function DashboardScreen({ events, unpaidCount = 0, isPaid = () => false, onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
+export default function DashboardScreen({ events, cloudCapped = false, unpaidCount = 0, isPaid = () => false, onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
   const { confirm, dialog } = useConfirm();
   const orientation = useOrientation();
 
@@ -94,6 +94,14 @@ export default function DashboardScreen({ events, unpaidCount = 0, isPaid = () =
       </div>
 
       {orientation.open && <Orientation onDismiss={orientation.dismiss} />}
+
+      {/* Over the cloud read's cap, the oldest events were not loaded. Said
+          here, where a host would look for them (WORKPLAN 115). */}
+      {cloudCapped && (
+        <p className={styles.upgradeTip}>
+          <Icon name="alert" /> מוצגים {events.length} האירועים שעודכנו לאחרונה. אירועים ישנים יותר לא נטענו — פנו אלינו ונעזור.
+        </p>
+      )}
 
       {/* ── Event limit upgrade tip ── */}
       {!eventGate.allowed && (
@@ -200,6 +208,10 @@ export default function DashboardScreen({ events, unpaidCount = 0, isPaid = () =
                             size={38}
                           />
                         ))}
+                        {/* Eight drawn; the rest counted, not dropped (WORKPLAN 114). */}
+                        {ev.tables.length > 8 && (
+                          <span className={styles.featMore}>+{ev.tables.length - 8}</span>
+                        )}
                       </div>
                     )}
                   </div>

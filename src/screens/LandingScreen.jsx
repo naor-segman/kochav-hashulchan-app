@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import SiteHeader from "../components/layout/SiteHeader.jsx";
 import { Link, useLocation } from "react-router-dom";
 import Footer from "../components/layout/Footer.jsx";
-import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./LandingScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
-import { MOCK_TABLES, MOCK_SEATED, MOCK_GUESTS } from "../data/landingMock.js";
 import { liveServices } from "../data/services.js";
 import { PLANS, teaserFor, PRICING_FOOTNOTE } from "../data/pricing.js";
 
@@ -310,26 +308,6 @@ export default function LandingScreen({ user = null }) {
               </a>
             </div>
             <p className={styles.heroNote}>ללא כרטיס אשראי · המסלול החינמי נשאר חינמי</p>
-          </div>
-          <div className={styles.heroVisual} aria-hidden="true">
-            <div className={styles.mockCard}>
-              <div className={styles.mockCardHead}>
-                <span className={styles.mockCardMark}>✦</span>
-                <span className={styles.mockCardTitle}>תוכנית ישיבה</span>
-                <span className={styles.mockCardStat}>{MOCK_GUESTS} אורחים</span>
-              </div>
-              <div className={styles.mockTables}>
-                {MOCK_TABLES.map(t => (
-                  <div key={t.name} className={styles.mockTable}>
-                    <TableGlyph shape={t.shape} capacity={t.total} taken={t.filled} size={54} />
-                    <span className={styles.mockTableLabel}>{t.name}</span>
-                  </div>
-                ))}
-              </div>
-              <div className={styles.mockCardFoot}>
-                <span className={styles.mockCardFootBadge}>✓ {MOCK_SEATED} מתוך {MOCK_GUESTS} אורחים סודרו</span>
-              </div>
-            </div>
           </div>
         </div>
       </section>

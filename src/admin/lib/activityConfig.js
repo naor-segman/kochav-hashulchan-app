@@ -99,8 +99,12 @@ function metaValue(key, value) {
  */
 export function metaSummary(meta, valueLabel = (v) => String(v)) {
   if (!meta || typeof meta !== "object") return "—";
-  const entries = Object.entries(meta).slice(0, 3);
+  const all = Object.entries(meta);
+  const entries = all.slice(0, 3);
   if (entries.length === 0) return "—";
+  // Three shown in the cell; the count of the rest says the cell is a summary
+  // (the full set is in metaFull, on the title) — WORKPLAN 114.
+  const more = all.length - entries.length;
   return entries
     .map(([k, v]) => {
       const label = META_KEY_LABELS[k] ?? k;
@@ -109,7 +113,7 @@ export function metaSummary(meta, valueLabel = (v) => String(v)) {
         : metaValue(k, v);
       return `${label}: ${val}`;
     })
-    .join(" · ");
+    .join(" · ") + (more > 0 ? ` · ועוד ${more}` : "");
 }
 
 /** The full metadata, unabridged — goes in the cell's title so truncation is
