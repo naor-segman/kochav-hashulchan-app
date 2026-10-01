@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { COMPANY } from "../../data/company.js";
 import { liveServices } from "../../data/services.js";
@@ -58,6 +58,20 @@ const SECTIONS = [
 export default function SiteHeader({ user = null, active = null }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+  const burgerRef = useRef(null);
+
+  // Escape closes the phone menu and gives focus back to the button that
+  // opened it (37f) — the event site's own menu already did.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      setMenuOpen(false);
+      burgerRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   const { pathname } = useLocation();
   const onLanding = pathname === "/" || pathname === "/home";
@@ -113,6 +127,7 @@ export default function SiteHeader({ user = null, active = null }) {
         <div className={styles.navActions}>{actions}</div>
 
         <button
+          ref={burgerRef}
           type="button"
           className={styles.navBurger}
           aria-label={menuOpen ? "סגירת תפריט" : "פתיחת תפריט"}
