@@ -82,6 +82,7 @@ describe("SignupScreen errors (37b)", () => {
     fireEvent.change(screen.getByLabelText("אימייל"), { target: { value: "a@b.co" } });
     fireEvent.change(screen.getByLabelText("סיסמה"), { target: { value: "secret1" } });
     fireEvent.change(screen.getByLabelText("אימות סיסמה"), { target: { value: "secret1" } });
+    fireEvent.click(screen.getByRole("checkbox"));   // the terms consent (103)
     await act(async () => { fireEvent.submit(screen.getByLabelText("אימייל").closest("form")); });
     expect(errorText()).toMatch(re);
     expect(errorText()).not.toMatch(/[A-Za-z{}]/);
@@ -164,6 +165,7 @@ describe("auth forms — accessible errors (AX6)", () => {
     signUp.mockImplementationOnce(() => new Promise(() => {}));
     inRouter(<SignupScreen />);
     fill([["אימייל", "a@b.co"], ["סיסמה", "secret1"], ["אימות סיסמה", "secret1"]]);
+    fireEvent.click(screen.getByRole("checkbox"));   // the terms consent (103)
     const submit = screen.getByRole("button", { name: "הרשמה" });
     await act(async () => { fireEvent.click(submit); });
     expect(submit).not.toBeDisabled();
