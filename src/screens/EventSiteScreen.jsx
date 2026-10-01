@@ -253,7 +253,13 @@ export default function EventSiteScreen({ localEvent }) {
           <div className={styles.heroInner}>
             {guestEventType(ev.type) && <span className={styles.heroTag}>{guestEventType(ev.type)}</span>}
             <h1 className={styles.heroNames}>{hosts}</h1>
-            {site?.heroEn && <div className={styles.heroEn}>{site.heroEn}</div>}
+            {/* The English line, marked as English (108): in a he/rtl page a
+                screen reader read "OUR WEDDING DAY" with Hebrew phonetics, and
+                trailing punctuation jumped to the wrong end. Only when it IS
+                English — the host may type Hebrew into it. */}
+            {site?.heroEn && (/[֐-׿]/.test(site.heroEn)
+              ? <div className={styles.heroEn}>{site.heroEn}</div>
+              : <div className={styles.heroEn} lang="en" dir="ltr">{site.heroEn}</div>)}
             <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
             {dateStr && <div className={styles.heroDate}>{dateStr}</div>}
             {ev.venue && <div className={styles.heroVenue}><Icon name="pin" size={15} /> {ev.venue}</div>}
