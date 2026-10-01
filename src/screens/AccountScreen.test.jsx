@@ -107,3 +107,13 @@ describe("AccountScreen — the plan cards actually differ", () => {
     expect(human[0]).toMatch(/בשטח/);
   });
 });
+
+describe("AccountScreen — landmarks (38a)", () => {
+  it("is one <main>, holding the page's h1", () => {
+    // A top-level route outside Shell, so nothing else supplies the landmark —
+    // and the browser harness cannot reach it signed out (it redirects).
+    renderScreen();
+    expect(document.querySelectorAll("main, [role=main]")).toHaveLength(1);
+    expect(screen.getByRole("main").querySelector("h1")?.textContent).toBe("החשבון שלי");
+  });
+});

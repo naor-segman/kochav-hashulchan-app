@@ -211,6 +211,9 @@ export default function LandingScreen({ user = null }) {
           PricingScreen has always passed it. */}
       <SiteHeader user={user} />
 
+      {/* The page's one landmark (38a). SiteHeader's skip link focuses it. */}
+      <main id="main" tabIndex={-1} className={styles.main}>
+
       {/* ── Hero ── */}
       <section className={[styles.hero, hasHeroMedia ? styles.heroCinematic : ""].filter(Boolean).join(" ")}>
         {hasHeroMedia ? (
@@ -503,6 +506,8 @@ export default function LandingScreen({ user = null }) {
           <p className={styles.ctaNote}>ללא כרטיס אשראי · האירוע נשאר שלכם</p>
         </div>
       </section>
+
+      </main>
 
       <Footer />
     </div>

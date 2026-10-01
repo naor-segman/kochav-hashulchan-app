@@ -148,38 +148,39 @@ export default function AlbumScreen() {
     reload();
   };
 
-  if (state === "loading") return <div className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></div>;
+  // Every state is the page's one <main> (38a).
+  if (state === "loading") return <main className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></main>;
   if (state === "nocloud") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <p>האלבום אינו זמין</p>
         <p className={styles.sub}>האירוע עדיין לא סונכרן לענן</p>
-      </div>
+      </main>
     );
   }
   if (state === "unreachable") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
         <p className={styles.sub}>{UNREACHABLE_TEXT.body}</p>
-      </div>
+      </main>
     );
   }
   if (state === "error") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>האלבום לא נמצא</h1>
         <p className={styles.sub}>הקישור אינו תקף או שפג תוקפו</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className={styles.root}>
+    <main className={styles.root}>
       <header className={styles.head}>
         <h1 className={styles.title}>האלבום של {event.name}</h1>
         <p className={styles.sub}>
@@ -246,7 +247,7 @@ export default function AlbumScreen() {
       )}
 
       {lightbox && <Lightbox photo={lightbox} onClose={closeLightbox} />}
-    </div>
+    </main>
   );
 }
 

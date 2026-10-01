@@ -21,7 +21,7 @@ export default function AuthCallbackScreen() {
   }, [navigate]);
 
   return (
-    <div style={{
+    <main style={{
       minHeight: "100vh",
       display: "flex",
       flexDirection: "column",
@@ -35,6 +35,6 @@ export default function AuthCallbackScreen() {
     }}>
       <div style={{ fontSize: "36px" }} aria-hidden="true">✦</div>
       <p style={{ fontSize: "16px", fontWeight: 600 }} role="status">{msg}</p>
-    </div>
+    </main>
   );
 }

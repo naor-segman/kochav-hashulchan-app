@@ -88,6 +88,9 @@ export default function PricingScreen({ user }) {
     <div className={styles.root}>
       <SiteHeader user={user} active="pricing" />
 
+      {/* The page's one landmark (38a). SiteHeader's skip link focuses it. */}
+      <main id="main" tabIndex={-1} className={styles.main}>
+
       {/* ── Header ── */}
       <section className={styles.pageHeader}>
         <div className={styles.pageHeaderInner}>
@@ -264,6 +267,8 @@ export default function PricingScreen({ user }) {
           <Link to="/signup" className={styles.ctaBtn}>מתחילים חינם ←</Link>
         </div>
       </section>
+
+      </main>
 
       <Footer />
     </div>

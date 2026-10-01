@@ -81,7 +81,7 @@ export default function AdminFeedbackScreen() {
   const unseen = rows.filter(r => !r.seen).length;
 
   return (
-    <div className={styles.page}>
+    <main className={styles.page}>
       <header className={styles.head}>
         <Link to="/admin/dashboard" className={styles.back} aria-label="חזרה לדשבורד">
           <Icon name="arrowRight" size={16} />
@@ -168,6 +168,6 @@ export default function AdminFeedbackScreen() {
           ))}
         </ul>
       )}
-    </div>
+    </main>
   );
 }

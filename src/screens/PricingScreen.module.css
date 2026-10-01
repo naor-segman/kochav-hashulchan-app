@@ -3,6 +3,10 @@
   min-height: 100vh;
 }
 
+/* <main> (38a) is unstyled, so the page lays out exactly as it did.
+   SiteHeader's skip link focuses it; the ring would outline the whole page. */
+.main:focus { outline: none; }
+
 /* ── Page header ── */
 
 .pageHeader {

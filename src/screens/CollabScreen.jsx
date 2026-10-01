@@ -162,25 +162,26 @@ export default function CollabScreen() {
     return () => { cancelled = true; if (poll) clearInterval(poll); pending.forEach(clearTimeout); };
   }, [token, mergePolled]);
 
-  if (state === "loading")  return <div className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></div>;
+  // Every state is the page's one <main> (38a).
+  if (state === "loading")  return <main className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></main>;
   // The RPCs return nothing both when the token is wrong AND when the host has
   // switched the link off, and from here the two are indistinguishable — so the
   // copy has to cover both without guessing which one happened.
   if (state === "notfound") return (
-    <div className={styles.state}>
+    <main className={styles.state}>
       <span className={styles.star}><Icon name="alert" size={26} /></span>
       <h1 className={styles.stateTitle}>הקישור אינו פעיל</h1>
       <p className={styles.stateHint}>ייתכן שבעלי האירוע סגרו אותו, או שהכתובת שגויה. שווה לבקש מהם קישור מעודכן.</p>
       <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-    </div>
+    </main>
   );
 
   if (state === "unreachable") return (
-    <div className={styles.state}>
+    <main className={styles.state}>
       <span className={styles.star}><Icon name="alert" size={26} /></span>
       <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
       <p className={styles.stateHint}>{UNREACHABLE_TEXT.body}</p>
-    </div>
+    </main>
   );
 
   const sides = getSideLabels(ev);
@@ -310,6 +311,9 @@ export default function CollabScreen() {
       </header>
 
       <div className={styles.wrapWide}>
+        {/* The page's one landmark (38a) — inside the column so the footer
+            stays outside it. Unstyled; the column lays out as before. */}
+        <main>
         <div className={styles.card}>
           <h1 className={styles.title}>רשימת האורחים המשותפת</h1>
           <p className={styles.sub}>
@@ -452,6 +456,7 @@ export default function CollabScreen() {
             );
           })}
         </div>
+        </main>
 
         <footer className={styles.footer}>✦ נבנה ב{COMPANY.name}</footer>
       </div>

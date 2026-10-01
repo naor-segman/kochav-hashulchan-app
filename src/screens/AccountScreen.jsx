@@ -234,7 +234,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
   const statusMeta = getStatusMeta(statusKey);
 
   return (
-    <div className={styles.page}>
+    <main className={styles.page}>
       <div className={styles.card}>
 
         {/* Brand */}
@@ -664,6 +664,6 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
 
       </div>
       {dialog}
-    </div>
+    </main>
   );
 }

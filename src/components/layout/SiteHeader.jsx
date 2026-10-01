@@ -105,8 +105,21 @@ export default function SiteHeader({ user = null, active = null }) {
     </>
   );
 
+  /* Skip link (AX9, as Shell has). Up to eleven links sit in this bar before
+     the page itself. Every page that renders this header puts its content in
+     <main id="main" tabIndex={-1}> (38a); the link focuses it directly rather
+     than following the hash, because the landing page's own hash effect would
+     try to scroll to a section called "main". `preventScroll`: <main> starts
+     right under this sticky bar, and a plain focus() scrolled it 69px up —
+     the top of the hero went under the bar (measured). */
+  const skipToMain = (e) => {
+    e.preventDefault();
+    document.getElementById("main")?.focus({ preventScroll: true });
+  };
+
   return (
     <header className={styles.nav}>
+      <a href="#main" className={styles.skipLink} onClick={skipToMain}>דלגו לתוכן</a>
       <div className={styles.navInner}>
         <Link to="/" className={styles.navLogo}>
           <span className={styles.navLogoMark} aria-hidden="true">✦</span>

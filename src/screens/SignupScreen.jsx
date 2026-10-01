@@ -109,7 +109,7 @@ export default function SignupScreen() {
 
   if (done) {
     return (
-      <div className={styles.page}>
+      <main className={styles.page}>
         <div className={styles.card}>
           <div className={styles.brand}>
             <span className={styles.brandMark} aria-hidden="true">✦</span>
@@ -140,12 +140,12 @@ export default function SignupScreen() {
           )}
           <Link to="/login" className={styles.backLink}>→ חזרה לכניסה</Link>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className={`${styles.page} ${styles.pageStack}`}>
+    <main className={`${styles.page} ${styles.pageStack}`}>
       {/* The only way back to the marketing site — the card itself has no nav
           and no footer, and the wordmark inside it is not a link. */}
       <div className={styles.homeRow}>
@@ -275,6 +275,6 @@ export default function SignupScreen() {
         </div>
 
       </div>
-    </div>
+    </main>
   );
 }

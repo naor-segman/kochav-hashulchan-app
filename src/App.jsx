@@ -184,7 +184,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
         {/* Without this, /events/:id/typo matched `/events/:eventId/*` at the
             top level and then matched nothing here — the Shell rendered with a
             blank body and no error. The top-level catch-all cannot reach it. */}
-        <Route path="*"           element={<NotFoundScreen />} />
+        <Route path="*"           element={<NotFoundScreen landmark={false} />} />
       </Routes>
       </ErrorBoundary>
       <Toast msg={toast?.msg} variant={toast?.variant} />

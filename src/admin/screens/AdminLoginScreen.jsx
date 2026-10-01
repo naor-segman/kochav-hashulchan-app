@@ -81,7 +81,7 @@ export default function AdminLoginScreen() {
   };
 
   return (
-    <div className={styles.page}>
+    <main className={styles.page}>
       <div className={styles.card}>
 
         <div className={styles.header}>
@@ -142,6 +142,6 @@ export default function AdminLoginScreen() {
         </p>
 
       </div>
-    </div>
+    </main>
   );
 }

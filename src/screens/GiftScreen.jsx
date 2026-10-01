@@ -121,11 +121,11 @@ export default function GiftScreen() {
   if (unreachable) {
     return (
       <div className={styles.root}>
-        <div className={styles.loadingWrap}>
+        <main className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
           <h1 className={styles.loadingText}>{UNREACHABLE_TEXT.title}</h1>
           <p className={styles.loadingText}>{UNREACHABLE_TEXT.body}</p>
-        </div>
+        </main>
       </div>
     );
   }
@@ -134,11 +134,11 @@ export default function GiftScreen() {
   if (!loading && !event) {
     return (
       <div className={styles.root}>
-        <div className={styles.loadingWrap}>
+        <main className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
           <h1 className={styles.loadingText}>הלינק לא תקין או שפג תוקפו</h1>
           <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-        </div>
+        </main>
       </div>
     );
   }
@@ -147,10 +147,10 @@ export default function GiftScreen() {
   if (loading) {
     return (
       <div className={styles.root}>
-        <div className={styles.loadingWrap}>
+        <main className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
           <p className={styles.loadingText} role="status">טוען…</p>
-        </div>
+        </main>
       </div>
     );
   }
@@ -170,7 +170,7 @@ export default function GiftScreen() {
             <span className={styles.logoName}>{COMPANY.name}</span>
           </Link>
         </header>
-        <div className={styles.successWrap}>
+        <main className={styles.successWrap}>
           <div className={styles.successCard}>
             <div className={styles.successCircle} aria-hidden="true">
               <span className={styles.successCheck}>✓</span>
@@ -209,7 +209,7 @@ export default function GiftScreen() {
             <p className={styles.successClosing}>את המתנה עצמה אפשר להעניק ביום האירוע</p>
             <p className={styles.successClosing}>שיהיה בשעה טובה</p>
           </div>
-        </div>
+        </main>
       </div>
     );
   }

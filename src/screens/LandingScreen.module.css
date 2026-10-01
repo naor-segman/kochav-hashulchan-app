@@ -4,6 +4,10 @@
   overflow-x: hidden;
 }
 
+/* <main> (38a) is unstyled, so the page lays out exactly as it did.
+   SiteHeader's skip link focuses it; the ring would outline the whole page. */
+.main:focus { outline: none; }
+
 /* Sticky-nav offset so anchor jumps land below the bar, not under it. */
 .features,
 .howSection {

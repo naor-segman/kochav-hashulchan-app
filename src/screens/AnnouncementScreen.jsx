@@ -132,25 +132,26 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   }), [theme, font]);
 
   if (state === "loading") {
-    return <div className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></div>;
+    // Every state is the page's one <main> (38a), as the loaded page is.
+    return <main className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></main>;
   }
   if (state === "error") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>הדף לא נמצא</h1>
         <p className={styles.stateSub}>הקישור אינו תקף או שפג תוקפו</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-      </div>
+      </main>
     );
   }
   if (state === "unreachable") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
         <p className={styles.stateSub}>{UNREACHABLE_TEXT.body}</p>
-      </div>
+      </main>
     );
   }
 
@@ -158,12 +159,12 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   // rendering a half-empty page that looks broken.
   if (!ann.enabled && !isPreview) {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>הדף עדיין לא פורסם</h1>
         <p className={styles.stateSub}>בעלי האירוע עדיין עובדים עליו — נסו שוב מאוחר יותר</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-      </div>
+      </main>
     );
   }
 

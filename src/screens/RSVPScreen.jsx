@@ -217,10 +217,10 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.loadingWrap}>
+        <main className={styles.loadingWrap}>
           <span className={styles.spinner} aria-hidden="true">✦</span>
           <p className={styles.loadingText} role="status">טוען פרטי אירוע…</p>
-        </div>
+        </main>
       </div>
     );
   }
@@ -229,7 +229,7 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
             <div className={styles.errorState}>
               <span className={styles.errorIcon} aria-hidden="true"><Icon name="alert" size={26} /></span>
@@ -237,7 +237,7 @@ export default function RSVPScreen() {
               <p className={styles.errorBody}>{UNREACHABLE_TEXT.body}</p>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -247,7 +247,7 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
             <div className={styles.errorState}>
               <span className={styles.errorIcon} aria-hidden="true"><Icon name="link" size={26} /></span>
@@ -259,7 +259,7 @@ export default function RSVPScreen() {
               <Link to="/" className={styles.homeLink}>לדף הבית</Link>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -276,7 +276,7 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
             <div className={styles.eventInfo}>
               {guestEventType(event.type) && (
@@ -302,7 +302,7 @@ export default function RSVPScreen() {
               </div>
             )}
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -312,7 +312,7 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
 
             <div className={styles.eventInfo}>
@@ -376,7 +376,7 @@ export default function RSVPScreen() {
             </div>
 
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -386,7 +386,7 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
 
             <div className={styles.eventBanner}>
@@ -582,7 +582,7 @@ export default function RSVPScreen() {
             </button>
 
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -592,7 +592,7 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
 
             <div className={styles.eventBanner}>
@@ -649,7 +649,7 @@ export default function RSVPScreen() {
             </button>
 
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -671,7 +671,7 @@ export default function RSVPScreen() {
   return (
     <div className={styles.page}>
       <PageHeader />
-      <div className={styles.cardWrap}>
+      <main className={styles.cardWrap}>
         <div className={styles.card}>
           <div className={styles.successBlock}>
             {site?.coverPhoto && (
@@ -735,7 +735,7 @@ export default function RSVPScreen() {
             </Link>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

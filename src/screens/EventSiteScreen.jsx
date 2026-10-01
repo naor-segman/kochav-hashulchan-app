@@ -168,24 +168,25 @@ export default function EventSiteScreen({ localEvent }) {
   }), [theme, font]);
 
   if (state === "loading") {
-    return <div className={styles.stateWrap}><span className={styles.stateStar} aria-hidden="true">✦</span><p role="status">טוען…</p></div>;
+    // Every state is the page's one <main> (38a).
+    return <main className={styles.stateWrap}><span className={styles.stateStar} aria-hidden="true">✦</span><p role="status">טוען…</p></main>;
   }
   if (state === "notfound") {
     return (
-      <div className={styles.stateWrap}>
+      <main className={styles.stateWrap}>
         <span className={styles.stateStar}>✦</span>
         <h1 className={styles.stateTitle}>הקישור אינו תקין או שפג תוקפו</h1>
         <Link to="/" className={styles.stateLink}>לדף הבית</Link>
-      </div>
+      </main>
     );
   }
   if (state === "unreachable") {
     return (
-      <div className={styles.stateWrap}>
+      <main className={styles.stateWrap}>
         <span className={styles.stateStar}>✦</span>
         <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
         <p>{UNREACHABLE_TEXT.body}</p>
-      </div>
+      </main>
     );
   }
 
@@ -243,6 +244,10 @@ export default function EventSiteScreen({ localEvent }) {
           </div>
         )}
       </nav>
+
+      {/* The page's one landmark (38a): everything between the mini-nav and
+          the footer. Unstyled — the sections lay out exactly as before. */}
+      <main>
 
       {/* ── Hero (only once published / in host preview) ── */}
       {visible && (
@@ -460,6 +465,8 @@ export default function EventSiteScreen({ localEvent }) {
           </div>
         </section>
       )}
+
+      </main>
 
       {/* ── Footer ── */}
       <footer className={styles.footer}>

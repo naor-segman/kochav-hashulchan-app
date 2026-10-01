@@ -70,7 +70,7 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <div className={styles.page}>
+    <main className={styles.page}>
       <div className={styles.card}>
         <div className={styles.brand}>
           <span className={styles.brandMark} aria-hidden="true">✦</span>
@@ -153,6 +153,6 @@ export default function ResetPasswordScreen() {
           </form>
         )}
       </div>
-    </div>
+    </main>
   );
 }
