@@ -190,11 +190,12 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           <>
             <Divider label={personal.divider} />
             <Field label="בני הזוג" hint="לפי זה ייקראו שני הצדדים בכל המסכים">
-              <div className={base.seg}>
+              <div className={base.seg} role="group" aria-label="בני הזוג">
                 {COUPLE_TYPES.map(c => (
                   <button
                     key={c.value}
                     type="button"
+                    aria-pressed={form.coupleType === c.value}
                     className={[base.segBtn, form.coupleType === c.value ? base.segActive : ""].filter(Boolean).join(" ")}
                     onClick={() => set("coupleType", c.value)}
                   >
@@ -308,11 +309,12 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           <>
             <Divider label="ההורים" />
             <Field label="מי ההורים" hint="לפי זה ייקראו שני הצדדים בכל המסכים">
-              <div className={base.seg}>
+              <div className={base.seg} role="group" aria-label="מי ההורים">
                 {PARENT_TYPES.map(p => (
                   <button
                     key={p.value}
                     type="button"
+                    aria-pressed={form.parentsType === p.value}
                     className={[base.segBtn, form.parentsType === p.value ? base.segActive : ""].filter(Boolean).join(" ")}
                     onClick={() => set("parentsType", p.value)}
                   >

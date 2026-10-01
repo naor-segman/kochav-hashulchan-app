@@ -541,11 +541,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               aria-label="הדביקו כאן את רשימת השמות"
             />
             <div className={styles.listAddRow}>
-              <div className={base.seg}>
+              <div className={base.seg} role="group" aria-label="הצד שכל השמות ברשימה יקבלו">
                 {["bride", "groom"].map(s => (
                   <button
                     key={s}
                     type="button"
+                    aria-pressed={listSide === s}
                     className={[base.segBtn, listSide === s ? (s === "bride" ? base.segBride : base.segGroom) : ""].filter(Boolean).join(" ")}
                     onClick={() => setListSide(s)}
                   >
@@ -588,11 +589,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
         <div className={base.grid2}>
           <Field label="מי הזמין אותם" hint="לפי זה נדע לשבת אותם באזור הנכון באולם">
-            <div className={base.seg}>
+            <div className={base.seg} role="group" aria-label="מי הזמין אותם">
               {["bride", "groom"].map(s => (
                 <button
                   key={s}
                   type="button"
+                  aria-pressed={form.side === s}
                   className={[
                     base.segBtn,
                     form.side === s ? (s === "bride" ? base.segBride : base.segGroom) : ""
@@ -872,14 +874,21 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   {g.phone && (
                     <button
+                      type="button"
                       className={[base.btnSm, styles.waBtn].join(" ")}
                       title="שלחו הזמנה בוואטסאפ"
+                      aria-label={`וואטסאפ: ${g.name}`}
                       onClick={() => waGuest(g)}
                     >
                       וואטסאפ
                     </button>
                   )}
-                  <button className={[base.btnSm, base.btnGhost].join(" ")}
+                  {/* Named with the guest (AX8): a list of 300 "עריכה" and 300
+                      "מחקו" buttons is unusable by screen reader, and the
+                      delete one is the dangerous one. The visible word leads
+                      the name, so voice control still finds it. */}
+                  <button type="button" className={[base.btnSm, base.btnGhost].join(" ")}
+                    aria-label={`עריכה: ${g.name}`}
                     onClick={() => {
                       // Every editable field is loaded from the row, companion
                       // names included and padded to the seat count — a field
@@ -891,7 +900,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                     }}>
                     עריכה
                   </button>
-                  <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delGuest(g.id, g.name)}>
+                  <button type="button" className={[base.btnSm, base.btnDanger].join(" ")} aria-label={`מחקו: ${g.name}`} onClick={() => delGuest(g.id, g.name)}>
                     מחקו
                   </button>
                 </div>

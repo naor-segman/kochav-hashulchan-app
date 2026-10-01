@@ -314,14 +314,18 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         <SectionLabel>הוספת אילוץ חדש</SectionLabel>
 
         <Field label="סוג האילוץ">
-          <div className={base.seg}>
+          <div className={base.seg} role="group" aria-label="סוג האילוץ">
             <button
+              type="button"
+              aria-pressed={formType === "together"}
               className={[base.segBtn, formType === "together" ? base.segActive : ""].filter(Boolean).join(" ")}
               onClick={() => setFormType("together")}
             >
               <Icon name="together" /> חייבים לשבת יחד
             </button>
             <button
+              type="button"
+              aria-pressed={formType === "apart"}
               className={[base.segBtn, formType === "apart" ? base.segActive : ""].filter(Boolean).join(" ")}
               onClick={() => setFormType("apart")}
             >
@@ -419,10 +423,12 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
                     <span className={styles.cstName}>{gb.name}</span>
                   </div>
                   <button
+                    type="button"
                     className={[base.btnSm, base.btnDanger].join(" ")}
                     onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
+                    aria-label={`הסירו: ${ga.name} יחד עם ${gb.name}`}
                   >
-                    הסר
+                    הסירו
                   </button>
                 </div>
               );
@@ -447,10 +453,12 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
                     <span className={styles.cstName}>{gb.name}</span>
                   </div>
                   <button
+                    type="button"
                     className={[base.btnSm, base.btnDanger].join(" ")}
                     onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
+                    aria-label={`הסירו: ${ga.name} בנפרד מ-${gb.name}`}
                   >
-                    הסר
+                    הסירו
                   </button>
                 </div>
               );

@@ -428,7 +428,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>גלריית תמונות</SectionLabel>
-          <Toggle on={site.sections.gallery !== false} onChange={v => setSection("gallery", v)} />
+          <Toggle label="גלריית תמונות" on={site.sections.gallery !== false} onChange={v => setSection("gallery", v)} />
         </div>
         <p className={base.fieldHint}>עד {GALLERY_MAX} תמונות. הראשונה תוצג גדולה יותר.</p>
         {(site.gallery || []).length > 0 && (
@@ -451,12 +451,12 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>ספירה לאחור</SectionLabel>
-          <Toggle on={site.countdown !== false} onChange={v => set({ countdown: v })} />
+          <Toggle label="ספירה לאחור" on={site.countdown !== false} onChange={v => set({ countdown: v })} />
         </div>
         <p className={base.fieldHint}>ספירת ימים לקראת מועד האירוע.</p>
         <div className={styles.secToggleHead} style={{ marginTop: 18 }}>
           <SectionLabel>קוד לבוש</SectionLabel>
-          <Toggle on={site.sections.dressCode === true} onChange={v => setSection("dressCode", v)} />
+          <Toggle label="קוד לבוש" on={site.sections.dressCode === true} onChange={v => setSection("dressCode", v)} />
         </div>
         <Field label="הנחיית לבוש לאורחים (אופציונלי)">
           <textarea className={base.textarea} rows={2} value={site.dressCode}
@@ -469,7 +469,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>לוז האירוע</SectionLabel>
-          <Toggle on={site.sections.schedule} onChange={v => setSection("schedule", v)} />
+          <Toggle label="לוז האירוע" on={site.sections.schedule} onChange={v => setSection("schedule", v)} />
         </div>
         {site.schedule.map(item => (
           <div key={item.id} className={styles.scheduleRow}>
@@ -493,7 +493,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>מיקום והגעה</SectionLabel>
-          <Toggle on={site.sections.location} onChange={v => setSection("location", v)} />
+          <Toggle label="מיקום והגעה" on={site.sections.location} onChange={v => setSection("location", v)} />
         </div>
         <Field label="כתובת מלאה">
           <input className={base.input} value={site.address} placeholder="רחוב, מספר, עיר"
@@ -515,7 +515,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>הסעות</SectionLabel>
-          <Toggle on={site.sections.shuttles} onChange={v => setSection("shuttles", v)} />
+          <Toggle label="הסעות" on={site.sections.shuttles} onChange={v => setSection("shuttles", v)} />
         </div>
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>הוסיפו מסלולי הסעה הלוך וחזור עם שעות ונקודות איסוף.</p>
         {(site.shuttles || []).map(s => (
@@ -550,11 +550,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         <div className={styles.toggleList}>
           <div className={styles.toggleRow}>
             <span>מתנה — קישור למסך המתנה</span>
-            <Toggle on={site.sections.gift} onChange={v => setSection("gift", v)} />
+            <Toggle label="מתנה" on={site.sections.gift} onChange={v => setSection("gift", v)} />
           </div>
           <div className={styles.toggleRow}>
             <span>קיר ברכות — ברכות מהאורחים</span>
-            <Toggle on={site.sections.blessings} onChange={v => setSection("blessings", v)} />
+            <Toggle label="קיר ברכות" on={site.sections.blessings} onChange={v => setSection("blessings", v)} />
           </div>
         </div>
       </div>
@@ -563,7 +563,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>שאלות נפוצות</SectionLabel>
-          <Toggle on={site.sections.faq} onChange={v => setSection("faq", v)} />
+          <Toggle label="שאלות נפוצות" on={site.sections.faq} onChange={v => setSection("faq", v)} />
         </div>
         {site.faq.map(f => (
           <div key={f.id} className={styles.faqEdit}>
@@ -604,14 +604,18 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
   );
 }
 
-function Toggle({ on, onChange }) {
+// Named by the section it switches (AX8). Every one of the nine used to be
+// called "פעיל" or "כבוי" — a screen reader's list of controls was nine
+// identical buttons, and the name changed with the state, which aria-pressed
+// already carries.
+function Toggle({ on, onChange, label }) {
   return (
     <button
       type="button"
       className={[styles.toggle, on ? styles.toggleOn : ""].filter(Boolean).join(" ")}
       onClick={() => onChange(!on)}
       aria-pressed={on}
-      aria-label={on ? "פעיל" : "כבוי"}
+      aria-label={label}
     >
       <span className={styles.toggleKnob} />
     </button>
