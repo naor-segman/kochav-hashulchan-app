@@ -53,6 +53,19 @@ const BY_CODE = {
   otp_expired:                "הקישור פג תוקף. בקשו קישור חדש.",
 };
 
+const BAD_INPUT = new Set([
+  "invalid_credentials", "weak_password", "same_password", "email_address_invalid",
+  "validation_failed", "user_already_exists", "email_exists",
+]);
+
+/** True when what the person typed is what is wrong — the fields get
+ *  aria-invalid. A network failure or a rate limit is not their input's fault. */
+export function isAuthInputError(err) {
+  if (!err || typeof err !== "object") return false;
+  if (BAD_INPUT.has(err.code)) return true;
+  return !err.code && /invalid login credentials/i.test(String(err.message || ""));
+}
+
 function isNetworkFailure(err) {
   if (err.name === "AuthRetryableFetchError") return true;
   if (err.status === 0) return true;

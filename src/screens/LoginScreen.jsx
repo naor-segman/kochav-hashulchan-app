@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
-import { authErrorMessage } from "../utils/authErrors.js";
+import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
 
 export default function LoginScreen() {
   const { user, loading, signIn } = useAuth();
@@ -16,6 +16,7 @@ export default function LoginScreen() {
   const [email,       setEmail]       = useState("");
   const [password,    setPassword]    = useState("");
   const [error,       setError]       = useState(location.state?.error || "");
+  const [invalid,     setInvalid]     = useState(false); // the credentials were wrong
   const [busy,        setBusy]        = useState(false);
   const [showPw,      setShowPw]      = useState(false);
   const [forgotMode,  setForgotMode]  = useState(false);
@@ -24,20 +25,33 @@ export default function LoginScreen() {
   const [forgotDone,  setForgotDone]  = useState(false);
   const [forgotError, setForgotError] = useState("");
 
+  // The form that had the focus is replaced by the confirmation; put the focus
+  // on the confirmation rather than let it fall to <body> (AX6).
+  const forgotDoneRef = useRef(null);
+  useEffect(() => { if (forgotDone) forgotDoneRef.current?.focus(); }, [forgotDone]);
+
   // Already logged in → redirect
   useEffect(() => {
     if (!loading && user) navigate(from, { replace: true });
   }, [loading, user, navigate, from]);
 
+  // While a request is in flight the fields are readOnly and the button
+  // aria-disabled — NOT `disabled`. Disabling the control that has the focus
+  // (the button that was clicked, the field Enter was pressed in) drops the
+  // keyboard focus to <body>, so a screen-reader user lost their place on
+  // every submit and the error that followed was read from nowhere (AX6).
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (busy) return;
     setError("");
+    setInvalid(false);
     setBusy(true);
     try {
       await signIn(email.trim(), password);
       navigate(from, { replace: true });
     } catch (err) {
       setError(authErrorMessage(err, "signIn"));
+      setInvalid(isAuthInputError(err));
     } finally {
       setBusy(false);
     }
@@ -45,7 +59,7 @@ export default function LoginScreen() {
 
   const handleForgot = async (e) => {
     e.preventDefault();
-    if (!forgotEmail.trim()) return;
+    if (forgotBusy || !forgotEmail.trim()) return;
     setForgotError("");
     setForgotBusy(true);
     try {
@@ -102,7 +116,10 @@ export default function LoginScreen() {
               placeholder="your@email.com"
               dir="ltr"
               autoComplete="email"
-              disabled={!isSupabaseConfigured || busy}
+              disabled={!isSupabaseConfigured}
+              readOnly={busy}
+              aria-invalid={invalid || undefined}
+              aria-describedby={error ? "login-error" : undefined}
               required
             />
           </div>
@@ -119,7 +136,10 @@ export default function LoginScreen() {
                 placeholder="••••••••"
                 dir="ltr"
                 autoComplete="current-password"
-                disabled={!isSupabaseConfigured || busy}
+                disabled={!isSupabaseConfigured}
+                readOnly={busy}
+                aria-invalid={invalid || undefined}
+                aria-describedby={error ? "login-error" : undefined}
                 required
               />
               <button
@@ -134,12 +154,13 @@ export default function LoginScreen() {
             </div>
           </div>
 
-          {error && <p className={styles.errorMsg}>{error}</p>}
+          {error && <p id="login-error" role="alert" className={styles.errorMsg}>{error}</p>}
 
           <button
             type="submit"
             className={styles.submitBtn}
-            disabled={!isSupabaseConfigured || busy || !email || !password}
+            disabled={!isSupabaseConfigured || !email || !password}
+            aria-disabled={busy || undefined}
           >
             {busy ? "מתחבר…" : "כניסה"}
           </button>
@@ -156,7 +177,7 @@ export default function LoginScreen() {
             שכחתם סיסמה?
           </button>
         ) : forgotDone ? (
-          <div className={styles.forgotSuccess}>
+          <div className={styles.forgotSuccess} role="status" tabIndex={-1} ref={forgotDoneRef}>
             ✓ קישור לאיפוס סיסמה נשלח לכתובת <strong>{forgotEmail}</strong>. בדקו את תיבת הדואר.
           </div>
         ) : (
@@ -170,10 +191,18 @@ export default function LoginScreen() {
               placeholder="your@email.com"
               dir="ltr"
               autoComplete="email"
+              aria-label="אימייל לאיפוס סיסמה"
+              readOnly={forgotBusy}
+              aria-describedby={forgotError ? "forgot-error" : undefined}
               required
             />
-            {forgotError && <p className={styles.errorMsg}>{forgotError}</p>}
-            <button type="submit" className={styles.submitBtn} disabled={forgotBusy || !forgotEmail}>
+            {forgotError && <p id="forgot-error" role="alert" className={styles.errorMsg}>{forgotError}</p>}
+            <button
+              type="submit"
+              className={styles.submitBtn}
+              disabled={!forgotEmail}
+              aria-disabled={forgotBusy || undefined}
+            >
               {forgotBusy ? "שולח…" : "שלחו קישור איפוס"}
             </button>
             <button

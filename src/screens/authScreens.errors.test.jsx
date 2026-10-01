@@ -109,3 +109,87 @@ describe("ResetPasswordScreen errors (37b)", () => {
     expect(errorText()).toMatch(/חיבור/);
   });
 });
+
+/* AX6 — the error is announced, tied to the fields, and the keyboard focus
+ * survives the submit. Chromium moves the focus to <body> when the focused
+ * control becomes `disabled`; jsdom does not, so what is asserted here is the
+ * cause: nothing the user can be focused on is disabled while the request is
+ * in flight. (The focus itself was read back in a real browser.) */
+describe("auth forms — accessible errors (AX6)", () => {
+  const fill = (pairs) => pairs.forEach(([label, v]) =>
+    fireEvent.change(screen.getByLabelText(label), { target: { value: v } }));
+
+  it("login: in flight nothing focused gets disabled; then role=alert, aria-invalid, aria-describedby", async () => {
+    let reject;
+    signIn.mockImplementationOnce(() => new Promise((_, r) => { reject = r; }));
+    inRouter(<LoginScreen />);
+    fill([["אימייל", "a@b.co"], ["סיסמה", "secret1"]]);
+    const submit = screen.getByRole("button", { name: "כניסה" });
+    await act(async () => { fireEvent.click(submit); });
+    expect(submit).not.toBeDisabled();
+    expect(submit).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByLabelText("אימייל")).not.toBeDisabled();
+    expect(screen.getByLabelText("סיסמה")).not.toBeDisabled();
+    await act(async () => { reject(Object.assign(new Error("Invalid login credentials"), { code: "invalid_credentials", status: 400 })); });
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toMatch(/שגויים/);
+    for (const label of ["אימייל", "סיסמה"]) {
+      const f = screen.getByLabelText(label);
+      expect(f).toHaveAttribute("aria-invalid", "true");
+      expect(f).toHaveAttribute("aria-describedby", alert.id);
+    }
+  });
+
+  it("login: a network failure is announced but does not mark the fields invalid", async () => {
+    signIn.mockRejectedValueOnce(offline());
+    inRouter(<LoginScreen />);
+    fill([["אימייל", "a@b.co"], ["סיסמה", "secret1"]]);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "כניסה" })); });
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByLabelText("אימייל")).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("signup: mismatch marks the confirmation field, announced", async () => {
+    inRouter(<SignupScreen />);
+    fill([["אימייל", "a@b.co"], ["סיסמה", "secret1"], ["אימות סיסמה", "secret2"]]);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "הרשמה" })); });
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toMatch(/אינן תואמות/);
+    expect(screen.getByLabelText("אימות סיסמה")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("אימות סיסמה")).toHaveAttribute("aria-describedby", alert.id);
+    expect(screen.getByLabelText("סיסמה")).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("signup: in flight the submit button is aria-disabled, not disabled", async () => {
+    signUp.mockImplementationOnce(() => new Promise(() => {}));
+    inRouter(<SignupScreen />);
+    fill([["אימייל", "a@b.co"], ["סיסמה", "secret1"], ["אימות סיסמה", "secret1"]]);
+    const submit = screen.getByRole("button", { name: "הרשמה" });
+    await act(async () => { fireEvent.click(submit); });
+    expect(submit).not.toBeDisabled();
+    expect(submit).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByLabelText("אימות סיסמה")).not.toBeDisabled();
+  });
+
+  it("reset: the server's error is a role=alert tied to both fields", async () => {
+    updateUser.mockResolvedValueOnce({ error: apiErr("same_password", 422, "New password should be different") });
+    inRouter(<ResetPasswordScreen />);
+    await act(async () => { authCb("PASSWORD_RECOVERY"); });
+    fill([["סיסמה חדשה", "secret1"], ["אימות סיסמה", "secret1"]]);
+    const submit = screen.getByRole("button", { name: "עדכנו סיסמה" });
+    await act(async () => { fireEvent.click(submit); });
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toMatch(/זהה/);
+    expect(screen.getByLabelText("סיסמה חדשה")).toHaveAttribute("aria-describedby", alert.id);
+    expect(screen.getByLabelText("סיסמה חדשה")).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("forgot-password: the e-mail field has a name and the error is announced", async () => {
+    resetPasswordForEmail.mockResolvedValueOnce({ error: offline() });
+    inRouter(<LoginScreen />);
+    fireEvent.click(screen.getByRole("button", { name: "שכחתם סיסמה?" }));
+    fireEvent.change(screen.getByLabelText("אימייל לאיפוס סיסמה"), { target: { value: "a@b.co" } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "שלחו קישור איפוס" })); });
+    expect(screen.getByRole("alert").textContent).toMatch(/חיבור/);
+  });
+});
