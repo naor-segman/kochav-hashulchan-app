@@ -20,47 +20,71 @@ function planBadgeClass(plan, s) {
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
 //
-// Two queries in parallel:
-//   profiles   — id, email, full_name, role, created_at + nested subscriptions
-//   events     — just user_id (to count per user client-side)
-//
-// Subscriptions are embedded via FK relationship; we take the first active one,
-// falling back to any subscription, then to plan='free'.
+// profiles — id, email, full_name, role, created_at, the subscriptions embed
+// (for the plan) and an `events(count)` embed (for the event count), plus the
+// table's head count for the window note.
 
 const USERS_PAGE = 500;
 
+const PROFILE_COLS = "id, email, full_name, role, created_at, subscriptions(plan, status, started_at, expires_at, event_id, is_manually_managed)";
+
+/* The per-user event count is counted BY POSTGRES, per profile (C4).
+ *
+ * It used to read every events row's user_id with `.range(0, 99999)` and count
+ * client-side. The range does not lift PostgREST's max-rows (1000 on Supabase),
+ * so past a thousand events the column counted an arbitrary subset; the
+ * WORKPLAN 113 note could say so but not fix it. An aggregate embed returns one
+ * number per user whatever the table size, and reads no event rows at all.
+ *
+ * The hint is the FK name because profiles reaches events by more than one
+ * path — directly through events.user_id, and through subscriptions (user_id →
+ * profiles, event_id → events), which PostgREST also offers as a many-to-many.
+ * A bare `events(count)` would be refused as ambiguous (PGRST201). */
+const EVENT_COUNT_EMBED = "events!events_user_id_fkey(count)";
+
+const listProfiles = (cols) => supabase
+  .from("profiles")
+  // subscriptions ordered: without it PostgREST returns the embed in an
+  // arbitrary order, so a user with two active rows could show a stale plan
+  // here while the customer app showed the current one.
+  .select(cols)
+  .order("created_at", { ascending: false })
+  .order("started_at", { referencedTable: "subscriptions", ascending: false })
+  .limit(USERS_PAGE);
+
 async function loadUsersData() {
-  const [profilesRes, eventsRes, totalRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      // subscriptions ordered: without it PostgREST returns the embed in an
-      // arbitrary order, so a user with two active rows could show a stale plan
-      // here while the customer app showed the current one.
-      .select("id, email, full_name, role, created_at, subscriptions(plan, status, started_at, expires_at, event_id, is_manually_managed)")
-      .order("created_at", { ascending: false })
-      .order("started_at", { referencedTable: "subscriptions", ascending: false })
-      .limit(USERS_PAGE),
-    // Ordered and explicitly ranged. An unbounded select is silently capped at
-    // PostgREST's max-rows (1000 by default), so past that the per-user counts
-    // were computed from an arbitrary subset — a customer with 8 events showed
-    // "3", with nothing indicating the number was wrong.
-    // With the exact count beside it: past the range the column under-counted
-    // with no sign at all (WORKPLAN 113). Now the screen can say so.
-    supabase
-      .from("events")
-      .select("user_id", { count: "exact" })
-      .order("user_id", { ascending: true })
-      .range(0, 99999),
+  const [embedRes, totalRes] = await Promise.all([
+    listProfiles(`${PROFILE_COLS}, ${EVENT_COUNT_EMBED}`),
     supabase.from("profiles").select("id", { count: "exact", head: true }),
   ]);
 
-  if (profilesRes.error) throw profilesRes.error;
+  let profilesRes = embedRes;
+  let eventCounts = null;     // null = the embed answered; counts are on the rows
+  let eventCountsPartial = false;
 
-  // Build event count map (ignore events query errors — count shows 0).
-  const eventCounts = {};
-  (eventsRes.data || []).forEach(({ user_id }) => {
-    eventCounts[user_id] = (eventCounts[user_id] || 0) + 1;
-  });
+  /* The embed has never been run against the live API from here (no database
+     in this environment). If it is refused, fall back to the old client-side
+     count rather than lose the whole list — and keep saying it may be partial. */
+  if (embedRes.error) {
+    const [plainRes, eventsRes] = await Promise.all([
+      listProfiles(PROFILE_COLS),
+      supabase
+        .from("events")
+        .select("user_id", { count: "exact" })
+        .order("user_id", { ascending: true })
+        .range(0, 99999),
+    ]);
+    profilesRes = plainRes;
+    eventCounts = {};
+    (eventsRes.data || []).forEach(({ user_id }) => {
+      eventCounts[user_id] = (eventCounts[user_id] || 0) + 1;
+    });
+    const loadedEvents = (eventsRes.data || []).length;
+    eventCountsPartial = !!eventsRes.error
+      || (typeof eventsRes.count === "number" && eventsRes.count > loadedEvents);
+  }
+
+  if (profilesRes.error) throw profilesRes.error;
 
   const rows = (profilesRes.data || []).map((p) => {
     /* One implementation of the entitlement rule, shared with the customer app.
@@ -81,7 +105,8 @@ async function loadUsersData() {
       role:        p.role,
       plan:        bestPlanOnAccount(subs),
       created_at:  p.created_at,
-      event_count: eventCounts[p.id] || 0,
+      // `events` is `[{ count: n }]` from the aggregate embed.
+      event_count: eventCounts ? (eventCounts[p.id] || 0) : (Number(p.events?.[0]?.count) || 0),
     };
   });
 
@@ -89,9 +114,7 @@ async function loadUsersData() {
   // presenting a truncated window as the whole customer base. Through the
   // shared helper: `rows.length >= USERS_PAGE` on its own called a base of
   // exactly 500 users truncated (WORKPLAN 112).
-  const loadedEvents = (eventsRes.data || []).length;
-  rows.eventCountsPartial = !!eventsRes.error
-    || (typeof eventsRes.count === "number" && eventsRes.count > loadedEvents);
+  rows.eventCountsPartial = eventCountsPartial;
   return attachWindowMeta(rows, USERS_PAGE, totalRes.error ? null : totalRes.count);
 }
 
