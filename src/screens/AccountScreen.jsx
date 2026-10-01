@@ -587,13 +587,15 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
               </button>
             )}
 
-            {/* Beta / inactive note — shown only when Stripe is not yet configured */}
+            {/* Shown only while Stripe is not configured. Says what is true —
+                nothing is charged yet — without the beta label (checklist 23:
+                the owner took the beta label off the whole product, 1.10). */}
             {!isStripeConfigured && (
               <div className={styles.inactiveNote}>
                 <span className={styles.inactiveNoteIcon}>✦</span>
                 <span>
-                  אנחנו בשלב בטא — כל הפונקציות זמינות כרגע ללא תשלום.
-                  שדרוג לתוכניות בתשלום יהיה זמין בקרוב. תודה שאתם איתנו!
+                  כרגע כל הפונקציות זמינות ללא תשלום.
+                  רכישה תהיה זמינה בקרוב.
                 </span>
               </div>
             )}
@@ -633,8 +635,6 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         <Link to="/feedback" className={styles.feedbackLink}>
           <Icon name="mail" /> שלחו משוב / דווחו על בעיה
         </Link>
-
-        <p className={styles.versionLabel}>גרסה 0.1 · בטא מוקדמת</p>
 
         <Link to="/" className={styles.backLink}><Icon name="arrowRight" size={14} /> חזרה לאפליקציה</Link>
 

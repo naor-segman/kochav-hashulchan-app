@@ -128,7 +128,7 @@ const SETTINGS = [
   { key: "product_name", value: "רוויה" },
   { key: "default_tables", value: "20" },
   { key: "feature_ai_seating", value: "false" },
-  { key: "system_note", value: "בטא — כל התוכניות פתוחות" },
+  { key: "system_note", value: "כל התוכניות פתוחות" },
 ];
 
 /* ?bulk=N pads the events table to N rows.

@@ -441,14 +441,6 @@
 
 .feedbackLink:hover { color: var(--text2); text-decoration: underline; }
 
-.versionLabel {
-  font-size: var(--step--3);
-  color: var(--muted);
-  text-align: center;
-  margin: 0;
-  opacity: 0.7;
-}
-
 .backLink {
   display: inline-flex;
   align-items: center;

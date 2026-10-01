@@ -115,7 +115,6 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
         <button className={styles.logo} onClick={() => go("dashboard")}>
           <span className={styles.logoMark}>✦</span>
           <span className={styles.logoName}>{COMPANY.name}</span>
-          <span className={styles.betaBadge}>בטא</span>
         </button>
 
         {inEvent && (
