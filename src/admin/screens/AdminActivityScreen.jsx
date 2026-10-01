@@ -26,12 +26,25 @@ import { COMPANY } from "../../data/company.js";
 // formatDateTime / metaSummary moved to admin/lib — see adminFormat.js and
 // activityConfig.js for what was wrong with them.
 
+const LOG_COLS = "id, action, entity_type, entity_id, entity_name, metadata, created_at";
+const listLogs = (cols) => supabase
+  .from("activity_logs")
+  .select(cols)
+  .order("created_at", { ascending: false })
+  .limit(200);
+
+/* PostgREST resolves the `profiles!actor_id` embed BEFORE it looks the table
+ * up, so with no activity_logs table — which is the state of every database
+ * built from this repo, no migration creates it — the answer is PGRST200
+ * ("could not find a relationship"), not PGRST205. The screen showed that raw
+ * English message in a red banner instead of its own "not built yet" box (C5).
+ * A table that exists without the actor FK answers PGRST200 too, so the embed
+ * is dropped and the query asked again: that tells the two apart. */
+const NOT_SET_UP = new Set(["42P01", "PGRST205", "PGRST200"]);
+
 async function loadActivityData() {
-  const { data, error } = await supabase
-    .from("activity_logs")
-    .select("id, action, entity_type, entity_id, entity_name, metadata, created_at, profiles!actor_id(email)")
-    .order("created_at", { ascending: false })
-    .limit(200);
+  let { data, error } = await listLogs(`${LOG_COLS}, profiles!actor_id(email)`);
+  if (error?.code === "PGRST200") ({ data, error } = await listLogs(LOG_COLS));
 
   if (error) throw error;
   return (data || []).map(row => ({
@@ -70,7 +83,7 @@ export default function AdminActivityScreen() {
     try {
       setLogs(await loadActivityData());
     } catch (err) {
-      if ((err.code === "42P01" || err.code === "PGRST205")) {
+      if (NOT_SET_UP.has(err.code)) {
         setNotConfigured(true);
         setLogs([]);
       } else {
