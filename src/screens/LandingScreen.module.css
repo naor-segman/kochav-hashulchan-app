@@ -24,6 +24,8 @@
    Applied only once HERO_MEDIA carries a file. Until then the hero above is
    untouched, so the page never ships a black rectangle waiting for footage. */
 .heroCinematic {
+  /* A dark band: the ring --accent-text draws here is 2.64:1. */
+  --focus-ring: var(--accent-on-dark);
   min-height: 88svh;
   display: grid;
   align-items: center;
@@ -721,6 +723,8 @@
 
 .ctaBanner {
   background: var(--nav-bg);
+  /* A dark band: the ring --accent-text draws here is 2.64:1. */
+  --focus-ring: var(--accent-on-dark);
   text-align: center;
   position: relative;
   overflow: hidden;

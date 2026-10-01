@@ -18,6 +18,8 @@
    container. */
 .header {
   background: var(--nav-bg);
+  /* A dark band: the ring --accent-text draws here is 2.64:1. */
+  --focus-ring: var(--accent-on-dark);
   border-bottom: 1px solid var(--nav-border);
   /* 69px, not 68: `box-sizing: border-box` is global, and the site's own bar is
      a 68px inner row plus a 1px rule, i.e. 69px of chrome. Measured. */

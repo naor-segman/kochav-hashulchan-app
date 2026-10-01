@@ -360,6 +360,8 @@
 
 .ctaBanner {
   background: var(--nav-bg);
+  /* A dark band: the ring --accent-text draws here is 2.64:1. */
+  --focus-ring: var(--accent-on-dark);
   text-align: center;
   padding: 96px 24px;
 }
