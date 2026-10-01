@@ -287,13 +287,7 @@
 
   /* The 86 literals the first pass left behind. Same values, same rendering —
      these are the ones that repeat across files, so a change to the panel's
-     elevation or focus ring had to be made in ten places and never was.
-
-     NOTE: --adm-focus-* is the pre-magenta brand teal, still sitting on every
-     focus ring in the panel. Left at its shipped value rather than quietly
-     restyled — the panel is deliberately not the customer palette, so whether
-     an internal tool should carry a retired brand colour is a decision, not a
-     cleanup. It is one line to change now that it has a name. */
+     elevation or focus ring had to be made in ten places and never was. */
   --adm-shadow:               rgba(0, 0, 0, 0.04);
   --adm-shadow-soft:          rgba(0, 0, 0, 0.06);
   --adm-shadow-mid:           rgba(0, 0, 0, 0.10);
