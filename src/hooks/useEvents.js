@@ -941,6 +941,10 @@ export function useEvents(user) {
   // Event ids whose cloud-create is in flight, so a second debounced edit
   // cannot fire a duplicate create for the same event.
   const creatingRef    = useRef(new Set());
+  // Event ids with a cloud update on the wire, and those owed another one when
+  // it lands (71b, see pushUpdate).
+  const inFlightRef    = useRef(new Set());
+  const owedRef        = useRef(new Set());
 
   useEffect(() => () => { Object.values(syncTimers.current).forEach(clearTimeout); }, []);
 
@@ -1078,7 +1082,7 @@ export function useEvents(user) {
   // someone edited the same event on another device. Re-read the account's rows
   // and let mergeCloudWithLocal decide per event (newest updatedAt wins),
   // instead of overwriting work this tab never loaded.
-  const pushUpdate = useCallback(async (ev, uid) => {
+  const pushUpdateOnce = useCallback(async (ev, uid) => {
     try {
       const version = await updateCloudEvent(ev, uid);
       if (Number.isFinite(version)) {
@@ -1153,6 +1157,30 @@ export function useEvents(user) {
       setSyncStatus(SYNC_STATUS.ERROR);
     }
   }, []);
+
+  /* One push per event on the wire (71b). The debounce fires 1.5 s after the
+   * last edit; a push that takes longer than that (venue wifi) was joined by a
+   * second one carrying the SAME base version — which the server then rejected
+   * as a conflict, sending a perfectly ordinary edit through the conflict
+   * recovery (a re-read of every event, and a merge). Now a push asked for
+   * while one is in flight is only noted, and sent — from the latest state,
+   * against the base the first one moved — the moment the first one is done. */
+  const pushUpdate = useCallback(async (ev, uid) => {
+    if (inFlightRef.current.has(ev.id)) { owedRef.current.add(ev.id); return; }
+    inFlightRef.current.add(ev.id);
+    try {
+      await pushUpdateOnce(ev, uid);
+    } finally {
+      inFlightRef.current.delete(ev.id);
+      // As a (short) debounce: after the state the first push set has
+      // rendered (pushNow reads eventsRef), and flushed like any other on
+      // pagehide or a hidden tab.
+      if (owedRef.current.delete(ev.id)) {
+        clearTimeout(syncTimers.current[ev.id]);
+        syncTimers.current[ev.id] = setTimeout(() => { delete syncTimers.current[ev.id]; pushNowRef.current?.(ev.id); }, 250);
+      }
+    }
+  }, [pushUpdateOnce]);
 
   /* A create whose row turned out to exist already (33c — the first create
    * landed, its response was lost). The row is merged with the local copy
