@@ -1,0 +1,64 @@
+# The local gate from CLAUDE.md, run on every push and pull request.
+#
+# Until this file existed the only check on a PR was Netlify's deploy preview,
+# which builds — and nothing else. A red test, a CSS-module class that renders
+# `class="undefined"`, or a migration that never reached setup_full.sql could
+# all merge green.
+#
+# Two jobs because two Node versions matter:
+#   - gate  (Node 22): what the work is done and tested on locally.
+#   - build (Node 20): what Netlify builds with (netlify.toml NODE_VERSION).
+#
+# What this does NOT cover: Netlify's Deno bundling of netlify/edge-functions/
+# (`node qa/edgeBundle.mjs` downloads a pinned Deno — run it locally whenever
+# anything in netlify/ changes), and no browser harness. No secrets are used.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Tests, lint, CSS modules, setup SQL (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests
+        run: npx vitest run
+      # Not `npm run lint` (eslint .): that still reports 10 known errors in
+      # legacy/ and qa/ — see CLAUDE.md. src and netlify are at 0.
+      - name: ESLint (src, netlify)
+        run: npx eslint src netlify
+      - name: CSS module class names resolve
+        run: node qa/cssmod.mjs
+      - name: setup_full.sql matches the migrations
+        run: |
+          node qa/genSetupSql.mjs
+          git diff --exit-code supabase/setup_full.sql
+
+  build:
+    name: Production build (Node 20, as on Netlify)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
