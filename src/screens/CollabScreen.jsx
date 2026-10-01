@@ -55,6 +55,7 @@ export default function CollabScreen() {
   // Rows whose last save failed — kept held so the poll can't revert them.
   const [failed, setFailed] = useState(() => new Set());
   const [deleteFailed, setDeleteFailed] = useState(null);   // the row's name, or null
+  const [excelFailed, setExcelFailed]   = useState(false);
   const [me, setMe] = useState(() => { try { return localStorage.getItem("collab_me") || ""; } catch { return ""; } });
 
   const editing   = useRef(new Set());  // row ids being edited locally right now
@@ -238,12 +239,21 @@ export default function CollabScreen() {
   };
 
   const addRow = () => {
-    const row = { id: uid(), name: "", phone: "", side: "bride", guest_group: "", guests_count: 1, companions: [], notes: "" };
+    // Side starts UNSET, like group. It defaulted to "bride", so every row the
+    // groom's family added without touching the select was filed on the
+    // bride's side — complete, synced, and wrong (89 #8). Side is a required
+    // field (collabRowMissing), so an unset one says "חסר: צד" until chosen.
+    const row = { id: uid(), name: "", phone: "", side: "", guest_group: "", guests_count: 1, companions: [], notes: "" };
     setRows(prev => [row, ...prev]);
   };
 
   const removeRow = async (id) => {
-    if (timers.current.has(id)) { clearTimeout(timers.current.get(id)); timers.current.delete(id); }
+    // Whether the row had typing not yet saved — a pending write, or a save
+    // that failed and is held. If the delete fails, that typing is still the
+    // relative's and still has to reach the table.
+    const hadPending = timers.current.has(id);
+    const wasHeld    = editing.current.has(id);
+    if (hadPending) { clearTimeout(timers.current.get(id)); timers.current.delete(id); }
     editing.current.delete(id);
     const gone = rows.find(r => r.id === id);
     setRows(prev => prev.filter(r => r.id !== id));
@@ -254,10 +264,17 @@ export default function CollabScreen() {
     } catch {
       // A failed delete used to be silent: the row vanished and came back on
       // the next 3-second poll, with no word why (second review, סב36). Put it
-      // back now, held, and say so.
+      // back now and say so.
+      //
+      // NOT held as "editing" unless it had unsaved typing (71c): nothing ever
+      // released that hold — no edit was pending to finish — so the row froze,
+      // and the poll could never again show what another relative changed in
+      // it. With unsaved typing, the write is rescheduled and releases the row
+      // itself once it lands.
       if (gone) {
-        editing.current.add(id);
         setRows(prev => (prev.some(r => r.id === id) ? prev : [gone, ...prev]));
+        if (wasHeld) editing.current.add(id);
+        if (hadPending) scheduleWrite(gone);
       }
       setDeleteFailed(gone?.name?.trim() || "השורה");
     }
@@ -270,8 +287,18 @@ export default function CollabScreen() {
   // the helper: a static import made the 416KB spreadsheet writer a hard
   // dependency of this page, which relatives open on their phones to type in
   // names.
-  const downloadExcel = () =>
-    exportCollabTableToExcel(rows, { eventName: ev.name, sideLabels: sides });
+  //
+  // The spreadsheet writer is a separate chunk, fetched on the tap — on a
+  // phone with a bad line that fetch fails, and the button did nothing at all,
+  // with an unhandled rejection behind it (89). Say so.
+  const downloadExcel = async () => {
+    setExcelFailed(false);
+    try {
+      await exportCollabTableToExcel(rows, { eventName: ev.name, sideLabels: sides });
+    } catch {
+      setExcelFailed(true);
+    }
+  };
 
   const completeCount = rows.filter(isComplete).length;
 
@@ -302,6 +329,9 @@ export default function CollabScreen() {
                 the guest manager's button, which hands you a different file. */}
             <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}><Icon name="download" /> הורדת הטבלה לאקסל</button>
           </div>
+          {excelFailed && (
+            <p className={styles.saveWarn} role="alert">ההורדה לא הצליחה — בדקו את החיבור ונסו שוב.</p>
+          )}
           <GuestPrivacyNote text="מה שתוסיפו גלוי לכל מי שיש לו את הקישור לטבלה, ועובר לבעלי האירוע." />
           <div className={styles.counts}>
             {rows.length} רשומות · <span className={styles.ok}>{completeCount} מלאות ומסונכרנות</span>
