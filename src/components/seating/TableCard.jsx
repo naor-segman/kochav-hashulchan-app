@@ -8,6 +8,8 @@ import SideDot from "../ui/SideDot.jsx";
 import TableGlyph from "../ui/TableGlyph.jsx";
 import TypeTag from "../ui/TypeTag.jsx";
 import DraggableGuestRow from "./DraggableGuestRow.jsx";
+import SeatSelect from "./SeatSelect.jsx";
+import { refocusAfterRemoval } from "./useDeferredSelect.js";
 import base from "../../styles/screenBase.module.css";
 // See the note in DraggableGuestRow.jsx — the card's classes stay in the
 // seating screen's module because the drag-state selectors are written there.
@@ -176,6 +178,9 @@ function TableCard({
   }, [expanded, bodyBuilt]);
 
   const stop = (e) => e.stopPropagation();
+  // Moving a guest off this card removes their row, and focus fell to <body>.
+  // It goes to the next row's select, or to this card's header (AX2).
+  const toggleRef = useRef(null);
 
   return (
     <div
@@ -198,6 +203,7 @@ function TableCard({
             So the toggle is a sibling stretched under the header content; the
             content is pointer-transparent and only the rename control opts in. */}
         <button
+          ref={toggleRef}
           type="button"
           className={styles.tCardToggle}
           aria-expanded={expanded}
@@ -383,13 +389,13 @@ function TableCard({
                   onClick={e => { e.stopPropagation(); onAssign(g.id, null); }}
                   title="החזירו לרשימת הממתינים"
                 ><Icon name="undo" size={14} /></button>
-                <select
+                <SeatSelect
                   className={[base.select, base.selectInline].join(" ")}
                   value={table.id}
                   aria-label={"השולחן של " + g.name}
                   onPointerDown={stop}
-                  onChange={e => {
-                    const val = e.target.value;
+                  onCommit={(val, el) => {
+                    refocusAfterRemoval(el, bodyRef.current, "select[data-seat-select]", toggleRef.current);
                     if (val === "__remove__")   onAssign(g.id, null);
                     else if (val !== table.id)  onAssign(g.id, val);
                   }}
@@ -407,7 +413,7 @@ function TableCard({
                       );
                     })}
                   </optgroup>
-                </select>
+                </SeatSelect>
               </DraggableGuestRow>
             );
           })}
@@ -415,11 +421,16 @@ function TableCard({
           {canAddGuest && (
             <div className={[styles.tGuestRow, styles.tAddGuestRow].join(" ")}>
               <span className={base.gMeta} style={{ flex: 1, color: "var(--text2)" }}>הוסיפו אורח לשולחן זה:</span>
-              <select
+              <SeatSelect
                 className={[base.select, base.selectInline].join(" ")}
                 value=""
                 aria-label={"הוסיפו אורח ל" + table.name}
-                onChange={e => { if (e.target.value) onAssign(e.target.value, table.id); }}
+                onCommit={(v, el) => {
+                  if (!v) return;
+                  // The table can fill up, and then this row goes away too.
+                  refocusAfterRemoval(el, bodyRef.current, "select[data-seat-select]", toggleRef.current);
+                  onAssign(v, table.id);
+                }}
               >
                 <option value="">— בחרו מהממתינים —</option>
                 {unassigned.map(g => {
@@ -430,7 +441,7 @@ function TableCard({
                     </option>
                   );
                 })}
-              </select>
+              </SeatSelect>
             </div>
           )}
         </div>

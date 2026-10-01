@@ -21,6 +21,13 @@ export default function DraggableGuestRow({ guestId, className, children }) {
       ref={setNodeRef}
       className={[className, styles.draggableRow, isDragging ? styles.guestDragging : ""].filter(Boolean).join(" ")}
       {...attributes}
+      // dnd-kit makes the row a focusable "button", but this screen has no
+      // keyboard sensor — every row was a Tab stop that did nothing, between
+      // the controls that do (AX2). The keyboard path is the row's table
+      // select; the row itself is a pointer/touch handle only.
+      role={undefined}
+      tabIndex={undefined}
+      aria-roledescription={undefined}
       {...listeners}
     >
       <span className={styles.dragHandle} aria-hidden="true"><Icon name="grip" size={16} /></span>

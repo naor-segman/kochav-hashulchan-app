@@ -31,6 +31,8 @@ import { useConfirm } from "../components/ui/useConfirm.jsx";
 import DraggableGuestRow from "../components/seating/DraggableGuestRow.jsx";
 import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
 import TableCard from "../components/seating/TableCard.jsx";
+import SeatSelect from "../components/seating/SeatSelect.jsx";
+import { refocusAfterRemoval } from "../components/seating/useDeferredSelect.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
 import { tableCardKeys } from "../components/seating/tableCardKeys.js";
 import { buildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
@@ -548,6 +550,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
      compensate at the top of the page — there the panel simply appears, and the
      host can see it happen. */
   const waitingRef    = useRef(null);
+  // Where focus goes when seating the last waiting guest unmounts the list.
+  const tablesRef     = useRef(null);
   const waitingHeight = useRef(0);
   useLayoutEffect(() => {
     const el = waitingRef.current;
@@ -902,12 +906,19 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                       {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
                                     </span>
                                   </div>
-                                  <select
+                                  {/* Commits on a deliberate choice, not on
+                                      ArrowDown; focus then goes to the next
+                                      waiting guest instead of <body> (AX2). */}
+                                  <SeatSelect
                                     className={[base.select, base.selectInline].join(" ")}
                                     value=""
                                     aria-label={`שבצו את ${g.name} לשולחן`}
                                     onPointerDown={e => e.stopPropagation()}
-                                    onChange={e => { if (e.target.value) assignGuest(g.id, e.target.value); }}
+                                    onCommit={(v, el) => {
+                                      if (!v) return;
+                                      refocusAfterRemoval(el, waitingRef.current, "select[data-seat-select]", tablesRef.current);
+                                      assignGuest(g.id, v);
+                                    }}
                                   >
                                     <option value="">שבצו לשולחן...</option>
                                     {ev.tables.map(t => {
@@ -919,7 +930,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                         </option>
                                       );
                                     })}
-                                  </select>
+                                  </SeatSelect>
                                 </DraggableGuestRow>
                               </Fragment>
                             );
@@ -963,7 +974,12 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           )}
 
           {ev.tables.length > 0 && (
-            <div className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}>
+            <div
+              ref={tablesRef}
+              tabIndex={-1}
+              aria-label="שולחנות"
+              className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}
+            >
               {ev.tables.map((t, i) => (
                 <TableCard
                   key={cardKeys[i]}
