@@ -8,6 +8,7 @@ import { render, screen, fireEvent } from "../../test/dom.js";
  * window said "no results" as if they did not exist, and a base of exactly
  * 500 was called truncated. */
 let TOTAL = 0;
+let EVENTS = { loaded: 0, count: 0 };
 const users = (n) => Array.from({ length: n }, (_, i) => ({
   id: "u" + i, email: `user${i}@x.test`, full_name: "משתמש " + i, role: "user",
   created_at: new Date(Date.UTC(2026, 8, 1) - i * 60000).toISOString(), subscriptions: [] }));
@@ -19,7 +20,7 @@ function builder(table) {
     then: (res, rej) => {
       let out;
       if (table === "profiles") out = q.head ? { data: null, count: TOTAL, error: null } : { data: users(Math.min(TOTAL, q.lim)), error: null };
-      else out = { data: [], count: 0, error: null };
+      else out = { data: Array.from({ length: EVENTS.loaded }, () => ({ user_id: "u0" })), count: EVENTS.count, error: null };
       return Promise.resolve(out).then(res, rej);
     },
   };
@@ -32,7 +33,7 @@ vi.mock("../../lib/supabase.js", () => ({
 const { default: AdminUsersScreen } = await import("./AdminUsersScreen.jsx");
 const open = () => render(<MemoryRouter><AdminUsersScreen /></MemoryRouter>);
 
-beforeEach(() => { TOTAL = 0; });
+beforeEach(() => { TOTAL = 0; EVENTS = { loaded: 0, count: 0 }; });
 
 describe("admin users — a window is called a window", () => {
   it("names the window as the newest signups", async () => {
@@ -53,5 +54,18 @@ describe("admin users — a window is called a window", () => {
     open();
     await screen.findByText("user499@x.test");
     expect(screen.queryByText(/מוצגים 500/)).toBeNull();
+  });
+
+  // WORKPLAN 113: the per-user event count read a capped range and said nothing past it.
+  it("says the event counts are partial when the events read was cut", async () => {
+    TOTAL = 3; EVENTS = { loaded: 5, count: 9 };
+    open();
+    expect(await screen.findByText(/ספירת האירועים חלקית/)).toBeTruthy();
+  });
+  it("no such note when every event was read", async () => {
+    TOTAL = 3; EVENTS = { loaded: 5, count: 5 };
+    open();
+    await screen.findByText("user2@x.test");
+    expect(screen.queryByText(/ספירת האירועים חלקית/)).toBeNull();
   });
 });

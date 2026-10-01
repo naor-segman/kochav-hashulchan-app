@@ -44,9 +44,11 @@ async function loadUsersData() {
     // PostgREST's max-rows (1000 by default), so past that the per-user counts
     // were computed from an arbitrary subset — a customer with 8 events showed
     // "3", with nothing indicating the number was wrong.
+    // With the exact count beside it: past the range the column under-counted
+    // with no sign at all (WORKPLAN 113). Now the screen can say so.
     supabase
       .from("events")
-      .select("user_id")
+      .select("user_id", { count: "exact" })
       .order("user_id", { ascending: true })
       .range(0, 99999),
     supabase.from("profiles").select("id", { count: "exact", head: true }),
@@ -87,6 +89,9 @@ async function loadUsersData() {
   // presenting a truncated window as the whole customer base. Through the
   // shared helper: `rows.length >= USERS_PAGE` on its own called a base of
   // exactly 500 users truncated (WORKPLAN 112).
+  const loadedEvents = (eventsRes.data || []).length;
+  rows.eventCountsPartial = !!eventsRes.error
+    || (typeof eventsRes.count === "number" && eventsRes.count > loadedEvents);
   return attachWindowMeta(rows, USERS_PAGE, totalRes.error ? null : totalRes.count);
 }
 
@@ -209,6 +214,9 @@ export default function AdminUsersScreen() {
                 ? ` מתוך ${(users.total ?? users.length).toLocaleString()}`
                 : ""
               } משתמשים
+              {users?.eventCountsPartial && (
+                <span className={styles.truncNote}> · ספירת האירועים חלקית</span>
+              )}
               {users?.truncated && (
                 // Ordered newest first: these are the LATEST signups, not the first.
                 <span className={styles.truncNote}> · מוצגים {USERS_PAGE} שנרשמו אחרונים</span>
