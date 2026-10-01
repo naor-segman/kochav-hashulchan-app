@@ -380,6 +380,7 @@
 
 /* ── Guest row ── */
 .list { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.moreResults { margin: 0; padding: 8px 4px 16px; text-align: center; font-size: var(--step--1); color: var(--nav-muted); }
 
 .row {
   border: 1px solid var(--nav-border);

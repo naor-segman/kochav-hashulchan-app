@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { tableLabel } from "../components/seating/tableLabel.js";
 import { getSideLabel, rotateEventToken } from "../utils/eventHelpers.js";
@@ -51,7 +51,10 @@ import { useGuestTitle } from "../hooks/useGuestTitle.js";
 // banked ₪3. The field has since been removed from this screen — the remount is
 // still wrong, on a phone with a queue at the door — so the hoist stays, and
 // everything the row uses from the closure arrives as `ui`.
-function GuestRow({ g, matchLabel, compact, declined, ui }) {
+//
+// memo: with `ui` now stable between keystrokes (סב35e), typing in the search
+// box re-renders the rows that changed, not all of them.
+const GuestRow = memo(function GuestRow({ g, matchLabel, compact, declined, ui }) {
   const { canWrite, expanded, isToken, lastChecked, markCount, markRow, markSeat, setExpanded, sideLabel, tableOf } = ui;
   const seats   = seatsOf(g);
   const here    = arrivedCountOf(g);
@@ -163,7 +166,12 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
           מתנות pill and the Excel gift report all still read it. */}
     </div>
   );
-}
+});
+
+// How many by-name results are drawn. At 800 guests one letter matched ~600
+// rows and drew every one of them, on a phone, on every keystroke (סב35e). The
+// rest are counted, and one more letter narrows them.
+const RESULTS_CAP = 50;
 
 /** Same seat set, order-free. */
 const DOUBLE_TAP_MS = 600;
@@ -400,7 +408,9 @@ export default function EntranceScreen({
   }, [localEvent, cloudGuests]);
 
   // ── One shape for both modes ───────────────────────────────────────────────
-  const ev = isToken
+  // Memoised so it is the same object between keystrokes — the row callbacks
+  // below depend on it (סב35e).
+  const ev = useMemo(() => (isToken
     ? (remote && {
         id: remote.cloudId,
         name: remote.name,
@@ -408,7 +418,10 @@ export default function EntranceScreen({
         tables: remote.tables,
         seating: remote.seating,
       })
-    : ownerEvent;
+    : ownerEvent), [isToken, remote, ownerEvent]);
+  const evGuests  = ev?.guests;
+  const evSeating = ev?.seating;
+  const evTables  = ev?.tables;
 
   const canWrite  = isToken ? !!remote?.writesOpen : true;
   const canManage = !isToken;   // walk-ins, by-table browse, the door-link switch
@@ -593,6 +606,41 @@ export default function EntranceScreen({
 
   const freeTables = availability.filter(a => a.free > 0);
 
+  // ── By-table, computed once per change instead of per table per render ────
+  // (סב35e) The by-table search ran searchGuests on every guest SEPARATELY for
+  // every table, and each table block filtered the whole guest list for its
+  // rows: tables × guests on every keystroke — 80 × 800 at a big wedding.
+  const rowsByTable = useMemo(() => {
+    const m = new Map();
+    for (const g of evGuests || []) {
+      const tid = evSeating?.[g.id];
+      if (!tid || g.rsvp === "declined") continue;
+      if (!m.has(tid)) m.set(tid, []);
+      m.get(tid).push(g);
+    }
+    return m;
+  }, [evGuests, evSeating]);
+  const tablesMatchingGuest = useMemo(() => {
+    if (!norm(tableSearch)) return null;
+    const ids = new Set();
+    for (const { guest } of searchGuests(evGuests || [], tableSearch)) {
+      const tid = evSeating?.[guest.id];
+      if (tid) ids.add(tid);
+    }
+    return ids;
+  }, [evGuests, evSeating, tableSearch]);
+
+  // The row callbacks, stable across keystrokes so memo(GuestRow) can skip
+  // rows that did not change. Above the bail-outs: hooks run on every render.
+  const sideLabel = useCallback(s => (isToken || !ev ? "" : getSideLabel(ev, s)), [isToken, ev]);
+  const tableOf = useCallback(g => {
+    const tid = evSeating?.[g.id];
+    return tid ? (evTables || []).find(t => t.id === tid) : null;
+  }, [evSeating, evTables]);
+  const rowUi = useMemo(() => ({ canWrite, expanded, isToken, lastChecked, markCount,
+                                 markRow, markSeat, setExpanded, sideLabel, tableOf }),
+    [canWrite, expanded, isToken, lastChecked, markCount, markRow, markSeat, sideLabel, tableOf]);
+
   // ── Bail-outs — every hook above this line, on every render ────────────────
   if (isToken && remoteState !== "ready") {
     return (
@@ -614,12 +662,6 @@ export default function EntranceScreen({
     );
   }
   if (!ev) return loading ? <div aria-busy="true" /> : null;
-
-  const sideLabel = s => (isToken ? "" : getSideLabel(ev, s));
-  const tableOf   = g => {
-    const tid = ev.seating?.[g.id];
-    return tid ? ev.tables.find(t => t.id === tid) : null;
-  };
 
   const addWalkIn = () => {
     const name = walkInName.trim();
@@ -667,20 +709,10 @@ export default function EntranceScreen({
       // Searching a person in the by-table view must surface their table —
       // that view had no search at all, so a hostess browsing tables had to
       // switch modes and lose her place.
-      return (ev.guests || []).some(g =>
-        ev.seating?.[g.id] === table.id &&
-        searchGuests([g], tableSearch).length > 0,
-      );
+      return !!tablesMatchingGuest?.has(table.id);
     });
 
   const unassigned = (ev.guests || []).filter(g => g.rsvp !== "declined" && !ev.seating?.[g.id]);
-
-  // A plain object, not a useMemo: two of these are defined below the early
-  // return above, so a hook here would be conditional. It costs a re-render of
-  // the visible rows per render — exactly what happened before the hoist — and
-  // the bug that mattered was the REMOUNT, which the hoist alone fixes.
-  const rowUi = { canWrite, expanded, isToken, lastChecked, markCount,
-                  markRow, markSeat, setExpanded, sideLabel, tableOf };
 
   return (
     <div className={styles.root}>
@@ -802,7 +834,7 @@ export default function EntranceScreen({
 
           {results.length > 0 && (
             <div className={styles.list}>
-              {results.map(({ guest, match, declined }) => (
+              {results.slice(0, RESULTS_CAP).map(({ guest, match, declined }) => (
                 <GuestRow
                   ui={rowUi}
                   key={guest.id}
@@ -811,6 +843,11 @@ export default function EntranceScreen({
                   matchLabel={match.via === "companion" ? match.label : null}
                 />
               ))}
+              {results.length > RESULTS_CAP && (
+                <p className={styles.moreResults} role="status">
+                  ועוד {results.length - RESULTS_CAP} — הקלידו עוד אותיות כדי לצמצם
+                </p>
+              )}
             </div>
           )}
 
@@ -874,7 +911,7 @@ export default function EntranceScreen({
               </div>
             )}
             {tableRows.map(({ table, capacity, taken, free }) => {
-              const rows  = (ev.guests || []).filter(g => ev.seating?.[g.id] === table.id && g.rsvp !== "declined");
+              const rows  = rowsByTable.get(table.id) || [];
               const here  = rows.reduce((s, g) => s + arrivedCountOf(g), 0);
               const seats = rows.reduce((s, g) => s + seatsOf(g), 0);
               const allIn = seats > 0 && here === seats;
