@@ -164,14 +164,23 @@ describe('"+N" and companion names', () => {
     expect(parseGuestList("עמיר סגמן +1 (יובל סגמן)")[0].companions).toEqual(["יובל סגמן"]);
   });
 
-  it('reads "(שם ושם)" as two people even with no plus', () => {
+  // 117 (1.10, owner's rule): every name is a person; "משפחת" is not a seat.
+  it('reads "משפחת כהן (דני ורונית)" as the two people named — 2 seats', () => {
     expect(parseGuestList("משפחת כהן (דני ורונית)")).toEqual([
-      { name: "משפחת כהן", phone: "", count: 3, companions: ["דני", "רונית"] },
+      { name: "דני כהן", phone: "", count: 2, companions: ["רונית"] },
     ]);
   });
 
+  it("a stated count is the host's own number and is kept", () => {
+    expect(parseGuestList("משפחת כהן +2 (דני ורונית)")[0]).toMatchObject({ name: "משפחת כהן", count: 3 });
+  });
+
+  it("a person with two companions is still three seats", () => {
+    expect(parseGuestList("יוסי כהן (דני ורונית)")[0]).toMatchObject({ name: "יוסי כהן", count: 3, companions: ["דני", "רונית"] });
+  });
+
   it("splits the vav even when the second name is only two letters", () => {
-    expect(parseGuestList("משפחת לוי (אבי ודן)")[0].companions).toEqual(["אבי", "דן"]);
+    expect(parseGuestList("משפחת לוי (אבי ודן)")[0]).toMatchObject({ name: "אבי לוי", companions: ["דן"] });
   });
 
   it("leaves a single-item bracket alone — it is a note, not a person", () => {
@@ -369,12 +378,12 @@ describe("vav-initial names, which look exactly like a conjunction", () => {
 
   it("keeps a vav FIRST name intact when the list is comma-separated", () => {
     expect(parseGuestList("משפחת לוי (ורד, דני)")).toEqual([
-      { name: "משפחת לוי", phone: "", count: 3, companions: ["ורד", "דני"] },
+      { name: "ורד לוי", phone: "", count: 2, companions: ["דני"] },
     ]);
   });
 
   it("still splits when the vav really is the conjunction", () => {
-    expect(parseGuestList("משפחת לוי (ורד ודני)")[0].companions).toEqual(["ורד", "דני"]);
+    expect(parseGuestList("משפחת לוי (ורד ודני)")[0]).toMatchObject({ name: "ורד לוי", companions: ["דני"] });
   });
 });
 
