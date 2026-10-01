@@ -33,6 +33,7 @@ import AccountScreen      from "./screens/AccountScreen.jsx";
 import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
 import Loading           from "./components/feedback/Loading.jsx";
 import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
+import { useStorageWarnings } from "./hooks/useStorageWarnings.js";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
 // Heavy authenticated screens. SeatingScreen alone drags in @dnd-kit, and a
@@ -257,12 +258,9 @@ function AppRoutes() {
     prevSyncRef.current = syncStatus;
   }, [syncStatus, showToast]);
 
-  // Warn when localStorage quota is exceeded (data not persisted).
-  useEffect(() => {
-    const handler = () => showToast("הנפח המקומי מלא — הנתונים לא נשמרו! ייצאו לאקסל כעת.", "err");
-    window.addEventListener("storage-quota-exceeded", handler);
-    return () => window.removeEventListener("storage-quota-exceeded", handler);
-  }, [showToast]);
+  // Full browser storage: nothing saved, or everything but the floor-plan
+  // sketches (33b). See useStorageWarnings.
+  useStorageWarnings(showToast);
 
   // Creation now carries the two facts the start screen collected, so the event
   // arrives already named and dated instead of arriving empty and demanding a
