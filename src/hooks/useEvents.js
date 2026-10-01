@@ -429,14 +429,30 @@ function keepFilledCosts(winner, loser) {
  * retry used to set `version: v2` outright, which is exactly that (third
  * review 30.9, סב46). The server now also refuses to let the version go down
  * (migration 20260930000300), so `v` can be above what was sent. */
-export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null, sentUpdatedAt, sentEdits) {
+/** Two syncBase fingerprints describe the same synced content. */
+function sameSynced(a, b) {
+  if (!a || !b) return false;
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (canonical(a[k]) !== canonical(b[k])) return false;
+  }
+  return true;
+}
+
+export function afterPush(e, sentVersion, v, sentBase, sentUpdatedAt, sentEdits) {
+  const syncBase = sentBase === undefined ? (e.syncBase ?? null) : sentBase;
   // The version counter alone is not proof: a merge while the push was on the
   // wire can reset it, and the next edit then lands on the SAME number as the
   // one sent — which read as "nothing changed since", marked the edit synced,
   // and nothing sent it (fourth review 30.9). The edit's timestamp settles it.
   const unchanged = e.version === sentVersion
     && (sentUpdatedAt === undefined || e.updatedAt === sentUpdatedAt)
-    && (sentEdits === undefined || (e.localEdits ?? 0) === sentEdits);
+    && (sentEdits === undefined || (e.localEdits ?? 0) === sentEdits)
+    // And the CONTENT (71a, residual): counters and stamps can all be put
+    // back by a merge that ran while the push was on the wire, and the device
+    // then showed "synced" while holding a value the cloud did not (fuzz seed
+    // 196: costs). `syncBase` is the fingerprint of exactly what was sent;
+    // anything else held now is still owed.
+    && (!sentBase || sameSynced(syncBaseOf(e), sentBase));
   if (unchanged) return { ...e, syncedVersion: v, version: v, syncBase };
   return { ...e, syncedVersion: v, version: Math.max(e.version ?? 0, v + 1), syncBase };
 }
