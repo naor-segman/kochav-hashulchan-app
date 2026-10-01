@@ -11,7 +11,8 @@ const ev = normalizeEvent({ id: "e1", name: "x", type: "חתונה",
   guests: Array.from({ length: 15 }, (_, i) => ({ id: "g" + i, name: `כהן ${i + 1}`, side: "bride" })) });
 const open = () => {
   render(<MemoryRouter><ConstraintsScreen activeEvent={ev} patchEvent={() => {}} go={() => {}} showToast={() => {}} /></MemoryRouter>);
-  const input = screen.getAllByRole("textbox", { name: "אורח א׳" })[0];
+  // A combobox since AX3 — it was a plain textbox.
+  const input = screen.getAllByRole("combobox", { name: "אורח א׳" })[0];
   fireEvent.focus(input);
   return input;
 };

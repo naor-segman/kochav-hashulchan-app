@@ -285,3 +285,7 @@
   color: var(--muted);
   text-align: center;
 }
+
+/* The "N more" row now sits after the listbox rather than inside it, so the
+   last option no longer has a following sibling to draw its divider. */
+.acMore { border-top: 1px solid var(--border); }
