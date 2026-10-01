@@ -39,6 +39,9 @@ function deriveEventName(type, a, b) {
   if (kind === "bar") return x ? `בר המצווה של ${x}` : "";
   if (kind === "bat") return x ? `בת המצווה של ${x}` : "";
   if (kind === "business") return x || "";
+  // "אחר" says nothing about the event, so it is not put in its name: the
+  // host typed "משה" and got "אחר — משה" (סב60a). The bare name instead.
+  if (type === "אחר") return x;
   return x ? `${type} — ${x}` : "";
 }
 

@@ -104,6 +104,26 @@ describe("StartScreen — event type is a Hebrew string, not an English key", ()
     expect(seed.name).toBe('חברת כוכב בע"מ');
   });
 
+  it("names an \"אחר\" event after the person alone, not \"אחר — משה\" (סב60a)", () => {
+    const onStart = vi.fn();
+    render(<StartScreen onStart={onStart} />);
+    pickType("אחר");
+    typeInto("שם הגיבור/ה", "משה");
+    fireEvent.click(screen.getByText(/בואו נתחיל/));
+    const seed = onStart.mock.calls[0][0];
+    expect(seed.type).toBe("אחר");
+    expect(seed.name).toBe("משה");
+  });
+
+  it("a named type still says what it is: יום הולדת — דניאל", () => {
+    const onStart = vi.fn();
+    render(<StartScreen onStart={onStart} />);
+    pickType("יום הולדת");
+    typeInto("שם המחוגג/ת", "דניאל");
+    fireEvent.click(screen.getByText(/בואו נתחיל/));
+    expect(onStart.mock.calls[0][0].name).toBe("יום הולדת — דניאל");
+  });
+
   it("keeps the CTA disabled until there is a name to derive one from", () => {
     // `ready` is derived from the built name, not from the raw input, so a type
     // whose derive rule returns "" must not let a nameless event through.
