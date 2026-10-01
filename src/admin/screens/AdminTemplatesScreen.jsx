@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import { invalidateTemplateCache } from "../../utils/templateHelpers.js";
@@ -8,6 +8,7 @@ import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
 import { useConfirm } from "../../components/ui/useConfirm.jsx";
+import { useRestoreFocus } from "../../hooks/useRestoreFocus.js";
 import { formatDate } from "../lib/adminFormat.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { COMPANY } from "../../data/company.js";
@@ -61,12 +62,50 @@ function TemplateForm({ initial, onSave, onClose, saving, formError }) {
     onSave(form);
   };
 
+  /* A modal in name only until AX8: no role, no aria-modal, Escape did
+     nothing, focus stayed on the "ערוך" button BEHIND the overlay, and Tab
+     walked out of the form into the table under it. Same contract as
+     ConfirmDialog now: focus moves in, stays in, Escape closes, and closing
+     gives focus back to whatever opened it. */
+  const cardRef = useRef(null);
+  const nameRef = useRef(null);
+  useRestoreFocus();
+  useEffect(() => { nameRef.current?.focus(); }, []);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        // Not mid-save: the write is already in flight and closing would hide
+        // its result (formError renders inside this dialog).
+        if (!saving) { e.preventDefault(); onClose(); }
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusables = cardRef.current?.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last  = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose, saving]);
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={styles.modalCard}
+        onClick={(e) => e.stopPropagation()}
+        ref={cardRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tpl-dialog-title"
+      >
 
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{isNew ? "תבנית חדשה" : "עריכת תבנית"}</h2>
+          <h2 id="tpl-dialog-title" className={styles.modalTitle}>{isNew ? "תבנית חדשה" : "עריכת תבנית"}</h2>
           <button className={styles.closeBtn} onClick={onClose} type="button" aria-label="סגור">✕</button>
         </div>
 
@@ -77,6 +116,7 @@ function TemplateForm({ initial, onSave, onClose, saving, formError }) {
               <label className={styles.label} htmlFor="tpl-name">שם התבנית *</label>
               <input
                 id="tpl-name"
+                ref={nameRef}
                 className={styles.input}
                 type="text"
                 value={form.name}
