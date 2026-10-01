@@ -8,9 +8,10 @@ import {
   DndContext, DragOverlay,
   useDroppable,
   useSensor, useSensors,
-  pointerWithin, rectIntersection, MeasuringStrategy,
+  MeasuringStrategy,
 } from "@dnd-kit/core";
 import { RowMouseSensor, RowTouchSensor } from "../components/seating/rowSensors.js";
+import { pointerThenOverlap } from "../components/seating/collision.js";
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { canSeatMore } from "../utils/featureGates.js";
 import { usePlan } from "../hooks/usePlan.js";
@@ -48,22 +49,8 @@ const MAX_UNDO = 20;
 // the same reference every render instead of a fresh [] that defeats the memo.
 const EMPTY_GUESTS = [];
 
-/**
- * Drop targets here are large table cards and a long waiting list. Prefer
- * whatever is under the pointer; when the pointer sits in a gap between cards,
- * fall back to rectIntersection so a drag whose card clearly overlaps a table
- * still lands.
- *
- * Deliberately NOT closestCenter as the fallback: closestCenter always returns
- * something, so releasing over blank space seated the guest at whichever table
- * happened to be nearest. Dropping on empty space has to keep meaning "never
- * mind" — with a long list, an accidental drag is common and there is no undo
- * prompt at that moment.
- */
-const collisionStrategy = (args) => {
-  const hits = pointerWithin(args);
-  return hits.length ? hits : rectIntersection(args);
-};
+// Drop on blank space means "never mind" — see components/seating/collision.js.
+const collisionStrategy = pointerThenOverlap;
 
 // Table cards expand/collapse and the waiting list re-flows mid-drag, so
 // droppable rects measured once at drag start go stale — re-measure always.

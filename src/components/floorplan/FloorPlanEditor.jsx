@@ -8,16 +8,11 @@ import {
   useDraggable, useDroppable,
   PointerSensor, TouchSensor,
   useSensor, useSensors,
-  pointerWithin, closestCenter, MeasuringStrategy,
+  MeasuringStrategy,
 } from "@dnd-kit/core";
+import { pointerThenOverlap as collisionStrategy } from "../seating/collision.js";
 
-// Same reasoning as SeatingScreen: prefer the target under the pointer, fall
-// back to the nearest one rather than dropping nothing, and re-measure the
-// droppables because chips move around the sketch mid-drag.
-const collisionStrategy = (args) => {
-  const hits = pointerWithin(args);
-  return hits.length ? hits : closestCenter(args);
-};
+// Re-measure the droppables, because chips move around the sketch mid-drag.
 const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
