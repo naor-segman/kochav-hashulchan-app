@@ -1526,6 +1526,10 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* All of them now, not five — so it scrolls inside the card. */
+  max-height: 22rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .waNotifyItem {
@@ -1567,11 +1571,7 @@
   opacity: 0.75;
 }
 
-.waNotifyMore {
-  font-size: var(--step--2);
-  color: var(--muted);
-  padding: 4px 10px;
-}/* ─── Print: table cards mode ────────────────────────────────────────────── */
+/* ─── Print: table cards mode ────────────────────────────────────────────── */
 .pvCardsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

@@ -775,7 +775,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     const tb = ev.tables.find(t => t.id === ev.seating[b.id])?.name || "";
                     return ta.localeCompare(tb, "he") || a.name.localeCompare(b.name, "he");
                   })
-                  .slice(0, 5)
+                  // Every guest (צ). It showed five and sent the rest to the
+                  // Excel file — which had no way to send anything. The list
+                  // scrolls inside the card instead.
                   .map(g => {
                     const url = buildWhatsAppTableMsg(g);
                     const table = ev.tables.find(t => t.id === ev.seating[g.id]);
@@ -789,9 +791,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     ) : null;
                   })
                 }
-                {whatsappBulkCount > 5 && (
-                  <div className={styles.waNotifyMore}>ועוד {whatsappBulkCount - 5} אורחים נוספים — ייצאו לאקסל לרשימה מלאה</div>
-                )}
               </div>
             </div>
           )}

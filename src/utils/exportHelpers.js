@@ -6,6 +6,7 @@ import { TABLE_TYPES } from "../data/constants.js";
 // exported sheet showed a different date than the screen, and a New Year's Eve
 // event exported as the previous year.
 import { fmtDate, fmtDateTime } from "./dateFormat.js";
+import { buildGuestCardUrl } from "./guestCard.js";
 // Arrival is PER PERSON. `arrived` is only a truthful "someone on this row came"
 // mirror, and reading it as if it meant the whole row is what made this report
 // disagree with the app's own door counter.
@@ -143,9 +144,19 @@ export async function exportCollabTableToExcel(rows, { eventName, sideLabels } =
  *   stays a pure builder the tests can drive without a network. Empty when the
  *   event has no cloud id or the read failed; the sheet is then simply absent.
  */
-export async function exportToExcel(ev, sideLabel, violations, declaredGifts = []) {
+export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [],
+  origin = (typeof window !== "undefined" ? window.location.origin : "")) {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
+
+  // Each guest's personal entry card (צ) — the QR the door scans. A column
+  // only when the event has an invitation token to build it on; otherwise
+  // every cell would be empty. With it, a host can mail-merge the cards from
+  // this file.
+  const tableOfGuest = g => ev.tables.find(t => t.id === ev.seating?.[g.id]) || null;
+  const withCards = !!ev.tokens?.invite;
+  const cardCol = g => (withCards ? [buildGuestCardUrl(origin, ev.tokens.invite, g, tableOfGuest(g)) || ""] : []);
+  const cardHead = withCards ? ["כרטיס כניסה"] : [];
 
   // ── Sheet 1: Seating plan ────────────────────────────────────────────
   const rows = [];
@@ -158,7 +169,7 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
   rows.push([
     "שולחן", "קיבולת", "סוג שולחן", "שובצו/קיבולת",
     "שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים",
-    "RSVP", "מנה", "טלפון", "הערות",
+    "RSVP", "מנה", "טלפון", "הערות", ...cardHead,
   ]);
 
   ev.tables.forEach(t => {
@@ -213,6 +224,7 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
           mealHe(g.meal),
           g.phone || "",
           g.notes || "",
+          ...cardCol(g),
         ]);
       });
     }
@@ -225,6 +237,7 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
     { wch: 16 }, { wch: 8  }, { wch: 12 }, { wch: 14 },
     { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 6  }, { wch: 34 },
     { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 22 },
+    ...(withCards ? [{ wch: 60 }] : []),
   ];
   XLSX.utils.book_append_sheet(wb, ws1, "סידור הושבה");
 
@@ -237,7 +250,7 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
     const uRows = [
       ["ממתינים לשיבוץ — " + (ev.name || "")],
       [],
-      ["שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים", "RSVP", "מנה", "טלפון", "הערות"],
+      ["שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים", "RSVP", "מנה", "טלפון", "הערות", ...cardHead],
       ...unassigned.map(g => [
         g.name  || "",
         sideLabel(g.side),
@@ -248,6 +261,7 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
         mealHe(g.meal),
         g.phone || "",
         g.notes || "",
+        ...cardCol(g),
       ]),
     ];
     const ws2 = XLSX.utils.aoa_to_sheet(uRows);

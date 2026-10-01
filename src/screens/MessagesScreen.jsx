@@ -5,6 +5,7 @@ import {
   renderTemplate, whatsappLink, linkForStage,
 } from "../data/messageSequence.js";
 import { fmtDate } from "../utils/dateFormat.js";
+import { buildGuestCardUrl } from "../utils/guestCard.js";
 import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -164,6 +165,9 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
     renderTemplate(stage.body, {
       event: { ...ev, date: fmtDate(ev.date) },
       guest: g, table: tableOf(g), link: stage.link?.url || "",
+      // The guest's own entry card (צ). A sample guest in the preview has no id
+      // and gets none.
+      card: g.id ? buildGuestCardUrl(window.location.origin, ev.tokens?.invite, g, tableOf(g)) : null,
     }) + messageSignature();
 
   return (
@@ -346,7 +350,7 @@ function TemplateEditor({ initial, onSave, onReset, onCancel }) {
   const [body, setBody] = useState(initial);
   return (
     <div className={styles.editor}>
-      <Field label="תוכן ההודעה" hint="{{שם}} · {{אירוע}} · {{תאריך}} · {{מקום}} · {{שולחן}} · {{קישור}}">
+      <Field label="תוכן ההודעה" hint="{{שם}} · {{אירוע}} · {{תאריך}} · {{מקום}} · {{שולחן}} · {{קישור}} · {{כרטיס}} (כרטיס כניסה אישי)">
         <textarea className={base.input} rows={8} value={body} onChange={e => setBody(e.target.value)} />
       </Field>
       <div className={styles.stageActions}>

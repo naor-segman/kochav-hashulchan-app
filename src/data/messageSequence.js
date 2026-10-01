@@ -78,7 +78,12 @@ export const MESSAGE_STAGES = [
     // link at all and the site was sent to almost nobody. On its own line so
     // that, if the site is unpublished, the whole line leaves (renderTemplate
     // drops a line whose placeholder emptied and left no letter behind).
-    body: "היי {{שם}} 👋\n\nמתרגשים לקראת {{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n🗺️ {{קישור}}\n\n{{שולחן}}\nנתראה! 🎉",
+    //
+    // {{כרטיס}} (צ): each guest's personal entry card — the QR the door
+    // scanner reads. It reached guests only through the seating screen's
+    // per-table WhatsApp list, which showed five. Same one-line shape: with no
+    // invitation token there is no card, and the line leaves.
+    body: "היי {{שם}} 👋\n\nמתרגשים לקראת {{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n🗺️ {{קישור}}\n\n{{שולחן}}\n{{כרטיס}}\nנתראה! 🎉",
   },
   {
     key: "thanks",
@@ -190,7 +195,7 @@ export function reachable(guests) {
  * Unknown placeholders are removed rather than left as literal {{…}} in a
  * message a guest will read.
  */
-export function renderTemplate(body, { event, guest, table, link }) {
+export function renderTemplate(body, { event, guest, table, link, card }) {
   // Null-prototype: a plain object resolves {{constructor}} and {{toString}}
   // through Object.prototype, which would put "function Object() { [native
   // code] }" into a message a guest reads. Templates are host-editable.
@@ -201,6 +206,9 @@ export function renderTemplate(body, { event, guest, table, link }) {
     "מקום":   event?.venue || "",
     "שולחן":  table?.name ? `השולחן שלכם: ${table.name}` : "",
     "קישור":  link || "",
+    // Labelled like {{שולחן}}: a bare URL in the middle of a message says
+    // nothing about what it is for.
+    "כרטיס":  card ? `כרטיס הכניסה האישי שלכם (הציגו בכניסה): ${card}` : "",
   });
   const get = key => (Object.hasOwn(map, key) ? map[key] : "");
 
