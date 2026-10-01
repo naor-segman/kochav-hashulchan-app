@@ -4,6 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { rsvpSuccessLinks } from "../utils/rsvpLinks.js";
+import { daysUntilIsrael } from "../utils/dateFormat.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
@@ -253,6 +254,47 @@ export default function RSVPScreen() {
   }
 
   const formattedDate = formatHebrewDate(event.date);
+
+  // ── The event has passed (36h) ──────────────────────────────────────────────
+  // A link opened the day after still asked "האם תגיע/י לאירוע?" and took the
+  // answer into the host's list. From the day after (Israel's date), the page
+  // says the event took place; the site (with the album) and the gift stay.
+  const daysLeft = daysUntilIsrael(event.date);
+  if (daysLeft !== null && daysLeft < 0 && step === "choice") {
+    const { inviteUrl, giftUrl } = rsvpSuccessLinks(event);
+    return (
+      <div className={styles.page}>
+        <PageHeader />
+        <div className={styles.cardWrap}>
+          <div className={styles.card}>
+            <div className={styles.eventInfo}>
+              {guestEventType(event.type) && (
+                <span className={styles.eventTypePill}>{guestEventType(event.type)}</span>
+              )}
+              <h1 className={styles.eventName}>{event.name}</h1>
+              {formattedDate && (
+                <p className={styles.eventDetail}>
+                  <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={18} /></span>
+                  {formattedDate}
+                </p>
+              )}
+            </div>
+            <div className={styles.divider} role="separator" />
+            <div className={styles.questionBlock}>
+              <h2 className={styles.questionTitle}>האירוע התקיים</h2>
+              <p className={styles.successBody}>אישורי ההגעה נסגרו. תודה לכל מי שחגג איתנו!</p>
+            </div>
+            {(inviteUrl || giftUrl) && (
+              <div className={styles.successActions}>
+                {inviteUrl && <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>}
+                {giftUrl && <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה</Link>}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Choice ──────────────────────────────────────────────────────────────────
   if (step === "choice") {

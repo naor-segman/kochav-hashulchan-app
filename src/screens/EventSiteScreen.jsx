@@ -127,8 +127,14 @@ export default function EventSiteScreen({ localEvent }) {
   // A question the host never answered is not shown to guests. The default
   // template ships "איך מגיעים לאירוע? יש חניה?" with an empty answer, and it
   // rendered on the live site as a question that opens onto nothing (28.9).
+  //
+  // Read as TEXT first: `f.q.trim()` threw on a question stored as a number
+  // (an import, a hand-edited payload), and the throw took the whole guest
+  // site down with it (FZ6).
+  const faqText = (v) => (typeof v === "string" || typeof v === "number") ? String(v).trim() : "";
   const faqAnswered = (Array.isArray(site?.faq) ? site.faq : [])
-    .filter(f => f?.q?.trim() && f?.a?.trim());
+    .map((f, i) => ({ id: f?.id ?? `faq-${i}`, q: faqText(f?.q), a: faqText(f?.a) }))
+    .filter(f => f.q && f.a);
   useEffect(() => {
     if (!ev?.giftToken || !site?.sections?.blessings) return;
     let cancelled = false;
@@ -477,10 +483,11 @@ function Countdown({ date, time, styles }) {
   // AnnouncementScreen is the one that had to change (item 71), because it
   // renders a SENTENCE — "N ימים לאירוע" — with no hours beside it.
   //
-  // `date` is guarded by the caller (`ev.date &&`), so `target` is never NaN
-  // here; Math.max also floors a past event at zero rather than counting down
-  // into negatives.
-  const diff = Math.max(0, target - now);
+  // Nothing to count to: a date that does not parse used to render "NaN" in
+  // every cell (FZ6), and an event that has already started used to sit at
+  // 0 00 00 00 for ever after (36h). Both hide the section.
+  if (!Number.isFinite(target) || target <= now) return null;
+  const diff = target - now;
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
