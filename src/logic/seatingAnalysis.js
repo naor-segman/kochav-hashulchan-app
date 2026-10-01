@@ -59,7 +59,7 @@ export function computeQualityScore(guests, tables, constraints, seating, violat
   let underPenalty = 0;
   tables.forEach(t => {
     const used = guests
-      .filter(g => seating[g.id] === t.id)
+      .filter(g => seating[g.id] === t.id && g.rsvp !== "declined")
       .reduce((s, g) => s + (g.count || 1), 0);
     const pct = t.capacity > 0 ? used / t.capacity : 0;
     if (used > 0 && pct < 0.4 && t.capacity >= 4) underPenalty += 2;
@@ -190,8 +190,10 @@ export function generateSuggestions(
   const guestMap    = Object.fromEntries(guests.map(g => [g.id, g]));
   const tableMap    = Object.fromEntries(tables.map(t => [t.id, t]));
 
+  // Chairs actually taken: a declined guest still listed at a table holds
+  // none — the export and seatingTotals already agree on that (סב7, RG10c).
   const tableSeats  = tid => guests
-    .filter(g => seating[g.id] === tid)
+    .filter(g => seating[g.id] === tid && g.rsvp !== "declined")
     .reduce((s, g) => s + (g.count || 1), 0);
 
   const tableGuests = tid => guests.filter(g => seating[g.id] === tid);
@@ -239,6 +241,7 @@ export function generateSuggestions(
     const ga = guestMap[c.guestA];
     const gb = guestMap[c.guestB];
     if (!ga || !gb) return;
+    if (ga.rsvp === "declined" || gb.rsvp === "declined") return; // as computeViolations
     const ta = seating[c.guestA];
     const tb = seating[c.guestB];
     if (ta && tb && ta !== tb) togetherViol.push({ ga, gb, ta, tb });
@@ -380,6 +383,7 @@ export function generateSuggestions(
     const ga = guestMap[c.guestA];
     const gb = guestMap[c.guestB];
     if (!ga || !gb) return;
+    if (ga.rsvp === "declined" || gb.rsvp === "declined") return; // as computeViolations
     const ta = seating[c.guestA];
     const tb = seating[c.guestB];
     if (ta && tb && ta === tb) apartViol.push({ ga, gb, ta });

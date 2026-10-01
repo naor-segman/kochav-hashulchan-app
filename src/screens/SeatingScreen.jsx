@@ -185,13 +185,21 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     return m;
   }, [ev.guests, ev.tables, ev.seating]);
 
+  // Chairs taken, not rows listed: a guest who declined after being seated
+  // (data from before סב7) stays visible on the card so the host can see it,
+  // but holds no chair — the same rule as computeViolations, the export and
+  // seatingTotals (RG10c). Counting them made the card say "full" while the
+  // venue's printout said there was room.
   const seatsByTable = useMemo(() => {
     const m = new Map();
-    for (const [tid, gs] of guestsByTable) m.set(tid, gs.reduce((s, g) => s + (g.count || 1), 0));
+    for (const [tid, gs] of guestsByTable)
+      m.set(tid, gs.reduce((s, g) => s + (g.rsvp === "declined" ? 0 : (g.count || 1)), 0));
     return m;
   }, [guestsByTable]);
 
   const tableGuests = tid => guestsByTable.get(tid) || [];
+  // What goes on PAPER for the venue: who is actually coming (as the export).
+  const printGuests = tid => tableGuests(tid).filter(g => g.rsvp !== "declined");
 
   const buildWhatsAppTableMsg = (g) => {
     const tid   = ev.seating[g.id];
@@ -566,9 +574,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     if (ev.seating[guestId] === toTableId) return;
     const targetTable = ev.tables.find(t => t.id === toTableId);
     if (targetTable) {
-      const occupiedSeats = ev.guests
-        .filter(g => ev.seating[g.id] === toTableId)
-        .reduce((s, g) => s + (g.count || 1), 0);
+      const occupiedSeats = tableSeats(toTableId);
       const draggedSeats = ev.guests.find(g => g.id === guestId)?.count || 1;
       if (occupiedSeats + draggedSeats > targetTable.capacity) {
         showToast(targetTable.name + " מלא — אין מקום עבור " + (activeGuest?.name || "האורח"), "err");
@@ -1040,8 +1046,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           {ev.tables.length > 0 ? (
             <div className={styles.pvGrid}>
               {ev.tables.map(t => {
-                const tg      = tableGuests(t.id);
-                const tgSeats = tg.reduce((s, g) => s + (g.count || 1), 0);
+                const tg      = printGuests(t.id);
+                const tgSeats = tableSeats(t.id);
                 const capOver = tgSeats > t.capacity;
                 return (
                   <div key={t.id} className={[styles.pvTable, capOver ? styles.pvTableOver : ""].filter(Boolean).join(" ")}>
@@ -1099,7 +1105,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         <div className={styles.pvCompactOnly}>
           <div className={styles.pvCompactGrid}>
             {ev.tables.map(t => {
-              const tg    = tableGuests(t.id);
+              const tg    = printGuests(t.id);
               const seats = tableSeats(t.id);
               return (
                 <div key={t.id} className={styles.pvCompactTable}>
@@ -1137,8 +1143,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         {/* ── Cards mode — one card per table, meant to be cut and placed on tables ── */}
         <div className={styles.pvCardsOnly}>
           <div className={styles.pvCardsGrid}>
-            {ev.tables.filter(t => tableGuests(t.id).length > 0).map(t => {
-              const tg = tableGuests(t.id);
+            {ev.tables.filter(t => printGuests(t.id).length > 0).map(t => {
+              const tg = printGuests(t.id);
               return (
                 <div key={t.id} className={styles.pvCard}>
                   <div className={styles.pvCardBrand}>{COMPANY.name} · {ev.name || "האירוע"}</div>
@@ -1160,7 +1166,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       it matters more here because it goes to PAPER: the printed
                       cluster was "6 / 3", which anyone reading the slash as a
                       fraction takes for a table seating six of three. */}
-                  <div className={styles.pvCardFooter}>{tg.reduce((s, g) => s + (g.count || 1), 0)}/{t.capacity} מקומות</div>
+                  <div className={styles.pvCardFooter}>{tableSeats(t.id)}/{t.capacity} מקומות</div>
                 </div>
               );
             })}

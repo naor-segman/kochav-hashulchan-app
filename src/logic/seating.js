@@ -401,6 +401,9 @@ export function computeViolations(guests, tables, constraints, seating) {
     const ga = guestMap[c.guestA];
     const gb = guestMap[c.guestB];
     if (!ga || !gb) return;
+    // A guest who declined is not coming, so a pair with them in it cannot
+    // conflict — the same rule as the export and seatingTotals (סב7, RG10c).
+    if (ga.rsvp === "declined" || gb.rsvp === "declined") return;
     const ta = seating[c.guestA];
     const tb = seating[c.guestB];
 
@@ -428,7 +431,10 @@ export function computeViolations(guests, tables, constraints, seating) {
   });
 
   tables.forEach(t => {
-    const seated = guests.filter(g => seating[g.id] === t.id);
+    // Chairs, not rows: a declined guest still listed at the table holds no
+    // chair. Counting them here said "חריגה" while the venue export, which
+    // skips them, printed the same table as fitting (RG10c).
+    const seated = guests.filter(g => seating[g.id] === t.id && g.rsvp !== "declined");
     const count  = seated.reduce((s, g) => s + (g.count || 1), 0);
     if (count > t.capacity)
       violations.push({ type:"capacity",
