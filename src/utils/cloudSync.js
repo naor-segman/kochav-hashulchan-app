@@ -200,6 +200,14 @@ export class CloudConflictError extends Error {
   }
 }
 
+/** An update with no version base that matched no row — see updateCloudEvent. */
+export class CloudRowMissingError extends Error {
+  constructor() {
+    super("cloud row not found");
+    this.name = "CloudRowMissingError";
+  }
+}
+
 // ── Cloud CRUD ────────────────────────────────────────────────────────────────
 //
 // All functions are no-ops (return null / []) when Supabase is not configured.
@@ -266,8 +274,17 @@ export async function updateCloudEvent(localEvent, userId) {
   const { data, error } = await q.select("version");
 
   if (error) throw error;
-  if (base !== null && (!data || data.length === 0)) throw new CloudConflictError();
-  return data?.[0]?.version ?? row.version;
+  if (!data || data.length === 0) {
+    if (base !== null) throw new CloudConflictError();
+    // No base and nothing matched (C6): the row is gone (deleted on another
+    // device) or this account cannot see it. This used to return the local
+    // version as if it had been written — the event was then marked
+    // cloud-backed, and the sign-out prune deleted the only copy. Not a
+    // conflict either: the recovery re-reads, finds no row and drops the event.
+    // An error leaves the event owed to the cloud and the host told it failed.
+    throw new CloudRowMissingError();
+  }
+  return data[0]?.version ?? row.version;
 }
 
 /**

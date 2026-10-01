@@ -56,7 +56,7 @@ vi.mock("../lib/supabase.js", () => ({
   isSupabaseConfigured: true,
 }));
 
-const { updateCloudEvent, deleteCloudEvent, fetchCloudEvents, CLOUD_EVENTS_LIMIT, CloudConflictError } =
+const { updateCloudEvent, deleteCloudEvent, fetchCloudEvents, CLOUD_EVENTS_LIMIT, CloudConflictError, CloudRowMissingError } =
   await import("./cloudSync.js");
 
 const eq = col => chain.find(c => c[0] === "eq" && c[1] === col);
@@ -92,10 +92,22 @@ describe("updateCloudEvent — the guard that stops a stale tab overwriting a ne
   // An event that has never synced has no base to compare against, and a
   // conflict error there would strand it forever — it must write unconditionally.
   it("writes unconditionally, and never conflicts, when there is no synced base", async () => {
-    response = { data: [], error: null };
+    response = { data: [{}], error: null };
     const out = await updateCloudEvent(event({ syncedVersion: undefined, version: 9 }), "user-1");
     expect(eq("version")).toBeUndefined();
     expect(out).toBe(9);
+  });
+
+  // C6: with no base, zero rows matched used to resolve with the local
+  // version — "written" — and the event was then marked cloud-backed, so the
+  // sign-out prune deleted the only copy of an edit that went nowhere.
+  it("with no base, a write that matched no row is an error — not a success, not a conflict", async () => {
+    for (const data of [[], null]) {
+      response = { data, error: null };
+      const p = updateCloudEvent(event({ syncedVersion: null, version: 9 }), "user-1");
+      await expect(p).rejects.toBeInstanceOf(CloudRowMissingError);
+      await expect(p).rejects.not.toBeInstanceOf(CloudConflictError);
+    }
   });
 
   it("treats a non-finite syncedVersion as no base rather than as version NaN", async () => {

@@ -60,7 +60,8 @@ export function makeCloud(actual, devices) {
         log(uid, `update ${e.id} CONFLICT base=${base} row=${old?.version}`);
         await cloud.wait();
         if (base !== null) throw new actual.CloudConflictError();
-        return row.version;
+        // No base, no row: what the real updateCloudEvent does since C6.
+        throw new actual.CloudRowMissingError();
       }
       const v = (row.version == null || row.version <= old.version) ? old.version + 1 : row.version;
       cloud.store({ ...old, ...row, id: e.cloudId, version: v });
