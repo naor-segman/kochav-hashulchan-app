@@ -842,6 +842,34 @@ export function mergeCloudWithLocal(
   return merged;
 }
 
+/**
+ * Another tab's saved list, merged into this one (33a). Per event: the copy
+ * with the later `updatedAt` wins whole — with its own syncedVersion and
+ * syncBase, which describe that copy — and an event only one side holds is
+ * kept. Returns `mine` itself when nothing changes. A logged-out tab never
+ * takes in a cloud-backed event (the guest view shows drafts only).
+ */
+export function mergeOtherTab(mine, theirs, loggedIn = true) {
+  const byId = new Map(mine.map((e, i) => [e.id, i]));
+  let out = null;
+  for (const raw of theirs) {
+    const t = normalizeEvent(raw);
+    if (!t || (!loggedIn && t.cloudId)) continue;
+    const i = byId.get(t.id);
+    if (i === undefined) { (out ??= [...mine]).push(t); continue; }
+    const m = (out ?? mine)[i];
+    if ((t.updatedAt ?? 0) > (m.updatedAt ?? 0)
+        || ((t.updatedAt ?? 0) === (m.updatedAt ?? 0) && !m.cloudId && t.cloudId)) {
+      // A floor-plan image this tab holds and the other could not save
+      // (33b) is not thrown away with the older copy.
+      const keep = !t.floorPlan?.image && m.floorPlan?.image && t.floorPlan
+        ? { ...t, floorPlan: { ...t.floorPlan, image: m.floorPlan.image } } : t;
+      (out ??= [...mine])[i] = keep;
+    }
+  }
+  return out ?? mine;
+}
+
 // ── useEvents ─────────────────────────────────────────────────────────────────
 //
 // Single source of truth for all event data at runtime.
@@ -909,6 +937,27 @@ export function useEvents(user) {
   // logged-in user's events are never written to the shared guest bucket (where
   // the next visitor could read them) and never leak into another account.
   useEffect(() => { persist({ events }, userStorageKey(ownerRef.current)); }, [events]);
+
+  // ── ANOTHER TAB (33a) ────────────────────────────────────────────────────────
+  // Every tab persists its WHOLE list, so two open tabs overwrote each other:
+  // an event created in tab A vanished from storage the moment tab B saved
+  // anything, and reloading lost it. The browser tells each tab when another
+  // one writes the same key; merge that list in, per event — the copy edited
+  // last wins, an event only one side has is kept. (Not a deletion record:
+  // an event deleted in the other tab can come back here, the recoverable
+  // side.) Nothing changed → the same state, so the tabs do not ping-pong.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.storageArea && e.storageArea !== window.localStorage) return;
+      if (e.key !== userStorageKey(ownerRef.current) || e.newValue == null) return;
+      let theirs;
+      try { theirs = JSON.parse(e.newValue)?.events; } catch { return; }
+      if (!Array.isArray(theirs)) return;
+      setEvents(prev => mergeOtherTab(prev, theirs, ownerRef.current !== null));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   // ── CLOUD HYDRATION + PER-USER STORAGE ───────────────────────────────────────
   // Runs once per logged-in user per session.
