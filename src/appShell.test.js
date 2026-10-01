@@ -37,6 +37,37 @@ describe("index.html: Google Fonts never block first render (סב58)", () => {
   });
 });
 
+describe("vite.config.js: the Supabase runtime cache holds data reads only (ב11)", () => {
+  // The literal from the `supabase-api` runtimeCaching entry, evaluated as the
+  // RegExp workbox will use — so this tests the pattern, not its spelling.
+  const block = vite.match(/urlPattern:\s*(\/\^https[^\n]*?supabase[^\n]*?\/i),[\s\S]{0,200}?cacheName: 'supabase-api'/);
+  const pattern = block && new Function(`return ${block[1]}`)();
+
+  it("is found", () => {
+    expect(pattern).toBeInstanceOf(RegExp);
+  });
+
+  it("caches PostgREST reads", () => {
+    expect(pattern.test("https://abcd.supabase.co/rest/v1/events?select=*")).toBe(true);
+    expect(pattern.test("https://abcd.supabase.co/rest/v1/rpc/get_event_by_token")).toBe(true);
+  });
+
+  it("never caches auth — GET /auth/v1/user is the signed-in identity", () => {
+    expect(pattern.test("https://abcd.supabase.co/auth/v1/user")).toBe(false);
+    expect(pattern.test("https://abcd.supabase.co/auth/v1/token?grant_type=refresh_token")).toBe(false);
+  });
+
+  it("leaves storage and edge functions to the network", () => {
+    expect(pattern.test("https://abcd.supabase.co/storage/v1/object/public/site/a.jpg")).toBe(false);
+    expect(pattern.test("https://abcd.supabase.co/functions/v1/create-checkout")).toBe(false);
+  });
+
+  it("cannot be fooled by /rest/v1/ in a query string or another host", () => {
+    expect(pattern.test("https://abcd.supabase.co/auth/v1/user?x=/rest/v1/")).toBe(false);
+    expect(pattern.test("https://evil.example/x.supabase.co/rest/v1/events")).toBe(false);
+  });
+});
+
 describe("vite.config.js: precache (סב58)", () => {
   const ignores = vite.match(/globIgnores:\s*(\[[^\]]*\])/)?.[1] ?? "[]";
 

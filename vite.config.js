@@ -202,7 +202,13 @@ export default defineConfig({
             // stale row as the authoritative cloud side of a last-write-wins
             // comparison. This is user data, not an asset: a few minutes is the
             // most that is defensible.
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            //
+            // And only the DATA API (ב11). The old pattern matched every
+            // supabase.co URL, so GET /auth/v1/user — the signed-in account's
+            // identity — was stored in Cache Storage too, and a NetworkFirst
+            // timeout could answer it for the previous person on a shared
+            // device. Auth, storage and edge functions now go to the network.
+            urlPattern: /^https:\/\/[^/]+\.supabase\.co\/rest\/v1\//i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-api',
