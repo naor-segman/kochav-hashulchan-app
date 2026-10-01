@@ -16,6 +16,7 @@ import { pointerThenOverlap as collisionStrategy } from "../seating/collision.js
 const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
+import { floorPlansNotSaved } from "../../utils/storage.js";
 import { nextTableNames } from "../../utils/tableNames.js";
 import { VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
 import TableGlyph from "../ui/TableGlyph.jsx";
@@ -347,7 +348,15 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         // every חופה/במה/בר the host had placed.
         floorPlan: { ...e.floorPlan, image: dataUrl, tablePositions: e.floorPlan?.tablePositions ?? {} },
       }));
-      showToast("הסקיצה הועלתה בהצלחה ✓");
+      // Not before the write is known to have kept it (33b). The sketch is the
+      // largest thing in storage; when the device is full persist() saves the
+      // event WITHOUT it and the app says so — and this said "בהצלחה" over
+      // that, about an image gone on the next reload. persist runs in an
+      // effect after this render, so the answer is read a moment later.
+      setTimeout(() => {
+        if (floorPlansNotSaved().has(ev.id)) return;   // the app's own warning stands alone
+        showToast("הסקיצה הועלתה בהצלחה ✓");
+      }, 400);
     } catch {
       showToast("שגיאה בעיבוד התמונה", "err");
     }
