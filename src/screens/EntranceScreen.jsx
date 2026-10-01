@@ -739,7 +739,7 @@ export default function EntranceScreen({
   // ── Bail-outs — every hook above this line, on every render ────────────────
   if (isToken && remoteState !== "ready") {
     return (
-      <div className={styles.root}>
+      <main className={styles.root}>
         <div className={styles.stateWrap}>
           {remoteState === "loading"
             ? <><div className={styles.spinner} aria-hidden="true" /><span className={styles.stateText}>טוען...</span></>
@@ -761,7 +761,7 @@ export default function EntranceScreen({
                 {remoteState === "notfound" && <Link to="/" className={styles.homeLink}>לדף הבית</Link>}
               </>}
         </div>
-      </div>
+      </main>
     );
   }
   if (!ev) return loading ? <div aria-busy="true" /> : null;
@@ -818,7 +818,7 @@ export default function EntranceScreen({
   const unassigned = (ev.guests || []).filter(g => g.rsvp !== "declined" && !ev.seating?.[g.id]);
 
   return (
-    <div className={styles.root}>
+    <main className={styles.root}>
       {dialog}
       {/* ── Bar ── */}
       <header className={styles.bar}>
@@ -1212,6 +1212,6 @@ export default function EntranceScreen({
         </footer>
       )}
       {gate}
-    </div>
+    </main>
   );
 }

@@ -127,6 +127,7 @@ const hasMain = (f) => /<main[\s>]|"main"/.test(read(f));
 
 /** Rendered by a top-level route and must hold the page's own <main>. */
 const OWN_MAIN = {
+  EntranceScreen: "src/screens/EntranceScreen.jsx",
   LandingScreen: "src/screens/LandingScreen.jsx",
   PricingScreen: "src/screens/PricingScreen.jsx",
   SeatingServiceScreen:   "src/screens/services/SeatingServiceScreen.jsx",
@@ -167,9 +168,8 @@ const NO_OWN_MAIN = new Set([
 ]);
 /** Known gaps, each with its reason. Shrink this list; never grow it quietly. */
 const PENDING = new Set([
-  // The door screen (/entrance, /hostess, /checkin) — left for a later pass
-  // while another change to EntranceScreen.jsx is in flight.
-  "EntranceScreen",
+  // Empty since 1.10: the door screen got its <main> once its other change
+  // had landed.
 ]);
 
 describe("App.jsx's route table: every page component is accounted for (38a)", () => {
