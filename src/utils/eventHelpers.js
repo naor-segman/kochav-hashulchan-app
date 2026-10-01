@@ -103,14 +103,38 @@ function normGuest(g) {
 function normTable(t) {
   const out = { ...t };
   if ("name" in t && typeof t.name !== "string") out.name = str(t.name);
-  if ("capacity" in t) out.capacity = intIn(t.capacity, 0, 500, 0);
+  // A table with NO capacity too (FZ6): every writer in the app sets one, but a
+  // row without it rendered "undefined" in the table list and summed to NaN
+  // seats. 0 — the same value a malformed capacity already gets — rather than
+  // a guessed size: a table that holds nobody until the host says otherwise
+  // cannot overbook a real table of six.
+  out.capacity = intIn(t.capacity, 0, 500, 0);
   return out;
+}
+
+/* A seat may only point at a table that exists (FZ6). The merge already
+ * prunes such seats (pruneArrangement), but one that reached storage any other
+ * way — a hand-edited row, an older build — was counted as seated by
+ * seatingTotals and shown at no table, so the guest was in nobody's
+ * "unassigned" list either.
+ * Seats of a guest id not in `guests` are left alone: no counter reads them
+ * (they count per guest), and the merge relies on them — a cloud row's seat
+ * for a guest only the other device lists is how that guest keeps its seat
+ * (useEvents.mutants.test.js, found by fuzz). */
+function liveSeating(seating, tables) {
+  if (!seating || typeof seating !== "object" || Array.isArray(seating)) return {};
+  const t = new Set(tables.map(x => x.id));
+  const entries = Object.entries(seating);
+  const kept = entries.filter(([, tid]) => t.has(tid));
+  return kept.length === entries.length ? seating : Object.fromEntries(kept);
 }
 const finiteOr = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== "" ? Number(v) : d);
 
 export function normalizeEvent(ev) {
   if (!ev || typeof ev !== "object" || Array.isArray(ev)) return null;
   const now = Date.now();
+  const tables = rows(ev.tables).map(normTable);
+  const guests = rows(ev.guests).map(normGuest);
   return {
     // Core identity — generate a fresh uid if the stored id is missing/undefined
     id:          ev.id ?? uid(),
@@ -144,9 +168,9 @@ export function normalizeEvent(ev) {
     // Standard types live in constants.js TABLE_TYPES; this holds only extras.
     customTableTypes: Array.isArray(ev.customTableTypes) ? ev.customTableTypes : [],
     // Collections — default to empty arrays/objects
-    tables:      rows(ev.tables).map(normTable),
-    guests:      rows(ev.guests).map(normGuest),
-    seating:     (ev.seating && typeof ev.seating === "object") ? ev.seating : {},
+    tables,
+    guests,
+    seating:     liveSeating(ev.seating, tables),
     // Rows, not just an array: one `null` in it took the seating AND the
     // constraints screens down ("אירעה שגיאה בלתי צפויה") — the engine was
     // guarded against it, eight readers in the analysis and the constraints
