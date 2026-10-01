@@ -228,7 +228,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <PageHeader
         title="אתר האירוע"
         mark="site"
-        sub="בנו את אתר האירוע שלכם — הוא נבנה אוטומטית ונשלח לאורחים. מלאו פרטים, בחרו עיצוב, ופרסמו."
+        sub="האתר נבנה אוטומטית מפרטי האירוע. מלאו פרטים, בחרו עיצוב, פרסמו — ואז שלחו את הקישור לאורחים."
       />
 
       {/* `showPurged` only here: this is the screen where an empty gallery is

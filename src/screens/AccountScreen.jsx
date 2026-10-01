@@ -16,7 +16,7 @@ import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/storage.js";
-import { COMPANY, supportMailto } from "../data/company.js";
+import { COMPANY, contactMailto } from "../data/company.js";
 import { fmtShortDate } from "../utils/dateFormat.js";
 import { authErrorMessage } from "../utils/authErrors.js";
 
@@ -495,7 +495,9 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                 const handleCardAction = () => {
                   if (isCurrent || billing.checkoutTarget) return;
                   if (isEnterprise) {
-                    window.location.href = supportMailto("Enterprise Plan Inquiry");
+                    // The sales mailbox, with a Hebrew subject (סב60c, ב10) — it
+                    // went to the support mailbox with an English subject.
+                    window.location.href = contactMailto("פנייה לגבי חבילת \"אנחנו שם איתכם\"");
                     return;
                   }
                   // To the event list, not to Stripe. See cardBtnLabel: there is

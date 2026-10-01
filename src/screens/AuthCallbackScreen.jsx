@@ -10,10 +10,10 @@ export default function AuthCallbackScreen() {
     let tid;
     supabase?.auth.getSession().then(({ data }) => {
       if (data?.session) {
-        setMsg("האימות הצליח! מעביר…");
+        setMsg("האימות הצליח! מעבירים אתכם…");
         tid = setTimeout(() => navigate("/app", { replace: true }), 1200);
       } else {
-        setMsg("הקישור פג תוקף. נסה להתחבר מחדש.");
+        setMsg("הקישור פג תוקף. נסו להתחבר מחדש.");
         tid = setTimeout(() => navigate("/login", { replace: true }), 2500);
       }
     });
