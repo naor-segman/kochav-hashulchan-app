@@ -277,7 +277,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                 </p>
               )}
               <div className={base.tableGrid}>
-                <div className={[base.tRow, base.tHead].join(" ")}>
+                <div className={[base.tRow, styles.tRowNamed, base.tHead].join(" ")}>
                   <span>שם השולחן</span>
                   <span style={{ textAlign: "center" }}>מקומות</span>
                   <span style={{ textAlign: "center" }}>סוג</span>
@@ -292,7 +292,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                   const isOver = seated > t.capacity;
                   const pct    = t.capacity > 0 ? seated / t.capacity : 0;
                   return (
-                    <div key={t.id} className={[base.tRow, isEdit ? base.tRowEdit : ""].filter(Boolean).join(" ")}>
+                    <div key={t.id} className={[base.tRow, styles.tRowNamed, isEdit ? base.tRowEdit : ""].filter(Boolean).join(" ")}>
                       {isEdit ? (
                         <>
                           <input
