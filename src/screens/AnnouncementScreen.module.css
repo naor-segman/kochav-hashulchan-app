@@ -185,11 +185,13 @@
   text-align: center;
 }
 
+/* No opacity (38d): .8 over --a-muted blended it toward the ground and took
+   9 of 10 themes under 4.5:1 for small text. --a-muted at full strength
+   passes on all ten — computed in AnnouncementScreen.brand.test.js. */
 .brand {
   font-size: var(--step--2);
   color: var(--a-muted);
   text-decoration: none;
-  opacity: .8;
 }
 .layout_center:has(.photo) .brand,
 .layout_bottom:has(.photo) .brand { color: var(--white-soft); }
