@@ -9,8 +9,20 @@ import { formatDate, formatRelative } from "../lib/adminFormat.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { deriveEventStatus } from "../lib/eventStatus.js";
 import { COMPANY } from "../../data/company.js";
+import { getSideLabels, COUPLE_TYPES } from "../../utils/eventHelpers.js";
 
-const SIDE_LABEL = { bride: "כלה", groom: "חתן" };
+/* Side and name labels come from the event, the same as in the customer app
+ * (סב39). This screen had "כלה" / "חתן" hard-coded: a bar mitzvah's guests
+ * were listed as the bride's and the groom's, and a couple of two brides had
+ * the second name labelled "חתן". Support reads this screen to answer the
+ * host; it has to use the host's words. */
+function eventLabels(event, payload) {
+  // `type` is a column; the payload carries the rest (sideLabels, coupleType,
+  // parentsType, brideName, groomName) — see cloudSync's mappers.
+  const ev = { ...payload, type: event?.type || payload?.type };
+  const couple = COUPLE_TYPES.find(c => c.value === payload?.coupleType) || COUPLE_TYPES[0];
+  return { sides: getSideLabels(ev), brideName: couple.brideLabel, groomName: couple.groomLabel };
+}
 const CONSTRAINT_LABEL = { together: "יחד", apart: "רחוק" };
 
 // ── Payload section component ─────────────────────────────────────────────────
@@ -208,6 +220,7 @@ export default function AdminEventDetailScreen() {
 
   const status = deriveEventStatus(event, styles);
   const ownerEmail = event.profiles?.email || null;
+  const labels = eventLabels(event, payload);
 
   // ── Full detail view ─────────────────────────────────────────────────────────
 
@@ -240,13 +253,13 @@ export default function AdminEventDetailScreen() {
             </div>
             {payload.brideName && (
               <div className={styles.metaField}>
-                <span className={styles.metaLabel}>כלה</span>
+                <span className={styles.metaLabel}>{labels.brideName}</span>
                 <span className={styles.metaValue}>{payload.brideName}</span>
               </div>
             )}
             {payload.groomName && (
               <div className={styles.metaField}>
-                <span className={styles.metaLabel}>חתן</span>
+                <span className={styles.metaLabel}>{labels.groomName}</span>
                 <span className={styles.metaValue}>{payload.groomName}</span>
               </div>
             )}
@@ -403,7 +416,7 @@ export default function AdminEventDetailScreen() {
                       <td>
                         {g.side
                           ? <span className={g.side === "bride" ? styles.sideBride : styles.sideGroom}>
-                              {SIDE_LABEL[g.side] || g.side}
+                              {labels.sides[g.side] || g.side}
                             </span>
                           : <span className={styles.muted}>—</span>
                         }
