@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
-import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs, eventStartTime, knownStartTime, israelInstant } from "../utils/calendarFile.js";
 import { daysUntilIsrael } from "../utils/dateFormat.js";
@@ -117,7 +116,8 @@ export default function EventSiteScreen({ localEvent }) {
       }
       if (cancelled) return;
       if (data) { setEv(data); setState("ready"); }
-      else if (!isSupabaseConfigured || import.meta.env.DEV) { setEv(MOCK); setState("ready"); }
+      // Dev only — a deploy with no env showed a made-up wedding (106).
+      else if (import.meta.env.DEV) { setEv(MOCK); setState("ready"); }
       else setState("notfound");
     })();
     return () => { cancelled = true; };

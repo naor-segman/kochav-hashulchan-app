@@ -82,8 +82,10 @@ export default function InviteScreen() {
       if (cancelled) return;
       if (data) {
         setEvent(data);
-      } else if (!isSupabaseConfigured) {
-        // Dev: Supabase not configured — use mock so the UI can be previewed
+      } else if (import.meta.env.DEV && !isSupabaseConfigured) {
+        // Dev only: Supabase not configured — use mock so the UI can be
+        // previewed. A deploy with no env (a branch preview) is NOT dev, and
+        // showed every visitor a made-up wedding (106).
         setEvent(MOCK_EVENT);
       } else {
         // Production: token not found in database

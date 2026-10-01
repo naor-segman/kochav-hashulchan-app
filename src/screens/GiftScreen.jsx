@@ -18,8 +18,13 @@ const MOCK_EVENT = {
 };
 
 const AMOUNT_CHIPS = [200, 300, 500, 1000];
-/** The blessing's length limit on this page. */
+/** The blessing's length limit on this page — in CHARACTERS (code points),
+ *  the unit the server's left(message, 600) cuts in. `maxLength` and
+ *  `.length` count UTF-16 units, where an emoji is two: a blessing of
+ *  hearts stopped at 300 and the counter said 600 (106). */
 const MESSAGE_MAX = 600;
+const chars = (s) => [...String(s ?? "")].length;
+const clipChars = (s, n) => { const a = [...String(s ?? "")]; return a.length > n ? a.slice(0, n).join("") : String(s ?? ""); };
 
 // Every other money render in the app pins the locale. A bare toLocaleString()
 // on a PUBLIC page hands the grouping to whatever the guest's device is set to
@@ -316,19 +321,18 @@ export default function GiftScreen() {
             <textarea
               id="gift-message"
               className={styles.textarea}
-              maxLength={MESSAGE_MAX}
               rows={4}
               value={message}
               placeholder="כתבו ברכה מהלב..."
-              onChange={e => setMessage(e.target.value)}
-              aria-describedby={message.length >= MESSAGE_MAX - 100 ? "gift-message-count" : undefined}
+              onChange={e => setMessage(clipChars(e.target.value, MESSAGE_MAX))}
+              aria-describedby={chars(message) >= MESSAGE_MAX - 100 ? "gift-message-count" : undefined}
             />
             {/* The field stopped taking text at the limit with no sign why
                 (106). Shown only near the end, with a Hebrew word between the
                 numbers so bidi keeps them in reading order (bug class 7). */}
-            {message.length >= MESSAGE_MAX - 100 && (
+            {chars(message) >= MESSAGE_MAX - 100 && (
               <span id="gift-message-count" className={styles.counter}>
-                {message.length} מתוך {MESSAGE_MAX} תווים
+                {chars(message)} מתוך {MESSAGE_MAX} תווים
               </span>
             )}
           </div>

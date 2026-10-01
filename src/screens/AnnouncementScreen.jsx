@@ -109,7 +109,8 @@ export default function AnnouncementScreen({ kind, localEvent }) {
       }
       if (cancelled) return;
       if (data) { setEvent(data); setState("ready"); }
-      else if (!isSupabaseConfigured) { setEvent(MOCK); setState("ready"); }
+      // Dev only — a deploy with no env showed a made-up event (106).
+      else if (import.meta.env.DEV && !isSupabaseConfigured) { setEvent(MOCK); setState("ready"); }
       else setState("error");
     })();
     return () => { cancelled = true; };

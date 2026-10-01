@@ -4,7 +4,6 @@ import {
   fetchCollabEvent, fetchCollabGuests,
   upsertCollabGuest, deleteCollabGuest, UNREACHABLE_TEXT,
 } from "../utils/publicTokens.js";
-import { isSupabaseConfigured } from "../lib/supabase.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
@@ -36,6 +35,16 @@ const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתו�
 // is the sync into the host's guest list — enforced in useCollabSync via this
 // same predicate, so the badge and the behaviour cannot disagree.
 const isComplete = (r) => collabRowMissing(r).length === 0;
+
+/* The shared table stores a group name of at most 60 characters (the
+ * collab_guests CHECK); the host's app let a custom group be longer. Picked
+ * here, it was clipped on the way in and reached the host's list as a SECOND,
+ * truncated group nobody created (106). A name the table cannot hold is not
+ * offered. (The host side should cap new group names at 60 too — not in this
+ * file.) */
+const GROUP_MAX = 60;
+const storableGroups = (groups) =>
+  (Array.isArray(groups) ? groups : []).filter(g => typeof g === "string" && [...g.trim()].length <= GROUP_MAX);
 
 export default function CollabScreen() {
   const { token } = useParams();
@@ -142,7 +151,7 @@ export default function CollabScreen() {
             } catch { /* a failed poll changes nothing; the next one retries */ }
           }, 3000);
         }
-      } else if (!isSupabaseConfigured || import.meta.env.DEV) {
+      } else if (import.meta.env.DEV) {             // dev only (106)
         setEv(MOCK); setState("ready");
       } else {
         setState("notfound");
@@ -337,7 +346,7 @@ export default function CollabScreen() {
                   </select>
                   <select className={styles.input} aria-label="קבוצה" value={r.guest_group || ""} onChange={e => editRow(r.id, { guest_group: e.target.value })}>
                     <option value="" disabled>קבוצה</option>
-                    {collabGroupOptions(GROUP_OPTIONS, ev.customGroups, r.guest_group).map(g => <option key={g} value={g}>{g}</option>)}
+                    {collabGroupOptions(GROUP_OPTIONS, storableGroups(ev.customGroups), r.guest_group).map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                   <select className={styles.input} aria-label="מספר מקומות" value={r.guests_count || 1} onChange={e => {
                     const n = Number(e.target.value);
