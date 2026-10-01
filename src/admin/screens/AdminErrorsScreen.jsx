@@ -135,7 +135,10 @@ export default function AdminErrorsScreen() {
                 <span className={styles.dot} aria-hidden="true">·</span>
                 <span title={r.user_agent || ""}>{shortAgent(r.user_agent)}</span>
                 <span className={styles.dot} aria-hidden="true">·</span>
-                <span>{formatDateTime(r.created_at)}</span>
+                {/* dir="ltr": with only digits and neutrals, bidi N1 painted
+                    "29.07.2026, 14:32" as "14:32 ,29.07.2026" (measured with
+                    Range rects, סב39). Same fix as AdminActivityScreen. */}
+                <span dir="ltr">{formatDateTime(r.created_at)}</span>
               </div>
               <div className={styles.rowActions}>
                 {r.stack && (
