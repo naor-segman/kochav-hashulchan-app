@@ -328,7 +328,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       // Hard-coding count: 1 here is what threw every "+1" in a pasted list
       // away, silently, along with the companion's name.
       id: uid(), name: r.name, count: r.count || 1, side: listSide, group: listGroup,
-      phone: r.phone, notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
+      phone: r.phone, notes: r.notes || "", rsvp: "pending", meal: MEAL_DEFAULT,
       companions: r.companions || [],
     }));
     patchEvent(e => Object.assign({}, e, { guests: e.guests.concat(newGuests) }));

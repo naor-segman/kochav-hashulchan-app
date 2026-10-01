@@ -89,6 +89,8 @@ export function buildImportRows(parsed, existingGuests = []) {
     phone:      r.phone ?? "",
     count:      r.count || 1,
     companions: Array.isArray(r.companions) ? [...r.companions] : [],
+    // A second phone in the same cell lands here (סב91) — carried to the guest.
+    notes:      typeof r.notes === "string" ? r.notes : "",
   })), existingGuests);
 }
 

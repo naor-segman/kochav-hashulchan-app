@@ -239,3 +239,19 @@ describe("an empty slot before a name is a seat", () => {
     expect(edited[0].count).toBe(2);
   });
 });
+
+// סב91 (1.10): the parser keeps a second phone in `notes`; the review rows and
+// the guest built from them dropped it on the way.
+import { readFileSync as __read } from "node:fs";
+describe("a second phone survives the import (סב91)", () => {
+  it("buildImportRows carries notes", async () => {
+    const { parseGuestList } = await import("./parseGuestList.js");
+    const parsed = parseGuestList("דנה כהן\t050-1234567, 052-7654321");
+    const [row] = buildImportRows(parsed);
+    expect(row.phone.replace(/\D/g, "")).toBe("0501234567");
+    expect(row.notes).toMatch(/052-?7654321/);
+  });
+  it("the guest manager writes the row's notes onto the guest", () => {
+    expect(__read("src/screens/GuestManagerScreen.jsx", "utf8")).toMatch(/notes: r\.notes \|\| ""/);
+  });
+});
