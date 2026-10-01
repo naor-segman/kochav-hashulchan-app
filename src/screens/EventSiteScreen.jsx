@@ -401,6 +401,14 @@ export default function EventSiteScreen({ localEvent }) {
               ))}
             </div>
           )}
+          {/* The site shows the latest 12. Past that it said nothing, and the
+              guest who just left the 13th blessing could not find it (WORKPLAN
+              110). The full wall is one tap away. */}
+          {wishes.length > 12 && (
+            <p className={styles.wishMore}>
+              <Link to={`${giftUrl}/wall`} className={styles.wishLink}>לכל {wishes.length} הברכות ←</Link>
+            </p>
+          )}
         </section>
       )}
 
