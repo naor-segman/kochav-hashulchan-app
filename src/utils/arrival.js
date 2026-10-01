@@ -77,7 +77,13 @@ export function isFullyArrived(g) {
  * thank-you message goes to a family that came, and the seating screen's row
  * counter still counts rows.
  */
-export function withArrivedSeats(g, seats, now = Date.now()) {
+/* Who marked it (ו2). The host's own screen writes HOST_ARRIVED_BY; the
+ * greeter's marks are written by the server RPC, which does not set this yet
+ * (it needs its own migration). Kept on the guest row, so it rides in
+ * payload.guests both ways like arrivedAt — no mapper of its own. */
+export const HOST_ARRIVED_BY = "מארח";
+
+export function withArrivedSeats(g, seats, now = Date.now(), by = HOST_ARRIVED_BY) {
   const n = seatsOf(g);
   const clean = [...new Set(
     (seats || [])
@@ -96,19 +102,22 @@ export function withArrivedSeats(g, seats, now = Date.now()) {
   // With a timestamp the question becomes "who wrote last", which is the right
   // question and the only one that has a correct answer. The server stamps the
   // same field for the greeter's RPC (20260813000000_arrival_timestamps.sql).
-  return { ...g, arrivedSeats: clean, arrived: clean.length > 0, arrivedAt: now };
+  const out = { ...g, arrivedSeats: clean, arrived: clean.length > 0, arrivedAt: now };
+  // An unknown writer must not inherit the previous one's name.
+  if (typeof by === "string" && by) out.arrivedBy = by; else delete out.arrivedBy;
+  return out;
 }
 
 /** One tap at the door: everybody in this row is here (or nobody is). */
-export function setRowArrived(g, on) {
-  return withArrivedSeats(g, on ? Array.from({ length: seatsOf(g) }, (_, i) => i) : []);
+export function setRowArrived(g, on, by) {
+  return withArrivedSeats(g, on ? Array.from({ length: seatsOf(g) }, (_, i) => i) : [], undefined, by);
 }
 
 /** Toggle one named person. */
-export function toggleSeat(g, index) {
+export function toggleSeat(g, index, by) {
   const cur = new Set(arrivedSeatsOf(g));
   if (cur.has(index)) cur.delete(index); else cur.add(index);
-  return withArrivedSeats(g, [...cur]);
+  return withArrivedSeats(g, [...cur], undefined, by);
 }
 
 /**
@@ -125,17 +134,17 @@ export function toggleSeat(g, index) {
  * after, first). Shrinking removes the highest-numbered ones, which is the only
  * order available without tracking when each was tapped.
  */
-export function setArrivedCount(g, n) {
+export function setArrivedCount(g, n, by) {
   const total = seatsOf(g);
   const want  = Math.max(0, Math.min(total, Math.round(Number(n) || 0)));
   const cur   = [...new Set(arrivedSeatsOf(g))]
     .filter(i => Number.isInteger(i) && i >= 0 && i < total)
     .sort((a, b) => a - b);
-  if (want <= cur.length) return withArrivedSeats(g, cur.slice(0, want));
+  if (want <= cur.length) return withArrivedSeats(g, cur.slice(0, want), undefined, by);
   const next = cur.slice();
   const held = new Set(next);
   for (let i = 0; i < total && next.length < want; i++) if (!held.has(i)) next.push(i);
-  return withArrivedSeats(g, next.sort((a, b) => a - b));
+  return withArrivedSeats(g, next.sort((a, b) => a - b), undefined, by);
 }
 
 /** The names behind the seats, so a chip can say "מיה" and not "מקום 3". */
@@ -345,7 +354,13 @@ export function mergeSeatSets(localSeats, cloudSeats, baseSeats) {
 export function mergeArrivals(localGuests, cloudGuests, baseSeatsOf = null) {
   if (!Array.isArray(localGuests) || !Array.isArray(cloudGuests)) return localGuests;
   const cloudById = new Map(cloudGuests.filter(g => g && g.id).map(g => [g.id, g]));
-  const take = c => ({ arrivedSeats: c.arrivedSeats, arrived: c.arrived, arrivedAt: c.arrivedAt });
+  // The cloud's arrival fields over this row — including WHO, or nobody: the
+  // previous writer's name must not stay on someone else's mark (ו2).
+  const withCloud = (g, c) => {
+    const out = { ...g, arrivedSeats: c.arrivedSeats, arrived: c.arrived, arrivedAt: c.arrivedAt };
+    if (c.arrivedBy) out.arrivedBy = c.arrivedBy; else delete out.arrivedBy;
+    return out;
+  };
   const stamp = g => (Number.isFinite(g?.arrivedAt) ? g.arrivedAt : null);
   const silent = g => g?.arrivedSeats === undefined && !g?.arrived;
 
@@ -367,10 +382,14 @@ export function mergeArrivals(localGuests, cloudGuests, baseSeatsOf = null) {
       const merged = mergeSeatSets(l, cs, base);
       const ls = stamp(g), cst = stamp(c);
       const at = ls === null ? cst : cst === null ? ls : Math.max(ls, cst);
-      return {
+      // Who marked it: whoever wrote last, as the stamp says.
+      const by = (cst !== null && (ls === null || cst > ls)) ? c.arrivedBy : g.arrivedBy;
+      const out = {
         ...g, arrivedSeats: merged, arrived: merged.length > 0,
         ...(at === null ? {} : { arrivedAt: at }),
       };
+      if (by) out.arrivedBy = by; else delete out.arrivedBy;
+      return out;
     }
 
     // The rule, once both sides carry a stamp: whoever wrote last wins. That is
@@ -378,8 +397,8 @@ export function mergeArrivals(localGuests, cloudGuests, baseSeatsOf = null) {
     // writers are different PEOPLE — the host on their phone and the greeter at
     // the door — and neither is authoritative over the other.
     const ls = stamp(g), cs = stamp(c);
-    if (ls !== null && cs !== null) return cs > ls ? { ...g, ...take(c) } : g;
-    if (cs !== null && ls === null) return { ...g, ...take(c) };
+    if (ls !== null && cs !== null) return cs > ls ? withCloud(g, c) : g;
+    if (cs !== null && ls === null) return withCloud(g, c);
     if (ls !== null && cs === null) return g;
 
     // NEITHER side is stamped: rows written before this shipped, or by a client
@@ -390,6 +409,6 @@ export function mergeArrivals(localGuests, cloudGuests, baseSeatsOf = null) {
     // The old rule is wrong (it cannot tell a local opinion from a value it
     // copied from the cloud), and this is the shape of being wrong that loses
     // the SECOND update rather than the first. Kept only as the legacy path.
-    return silent(g) ? { ...g, ...take(c) } : g;
+    return silent(g) ? withCloud(g, c) : g;
   });
 }

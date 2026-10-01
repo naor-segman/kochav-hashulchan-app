@@ -84,7 +84,7 @@ function fingerprints(ev) {
  * stored compactly (one string per guest, one-letter keys, ~25-bit hashes: a
  * collision only makes a moved field read as unmoved, i.e. the old rule).
  * Arrival fields are left to mergeArrivals, which decides them by stamp. */
-const ARRIVAL_KEYS = new Set(["arrivedSeats", "arrived", "arrivedAt"]);
+const ARRIVAL_KEYS = new Set(["arrivedSeats", "arrived", "arrivedAt", "arrivedBy"]);
 const gfp = (v) => hash(canonical(v === undefined ? null : v)).slice(-5);
 const KEY_CODE = { name: "n", phone: "p", side: "s", group: "g", count: "c", notes: "o", rsvp: "r", meal: "m",
   companions: "k", invitedCount: "i", tableType: "t", email: "e" };

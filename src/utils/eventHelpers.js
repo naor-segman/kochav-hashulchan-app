@@ -424,7 +424,7 @@ export function duplicateEvent(ev) {
     // with it. Stripping only the boolean left the copy with
     // `arrivedSeats: [0,1]` — nobody reads as arrived in the summary while the
     // entrance screen shows two of them already inside.
-    const { arrived, arrivedSeats, arrivedAt, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
+    const { arrived, arrivedSeats, arrivedAt, arrivedBy, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
     // `companions` is the one field on a guest row that is an ARRAY, and the
     // rest-spread copies the reference. The comment further down lists six
     // nested collections deep-copied "so editing the duplicate never mutates
