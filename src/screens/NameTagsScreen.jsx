@@ -4,6 +4,7 @@ import { guestSeatNames } from "../utils/eventHelpers.js";
 import { bigLabel, bigLabelTier } from "../utils/tableCardLabel.js";
 import { seatsOf } from "../utils/arrival.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
+import { fitTentNames } from "../utils/tentNames.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -34,11 +35,15 @@ import styles from "./NameTagsScreen.module.css";
  * name tags and small stickers are all still here.
  */
 
+/* perPage is print geometry, not a guess — the columns and fixed row heights
+   in the @media print block of NameTagsScreen.module.css (סב35c). It used to
+   say 8 / 12 / 16 while content-height rows printed 16 / 24 / 32, and the
+   count read "22 pages" for a job that printed on 9. */
 const SIZES = [
   { key: "table", label: "כרטיס שולחן",  perPage: 2,  note: "עומד על השולחן — המספר נקרא מרחוק" },
   { key: "card",  label: "כרטיס מקום",   perPage: 8,  note: "מונח על הצלחת — אחד לכל אורח" },
   { key: "tag",   label: "תג שם",        perPage: 12, note: "לענידה — נפוץ באירועים עסקיים" },
-  { key: "small", label: "מדבקה קטנה",   perPage: 16, note: "מדבקות / כרטיסיות קטנות" },
+  { key: "small", label: "מדבקה קטנה",   perPage: 32, note: "מדבקות / כרטיסיות קטנות" },
 ];
 
 // bigLabel/bigLabelTier moved to utils/tableCardLabel.js — they are pure, and
@@ -58,14 +63,20 @@ const BIG_TIER = {
 
 /** One side of the tent. Both sides are identical; only one is rotated. */
 function TentFace({ card, showNames, flip = false }) {
+  const { shown, more, size } = card.fit;
+  const dense = showNames && size === "sm";
   return (
-    <div className={[styles.tentFace, flip ? styles.tentFaceFlip : ""].filter(Boolean).join(" ")}>
+    <div className={[styles.tentFace, flip ? styles.tentFaceFlip : "", dense ? styles.tentFaceDense : ""].filter(Boolean).join(" ")}>
       <span className={[styles.tentBig, BIG_TIER[card.tier] || BIG_TIER.xl].join(" ")}>
         {card.big}
       </span>
       {card.full !== card.big && <span className={styles.tentFull}>{card.full}</span>}
-      {showNames && card.names.length > 0 && (
-        <span className={styles.tentNames}>{card.names.join(" · ")}</span>
+      {/* Fitted to the face: a smaller size first, then "ועוד N" — never a
+          list that silently loses its tail (סב35b). */}
+      {showNames && shown.length > 0 && (
+        <span className={[styles.tentNames, dense ? styles.tentNamesSm : ""].filter(Boolean).join(" ")}>
+          {[...shown, ...(more > 0 ? [`ועוד ${more}`] : [])].join(" · ")}
+        </span>
       )}
     </div>
   );
@@ -109,6 +120,9 @@ export default function NameTagsScreen({ activeEvent: ev }) {
       .map(t => {
         const rows = active.filter(g => ev.seating?.[g.id] === t.id);
         const big  = bigLabel(t);
+        // Every person at the table by name, in the same order the place
+        // cards are printed in, so the two artefacts agree.
+        const names = rows.flatMap(g => guestSeatNames(g)).sort((a, b) => a.localeCompare(b, "he"));
         return {
           key: t.id,
           big,
@@ -118,9 +132,8 @@ export default function NameTagsScreen({ activeEvent: ev }) {
           tier: bigLabelTier(big),
           full: tableLabel(t),
           seats: rows.reduce((s, g) => s + seatsOf(g), 0),
-          // Every person at the table by name, in the same order the place
-          // cards are printed in, so the two artefacts agree.
-          names: rows.flatMap(g => guestSeatNames(g)).sort((a, b) => a.localeCompare(b, "he")),
+          names,
+          fit: fitTentNames(names),
         };
       })
       // An empty table gets no card: it is a card someone has to carry, fold
@@ -134,7 +147,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
   const pages    = Math.ceil(cards.length / sizeMeta.perPage) || 0;
 
   return (
-    <div className={base.page}>
+    <div className={[base.page, styles.root].join(" ")}>
       <div className={styles.screenOnly}>
         <PageHeader
           title="כרטיסי שולחן ותגי שם"
@@ -207,9 +220,8 @@ export default function NameTagsScreen({ activeEvent: ev }) {
               <Icon name="print" /> הדפיסו {cards.length} {isTableMode ? "כרטיסי שולחן" : "כרטיסים"}
             </button>
             <span className={styles.count}>
-              {isTableMode
-                ? `${sizeMeta.perPage} בעמוד · ${pages} דפים`
-                : `${sizeMeta.perPage} בעמוד · ${pages} דפים בערך`}
+              {/* Exact now for every size — the place-card line said "בערך". */}
+              {`${sizeMeta.perPage} בעמוד · ${pages === 1 ? "דף אחד" : pages + " דפים"}`}
             </span>
           </div>
 

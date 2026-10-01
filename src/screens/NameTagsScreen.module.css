@@ -166,6 +166,9 @@
   overflow-wrap: anywhere;
 }
 
+/* A long list steps down a size before anything is dropped (fitTentNames). */
+.tentNamesSm { font-size: var(--step--3); }
+
 /* Secondary to the number — but the guest standing at the table reads THIS to
    know they are in the right seat, so it has to actually be on the paper. */
 .tentNames {
@@ -277,6 +280,38 @@
   /* 3.4mm is 9.6pt — under the 10pt floor for something read standing up, in a
      hall, by someone who has just arrived. */
   .tentNames { color: #333; font-size: 4.2mm; line-height: 1.4; max-width: 100%; }
+  /* The long-list size: 3.6mm is 10.2pt, still above that floor, and the
+     tighter line plus a smaller gap buys a fourth line (סב35b). */
+  .tentNamesSm { font-size: 3.6mm; line-height: 1.3; }
+  .tentFaceDense { gap: 2mm; }
+
+  /* ── Pages: what the screen promises is what the printer does (סב35c) ──
+     The page box is named and its margins stated, so neither the browser's
+     default nor another screen's @page decides how many cards fit. 190 × 277mm
+     of content:
+       tents         2 × 138mm                      = 2 per page
+       place cards   2 columns × 4 rows of 69mm     = 8
+       name tags     3 columns × 4 rows of 69mm     = 12
+       small         4 columns × 8 rows of 34mm     = 32
+     Fixed heights, not content heights: a name that wraps to two lines used to
+     grow its row and push the last row onto the next page. SIZES.perPage in
+     NameTagsScreen.jsx is the same arithmetic. */
+  @page nametags {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  /* On the document, not on the sheet: a named page on an element that is
+     not the first box forces a page break before it, and the app shell's
+     (invisible) boxes come first — measured, 8 tents printed 5 pages, the
+     first one blank. `:has` scopes it to while this screen is mounted. */
+  :global(html):has(.root) { page: nametags; }
+  /* The screen's page padding (28px) pushed the first row down and the second
+     tent off the first page. */
+  div.root { padding: 0; margin: 0; max-width: none; }
+
+  .sheet_card .card,
+  .sheet_tag  .card   { height: 69mm; min-height: 0; overflow: hidden; }
+  .sheet_small .card  { height: 34mm; min-height: 0; overflow: hidden; padding: 4mm 3mm; }
 }
 
 @media (max-width: 600px) {
