@@ -130,7 +130,7 @@ export default function InviteScreen() {
       <div className={styles.root}>
         <div className={styles.stateCenter}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
-          <p className={styles.stateText}>טוען הזמנה...</p>
+          <p className={styles.stateText} role="status">טוען הזמנה…</p>
         </div>
       </div>
     );

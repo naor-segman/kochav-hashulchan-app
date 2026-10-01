@@ -132,7 +132,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   }), [theme, font]);
 
   if (state === "loading") {
-    return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
+    return <div className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></div>;
   }
   if (state === "error") {
     return (

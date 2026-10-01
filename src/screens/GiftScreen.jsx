@@ -149,7 +149,7 @@ export default function GiftScreen() {
       <div className={styles.root}>
         <div className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
-          <p className={styles.loadingText}>טוען...</p>
+          <p className={styles.loadingText} role="status">טוען…</p>
         </div>
       </div>
     );
@@ -273,6 +273,8 @@ export default function GiftScreen() {
                   key={a}
                   type="button"
                   className={[styles.chip, amount === a ? styles.chipActive : ""].filter(Boolean).join(" ")}
+                  // The chosen amount was told by colour only (סב89).
+                  aria-pressed={amount === a}
                   onClick={() => {
                     setAmount(a);
                     setCustomAmt("");

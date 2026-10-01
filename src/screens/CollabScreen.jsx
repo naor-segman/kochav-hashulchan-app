@@ -162,7 +162,7 @@ export default function CollabScreen() {
     return () => { cancelled = true; if (poll) clearInterval(poll); pending.forEach(clearTimeout); };
   }, [token, mergePolled]);
 
-  if (state === "loading")  return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
+  if (state === "loading")  return <div className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></div>;
   // The RPCs return nothing both when the token is wrong AND when the host has
   // switched the link off, and from here the two are indistinguishable — so the
   // copy has to cover both without guessing which one happened.
@@ -355,7 +355,7 @@ export default function CollabScreen() {
             return (
               <div key={r.id} className={[styles.guestCard, complete ? styles.cardOk : styles.cardWarn].join(" ")}>
                 <div className={styles.cardTop}>
-                  <input className={[styles.input, styles.nameInput].join(" ")} value={r.name || ""} placeholder="שם מלא"
+                  <input className={[styles.input, styles.nameInput].join(" ")} value={r.name || ""} placeholder="שם מלא" aria-label="שם מלא"
                     onChange={e => editRow(r.id, { name: e.target.value })} />
                   <button className={styles.del} onClick={() => removeRow(r.id)} aria-label="מחיקת שורה" title="מחיקה"><Icon name="close" size={14} /></button>
                 </div>
@@ -365,7 +365,7 @@ export default function CollabScreen() {
                   </p>
                 )}
 
-                <input className={[styles.input, styles.phoneInput].join(" ")} value={r.phone || ""} placeholder="טלפון" dir="ltr" inputMode="tel"
+                <input className={[styles.input, styles.phoneInput].join(" ")} value={r.phone || ""} placeholder="טלפון" aria-label="טלפון" dir="ltr" inputMode="tel"
                   onChange={e => editRow(r.id, { phone: e.target.value })} />
 
                 <div className={styles.fields3}>

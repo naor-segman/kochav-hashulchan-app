@@ -56,6 +56,23 @@ export default function QrScanner({ onScan, onClose }) {
   const onScanRef = useRef(onScan);
   useEffect(() => { onScanRef.current = onScan; }, [onScan]);
 
+  // Escape closes the scanner, like every other panel (סב89). Through a ref
+  // for the same reason as onScan: a new onClose per render must not
+  // re-subscribe, and must never restart the camera effect below.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      // A modal open over the door screen (the walk-in sheet) owns Escape.
+      if (document.querySelector('[aria-modal="true"]')) return;
+      e.preventDefault();
+      onCloseRef.current?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     let rafId = 0;

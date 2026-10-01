@@ -110,7 +110,9 @@ export default function GiftWallScreen() {
   if (loading) {
     return (
       <div className={styles.root}>
-        <div className={styles.spinner} />
+        <div className={styles.spinner} aria-hidden="true" />
+        {/* A spinner says nothing to a screen reader (סב89). */}
+        <p className="sr-only" role="status">טוען את קיר הברכות…</p>
       </div>
     );
   }

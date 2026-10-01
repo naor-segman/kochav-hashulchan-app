@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useId } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
@@ -102,6 +102,19 @@ export default function EventSiteScreen({ localEvent }) {
   const shuttlesRef = useRef(null);
   const blessingsRef = useRef(null);
   const faqRef = useRef(null);
+  const burgerRef = useRef(null);
+
+  // The section menu: Escape closes it and gives focus back to the button
+  // that opened it (37f). It had no keyboard way out, and no aria-expanded,
+  // so a screen reader could not tell it was open.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") { setMenuOpen(false); burgerRef.current?.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   useEffect(() => {
     if (localEvent) { setEv(fromLocalEvent(localEvent)); setState("ready"); return; }
@@ -155,7 +168,7 @@ export default function EventSiteScreen({ localEvent }) {
   }), [theme, font]);
 
   if (state === "loading") {
-    return <div className={styles.stateWrap}><span className={styles.stateStar}>✦</span><p>טוען…</p></div>;
+    return <div className={styles.stateWrap}><span className={styles.stateStar} aria-hidden="true">✦</span><p role="status">טוען…</p></div>;
   }
   if (state === "notfound") {
     return (
@@ -216,13 +229,14 @@ export default function EventSiteScreen({ localEvent }) {
         <div className={styles.navRight}>
           {showRsvp && <Link to={rsvpUrl} className={styles.navRsvp}>אישור הגעה</Link>}
           {navItems.length > 0 && (
-            <button className={styles.navBurger} onClick={() => setMenuOpen(o => !o)} aria-label="תפריט">
+            <button ref={burgerRef} className={styles.navBurger} onClick={() => setMenuOpen(o => !o)} aria-label="תפריט"
+              aria-expanded={menuOpen} aria-controls="site-nav-menu">
               {menuOpen ? "✕" : <Icon name="list" size={20} />}
             </button>
           )}
         </div>
         {menuOpen && (
-          <div className={styles.navMenu}>
+          <div className={styles.navMenu} id="site-nav-menu">
             {navItems.map((it) => (
               <button key={it.key} onClick={() => scrollTo(it.key)}>{it.label}</button>
             ))}
@@ -520,13 +534,15 @@ function Countdown({ date, time, styles }) {
 
 function FaqItem({ q, a }) {
   const [open, setOpen] = useState(false);
+  const answerId = useId();
+  // aria-expanded: the open/closed state was only the "+"/"−" glyph (סב89).
   return (
     <div className={styles.faqItem}>
-      <button className={styles.faqQ} onClick={() => setOpen(o => !o)}>
+      <button className={styles.faqQ} onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls={answerId}>
         <span>{q}</span>
-        <span className={styles.faqChevron}>{open ? "−" : "+"}</span>
+        <span className={styles.faqChevron} aria-hidden="true">{open ? "−" : "+"}</span>
       </button>
-      {open && a && <p className={styles.faqA}>{a}</p>}
+      {open && a && <p className={styles.faqA} id={answerId}>{a}</p>}
     </div>
   );
 }

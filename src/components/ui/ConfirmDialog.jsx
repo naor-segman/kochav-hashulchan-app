@@ -125,15 +125,19 @@ export default function ConfirmDialog({
         )}
 
         <div className={styles.actions}>
+          {/* Initial focus: the field in a prompt; otherwise the confirm
+              button — EXCEPT for a dangerous action, where it is Cancel. With
+              focus on "כן, המשיכו", one stray Enter (or a screen-reader user's
+              first activation) went through with it (סב89). */}
           <button
-            ref={mode === "prompt" ? undefined : firstRef}
+            ref={mode !== "prompt" && !danger ? firstRef : undefined}
             className={[base.btnPrimary, danger ? styles.confirmDanger : ""].filter(Boolean).join(" ")}
             onClick={submit}
             disabled={mode === "prompt" && !value.trim()}
           >
             {confirmLabel || (mode === "prompt" ? "הוסיפו" : danger ? "כן, המשיכו" : "אישור")}
           </button>
-          <button className={[base.btnSecondary].join(" ")} onClick={cancel}>{cancelLabel}</button>
+          <button ref={mode !== "prompt" && danger ? firstRef : undefined} className={[base.btnSecondary].join(" ")} onClick={cancel}>{cancelLabel}</button>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
@@ -85,6 +85,17 @@ export default function RSVPScreen() {
   const [submitError, setSubmitError] = useState("");
   const [answer, setAnswer] = useState(null); // "yes" | "maybe" | "no"
   useGuestTitle(event && `אישור הגעה · ${guestHosts(event)}`);
+
+  // Each step replaces the whole card, and focus stayed on the button that
+  // was pressed — a button no longer in the page — so a screen reader was
+  // left nowhere and announced nothing (סב89). On every step CHANGE (not the
+  // first render: that is a page load) focus moves to the new step's h1.
+  const stepHeading = useRef(null);
+  const firstStep = useRef(true);
+  useEffect(() => {
+    if (firstStep.current) { firstStep.current = false; return; }
+    stepHeading.current?.focus();
+  }, [step]);
 
   useEffect(() => {
     let cancelled = false;
@@ -208,7 +219,7 @@ export default function RSVPScreen() {
         <PageHeader />
         <div className={styles.loadingWrap}>
           <span className={styles.spinner} aria-hidden="true">✦</span>
-          <p className={styles.loadingText}>טוען פרטי אירוע…</p>
+          <p className={styles.loadingText} role="status">טוען פרטי אירוע…</p>
         </div>
       </div>
     );
@@ -308,7 +319,7 @@ export default function RSVPScreen() {
               {guestEventType(event.type) && (
                 <span className={styles.eventTypePill}>{guestEventType(event.type)}</span>
               )}
-              <h1 className={styles.eventName}>{event.name}</h1>
+              <h1 className={styles.eventName} ref={stepHeading} tabIndex={-1}>{event.name}</h1>
               {formattedDate && (
                 <p className={styles.eventDetail}>
                   <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={18} /></span>
@@ -380,7 +391,7 @@ export default function RSVPScreen() {
 
             <div className={styles.eventBanner}>
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
-              <h1 className={styles.eventBannerName}>{event.name}</h1>
+              <h1 className={styles.eventBannerName} ref={stepHeading} tabIndex={-1}>{event.name}</h1>
               {formattedDate && (
                 <span className={styles.eventBannerDate}>{formattedDate}</span>
               )}
@@ -586,7 +597,7 @@ export default function RSVPScreen() {
 
             <div className={styles.eventBanner}>
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
-              <h1 className={styles.eventBannerName}>{event.name}</h1>
+              <h1 className={styles.eventBannerName} ref={stepHeading} tabIndex={-1}>{event.name}</h1>
             </div>
 
             <div className={styles.noConfirmBlock}>
@@ -669,7 +680,7 @@ export default function RSVPScreen() {
             <div className={styles.checkCircle} aria-hidden="true">
               <span className={styles.checkMark}>{answer === "no" ? <Icon name="heart" size={26} /> : "✓"}</span>
             </div>
-            <h1 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h1>
+            <h1 className={styles.successTitle} ref={stepHeading} tabIndex={-1}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h1>
             <p className={styles.successBody}>{bodyByAnswer[answer]}</p>
 
             {site?.rsvpMessage && (
