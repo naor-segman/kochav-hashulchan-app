@@ -64,6 +64,12 @@ const GuestRow = memo(function GuestRow({ g, matchLabel, compact, declined, ui }
   const open    = expanded === g.id;
   const chips   = seatChipLabels(g);
   const arrived = new Set(arrivedSeatsOf(g));
+  // AX4: a screen reader heard "הגיע/ה, button" forty times down the list —
+  // which guest? Every control on the row now carries the guest's name, and
+  // keeps its visible words first (label-in-name).
+  const markText = full
+    ? (seats > 1 ? `כל ${seats} הגיעו` : "הגיע/ה")
+    : (seats > 1 ? `כולם הגיעו · ${seats}` : "הגיע/ה");
 
   return (
     <div className={[
@@ -104,6 +110,8 @@ const GuestRow = memo(function GuestRow({ g, matchLabel, compact, declined, ui }
           className={[styles.markBtn, full ? styles.markBtnDone : ""].filter(Boolean).join(" ")}
           onClick={() => markRow(g, !full)}
           disabled={!canWrite}
+          aria-label={`${markText} — ${g.name}`}
+          aria-pressed={full}
         >
           {full
             ? <><Icon name="check" size={18} /> {seats > 1 ? `כל ${seats} הגיעו` : "הגיע/ה"}</>
@@ -115,7 +123,7 @@ const GuestRow = memo(function GuestRow({ g, matchLabel, compact, declined, ui }
             className={[styles.partialBtn, open ? styles.partialBtnOpen : ""].filter(Boolean).join(" ")}
             onClick={() => setExpanded(x => (x === g.id ? null : g.id))}
             aria-expanded={open}
-            aria-label="סימון חלקי — מי בדיוק הגיע"
+            aria-label={`סימון חלקי — ${g.name}, ${here} מתוך ${seats} הגיעו`}
           >
             <span className={styles.partialNum}>{here}/{seats}</span>
             <Icon name={open ? "chevronUp" : "chevronDown"} size={14} />
@@ -132,14 +140,14 @@ const GuestRow = memo(function GuestRow({ g, matchLabel, compact, declined, ui }
               className={styles.stepBtn}
               onClick={() => markCount(g, here - 1)}
               disabled={!canWrite || here === 0}
-              aria-label="הפחיתו אחד"
+              aria-label={`הפחיתו אחד — ${g.name}`}
             >−</button>
             <span className={styles.stepNum}>{here} מתוך {seats} הגיעו</span>
             <button
               className={styles.stepBtn}
               onClick={() => markCount(g, here + 1)}
               disabled={!canWrite || full}
-              aria-label="הוסיפו אחד"
+              aria-label={`הוסיפו אחד — ${g.name}`}
             >+</button>
           </div>
           <div className={styles.chips}>
@@ -253,14 +261,24 @@ export default function EntranceScreen({
     try { return new Map(JSON.parse(sessionStorage.getItem(outboxKey) || "[]")); } catch { return new Map(); }
   });
   const failed = useRef(restoredOutbox);   // guestId → { name, seats, base }
+  // The host closed marking on this link (last refresh said writesOpen:false).
+  // The queue is then re-sent when it opens again — NOT "when the connection
+  // returns", which is what the message promised while nothing was retried
+  // (RG4).
+  const writesClosed = useRef(false);
+  // Names whose marks can never be sent on this link — it was replaced while
+  // they waited. Shown on the "link not valid" screen (RG4).
+  const [lostMarks, setLostMarks] = useState("");
   const showFailed = useCallback(() => {
     try {
       if (failed.current.size) sessionStorage.setItem(outboxKey, JSON.stringify([...failed.current]));
       else sessionStorage.removeItem(outboxKey);
     } catch { /* full or blocked: the in-memory queue still works */ }
-    const names = [...failed.current.values()].map(f => f.name).filter(Boolean);
+    const names = [...failed.current.values()].map(f => f.name).filter(Boolean).join(", ") || "סימון הגעה";
     setSaveError(failed.current.size === 0 ? ""
-      : `לא נשמר: ${names.join(", ") || "סימון הגעה"} — ננסה שוב אוטומטית כשהחיבור יחזור`);
+      : writesClosed.current
+        ? `לא נשמר: ${names} — בעל האירוע סגר את הסימון בקישור. נשלח שוב כשייפתח`
+        : `לא נשמר: ${names} — ננסה שוב אוטומטית כשהחיבור יחזור`);
   }, [outboxKey]);
   // A queue restored from before a reload is shown at once.
   useEffect(() => { if (failed.current.size) showFailed(); }, [showFailed]);
@@ -282,7 +300,7 @@ export default function EntranceScreen({
   // Re-send what failed, now that the server answers. A row the server already
   // shows as asked (the other greeter did it) is simply done.
   const retryFailed = useCallback((data) => {
-    if (!data?.writesOpen) return;
+    if (!data?.writesOpen) { showFailed(); return; }
     for (const [guestId, f] of failed.current) {
       if (inFlight.current.has(guestId)) continue;
       const row = data.guests.find(g => g.id === guestId);
@@ -309,7 +327,12 @@ export default function EntranceScreen({
     const startedAt = saveTick.current;
     try {
       const data = await fetchHostessData(token);
-      if (!data) { setRemoteState("notfound"); return null; }
+      if (!data) {
+        if (failed.current.size) setLostMarks([...failed.current.values()].map(f => f.name).filter(Boolean).join(", ") || "סימון הגעה");
+        setRemoteState("notfound");
+        return null;
+      }
+      writesClosed.current = data.writesOpen === false;
       try { sessionStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), data })); } catch { /* full or blocked */ }
       setStaleAt(null);
       const ours = id => inFlight.current.has(id) || (savedAt.current.get(id) ?? 0) > startedAt;
@@ -454,9 +477,21 @@ export default function EntranceScreen({
   // from document.activeElement: the sheet's input autofocuses before any
   // effect could read it, and Safari does not focus a clicked button at all.
   const walkInOpener = useRef(null);
+  const walkInSheet  = useRef(null);
   useEffect(() => {
     if (!walkInOpen) return undefined;
-    const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); setWalkInOpen(false); } };
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); setWalkInOpen(false); return; }
+      // aria-modal promises the rest of the page is out of reach; Tab walked
+      // straight out of the sheet into the list behind it. Wrap at both ends.
+      if (e.key !== "Tab" || !walkInSheet.current) return;
+      const f = [...walkInSheet.current.querySelectorAll("button:not([disabled]), input, [tabindex]:not([tabindex='-1'])")];
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      const inside = walkInSheet.current.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === first || !inside)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (document.activeElement === last || !inside)) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
@@ -516,12 +551,20 @@ export default function EntranceScreen({
           markSaved(guestId);
           showFailed();
         })
-        .catch(() => {
+        .catch((err) => {
           inFlight.current.delete(guestId);
           failed.current.set(guestId, { name: row.name, seats: nextSeats, base: baseSeats });
+          // The server answers "invalid token" both for a link whose marking
+          // the host closed and for one the host replaced — neither comes
+          // back with the signal, so the scan line must not promise that.
+          const linkRefused = /invalid token/i.test(err?.message || "");
           // A scan's "סומנו כהגיעו" under the camera must not outlive the save
           // it announced (סב23).
-          setScanMsg(m => (m.startsWith(`${row.name} — `) ? `${row.name} — לא נשמר, ננסה שוב כשהחיבור יחזור` : m));
+          setScanMsg(m => (m.startsWith(`${row.name} — `)
+            ? (linkRefused
+                ? `${row.name} — לא נשמר: הסימון בקישור נסגר או שהקישור הוחלף`
+                : `${row.name} — לא נשמר, ננסה שוב כשהחיבור יחזור`)
+            : m));
           // Put the row back as it was, unless a later tap has changed it
           // since — offline, the refresh below fails too and nothing else
           // would undo the optimistic mark.
@@ -677,6 +720,14 @@ export default function EntranceScreen({
                     ? "הקישור אינו תקין או שהאירוע הוסר"
                     : "אין חיבור כרגע — הרשימה תופיע ברגע שהחיבור יחזור"}
                 </h1>
+                {/* The host replaced the link mid-shift: the marks still
+                    waiting to be sent can never be sent on this one. They used
+                    to vanish with the list, silently (RG4). */}
+                {remoteState === "notfound" && lostMarks && (
+                  <p className={styles.stateText} role="alert">
+                    הסימונים של {lostMarks} לא נשמרו. בקשו מבעל האירוע את הקישור החדש וסמנו אותם שוב.
+                  </p>
+                )}
                 {remoteState === "notfound" && <Link to="/" className={styles.homeLink}>לדף הבית</Link>}
               </>}
         </div>
@@ -948,6 +999,7 @@ export default function EntranceScreen({
                       <button
                         className={[styles.tableAll, allIn ? styles.tableAllUndo : ""].filter(Boolean).join(" ")}
                         onClick={() => markTable(table.id, !allIn)}
+                        aria-label={allIn ? `בטלו את ההגעה של ${tableLabel(table)}` : `כולם הגיעו — ${tableLabel(table)}`}
                       >
                         {allIn ? "בטלו" : <>כולם <Icon name="check" size={13} /></>}
                       </button>
@@ -1046,12 +1098,13 @@ export default function EntranceScreen({
       {/* ── Walk-in ── */}
       {walkInOpen && canManage && (
         <div className={styles.sheetOverlay} onClick={e => { if (e.target === e.currentTarget) setWalkInOpen(false); }}>
-          <div className={styles.sheet} role="dialog" aria-modal="true" aria-label="אורח שהגיע ביום האירוע">
+          <div ref={walkInSheet} className={styles.sheet} role="dialog" aria-modal="true" aria-label="אורח שהגיע ביום האירוע">
             <div className={styles.sheetTitle}>אורח שהגיע ולא ברשימה</div>
             <input
               className={styles.sheetInput}
               value={walkInName}
               onChange={e => setWalkInName(e.target.value)}
+              aria-label="שם האורח"
               placeholder="שם מלא"
               onKeyDown={e => { if (e.key === "Enter") addWalkIn(); }}
               autoFocus
@@ -1072,6 +1125,7 @@ export default function EntranceScreen({
                     key={s}
                     className={[styles.sideBtn, walkInSide === s ? styles.sideBtnOn : ""].filter(Boolean).join(" ")}
                     onClick={() => setWalkInSide(s)}
+                    aria-pressed={walkInSide === s}
                   >{sideLabel(s)}</button>
                 ))}
               </div>

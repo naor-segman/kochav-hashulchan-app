@@ -40,7 +40,7 @@ describe("double-tap guard", () => {
   it("a row: tap, tap at 400ms (ignored), tap at 900ms — the third one counts", async () => {
     const patch = open();
     fireEvent.change(screen.getByLabelText("חיפוש אורח"), { target: { value: "יעל" } });
-    const btn = () => screen.getByRole("button", { name: "הגיע/ה" });
+    const btn = () => screen.getByRole("button", { name: "הגיע/ה — יעל" });
     fireEvent.click(btn());
     expect(patch).toHaveBeenCalledTimes(1);
     await later(400);
@@ -54,7 +54,7 @@ describe("double-tap guard", () => {
   it("the table's 'כולם' button: a second tap inside 600ms is ignored, after it counts", async () => {
     const patch = open();
     fireEvent.click(screen.getByRole("tab", { name: /לפי שולחן/ }));
-    const all = () => screen.getByRole("button", { name: "כולם" });   // EV is static: it stays "כולם"
+    const all = () => screen.getByRole("button", { name: "כולם הגיעו — שולחן 1" });   // EV is static: it stays "כולם"
     fireEvent.click(all());
     expect(patch).toHaveBeenCalledTimes(1);
     await later(200);
