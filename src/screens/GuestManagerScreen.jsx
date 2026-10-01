@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, memo } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink, linkForStage } from "../data/messageSequence.js";
@@ -31,6 +31,94 @@ import base from "../styles/screenBase.module.css";
 import Divider from "../components/ui/Divider.jsx";
 import styles from "./GuestManagerScreen.module.css";
 
+
+/* One row of the guest list (סב58).
+ *
+ * The rows used to be inline JSX in the screen, and the add form's state lives
+ * in the screen too — so every keystroke in the name field re-rendered all of
+ * them. Measured with 800 guests at 4x CPU throttle: ~240ms from keydown to
+ * paint, per character. A memoised row with stable callbacks lets React skip
+ * every row whose guest, table and labels did not change, which on a keystroke
+ * is all of them. The props are plain values (the labels are computed by the
+ * screen as strings) so the memo comparison holds. */
+const GuestRow = memo(function GuestRow({ g, table: t, isEditing, sideText, mealText, rsvpText, onWa, onEdit, onDelete }) {
+  const companions = guestCompanionNames(g);
+  return (
+    <div className={[base.gRow, styles.gRowLazy, isEditing ? base.gRowActive : ""].filter(Boolean).join(" ")}>
+      <SideDot side={g.side} />
+      <div className={base.gInfo}>
+        <span className={base.gName}>
+          {g.name}
+          {(g.count || 1) > 1 && <span className={base.gCountBadge}>+{(g.count || 1) - 1}</span>}
+        </span>
+        {/* The names were being stored and never shown. A pasted row
+            of "דניאל ישראל (אודליה,מיכאל,אריאל) 053…" parsed
+            correctly — companions and all — and then the list drew
+            "+3" and nothing else, so the only way to find out whether
+            the paste had understood anything was to open the edit
+            form row by row. The seating screen and the table card had
+            shown these all along; the guest list was the one place
+            that hadn't. */}
+        {companions.length > 0 && (
+          <span className={base.gCompanions}>
+            {companions.join(" · ")}
+          </span>
+        )}
+        <span className={base.gMeta}>
+          {sideText} · {g.group}
+          {(g.count || 1) > 1 ? " · " + (g.count) + " מקומות" : ""}
+          {mealText ? " · " + mealText : ""}
+          {g.phone ? " · " + g.phone : ""}
+          {g.notes ? " · " + g.notes : ""}
+        </span>
+      </div>
+      {(g.rsvp === "confirmed" || g.rsvp === "declined" || g.rsvp === "maybe") && (
+        <span className={g.rsvp === "confirmed" ? base.tagSeated : base.tagUnseated}
+          style={
+            g.rsvp === "declined" ? { color: "var(--red)", borderColor: "var(--red)" } :
+            g.rsvp === "maybe"    ? { color: "var(--warn)", borderColor: "var(--warn-border)", background: "var(--warn-bg)" } :
+            undefined
+          }>
+          {rsvpText}
+        </span>
+      )}
+      {t
+        ? (
+          <span className={[base.tagSeated, base.tagFlexible].join(" ")} title={t.name}>
+            <Icon name="hexagon" size={12} />
+            <span className={base.tagFlexibleText}>{t.name}</span>
+          </span>
+        )
+        : <span className={base.tagUnseated}>טרם שובץ לשולחן</span>
+      }
+      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        {g.phone && (
+          <button
+            type="button"
+            className={[base.btnSm, styles.waBtn].join(" ")}
+            title="שלחו הזמנה בוואטסאפ"
+            aria-label={`וואטסאפ: ${g.name}`}
+            onClick={() => onWa(g)}
+          >
+            וואטסאפ
+          </button>
+        )}
+        {/* Named with the guest (AX8): a list of 300 "עריכה" and 300
+            "מחקו" buttons is unusable by screen reader, and the
+            delete one is the dangerous one. The visible word leads
+            the name, so voice control still finds it. */}
+        <button type="button" className={[base.btnSm, base.btnGhost].join(" ")}
+          aria-label={`עריכה: ${g.name}`}
+          onClick={() => onEdit(g)}>
+          עריכה
+        </button>
+        <button type="button" className={[base.btnSm, base.btnDanger].join(" ")} aria-label={`מחקו: ${g.name}`} onClick={() => onDelete(g.id, g.name)}>
+          מחקו
+        </button>
+      </div>
+    </div>
+  );
+});
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   // Position in the build order, from src/data/eventAreas.js — never a literal.
@@ -381,7 +469,32 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     if (n > 0) acc.push({ ...o, n });
     return acc;
   }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < comingSeats);
-  const tableOf    = id => { const tid = ev.seating[id]; return tid ? ev.tables.find(t => t.id === tid) : null; };
+  const tableById  = useMemo(() => new Map(ev.tables.map(t => [t.id, t])), [ev.tables]);
+  const tableOf    = id => { const tid = ev.seating[id]; return tid ? tableById.get(tid) || null : null; };
+
+  // The row callbacks must keep their identity across renders, or every
+  // memoised GuestRow re-renders anyway. They call through a ref to the
+  // current render's handlers, refreshed after each commit — a click only
+  // ever happens after one.
+  const rowActions = useRef(null);
+  useLayoutEffect(() => {
+    rowActions.current = {
+      wa: waGuest,
+      del: delGuest,
+      edit: (g) => {
+        // Every editable field is loaded from the row, companion
+        // names included and padded to the seat count — a field
+        // the form renders but does not load is a field the host
+        // is being invited to blank out by accident.
+        setForm(guestToForm(g, defaultGroup));
+        setEditId(g.id);
+        window.scrollTo(0, 0);
+      },
+    };
+  });
+  const onRowWa     = useCallback((g) => rowActions.current.wa(g), []);
+  const onRowEdit   = useCallback((g) => rowActions.current.edit(g), []);
+  const onRowDelete = useCallback((id, name) => rowActions.current.del(id, name), []);
   const isFiltered = filter.side !== "all" || filter.group !== "all" || filter.rsvp !== "all" || filter.search;
 
   return (
@@ -817,93 +930,20 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
       {visible.length > 0 && (
         <div className={base.gList}>
-          {visible.map(g => {
-            const t = tableOf(g.id);
-            const isEditing = editId === g.id;
-            return (
-              <div key={g.id} className={[base.gRow, isEditing ? base.gRowActive : ""].filter(Boolean).join(" ")}>
-                <SideDot side={g.side} />
-                <div className={base.gInfo}>
-                  <span className={base.gName}>
-                    {g.name}
-                    {(g.count || 1) > 1 && <span className={base.gCountBadge}>+{(g.count || 1) - 1}</span>}
-                  </span>
-                  {/* The names were being stored and never shown. A pasted row
-                      of "דניאל ישראל (אודליה,מיכאל,אריאל) 053…" parsed
-                      correctly — companions and all — and then the list drew
-                      "+3" and nothing else, so the only way to find out whether
-                      the paste had understood anything was to open the edit
-                      form row by row. The seating screen and the table card had
-                      shown these all along; the guest list was the one place
-                      that hadn't. */}
-                  {guestCompanionNames(g).length > 0 && (
-                    <span className={base.gCompanions}>
-                      {guestCompanionNames(g).join(" · ")}
-                    </span>
-                  )}
-                  <span className={base.gMeta}>
-                    {sideLabel(g.side)} · {g.group}
-                    {(g.count || 1) > 1 ? " · " + (g.count) + " מקומות" : ""}
-                    {g.meal && g.meal !== MEAL_DEFAULT ? " · " + mealLabel(g.meal) : ""}
-                    {g.phone ? " · " + g.phone : ""}
-                    {g.notes ? " · " + g.notes : ""}
-                  </span>
-                </div>
-                {(g.rsvp === "confirmed" || g.rsvp === "declined" || g.rsvp === "maybe") && (
-                  <span className={g.rsvp === "confirmed" ? base.tagSeated : base.tagUnseated}
-                    style={
-                      g.rsvp === "declined" ? { color: "var(--red)", borderColor: "var(--red)" } :
-                      g.rsvp === "maybe"    ? { color: "var(--warn)", borderColor: "var(--warn-border)", background: "var(--warn-bg)" } :
-                      undefined
-                    }>
-                    {rsvpLabel(g.rsvp)}
-                  </span>
-                )}
-                {t
-                  ? (
-                    <span className={[base.tagSeated, base.tagFlexible].join(" ")} title={t.name}>
-                      <Icon name="hexagon" size={12} />
-                      <span className={base.tagFlexibleText}>{t.name}</span>
-                    </span>
-                  )
-                  : <span className={base.tagUnseated}>טרם שובץ לשולחן</span>
-                }
-                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  {g.phone && (
-                    <button
-                      type="button"
-                      className={[base.btnSm, styles.waBtn].join(" ")}
-                      title="שלחו הזמנה בוואטסאפ"
-                      aria-label={`וואטסאפ: ${g.name}`}
-                      onClick={() => waGuest(g)}
-                    >
-                      וואטסאפ
-                    </button>
-                  )}
-                  {/* Named with the guest (AX8): a list of 300 "עריכה" and 300
-                      "מחקו" buttons is unusable by screen reader, and the
-                      delete one is the dangerous one. The visible word leads
-                      the name, so voice control still finds it. */}
-                  <button type="button" className={[base.btnSm, base.btnGhost].join(" ")}
-                    aria-label={`עריכה: ${g.name}`}
-                    onClick={() => {
-                      // Every editable field is loaded from the row, companion
-                      // names included and padded to the seat count — a field
-                      // the form renders but does not load is a field the host
-                      // is being invited to blank out by accident.
-                      setForm(guestToForm(g, defaultGroup));
-                      setEditId(g.id);
-                      window.scrollTo(0, 0);
-                    }}>
-                    עריכה
-                  </button>
-                  <button type="button" className={[base.btnSm, base.btnDanger].join(" ")} aria-label={`מחקו: ${g.name}`} onClick={() => delGuest(g.id, g.name)}>
-                    מחקו
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {visible.map(g => (
+            <GuestRow
+              key={g.id}
+              g={g}
+              table={tableOf(g.id)}
+              isEditing={editId === g.id}
+              sideText={sideLabel(g.side)}
+              mealText={g.meal && g.meal !== MEAL_DEFAULT ? mealLabel(g.meal) : ""}
+              rsvpText={rsvpLabel(g.rsvp)}
+              onWa={onRowWa}
+              onEdit={onRowEdit}
+              onDelete={onRowDelete}
+            />
+          ))}
         </div>
       )}
 
