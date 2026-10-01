@@ -1138,6 +1138,17 @@ export function useEvents(user) {
     }
   }, []);
 
+  /* A create whose row turned out to exist already (33c — the first create
+   * landed, its response was lost). The row is merged with the local copy
+   * exactly as a row read at load would be — it may have been edited
+   * elsewhere since — and what this device holds beyond it is then pushed
+   * (loadedTick → pushUnpushed, after the merge has rendered). In place, so
+   * the event keeps its position in the list. */
+  const adoptRow = useCallback((id, adopted) => {
+    setEvents(prev => prev.map(e => (e.id === id ? (mergeCloudWithLocal([e], [adopted])[0] ?? e) : e)));
+    setLoadedTick(t => t + 1);
+  }, []);
+
   const addEvent = useCallback((ev) => {
     const normalized = normalizeEvent(ev);
     // Apply locally first so the UI is instant.
@@ -1159,6 +1170,8 @@ export function useEvents(user) {
           const { cloudId, version } = created;
           if (wasDeleted) {
             sendCloudDelete(cloudId, currentUser.id);
+          } else if (created.adopted) {
+            adoptRow(normalized.id, created.adopted);
           } else {
             const base = syncBaseOf(normalized);
             setEvents(prev => prev.map(e =>
@@ -1175,7 +1188,7 @@ export function useEvents(user) {
         pendingDeletes.current.delete(normalized.id); // create failed → no orphan to clean
         setSyncStatus(SYNC_STATUS.ERROR);
       });
-  }, [pushUpdate]);
+  }, [pushUpdate, adoptRow]);
 
   const removeEvent = useCallback((id) => {
     // Capture cloudId before removing from state.
@@ -1237,6 +1250,11 @@ export function useEvents(user) {
             setSyncStatus(SYNC_STATUS.SYNCED);
             return;
           }
+          if (created.adopted) {
+            adoptRow(id, created.adopted);
+            setSyncStatus(SYNC_STATUS.SYNCED);
+            return;
+          }
           const base = syncBaseOf(ev);
           setEvents(prev => prev.map(e =>
             e.id === id ? { ...e, cloudId, syncedVersion: version, syncBase: base } : e));
@@ -1261,7 +1279,7 @@ export function useEvents(user) {
     if (ev.version === ev.syncedVersion) return;
     setSyncStatus(SYNC_STATUS.SYNCING);
     pushUpdate(ev, currentUser.id);
-  }, [pushUpdate]);
+  }, [pushUpdate, adoptRow]);
   const pushNowRef = useRef(pushNow);
   useEffect(() => { pushNowRef.current = pushNow; }, [pushNow]);
 

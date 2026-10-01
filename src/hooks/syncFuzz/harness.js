@@ -44,7 +44,13 @@ export function makeCloud(actual, devices) {
       net(uid);
       const row = actual.mapLocalEventToCloudPayload(e, "u1");
       const id = "c-" + e.id;
-      if (cloud.rows.has(id)) { await cloud.wait(); throw new Error("duplicate key"); }
+      if (cloud.rows.has(id)) {
+        // What the real createCloudEvent does on 23505 since 33c: adopt the row.
+        const old = JSON.parse(JSON.stringify(cloud.rows.get(id)));
+        log(uid, `create ${e.id} EXISTS -> adopt v${old.version}`);
+        await cloud.wait();
+        return { cloudId: id, version: old.version, adopted: actual.mapCloudEventToLocalEvent(old) };
+      }
       cloud.store({ ...row, id, created_at: new Date(1_790_000_000_000).toISOString() });
       log(uid, `create ${e.id} v${row.version}`);
       await cloud.wait();
