@@ -189,13 +189,24 @@ export function freeDeclinedSeats(before, after) {
   if (!seating || !Array.isArray(after.guests)) return after;
   const was = new Map((before?.guests || []).map(g => [g?.id, g?.rsvp]));
   let next = null;
+  const unlocked = new Set();
   for (const g of after.guests) {
     if (g?.rsvp !== "declined" || was.get(g.id) === "declined" || !was.has(g.id)) continue;
     if (!seating[g.id]) continue;
     next ??= { ...seating };
     delete next[g.id];
+    unlocked.add(g.id);
   }
-  return next ? { ...after, seating: next } : after;
+  if (!next) return after;
+  // The lock goes with the seat (RG7). A lock pins a guest to the table the
+  // host chose; left behind after the seat was freed, it outlived the seat —
+  // a guest who later said yes again came back "locked" wherever they were
+  // next put: "recompute" kept them there and the assistant never suggested
+  // moving them, a pin the host never placed on that table.
+  const locks = Array.isArray(after.lockedGuests) ? after.lockedGuests : null;
+  const lockedGuests = locks && locks.some(id => unlocked.has(id))
+    ? locks.filter(id => !unlocked.has(id)) : locks;
+  return { ...after, seating: next, ...(lockedGuests !== locks ? { lockedGuests } : {}) };
 }
 
 function mergeTombstoneMaps(localTombs, cloudTombs) {
