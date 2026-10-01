@@ -308,6 +308,16 @@
   border-color: var(--cta-dark);
 }
 
+/* 38b. At 320px "הצטרפו חינם" took 117px and the event name in the
+   breadcrumb got 47px of its 125. Under 360px the button says "הצטרפו" and
+   pads less. Measured with the event name box, not assumed. */
+.signupShort { display: none; }
+@media (max-width: 359px) {
+  .signupLong  { display: none; }
+  .signupShort { display: inline; }
+  .signupBtn   { padding-inline: 12px; }
+}
+
 @media (pointer: coarse) {
   /* 44, not 40. These three sit in the header on every screen in the product,
      so they are the most-touched controls it has, and the codebase's own

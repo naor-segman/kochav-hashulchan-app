@@ -193,7 +193,12 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
                 </Link>
               ) : (
                 <Link to="/signup" className={styles.signupBtn}>
-                  הצטרפו חינם
+                  {/* Below 360px the long label left the event name beside it
+                      47px of a 125px name (38b); the short one is shown there.
+                      Only one is ever displayed, so the link's name is the
+                      words on screen. */}
+                  <span className={styles.signupLong}>הצטרפו חינם</span>
+                  <span className={styles.signupShort}>הצטרפו</span>
                 </Link>
               )
           )}
