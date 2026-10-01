@@ -18,6 +18,7 @@ import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/storage.js";
 import { COMPANY, supportMailto } from "../data/company.js";
 import { fmtShortDate } from "../utils/dateFormat.js";
+import { authErrorMessage } from "../utils/authErrors.js";
 
 
 // ── Plan card feature rows ────────────────────────────────────────────────────
@@ -217,7 +218,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
     const { error } = await supabase.auth.updateUser({ password: pwForm.next });
     setPwSaving(false);
     if (error) {
-      setPwError(error.message || "שגיאה בשינוי הסיסמה.");
+      setPwError(authErrorMessage(error, "changePassword"));
     } else {
       setPwDone(true);
       setPwForm({ current: "", next: "", confirm: "" });

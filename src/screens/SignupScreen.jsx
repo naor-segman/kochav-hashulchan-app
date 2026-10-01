@@ -6,19 +6,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import { COMPANY, LEGAL_DOCS } from "../data/company.js";
 import styles from "./LoginScreen.module.css"; // shares layout styles
-
-function friendlyError(message) {
-  const m = message.toLowerCase();
-  if (m.includes("user already registered") || m.includes("already been registered"))
-    return "כתובת אימייל זו כבר רשומה. נסו להתחבר.";
-  if (m.includes("password") && m.includes("6"))
-    return "הסיסמה חייבת להכיל לפחות 6 תווים.";
-  if (m.includes("too many requests"))
-    return "יותר מדי ניסיונות. נסו שוב מאוחר יותר.";
-  if (m.includes("network") || m.includes("fetch failed"))
-    return "שגיאת חיבור. נסו שוב.";
-  return message;
-}
+import { authErrorMessage } from "../utils/authErrors.js";
 
 export default function SignupScreen() {
   const { user, loading, signUp } = useAuth();
@@ -82,7 +70,7 @@ export default function SignupScreen() {
         navigate(from, { replace: true });
       }
     } catch (err) {
-      setError(friendlyError(err.message));
+      setError(authErrorMessage(err, "signUp"));
     } finally {
       setBusy(false);
     }
@@ -98,8 +86,8 @@ export default function SignupScreen() {
       const { error: err } = await supabase.auth.resend({ type: "signup", email: email.trim() });
       if (err) throw err;
       setResentDone(true);
-    } catch {
-      setResentError("שגיאה בשליחה חוזרת. נסו שוב.");
+    } catch (err) {
+      setResentError(authErrorMessage(err, "resend"));
     } finally {
       setResentBusy(false);
     }

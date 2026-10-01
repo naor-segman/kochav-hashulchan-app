@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { authErrorMessage } from "../utils/authErrors.js";
 
 // Landing page for the password-reset link. Supabase establishes a short-lived
 // recovery session from the link; here the user picks a new password.
@@ -57,9 +58,7 @@ export default function ResetPasswordScreen() {
       setDone(true);
       setTimeout(() => navigate("/app", { replace: true }), 1400);
     } catch (err) {
-      setError(err.message?.includes("network")
-        ? "שגיאת חיבור. נסו שוב."
-        : "שגיאה בעדכון הסיסמה. ייתכן שהקישור פג תוקפו — בקשו קישור חדש.");
+      setError(authErrorMessage(err, "updatePassword"));
     } finally {
       setBusy(false);
     }

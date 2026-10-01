@@ -5,15 +5,7 @@ import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
-
-function friendlyError(message) {
-  const m = message.toLowerCase();
-  if (m.includes("invalid login credentials")) return "אימייל או סיסמה שגויים.";
-  if (m.includes("email not confirmed"))        return "יש לאשר את כתובת האימייל תחילה.";
-  if (m.includes("too many requests"))          return "יותר מדי ניסיונות. נסו שוב מאוחר יותר.";
-  if (m.includes("network") || m.includes("fetch failed")) return "שגיאת חיבור. נסו שוב.";
-  return message;
-}
+import { authErrorMessage } from "../utils/authErrors.js";
 
 export default function LoginScreen() {
   const { user, loading, signIn } = useAuth();
@@ -45,7 +37,7 @@ export default function LoginScreen() {
       await signIn(email.trim(), password);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(friendlyError(err.message));
+      setError(authErrorMessage(err, "signIn"));
     } finally {
       setBusy(false);
     }
@@ -63,7 +55,7 @@ export default function LoginScreen() {
       if (err) throw err;
       setForgotDone(true);
     } catch (err) {
-      setForgotError(err.message?.includes("network") ? "שגיאת חיבור. נסו שוב." : "שגיאה בשליחת הקישור. בדקו את כתובת האימייל.");
+      setForgotError(authErrorMessage(err, "resetEmail"));
     } finally {
       setForgotBusy(false);
     }
