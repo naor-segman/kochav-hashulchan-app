@@ -200,6 +200,10 @@ export default function DashboardScreen({ events, unpaidCount = 0, isPaid = () =
                             size={38}
                           />
                         ))}
+                        {/* Eight drawn; the rest counted, not dropped (WORKPLAN 114). */}
+                        {ev.tables.length > 8 && (
+                          <span className={styles.featMore}>+{ev.tables.length - 8}</span>
+                        )}
                       </div>
                     )}
                   </div>
