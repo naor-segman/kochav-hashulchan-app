@@ -88,10 +88,14 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
   }, []);
 
   const lquery  = query.toLowerCase();
-  const results = guests
+  const matches = guests
     .filter(g => g.id !== exclude)
-    .filter(g => !query || (g.name || '').toLowerCase().includes(lquery))
-    .slice(0, 10);
+    .filter(g => !query || (g.name || '').toLowerCase().includes(lquery));
+  // Ten at a time keeps the list usable; past ten it says how many more there
+  // are, instead of a host with 15 "כהן"s never seeing the one they want
+  // (WORKPLAN 111).
+  const results = matches.slice(0, 10);
+  const more    = matches.length - results.length;
 
   const select = (g) => {
     onChange(g.id);
@@ -177,6 +181,11 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
             </button>
           )) : (
             <div className={styles.acEmpty}>אין תוצאות עבור &ldquo;{query}&rdquo;</div>
+          )}
+          {more > 0 && (
+            <div className={styles.acEmpty}>
+              {more === 1 ? "ועוד אחד" : `ועוד ${more}`} — הקלידו עוד אותיות כדי לצמצם
+            </div>
           )}
         </div>
       )}
