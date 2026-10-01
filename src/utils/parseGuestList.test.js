@@ -304,9 +304,10 @@ describe("two people on one line", () => {
 
   it("does not invent a second guest from a second number for the same one", () => {
     // A household with two numbers is still one row: the trailing number has
-    // nobody attached to it.
+    // nobody attached to it. It is not dropped either (91) — it is the same
+    // family's other phone, kept in the notes.
     expect(parseGuestList("משפחת כהן 0501234567 0521111111")).toEqual([
-      { name: "משפחת כהן", phone: "0501234567" },
+      { name: "משפחת כהן", phone: "0501234567", notes: "טלפון נוסף: 0521111111" },
     ]);
   });
 

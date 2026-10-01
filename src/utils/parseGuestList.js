@@ -338,9 +338,19 @@ function parseColumns(line) {
   if (cells.length < 2) return null;
 
   let phone = "", count = null, nameCell = "", extra = [];
+  const morePhones = [];
   for (const cell of cells) {
     const pm = cell.match(PHONE_RE) || cell.match(INTL_PHONE_RE) || cell.match(BARE_MOBILE_RE);
     if (!phone && pm && pm[0].trim() === cell.trim()) { phone = normalizePhone(pm[0]); continue; }
+    // "050-1234567, 052-7654321" in one cell — a household's two numbers. Not
+    // a whole-cell match, so it fell through to "a stray number column" and
+    // BOTH numbers were lost (91). The first is the guest's phone; the rest
+    // go to the notes, where the host can see them.
+    const many = phonesIn(cell);
+    if (many) {
+      for (const p of many) { if (!phone) phone = p; else if (p !== phone) morePhones.push(p); }
+      continue;
+    }
     if (count == null && /^\d{1,2}$/.test(cell)) {
       const n = parseInt(cell, 10);
       if (n >= 1 && n <= MAX_SEATS) { count = n; continue; }
@@ -366,7 +376,23 @@ function parseColumns(line) {
   // larger, the same way the names win over the number everywhere else.
   const seats = Math.min(MAX_SEATS, Math.max(count || 1, person.count || 1));
   if (seats > 1) { row.count = seats; row.companions = (person.companions || []).slice(0, seats - 1); }
+  if (morePhones.length) row.notes = extraPhonesNote(morePhones);
   return row;
+}
+
+/** Every phone in a cell that holds NOTHING but phones and separators, or null. */
+const PHONE_ANY_G = new RegExp(`${PHONE_RE.source}|${INTL_PHONE_RE.source}|${BARE_MOBILE_RE.source}`, "g");
+function phonesIn(cell) {
+  const ms = [...String(cell).matchAll(PHONE_ANY_G)];
+  if (ms.length < 2) return null;
+  if (String(cell).replace(PHONE_ANY_G, "").replace(/[\s,;/|\-–—]+/g, "")) return null;
+  return ms.map(m => normalizePhone(m[0]));
+}
+
+/** The note an extra number is kept in: one string the host reads as written. */
+export function extraPhonesNote(phones) {
+  const list = [...new Set(phones)];
+  return (list.length > 1 ? "טלפונים נוספים: " : "טלפון נוסף: ") + list.join(", ");
 }
 
 /** One person / group. Returns null when there is nobody to seat. */
@@ -536,6 +562,7 @@ export function parseGuestList(text) {
     const count = Math.min(MAX_SEATS, Math.max(big.count || 1, companions.length + 1));
     const merged = { ...big };
     if (count > 1) { merged.count = count; merged.companions = companions.slice(0, count - 1); }
+    if (!merged.notes && small.notes) merged.notes = small.notes;   // an extra phone (91)
     out[i] = merged;
     return i;
   };
@@ -580,7 +607,20 @@ export function parseGuestList(text) {
     const made = [];
     for (const segment of splitPeople(line)) {
       const row = parseOnePerson(segment);
-      if (row) made.push({ i: add(row), phone: row.phone });
+      if (row) { made.push({ i: add(row), phone: row.phone }); continue; }
+      // "דנה כהן 050-1234567 052-7654321": the split made a second "person" of
+      // nothing but the second number, who was nobody — and the number was
+      // dropped without a trace (91). It is the previous guest's other phone.
+      const last = made[made.length - 1];
+      const pm = !/\p{L}/u.test(segment) && (segment.match(PHONE_RE) || segment.match(BARE_MOBILE_RE));
+      if (last && pm && !segment.replace(pm[0], "").replace(/[\s,;/|\-–—]+/g, "")) {
+        const p = normalizePhone(pm[0]);
+        const g = out[last.i];
+        if (p !== g.phone) {
+          const prev = String(g.notes || "").match(/^(?:טלפון נוסף|טלפונים נוספים): (.*)$/u);
+          out[last.i] = { ...g, notes: extraPhonesNote([...(prev ? prev[1].split(", ") : []), p]) };
+        }
+      }
     }
     if (made.length === 1 && !made[0].phone && !out[made[0].i].phone) waitingForPhone = made[0].i;
   }
