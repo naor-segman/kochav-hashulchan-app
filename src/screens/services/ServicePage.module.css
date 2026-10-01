@@ -410,6 +410,8 @@
 .close {
   background: var(--text);
   color: var(--surface);
+  /* A dark band: the ring --accent-text draws here is 2.64:1. */
+  --focus-ring: var(--accent-on-dark);
 }
 
 .closeInner {

@@ -22,6 +22,8 @@
   position: sticky;
   top: 0;
   z-index: 200;
+  /* Anything on the bar without a ring of its own (the reset.css floor). */
+  --focus-ring: var(--nav-text);
 }
 
 /* One focus ring for everything on the dark bar. --nav-text is 16.62:1 here,
