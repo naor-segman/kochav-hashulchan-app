@@ -390,9 +390,25 @@ export default function EntranceScreen({
         if (alive && g) setCloudGuests({ forId: ownerCloudId, guests: g });
       } catch { /* keep the last overlay; the next pull retries */ }
     };
-    pull();
-    const iv = setInterval(pull, 25000);
-    return () => { alive = false; clearInterval(iv); };
+    // Only while the screen is in front of someone (ב7). A host who switched
+    // to WhatsApp, or left the tab open in the background all evening, pulled
+    // the whole event every 25 seconds for nobody. Hidden: stop. Back: pull at
+    // once — the door may have moved on — and resume the cadence.
+    let iv = null;
+    const start = () => {
+      if (iv !== null) return;
+      pull();
+      iv = setInterval(pull, 25000);
+    };
+    const pause = () => { if (iv !== null) { clearInterval(iv); iv = null; } };
+    const onVisibility = () => (document.hidden ? pause() : start());
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      alive = false;
+      pause();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [ownerCloudId]);
   // The latest overlay, for the write path below: a host's tap must start
   // from the row as the screen SHOWS it. Starting from the local row, a tap on
