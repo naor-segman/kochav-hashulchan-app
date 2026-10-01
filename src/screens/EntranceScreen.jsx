@@ -6,8 +6,16 @@ import { uid } from "../utils/uid.js";
 import {
   seatsOf, arrivedSeatsOf, arrivedCountOf, isFullyArrived, withArrivedSeats,
   setRowArrived, toggleSeat, setArrivedCount, arrivalTotals, searchGuests,
-  seatChipLabels, tableAvailability, norm, mergeArrivals,
+  seatChipLabels, tableAvailability, norm, mergeArrivals, HOST_ARRIVED_BY,
 } from "../utils/arrival.js";
+import { arrivalBase } from "../utils/syncBase.js";
+
+/* Who marked an arrival (ו2), as this screen knows it. The writers default to
+   HOST_ARRIVED_BY ("מארח"), so the greeter's own copy of a row they had just
+   marked said the HOST did it. The server RPC does not record a writer yet
+   (needs a migration); this is the greeter's screen telling the truth about
+   its own taps until the next refresh. */
+const GREETER_ARRIVED_BY = "דיילת";
 import { fetchHostessData, markArrivalByToken } from "../utils/publicTokens.js";
 import { fetchCloudEventGuests } from "../utils/cloudSync.js";
 import { isScanSupported, parseScanPayload } from "../utils/scanPayload.js";
@@ -314,7 +322,7 @@ export default function EntranceScreen({
           if (failed.current.get(guestId) === f) failed.current.delete(guestId);
           showFailed();
           const put = prev => prev && ({ ...prev, guests: prev.guests.map(g =>
-            g.id === guestId ? withArrivedSeats(g, f.seats) : g) });
+            g.id === guestId ? withArrivedSeats(g, f.seats, undefined, GREETER_ARRIVED_BY) : g) });
           remoteRef.current = put(remoteRef.current);
           setRemote(put);
         })
@@ -443,7 +451,9 @@ export default function EntranceScreen({
   }, [cloudGuests, localEvent?.cloudId]);
   const ownerEvent = useMemo(() => {
     if (!localEvent || !cloudGuests || cloudGuests.forId !== localEvent.cloudId) return localEvent;
-    return { ...localEvent, guests: mergeArrivals(localEvent.guests, cloudGuests.guests) };
+    // With the last-synced base (ב1/ב8): a seat the host and the greeter each
+    // marked on one family is merged, not decided by whose clock is ahead.
+    return { ...localEvent, guests: mergeArrivals(localEvent.guests, cloudGuests.guests, arrivalBase(localEvent.syncBase)) };
   }, [localEvent, cloudGuests]);
 
   // ── One shape for both modes ───────────────────────────────────────────────
@@ -568,16 +578,19 @@ export default function EntranceScreen({
           // Put the row back as it was, unless a later tap has changed it
           // since — offline, the refresh below fails too and nothing else
           // would undo the optimistic mark.
-          setRemote(put(g => (sameSeats(arrivedSeatsOf(g), nextSeats) ? withArrivedSeats(g, baseSeats) : g)));
+          // `null`: who marked the restored seats is not known here — not "מארח".
+          setRemote(put(g => (sameSeats(arrivedSeatsOf(g), nextSeats) ? withArrivedSeats(g, baseSeats, undefined, null) : g)));
           showFailed();
           loadRemote();
         });
     } else {
-      const shown = g => (cloudGuestsRef.current ? mergeArrivals([g], cloudGuestsRef.current)[0] : g);
-      patchEventById(eventId, e => ({
-        ...e,
-        guests: e.guests.map(g => (g.id === guestId ? transform(shown(g)) : g)),
-      }));
+      // The same base the screen merged with, read from the event being
+      // written, so the tap starts from exactly the row on screen.
+      const shown = (g, base) => (cloudGuestsRef.current ? mergeArrivals([g], cloudGuestsRef.current, base)[0] : g);
+      patchEventById(eventId, e => {
+        const base = arrivalBase(e.syncBase);
+        return { ...e, guests: e.guests.map(g => (g.id === guestId ? transform(shown(g, base)) : g)) };
+      });
     }
   }, [canWrite, isToken, token, eventId, patchEventById, loadRemote, showFailed]);
 
@@ -598,21 +611,23 @@ export default function EntranceScreen({
     return false;
   }, []);
 
+  const writer = isToken ? GREETER_ARRIVED_BY : HOST_ARRIVED_BY;
+
   const markRow = useCallback((g, on) => {
     if (isDoubleTap("row:" + g.id)) return;
-    applyArrival(g.id, row => setRowArrived(row, on));
+    applyArrival(g.id, row => setRowArrived(row, on, writer));
     if (on) setLastChecked(g.id);
-  }, [applyArrival, isDoubleTap]);
+  }, [applyArrival, isDoubleTap, writer]);
 
   const markSeat = useCallback((g, seat) => {
-    applyArrival(g.id, row => toggleSeat(row, seat));
+    applyArrival(g.id, row => toggleSeat(row, seat, writer));
     setLastChecked(g.id);
-  }, [applyArrival]);
+  }, [applyArrival, writer]);
 
   const markCount = useCallback((g, n) => {
-    applyArrival(g.id, row => setArrivedCount(row, n));
+    applyArrival(g.id, row => setArrivedCount(row, n, writer));
     if (n > 0) setLastChecked(g.id);
-  }, [applyArrival]);
+  }, [applyArrival, writer]);
 
   const markTable = useCallback((tableId, on) => {
     if (!canWrite) return;
@@ -624,18 +639,18 @@ export default function EntranceScreen({
       // to someone who said no and never came.
       const rows = (remote?.guests || []).filter(g =>
         remote.seating?.[g.id] === tableId && g.rsvp !== "declined");
-      rows.forEach(g => applyArrival(g.id, row => setRowArrived(row, on)));
+      rows.forEach(g => applyArrival(g.id, row => setRowArrived(row, on, writer)));
       return;
     }
     patchEventById(eventId, e => ({
       ...e,
       guests: e.guests.map(g =>
         e.seating?.[g.id] === tableId && g.rsvp !== "declined"
-          ? setRowArrived(g, on)
+          ? setRowArrived(g, on, writer)
           : g,
       ),
     }));
-  }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId, isDoubleTap]);
+  }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId, isDoubleTap, writer]);
 
   const handleScan = useCallback((raw) => {
     // The host can close the door link while the camera is open. Before, the
