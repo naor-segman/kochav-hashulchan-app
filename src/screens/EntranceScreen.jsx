@@ -646,6 +646,21 @@ export default function EntranceScreen({
     const guest = ev?.guests.find(g => g.id === id);
     if (!guest) { setScanMsg("הקוד לא שייך לאירוע הזה"); return; }
     if (isFullyArrived(guest)) { setScanMsg(seatsOf(guest) === 1 ? `${guest.name} — ההגעה כבר סומנה` : `${guest.name} — כל ${seatsOf(guest)} כבר סומנו`); return; }
+    // One code is one invitation, and an invitation for four is not four
+    // people at the door: "the aunt is here, her four are not" (ד2). A scan
+    // of a family row used to mark every seat. It now opens that family's
+    // panel — the greeter ticks who is actually here; one tap on "כולם הגיעו"
+    // is still there when they all are. A single seat is unambiguous and is
+    // still marked straight from the camera.
+    if (seatsOf(guest) > 1) {
+      setScanning(false);
+      setViewMode("name");
+      setSearch(guest.name);
+      setExpanded(guest.id);
+      const ask = `${guest.name} — ${seatsOf(guest)} מקומות: סמנו מי מהם הגיע`;
+      setScanMsg(guest.rsvp === "declined" ? `${ask} · שימו לב: סימנו שלא יגיעו — ייתכן שאין להם מקום` : ask);
+      return;
+    }
     markRow(guest, true);
     const done = seatsOf(guest) === 1 ? `${guest.name} — ההגעה סומנה` : `${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`;
     // Someone who said they would not come, and came: the greeter must know
