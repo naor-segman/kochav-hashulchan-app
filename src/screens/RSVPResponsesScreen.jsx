@@ -78,6 +78,14 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
              repeats: responses.length - current.length };
   }, [current, responses.length]);
 
+  // Who has not answered at all. A non-answer produces no response row, so
+  // this comes from the GUEST LIST — the nav promised "מי עוד לא ענה" and the
+  // screen had no such number (ת).
+  const unanswered = useMemo(
+    () => (ev.guests || []).filter(g => (g?.rsvp || "pending") === "pending").length,
+    [ev.guests],
+  );
+
   // ── Shuttle registrations ────────────────────────────────────────────────
   // Guests pick a shuttle on the RSVP form; the host needs seats-per-pickup to
   // book the buses. A shuttle the host later deleted leaves stale ids behind,
@@ -261,7 +269,10 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       <PageHeader
         title="תשובות אישורי הגעה"
         mark="rsvp"
-        sub="כל מי שמאשר דרך הקישור נכנס אוטומטית לרשימת האורחים. כאן רואים תמונת מצב ותחזית מנות."
+        /* ת: it said every answer "נכנס אוטומטית לרשימת האורחים". Only an
+           answer MATCHED to a guest on the list is applied, and only when this
+           screen opens; the rest wait below for a tap. */
+        sub="תשובה של אורח שכבר ברשימה מתעדכנת אצלו כשנכנסים למסך הזה, ותשובה שלא זוהתה מחכה כאן לשיוך. כאן גם תמונת מצב ותחזית מנות."
       />
 
       {/* ── Summary stats ── */}
@@ -286,6 +297,10 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
           <div className={[styles.statTile, styles.statNo].join(" ")}>
             <span className={styles.statNum}>{stats.declined}</span>
             <span className={styles.statLabel}>לא מגיעים</span>
+          </div>
+          <div className={styles.statTile}>
+            <span className={styles.statNum}>{unanswered}</span>
+            <span className={styles.statLabel}>ברשימה וטרם ענו</span>
           </div>
         </div>
       )}
