@@ -45,6 +45,8 @@ const FALSE = [
   // RSVP answers update the list only for matched guests, when the RSVP
   // screen is opened (ת, 1.10).
   [/כל תשובה נכנסת לרשימת האורחים מעצמה/, "every RSVP answer enters the list by itself"],
+  // An unsourced statistic in the Help screen (owner, 2.10: remove it).
+  [/8% עד 15%/, "a no-show rate of 8%–15%"],
 ];
 
 describe("claims measured false stay out of the shipped source", () => {
