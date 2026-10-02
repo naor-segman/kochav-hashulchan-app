@@ -470,6 +470,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     if (n > 0) acc.push({ ...o, n });
     return acc;
   }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < comingSeats);
+  // The meal chips count everyone who has not declined — including those who
+  // have not answered yet, while the RSVP screen's forecast counts confirmed
+  // guests only. Two honest numbers for two questions; this one now says what
+  // it includes (ב3, owner 2.10).
+  const unansweredSeats = coming.filter(g => g.rsvp !== "confirmed")
+                                .reduce((s, g) => s + Math.max(1, g.count || 1), 0);
   const tableById  = useMemo(() => new Map(ev.tables.map(t => [t.id, t])), [ev.tables]);
   const tableOf    = id => { const tid = ev.seating[id]; return tid ? tableById.get(tid) || null : null; };
 
@@ -535,6 +541,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               <span className={base.statChipN}>{m.n}</span> {m.value === "none" ? "בלי מנה" : m.n === 1 ? `מנה ${m.label}` : `מנות ${m.label}`}
             </span>
           ))}
+          {mealCounts.length > 0 && unansweredSeats > 0 && (
+            <span className={base.statChip}>
+              {unansweredSeats === 1 ? "כולל מקום אחד שעוד לא ענה" : `כולל ${unansweredSeats} מקומות שעוד לא ענו`}
+            </span>
+          )}
         </div>
       )}
 

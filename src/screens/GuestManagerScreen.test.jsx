@@ -306,4 +306,18 @@ describe("GuestManagerScreen — meal chips count meals (107)", () => {
     expect(chips).toContain("5 מנות צמחוני");
     expect(chips).toContain("1 מנה רגיל");
   });
+
+  it("says the meal count includes guests who have not answered yet (ב3, owner 2.10)", () => {
+    const ev = {
+      id: "e1", name: "החתונה", type: "חתונה", tables: [], seating: {}, constraints: [], tokens: {},
+      guests: [
+        { id: "a", name: "משפחת כהן", side: "bride", group: "משפחה", count: 4, meal: "vegetarian", rsvp: "confirmed" },
+        { id: "b", name: "דנה",       side: "groom", group: "חברים", count: 1, meal: "vegetarian", rsvp: "pending" },
+        { id: "e", name: "משפחת לוי", side: "groom", group: "חברים", count: 2, meal: "regular",    rsvp: "maybe" },
+      ],
+    };
+    render(<AuthProvider><GuestManagerScreen activeEvent={ev} patchEvent={vi.fn()} go={vi.fn()} showToast={vi.fn()} /></AuthProvider>);
+    const chips = [...document.querySelectorAll("[class*=statChip]")].map(el => el.textContent.replace(/\s+/g, " ").trim());
+    expect(chips).toContain("כולל 3 מקומות שעוד לא ענו");
+  });
 });
