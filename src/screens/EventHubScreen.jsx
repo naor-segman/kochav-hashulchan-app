@@ -14,6 +14,7 @@ import base from "../styles/screenBase.module.css";
 import styles from "./EventHubScreen.module.css";
 import { makeOpenScreen, isNameGated } from "../utils/eventNameGate.js";
 import { seatingTotals } from "../utils/eventHelpers.js";
+import { markDraftCarry } from "../utils/draftCarry.js";
 
 /* ── The event's own front page ───────────────────────────────────────────────
  *
@@ -183,7 +184,8 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
         <p className={styles.guestNote}>
           <Icon name="cloud" size={14} />{" "}
           האירוע הזה שמור רק בדפדפן הזה. פתיחת חשבון מגבה אותו, מסנכרנת לטלפון ומאפשרת לשתף קישורים עם האורחים.{" "}
-          <Link to="/signup" className={styles.guestLink}>פתחו חשבון חינם</Link>
+          {/* Inside the draft, so signing up carries it (33d, draftCarry.js). */}
+          <Link to="/signup" className={styles.guestLink} onClick={() => markDraftCarry()}>פתחו חשבון חינם</Link>
         </p>
       )}
 
