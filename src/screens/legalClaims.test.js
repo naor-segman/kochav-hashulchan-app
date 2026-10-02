@@ -32,6 +32,10 @@ describe("legal pages — 103", () => {
     expect(t).toMatch(/14 יום מיום הרכישה/);
     expect(t).toMatch(/5% מהמחיר או 100 ₪ — הנמוך מביניהם/);
     expect(t).toMatch(/ארבעה חודשים/);
+    // The owner's decision (2.10, 103-ב): a cancelled event after 14 days gets
+    // no refund — stated as such, not "we'll consider".
+    expect(t).toMatch(/בוטל, אחרי 14 יום מהרכישה<\/strong> — אין החזר/);
+    expect(t).not.toMatch(/נשקול/);
     // a cancellation can be sent from the site itself
     expect(t).toMatch(/cancelMailto\(\)/);
   });
