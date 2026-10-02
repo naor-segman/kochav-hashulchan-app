@@ -59,6 +59,19 @@ async function run(db, label) {
   out.doorBy = m1.ok ? psql(db, `select coalesce(g->>'arrivedBy', '-') from public.events e, jsonb_array_elements(e.payload->'guests') g where e.id = 'e5000000-0000-0000-0000-000000000005' and g->>'id' = 'd1'`) : 'ERR ' + m1.err.split('\n')[0];
   const m2 = as(db, 'anon', `select public.hostess_mark_arrival_by_token('hostDORaaaaa', 'd2', '[0]'::jsonb, '[]'::jsonb)`);
   out.doorOdd = m2.ok ? 'ok' : 'ERR ' + m2.err.split('\n')[0];
+  // 102e — the album's 1,501st photo on one link.
+  psql(db, `delete from public.album_photos`);
+  psql(db, `insert into public.album_photos (event_id, album_token, storage_path)
+            select 'e1000000-0000-0000-0000-000000000001', 'albPASTaaaaa', 'e1000000-0000-0000-0000-000000000001/albPASTaaaaa/p' || g || '.jpg'
+              from generate_series(1, 1500) g`);
+  const ap = as(db, 'anon', `select public.album_add_photo('albPASTaaaaa', 'e1000000-0000-0000-0000-000000000001/albPASTaaaaa/new.jpg', 'דנה')`);
+  out.album1501 = ap.ok ? 'accepted' : (/limit reached/.test(ap.err) ? 'limit' : 'ERR ' + ap.err.split('\n')[0]);
+  // 102f — a purchase row outlives its account.
+  const U = label === 'BEFORE (production today)' ? 'b0000000-0000-0000-0000-0000000000b1' : 'b0000000-0000-0000-0000-0000000000b2';
+  psql(db, `insert into auth.users (id, email) values ('${U}', '${U}@x.test')`);
+  psql(db, `insert into public.subscriptions (user_id, plan, status) values ('${U}', 'pro', 'active')`);
+  psql(db, `delete from auth.users where id = '${U}'`);
+  out.purchaseKept = +psql(db, `select count(*) from public.subscriptions where user_id is null and plan = 'pro' and status = 'active'`);
   // 102d
   out.noPgTemp = +psql(db, `select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and p.prosecdef
@@ -92,8 +105,10 @@ cmp('ב6 album token on/after the event day, site published', b.album.past === '
 cmp('MG6 a stray "maybe" does not take the page down', String(b.album.odd).startsWith('ERR'), !String(a.album.odd).startsWith('ERR'));
 cmp('ו2 a greeter\'s mark records arrivedBy = דיילת', b.doorBy === '-', a.doorBy === 'דיילת');
 cmp('MG6 a stray arrived value does not break the door', String(b.doorOdd).startsWith('ERR'), a.doorOdd === 'ok');
+cmp('102e the 1,501st album photo on one link is refused', b.album1501 === 'accepted', a.album1501 === 'limit');
+cmp('102f deleting an account keeps its purchase row', b.purchaseKept === 0, a.purchaseKept >= 1);
 cmp('102d every SECURITY DEFINER has pg_temp', b.noPgTemp > 0, a.noPgTemp === 0);
-cmp('postflight_20261001.sql: fails before, all תקין after', postBefore.some(x => x !== 'תקין'), postAfter.length === 7 && postAfter.every(x => x === 'תקין'));
+cmp('postflight_20261001.sql: fails before, all תקין after', postBefore.some(x => x !== 'תקין'), postAfter.length === 9 && postAfter.every(x => x === 'תקין'));
 const failed = checks.filter(([, bad, good]) => !(bad && good));
 console.log(failed.length ? `\n${failed.length} FAILED` : `\nall ${checks.length} passed`);
 process.exit(failed.length ? 1 : 0);

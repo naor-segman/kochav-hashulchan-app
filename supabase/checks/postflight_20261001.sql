@@ -29,4 +29,12 @@ union all
 select 7, 'סימון בקישור הדיילת רושם מי סימן',
   case when bool_or(prosrc like '%arrivedBy%') then 'תקין' else 'חסר' end, count(*)
   from pg_proc where proname = 'hostess_mark_arrival_by_token'
+union all
+select 8, 'אלבום: עד 1,500 תמונות לקישור',
+  case when bool_or(prosrc like '%n >= 1500%') then 'תקין' else 'חסר' end, count(*)
+  from pg_proc where proname = 'album_add_photo'
+union all
+select 9, 'רישומי רכישה נשמרים כשחשבון נמחק',
+  case when bool_and(confdeltype = 'n') then 'תקין' else 'חסר' end, count(*)
+  from pg_constraint where conname = 'subscriptions_user_id_fkey'
 order by 1;

@@ -23,6 +23,8 @@
 --         the door function did the same with a guest's `arrived`.
 --   ו2    the greeter's marks now record arrivedBy = 'דיילת'.
 --   MG7   the door function's row lock no longer blocks gift/RSVP inserts.
+--   102e  the album holds 1,500 photos per link (owner, 2.10).
+--   102f  purchase rows survive an account deletion (owner, 2.10).
 --
 -- Safe to run more than once: every statement is CREATE OR REPLACE or an
 -- idempotent ALTER.
@@ -433,6 +435,71 @@ $$;
 
 revoke all on function public.hostess_mark_arrival_by_token(text, text, jsonb, jsonb) from public, anon, authenticated;
 grant execute on function public.hostess_mark_arrival_by_token(text, text, jsonb, jsonb) to anon, authenticated;
+
+-- ── 7. 102e — the album holds 1,500 photos per link, not 5,000 ──────────────
+-- Owner's decision (2.10). Anyone holding the album link (or the site link,
+-- from the event day) can upload; at 10MB a file, 5,000 was 50GB per link.
+-- 1,500 is still far more than a wedding produces. Both checks move: the
+-- storage room check and the index row. Changing the link starts a fresh
+-- 1,500, as before.
+create or replace function public.album_token_folder_has_room(folder text, token_folder text)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select (
+    select count(*) from storage.objects o
+     where o.bucket_id = 'event-album'
+       and starts_with(o.name, folder || '/' || token_folder || '/')
+  ) < 1500;
+$$;
+revoke all on function public.album_token_folder_has_room(text, text) from public;
+grant execute on function public.album_token_folder_has_room(text, text) to anon, authenticated;
+
+create or replace function public.album_add_photo(
+  token_value text, path_value text, uploader_value text
+) returns uuid language plpgsql volatile security definer set search_path = public, pg_temp as $$
+declare
+  ev_id  uuid;
+  new_id uuid;
+  n      int;
+begin
+  ev_id := public.album_event_id(token_value);
+  if ev_id is null then
+    raise exception 'invalid album token' using errcode = '42501';
+  end if;
+  if path_value is null or char_length(path_value) > 400
+     or left(path_value, char_length(ev_id::text || '/' || token_value || '/'))
+        <> ev_id::text || '/' || token_value || '/'
+     or path_value like '%..%'
+     or path_value like '%//%'
+     or position(E'\\' in path_value) > 0 then
+    raise exception 'path does not belong to this event' using errcode = '42501';
+  end if;
+
+  -- Per link, like the room check: after the host changes the link, a flood
+  -- indexed under the old one does not hold the album shut.
+  select count(*) into n from public.album_photos
+   where event_id = ev_id and album_token = token_value;
+  if n >= 1500 then raise exception 'limit reached' using errcode = '42501'; end if;
+
+  insert into public.album_photos (event_id, album_token, storage_path, uploader)
+  values (ev_id, token_value, path_value,
+          nullif(left(btrim(coalesce(uploader_value, '')), 80), ''))
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+revoke all on function public.album_add_photo(text, text, text) from public;
+grant execute on function public.album_add_photo(text, text, text) to anon, authenticated;
+
+-- ── 8. 102f — purchase records outlive the account (owner, 2.10) ────────────
+-- subscriptions.user_id cascaded from profiles, which cascade from
+-- auth.users: deleting an account deleted its purchase rows — the records the
+-- tax rules require us to keep. The row now stays, with user_id NULL, as the
+-- event_id link already does (20260928000000). The privacy page says so.
+alter table public.subscriptions alter column user_id drop not null;
+alter table public.subscriptions drop constraint if exists subscriptions_user_id_fkey;
+alter table public.subscriptions
+  add constraint subscriptions_user_id_fkey
+  foreign key (user_id) references public.profiles (id) on delete set null;
 
 -- ── 5. 102d — pg_temp last on every SECURITY DEFINER search_path ────────────
 -- A definer function resolves unqualified names through search_path; with
