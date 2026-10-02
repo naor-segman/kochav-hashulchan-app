@@ -138,18 +138,22 @@ const WEDDING_SCHEDULE = () => [
   { time: "21:00", title: "ריקודים", icon: "💃" },
 ];
 
+// The English line over the hero is a default the host can edit or clear.
+// The wedding's stays; the others were labels ("BIRTHDAY", "OUR EVENT") and
+// were rewritten as lines someone would choose to print (owner, 2.10). None
+// is gendered — a couple may be two brides or two grooms.
 export const EVENT_TYPE_TEMPLATES = {
   "חתונה":        base("rose",  "OUR WEDDING DAY", { schedule: WEDDING_SCHEDULE() }),
-  "אירוס":        base("rose",  "WE'RE ENGAGED"),
-  "חינה":         base("sand",  "HENNA NIGHT"),
-  "בר מצווה":     base("sky",   "BAR MITZVAH"),
-  "בת מצווה":     base("rose",  "BAT MITZVAH"),
-  "ברית":         base("sky",   "BRIT MILAH"),
-  "בריתה":        base("rose",  "BABY NAMING"),
-  "יום הולדת":    base("sky",   "BIRTHDAY"),
-  "אירוע משפחתי": base("olive", "FAMILY EVENT"),
-  "אירוע עסקי":   base("night", "OUR EVENT"),
-  "אחר":          base("sky",   "OUR EVENT"),
+  "אירוס":        base("rose",  "TWO HEARTS, ONE YES"),
+  "חינה":         base("sand",  "A NIGHT OF HENNA"),
+  "בר מצווה":     base("sky",   "MAZAL TOV, BAR MITZVAH"),
+  "בת מצווה":     base("rose",  "MAZAL TOV, BAT MITZVAH"),
+  "ברית":         base("sky",   "WELCOME TO THE WORLD"),
+  "בריתה":        base("rose",  "WELCOME, LITTLE ONE"),
+  "יום הולדת":    base("sky",   "LET'S CELEBRATE"),
+  "אירוע משפחתי": base("olive", "ALL OF US, TOGETHER"),
+  "אירוע עסקי":   base("night", "SAVE YOUR SEAT"),
+  "אחר":          base("sky",   "JOIN THE CELEBRATION"),
 };
 
 export function getEventTypeTemplate(type) {
