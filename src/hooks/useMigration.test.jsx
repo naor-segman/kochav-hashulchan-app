@@ -247,3 +247,48 @@ describe("useMigration — dismiss()", () => {
     expect(patch).not.toHaveBeenCalled();
   });
 });
+
+// 33d (owner 2.10). Drafts made logged out on this browser are no longer in
+// `events` at sign-in — useEvents hands them over as `guestDrafts`, and only a
+// yes here puts them into the account.
+describe("useMigration — drafts made without an account", () => {
+  function mountDrafts(events, guestDrafts, over = {}) {
+    const patch = vi.fn();
+    const adopt = vi.fn(() => guestDrafts);
+    const decline = vi.fn();
+    const view = renderHook(() => useMigration(events, patch, USER,
+      { guestDrafts, adoptGuestDrafts: adopt, declineGuestDrafts: decline, ...over }));
+    return { ...view, patch, adopt, decline };
+  }
+
+  it("prompts with the drafts' names, without waiting on the cloud", () => {
+    const { result } = mountDrafts([], [ev("d1", { name: "החתונה של דנה" })]);
+    expect(result.current.shouldPrompt).toBe(true);
+    expect(result.current.draftNames).toEqual(["החתונה של דנה"]);
+  });
+
+  it("a yes adopts them first and uploads exactly those", async () => {
+    const { result, adopt, patch } = mountDrafts([ev("m", { cloudId: "c1" })], [ev("d1")]);
+    await act(async () => { await result.current.migrate(); });
+    expect(adopt).toHaveBeenCalledTimes(1);
+    expect(createCloudEvent).toHaveBeenCalledTimes(1);
+    expect(createCloudEvent.mock.calls[0][0].id).toBe("d1");
+    expect(patch).toHaveBeenCalledWith("d1", expect.objectContaining({ cloudId: "cloud-new" }));
+  });
+
+  it("a no declines those drafts and does not switch the account's own prompt off for good", () => {
+    const { result, decline } = mountDrafts([], [ev("d1")]);
+    act(() => { result.current.dismiss(); });
+    expect(decline).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem(KEY)).toBeNull();
+  });
+
+  it("does not count the logged-out view as the account's own events before the load", async () => {
+    // Until useEvents has loaded the account, `events` is still the logged-out
+    // list. Asking the cloud about it then is how a stranger's draft used to
+    // reach this banner as "your local events".
+    renderHook(() => useMigration([ev("x")], vi.fn(), USER, { ready: false }));
+    await Promise.resolve();
+    expect(fetchCloudEvents).not.toHaveBeenCalled();
+  });
+});

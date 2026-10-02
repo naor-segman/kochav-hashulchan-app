@@ -225,14 +225,17 @@ export default function App() {
 
 function AppRoutes() {
   const { user, loading: authLoading }                                  = useAuth();
-  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped } = useEvents(user);
+  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped,
+          guestDrafts, adoptGuestDrafts, declineGuestDrafts }                = useEvents(user);
   const { toast, showToast }                                            = useToast();
   // No event in scope here — AppRoutes sits above /events/:eventId — so this is
   // the account-level form, used for nothing but the event allowance below.
   // Every real gate asks usePlan(ev).
   const { unpaidEvents, planFor }                                       = usePlan();
   const navigate                                                        = useNavigate();
-  const migration = useMigration(events, patchEventById, user);
+  // Logged-out drafts on this browser are offered, not taken (33d).
+  const migration = useMigration(events, patchEventById, user,
+    { guestDrafts, adoptGuestDrafts, declineGuestDrafts, ready: eventsReady });
 
   // Keep this tab on the deployed build. See useAppUpdate — the browser's own
   // update check is far too lazy for a link handed to hundreds of guests, and

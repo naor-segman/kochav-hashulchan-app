@@ -10,6 +10,7 @@ import styles from "./Shell.module.css";
 import Icon from "../ui/Icon.jsx";
 import { makeOpenScreen } from "../../utils/eventNameGate.js";
 import { COMPANY } from "../../data/company.js";
+import { markDraftCarry } from "../../utils/draftCarry.js";
 
 // ── Two tiers, because there are two questions ────────────────────────────────
 //
@@ -192,7 +193,9 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
                   <span className={styles.accountLabel}>{user.email.split("@")[0]}</span>
                 </Link>
               ) : (
-                <Link to="/signup" className={styles.signupBtn}>
+                /* Signing up from inside the logged-out app carries its
+                   drafts into the new account (33d, draftCarry.js). */
+                <Link to="/signup" className={styles.signupBtn} onClick={() => markDraftCarry()}>
                   {/* Below 360px the long label left the event name beside it
                       47px of a 125px name (38b); the short one is shown there.
                       Only one is ever displayed, so the link's name is the

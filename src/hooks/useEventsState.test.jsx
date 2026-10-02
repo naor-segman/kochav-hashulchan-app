@@ -61,6 +61,7 @@ const stored = (key) => JSON.parse(localStorage.getItem(key) || '{"events":[]}')
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
   vi.useFakeTimers();
   // A real cloud holds exactly the events that have been pushed to it, so the
   // default mirrors the seeded bucket rather than returning a flat [].
@@ -374,17 +375,85 @@ describe("useEvents — switching user", () => {
     expect(result.current.events.map(e => e.id)).toEqual(["draft"]);
   });
 
-  it("adopts guest drafts on login and REMOVES them from the shared bucket", async () => {
-    // "Continue without an account, it'll sync later" is honoured — but the
-    // draft must not stay behind where a different account could adopt it too.
+  // 33d (owner 2.10). Signing in used to pull every logged-out draft on the
+  // browser into the account — on a shared computer, a stranger's guest list
+  // landed in whoever signed in next. Now a draft is OFFERED and joins only on
+  // a yes; until then it stays exactly where it was.
+  it("OFFERS a logged-out draft on login instead of taking it", async () => {
     seed(STORAGE_KEY, [ev("draft")]);
     seed(userKey("u1"), [ev("mine", { cloudId: "c1", syncedVersion: 1 })]);
     const { result } = renderHook(() => useEvents(USER));
 
     await settle();
-    expect(result.current.events).toHaveLength(2);
+    expect(result.current.events.map(e => e.id)).toEqual(["mine"]);
+    expect(result.current.guestDrafts.map(e => e.id)).toEqual(["draft"]);
+    expect(stored(STORAGE_KEY).map(e => e.id)).toEqual(["draft"]);
+    expect(stored(userKey("u1")).map(e => e.id)).toEqual(["mine"]);
+    expect(cloud.createCloudEvent).not.toHaveBeenCalled();
+  });
+
+  it("a yes moves the draft into the account and out of the shared bucket", async () => {
+    seed(STORAGE_KEY, [ev("draft")]);
+    seed(userKey("u1"), [ev("mine", { cloudId: "c1", syncedVersion: 1 })]);
+    const { result } = renderHook(() => useEvents(USER));
+    await settle();
+
+    let taken;
+    act(() => { taken = result.current.adoptGuestDrafts(); });
+    await settle();
+    expect(taken.map(e => e.id)).toEqual(["draft"]);
     expect(result.current.events.map(e => e.id).sort()).toEqual(["draft", "mine"]);
+    expect(result.current.guestDrafts).toEqual([]);
+    // Gone from where the next person on this browser could be offered it too.
     expect(stored(STORAGE_KEY)).toHaveLength(0);
+    expect(stored(userKey("u1")).map(e => e.id).sort()).toEqual(["draft", "mine"]);
+  });
+
+  it("a no leaves the draft on the browser and is not asked again", async () => {
+    seed(STORAGE_KEY, [ev("draft")]);
+    const { result, rerender } = renderHook(({ u }) => useEvents(u), { initialProps: { u: USER } });
+    await settle();
+    act(() => { result.current.declineGuestDrafts(); });
+    await settle();
+    expect(result.current.events).toEqual([]);
+    expect(result.current.guestDrafts).toEqual([]);
+
+    // Logged out, it is still there for whoever made it.
+    rerender({ u: null });
+    await settle();
+    expect(result.current.events.map(e => e.id)).toEqual(["draft"]);
+
+    // And the same account is not offered it a second time.
+    rerender({ u: USER });
+    await settle();
+    expect(result.current.guestDrafts).toEqual([]);
+    expect(stored(STORAGE_KEY).map(e => e.id)).toEqual(["draft"]);
+  });
+
+  it("signing up from INSIDE the draft carries it in and uploads it", async () => {
+    // The share dialog promises "הכל שבניתם עד עכשיו עובר איתכם" and marks the
+    // carry (draftCarry.js) — that is the yes, given one screen earlier.
+    seed(STORAGE_KEY, [ev("draft")]);
+    sessionStorage.setItem("kochav_carry_drafts", String(Date.now()));
+    const { result } = renderHook(() => useEvents(USER));
+
+    await settle();
+    expect(result.current.events.map(e => e.id)).toEqual(["draft"]);
+    expect(result.current.guestDrafts).toEqual([]);
+    expect(stored(STORAGE_KEY)).toHaveLength(0);
+    expect(cloud.createCloudEvent).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("kochav_carry_drafts")).toBeNull();
+  });
+
+  it("a carry mark older than half an hour authorises nothing", async () => {
+    seed(STORAGE_KEY, [ev("draft")]);
+    sessionStorage.setItem("kochav_carry_drafts", String(Date.now() - 31 * 60 * 1000));
+    const { result } = renderHook(() => useEvents(USER));
+
+    await settle();
+    expect(result.current.events).toEqual([]);
+    expect(result.current.guestDrafts.map(e => e.id)).toEqual(["draft"]);
+    expect(cloud.createCloudEvent).not.toHaveBeenCalled();
   });
 
   it("never pulls another account's already-synced events out of the shared bucket", async () => {

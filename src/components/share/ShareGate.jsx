@@ -3,6 +3,7 @@ import { useRestoreFocus } from "../../hooks/useRestoreFocus.js";
 import { Link, useLocation } from "react-router-dom";
 import Icon from "../ui/Icon.jsx";
 import styles from "./ShareGate.module.css";
+import { markDraftCarry } from "../../utils/draftCarry.js";
 
 /**
  * The signup moment, moved to where it is honest.
@@ -80,11 +81,12 @@ export default function ShareGateDialog({ what, onClose }) {
             ref={firstRef}
             to="/signup"
             state={{ from }}
+            onClick={() => markDraftCarry()}
             className={styles.primary}
           >
             פתחו חשבון חינם <Icon name="arrowLeft" size={15} />
           </Link>
-          <Link to="/login" state={{ from }} className={styles.secondary}>
+          <Link to="/login" state={{ from }} onClick={() => markDraftCarry()} className={styles.secondary}>
             כבר יש לי חשבון
           </Link>
           <button className={styles.later} onClick={onClose}>לא עכשיו</button>

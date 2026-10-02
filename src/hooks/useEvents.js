@@ -5,6 +5,7 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
 import { syncBaseOf, threeWayScalars, threeWayGuests, threeWaySeating, canonical, arrivalBase } from "../utils/syncBase.js";
 import { addPendingDelete, markDeleteLanded, readPendingDeletes, withoutPendingDeletes } from "../utils/pendingEventDeletes.js";
+import { takeDraftCarry, readDeclinedDrafts, addDeclinedDrafts } from "../utils/draftCarry.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
@@ -886,6 +887,20 @@ export function mergeOtherTab(mine, theirs, loggedIn = true) {
   return out ?? mine;
 }
 
+/**
+ * Take these drafts out of the logged-out bucket (33d). Once a draft belongs to
+ * an account it must not stay where the next person on this browser could be
+ * offered it too. Returns the drafts removed, freshly read — a logged-out tab
+ * may have edited one since sign-in.
+ */
+function takeGuestDrafts(ids) {
+  const want = new Set(ids);
+  const guest = (loadState(userStorageKey(null)).events || []).map(normalizeEvent).filter(Boolean);
+  const taken = guest.filter(e => !e.cloudId && want.has(e.id));
+  if (taken.length) persist({ events: guest.filter(e => !taken.includes(e)) }, userStorageKey(null));
+  return taken;
+}
+
 // ── useEvents ─────────────────────────────────────────────────────────────────
 //
 // Single source of truth for all event data at runtime.
@@ -917,7 +932,12 @@ export function useEvents(user) {
   // a warning. Both writes sit beside `setEvents` calls that were already
   // there, so the `react-hooks/set-state-in-effect` count is unchanged at 20 —
   // measured, not assumed.
-  const [hydratedFor, setHydratedFor] = useState(undefined);
+  //
+  // `drafts` rides on the same state (33d): the logged-out drafts this account
+  // is being OFFERED, which the banner shows. One setState where there was one,
+  // so the set-state-in-effect count is unchanged.
+  const [hydration, setHydration] = useState({ for: undefined, drafts: [] });
+  const hydratedFor = hydration.for;
   // Bumped when a load from the cloud has merged — the cue to send what this
   // device holds and the cloud does not (see pushUnpushed).
   const [loadedTick, setLoadedTick] = useState(0);
@@ -938,6 +958,9 @@ export function useEvents(user) {
   // Event ids removed before their initial cloud-create resolved, so the create
   // handler can delete the orphaned cloud row instead of letting it resurrect.
   const pendingDeletes = useRef(new Set());
+  // Logged-out drafts carried into this account at sign-in (33d) — owed a
+  // cloud create on the first push after the load.
+  const carriedRef     = useRef(new Set());
   // Event ids whose cloud-create is in flight, so a second debounced edit
   // cannot fire a duplicate create for the same event.
   const creatingRef    = useRef(new Set());
@@ -1001,7 +1024,7 @@ export function useEvents(user) {
         ownerRef.current = null;
         setEvents(load(userStorageKey(null)).filter(e => !e.cloudId));
         setSyncStatus(SYNC_STATUS.LOCAL_ONLY);
-        setHydratedFor(null);
+        setHydration({ for: null, drafts: [] });
       }
       return;
     }
@@ -1009,26 +1032,32 @@ export function useEvents(user) {
     if (loadedForRef.current === userId) return;
     loadedForRef.current = userId;
     ownerRef.current = userId;
+    carriedRef.current.clear();
 
-    // Start from THIS user's own bucket, plus a one-time migration of any
-    // unsynced guest-mode events (cloudId === null) created before logging in
-    // — honouring "continue without account, it'll sync later" without ever
-    // pulling in a different user's already-synced events.
+    // Start from THIS user's own bucket. Drafts made logged out on this browser
+    // (cloudId === null) are NOT pulled in by signing in (33d, owner 2.10): on
+    // a shared computer that put a stranger's guest list into whichever account
+    // signed in next. They stay in the logged-out bucket and are OFFERED — the
+    // banner names them and the host accepts or declines. The one exception is
+    // a signup/login started from inside the draft (see draftCarry.js), which
+    // is that acceptance given a screen earlier. Another account's SYNCED
+    // events are never taken either way.
     const userLocal   = load(userStorageKey(userId));
-    const guestState  = loadState(userStorageKey(null));
-    const guestEvents = (guestState.events || []).map(normalizeEvent).filter(Boolean);
-    const guestDrafts = guestEvents.filter(e => !e.cloudId);
     const seenIds     = new Set(userLocal.map(e => e.id));
-    const seeded      = [...userLocal, ...guestDrafts.filter(e => !seenIds.has(e.id))];
-    // Remove the migrated drafts from the guest bucket so they can't later be
-    // adopted by a different account on the same browser.
-    if (guestDrafts.length) {
-      persist({ events: guestEvents.filter(e => e.cloudId) }, userStorageKey(null));
+    const declined    = readDeclinedDrafts(userId);
+    const offered     = load(userStorageKey(null))
+      .filter(e => !e.cloudId && !seenIds.has(e.id) && !declined.has(e.id));
+    const carry       = takeDraftCarry() && offered.length > 0;
+    if (carry) {
+      takeGuestDrafts(offered.map(e => e.id));
+      // Consent was given, so these upload with the first push after the load
+      // instead of waiting for the banner (pushUnpushed).
+      offered.forEach(e => carriedRef.current.add(e.id));
     }
     // Show THIS user's own data immediately (optimistic local-first) — never the
     // pre-login view.
-    setEvents(seeded);
-    setHydratedFor(userId);
+    setEvents(carry ? [...userLocal, ...offered] : userLocal);
+    setHydration({ for: userId, drafts: carry ? [] : offered });
 
     // No cloud configured → auth never yields a user, so this path is unreachable.
     if (!isSupabaseConfigured) return;
@@ -1336,14 +1365,14 @@ export function useEvents(user) {
       pushNowRef.current(id);
     }
   }, []);
-  // Only events the cloud already has a row for. An event with no cloudId is
-  // either a draft that arrived from the logged-out bucket — uploading it at
-  // sign-in, before the import banner asks, would put someone else's draft on a
-  // shared computer into this account — or a failed create, which the next
-  // edit retries as before.
+  // Events the cloud already has a row for, plus drafts the host carried in by
+  // signing up from inside them (33d). Any other event with no cloudId is a
+  // draft accepted through the banner — which uploads it itself — or a failed
+  // create, which the next edit retries as before.
   const pushUnpushed = useCallback(() => {
     for (const e of eventsRef.current) {
       if (syncTimers.current[e.id]) continue;
+      if (!e.cloudId && carriedRef.current.delete(e.id)) { pushNowRef.current(e.id); continue; }
       if (e.cloudId && e.version !== e.syncedVersion) pushNowRef.current(e.id);
     }
   }, []);
@@ -1399,6 +1428,27 @@ export function useEvents(user) {
   }, []);
 
   /**
+   * The banner's two answers to the offered drafts (33d). Accept moves them
+   * into this account (the caller uploads them); decline leaves them in the
+   * logged-out bucket, where they still open logged out, and never offers them
+   * to this account again. Both are no-ops for a draft that has gone meanwhile.
+   */
+  const adoptGuestDrafts = useCallback(() => {
+    const uid = ownerRef.current;
+    if (!uid) return [];
+    const have = new Set(eventsRef.current.map(e => e.id));
+    const taken = takeGuestDrafts(hydration.drafts.map(e => e.id)).filter(e => !have.has(e.id));
+    if (taken.length) setEvents(prev => [...prev, ...taken.filter(t => !prev.some(e => e.id === t.id))]);
+    setHydration(h => ({ ...h, drafts: [] }));
+    return taken;
+  }, [hydration.drafts]);
+  const declineGuestDrafts = useCallback(() => {
+    const uid = ownerRef.current;
+    if (uid) addDeclinedDrafts(uid, hydration.drafts.map(e => e.id));
+    setHydration(h => ({ ...h, drafts: [] }));
+  }, [hydration.drafts]);
+
+  /**
    * Is `events` the list a route guard is allowed to draw conclusions from?
    *
    * A guard cannot use `syncStatus` alone. It starts LOCAL_ONLY, and between
@@ -1415,5 +1465,6 @@ export function useEvents(user) {
    */
   const eventsReady = userId ? hydratedFor === userId : true;
 
-  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped };
+  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped,
+           guestDrafts: hydration.drafts, adoptGuestDrafts, declineGuestDrafts };
 }
