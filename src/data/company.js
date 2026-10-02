@@ -190,17 +190,18 @@ function mailto(address, subject, body) {
 }
 
 /**
- * A tasteful one-line signature appended to guest-facing WhatsApp messages.
- * Turns every message into a soft, two-way growth touchpoint — but only once
- * a company contact is configured (otherwise just the attribution line, no
- * broken links).
+ * The one line appended to guest-facing WhatsApp messages: a credit, and a
+ * link to the site (where the contact details are).
+ *
+ * It used to add a second line, "רוצים אתר לאירוע שלכם?" — a sales question in
+ * a message the HOST sends to their own guests. Under the Communications Law
+ * (§30א) a line that promotes a service can make the message an advertisement,
+ * with the business whose service it promotes as the "advertiser" — and the
+ * guests never agreed to advertising. The owner's call (2.10, checklist 103):
+ * keep only "נבנה עם רוויה", as a link. Without a site configured it is the
+ * credit alone — never a broken link in somebody else's wedding message.
  */
 export function messageSignature() {
-  const parts = [`נבנה עם ${COMPANY.name}`];
-  if (COMPANY.whatsapp) {
-    parts.push(`רוצים אתר לאירוע שלכם? שיחה איתנו: https://wa.me/${COMPANY.whatsapp}`);
-  } else if (COMPANY.site) {
-    parts.push(`רוצים אתר לאירוע שלכם? ${COMPANY.site}`);
-  }
-  return "\n\n— " + parts.join("\n");
+  const link = COMPANY.site ? ` · ${COMPANY.site}` : "";
+  return `\n\n— נבנה עם ${COMPANY.name}${link}`;
 }
