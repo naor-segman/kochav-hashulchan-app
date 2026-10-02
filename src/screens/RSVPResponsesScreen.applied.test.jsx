@@ -35,7 +35,10 @@ describe("RSVP auto-sync on a second device", () => {
   });
 
   it("a new answer is applied, and recorded in the event — not in this browser", async () => {
-    const results = await run({ ...base, rsvpApplied: [] });
+    // A guest who has not answered yet. (A row the host set by hand is held
+    // for the host instead — see "the host's own edit" below.)
+    const pending = { ...base, guests: [{ ...base.guests[0], rsvp: "pending" }] };
+    const results = await run({ ...pending, rsvpApplied: [] });
     await waitFor(() => expect(results.length).toBeGreaterThan(0));
     const last = results.at(-1);
     expect(last.guests[0].rsvp).toBe("confirmed");
@@ -60,5 +63,42 @@ describe("reloaded on this screen (29.9 review)", () => {
     rerender(<RSVPResponsesScreen activeEvent={synced} syncStatus="synced" {...props} />);
     await new Promise(r => setTimeout(r, 50));
     for (const [fn] of patchEvent.mock.calls) expect(fn(synced).guests[0].rsvp).toBe("declined");
+  });
+});
+
+
+/* סב63 (owner 2.10): an answer must not overwrite what the host changed by
+ * hand, and a name alone is not enough to apply one automatically — anyone
+ * holding the public link can type a guest's name. Both now wait for the
+ * host's tap on this screen. */
+describe("the host's own edit and name-only matches (סב63)", () => {
+  it("a row the host set by hand is not overwritten — it waits, and says why", async () => {
+    const results = await run({ ...base, rsvpApplied: [] });          // host: declined; answer: yes
+    for (const r of results) expect(r.guests[0].rsvp).toBe("declined");
+    expect(await screen.findByText("שונה ממה שעדכנתם ידנית")).toBeTruthy();
+  });
+
+  it("a row that still shows the previous answer takes the new one", async () => {
+    // The host never touched it: "maybe" came from answer r0, applied; r1 says yes.
+    ROWS.unshift({ id: "r0", guest_name: "יעל כהן", phone: "0501234567", status: "maybe", guests_count: 1,
+                   created_at: "2026-09-19T10:00:00Z" });
+    try {
+      const ev = { ...base, guests: [{ ...base.guests[0], rsvp: "maybe" }], rsvpApplied: ["r0"] };
+      const results = await run(ev);
+      await waitFor(() => expect(results.length).toBeGreaterThan(0));
+      expect(results.at(-1).guests[0].rsvp).toBe("confirmed");
+    } finally { ROWS.shift(); }
+  });
+
+  it("matched by name only: not applied until the host taps", async () => {
+    const saved = ROWS[0].phone;
+    ROWS[0].phone = "";
+    try {
+      const ev = { ...base, guests: [{ ...base.guests[0], rsvp: "pending" }], rsvpApplied: [] };
+      const results = await run(ev);
+      for (const r of results) expect(r.guests[0].rsvp).toBe("pending");
+      expect(await screen.findByText(/זוהה לפי שם — יעל כהן\?/)).toBeTruthy();
+      expect(screen.getByRole("button", { name: "עדכנו אורח קיים" })).toBeTruthy();
+    } finally { ROWS[0].phone = saved; }
   });
 });
