@@ -30,7 +30,11 @@ describe("legal pages — 103", () => {
   it("refunds: the statutory floor is stated", () => {
     const t = read("./RefundScreen.jsx");
     expect(t).toMatch(/14 יום מיום הרכישה/);
-    expect(t).toMatch(/5% מהמחיר או 100 ₪ — הנמוך מביניהם/);
+    // No cancellation fee at all — the owner's decision (2.10, 103-א); the law
+    // would allow 5% or ₪100, whichever is lower.
+    expect(t).toMatch(/בלי דמי ביטול — מחזירים את כל הסכום/);
+    expect(t).not.toMatch(/יקוזזו דמי ביטול/);
+    expect(read("./PricingScreen.jsx")).not.toMatch(/בניכוי דמי ביטול/);
     expect(t).toMatch(/ארבעה חודשים/);
     // The owner's decision (2.10, 103-ב): a cancelled event after 14 days gets
     // no refund — stated as such, not "we'll consider".

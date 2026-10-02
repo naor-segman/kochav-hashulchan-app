@@ -9,7 +9,8 @@ import { COMPANY, LEGAL, LEGAL_DOCS, legalTel, supportEmail, supportMailto } fro
  * The statutory floor comes from §14ג and §14ה of the Consumer Protection Law
  * and its 2010 cancellation regulations: 14 days from the purchase or from
  * receiving the transaction document, whichever is later; a refund within 14
- * days; a fee of at most 5% or ₪100, whichever is lower, and none when the
+ * days; a fee of at most 5% or ₪100, whichever is lower (we charge none —
+ * the owner's decision, 2.10), and none when the
  * business is at fault; four months for people with disabilities, citizens over
  * 65 and new immigrants when the sale involved a conversation. Nothing below may
  * give less than that. What goes BEYOND it (postponement, our fault, the human
@@ -91,7 +92,7 @@ export default function RefundScreen() {
           <ul className={styles.list}>
             <li>אפשר לבטל רכישה בתוך 14 יום מיום הרכישה, או מיום שקיבלתם באימייל את אישור העסקה — המאוחר מביניהם.</li>
             <li>נחזיר את הכסף בתוך 14 יום מיום שקיבלנו את הודעת הביטול, לאותו אמצעי תשלום.</li>
-            <li>מהסכום יקוזזו דמי ביטול של 5% מהמחיר או 100 ₪ — הנמוך מביניהם.</li>
+            <li>בלי דמי ביטול — מחזירים את כל הסכום.</li>
             <li>אנשים עם מוגבלות, אזרחים ותיקים (מגיל 65) ועולים חדשים (עד חמש שנים מיום העלייה) יכולים לבטל בתוך ארבעה חודשים, אם העסקה כללה שיחה איתנו (גם בוואטסאפ או בטלפון). צרפו לבקשה תעודה מתאימה.</li>
             <li>בשירות שנותן אדם (סעיף 5), הודעת הביטול צריכה להגיע אלינו לפחות שני ימים שאינם ימי מנוחה לפני מועד האירוע.</li>
           </ul>
