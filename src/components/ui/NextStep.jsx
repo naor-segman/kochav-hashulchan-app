@@ -3,7 +3,8 @@ import Icon from "./Icon.jsx";
 
 export default function NextStep({ label, hint, onClick }) {
   return (
-    <div className={styles.nextBanner}>
+    // One per screen, so the guided tour (124) can always point at "what next".
+    <div className={styles.nextBanner} data-tour="next">
       <div>
         <div className={styles.nextLabel}>שלב הבא</div>
         {hint && <div className={styles.nextHint}>{hint}</div>}

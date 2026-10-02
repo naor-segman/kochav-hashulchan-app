@@ -644,7 +644,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             </Banner>
           )}
 
-          <div className={styles.runCard}>
+          <div className={styles.runCard} data-tour="seating.run">
             <div className={styles.runCardInfo}>
               <div className={styles.runCardTitle}>✦ חשבו הושבה אוטומטית</div>
               <div className={styles.runCardSub}>
@@ -698,7 +698,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               </div>
 
               {/* ── Secondary: print / check-in / export ── */}
-              <div className={styles.runActionsSecondary}>
+              <div className={styles.runActionsSecondary} data-tour="seating.print">
                 <div className={styles.runActionsGroup}>
                   <button
                     className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
@@ -852,6 +852,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               {({ ref, isOver: isDragOver }) => (
                 <div
                   ref={node => { ref(node); waitingRef.current = node; }}
+                  data-tour="seating.waiting"
                   className={[
                     styles.unassignedCard,
                     activeId && !isDragOver ? styles.unassignedDropReady : "",
@@ -977,6 +978,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               ref={tablesRef}
               tabIndex={-1}
               aria-label="שולחנות"
+              data-tour="seating.tables"
               className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}
             >
               {ev.tables.map((t, i) => (

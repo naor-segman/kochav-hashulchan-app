@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { computeViolations } from "../../logic/seating.js";
 import { useAuth } from "../../hooks/useAuth.js";
@@ -11,6 +11,9 @@ import Icon from "../ui/Icon.jsx";
 import { makeOpenScreen } from "../../utils/eventNameGate.js";
 import { COMPANY } from "../../data/company.js";
 import { markDraftCarry } from "../../utils/draftCarry.js";
+import GuidedTour from "../tour/GuidedTour.jsx";
+import { TOURS, hasTour } from "../../data/tours.js";
+import { hasSeenTour, markTourSeen } from "../../utils/tourState.js";
 
 // ── Two tiers, because there are two questions ────────────────────────────────
 //
@@ -53,6 +56,30 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
   };
 
   const showAutoSave = inEvent && !isHub && screen !== "setup";
+
+  // ── The guided tour (124) ──────────────────────────────────────────────
+  // Opens by itself the first time a screen that has one is shown on this
+  // browser, and from the "סיור במסך" button any time after. Which screen it
+  // is open FOR, so navigating away closes it without an effect to reset it.
+  const [tourFor, setTourFor] = useState(null);
+  useEffect(() => {
+    // An automated browser (every qa/ harness) would find its clicks landing
+    // on the tour instead of the page; the tour's own harness turns this off.
+    if (!hasTour(screen) || hasSeenTour(screen) || navigator.webdriver) return undefined;
+    let tries = 0, timer = 0;
+    // After the screen has painted, and never on top of another dialog (the
+    // name gate, the share gate) — wait for that one to close first.
+    const open = () => {
+      if (document.querySelector('[aria-modal="true"]') && tries++ < 40) { timer = setTimeout(open, 750); return; }
+      setTourFor(screen);
+    };
+    timer = setTimeout(open, 700);
+    return () => clearTimeout(timer);
+  }, [screen]);
+  const closeTour = useCallback(() => {
+    markTourSeen(screen);
+    setTourFor(null);
+  }, [screen]);
 
   // ── The tool rail ──────────────────────────────────────────────────────
   // It never scrolled: scrollLeft was 0 on every screen, so at 1024 the active
@@ -176,6 +203,18 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
         )}
 
         <div className={styles.topRight}>
+          {hasTour(screen) && (
+            <button
+              className={styles.tourBtn}
+              onClick={() => setTourFor(screen)}
+              aria-label="סיור במסך הזה"
+              title="סיור במסך הזה — מה כל חלק עושה"
+            >
+              <Icon name="question" size={14} />
+              <span className={styles.tourLabel}>סיור במסך</span>
+            </button>
+          )}
+
           {/* The wordmark goes to the event list, which is where a logged-in
               host wants to be nine times out of ten — but that left NO way back
               out to the public site short of typing the address, and "/" bounces
@@ -210,7 +249,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
       {/* ── Tier 1: the three areas, on the chrome ── */}
       {inEvent && (
-        <nav className={styles.areaBar} aria-label="אזורי האירוע">
+        <nav className={styles.areaBar} aria-label="אזורי האירוע" data-tour="shell.areas">
           <div className={styles.areaInner}>
             <button
               className={[styles.areaTab, isHub && styles.areaTabActive].filter(Boolean).join(" ")}
@@ -241,7 +280,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
       {/* ── Tier 2: only the current area's screens ── */}
       {inEvent && area && (
-        <nav className={styles.subnav} ref={subnavRef} data-fade="none" aria-label={area.label}>
+        <nav className={styles.subnav} ref={subnavRef} data-fade="none" aria-label={area.label} data-tour="shell.steps">
           <div className={styles.subnavInner}>
             {area.items.map((n, i) => {
               const isActive = screen === n.id;
@@ -280,6 +319,8 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
       )}
 
       <main id="main" tabIndex={-1} ref={mainRef} className={styles.main}>{children}</main>
+
+      {tourFor === screen && <GuidedTour key={screen} steps={TOURS[screen]} onClose={closeTour} />}
     </div>
   );
 }

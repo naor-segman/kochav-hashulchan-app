@@ -231,7 +231,10 @@
 /* Way out to the public site. Quiet — it is an escape hatch, not a call to
    action — but it carries a label, because a bare arrow on a dark bar says
    nothing. --nav-muted is 6.35:1 on #14161A. In RTL, back is →. */
-.homeBtn {
+/* "סיור במסך" (124) wears the home link's quiet style — a way back to an
+   explanation, not an action on the event. */
+.homeBtn,
+.tourBtn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -248,18 +251,26 @@
   transition: color var(--transition), background var(--transition), border-color var(--transition);
 }
 
-.homeBtn:hover {
+.homeBtn:hover,
+.tourBtn:hover {
   color: var(--nav-text);
   background: rgba(var(--nav-text-rgb),.08);
   border-color: rgba(var(--nav-text-rgb),.14);
 }
 
-.homeBtn:focus-visible {
+.homeBtn:focus-visible,
+.tourBtn:focus-visible {
   outline: 2px solid var(--nav-text);
   outline-offset: 2px;
 }
 
-.homeLabel { display: inline; }
+.tourBtn {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.homeLabel,
+.tourLabel { display: inline; }
 
 /* Same trade as .bcBackLabel, one step further out: inside an event, a link to
    the public marketing site is the least useful thing in the bar, and its label
@@ -269,7 +280,8 @@
    was winning and the first version of this fix did nothing at all. Measured
    both ways. */
 @media (max-width: 480px) {
-  .homeLabel { display: none; }
+  .homeLabel,
+  .tourLabel { display: none; }
 }
 
 .accountBtn:hover {
@@ -325,7 +337,8 @@
      18 routes. */
   .accountBtn,
   .signupBtn,
-  .homeBtn {
+  .homeBtn,
+  .tourBtn {
     min-height: 44px;
   }
 

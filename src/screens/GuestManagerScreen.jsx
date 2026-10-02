@@ -518,7 +518,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           /* Four numbers, one of them leading. The sides and the meal
              breakdown moved to the quiet strip below the header: eleven equal
              boxes in five ink colours gave the eye nowhere to land. */
-          <div className={base.pills}>
+          <div className={base.pills} data-tour="guests.counts">
             <StatPill n={ev.guests.length} label="סה״כ" primary />
             {nConfirmed > 0 && <StatPill n={nConfirmed} label="אישרו" color="var(--green)" />}
             {nDeclined > 0 && <StatPill n={nDeclined} label="סירבו" color="var(--red)" />}
@@ -571,7 +571,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           hand and only then met the paste box and the shared link. Each option
           is titled by what HAPPENS, not by what it is called. */}
       {!editId && (
-        <div className={styles.ways}>
+        <div className={styles.ways} data-tour="guests.ways">
           <SectionLabel>איך להכניס את המוזמנים לרשימה</SectionLabel>
           <div className={styles.waysGrid}>
             <button
@@ -618,7 +618,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         </div>
       )}
 
-      <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")}>
+      <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")} data-tour="guests.form">
         <SectionLabel>
           {editId
             ? ("עריכת אורח — " + (ev.guests.find(g => g.id === editId)?.name ?? ""))
@@ -880,7 +880,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       </div>
 
       {ev.guests.length > 0 && (
-        <div className={base.filterBar}>
+        <div className={base.filterBar} data-tour="guests.filter">
           <span className={styles.filterLabel}>סינון:</span>
           <input
             className={base.input}
@@ -942,7 +942,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {visible.length > 0 && (
-        <div className={base.gList}>
+        <div className={base.gList} data-tour="guests.list">
           {visible.map(g => (
             <GuestRow
               key={g.id}

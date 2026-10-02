@@ -104,7 +104,7 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
 
   return (
     <div className={base.pageWide}>
-      <header className={styles.head}>
+      <header className={styles.head} data-tour="hub.head">
         <div className={styles.headMain}>
           <p className={styles.eyebrow}>{ev.type || "אירוע"}</p>
           <h1 className={styles.title}>{ev.name || "אירוע חדש"}</h1>
@@ -168,7 +168,7 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           prevent, on the same screen, two hundred lines apart. Latent rather
           than live (both name inputs trim), which is why nothing caught it. */}
       {nextStep && (
-        <button className={styles.resume} onClick={() => openItem(nextStep.id)}>
+        <button className={styles.resume} onClick={() => openItem(nextStep.id)} data-tour="hub.resume">
           <span className={styles.resumeText}>
             <span className={styles.resumeLabel}>המשיכו מכאן</span>
             <span className={styles.resumeStep}>
@@ -189,7 +189,7 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
         </p>
       )}
 
-      <div className={styles.areaGrid}>
+      <div className={styles.areaGrid} data-tour="hub.areas">
         {AREAS.map(a => (
           <section key={a.id} className={styles.area} aria-label={a.label}>
             <header className={styles.areaHead}>
