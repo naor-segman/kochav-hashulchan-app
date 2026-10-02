@@ -28,3 +28,16 @@ describe("event-site English hero line per type", () => {
     for (const [k, v] of Object.entries(lines)) expect(v, k).toMatch(/^[A-Z ,'.!-]+$/);
   });
 });
+
+/* Owner, 2.10: a business event does not ask its guests for a gift. */
+import { defaultEventSite } from "./eventSiteTemplates.js";
+describe("gift section default", () => {
+  it("off for a business event, with no gift question in its FAQ", () => {
+    const s = defaultEventSite("אירוע עסקי");
+    expect(s.sections.gift).toBe(false);
+    expect(s.faq.map(f => f.q).join(" ")).not.toMatch(/מתנה/);
+  });
+  it("still on for every other type", () => {
+    for (const t of EVENT_TYPES.filter(x => x !== "אירוע עסקי")) expect(defaultEventSite(t).sections.gift, t).toBe(true);
+  });
+});

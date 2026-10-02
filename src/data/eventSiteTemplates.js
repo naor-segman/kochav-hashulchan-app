@@ -115,6 +115,7 @@ function base(themeKey, heroEn, extra = {}) {
   return {
     themeKey,
     heroEn,
+    gift: true,     // the gift page section is on by default — not for business
     schedule: extra.schedule || [],
     // No ids here. These literals are evaluated ONCE at module load, so every
     // event created from a template shared the same faq/schedule ids — and the
@@ -152,7 +153,12 @@ export const EVENT_TYPE_TEMPLATES = {
   "בריתה":        base("rose",  "WELCOME, LITTLE ONE"),
   "יום הולדת":    base("sky",   "LET'S CELEBRATE"),
   "אירוע משפחתי": base("olive", "ALL OF US, TOGETHER"),
-  "אירוע עסקי":   base("night", "SAVE YOUR SEAT"),
+  // No gift question in a business event's FAQ — and no gift section by
+  // default (owner, 2.10): a conference does not ask its guests for a gift.
+  "אירוע עסקי":   base("night", "SAVE YOUR SEAT", { faq: [
+    { q: "איך מגיעים לאירוע? יש חניה?", a: "" },
+    { q: "מתי צריך לאשר הגעה?", a: "מומלץ לאשר בהקדם, כדי שנוכל להיערך." },
+  ], gift: false }),
   "אחר":          base("sky",   "JOIN THE CELEBRATION"),
 };
 
@@ -195,7 +201,7 @@ export function defaultEventSite(type) {
     faq: t.faq.map(f => ({ ...f, id: uid() })),
     contactPhone: "",
     rsvpMessage: "",    // personal note from the hosts, shown after RSVP
-    sections: { countdown: true, gallery: true, schedule: true, location: true, shuttles: false, dressCode: false, gift: true, blessings: true, faq: true },
+    sections: { countdown: true, gallery: true, schedule: true, location: true, shuttles: false, dressCode: false, gift: t.gift !== false, blessings: true, faq: true },
     // Photo retention. Added to normalizeEventSite first and forgotten here —
     // the exact mistake the comment above this block was written about, caught
     // by the idempotence test rather than by reading the warning.
