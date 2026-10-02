@@ -16,7 +16,7 @@ import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/storage.js";
-import { COMPANY, contactMailto } from "../data/company.js";
+import { COMPANY, contactMailto, supportMailto } from "../data/company.js";
 import { fmtShortDate } from "../utils/dateFormat.js";
 import { authErrorMessage } from "../utils/authErrors.js";
 
@@ -659,6 +659,20 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         <Link to="/feedback" className={styles.feedbackLink}>
           <Icon name="mail" /> שלחו משוב / דווחו על בעיה
         </Link>
+
+        {/* Deleting the whole account is a request, not a button (owner, 2.10):
+            a conversation is the chance to hear why, and maybe to fix it. The
+            privacy page promises it within 30 days. The mail arrives with the
+            account's address so the request can be matched without asking. */}
+        <a
+          className={styles.feedbackLink}
+          href={supportMailto(
+            "בקשה למחיקת החשבון",
+            `שלום,\nאני מבקש/ת למחוק את החשבון ${user.email} ואת כל האירועים שבו.\n\nאם תרצו לספר לנו למה — זה יעזור לנו להשתפר:\n`,
+          )}
+        >
+          בקשה למחיקת החשבון
+        </a>
 
         <Link to="/" className={styles.backLink}><Icon name="arrowRight" size={14} /> חזרה לאפליקציה</Link>
 

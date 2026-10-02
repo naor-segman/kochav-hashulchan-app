@@ -48,6 +48,17 @@ const renderScreen = () =>
     </MemoryRouter>,
   );
 
+describe("AccountScreen — deleting the account is a request (owner 2.10)", () => {
+  it("offers a prefilled request, addressed to support, naming the account", () => {
+    renderScreen();
+    const link = screen.getByRole("link", { name: "בקשה למחיקת החשבון" });
+    const href = decodeURIComponent(link.getAttribute("href"));
+    expect(href).toMatch(/^mailto:support@/);
+    expect(href).toContain("subject=בקשה למחיקת החשבון");
+    expect(href).toMatch(/אני מבקש\/ת למחוק את החשבון \S+@\S+/);
+  });
+});
+
 describe("AccountScreen — reporting a problem", () => {
   it("routes to the feedback form, not to a mailbox", () => {
     renderScreen();
