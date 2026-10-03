@@ -149,3 +149,14 @@ describe("StartScreen — event type is a Hebrew string, not an English key", ()
     expect(onStart.mock.calls[0][0].date).toBe("2027-06-01");
   });
 });
+
+describe("StartScreen — the 'no account needed' note", () => {
+  it("is shown to someone without an account", () => {
+    render(<StartScreen onStart={vi.fn()} />);
+    expect(screen.getByText(/אפשר להתחיל בלי חשבון/)).toBeInTheDocument();
+  });
+  it("is not shown to a signed-in host, whose event is not 'only in this browser'", () => {
+    render(<StartScreen onStart={vi.fn()} signedIn />);
+    expect(screen.queryByText(/אפשר להתחיל בלי חשבון/)).toBeNull();
+  });
+});

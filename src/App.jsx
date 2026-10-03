@@ -364,6 +364,7 @@ function AppRoutes() {
             )}
             <DashboardScreen
               events={events}
+              signedIn={!!user}
               cloudCapped={cloudCapped}
               /* The unpaid count, not a plan. There is no account-level plan any
                  more — three events can sit on three different packages — and
@@ -390,6 +391,7 @@ function AppRoutes() {
           <Shell screen="dashboard" tourKey="start" activeEvent={null} go={dashGo}>
             <StartScreen
               onStart={startEvent}
+              signedIn={!!user}
               hasEvents={events.length > 0}
               onCancel={() => navigate("/app")}
             />

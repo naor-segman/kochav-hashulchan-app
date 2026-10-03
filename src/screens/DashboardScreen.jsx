@@ -18,7 +18,7 @@ import { COMPANY } from "../data/company.js";
    for. Defaulting to 0 rather than events.length keeps the gate open when the
    prop is missing: a screen that hides the "new event" button because a prop
    did not arrive is worse than one that lets a free user try. */
-export default function DashboardScreen({ events, cloudCapped = false, unpaidCount = 0, isPaid = () => false, onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
+export default function DashboardScreen({ events, signedIn = false, cloudCapped = false, unpaidCount = 0, isPaid = () => false, onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
   const { confirm, dialog } = useConfirm();
 
   const hasEvents     = events.length > 0;
@@ -59,7 +59,7 @@ export default function DashboardScreen({ events, cloudCapped = false, unpaidCou
   // logged-in first paint `events` is briefly [] while the cloud pull runs and
   // a redirect would fire against a list that is about to arrive.
   if (!hasEvents) {
-    return <StartScreen onStart={onStartEvent} />;
+    return <StartScreen onStart={onStartEvent} signedIn={signedIn} />;
   }
 
   return (

@@ -55,7 +55,7 @@ const DEMO_TABLES = [
   { shape: "round", capacity: 8,  taken: 0  },
 ];
 
-export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
+export default function StartScreen({ onStart, hasEvents = false, onCancel, signedIn = false }) {
   const { mainTemplates } = useTemplates();
   const [type,  setType]  = useState("חתונה");
   const [nameA, setNameA] = useState("");
@@ -218,10 +218,15 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
           )}
         </div>
 
-        <p className={styles.note}>
-          אפשר להתחיל בלי חשבון — הכל נשמר אוטומטית בדפדפן הזה.
-          חשבון נדרש רק כשתרצו לשתף קישור עם האורחים.
-        </p>
+        {/* For someone without an account only. A signed-in host's event is
+            saved to the cloud, and telling them it lives "in this browser"
+            is false (found 3.10 by the tour-mapping agent). */}
+        {!signedIn && (
+          <p className={styles.note}>
+            אפשר להתחיל בלי חשבון — הכל נשמר אוטומטית בדפדפן הזה.
+            חשבון נדרש רק כשתרצו לשתף קישור עם האורחים.
+          </p>
+        )}
       </form>
 
       {/* ── What is waiting inside — three things, not fourteen ── */}
