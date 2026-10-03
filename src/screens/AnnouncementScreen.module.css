@@ -64,18 +64,42 @@
   box-shadow: 0 18px 50px var(--scrim-18);
 }
 
-/* Over a photo without the card treatment, text needs its own contrast. */
+/* Over a photo without the card treatment, text needs its own ground.
+   The page-wide scrim alone (12–28% at the height of the text) and a
+   text-shadow were all it had, and measured on the painted page with the
+   shadow taken away — a halo is not a ground — white text over a white or
+   light-grey photo came out at 1.3–2.3:1, and the countdown, still in the
+   theme's muted and accent colours, at 1.04:1 over a mid-grey one (audit
+   3.10, P1-2/P1-3). A host chooses the photo; a bright one — a white hall,
+   a beach — is exactly what will be chosen.
+   So the text block gets a smoked panel of its own. --scrim-60 is the
+   lightest that holds: over pure white it is a ground of rgb(102,102,102),
+   where white is 5.7:1 and --white-strong 5.2:1. The photo stays untouched
+   everywhere else on the page, which a full-bleed 60% scrim would not do. */
 .layout_center:has(.photo) .card,
 .layout_bottom:has(.photo) .card {
   color: var(--white);
   text-shadow: 0 2px 14px var(--scrim-50);
+  background: var(--scrim-60);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-lg);
+  padding: 28px 22px;
 }
 .layout_center:has(.photo) .eyebrow,
 .layout_bottom:has(.photo) .eyebrow,
 .layout_center:has(.photo) .date,
 .layout_bottom:has(.photo) .date,
 .layout_center:has(.photo) .venue,
-.layout_bottom:has(.photo) .venue { color: var(--white-strong); }
+.layout_bottom:has(.photo) .venue,
+.layout_center:has(.photo) .countdown,
+.layout_bottom:has(.photo) .countdown,
+.layout_center:has(.photo) .message,
+.layout_bottom:has(.photo) .message { color: var(--white-strong); }
+/* The number was the theme's accent — a fill colour chosen for the theme's
+   own ground, not for a photo. */
+.layout_center:has(.photo) .countdown b,
+.layout_bottom:has(.photo) .countdown b { color: var(--white); }
 
 /* ── Type ────────────────────────────────────────────────────────────────── */
 .eyebrow {
@@ -193,8 +217,18 @@
   color: var(--a-muted);
   text-decoration: none;
 }
-.layout_center:has(.photo) .brand,
-.layout_bottom:has(.photo) .brand { color: var(--white-soft); }
+/* Over a photo — in EVERY layout, the card one included: there the credit
+   sits outside the card, straight on the picture, in the theme's muted grey,
+   and measured 1.3–3.5:1 on all four test photos. --white-soft on the bottom
+   of the scrim did no better over a bright one (2.6:1). A small pill of the
+   same smoke as the text panel gives it a ground it carries with it. */
+.root:has(.photo) .brand {
+  display: inline-block;
+  color: var(--white);
+  background: var(--scrim-60);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+}
 
 .state {
   min-height: 100dvh;

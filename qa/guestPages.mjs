@@ -83,7 +83,8 @@ function eventFor(token) {
   // Announcement layouts over a photo. The photo's colour comes from the
   // context's image route, so one token serves every photo.
   if (k === 'lay') {
-    const an = { themeKey: a === 'card' ? 'rose' : 'sky', enabled: true, layout: a, photo: img('p'), showRsvp: true, showCountdown: true, showLocation: true };
+    const an = { themeKey: a === 'card' ? 'rose' : 'sky', enabled: true, layout: a, photo: img('p'), showRsvp: true, showCountdown: true, showLocation: true,
+      message: 'נשמח לראות אתכם — פרטים נוספים באתר האירוע' };
     return { ...BASE_EV, announcements: { saveTheDate: an, invitation: an } };
   }
   return null;
@@ -170,6 +171,63 @@ try {
         .map(x => `${x.c} ${Math.round(x.r.left)}…${Math.round(x.r.right)}`), width);
       ok(wide.length === 0, `@${width} every block carrying the URL lies inside the screen`, wide.join(' | '));
       await ctx.close();
+    }
+  }
+
+  /* ── P1-2/P1-3 · text over a host's photo ───────────────────────────────── */
+  if (want('photo')) {
+    console.log('\n── photo: every text element over white / light / mid / dark photos (10th-percentile pixel)');
+    const PHOTOS = { white: '#ffffff', light: '#dcdcdc', mid: '#8a8a8a', dark: '#202020' };
+    for (const url of ['/save-the-date/lay-center', '/save-the-date/lay-bottom', '/invitation/lay-center', '/invitation/lay-card']) {
+      for (const [pname, col] of Object.entries(PHOTOS)) {
+        const { ctx, p } = await open(url, { photo: col });
+        const els = await p.evaluate(() => {
+          const out = [];
+          for (const el of document.querySelectorAll('main *, footer *')) {
+            const own = [...el.childNodes].filter(n => n.nodeType === 3 && n.nodeValue.trim()).map(n => n.nodeValue.trim()).join(' ');
+            if (!own) continue;
+            const r = el.getBoundingClientRect(); if (!r.width) continue;
+            const cs = getComputedStyle(el);
+            let op = 1; for (let e = el; e; e = e.parentElement) op *= Number(getComputedStyle(e).opacity);
+            out.push({ t: own.slice(0, 22), color: cs.color, op, px: parseFloat(cs.fontSize), wt: +cs.fontWeight, r: [r.left, r.top, r.width, r.height] });
+          }
+          return out;
+        });
+        if (process.env.GUEST_SHOTS) await p.screenshot({ path: `${process.env.GUEST_SHOTS}/photo${url.replace(/\//g, '_')}-${pname}.png` });
+        // The ground WITHOUT the text and WITHOUT its shadow: a text-shadow is
+        // a halo, not a ground, and leaning on it is how this page shipped.
+        await p.addStyleTag({ content: 'main *, footer * { color: transparent !important; text-shadow: none !important; } main svg, footer svg { visibility: hidden }' });
+        await p.waitForTimeout(150);
+        const shot = (await p.screenshot()).toString('base64');
+        const res = await p.evaluate(async ({ shot, els }) => {
+          const im = new Image(); im.src = 'data:image/png;base64,' + shot; await im.decode();
+          const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+          const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+          const parse = s => { const v = s.match(/[\d.]+/g).map(Number); return { r: v[0], g: v[1], b: v[2], a: v[3] ?? 1 }; };
+          const lum = ({ r, g, b }) => { const f = x => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+          return els.map(e => {
+            const [x, y, w, h] = e.r.map(Math.round);
+            const d = g.getImageData(Math.max(0, x), Math.max(0, y), Math.max(1, w), Math.max(1, h)).data;
+            const fg0 = parse(e.color); const a = fg0.a * e.op;
+            const rs = [];
+            for (let k = 0; k < d.length; k += 4 * 5) {
+              const bg = { r: d[k], g: d[k + 1], b: d[k + 2] };
+              const fg = { r: fg0.r * a + bg.r * (1 - a), g: fg0.g * a + bg.g * (1 - a), b: fg0.b * a + bg.b * (1 - a) };
+              const L1 = lum(fg), L2 = lum(bg); rs.push((Math.max(L1, L2) + .05) / (Math.min(L1, L2) + .05));
+            }
+            rs.sort((m, n) => m - n);
+            const need = (e.px >= 24 || (e.px >= 18.66 && e.wt >= 700)) ? 3 : 4.5;
+            return { t: e.t, worst: rs[Math.floor(rs.length * 0.1)] ?? 99, need };
+          });
+        }, { shot, els });
+        const bad = res.filter(r => r.worst < r.need);
+        const tight = [...res].sort((m, n) => m.worst / m.need - n.worst / n.need)[0];
+        const white = res.filter(r => /דנה|ימים לאירוע|נבנה עם/.test(r.t)).map(r => `"${r.t}" ${r.worst.toFixed(2)}`).join(' · ');
+        ok(bad.length === 0, `${url} on a ${pname} photo: every text ≥ its AA ratio`,
+          bad.length ? bad.map(r => `"${r.t}" ${r.worst.toFixed(2)}/${r.need}`).join(' · ')
+            : `tightest "${tight.t}" ${tight.worst.toFixed(2)}/${tight.need}; ${white}`);
+        await ctx.close();
+      }
     }
   }
 
