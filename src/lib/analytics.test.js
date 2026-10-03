@@ -34,8 +34,14 @@ vi.mock("posthog-js", () => ({
 // queue is enough for the mocked import to resolve.
 const settle = () => new Promise(r => setTimeout(r, 0));
 
-beforeEach(() => { vi.resetModules(); init.mockClear(); capture.mockClear(); identify.mockClear(); });
-afterEach(() => { vi.unstubAllEnvs(); });
+// This browser has said yes to the cookie question (owner 3.10). Without that
+// answer nothing loads at all — analytics.consent.test.js covers that side.
+const yes = () => vi.stubGlobal("localStorage", {
+  getItem: k => (k === "kochav_consent_v1" ? JSON.stringify({ analytics: true, at: "2026-10-03T00:00:00.000Z" }) : null),
+  setItem() {}, removeItem() {},
+});
+beforeEach(() => { vi.resetModules(); yes(); init.mockClear(); capture.mockClear(); identify.mockClear(); });
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("analytics is dark until a key exists", () => {
   it("does not touch the network without VITE_POSTHOG_KEY", async () => {

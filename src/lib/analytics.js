@@ -1,4 +1,5 @@
 import { scrubRoute } from "../utils/errorReport.js";
+import { readConsent } from "../utils/consent.js";
 
 /**
  * Product analytics.  Checklist 18.
@@ -58,6 +59,20 @@ import { scrubRoute } from "../utils/errorReport.js";
  * when it leaves the browser, applied to everything rather than field by field.
  */
 
+/*
+ * ── And nothing at all without the visitor's yes (owner 3.10) ───────────────
+ * Measurement is the one thing on this site that is not needed for it to
+ * work, so it waits for consent (src/components/consent/ConsentBanner.jsx).
+ * Until the visitor answers, calls are held IN MEMORY — nothing is loaded,
+ * stored or sent — so a yes still counts the page it was given on. A no
+ * empties that queue; withdrawing later stops capture and deletes what
+ * posthog-js kept in the browser.
+ *
+ * Guests on an RSVP or gift link are never asked (the banner does not show on
+ * guest pages), so their browser never measures anything — unless it is a
+ * browser that already said yes on our own pages, i.e. the host trying a link.
+ */
+
 /**
  * Take the tokens out of every URL-ish string in an outgoing PostHog event.
  * Pure, exported for the test. Returns the event (mutated copy) or null to
@@ -92,23 +107,37 @@ const HOST = import.meta.env?.VITE_POSTHOG_HOST || "https://eu.i.posthog.com";
 
 let ph      = null;    // the posthog module, once it has landed
 let loading = false;
-const queue = [];      // calls made while the module was still in flight
+let allowed = null;    // this visit's answer: null = not asked yet
+const queue = [];      // calls made before consent, or while the module loads
 const QUEUE_MAX = 20;  // a load that never resolves must not grow memory
+
+/** Whether there is anything to ask about — no key, no banner. */
+export const analyticsConfigured = !!KEY;
+
+function consented() {
+  return allowed ?? readConsent()?.analytics ?? null;
+}
 
 function run(fn) {
   try {
-    if (ph) { fn(ph); return; }
     if (!KEY) return;                       // dark: nothing to queue for
+    const c = consented();
+    if (c === false) return;                // said no: not even held
+    if (ph && c) { fn(ph); return; }
     if (queue.length < QUEUE_MAX) queue.push(fn);
   } catch { /* analytics must never break the app */ }
 }
 
+/** Starts measurement — only if this browser has said yes. */
 export function initAnalytics() {
-  if (!KEY || loading || ph) return;
+  if (!KEY || loading || ph || consented() !== true) return;
   loading = true;
   import("posthog-js")
     .then((mod) => {
       const p = mod.default;
+      // Withdrawn while the module was loading: it is not even started, so it
+      // writes nothing and sends nothing. A later yes starts it from here.
+      if (consented() !== true) { loading = false; return; }
       p.init(KEY, {
         api_host: HOST,
         autocapture: false,
@@ -128,6 +157,39 @@ export function initAnalytics() {
       while (queue.length) { try { queue.shift()(p); } catch { /* ignore */ } }
     })
     .catch(() => { loading = false; });     // offline, blocked, ad-blocker
+}
+
+function stop(p) {
+  try { p.opt_out_capturing(); } catch { /* ignore */ }
+  // What posthog-js keeps: ph_<key>_posthog (the random id) in localStorage,
+  // and its session/window ids in sessionStorage. Its own opt-out mark
+  // (__ph_opt_in_out_<key>) STAYS: the loaded instance reads it on every
+  // capture, and deleting it would read as "never asked" — i.e. capture on.
+  for (const store of [globalThis.localStorage, globalThis.sessionStorage]) {
+    try {
+      for (const k of Object.keys(store)) {
+        if (k.startsWith("ph_")) store.removeItem(k);
+      }
+    } catch { /* storage refused */ }
+  }
+}
+
+/**
+ * The visitor answered (the banner, or the preferences later). Yes starts
+ * measurement and sends what was held; no drops what was held and, if
+ * measurement was already running, stops it and deletes its id.
+ */
+export function applyConsent(yes) {
+  allowed = yes === true;
+  if (!KEY) return;
+  if (allowed) {
+    // No $opt_in event: the answer itself is not something to measure.
+    if (ph) { try { ph.opt_in_capturing({ captureEventName: false }); } catch { /* ignore */ } }
+    initAnalytics();
+    return;
+  }
+  queue.length = 0;
+  if (ph) stop(ph);
 }
 
 /** A named event. Properties are passed explicitly — nothing is inferred. */

@@ -1,0 +1,220 @@
+/* The cookie question — a sheet at the bottom of the screen, and the
+   preferences as a dialog. Above the WhatsApp support button (z 900): while
+   the question is open it covers that button rather than sitting under it. */
+
+.banner {
+  position: fixed;
+  inset-inline: 12px;
+  inset-block-end: 12px;
+  z-index: 1000;
+  max-width: 640px;
+  margin-inline: auto;
+  padding: 18px 20px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  text-align: start;
+  animation: rise 0.18s var(--ease-out);
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: var(--step-1);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.text {
+  margin: 0 0 14px;
+  font-size: var(--step--1);
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+.inlineLink {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The two answers share one skin and one width. That is the rule, not a style
+   choice: a loud yes beside a quiet no is the pattern the law calls out. */
+.answer {
+  flex: 1 1 0;
+  min-width: 112px;
+}
+
+.manage {
+  flex: 1 0 100%;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.manage:focus-visible,
+.inlineLink:focus-visible,
+.close:focus-visible,
+.check:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .manage { min-height: 44px; }
+}
+
+@media (min-width: 600px) {
+  .manage { flex: 0 0 auto; }
+}
+
+/* ── The preferences ─────────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(var(--text-rgb), 0.44);
+  animation: fadeIn 0.14s ease;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 24px 22px 20px;
+  text-align: start;
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+@media (pointer: coarse) {
+  .close { width: 44px; height: 44px; }
+}
+
+.prefsTitle {
+  margin: 0 0 8px;
+  padding-inline-start: 40px;
+  font-size: var(--step-1);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.category {
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.catHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.check {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--accent-text);
+  cursor: pointer;
+}
+
+.check:disabled {
+  cursor: default;
+}
+
+.catName {
+  font-size: var(--step-0);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+}
+
+.always {
+  margin-inline-start: auto;
+  font-size: var(--step--2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text2);
+}
+
+.catText {
+  margin: 6px 0 0;
+  font-size: var(--step--1);
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+.prefsActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner, .overlay { animation: none; }
+}
+
+@media print {
+  .banner { display: none; }
+}

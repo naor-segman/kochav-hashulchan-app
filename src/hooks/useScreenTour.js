@@ -40,6 +40,10 @@ export function useScreenTour(key) {
       // Another dialog is open, or the screen is still loading (a Loading
       // skeleton is aria-busy): the tour decides which parts exist when it
       // opens, so opening now would drop the ones about to arrive.
+      // The cookie question is waited out with no limit: it is answered once,
+      // and giving up while a first-time visitor reads it would cost them the
+      // tour of the very screen they arrived on.
+      if (document.querySelector("[data-consent-pending]")) { timer = setTimeout(open, 750); return; }
       if (document.querySelector('[aria-modal="true"], [aria-busy="true"]') || Date.now() - lastInput < 1500) {
         // Still blocked after ~30s: give up for this visit rather than open
         // over a dialog the host is in the middle of, or over a screen whose

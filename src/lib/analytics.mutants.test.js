@@ -12,15 +12,22 @@ vi.mock("posthog-js", () => ({
 }));
 const settle = () => new Promise(r => setTimeout(r, 0));
 
-beforeEach(() => { vi.resetModules(); init.mockClear(); capture.mockClear(); });
-afterEach(() => { vi.unstubAllEnvs(); });
+// This browser has said yes to the cookie question (owner 3.10). Without that
+// answer nothing loads at all — analytics.consent.test.js covers that side.
+const yes = () => vi.stubGlobal("localStorage", {
+  getItem: k => (k === "kochav_consent_v1" ? JSON.stringify({ analytics: true, at: "2026-10-03T00:00:00.000Z" }) : null),
+  setItem() {}, removeItem() {},
+});
+beforeEach(() => { vi.resetModules(); yes(); init.mockClear(); capture.mockClear(); });
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("PostHog stores its id in localStorage, not a cookie", () => {
   // A cookie is sent with every request to the domain and, for posthog-js,
   // can be cross-subdomain. analytics.js promises "no cross-site cookie" and
-  // main.jsx "no cookies" while dark; the product shows no consent banner.
+  // main.jsx "no cookies" while dark, and the consent banner (3.10) describes
+  // what is kept as local storage, never as a cookie sent to the server.
   // Switching the persistence to a cookie would break that promise for every
-  // visitor, including the guests on /rsvp who never chose to be here.
+  // visitor who said yes.
   it("init persistence: localStorage", async () => {
     vi.stubEnv("VITE_POSTHOG_KEY", "phc_test");
     const a = await import("./analytics.js");

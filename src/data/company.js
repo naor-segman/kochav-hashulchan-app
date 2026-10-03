@@ -90,8 +90,8 @@ export const LEGAL = {
  * whenever any of the three pages changes in substance.
  */
 export const LEGAL_DOCS = {
-  version: "2026-10-01",
-  updated: "1 באוקטובר 2026",
+  version: "2026-10-03",
+  updated: "3 באוקטובר 2026",
 };
 
 /** "נאור סגמן, עוסק פטור 313614067" — the identity line, built once. */

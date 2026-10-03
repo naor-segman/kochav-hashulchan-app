@@ -19,6 +19,8 @@ import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/s
 import { COMPANY, contactMailto, supportMailto } from "../data/company.js";
 import { fmtShortDate } from "../utils/dateFormat.js";
 import { authErrorMessage } from "../utils/authErrors.js";
+import { openConsentSettings } from "../utils/consent.js";
+import { analyticsConfigured } from "../lib/analytics.js";
 
 
 // ── Plan card feature rows ────────────────────────────────────────────────────
@@ -673,6 +675,12 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         >
           בקשה למחיקת החשבון
         </a>
+
+        {analyticsConfigured && (
+          <button type="button" className={`${styles.feedbackLink} ${styles.linkButton}`} onClick={openConsentSettings}>
+            הגדרות עוגיות ומדידה
+          </button>
+        )}
 
         <Link to="/" className={styles.backLink}><Icon name="arrowRight" size={14} /> חזרה לאפליקציה</Link>
 

@@ -63,6 +63,13 @@ try {
     });
     const p = await ctx.newPage();
     await p.addInitScript(() => { Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false }); });
+    // Since 3.10 nothing is measured without a yes to the cookie question, and
+    // guests are never asked — so a guest's own browser sends nothing at all
+    // (qa/cookieConsent.mjs). The case left to check is a browser that DID say
+    // yes on our own pages and then opens a guest link: the host trying it.
+    await p.addInitScript(() => {
+      localStorage.setItem('kochav_consent_v1', JSON.stringify({ analytics: true, at: '2026-10-03T00:00:00.000Z' }));
+    });
     const sent = [];
     await ctx.route(PH + '/**', async (route) => {
       const r = route.request();

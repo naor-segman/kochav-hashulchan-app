@@ -76,6 +76,23 @@
   color: var(--nav-text);
 }
 
+/* "הגדרות עוגיות" opens a dialog rather than a page, so it is a button —
+   dressed exactly as the links beside it. */
+.colButton {
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  line-height: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.colButton:focus-visible {
+  outline: 2px solid var(--nav-text);
+  outline-offset: 2px;
+}
+
 .bottom {
   border-top: 1px solid var(--nav-border);
 }
