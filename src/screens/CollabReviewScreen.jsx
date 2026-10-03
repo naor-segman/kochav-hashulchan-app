@@ -175,11 +175,13 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {loadState === "offline" && (
-        <Banner variant="warn">
-          {isSupabaseConfigured
-            ? "האירוע עדיין לא סונכרן לענן — הטבלה השיתופית תתחיל לעבוד אחרי הסנכרון הראשון (התחברו לחשבון)."
-            : "סנכרון ענן אינו מוגדר בסביבה זו."}
-        </Banner>
+        <div data-tour="collab.offline">
+          <Banner variant="warn">
+            {isSupabaseConfigured
+              ? "האירוע עדיין לא סונכרן לענן — הטבלה השיתופית תתחיל לעבוד אחרי הסנכרון הראשון (התחברו לחשבון)."
+              : "סנכרון ענן אינו מוגדר בסביבה זו."}
+          </Banner>
+        </div>
       )}
 
       {/* A placeholder while the rows load: the tour waits for it (124), and

@@ -349,11 +349,11 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           {/* The example pair here carried the same bidi hazard as the wedding
               hint above — "צד הכלה" / "צד החתן" — and is now joined by "או". */}
           <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-            כל אורח שייך לאחד משני צדדים, וכך ההושבה מתאזנת ביניהם. כאן אפשר לקרוא לצדדים
+            כל אורח שייך לאחד משני צדדים, וההושבה האוטומטית מושיבה את אורחי אותו צד יחד. כאן אפשר לקרוא לצדדים
             בשם שלכם — למשל "צד הכלה" או "צד החתן". השאירו ריק ונשתמש בשמות שמופיעים למטה.
           </p>
           <div className={base.grid2}>
-            <Field label={<>צד ראשון <InfoTip text="כל אורח משויך לאחד משני צדדים כדי שההושבה תתאזן ביניהם. השאירו ריק לשימוש בברירת המחדל." /></>}>
+            <Field label={<>צד ראשון <InfoTip text="כל אורח משויך לאחד משני צדדים, וההושבה האוטומטית מושיבה את אורחי אותו צד יחד. השאירו ריק לשימוש בברירת המחדל." /></>}>
               <input
                 className={base.input}
                 value={form.sideLabels.bride}

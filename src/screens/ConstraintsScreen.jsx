@@ -407,63 +407,69 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         )}
       </div>
 
-      {together.length > 0 && (
-        <div data-tour="constraints.list" className={[base.card, styles.cardTogether].join(" ")}>
-          <SectionLabel><Icon name="together" /> חייבים לשבת יחד — {together.length}</SectionLabel>
-          <div className={styles.cList}>
-            {together.map(c => {
-              const ga = gMap[c.guestA], gb = gMap[c.guestB];
-              return (
-                <div key={c.id} className={styles.cRow}>
-                  <div className={styles.cRowMain}>
-                    <SideDot side={ga.side} />
-                    <span className={styles.cstName}>{ga.name}</span>
-                    <span className={styles.cstVerb}>יחד עם</span>
-                    <SideDot side={gb.side} />
-                    <span className={styles.cstName}>{gb.name}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className={[base.btnSm, base.btnDanger].join(" ")}
-                    onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
-                    aria-label={`הסירו: ${ga.name} יחד עם ${gb.name}`}
-                  >
-                    הסירו
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* One element around both lists, so the guided tour (124) lights the
+          two of them — a key on each card lit only the first. */}
+      {ev.constraints.length > 0 && (
+        <div data-tour="constraints.list">
+          {together.length > 0 && (
+            <div className={[base.card, styles.cardTogether].join(" ")}>
+              <SectionLabel><Icon name="together" /> חייבים לשבת יחד — {together.length}</SectionLabel>
+              <div className={styles.cList}>
+                {together.map(c => {
+                  const ga = gMap[c.guestA], gb = gMap[c.guestB];
+                  return (
+                    <div key={c.id} className={styles.cRow}>
+                      <div className={styles.cRowMain}>
+                        <SideDot side={ga.side} />
+                        <span className={styles.cstName}>{ga.name}</span>
+                        <span className={styles.cstVerb}>יחד עם</span>
+                        <SideDot side={gb.side} />
+                        <span className={styles.cstName}>{gb.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={[base.btnSm, base.btnDanger].join(" ")}
+                        onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
+                        aria-label={`הסירו: ${ga.name} יחד עם ${gb.name}`}
+                      >
+                        הסירו
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-      {apart.length > 0 && (
-        <div data-tour="constraints.list" className={[base.card, styles.cardApart].join(" ")}>
-          <SectionLabel><Icon name="apart" /> לא יכולים לשבת יחד — {apart.length}</SectionLabel>
-          <div className={styles.cList}>
-            {apart.map(c => {
-              const ga = gMap[c.guestA], gb = gMap[c.guestB];
-              return (
-                <div key={c.id} className={styles.cRow}>
-                  <div className={styles.cRowMain}>
-                    <SideDot side={ga.side} />
-                    <span className={styles.cstName}>{ga.name}</span>
-                    <span className={[styles.cstVerb, styles.cstVerbApart].join(" ")}>בנפרד מ-</span>
-                    <SideDot side={gb.side} />
-                    <span className={styles.cstName}>{gb.name}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className={[base.btnSm, base.btnDanger].join(" ")}
-                    onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
-                    aria-label={`הסירו: ${ga.name} בנפרד מ-${gb.name}`}
-                  >
-                    הסירו
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+          {apart.length > 0 && (
+            <div className={[base.card, styles.cardApart].join(" ")}>
+              <SectionLabel><Icon name="apart" /> לא יכולים לשבת יחד — {apart.length}</SectionLabel>
+              <div className={styles.cList}>
+                {apart.map(c => {
+                  const ga = gMap[c.guestA], gb = gMap[c.guestB];
+                  return (
+                    <div key={c.id} className={styles.cRow}>
+                      <div className={styles.cRowMain}>
+                        <SideDot side={ga.side} />
+                        <span className={styles.cstName}>{ga.name}</span>
+                        <span className={[styles.cstVerb, styles.cstVerbApart].join(" ")}>בנפרד מ-</span>
+                        <SideDot side={gb.side} />
+                        <span className={styles.cstName}>{gb.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={[base.btnSm, base.btnDanger].join(" ")}
+                        onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
+                        aria-label={`הסירו: ${ga.name} בנפרד מ-${gb.name}`}
+                      >
+                        הסירו
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
