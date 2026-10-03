@@ -25,7 +25,7 @@
  * 1. `maxGuests` is Infinity on every plan, free included. It was 80, which is
  *    below every Israeli wedding — so the free tier could not be used for the
  *    thing the product is for, and the free tier IS the distribution channel:
- *    `messageSignature()` puts "נבנה עם רוויה" and the site link on every
+ *    `messageSignature()` puts "נבנה עם <brand>" and the site link on every
  *    guest message, so one free event is several hundred strangers seeing the
  *    name. A cap that makes the free tier useless switches that channel off.
  *

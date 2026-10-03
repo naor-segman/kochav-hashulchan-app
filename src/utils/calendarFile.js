@@ -171,7 +171,7 @@ export function buildEventIcs({ name, date, venue, startTime, endTime, url, desc
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Kochav Hashulchan//Event//HE",
+    "PRODID:-//Unica Plan//Event//HE",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

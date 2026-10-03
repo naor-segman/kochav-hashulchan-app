@@ -12,7 +12,7 @@ const GREETING = encodeURIComponent(`היי, אני צריך עזרה עם ${COM
 
 export default function SupportButton() {
   const { pathname } = useLocation();
-  // This number is Revaya's support line, for hosts. On a guest page it sat
+  // This number is the product's support line, for hosts. On a guest page it sat
   // over the RSVP form and the gift page, inviting a wedding guest to message
   // the software company instead of the couple (106, 28.9).
   if (!PHONE || isGuestRoute(pathname)) return null;

@@ -287,7 +287,7 @@ Deno.serve(async (req: Request) => {
         // account (Dashboard → Settings → Public details), Latin letters only.
         // Until 29.9 this comment claimed otherwise; the statement will show
         // the account's descriptor until the owner sets it there (WORKPLAN 41).
-        description: `רוויה — ${plan === "pro" ? "בלי הפתעות" : "אנחנו שם איתכם"}`,
+        description: `Unica Plan — ${plan === "pro" ? "בלי הפתעות" : "אנחנו שם איתכם"}`,
       },
     });
 

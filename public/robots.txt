@@ -1,4 +1,4 @@
-# revaya-events.co.il
+# plan.unica-events.co.il
 
 User-agent: *
 Allow: /
@@ -23,4 +23,4 @@ Disallow: /auth/
 # they ever need to be kept out of an index, the tool is a per-page
 # <meta name="robots" content="noindex">, which a preview crawler ignores.
 
-Sitemap: https://revaya-events.co.il/sitemap.xml
+Sitemap: https://plan.unica-events.co.il/sitemap.xml

@@ -18,7 +18,7 @@ const MIG  = join(ROOT, "supabase", "migrations");
 const OUT  = join(ROOT, "supabase", "setup_full.sql");
 
 const HEAD = `-- ═════════════════════════════════════════════════════════════════════════════
---  FULL DATABASE SETUP — רוויה
+--  FULL DATABASE SETUP — Unica Plan
 --
 --  ⚠️  GENERATED FILE. Do not edit by hand.
 --

@@ -80,7 +80,7 @@ export default function RefundScreen() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>1. על מה המדיניות חלה</h2>
           <p className={styles.text}>
-            על כל רכישה ב{COMPANY.name}: חבילה לאירוע, ושירות שנותן אדם (למשל מנהל
+            על כל רכישה ב-{COMPANY.name}: חבילה לאירוע, ושירות שנותן אדם (למשל מנהל
             הושבה בכניסה ביום האירוע). רכישה היא תשלום חד-פעמי לאירוע אחד — אין
             מנוי, ולכן אין גם חיוב חוזר לבטל. המדיניות הזו לא גורעת מאף זכות
             שיש לכם לפי חוק הגנת הצרכן.

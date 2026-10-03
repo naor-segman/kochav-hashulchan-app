@@ -18,7 +18,7 @@ import { COMPANY, DESCRIPTOR } from "../data/company.js";
  * A route with no SEO entry — the signed-in app, a token page — falls back to
  * the site default rather than keeping whatever the previous route set. Leaving
  * it alone was the first version, and it meant the tab still read
- * "מחירים · רוויה" while the host sat in their guest list.
+ * "מחירים · <brand>" while the host sat in their guest list.
  *
  * No state: this writes to the document and reads nothing back, so it is not a
  * `react-hooks/set-state-in-effect` site.

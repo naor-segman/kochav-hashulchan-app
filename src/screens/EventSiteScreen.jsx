@@ -474,7 +474,7 @@ export default function EventSiteScreen({ localEvent }) {
             יש שאלה? דברו איתנו בוואטסאפ
           </a>
         )}
-        <Link to="/" className={styles.footBrand}>✦ נבנה ב{COMPANY.name}</Link>
+        <Link to="/" className={styles.footBrand}>✦ נבנה עם {COMPANY.name}</Link>
         <Link to={token ? `/signup?ref=${token}` : "/signup"} className={styles.footPromo}>
           מתכננים אירוע? בנו אתר כזה בחינם ←
         </Link>

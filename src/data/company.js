@@ -13,24 +13,23 @@
 // VITE_SUPPORT_EMAIL is an alternative that needs no code change at all.
 
 export const COMPANY = {
-  // The brand, decided 30.8 (checklist 11). Three forms, because Hebrew needs
-  // three and picking the wrong one in the wrong place is how a brand looks
-  // careless:
+  // The brand (owner, 3.10 — WORKPLAN 128): "Unica Plan", a product of Unica.
+  // ENGLISH ONLY, everywhere, Hebrew sentences included — there is no Hebrew
+  // form of the name. It replaced רוויה (decided 30.8), which never reached
+  // anyone outside this project.
   //
-  //   name       running text, every screen, every message. Plain ktiv male.
-  //              NOT "רויה" — an unpointed consonantal vav must be doubled or
-  //              the word reads "roya"/"ruya" instead of "revaya".
-  //   nameShuruk the pointed, biblical form. Logo, hero, the places where the
-  //              name is a statement rather than a label. Never in body text —
-  //              niqqud inside a paragraph reads as a typo.
-  //   nameLatin  domains, Meta/WhatsApp Business, anything Latin-script.
-  //
-  name:       "רוויה",
-  namePointed:"רְוָיָה",
-  nameLatin:  "REVAYA",
+  // Next to a Hebrew prefix letter it takes a maqaf: "ב-Unica Plan", never
+  // "בUnica Plan".
+  name:     "Unica Plan",
 
-  domain:   "revaya-events.co.il",   // bought 31.8, support@ is a real mailbox (checklist 13)
-  site:     "https://revaya-events.co.il",  // lights up the guest-message signature (checklist 14)
+  // The site lives on a subdomain of Unica's own domain; mail is on the
+  // domain itself (plan@unica-events.co.il), so the two are separate fields.
+  host:     "plan.unica-events.co.il",
+  site:     "https://plan.unica-events.co.il",  // lights up the guest-message signature (checklist 14)
+  domain:   "unica-events.co.il",               // the MAIL domain
+  // Two mailboxes, so support does not drown the day-to-day mail (owner, 3.10).
+  supportMailbox: "plansupport",   // questions and problems — every "תמיכה"
+  contactMailbox: "plan",          // the main business address — "צרו קשר", sales
   whatsapp: "",            // company WhatsApp digits, e.g. "972500000000" (checklist 16)
 };
 
@@ -49,7 +48,7 @@ export const COMPANY = {
  *
  * ── The details, supplied by the owner on 11.9 ──────────────────────────────
  * `עוסק פטור` is a sole-trader registration held by a PERSON, not by a trade
- * name: the number below is the owner's own, and רוויה is a brand operating
+ * name: the number below is the owner's own, and Unica Plan is a brand operating
  * under it alongside his other one. That is why `name` is the person and
  * `brand` is separate — a receipt has to carry the registered name, and only
  * the registered name identifies who the customer is contracting with.
@@ -105,31 +104,6 @@ export function legalTel() {
 }
 
 /**
- * The verse the name comes from — Psalms 23:5.
- *
- * Kept here rather than retyped per screen for the same reason the support
- * address is: a quoted verse that drifts by one letter across six pages is
- * worse than not quoting it. `VERSE.lines` for display, `VERSE.source` for the
- * citation.
- *
- * Meaning, so nobody has to look it up to place it correctly: the psalm stops
- * describing God as a shepherd here and starts describing Him as a HOST — He
- * lays a table, anoints the guest's head with oil (the ancient Near-Eastern
- * welcome), and fills the cup past the brim. It is the Bible's most famous
- * description of hospitality, and its opening verb is literally "to lay a
- * table".
- */
-export const VERSE = {
-  lines: [
-    "תַּעֲרֹךְ לְפָנַי שֻׁלְחָן נֶגֶד צֹרְרָי,",
-    "דִּשַּׁנְתָּ בַשֶּׁמֶן רֹאשִׁי,",
-    "כּוֹסִי רְוָיָה.",
-  ],
-  short:  "תַּעֲרֹךְ לְפָנַי שֻׁלְחָן",
-  source: "תהלים כ״ג, ה",
-};
-
-/**
  * What the product does, in the words people actually search for.
  *
  * The brand name carries no meaning to someone who has never heard it, so
@@ -148,13 +122,13 @@ const PLACEHOLDER_DOMAIN = "kochav-hashulchan.co.il";
 /** The support address, best available source first. */
 export function supportEmail() {
   return import.meta.env?.VITE_SUPPORT_EMAIL
-    || `support@${COMPANY.domain || PLACEHOLDER_DOMAIN}`;
+    || `${COMPANY.supportMailbox || "support"}@${COMPANY.domain || PLACEHOLDER_DOMAIN}`;
 }
 
-/** Sales / enterprise enquiries. A separate mailbox on the same domain. */
+/** The main business address — "צרו קשר", sales, enterprise. */
 export function contactEmail() {
   return import.meta.env?.VITE_CONTACT_EMAIL
-    || `contact@${COMPANY.domain || PLACEHOLDER_DOMAIN}`;
+    || `${COMPANY.contactMailbox || "contact"}@${COMPANY.domain || PLACEHOLDER_DOMAIN}`;
 }
 
 /**
@@ -198,7 +172,7 @@ function mailto(address, subject, body) {
  * (§30א) a line that promotes a service can make the message an advertisement,
  * with the business whose service it promotes as the "advertiser" — and the
  * guests never agreed to advertising. The owner's call (2.10, checklist 103):
- * keep only "נבנה עם רוויה", as a link. Without a site configured it is the
+ * keep only "נבנה עם <the brand>", as a link. Without a site configured it is the
  * credit alone — never a broken link in somebody else's wedding message.
  */
 export function messageSignature() {

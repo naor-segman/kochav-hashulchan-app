@@ -245,7 +245,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
 
       <footer className={styles.footer}>
         <Link to="/" className={styles.brand}>
-          <span aria-hidden="true">✦</span> נבנה ב{COMPANY.name}
+          <span aria-hidden="true">✦</span> נבנה עם {COMPANY.name}
         </Link>
       </footer>
     </div>
