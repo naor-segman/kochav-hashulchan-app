@@ -67,12 +67,27 @@ describe("the first layer", () => {
     }
   });
 
-  it("no PostHog key: nothing optional on the site, nothing to ask", () => {
+  it("no GA id: nothing optional on the site, nothing to ask", () => {
     configured = false;
     at("/app");
     expect(banner()).toBeNull();
     act(() => openConsentSettings());
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("another tab", () => {
+  it("a no there stops this tab; the answer cleared there stops it too (3.10 audit)", () => {
+    localStorage.setItem("kochav_consent_v1", JSON.stringify({ analytics: true, at: "2026-10-03T00:00:00.000Z" }));
+    at("/home");
+    localStorage.setItem("kochav_consent_v1", JSON.stringify({ analytics: false, at: "2026-10-03T00:00:01.000Z" }));
+    act(() => { window.dispatchEvent(new StorageEvent("storage", { key: "kochav_consent_v1" })); });
+    expect(applyConsent).toHaveBeenLastCalledWith(false);
+    applyConsent.mockClear();
+    localStorage.removeItem("kochav_consent_v1");
+    act(() => { window.dispatchEvent(new StorageEvent("storage", { key: "kochav_consent_v1" })); });
+    expect(applyConsent, "measuring needs a yes; with no answer at all it stops").toHaveBeenLastCalledWith(false);
+    expect(banner(), "and the question is asked again").toBeInTheDocument();
   });
 });
 

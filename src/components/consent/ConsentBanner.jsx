@@ -42,7 +42,8 @@ export default function ConsentBanner() {
       if (e.key !== CONSENT_KEY) return;
       const v = readConsent();
       setAnswer(v);
-      if (v) applyConsent(v.analytics);
+      // Cleared there (no answer at all): stop here too — measuring needs a yes.
+      applyConsent(v ? v.analytics : false);
     };
     window.addEventListener(CONSENT_OPEN, onOpen);
     window.addEventListener("storage", onStorage);

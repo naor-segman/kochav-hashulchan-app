@@ -133,7 +133,8 @@ try {
     // Unica site, once this one is a subdomain of it).
     await p.evaluate(() => {
       document.cookie = 'kh_ga=GA1.1.123.456; path=/';
-      document.cookie = 'kh_ga_TEST12345=GS1.1.789; path=/';
+      document.cookie = 'kh__ga=GA1.1.123.456; path=/';        // the other spelling gtag may use
+      document.cookie = 'kh__ga_TEST12345=GS1.1.789; path=/';
       document.cookie = '_ga=GA1.1.999.888; path=/';
     });
     await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -144,7 +145,7 @@ try {
     await p.waitForTimeout(500);
     ok((await consent(p))?.analytics === false, 'the no is stored');
     const ck = await cookies(p);
-    ok(!ck.some(n => n.startsWith('kh_ga')), 'our GA cookies are deleted', ck.join(','));
+    ok(!ck.some(n => n.startsWith('kh_')), 'our GA cookies are deleted', ck.join(','));
     ok(ck.includes('_ga'), 'another site\'s _ga is left alone', ck.join(','));
     ok(await p.evaluate(id => window['ga-disable-' + id], GA_ID) === true, 'Google\'s off switch is set');
     const l2 = await layer(p);

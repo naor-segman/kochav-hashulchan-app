@@ -47,7 +47,7 @@ import { loadGtag } from "./gaLoader.js";
  * ── Its cookies are its own ─────────────────────────────────────────────────
  * The site is moving under unica-events.co.il, whose own site runs GA too. By
  * default GA writes `_ga` on the top domain — shared with that site, and a
- * withdrawal here would delete theirs. So the cookie is prefixed (kh_ga…) and
+ * withdrawal here would delete theirs. So the cookie is prefixed (kh_…) and
  * scoped to this host, and lasts 13 months rather than GA's two years.
  */
 
@@ -169,12 +169,15 @@ function setPage(pathname) {
   return path;
 }
 
-/** Delete the GA cookies this site wrote — ours only (the kh prefix). */
+/** Delete the GA cookies this site wrote — ours only (the kh prefix).
+ *  Matched on "kh_" and not on an exact name: whether gtag.js joins the prefix
+ *  as kh_ga or kh__ga could not be checked from here (Google's hosts are
+ *  blocked), and the 3.10 audit found the exact-name match missed kh__ga. */
 function deleteCookies() {
   try {
     const host = globalThis.location?.hostname || "";
     const names = document.cookie.split(";").map(c => c.split("=")[0].trim())
-      .filter(n => n.startsWith(COOKIE_PREFIX + "_ga"));
+      .filter(n => n.startsWith(COOKIE_PREFIX + "_"));
     for (const n of names) {
       for (const d of ["", host, "." + host]) {
         document.cookie = `${n}=; Max-Age=0; path=/${d ? "; domain=" + d : ""}`;

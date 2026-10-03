@@ -115,8 +115,11 @@ describe("withdrawing", () => {
     localStorage.setItem("kochav_consent_v1", answered(true));
     const a = await import("./analytics.js");
     a.initAnalytics();
+    // Both spellings: whether gtag joins the prefix as kh_ga or kh__ga could
+    // not be checked from here, and an exact-name match missed kh__ga (audit).
     document.cookie = "kh_ga=GA1.1.123.456; path=/";
-    document.cookie = "kh_ga_TEST12345=GS1.1.789; path=/";
+    document.cookie = "kh__ga=GA1.1.123.456; path=/";
+    document.cookie = "kh__ga_TEST12345=GS1.1.789; path=/";
     document.cookie = "_ga=GA1.1.999.888; path=/";      // e.g. the Unica site's own
     document.cookie = "other=1; path=/";
 
@@ -127,7 +130,8 @@ describe("withdrawing", () => {
     expect(gtag.mock.calls.some(c => c[0] === "consent" && c[1] === "update" && c[2].analytics_storage === "denied")).toBe(true);
     expect(events()).toEqual([]);
     expect(cookieNames()).not.toContain("kh_ga");
-    expect(cookieNames()).not.toContain("kh_ga_TEST12345");
+    expect(cookieNames()).not.toContain("kh__ga");
+    expect(cookieNames()).not.toContain("kh__ga_TEST12345");
     expect(cookieNames(), "another site's GA cookie is not ours to delete").toContain("_ga");
     expect(cookieNames()).toContain("other");
   });
