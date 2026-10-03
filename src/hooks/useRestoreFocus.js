@@ -57,7 +57,14 @@ export function useRestoreFocus() {
     return () => {
       if (opener.isConnected && typeof opener.focus === "function") opener.focus();
       else refocusNear(chain);
-      const recheck = () => { if (lost() && !opener.isConnected) refocusNear(chain); };
+      // These timers outlive the dialog by design, and can outlive the page's
+      // environment too: a test run tears jsdom down between files, and the
+      // 300ms recheck then threw "document is not defined" as an unhandled
+      // error that failed CI on an otherwise green run (PR #100, 3.10).
+      const recheck = () => {
+        if (typeof document === "undefined" || !document) return;
+        if (lost() && !opener.isConnected) refocusNear(chain);
+      };
       setTimeout(recheck, 0);
       setTimeout(recheck, 300);
     };
