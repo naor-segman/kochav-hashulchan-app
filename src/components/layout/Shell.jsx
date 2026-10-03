@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { computeViolations } from "../../logic/seating.js";
 import { useAuth } from "../../hooks/useAuth.js";
@@ -12,8 +12,8 @@ import { makeOpenScreen } from "../../utils/eventNameGate.js";
 import { COMPANY } from "../../data/company.js";
 import { markDraftCarry } from "../../utils/draftCarry.js";
 import GuidedTour from "../tour/GuidedTour.jsx";
-import { TOURS, hasTour } from "../../data/tours.js";
-import { hasSeenTour, markTourSeen } from "../../utils/tourState.js";
+import { TOURS } from "../../data/tours.js";
+import { useScreenTour } from "../../hooks/useScreenTour.js";
 
 // ── Two tiers, because there are two questions ────────────────────────────────
 //
@@ -30,7 +30,7 @@ import { hasSeenTour, markTourSeen } from "../../utils/tourState.js";
 // A screen id the model does not know about simply shows no active tab rather
 // than throwing — other people are renaming routes in parallel.
 
-export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {
+export default function Shell({ screen, tourKey = screen, activeEvent, go, children, syncStatus, showToast }) {
   const { user, loading: authLoading } = useAuth();
   const isHub   = screen === "hub";
   const inEvent = !!activeEvent && screen !== "dashboard";
@@ -57,29 +57,10 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
   const showAutoSave = inEvent && !isHub && screen !== "setup";
 
-  // ── The guided tour (124) ──────────────────────────────────────────────
-  // Opens by itself the first time a screen that has one is shown on this
-  // browser, and from the "סיור במסך" button any time after. Which screen it
-  // is open FOR, so navigating away closes it without an effect to reset it.
-  const [tourFor, setTourFor] = useState(null);
-  useEffect(() => {
-    // An automated browser (every qa/ harness) would find its clicks landing
-    // on the tour instead of the page; the tour's own harness turns this off.
-    if (!hasTour(screen) || hasSeenTour(screen) || navigator.webdriver) return undefined;
-    let tries = 0, timer = 0;
-    // After the screen has painted, and never on top of another dialog (the
-    // name gate, the share gate) — wait for that one to close first.
-    const open = () => {
-      if (document.querySelector('[aria-modal="true"]') && tries++ < 40) { timer = setTimeout(open, 750); return; }
-      setTourFor(screen);
-    };
-    timer = setTimeout(open, 700);
-    return () => clearTimeout(timer);
-  }, [screen]);
-  const closeTour = useCallback(() => {
-    markTourSeen(screen);
-    setTourFor(null);
-  }, [screen]);
+  // ── The guided tour (124) ── see useScreenTour for when it opens.
+  // `tourKey` is the screen's own unless the route says otherwise: /app with
+  // no events is the start form, a different tour from the event list's.
+  const tour = useScreenTour(tourKey);
 
   // ── The tool rail ──────────────────────────────────────────────────────
   // It never scrolled: scrollLeft was 0 on every screen, so at 1024 the active
@@ -203,10 +184,10 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
         )}
 
         <div className={styles.topRight}>
-          {hasTour(screen) && (
+          {tour.available && (
             <button
               className={styles.tourBtn}
-              onClick={() => setTourFor(screen)}
+              onClick={tour.start}
               aria-label="סיור במסך הזה"
               title="סיור במסך הזה — מה כל חלק עושה"
             >
@@ -320,7 +301,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
       <main id="main" tabIndex={-1} ref={mainRef} className={styles.main}>{children}</main>
 
-      {tourFor === screen && <GuidedTour key={screen} steps={TOURS[screen]} onClose={closeTour} />}
+      {tour.open && <GuidedTour key={tourKey} steps={TOURS[tourKey]} onClose={tour.close} />}
     </div>
   );
 }

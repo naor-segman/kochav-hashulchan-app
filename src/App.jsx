@@ -354,7 +354,9 @@ function AppRoutes() {
       <Route
         path="/app"
         element={
-          <Shell screen="dashboard" activeEvent={null} go={dashGo}>
+          /* With no events the dashboard IS the start form, and that is a
+             different tour (124) from the one about a list of events. */
+          <Shell screen="dashboard" tourKey={events.length ? "dashboard" : "start"} activeEvent={null} go={dashGo}>
             {(migration.shouldPrompt || migration.status !== MIGRATION_STATUS.IDLE) && (
               <MigrationBanner migration={migration} />
             )}
@@ -383,7 +385,7 @@ function AppRoutes() {
       <Route
         path="/start"
         element={
-          <Shell screen="dashboard" activeEvent={null} go={dashGo}>
+          <Shell screen="dashboard" tourKey="start" activeEvent={null} go={dashGo}>
             <StartScreen
               onStart={startEvent}
               hasEvents={events.length > 0}
