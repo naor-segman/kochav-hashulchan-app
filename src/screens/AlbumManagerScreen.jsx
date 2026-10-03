@@ -4,6 +4,9 @@ import EmptyState from "../components/ui/EmptyState.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
+import { useShareGate } from "../components/share/useShareGate.jsx";
+import QrCode from "../components/ui/QrCode.jsx";
+import SectionLabel from "../components/ui/SectionLabel.jsx";
 import { fetchHostAlbumPhotos, setAlbumPhotoHidden, deleteAlbumPhoto } from "../utils/publicTokens.js";
 import { fmtDateTime } from "../utils/dateFormat.js";
 import base from "../styles/screenBase.module.css";
@@ -34,6 +37,15 @@ import styles from "./AlbumManagerScreen.module.css";
  * photo for privacy reasons needs to know that only delete does what they want.
  */
 export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
+  const { guard, gate } = useShareGate();
+  // The guests' upload link lives here, on the album's own screen (owner,
+  // 3.10). It used to sit inside the site editor's "עיצוב האתר" card, the
+  // last place a host would look for where guests send photos.
+  const albumUrl = ev.tokens?.album ? `${window.location.origin}/album/${ev.tokens.album}` : "";
+  const copyAlbum = () => guard("הקישור לאלבום", async () => {
+    try { await navigator.clipboard.writeText(albumUrl); showToast?.("הקישור לאלבום הועתק ✓"); }
+    catch { showToast?.("לא ניתן להעתיק", "err"); }
+  });
   const { confirm, dialog } = useConfirm();
   const [busyId, setBusyId] = useState(null);
 
@@ -110,6 +122,7 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
   return (
     <div className={base.pageWide}>
       {dialog}
+      {gate}
       <PageHeader
         title="אלבום האורחים"
         mark="album"
@@ -121,6 +134,21 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
           </div>
         )}
       />
+
+      {albumUrl && (
+        <div className={base.card} data-tour="album.link">
+          <SectionLabel>הקישור להעלאת תמונות</SectionLabel>
+          <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+            אורחים והצלם פותחים את הקישור ומעלים תמונות, בלי הרשמה. אפשר להדפיס את קוד ה-QR ולהציב אותו בשולחנות.
+          </p>
+          <div className={styles.shareRow}>
+            <input className={[base.input, styles.shareInput].join(" ")} readOnly dir="ltr" value={albumUrl}
+              aria-label="הקישור לאלבום המשותף" onFocus={e => e.target.select()} />
+            <button className={base.btnSm} onClick={copyAlbum}>העתיקו</button>
+            <QrCode url={albumUrl} label="אלבום משותף" filename="qr-album" gate={run => guard("קוד ה-QR של האלבום", run)} />
+          </div>
+        </div>
+      )}
 
       {state === "idle" && (
         <div data-tour="album.offline">

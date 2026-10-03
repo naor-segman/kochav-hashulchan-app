@@ -360,18 +360,8 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           ))}
         </div>
 
-        <div className={styles.domainBox}>
-          <Field label="קישור לאלבום המשותף" hint="אורחים והצלם מעלים תמונות למקום אחד">
-            <input
-              className={base.input}
-              readOnly
-              dir="ltr"
-              value={ev.tokens?.album ? `${window.location.origin}/album/${ev.tokens.album}` : "ייווצר אחרי השמירה הראשונה"}
-              onFocus={e => e.target.select()}
-            />
-          </Field>
-        </div>
-
+        {/* The shared album's link moved to the album screen (owner, 3.10):
+            a card about colours was the last place anyone looked for it. */}
         {/* There was a "דומיין משלכם" field here, with CNAME instructions.
             Nothing in src/ or netlify/ ever read `site.customDomain`, so a host
             who bought a domain and pointed it at us got nothing (נ). The field
