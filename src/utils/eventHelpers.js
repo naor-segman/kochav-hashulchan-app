@@ -124,6 +124,27 @@ function normTable(t) {
  * (they count per guest), and the merge relies on them — a cloud row's seat
  * for a guest only the other device lists is how that guest keeps its seat
  * (useEvents.mutants.test.js, found by fuzz). */
+/* Two tables sharing an id (audit 3.10, L2). Nothing in the app writes one —
+ * every table gets uid() — but a hand-edited or imported row can, and every
+ * by-id reader then breaks a different way: React keys collide, both cards
+ * claim the same guests, and the seating engine threw. The first keeps its id,
+ * so every seat, lock and sketch position that names it still lands there;
+ * each later one gets "<id>-2", "<id>-3"… — DETERMINISTIC, so two devices and
+ * the cloud copy, each normalising on its own, agree on the new ids instead of
+ * minting different ones and merging both in. */
+function uniqueTableIds(tables) {
+  const all = new Set(tables.map(t => t.id));
+  if (all.size === tables.length) return tables;
+  const used = new Set();
+  return tables.map(t => {
+    if (t.id == null || !used.has(t.id)) { used.add(t.id); return t; }
+    let n = 2, id;
+    do { id = `${t.id}-${n++}`; } while (used.has(id) || all.has(id));
+    used.add(id);
+    return { ...t, id };
+  });
+}
+
 function liveSeating(seating, tables) {
   if (!seating || typeof seating !== "object" || Array.isArray(seating)) return {};
   const t = new Set(tables.map(x => x.id));
@@ -136,7 +157,7 @@ const finiteOr = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== ""
 export function normalizeEvent(ev) {
   if (!ev || typeof ev !== "object" || Array.isArray(ev)) return null;
   const now = Date.now();
-  const tables = rows(ev.tables).map(normTable);
+  const tables = uniqueTableIds(rows(ev.tables).map(normTable));
   const guests = rows(ev.guests).map(normGuest);
   return {
     // Core identity — generate a fresh uid if the stored id is missing/undefined

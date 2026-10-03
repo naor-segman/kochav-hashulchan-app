@@ -835,3 +835,17 @@ describe("a locked table takes no one new — except a together-partner (סב9, 
     expect(computeViolations(g2, t2, [together("A", "B")], out)).toEqual([]);
   });
 });
+
+/* audit 3.10, L2: two tables sharing an id, and a together-family too big for
+ * either. The best-effort packer counted used ids against table rows, ran out
+ * of open tables with the loop still going, and threw on `null.id`. */
+describe("autoAssign with duplicate table ids", () => {
+  it("does not throw, and seats what fits", () => {
+    const tables = [t("t1", 4), { ...t("t1", 4), name: "1b" }];
+    const guests = [g("g1", { count: 3 }), g("g2", { count: 3 })];
+    let out;
+    expect(() => { out = autoAssign(guests, tables, [together("g1", "g2")], {}); }).not.toThrow();
+    expect(Object.values(out).every(id => id === "t1")).toBe(true);
+    expect(Object.keys(out).length).toBeGreaterThan(0);
+  });
+});

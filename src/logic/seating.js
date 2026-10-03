@@ -260,6 +260,12 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
         return free(t) > free(best) ? t : best;
       }, null);
 
+      // Two tables sharing an id (a hand-edited or imported row; normalizeEvent
+      // now renames them, but this function also takes raw arrays): `used`
+      // counts ids, `pool` counts rows, so after the shared id was used `open`
+      // came back empty while the loop condition still held, and `next.id`
+      // threw on null — taking the whole seating run down (audit 3.10, L2).
+      if (!next) break;
       used.add(next.id);
       const still = [];
       for (const id of remaining) {
