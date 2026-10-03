@@ -239,6 +239,31 @@ const CHECKS = {
     await ctx.close();
   },
 
+  // WORKPLAN 129: the "send the table number" rows are 44px to a thumb, and
+  // every point of a row taps THAT row (not a neighbour's hit extension).
+  async seatingWaRows(b, base) {
+    const { ctx, p } = await page(b, base, { width: 390, height: 844, touch: true });
+    await p.goto(base + '/events/e1/seating', { waitUntil: 'domcontentloaded' });
+    await p.locator('[class*=waNotifyItem]').first().waitFor({ timeout: 15000 });
+    const m = await p.evaluate(() => {
+      document.documentElement.style.scrollBehavior = 'auto';
+      const rows = [...document.querySelectorAll('[class*=waNotifyItem]')].slice(0, 6);
+      return rows.map(el => {
+        el.scrollIntoView({ block: 'center' });
+        const r = el.getBoundingClientRect(); const cx = r.left + r.width / 2;
+        let reach = 0;
+        for (let y = Math.ceil(r.top) - 6; y <= r.bottom + 6; y++) {
+          const t = document.elementFromPoint(cx, y);
+          if (t && (t === el || el.contains(t))) reach++;
+        }
+        return { h: Math.round(r.height), reach };
+      });
+    });
+    ok(m.length > 0, 'found the WhatsApp rows', String(m.length));
+    ok(m.every(x => x.reach >= 44), 'every row is ≥ 44px to a tap', m.map(x => `${x.h}/${x.reach}`).join(' '));
+    await ctx.close();
+  },
+
   // V2: the responses list does not scroll sideways on a phone.
   async rsvpScroll(b, base) {
     for (const width of [360, 390, 412, 800, 1280]) {
