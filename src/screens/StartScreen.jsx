@@ -117,7 +117,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel, sign
         <h1 className={styles.headline}>ההושבה מסתדרת לבד.</h1>
 
         <p className={styles.lead}>
-          אתם מזינים את רשימת האורחים ואת מי שאסור להושיב יחד.
+          אתם מזינים את רשימת האורחים ואת מי שאסור להושיב יחד.{" "}
           {COMPANY.name} בונה את כל השולחנות בשניות — ואומר לכם מיד מה עדיין לא מסתדר.
         </p>
 

@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "../test/dom.js";
 import StartScreen from "./StartScreen.jsx";
 import { EVENT_TYPES } from "../data/constants.js";
+import { COMPANY } from "../data/company.js";
 
 /**
  * The very first screen, and the place bug class 1 does the most damage.
@@ -158,5 +159,12 @@ describe("StartScreen — the 'no account needed' note", () => {
   it("is not shown to a signed-in host, whose event is not 'only in this browser'", () => {
     render(<StartScreen onStart={vi.fn()} signedIn />);
     expect(screen.queryByText(/אפשר להתחיל בלי חשבון/)).toBeNull();
+  });
+});
+
+describe("StartScreen — the lead", () => {
+  it("keeps the space between the sentence and the brand (JSX drops the line break)", () => {
+    render(<StartScreen onStart={vi.fn()} />);
+    expect(document.body.textContent).toContain(`יחד. ${COMPANY.name} בונה`);
   });
 });
