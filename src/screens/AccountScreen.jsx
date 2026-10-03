@@ -60,7 +60,7 @@ function planFeatures(key) {
 // ── Upgrade button label per card (from current plan perspective) ────────────
 
 function cardBtnLabel(cardKey, currentPlanKey) {
-  if (cardKey === currentPlanKey) return "תוכנית נוכחית ✓";
+  if (cardKey === currentPlanKey) return "החבילה הנוכחית";
   if (cardKey === "free")         return "—";
   /* The ₪690 card cannot start a checkout FROM HERE any more, and that is the
      point of per-event entitlement rather than an oversight: a purchase unlocks
@@ -431,7 +431,12 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
           )}
         </section>
 
-        {/* ── Subscription status notices ── */}
+        {/* ── Status notices ──
+            The product sells a one-time package per event, not a subscription,
+            and no checkout is live yet (audit 3.10, C23). These banners said
+            "ההרשמה לתוכנית", "לשדרג" and "תוכניות ושדרוג" — the vocabulary
+            of a plan you subscribe to and upgrade. They name a purchase for an
+            event now, and nothing promises it is live. */}
         {sub && isPaymentFailed && (
           <div className={styles.paymentFailedBanner}>
             {/* No longer written by any webhook — a one-time payment produces no
@@ -460,19 +465,19 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         )}
         {sub && statusKey === "trialing" && (
           <div className={styles.trialBanner}>
-            <span aria-hidden="true">✦</span> אתם בתקופת ניסיון. ניתן לשדרג בכל עת.
+            <span aria-hidden="true">✦</span> החבילה פתוחה לכם לתקופת ניסיון. חבילה לאירוע נרכשת מתוך האירוע עצמו.
           </div>
         )}
 
         {/* ── Checkout result banners ── */}
         {checkoutResult === "success" && (
           <div className={styles.checkoutSuccessBanner}>
-            <Icon name="check" size={14} /> ההרשמה לתוכנית הצליחה! ייתכן שיידרשו כמה שניות לעדכון התוכנית.
+            <Icon name="check" size={14} /> התשלום התקבל. ייתכן שיעברו כמה שניות עד שהחבילה תופיע באירוע.
           </div>
         )}
         {checkoutResult === "cancelled" && (
           <div className={styles.checkoutCancelledBanner}>
-            הרשמה לתוכנית בוטלה — לא חויבתם. תוכלו לשדרג בכל עת.
+            הרכישה בוטלה — לא חויבתם. אפשר לרכוש חבילה מתוך האירוע בכל עת.
           </div>
         )}
 
@@ -484,7 +489,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         {/* ── Plan comparison cards ── */}
         {sub !== undefined && (
           <section className={styles.section}>
-            <h2 className={styles.sectionLabel}>תוכניות ושדרוג</h2>
+            <h2 className={styles.sectionLabel}>החבילות לאירוע</h2>
 
             <div className={styles.planGrid}>
               {PLAN_KEYS.map((key) => {
