@@ -78,7 +78,9 @@ const LONG_NAME = 'החתונה של אלכסנדרה-מרגריטה בן-שוש
 function eventFor(token) {
   const [k, a] = String(token).split('-');
   if (k === 'ok') return BASE_EV;
-  if (k === 'long') return { ...BASE_EV, name: LONG_NAME, site: LONG_SITE };
+  if (k === 'long') return { ...BASE_EV, name: LONG_NAME, bride_name: 'אלכסנדרה-מרגריטה', groom_name: 'בנימין-זאב יהונתן', site: LONG_SITE };
+  // No couple: the wall shows the event's own name, and this one is long.
+  if (k === 'longorg') return { ...BASE_EV, name: `${LONG_NAME} — ערב ההוקרה השנתי למשפחות המייסדים`, bride_name: null, groom_name: null };
   if (k === 'past') return { ...BASE_EV, date: PAST, announcements: { ...BASE_EV.announcements, saveTheDate: { ...BASE_EV.announcements.saveTheDate, showRsvp: true } } };
   // Announcement layouts over a photo. The photo's colour comes from the
   // context's image route, so one token serves every photo.
@@ -264,6 +266,27 @@ try {
       });
       for (const r of rows) ok(r.ratio >= 4.5, `${path} "${r.ph}" placeholder ≥ 4.5:1`, `${r.ratio.toFixed(2)} (${r.color})`);
       if (!rows.length) ok(false, `${path}: found a field with a placeholder`);
+      await ctx.close();
+    }
+  }
+
+  /* ── P2-3 · the projected gift wall with a long couple's name ───────────── */
+  if (want('giftwall')) {
+    console.log('\n── giftwall: a long event name truncates with an ellipsis inside the bar');
+    for (const [width, token] of [[390, 'long'], [768, 'long'], [768, 'longorg'], [1280, 'longorg']]) {
+      const { ctx, p } = await open(`/gift/${token}/wall`, { width, height: 900 });
+      const r = await p.evaluate(() => {
+        const h = document.querySelector('h1'), bar = h.parentElement, label = bar.lastElementChild;
+        const hb = h.getBoundingClientRect(), bb = bar.getBoundingClientRect(), lb = label.getBoundingClientRect();
+        return { truncated: h.scrollWidth > h.clientWidth + 1, inBar: hb.left >= bb.left - 1 && hb.right <= bb.right + 1,
+          labelOn: lb.left >= 0 && lb.right <= innerWidth, h: [Math.round(hb.left), Math.round(hb.right)], bar: [Math.round(bb.left), Math.round(bb.right)] };
+      });
+      const sx = await hscroll(p);
+      // Inside the bar is the defect: a flex item's min-width:auto kept the h1
+      // as wide as its text, so the ellipsis it is styled with never fired and
+      // the name ran off the screen (clipped by .root's overflow:hidden).
+      ok(r.inBar && r.labelOn && sx === 0, `@${width} ${token}: name inside the bar${r.truncated ? ' (ellipsised)' : ' (fits)'}, "קיר ברכות" on screen, no sideways scroll`,
+        `h1 ${r.h} bar ${r.bar} scrollX=${sx}`);
       await ctx.close();
     }
   }

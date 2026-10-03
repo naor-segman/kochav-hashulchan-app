@@ -282,6 +282,15 @@
   .eventName {
     text-align: start;
     font-size: var(--step-3);
+    /* In this column the bar's flex-start alignment sized the h1 to its
+       nowrap text — 456px of a long couple's name in a 390px screen, the
+       start of it cut off by .root's overflow:hidden and the ellipsis it is
+       styled with never firing (audit 3.10, P2-3). Stretched, it takes the
+       bar's width and the ellipsis has an edge to stop at.
+       (Not `min-width: 0` on the row layout, which the audit suggested:
+       `overflow: hidden` already lets a flex item shrink, and removing it
+       changed nothing at 768 or 1280 — measured.) */
+    align-self: stretch;
   }
 
   .content {
