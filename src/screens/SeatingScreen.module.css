@@ -976,6 +976,22 @@
 }
 
 /* ─── Unassigned side-group labels ──────────────────────────────────────── */
+/* The waiting list scrolls inside the card (audit 3.10, V3). Uncapped, 67
+   waiting guests made a 5,100px card and put the tables ~7,300px down at
+   1280x900 — a drag from the list had to autoscroll five screens. Capped, the
+   tables follow within one screen. dnd-kit autoscrolls this box first and then
+   the page (it walks the dragged row's scrollable ancestors), and the row
+   travels in a DragOverlay, so nothing is clipped by the overflow. The
+   per-row table select stays the no-drag alternative. A little inline padding
+   keeps the focus ring of a row inside the clip. */
+.unassignedList {
+  max-block-size: min(28rem, 55vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+  padding-inline-end: 6px;
+}
+
 .unassignedSideLabel {
   font-size: var(--step--3);
   font-weight: 700;

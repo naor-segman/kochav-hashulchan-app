@@ -239,6 +239,71 @@ const CHECKS = {
     await ctx.close();
   },
 
+  // V3: at desktop width the tables are reachable — the waiting list scrolls
+  // inside itself — and a guest still drags from that list onto a table.
+  async seatingDesktop(b, base) {
+    const { ctx, p } = await page(b, base, { width: 1280, height: 900 });
+    await p.goto(base + '/events/e1/seating', { waitUntil: 'domcontentloaded' });
+    await p.locator('[data-tour="seating.tables"]').waitFor({ timeout: 15000 });
+    await p.waitForTimeout(800);
+    const m = await p.evaluate(() => {
+      const top = (el) => Math.round(el.getBoundingClientRect().top + scrollY);
+      const waiting = document.querySelector('[data-tour="seating.waiting"]');
+      const rows = waiting.querySelectorAll('select[data-seat-select]').length;
+      return { rows, waitingTop: top(waiting), waitingH: Math.round(waiting.getBoundingClientRect().height),
+        tablesTop: top(document.querySelector('[data-tour="seating.tables"]')), vh: innerHeight };
+    });
+    ok(m.rows >= 50, 'the fixture has a long waiting list', `${m.rows} rows`);
+    ok(m.tablesTop - m.waitingTop <= m.vh, 'the tables follow the waiting list within one screen',
+      `list ${m.waitingH}px tall, tables ${m.tablesTop - m.waitingTop}px below its top (at ${m.tablesTop}px)`);
+    ok(await hscroll(p) === 0, 'no sideways scroll');
+
+    // Drag a waiting guest onto an empty table with a real mouse, letting
+    // dnd-kit autoscroll (the list first, then the page) by holding the pointer
+    // at the bottom edge, and read the result back from storage. Once from the
+    // bottom of the list (scrolled to inside it) and once from its top.
+    await p.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; });
+    for (const [which, tableIndex] of [['last', 13], ['first', 14]]) {
+      await p.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+      const row = p.locator('[data-tour="seating.waiting"] [class*=gRow]')[which]();
+      await row.scrollIntoViewIfNeeded();
+      const guestName = (await row.locator('[class*=gName]').textContent()).trim();
+      const target = p.locator('[data-tour="seating.tables"] > *').nth(tableIndex);   // tables 14, 15: empty
+      // Pressed on the NAME: a press on the row's select is the select's (rowSensors.js).
+      const from = await row.locator('[class*=gName]').boundingBox();
+      const x = from.x + from.width / 2;
+      await p.mouse.move(x, from.y + from.height / 2);
+      await p.mouse.down();
+      await p.mouse.move(x + 10, from.y + from.height / 2 + 12, { steps: 4 });
+      let to = null;
+      for (let i = 0; i < 150; i++) {
+        to = await target.boundingBox();
+        if (to && to.y >= 0 && to.y + Math.min(60, to.height) <= m.vh - 40) break;
+        await p.mouse.move(x, m.vh - 4, { steps: 2 });
+        await p.waitForTimeout(100);
+      }
+      // Out of the autoscroll band first, so the page stops moving under the target.
+      await p.mouse.move(x, m.vh / 2, { steps: 5 });
+      await p.waitForTimeout(400);
+      to = await target.boundingBox();
+      await p.mouse.move(to.x + to.width / 2, to.y + Math.min(30, to.height / 2), { steps: 15 });
+      await p.waitForTimeout(250);
+      await p.mouse.up();
+      await p.waitForTimeout(800);
+      const seated = await p.evaluate((name) => {
+        const st = JSON.parse(localStorage.getItem('kochav_hashulchan_v1::u_u-host'));
+        const ev = st.events.find(e => e.id === 'e1');
+        return ev.seating[ev.guests.find(g => g.name === name).id] || null;
+      }, guestName);
+      ok(seated === 't' + (tableIndex + 1), `dragging "${guestName}" from the ${which} row of the list seats them`, `table=${seated}`);
+    }
+
+    // The per-row select is still the alternative to dragging.
+    const sel = p.locator('[data-tour="seating.waiting"] select[data-seat-select]').first();
+    ok(await sel.isVisible(), 'every waiting row still has its table select');
+    await ctx.close();
+  },
+
   // WORKPLAN 129: the "send the table number" rows are 44px to a thumb, and
   // every point of a row taps THAT row (not a neighbour's hit extension).
   async seatingWaRows(b, base) {

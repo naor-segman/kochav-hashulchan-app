@@ -881,7 +881,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       <p className={styles.unassignedHint}>
                         גררו אורח לשולחן, או בחרו שולחן מהרשימה. לסידור חדש — &quot;חשבו מחדש&quot; למעלה.
                       </p>
-                      <div className={base.gList}>
+                      {/* Scrolls inside itself (audit 3.10, V3): uncapped, 67
+                          waiting guests pushed the tables ~5,000px down at
+                          1280px, past where anyone drags. */}
+                      <div className={[base.gList, styles.unassignedList].join(" ")}>
                         {[...unassigned]
                           // normalizeEvent does not normalise guest rows, so a
                           // legacy or hand-edited guest can arrive with no `side`
