@@ -272,6 +272,18 @@
 .homeLabel,
 .tourLabel { display: inline; }
 
+/* Inside an event, below desktop width, the "?" of the guided tour takes the
+   home link's place instead of a place of its own, and shows as an icon.
+   With both, the event's name was squeezed to 0px at 320/360, 8px at 390
+   (3.10) and — the label's 104px — to 0–5px at 667–700 on a landscape phone
+   (final verification run). The home link stays in the bar on the event list
+   and on wide screens. Placed before the 480px block below, which only ever
+   hides MORE. */
+@media (max-width: 1023px) {
+  .tourLabel { display: none; }
+  .homeBtnInEvent { display: none; }
+}
+
 /* Same trade as .bcBackLabel, one step further out: inside an event, a link to
    the public marketing site is the least useful thing in the bar, and its label
    costs ~60px of the 360px a small phone has.
@@ -282,11 +294,6 @@
 @media (max-width: 480px) {
   .homeLabel,
   .tourLabel { display: none; }
-  /* Inside an event on a phone, the "?" of the guided tour takes the home
-     link's place rather than a place of its own: with both, the event name
-     was squeezed to 0px at 320 and 360 and 8px at 390 (3.10, measured). The
-     home link is still in the bar on the event list. */
-  .homeBtnInEvent { display: none; }
 }
 
 .accountBtn:hover {

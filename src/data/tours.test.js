@@ -44,8 +44,7 @@ describe("tours — the copy", () => {
   for (const [screen, steps] of Object.entries(TOURS)) {
     it(`${screen}: 3–7 steps, each with a title and a text, no "!"`, () => {
       expect(steps.length).toBeGreaterThanOrEqual(3);
-      // tables holds both of its tabs' steps; a run shows one tab's (≤ 7).
-      expect(steps.length).toBeLessThanOrEqual(screen === "tables" ? 11 : 7);
+      expect(steps.length).toBeLessThanOrEqual(7);
       for (const s of steps) {
         expect(s.title?.trim()).toBeTruthy();
         expect(s.text?.trim()).toBeTruthy();

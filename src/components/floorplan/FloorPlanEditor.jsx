@@ -753,6 +753,12 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         <button className={styles.toolBtn} onClick={() => fileInputRef.current?.click()}>
           החליפו תמונה
         </button>
+        {/* The sketch tour, again (124) — the Shell's "?" explains the tables
+            screen; this one explains the editor. */}
+        <button className={styles.toolBtn} onClick={sketchTour.start} type="button" aria-label="סיור בעורך הסקיצה">
+          <Icon name="question" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />
+          סיור
+        </button>
         {ENABLE_AI_DETECT && (
           <button
             className={styles.toolBtnPrimary}

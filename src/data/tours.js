@@ -9,8 +9,9 @@
 // promises a button the screen does not have is worse than no tour. Plural
 // address, like the rest of the app.
 
-// The sketch editor's parts: its own tour when a sketch first appears, and the
-// tail of the tables tour so "סיור במסך" on the map tab explains them too.
+// The sketch editor's parts: its own tour when a sketch first appears, replayed
+// from the editor's own "סיור" button. Not repeated in the tables tour: when
+// both opened in a row, the same four steps ran twice (3.10 verification).
 const FLOORPLAN = [
   { target: "tables.sketchTools", title: "סידור ראשון בלחיצה",
     text: "\"סדרו את השולחנות על הסקיצה\" מניח את כל השולחנות שעוד לא על המפה. משם גוררים כל אחד למקום הנכון." },
@@ -135,8 +136,6 @@ export const TOURS = {
       text: "בלי סקיצה, מצויר כאן האולם מהשולחנות שהגדרתם: הצורה של כל שולחן וכמה תפוס בו. זו פריסה משוערת, לא המיקום האמיתי." },
     { target: "tables.upload", title: "סקיצה מהאולם",
       text: "יש לכם תוכנית של האולם? לוחצים כאן או גוררים את התמונה. היא נשמרת רק במכשיר הזה." },
-    // Without the sketch tour's closing label: here it is not the last step.
-    ...FLOORPLAN.map(s => ({ target: s.target, title: s.title, text: s.text })),
     { target: "next", title: "השלב הבא",
       text: "ממשיכים לאילוצים: מי חייב לשבת יחד ומי לא. השלב הזה רשות.",
       done: "הבנתי" },

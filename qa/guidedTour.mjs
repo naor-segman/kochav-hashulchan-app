@@ -212,6 +212,23 @@ try {
         await p.getByRole('button', { name: /מפת אולם/ }).first().click();
         await walk(p, 'floorplan(full)', w, w === 390);
         ok(await seen(p, 'floorplan'), 'floorplan: remembered');
+        // Replayed from the editor's own button, and its steps are not
+        // repeated by the tables tour any more (3.10 verification run).
+        await p.getByRole('button', { name: 'סיור בעורך הסקיצה' }).click();
+        await p.waitForSelector('[role="dialog"][data-side]', { timeout: 3000 }).catch(() => {});
+        const fp = await state(p);
+        ok(!!fp && /^1 מתוך 4$/.test(fp.count), 'floorplan: "סיור" in the editor opens its 4 steps again', fp?.count);
+        if (fp) await p.keyboard.press('Escape');
+        await p.getByRole('button', { name: 'סיור במסך הזה' }).click();
+        await p.waitForSelector('[role="dialog"][data-side]', { timeout: 3000 }).catch(() => {});
+        const tb = await state(p);
+        const titles = [];
+        if (tb) {
+          const n = +/מתוך (\d+)/.exec(tb.count)[1];
+          for (let k = 0; k < n; k++) { titles.push((await state(p)).title); await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(120); }
+          await p.keyboard.press('Escape');
+        }
+        ok(!titles.includes('המפה עצמה'), 'the tables tour on the map tab does not repeat the sketch steps', titles.join(' | '));
       }
       ok(errs.length === 0, `${kind}: no page errors`, errs.join(' | '));
       await ctx.close();
@@ -278,7 +295,8 @@ try {
   // Compared against the same bar with the "?" taken out, so the check does
   // not depend on how long the name is.
   console.log('\n── phone bars');
-  for (const pw of [320, 360, 390]) {
+  // 667–1024: a landscape phone and small tablets, where the label used to show.
+  for (const pw of [320, 360, 390, 430, 667, 700, 768, 1024]) {
     const ctx = await browser.newContext({ viewport: { width: pw, height: 780 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
     const p = await ctx.newPage();
     await p.goto(server.base + '/home');

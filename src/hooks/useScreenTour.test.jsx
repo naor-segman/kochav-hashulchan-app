@@ -65,6 +65,21 @@ describe("useScreenTour", () => {
     expect(result.current.open).toBe(true);
   });
 
+  it("dictation, a paste or a predictive-text tap counts as typing (no keydown at all)", async () => {
+    const { result } = renderHook(() => useScreenTour("start"));
+    const field = document.createElement("input");
+    document.body.appendChild(field);
+    try {
+      for (let k = 0; k < 6; k++) {
+        field.dispatchEvent(new InputEvent("input", { bubbles: true, data: "א" }));
+        await after(500);
+      }
+      expect(result.current.open).toBe(false);
+      await after(2300);
+      expect(result.current.open).toBe(true);
+    } finally { field.remove(); }
+  });
+
   it("gives up after ~30s rather than open on top of something still there", async () => {
     block("aria-modal");
     const { result } = renderHook(() => useScreenTour("guests"));

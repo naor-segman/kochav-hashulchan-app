@@ -30,9 +30,12 @@ export function useScreenTour(key) {
     // A host already typing (the start form and the guest form focus a field
     // as they open) would have the tour take their focus mid-word. Wait for a
     // pause of a second and a half in their typing or tapping first.
+    // `input` / `beforeinput` too: dictation, a predictive-text tap, a paste
+    // and some IMEs put text in a field with no keydown at all (3.10, the
+    // final verification run caught the tour opening mid-dictation).
     const onInput = () => { lastInput = Date.now(); };
-    window.addEventListener("keydown", onInput, true);
-    window.addEventListener("pointerdown", onInput, true);
+    const INPUT_EVENTS = ["keydown", "pointerdown", "input", "beforeinput"];
+    INPUT_EVENTS.forEach(t => window.addEventListener(t, onInput, true));
     const open = () => {
       // Another dialog is open, or the screen is still loading (a Loading
       // skeleton is aria-busy): the tour decides which parts exist when it
@@ -49,8 +52,7 @@ export function useScreenTour(key) {
     timer = setTimeout(open, 700);
     return () => {
       clearTimeout(timer);
-      window.removeEventListener("keydown", onInput, true);
-      window.removeEventListener("pointerdown", onInput, true);
+      INPUT_EVENTS.forEach(t => window.removeEventListener(t, onInput, true));
     };
   }, [key, available]);
 
