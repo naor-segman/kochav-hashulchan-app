@@ -32,6 +32,7 @@ import ResetPasswordScreen from "./screens/ResetPasswordScreen.jsx";
 import AccountScreen      from "./screens/AccountScreen.jsx";
 import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
 import Loading           from "./components/feedback/Loading.jsx";
+import HostPreviewGate   from "./components/layout/HostPreviewGate.jsx";
 import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
 import { useStorageWarnings } from "./hooks/useStorageWarnings.js";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
@@ -193,22 +194,26 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
 }
 
 // Host-only preview of the event site, rendered from local (owned) event data.
-function EventSitePreview({ events }) {
+function EventSitePreview({ events, ready, syncStatus }) {
   const { eventId } = useParams();
-  const ev = events.find(e => e.id === eventId);
-  if (!ev) return <Navigate to="/app" replace />;
-  return <Suspense fallback={<Loading />}><EventSiteScreen localEvent={ev} /></Suspense>;
+  return (
+    <HostPreviewGate events={events} eventId={eventId} ready={ready} syncStatus={syncStatus}>
+      {ev => <Suspense fallback={<Loading />}><EventSiteScreen localEvent={ev} /></Suspense>}
+    </HostPreviewGate>
+  );
 }
 
 // Host-only draft preview of a Save-the-Date / invitation. Renders from local
 // data so the host sees the page before publishing — and before the event has
 // ever been synced to the cloud, where the public route would find nothing.
-function AnnouncementPreview({ events }) {
+function AnnouncementPreview({ events, ready, syncStatus }) {
   const { eventId, kind } = useParams();
-  const ev = events.find(e => e.id === eventId);
-  if (!ev) return <Navigate to="/app" replace />;
   const safeKind = kind === "saveTheDate" ? "saveTheDate" : "invitation";
-  return <Suspense fallback={<Loading />}><AnnouncementScreen kind={safeKind} localEvent={ev} /></Suspense>;
+  return (
+    <HostPreviewGate events={events} eventId={eventId} ready={ready} syncStatus={syncStatus}>
+      {ev => <Suspense fallback={<Loading />}><AnnouncementScreen kind={safeKind} localEvent={ev} /></Suspense>}
+    </HostPreviewGate>
+  );
 }
 
 // ── Root app ──────────────────────────────────────────────────────────────────
@@ -498,11 +503,11 @@ function AppRoutes() {
       {/* Host-only draft preview of the event site — renders from local data */}
       <Route
         path="/events/:eventId/preview-site"
-        element={<EventSitePreview events={events} />}
+        element={<EventSitePreview events={events} ready={!authLoading && eventsReady} syncStatus={syncStatus} />}
       />
       <Route
         path="/events/:eventId/preview-announce/:kind"
-        element={<AnnouncementPreview events={events} />}
+        element={<AnnouncementPreview events={events} ready={!authLoading && eventsReady} syncStatus={syncStatus} />}
       />
       <Route
         path="/events/:eventId/*"
