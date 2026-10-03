@@ -472,15 +472,47 @@ const COLLAB_COLS_PRE_NOTES = "id, name, phone, side, guest_group, guests_count,
  */
 export async function fetchCollabGuestsOwner(eventCloudId) {
   if (!isSupabaseConfigured || !supabase || !eventCloudId) return [];
-  const read = (cols) => supabase.from("collab_guests").select(cols).eq("event_id", eventCloudId);
-  const { data, error } = await read(COLLAB_COLS);
-  if (!error) return data ?? [];
+  const first = await readAllCollab(eventCloudId, COLLAB_COLS);
+  if (!first.error) return first.rows;
   // Anything that is not "the column is not there yet" is a real failure and
   // must not be swallowed into a silently degraded read.
-  if (!isMissingColumnError(error)) throw error;
-  const retry = await read(COLLAB_COLS_PRE_NOTES);
+  if (!isMissingColumnError(first.error)) throw first.error;
+  const retry = await readAllCollab(eventCloudId, COLLAB_COLS_PRE_NOTES);
   if (retry.error) throw retry.error;
-  return retry.data ?? [];
+  return retry.rows;
+}
+
+/* ── Every row, not the first page (audit 3.10) ────────────────────────────
+ * PostgREST caps every response at `max_rows` — 1000 on a hosted Supabase
+ * project — and says nothing when it does: a 1,200-row shared table came back
+ * as 1,000 rows and no error. The table allows 5,000 per event. useCollabSync
+ * reads this list to decide which guests a relative DELETED while the app was
+ * closed, so every row missing from a cut-off answer looked deleted, and the
+ * host's copy of it was removed from the guest list.
+ *
+ * So the read pages by id with an exact count, and goes on until it holds
+ * `count` rows — whatever max_rows the project has, since a short page is not
+ * taken to mean "the end". The array carries `complete`: false when the count
+ * was unavailable or the rows ran out before it (a row deleted mid-read), and
+ * a caller about to treat absence as deletion must not do so then. */
+const COLLAB_PAGE = 1000;
+async function readAllCollab(eventCloudId, cols) {
+  const rows = [];
+  let total = null;
+  for (;;) {
+    const { data, error, count } = await supabase.from("collab_guests")
+      .select(cols, { count: "exact" })
+      .eq("event_id", eventCloudId)
+      .order("id")
+      .range(rows.length, rows.length + COLLAB_PAGE - 1);
+    if (error) return { error };
+    if (total === null && Number.isFinite(count)) total = count;
+    const page = data ?? [];
+    rows.push(...page);
+    if (!page.length || total === null || rows.length >= total) break;
+  }
+  Object.defineProperty(rows, "complete", { value: total !== null && rows.length >= total });
+  return { rows };
 }
 
 /**

@@ -322,11 +322,17 @@ describe("fetchCollabGuestsOwner tolerates a database without the notes column",
   const rows = [{ id: "r1", name: "יעל", companions: [] }];
   let cols;
 
+  // The read is paged now (select → eq → order → range); one page answers here.
   const answering = (behaviour) => {
     cols = [];
     fromFn.mockReset();
     fromFn.mockImplementation(() => ({
-      select: (c) => { cols.push(c); return { eq: async () => behaviour(c) }; },
+      select: (c) => {
+        cols.push(c);
+        const r = behaviour(c);
+        const q = { eq: () => q, order: () => q, range: async () => ({ ...r, count: r.data ? r.data.length : null }) };
+        return q;
+      },
     }));
   };
 
@@ -359,6 +365,57 @@ describe("fetchCollabGuestsOwner tolerates a database without the notes column",
       ? { data: null, error: { code: "42703", message: "column does not exist" } }
       : { data: null, error: { code: "08006", message: "connection failure" } });
     await expect(fetchCollabGuestsOwner("e1")).rejects.toMatchObject({ code: "08006" });
+  });
+});
+
+/* audit 3.10: PostgREST cuts every answer at `max_rows` (1000 on hosted
+ * Supabase) without an error, and the shared table allows 5,000 rows. One
+ * unpaged read of a 2,500-row table returned 1,000 — and useCollabSync took
+ * the other 1,500 as rows the family had deleted. */
+describe("fetchCollabGuestsOwner reads every row, whatever the server's row cap", () => {
+  const table = Array.from({ length: 2500 }, (_, i) => ({ id: "r" + String(i).padStart(5, "0"), name: "א" + i }));
+  const server = (cap, { withCount = true } = {}) => {
+    fromFn.mockReset();
+    fromFn.mockImplementation(() => ({
+      select: (c, opts) => {
+        let a = 0, b = Infinity;
+        const q = {
+          eq: () => q, order: () => q,
+          // Awaited with no range — the unpaged read — the server answers what
+          // PostgREST answers: the first `cap` rows, no error.
+          then: (res) => res({ data: table.slice(0, cap), error: null, count: null }),
+          range: async (from, to) => {
+            a = from; b = to;
+            const n = Math.min(b - a + 1, cap);
+            return { data: table.slice(a, a + n), error: null,
+                     count: withCount && opts?.count === "exact" ? table.length : null };
+          },
+        };
+        return q;
+      },
+    }));
+  };
+
+  it("cap 1000: all 2,500 rows, in order, marked complete", async () => {
+    server(1000);
+    const rows = await fetchCollabGuestsOwner("e1");
+    expect(rows).toHaveLength(2500);
+    expect(rows.map(r => r.id)).toEqual(table.map(r => r.id));
+    expect(rows.complete).toBe(true);
+  });
+
+  it("a cap SMALLER than the page (300): a short page is not taken for the end", async () => {
+    server(300);
+    const rows = await fetchCollabGuestsOwner("e1");
+    expect(rows).toHaveLength(2500);
+    expect(rows.complete).toBe(true);
+  });
+
+  it("no count to check against: the rows come back, marked not complete", async () => {
+    server(1000, { withCount: false });
+    const rows = await fetchCollabGuestsOwner("e1");
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.complete).toBe(false);
   });
 });
 

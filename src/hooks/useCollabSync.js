@@ -529,8 +529,11 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // what an expired session reads under RLS, and taking it as "the
         // family deleted everyone" would empty the guest list. And not when
         // the host has changed that guest since: an edit beats a delete, the
-        // row is sent again (the recoverable side).
-        if (rows.length) {
+        // row is sent again (the recoverable side). And not when the read may
+        // have been cut short (`complete === false`, see readAllCollab in
+        // publicTokens.js): a row missing from a partial answer is not a row
+        // the family deleted (audit 3.10).
+        if (rows.length && rows.complete !== false) {
           const inTable = new Set(rows.map(r => r.id));
           for (const [id, base] of [...agreed.current]) {
             if (inTable.has(id) || unsent.current.has(id)) continue;
