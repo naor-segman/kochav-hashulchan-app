@@ -514,7 +514,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         mark="guests"
         /* What this screen IS, in one line — because the owner's hosts kept
            trying to answer questions here that only the guest can answer. */
-        sub="רשימת המוזמנים: מי הוזמן, מאיזה צד, וכמה מקומות לשמור לו. מי באמת הגיע ומה הוא נתן נרשם ביום האירוע."
+        sub="רשימת המוזמנים: מי הוזמן, מאיזה צד, וכמה מקומות לשמור לו. מי באמת הגיע נרשם ביום האירוע, בעמדת הכניסה."
         aside={
           /* Four numbers, one of them leading. The sides and the meal
              breakdown moved to the quiet strip below the header: eleven equal
