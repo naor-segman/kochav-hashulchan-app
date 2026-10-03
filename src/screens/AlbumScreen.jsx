@@ -44,7 +44,7 @@ export default function AlbumScreen() {
   const [event, setEvent]   = useState(null);
   const [state, setState]   = useState("loading");
   const [photos, setPhotos] = useState([]);
-  useGuestTitle(event && `אלבום התמונות · ${guestHosts(event)}`);
+  useGuestTitle(event && `אלבום משותף · ${guestHosts(event)}`);
   const [name, setName]     = useState(readName);
   const [busy, setBusy]     = useState(0);
   const [error, setError]   = useState("");

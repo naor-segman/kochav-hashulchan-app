@@ -315,7 +315,7 @@ export default function CollabScreen() {
             stays outside it. Unstyled; the column lays out as before. */}
         <main>
         <div className={styles.card}>
-          <h1 className={styles.title}>רשימת האורחים המשותפת</h1>
+          <h1 className={styles.title}>טבלת האורחים השיתופית</h1>
           <p className={styles.sub}>
             כולם עורכים את אותה טבלה יחד, בזמן אמת. הוסיפו את המוזמנים שלכם —
             שם וטלפון בהקלדה או מרשימה. רשומה מלאה נכנסת אוטומטית לרשימה של {hostsLabel(ev)}.

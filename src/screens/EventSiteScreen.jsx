@@ -447,7 +447,7 @@ export default function EventSiteScreen({ localEvent }) {
       {/* ── Shared album ── */}
       {visible && albumUrl && (
         <section className={styles.section}>
-          <h2 className={styles.secTitle}>אלבום האירוע</h2>
+          <h2 className={styles.secTitle}>אלבום משותף</h2>
           <div className={styles.giftCard}>
             <p>צילמתם? העלו את התמונות שלכם לאלבום המשותף — וראו מה צילמו כולם.</p>
             <Link to={albumUrl} className={styles.locBtn}>לאלבום ←</Link>

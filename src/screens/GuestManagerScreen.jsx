@@ -351,7 +351,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const delGuest = async (id, name) => {
     const tableId   = ev.seating[id];
     const tableName = tableId ? (ev.tables.find(t => t.id === tableId)?.name || null) : null;
-    const collabNote = ev.tokens?.collab ? `\n\nהאורח יימחק גם מהטבלה המשותפת של ${collabWho}.` : "";
+    const collabNote = ev.tokens?.collab ? `\n\nהאורח יימחק גם מהטבלה השיתופית של ${collabWho}.` : "";
     const msg = tableName
       ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית." + collabNote + "\n\nפעולה זו אינה ניתנת לביטול."
       : "למחוק את \"" + name + "\" מרשימת האורחים?" + collabNote + "\n\nפעולה זו אינה ניתנת לביטול.";

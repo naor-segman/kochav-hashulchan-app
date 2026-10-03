@@ -43,7 +43,7 @@ export const AREAS = [
     mark: "seating",
     items: [
       { id: "setup",       label: "פרטי האירוע",  short: "האירוע",  num: 1, hint: "שמות, תאריך ואולם" },
-      { id: "guests",      label: "אורחים",       num: 2, hint: "הרשימה — ידנית, בהדבקה מאקסל או בטבלה משותפת" },
+      { id: "guests",      label: "אורחים",       num: 2, hint: "הרשימה — ידנית, בהדבקה מאקסל או בטבלה שיתופית" },
       { id: "tables",      label: "שולחנות",      num: 3, hint: "כמה שולחנות יש באולם ומה הקיבולת" },
       { id: "constraints", label: "אילוצים",      num: 4, hint: "מי חייב לשבת יחד ומי בשום אופן לא" },
       { id: "seating",     label: "הושבה",        num: 5, hint: "לחיצה אחת — והשולחנות מסתדרים" },
@@ -94,7 +94,7 @@ export const AREAS = [
       // because that is when it fills: guests upload during the party and the
       // morning after. Until this there was no host screen at all — the only
       // way to see the photos was the same public link a guest opens.
-      { id: "album",    label: "אלבום האורחים", short: "אלבום", mark: "album", hint: "התמונות שהאורחים העלו — להסתיר או למחוק" },
+      { id: "album",    label: "אלבום משותף", short: "אלבום", mark: "album", hint: "התמונות שהאורחים העלו — להסתיר או למחוק" },
     ],
   },
 ];

@@ -34,7 +34,7 @@ import { SHARE_LINKS, shareUrl } from "../components/share/shareLinks.js";
 export const MESSAGE_STAGES = [
   {
     key: "saveTheDate",
-    label: "Save the Date",
+    label: "שמרו את התאריך",
     icon: "calendar",
     when: "3-6 חודשים לפני",
     audience: "all",

@@ -17,7 +17,7 @@ const TRUST = [
      everything: משימות, תקציב, ספקים, הודעות, כרטיסי שם, אישורי הגעה, מתנות
      and the album do not export at all. The claim is now the three that do. */
   { icon: "cloud",   title: "הנתונים שלכם, שלכם",
-    desc: "נשמר אצלכם בדפדפן ומסונכרן לענן. רשימת האורחים, תוכנית ההושבה והטבלה המשותפת יורדות לאקסל בכל רגע." },
+    desc: "נשמר אצלכם בדפדפן ומסונכרן לענן. רשימת האורחים, תוכנית ההושבה והטבלה השיתופית יורדות לאקסל בכל רגע." },
   /* ⚠️ THE CLAIM THAT WAS FALSE, AND THE ICON THAT PROVED IT.
      This card used to read "עובד גם בלי רשת · באולם עם קליטה גרועה האפליקציה
      ממשיכה לעבוד" and it was illustrated with the `checkin` glyph — i.e. with

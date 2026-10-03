@@ -124,7 +124,7 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
       {dialog}
       {gate}
       <PageHeader
-        title="אלבום האורחים"
+        title="אלבום משותף"
         mark="album"
         sub="התמונות שהאורחים העלו לקישור המשותף. אפשר להסתיר תמונה מהאלבום או למחוק אותה."
         aside={state === "ready" && photos.length > 0 && (

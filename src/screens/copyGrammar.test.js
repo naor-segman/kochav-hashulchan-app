@@ -57,3 +57,28 @@ describe("customer copy: plural address, no slash-gender, no slang (audit 3.10, 
     expect(RULES["שניה (→ שנייה)"].test("שניהם שובצו")).toBe(false);
   });
 });
+
+/* Audit 3.10, C16: one name per thing. The dominant term in the customer copy
+ * was kept and the others renamed to it:
+ *   "שמרו את התאריך"  over "Save the Date"      (the UI is Hebrew)
+ *   "טבלה שיתופית"    over "טבלה משותפת"/"רשימת האורחים המשותפת" (nav label)
+ *   "אלבום משותף"     over "אלבום האורחים"/"אלבום התמונות"/"אלבום האירוע"
+ *   "קישור"           over "לינק" — the two "לינק" left are on the RSVP and
+ *                     gift guest pages, whose error wording is another fix. */
+const NAMING = {
+  "Save the Date": /Save the Date/,
+  "טבלה משותפת": /טבלה משותפת|הטבלה המשותפת|רשימת האורחים המשותפת/,
+  "אלבום האורחים/התמונות/האירוע": /אלבום (האורחים|התמונות|האירוע)/,
+  "לינק": /לינק/,
+};
+const NAMING_EXEMPT = { "לינק": ["screens/RSVPScreen.jsx", "screens/GiftScreen.jsx"] };
+
+describe("one name per thing (audit 3.10, C16)", () => {
+  const files = walk(SRC).map(f => [relative(SRC, f), stripComments(readFileSync(f, "utf8"))]);
+  for (const [name, re] of Object.entries(NAMING)) {
+    it(`no ${name}`, () => {
+      const exempt = NAMING_EXEMPT[name] || [];
+      expect(files.filter(([f, t]) => !exempt.includes(f) && re.test(t)).map(([f]) => f)).toEqual([]);
+    });
+  }
+});
