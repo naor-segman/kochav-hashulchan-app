@@ -10,7 +10,10 @@
  * file, because the scrim is the whole point.
  */
 import { createRequire } from 'module';
-import { readFileSync, readdirSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
+import { spawnSync } from 'child_process';
+import { join } from 'path';
+import { outDir } from './lib/outDir.mjs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 
@@ -28,7 +31,32 @@ const b = await chromium.launch({
 });
 
 // Frames pulled from the encoded file with ffmpeg — see the loop below.
-const FRAME_DIR = '/tmp/claude-0/-home-user-kochav-hashulchan-app/94fef7cd-f944-597e-9253-a6fe3d65a52a/scratchpad';
+// HERO_FRAMES_DIR points at frames already extracted; otherwise they are
+// extracted here, which needs ffmpeg (Playwright's Chromium cannot decode the
+// mp4 — see below). The folder used to be one session's scratchpad, hardcoded,
+// so every other session found it missing (audit 3.10, H3).
+const VIDEO = new URL('../public/hero/hero.mp4', import.meta.url).pathname;
+const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
+let FRAME_DIR = process.env.HERO_FRAMES_DIR;
+if (!FRAME_DIR && hasFfmpeg) {
+  FRAME_DIR = outDir('heroFrames');
+  const dur = Number(spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', VIDEO],
+    { encoding: 'utf8' }).stdout) || 10;
+  // Six moments across the clip, the last one near the end where it is brightest.
+  for (const t of [0, 0.2, 0.4, 0.6, 0.8, 0.95].map(f => Math.floor(f * dur))) {
+    spawnSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(t), '-i', VIDEO, '-frames:v', '1', join(FRAME_DIR, `hf${t}.jpg`)]);
+  }
+}
+if (!FRAME_DIR || !existsSync(FRAME_DIR)) {
+  console.error(
+    `heroContrast needs frames of ${VIDEO} and has none: ffmpeg is ${hasFfmpeg ? 'installed' : 'NOT installed'}` +
+    `${FRAME_DIR ? ` and ${FRAME_DIR} does not exist` : ''}.\n` +
+    'Install ffmpeg, or extract them elsewhere and point HERO_FRAMES_DIR at the folder:\n' +
+    '  ffmpeg -ss <seconds> -i public/hero/hero.mp4 -frames:v 1 <dir>/hf<seconds>.jpg   (several moments)\n' +
+    'No frames means no measurement — this exits 1 rather than print a pass.');
+  await b.close();
+  process.exit(1);
+}
 const FRAMES = readdirSync(FRAME_DIR)
   .filter(f => /^hf\d+\.jpg$/.test(f))
   .sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]))
@@ -40,7 +68,9 @@ const FRAMES = readdirSync(FRAME_DIR)
 // as if every frame had passed — a silent pass with zero measurements, which is
 // the third time this file has produced one. Refuse to run instead.
 if (FRAMES.length === 0) {
-  console.error(`אין פריימים ב-${FRAME_DIR} (hf<t>.jpg). חלץ אותם עם ffmpeg לפני ההרצה.`);
+  console.error(process.env.HERO_FRAMES_DIR
+    ? `HERO_FRAMES_DIR=${FRAME_DIR} has no hf<seconds>.jpg files — extract them with ffmpeg (command above in this file).`
+    : `ffmpeg ran but wrote no frames of ${VIDEO} into ${FRAME_DIR} — run the extraction by hand to see why.`);
   await b.close();
   process.exit(1);
 }

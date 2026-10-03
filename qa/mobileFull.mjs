@@ -19,13 +19,13 @@
 // by SCROLLING (window.scrollTo then reading scrollX), never by scrollWidth —
 // an internally scrollable child inflates scrollWidth on every ancestor.
 import { createRequire } from 'module';
-import { mkdirSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
+import { outDir } from './lib/outDir.mjs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 
 const BASE = process.env.APP_BASE || 'http://127.0.0.1:5188';
-const OUT  = '/tmp/claude-0/-home-user-kochav-hashulchan-app/94fef7cd-f944-597e-9253-a6fe3d65a52a/scratchpad/audit/mob';
-mkdirSync(OUT, { recursive: true });
+const OUT  = outDir('mobileFull');
 
 // Real device shapes, plus the keyboard-open variants of each.
 const VIEWPORTS = [
@@ -187,7 +187,7 @@ for (const vp of VIEWPORTS) {
 }
 
 await b.close();
-writeFileSync(`${OUT}/../mobileFull.json`, JSON.stringify(findings, null, 2));
+writeFileSync(`${OUT}/mobileFull.json`, JSON.stringify(findings, null, 2));
 const fails = findings.filter(f => f.sev === 'FAIL');
 console.log(`\n${findings.length} findings — ${fails.length} FAIL, ${findings.length-fails.length} WARN`);
 console.log(`screens: ${SCREENS.length} x viewports: ${VIEWPORTS.length} = ${SCREENS.length*VIEWPORTS.length} states`);
