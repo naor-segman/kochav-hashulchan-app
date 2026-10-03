@@ -28,6 +28,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
+import { useShareGate } from "../components/share/useShareGate.jsx";
 import DraggableGuestRow from "../components/seating/DraggableGuestRow.jsx";
 import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
 import TableCard from "../components/seating/TableCard.jsx";
@@ -77,6 +78,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   // load-bearing — a purchase references `ev.cloudId`.
   const { plan } = usePlan(ev);
   const { confirm, dialog } = useConfirm();
+  // The per-guest WhatsApp message carries the guest's entry card link, which
+  // does not open for an event that lives only in this browser (3.10).
+  const { guard, gate } = useShareGate();
   // Which table cards are open. A Set, not a single id: opening one table used
   // to close whichever other table was open, which is exactly what the host
   // complained about after running a real event. Nothing closes a card except
@@ -591,6 +595,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   return (
     <>
       {dialog}
+      {gate}
       <DndContext
         sensors={sensors}
         collisionDetection={collisionStrategy}
@@ -782,7 +787,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     const url = buildWhatsAppTableMsg(g);
                     const table = ev.tables.find(t => t.id === ev.seating[g.id]);
                     return url ? (
-                      <a key={g.id} href={url} target="_blank" rel="noreferrer" className={styles.waNotifyItem}>
+                      <a key={g.id} href={url} target="_blank" rel="noreferrer" className={styles.waNotifyItem}
+                        onClick={e => { if (!guard("ההודעה עם כרטיס הכניסה")) e.preventDefault(); }}>
                         <SideDot side={g.side} />
                         <span className={styles.waNotifyName}>{g.name}</span>
                         <span className={styles.waNotifyTable}>{tableLabel(table)}</span>
