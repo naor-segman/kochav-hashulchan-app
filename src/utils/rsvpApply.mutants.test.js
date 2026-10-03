@@ -20,6 +20,21 @@ describe("normPhone: the international 00 prefix", () => {
   });
 });
 
+/* audit 3.10, L3: the shapes the guest list's normaliser already handled and
+ * this copy did not. The list stores "0521234567" for all of them, so an
+ * answer typed either way missed its guest by phone. */
+describe("normPhone: the shapes the guest list already normalises", () => {
+  it("+972 (0)52-… and a bare 9-digit number match the stored 05x number", () => {
+    expect(normPhone("+972 (0)52-123-4567")).toBe("0521234567");
+    expect(normPhone("972-0521234567")).toBe("0521234567");
+    expect(normPhone("521234567")).toBe("0521234567");
+  });
+  it("is the very function the guest list stores numbers with", async () => {
+    const { normalizePhone } = await import("./parseGuestList.js");
+    expect(normPhone).toBe(normalizePhone);
+  });
+});
+
 describe("respStatus: a legacy row with only the boolean", () => {
   // Rows written before the `status` column carry `attending` alone. A decline
   // from that era read as "yes" would put a guest who said no into the head

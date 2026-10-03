@@ -8,6 +8,7 @@
  * host recorded by hand for a guest who then answered the link without picking
  * one. Silence is not an answer.
  */
+import { normalizePhone } from "./parseGuestList.js";
 
 /**
  * The meal to store for a guest, given one RSVP response and whatever the guest
@@ -65,12 +66,12 @@ export function normName(s) {
 }
 
 // Normalize an Israeli phone to a comparable local form (05x…) for matching.
-export function normPhone(p) {
-  let d = (p || "").replace(/\D/g, "");
-  if (d.startsWith("00")) d = d.slice(2);
-  if (d.startsWith("972")) d = "0" + d.slice(3);
-  return d;
-}
+// ONE normaliser — the one the guest list stores numbers with (audit 3.10, L3).
+// This was a third hand-copied version that missed two shapes the list's own
+// handles: "+972 (0)52-…" became "00521234567" and a bare 9-digit "521234567"
+// stayed 9 digits, so an answer with either never matched its guest by phone
+// and fell back to a name match — or to a NEW guest.
+export const normPhone = normalizePhone;
 
 // A response's answer: prefer the new status column, fall back to the boolean.
 export const respStatus = (r) => r.status || (r.attending ? "yes" : "no");
