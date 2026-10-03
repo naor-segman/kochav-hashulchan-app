@@ -332,6 +332,23 @@ const CHECKS = {
     }
   },
 
+  // V8: the budget table's fields are a thumb tall on a touch screen.
+  async costsTouch(b, base) {
+    for (const width of [390, 800]) {
+      const { ctx, p } = await page(b, base, { width, height: 844, touch: true });
+      await p.goto(base + '/events/e1/costs', { waitUntil: 'domcontentloaded' });
+      await p.getByLabel('שם הקטגוריה').first().waitFor({ timeout: 15000 });
+      const m = await p.evaluate(() => [...document.querySelectorAll('main input')]
+        .filter(i => i.getAttribute('aria-label') === 'שם הקטגוריה' || /^(תקציב|בפועל) — /.test(i.getAttribute('aria-label') || ''))
+        .map(i => ({ l: i.getAttribute('aria-label'), h: Math.round(i.getBoundingClientRect().height) })));
+      ok(m.length >= 6, `${width}px: found the category fields`, String(m.length));
+      const short = m.filter(x => x.h < 44);
+      ok(short.length === 0, `${width}px: every category field ≥ 44px tall`, short.length ? short.map(x => `${x.l} ${x.h}px`).slice(0, 4).join(' · ') : `${Math.min(...m.map(x => x.h))}px min`);
+      ok(await hscroll(p) === 0, `${width}px: no sideways scroll`);
+      await ctx.close();
+    }
+  },
+
   // WORKPLAN 129: the "send the table number" rows are 44px to a thumb, and
   // every point of a row taps THAT row (not a neighbour's hit extension).
   async seatingWaRows(b, base) {

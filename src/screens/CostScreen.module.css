@@ -431,6 +431,15 @@
     padding-block: 11px;
   }
 
+  /* The fields themselves (audit 3.10, V8): the category name was a 27px
+     strip and the amounts 37px — the thing a host taps most on this screen.
+     The box grows rather than a pseudo-element, because a field's tap area IS
+     its box: a press beside it does not focus it. */
+  .nameInput,
+  .amtInput {
+    min-height: 44px;
+  }
+
   .delBtn {
     position: relative;
   }
