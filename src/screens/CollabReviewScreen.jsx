@@ -129,7 +129,7 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
               try { await navigator.clipboard.writeText(collabLink); showToast("הקישור הועתק ✓"); }
               catch { showToast("העתיקו ידנית", "err"); }
             })}>העתיקו</button>
-            <QrCode url={collabLink} label="טבלה שיתופית" filename="qr-collab" />
+            <QrCode url={collabLink} label="טבלה שיתופית" filename="qr-collab" gate={run => guard("הקישור לטבלה השיתופית", run)} />
           </div>
           {/* The switch above closes the door; this changes the lock.
               Until now the shared-table link was a FULL grant that could never

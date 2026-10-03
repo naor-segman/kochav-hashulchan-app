@@ -148,7 +148,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
           <div className={styles.shareRow}>
             <input className={[base.input, styles.shareInput].join(" ")} readOnly value={url} dir="ltr" aria-label="קישור לדף" />
             <button className={base.btnSm} onClick={copy}>{copied ? "הועתק ✓" : "העתיקו"}</button>
-            <QrCode url={url} label={meta.label} filename={`${meta.label}.png`} />
+            <QrCode url={url} label={meta.label} filename={`${meta.label}.png`} gate={run => guard("קוד ה-QR של הדף", run)} />
           </div>
         ) : (
           <p className={base.fieldHint}>הקישור ייווצר אחרי השמירה הראשונה של האירוע.</p>

@@ -316,17 +316,21 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
                 <span className={styles.msgPreview}>{m.text.split("\n")[0]}</span>
               </div>
               <div className={styles.msgActions}>
+                {/* Each message carries the site's link, so both go through the
+                    share gate like the link itself: without an account the
+                    link does not open for the guests it is sent to. */}
                 <button
                   className={[base.btnSm, base.btnGhost].join(" ")}
-                  onClick={async () => {
+                  onClick={() => guard("ההודעה עם הקישור לאתר", async () => {
                     try { await navigator.clipboard.writeText(m.text); showToast("ההודעה הועתקה ✓"); }
                     catch { showToast("לא ניתן להעתיק", "err"); }
-                  }}
+                  })}
                 >העתיקו</button>
                 <a
                   className={[base.btnSm, styles.msgWa].join(" ")}
                   href={`https://wa.me/?text=${encodeURIComponent(m.text)}`}
                   target="_blank" rel="noopener noreferrer"
+                  onClick={e => { if (!guard("ההודעה עם הקישור לאתר")) e.preventDefault(); }}
                 >שלחו בוואטסאפ</a>
               </div>
             </div>
