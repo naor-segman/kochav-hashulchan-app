@@ -37,7 +37,7 @@ function seoPages() {
     .replace(/"/g, '&quot;')
 
   return {
-    name: 'revaya-seo-pages',
+    name: 'seo-pages',
     apply: 'build',
     enforce: 'post',
     configResolved(config) { outDir = config.build.outDir },
@@ -149,8 +149,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'רוויה — סידור הושבה',
-        short_name: 'רוויה',
+        name: 'Unica Plan — סידור הושבה',
+        short_name: 'Unica Plan',
         description: 'אפליקציית סידור הושבה חכמה לאירועים ישראליים',
         theme_color: '#14161A',
         background_color: '#FFFFFF',

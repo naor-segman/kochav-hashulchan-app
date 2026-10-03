@@ -90,8 +90,12 @@ export default function HelpScreen() {
             אם משהו לא עובד או שיש לכם רעיון — <Link to="/feedback">ספרו לנו כאן</Link>.
           </p>
           <p className={styles.text}>
-            ואפשר גם במייל:{" "}
-            <a href={supportMailto()}>{supportEmail()}</a>
+            ואפשר גם במייל:
+            {/* On a line of its own, unbroken and left-to-right: since 128 the
+                address is plansupport@unica-events.co.il, 303px at 17px, and
+                it wrapped at the hyphen into two 20px fragments — wider than
+                the 272px column at 320 on one line. */}
+            <a href={supportMailto()} className={help.mail} dir="ltr">{supportEmail()}</a>
           </p>
         </section>
 

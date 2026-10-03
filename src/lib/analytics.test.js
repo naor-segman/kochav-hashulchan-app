@@ -1,177 +1,173 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-/* The three settings that stop analytics leaking other people's data.
+/* What reaches Google Analytics (127, owner 3.10 — moved from PostHog).
  *
- * This file exists because all three are DEFAULTS in posthog-js that we turn
- * off, and a default is exactly the kind of thing that comes back — a version
- * bump, a copied snippet from the docs, someone enabling session replay to
- * debug one thing and not turning it off again. None of those break a test
- * unless a test is watching, and none of them are visible in the UI: the leak
- * is silent and it lands in a third-party tool.
- *
- * What is actually at stake, concretely:
- *   • autocapture sends the TEXT of every clicked element. On the guest
- *     manager that is a real person's name; on the RSVP list, their phone.
- *   • the automatic pageview sends the raw URL, and nine public routes carry a
- *     TOKEN in the path. A token is a credential — it opens somebody's guest
- *     list — and this would hand it to a third party in plain text.
- *   • session recording is the first one again, as video.
- *
+ * Each rule here was a leak in this product once, under PostHog, and each one
+ * is a DEFAULT of gtag.js that we override — the kind of thing that comes back
+ * with a copied snippet from the docs, silently, into a third-party tool:
+ *   • the automatic page view sends the raw URL, and nine public routes carry a
+ *     TOKEN in the path (a token opens somebody's guest list);
+ *   • every hit carries the page title, and a guest page's title is the hosts'
+ *     names; the referrer can be a token-bearing URL too;
+ *   • Google signals / ad personalisation share the data for advertising.
  * The people in that data never visited this site and never agreed to
- * anything.
- */
+ * anything. */
 
-const init = vi.fn();
-const capture = vi.fn();
-const identify = vi.fn();
+const gtag = vi.fn();
+let loads = 0;
+// analytics.js sets gtag.js up through ./gaLoader.js; standing in for it keeps
+// the test off the network and lets it read every call gtag would receive.
+vi.mock("./gaLoader.js", () => ({ loadGtag: () => { loads++; return gtag; } }));
 
-vi.mock("posthog-js", () => ({
-  default: { init, capture, identify, reset: vi.fn() },
-}));
+const ID = "G-TEST12345";
+const yes = () => localStorage.setItem("kochav_consent_v1", JSON.stringify({ analytics: true, at: "2026-10-03T00:00:00.000Z" }));
+const calls = (kind) => gtag.mock.calls.filter(c => c[0] === kind);
+const all = () => JSON.stringify(gtag.mock.calls);
 
-// posthog-js is imported dynamically now (it was 85 KB of the initial chunk),
-// so every call is queued until the module lands. One turn of the microtask
-// queue is enough for the mocked import to resolve.
-const settle = () => new Promise(r => setTimeout(r, 0));
-
-beforeEach(() => { vi.resetModules(); init.mockClear(); capture.mockClear(); identify.mockClear(); });
+beforeEach(() => {
+  vi.resetModules();
+  gtag.mockClear();
+  loads = 0;
+  localStorage.clear();
+  history.replaceState({}, "", "/");
+  document.title = "כוכב השולחן";
+});
 afterEach(() => { vi.unstubAllEnvs(); });
 
-describe("analytics is dark until a key exists", () => {
-  it("does not touch the network without VITE_POSTHOG_KEY", async () => {
+describe("analytics is dark until an id exists", () => {
+  it("does nothing at all without VITE_GA_ID — even after a yes", async () => {
+    yes();
     const a = await import("./analytics.js");
     a.initAnalytics();
-    await settle();
-    expect(init, "no key means no cookies, no requests, no consent question")
-      .not.toHaveBeenCalled();
-
-    // And every call site is a no-op rather than a crash.
     a.track("anything", { a: 1 });
     a.trackPageview("/rsvp/abc");
     a.identifyUser("u1");
-    expect(capture).not.toHaveBeenCalled();
-    expect(identify).not.toHaveBeenCalled();
+    expect(loads, "no id means no script, no cookies, no consent question").toBe(0);
+    expect(gtag).not.toHaveBeenCalled();
+    expect(a.analyticsConfigured).toBe(false);
+  });
+
+  it("an id that is not a GA measurement id is ignored — it would go into a script URL", async () => {
+    vi.stubEnv("VITE_GA_ID", 'G-X"><script>');
+    yes();
+    const a = await import("./analytics.js");
+    a.initAnalytics();
+    expect(a.analyticsConfigured).toBe(false);
+    expect(loads).toBe(0);
   });
 });
 
-describe("and when it is on, three defaults stay off", () => {
-  beforeEach(() => { vi.stubEnv("VITE_POSTHOG_KEY", "phc_test"); });
+describe("and when it is on, gtag's defaults that leak stay off", () => {
+  beforeEach(() => { vi.stubEnv("VITE_GA_ID", ID); yes(); });
 
-  it("never autocaptures — element text is guest names", async () => {
+  it("no automatic page view — it would send the raw URL", async () => {
     const a = await import("./analytics.js");
     a.initAnalytics();
-    await settle();
-    expect(init).toHaveBeenCalledTimes(1);
-    expect(init.mock.calls[0][1].autocapture).toBe(false);
+    const [, id, cfg] = calls("config")[0];
+    expect(id).toBe(ID);
+    expect(cfg.send_page_view).toBe(false);
   });
 
-  it("never records sessions", async () => {
+  it("no Google signals, no ad personalisation, ad storage denied", async () => {
     const a = await import("./analytics.js");
     a.initAnalytics();
-    await settle();
-    expect(init.mock.calls[0][1].disable_session_recording).toBe(true);
+    const cfg = calls("config")[0][2];
+    expect(cfg.allow_google_signals).toBe(false);
+    expect(cfg.allow_ad_personalization_signals).toBe(false);
+    const [, mode, consent] = calls("consent")[0];
+    expect(mode).toBe("default");
+    expect(consent).toMatchObject({ ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
+    expect(calls("consent")[0], "consent defaults go before the config").toBe(gtag.mock.calls[0]);
   });
 
-  it("never lets posthog send its own pageview — the URL holds tokens", async () => {
+  it("its cookie is ours: prefixed, on this host only, 13 months at most", async () => {
+    // The site moves under unica-events.co.il, whose own GA writes _ga on the
+    // top domain. Shared, a withdrawal here would delete theirs.
     const a = await import("./analytics.js");
     a.initAnalytics();
-    await settle();
-    expect(init.mock.calls[0][1].capture_pageview).toBe(false);
+    const cfg = calls("config")[0][2];
+    expect(cfg.cookie_prefix).toBe("kh");
+    expect(cfg.cookie_domain).toBe(location.hostname);
+    expect(cfg.cookie_expires).toBeLessThanOrEqual(60 * 60 * 24 * 396);
   });
 
-  it("sends its own pageview with the token taken out of the path", async () => {
+  it("sends its own page view with the token taken out — and nothing anywhere carries it", async () => {
+    history.replaceState({}, "", "/rsvp/8f3c9a2b-1111-2222-3333-444455556666");
     const a = await import("./analytics.js");
     a.initAnalytics();
-    await settle();
     a.trackPageview("/rsvp/8f3c9a2b-1111-2222-3333-444455556666");
-    const [event, props] = capture.mock.calls[0];
-    expect(event).toBe("$pageview");
-    expect(props.$current_url).toBe("/rsvp/:token");
-    expect(props.$current_url, "the raw token must never reach a third party")
-      .not.toContain("8f3c9a2b");
+    const [, name, params] = calls("event")[0];
+    expect(name).toBe("page_view");
+    expect(params.page_location).toBe(location.origin + "/rsvp/:token");
+    expect(all(), "the raw token must never reach a third party").not.toContain("8f3c9a2b");
   });
 
-  it("does not lose events fired before the module lands", async () => {
-    /* The risk the dynamic import introduces. posthog now arrives a beat after
-       the app starts, and the FIRST pageview is the top of the funnel — drop it
-       and every step below it reads low, which is worse than no funnel because
-       it looks like data. */
+  it("the page title gtag would attach is the scrubbed path, never document.title", async () => {
+    document.title = "אישור הגעה · דנה ויוסי";
     const a = await import("./analytics.js");
     a.initAnalytics();
-    a.trackPageview("/home");                    // both fired while the module
-    a.track(a.EVENTS.SIGNED_UP, { needs_confirmation: false });  // is still in flight
-    expect(capture, "nothing can be sent yet — the module is not here")
-      .not.toHaveBeenCalled();
-
-    await settle();
-
-    expect(capture).toHaveBeenCalledTimes(2);
-    expect(capture.mock.calls[0][0]).toBe("$pageview");
-    expect(capture.mock.calls[1][0], "and the funnel keeps its order")
-      .toBe("signed_up");
+    a.trackPageview("/gift/abc123token");
+    const set = calls("set").at(-1)[1];
+    expect(set.page_title).toBe("/gift/:token");
+    expect(all()).not.toContain("דנה");
   });
 
-  it("identifies by id and never by email", async () => {
+  it("a referrer from another site is cut to its origin; ours is scrubbed", async () => {
+    Object.defineProperty(document, "referrer", { value: "https://wa.me/some/path?text=" + encodeURIComponent("שלום"), configurable: true });
     const a = await import("./analytics.js");
     a.initAnalytics();
-    await settle();
+    expect(calls("set")[0][1].page_referrer).toBe("https://wa.me/");
+    Object.defineProperty(document, "referrer", { value: location.origin + "/collab/SECRETTOKEN99", configurable: true });
+    a.trackPageview("/home");
+    expect(calls("set").at(-1)[1].page_referrer).toBe(location.origin + "/collab/:token");
+    expect(all()).not.toContain("SECRETTOKEN99");
+    Object.defineProperty(document, "referrer", { value: "", configurable: true });
+  });
+
+  it("does not lose events fired before the yes — the first page is the top of the funnel", async () => {
+    localStorage.clear();                       // not answered yet
+    const a = await import("./analytics.js");
+    a.trackPageview("/home");
+    a.track(a.EVENTS.SIGNED_UP, { needs_confirmation: false });
+    expect(gtag, "nothing can be sent yet").not.toHaveBeenCalled();
+    a.applyConsent(true);
+    expect(calls("event").map(c => c[1])).toEqual(["page_view", "signed_up"]);
+  });
+
+  it("identifies by id and never by email; sign-out clears it", async () => {
+    const a = await import("./analytics.js");
+    a.initAnalytics();
     a.identifyUser("user-123");
-    expect(identify).toHaveBeenCalledWith("user-123");
-    expect(JSON.stringify(identify.mock.calls)).not.toContain("@");
+    expect(calls("config").at(-1)[2].user_id).toBe("user-123");
+    expect(calls("config").at(-1)[2].send_page_view, "re-configuring must not send a page view").toBe(false);
+    expect(all()).not.toContain("@");
+    a.resetAnalytics();
+    expect(calls("config").at(-1)[2].user_id).toBeNull();
+  });
+
+  it("event parameters that are paths or URLs are scrubbed too", async () => {
+    const a = await import("./analytics.js");
+    a.initAnalytics();
+    a.track("share_link_copied", { link: "https://revaya-events.co.il/collab/TOKEN1234567", where: "/card/TOK777?n=" + encodeURIComponent("יעל"), count: 3 });
+    const p = calls("event")[0][2];
+    expect(JSON.stringify(p)).not.toMatch(/TOKEN1234567|TOK777|%D7%99|יעל/);
+    expect(p.where).toBe("/card/:token?n=:v");
+    expect(p.count).toBe(3);
   });
 });
 
-describe("and nothing posthog attaches on its own carries a token", () => {
-  /* The fourth leak, 28.9 audit. $current_url was scrubbed and the comments
-     said that was enough; posthog-js ALSO attaches $pathname, $referrer and the
-     initial URL to every event and to the person record. /collab/<token> opens
-     the whole guest list with phone numbers. */
-  beforeEach(() => { vi.stubEnv("VITE_POSTHOG_KEY", "phc_test"); });
-
-  it("installs the scrubber as before_send", async () => {
-    const a = await import("./analytics.js");
-    a.initAnalytics();
-    await settle();
-    expect(init.mock.calls[0][1].before_send).toBe(a.scrubEvent);
-  });
-
-  it("drops the page title — on a guest page it is the hosts' names (29.9 review)", async () => {
-    const { scrubEvent } = await import("./analytics.js");
-    const out = scrubEvent({ event: "$pageview", properties: { title: "אישור הגעה · דנה ויוסי", $title: "x", $current_url: "/rsvp/abc12345zz" } });
-    expect(out.properties.title).toBeUndefined();
-    expect(out.properties.$title).toBeUndefined();
-    expect(JSON.stringify(out)).not.toContain("דנה");
-  });
-
-  it("scrubs every path and URL in properties, $set and $set_once", async () => {
-    const { scrubEvent } = await import("./analytics.js");
-    const tok = "8f3c2a1b9d7e6f5a";
-    const out = scrubEvent({
-      event: "rsvp_received",
-      properties: {
-        $current_url: `https://revaya-events.co.il/rsvp/${tok}`,
-        $pathname: `/collab/${tok}`,
-        $referrer: `https://revaya-events.co.il/gift/${tok}/wall`,
-        $host: "revaya-events.co.il",
-        count: 3,
-      },
-      $set: { $current_url: `/entrance/${tok}` },
-      $set_once: { $initial_current_url: `https://revaya-events.co.il/album/${tok}`, $initial_referrer: "$direct" },
-    });
-    const all = JSON.stringify(out);
-    expect(all).not.toContain(tok);
-    expect(out.properties.$pathname).toBe("/collab/:token");
-    expect(out.$set.$current_url).toBe("/entrance/:token");     // was not in TOKEN_ROUTES
-    // Values that are not paths are left alone.
-    expect(out.properties.$host).toBe("revaya-events.co.il");
-    expect(out.properties.count).toBe(3);
-    expect(out.$set_once.$initial_referrer).toBe("$direct");
+describe("scrubParams", () => {
+  it("drops the title and scrubs every path or URL value; leaves the rest", async () => {
+    const { scrubParams } = await import("./analytics.js");
+    const out = scrubParams({ title: "דנה ויוסי", page_title: "x", p: "/album/abc12345zz", n: 4, s: "plain" });
+    expect(out).toEqual({ p: "/album/:token", n: 4, s: "plain" });
   });
 
   it("never throws, whatever it is handed", async () => {
-    const { scrubEvent } = await import("./analytics.js");
+    const { scrubParams } = await import("./analytics.js");
     for (const junk of [null, undefined, 42, "x", { properties: null }]) {
-      expect(() => scrubEvent(junk)).not.toThrow();
+      expect(() => scrubParams(junk)).not.toThrow();
     }
   });
 });

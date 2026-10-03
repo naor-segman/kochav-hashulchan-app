@@ -442,6 +442,21 @@
 
 .feedbackLink:hover { color: var(--text2); text-decoration: underline; }
 
+/* "הגדרות עוגיות ומדידה" opens a dialog, so it is a button dressed as the
+   links around it. */
+.linkButton {
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.linkButton:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
 .backLink {
   display: inline-flex;
   align-items: center;

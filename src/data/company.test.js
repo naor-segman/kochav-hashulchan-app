@@ -28,14 +28,16 @@ beforeEach(() => { vi.unstubAllEnvs(); Object.assign(COMPANY, ORIGINAL); });
 afterEach(()  => { vi.unstubAllEnvs(); Object.assign(COMPANY, ORIGINAL); });
 
 describe("the support address, now that the domain is bought", () => {
-  // revaya-events.co.il was registered on 31.8 and support@ is a real mailbox,
+  // Since 3.10 (WORKPLAN 128): plansupport@ for support and plan@ for the main
+  // business address, on Unica's domain — the site itself is a subdomain of it.
+  // (Before: revaya-events.co.il, registered 31.8, with a real support@.)
   // not a forward. Until then every "צרו קשר" in the product dropped a
   // customer's question into a hole; these three assertions are what says that
   // is over, and they fail the moment COMPANY.domain is emptied again.
   it("every address is on the domain we actually own", () => {
-    expect(supportEmail()).toBe("support@revaya-events.co.il");
-    expect(contactEmail()).toBe("contact@revaya-events.co.il");
-    expect(supportMailto()).toBe("mailto:support@revaya-events.co.il");
+    expect(supportEmail()).toBe("plansupport@unica-events.co.il");
+    expect(contactEmail()).toBe("plan@unica-events.co.il");
+    expect(supportMailto()).toBe("mailto:plansupport@unica-events.co.il");
   });
 
   it("says out loud that somebody is reading it", () => {
@@ -47,7 +49,7 @@ describe("the support address, now that the domain is bought", () => {
     // it is one keystroke, and a blank `mailto:` renders as a link that opens
     // an empty compose window addressed to nobody.
     COMPANY.domain = "";
-    expect(supportEmail()).toBe("support@kochav-hashulchan.co.il");
+    expect(supportEmail()).toBe("plansupport@kochav-hashulchan.co.il");
     expect(supportContactIsReal()).toBe(false);
   });
 });
@@ -55,8 +57,8 @@ describe("the support address, now that the domain is bought", () => {
 describe("and the two ways to turn it real", () => {
   it("one line in COMPANY.domain moves every address at once", () => {
     COMPANY.domain = "kochav.co.il";
-    expect(supportEmail()).toBe("support@kochav.co.il");
-    expect(contactEmail()).toBe("contact@kochav.co.il");
+    expect(supportEmail()).toBe("plansupport@kochav.co.il");
+    expect(contactEmail()).toBe("plan@kochav.co.il");
     expect(supportContactIsReal()).toBe(true);
   });
 
@@ -71,7 +73,7 @@ describe("and the two ways to turn it real", () => {
     vi.stubEnv("VITE_SUPPORT_EMAIL", "hello@example.com");
     expect(supportEmail()).toBe("hello@example.com");
     // …and only for the mailbox it names. Sales is still on the domain.
-    expect(contactEmail()).toBe("contact@kochav.co.il");
+    expect(contactEmail()).toBe("plan@kochav.co.il");
   });
 });
 
@@ -103,7 +105,7 @@ describe("messageSignature — the credit line on every guest message", () => {
   it("is the credit and a link to the site we own — one line", () => {
     const sig = messageSignature();
     // Reads the brand from its source, so a rename does not break it.
-    expect(sig).toBe(`\n\n— נבנה עם ${COMPANY.name} · https://revaya-events.co.il`);
+    expect(sig).toBe(`\n\n— נבנה עם ${COMPANY.name} · https://plan.unica-events.co.il`);
   });
 
   it("no sales question in a message the host sends to their guests (103, §30א)", () => {
@@ -209,5 +211,50 @@ describe("nobody has hardcoded the address again", () => {
   it("no file outside company.js spells the brand name out", () => {
     expect(scan(new RegExp(COMPANY.name)),
       "render {COMPANY.name} instead of typing the brand").toEqual([]);
+  });
+});
+
+/* The rename of 3.10 (WORKPLAN 128): "Unica Plan", English only.
+ *
+ * The second rename the comment above predicted. Three things it can get wrong
+ * without anything else failing:
+ *   • a Hebrew form creeping back — the owner's decision is that there is none;
+ *   • a Hebrew prefix letter glued to the Latin name: "נבנה בUnica Plan". With
+ *     a Hebrew brand "ב{name}" was correct, and three screens did exactly that;
+ *     with a Latin one it needs a maqaf ("ב-Unica Plan") or a rephrase;
+ *   • the old name or domain left in the files that are not JSX — the shell's
+ *     <title>, the installed app's name, robots.txt, the auth email templates,
+ *     the checkout description. None of them goes through COMPANY.name. */
+describe("the brand is Unica Plan — English only (3.10)", () => {
+  const ROOT = new URL("../../", import.meta.url).pathname;
+  const SRC = join(ROOT, "src");
+  const walk = (dir) => readdirSync(dir).flatMap((e) => {
+    const f = join(dir, e);
+    return statSync(f).isDirectory() ? walk(f) : /\.(jsx?)$/.test(e) && !/\.test\./.test(e) ? [f] : [];
+  });
+  const code = (f) => readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(?<!:)\/\/[^\n]*/g, "");
+
+  it("the name, the site and the two mailboxes", () => {
+    expect(COMPANY.name).toBe("Unica Plan");
+    expect(COMPANY.name, "no Hebrew form of the name").not.toMatch(/[\u0590-\u05FF]/);
+    expect(COMPANY.site).toBe("https://plan.unica-events.co.il");
+    expect(COMPANY.host).toBe("plan.unica-events.co.il");
+    expect(supportEmail()).toBe("plansupport@unica-events.co.il");
+    expect(contactEmail()).toBe("plan@unica-events.co.il");
+  });
+
+  it("no Hebrew prefix letter glued to the name — ב-Unica Plan, not בUnica Plan", () => {
+    const glued = walk(SRC).filter(f => /[\u05D0-\u05EA]\$?\{COMPANY\.name/.test(code(f)))
+      .map(f => f.slice(SRC.length + 1));
+    expect(glued).toEqual([]);
+  });
+
+  it("the old name and domain are gone from the files that do not read COMPANY", () => {
+    const files = ["index.html", "vite.config.js", "public/robots.txt",
+      "supabase/email-templates/confirm-signup.html", "supabase/email-templates/reset-password.html",
+      "supabase/functions/create-checkout-session/index.ts"];
+    const left = files.filter(f => /רוויה|רְוָיָה|revaya|REVAYA|כוכב השולחן/i.test(readFileSync(join(ROOT, f), "utf8")));
+    expect(left).toEqual([]);
+    for (const f of files.slice(0, 2)) expect(readFileSync(join(ROOT, f), "utf8"), f).toContain("Unica Plan");
   });
 });

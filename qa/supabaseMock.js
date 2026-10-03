@@ -125,7 +125,7 @@ const ERRORS = [
 }));
 
 const SETTINGS = [
-  { key: "product_name", value: "רוויה" },
+  { key: "product_name", value: "Unica Plan" },
   { key: "default_tables", value: "20" },
   { key: "feature_ai_seating", value: "false" },
   { key: "system_note", value: "כל התוכניות פתוחות" },

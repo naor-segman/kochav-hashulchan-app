@@ -5,6 +5,7 @@ import './styles/global.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import SupportButton from './components/support/SupportButton.jsx'
+import ConsentBanner from './components/consent/ConsentBanner.jsx'
 import { installGlobalErrorReporting } from "./utils/errorReport.js";
 import { initAnalytics } from "./lib/analytics.js";
 
@@ -12,7 +13,8 @@ import { initAnalytics } from "./lib/analytics.js";
 // unawaited rejection, a lazy chunk that 404s after a deploy.
 installGlobalErrorReporting();
 
-// Dark until VITE_POSTHOG_KEY exists: no key, no network calls, no cookies.
+// Dark until VITE_GA_ID exists AND this browser has said yes to the
+// cookie question (ConsentBanner): no key or no yes — no load, no requests.
 initAnalytics();
 
 createRoot(document.getElementById('root')).render(
@@ -21,6 +23,7 @@ createRoot(document.getElementById('root')).render(
       <ErrorBoundary>
         <App />
         <SupportButton />
+        <ConsentBanner />
       </ErrorBoundary>
     </BrowserRouter>
   </StrictMode>,

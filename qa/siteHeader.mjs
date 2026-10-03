@@ -113,7 +113,7 @@ try {
       const headers = await page.$$("header");
       check(`${label} ${route}: one header`, headers.length === 1, `found ${headers.length}`);
       const brand = await visibleText(page, "header a[href='/']");
-      check(`${label} ${route}: brand in the bar`, brand.some(t => t.includes("רוויה")), brand.join("|"));
+      check(`${label} ${route}: brand in the bar`, brand.some(t => t.includes("Unica Plan")), brand.join("|"));
 
       if (label === "desktop") {
         // 2 — the three links are there, and the burger is not.

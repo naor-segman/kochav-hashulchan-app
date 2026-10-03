@@ -4,7 +4,7 @@ import { trackPageview, identifyUser } from "../lib/analytics.js";
 /* Pageviews, with the tokens taken out of the path (checklist 18), and the
  * account id once it is known.
  *
- * PostHog's own pageview capture is off, because it sends the raw URL — and
+ * GA's own pageview is off (send_page_view: false), because it sends the raw URL — and
  * nine public routes carry a token there, which is a credential. This sends
  * the scrubbed path instead, so `/rsvp/8f3c…` arrives as `/rsvp/:token`.
  *
@@ -16,8 +16,8 @@ import { trackPageview, identifyUser } from "../lib/analytics.js";
  *
  * identify is declared first so that, when the id is already known on a
  * navigation, it is sent before that path's pageview. When it arrives later,
- * PostHog joins the anonymous events to the account on identify, so the
- * pageview fired before it is not lost to the funnel. The id only — an email
+ * the pageview fired before it still carries the browser's own id, so it is
+ * not lost to the funnel. The id only — an email
  * address in a third-party tool is a liability with no benefit. */
 export function usePageAnalytics(pathname, userId) {
   useEffect(() => {

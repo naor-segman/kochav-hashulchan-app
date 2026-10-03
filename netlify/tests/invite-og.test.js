@@ -36,13 +36,13 @@ import handler from "../edge-functions/invite-og.js";
  */
 
 const SHELL = `<!doctype html><html><head>
-<title>רוויה — סידור הושבה, אישורי הגעה וניהול אירועים</title>
-<meta property="og:title" content="רוויה" />
+<title>Unica Plan — סידור הושבה, אישורי הגעה וניהול אירועים</title>
+<meta property="og:title" content="Unica Plan" />
 <meta property="og:description" content="סידור הושבה" />
-<meta name="twitter:title" content="רוויה" />
+<meta name="twitter:title" content="Unica Plan" />
 <meta name="twitter:description" content="סידור הושבה" />
-<link rel="canonical" href="https://revaya-events.co.il/" />
-<meta property="og:url" content="https://revaya-events.co.il/" />
+<link rel="canonical" href="https://plan.unica-events.co.il/" />
+<meta property="og:url" content="https://plan.unica-events.co.il/" />
 </head><body><div id="root"></div></body></html>`;
 
 const htmlResponse = (body = SHELL) =>
@@ -79,7 +79,7 @@ describe("the invitation's link preview", () => {
     const out = await run();
     const body = await out.text();
     expect(body).toContain("<title>אתר החתונה של דנה &amp; יוסי</title>");
-    expect(body).not.toContain("<title>רוויה – סידור");
+    expect(body).not.toContain("<title>Unica Plan – סידור");
   });
 
   it("rewrites all four social meta tags", async () => {
@@ -247,10 +247,10 @@ describe("the link names itself, not the homepage (106)", () => {
   // canonical pointing at the homepage — and a crawler that honours og:url
   // (Facebook's does) goes and previews the homepage instead.
   it("og:url and canonical are the link itself, without the query string", async () => {
-    const body = await (await run("https://revaya-events.co.il/rsvp/tok123?utm_source=wa")).text();
-    expect(body).toContain('<meta property="og:url" content="https://revaya-events.co.il/rsvp/tok123" />');
-    expect(body).toContain('<link rel="canonical" href="https://revaya-events.co.il/rsvp/tok123" />');
-    expect(body).not.toContain('content="https://revaya-events.co.il/"');
+    const body = await (await run("https://plan.unica-events.co.il/rsvp/tok123?utm_source=wa")).text();
+    expect(body).toContain('<meta property="og:url" content="https://plan.unica-events.co.il/rsvp/tok123" />');
+    expect(body).toContain('<link rel="canonical" href="https://plan.unica-events.co.il/rsvp/tok123" />');
+    expect(body).not.toContain('content="https://plan.unica-events.co.il/"');
   });
 
   it("the fixture above carries the tags the real shell carries", async () => {

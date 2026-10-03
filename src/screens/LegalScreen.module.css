@@ -108,6 +108,31 @@
 
 .text a:hover { text-decoration-thickness: 2px; }
 
+/* The privacy page's "הגדרות עוגיות" opens a dialog, so it is a button —
+   dressed as the links in the same text. */
+.inlineButton {
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.inlineButton:hover { text-decoration-thickness: 2px; }
+
+.inlineButton:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .inlineButton { min-height: 44px; }
+}
+
 .list {
   padding-inline-start: 20px;
   margin: 10px 0;

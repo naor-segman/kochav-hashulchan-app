@@ -53,7 +53,7 @@ describe("AccountScreen — deleting the account is a request (owner 2.10)", () 
     renderScreen();
     const link = screen.getByRole("link", { name: "בקשה למחיקת החשבון" });
     const href = decodeURIComponent(link.getAttribute("href"));
-    expect(href).toMatch(/^mailto:support@/);
+    expect(href).toMatch(/^mailto:plansupport@/);
     expect(href).toContain("subject=בקשה למחיקת החשבון");
     expect(href).toMatch(/אני מבקש\/ת למחוק את החשבון \S+@\S+/);
   });

@@ -14,7 +14,7 @@ describe("legal pages match the product", () => {
   it("privacy: no account-screen deletion; every processor named", () => {
     const t = read("./PrivacyScreen.jsx");
     expect(t).not.toMatch(/דרך מסך החשבון/);
-    for (const p of ["Supabase", "Netlify", "Google Fonts", "Anthropic", "PostHog", "Stripe"]) expect(t).toContain(p);
+    for (const p of ["Supabase", "Netlify", "Google Fonts", "Anthropic", "Google Analytics", "Stripe"]) expect(t).toContain(p);
     expect(t).toMatch(/<strong>טבלה שיתופית<\/strong> — כל השורות שבה, כולל טלפונים/);
   });
   it("terms: no subscription clause, no bit / PayBox", () => {

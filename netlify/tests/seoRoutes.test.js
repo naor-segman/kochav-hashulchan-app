@@ -47,7 +47,7 @@ describe("seo: every live service has metadata", () => {
 
   it("every canonical is absolute and on the real domain", () => {
     for (const p of SEO_PAGES) {
-      expect(pageCanonical(p), p.path).toMatch(/^https:\/\/revaya-events\.co\.il\//);
+      expect(pageCanonical(p), p.path).toMatch(/^https:\/\/plan\.unica-events\.co\.il\//);
     }
   });
 });

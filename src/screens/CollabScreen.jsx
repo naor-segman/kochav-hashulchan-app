@@ -459,7 +459,7 @@ export default function CollabScreen() {
         </main>
 
         <footer className={styles.footer}>
-          <Link to="/" className={styles.footerLink}><span aria-hidden="true">✦</span> נבנה ב{COMPANY.name}</Link>
+          <Link to="/" className={styles.footerLink}><span aria-hidden="true">✦</span> נבנה עם {COMPANY.name}</Link>
         </footer>
       </div>
     </div>

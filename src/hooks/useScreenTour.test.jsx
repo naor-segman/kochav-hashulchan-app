@@ -87,6 +87,19 @@ describe("useScreenTour", () => {
     expect(result.current.open).toBe(false);
   });
 
+  it("waits out the cookie question with no time limit, then opens (3.10)", async () => {
+    // The tour inerts everything else and would sit over the banner; and a
+    // first-time visitor reading the question for a minute must not lose the
+    // tour of the screen they came to — the 30s give-up does not apply.
+    block("data-consent-pending");
+    const { result } = renderHook(() => useScreenTour("start"));
+    await after(60000);
+    expect(result.current.open).toBe(false);
+    blocker.remove();
+    await after(800);
+    expect(result.current.open).toBe(true);
+  });
+
   it("never in an automated browser (every qa/ harness)", async () => {
     Object.defineProperty(navigator, "webdriver", { value: true, configurable: true });
     try {

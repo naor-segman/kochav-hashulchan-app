@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import styles from "./Footer.module.css";
 import { COMPANY, legalLine, supportMailto } from "../../data/company.js";
+import { openConsentSettings } from "../../utils/consent.js";
+import { analyticsConfigured } from "../../lib/analytics.js";
 
 export default function Footer() {
   return (
@@ -42,6 +44,10 @@ export default function Footer() {
             <Link to="/help" className={styles.colLink}>מרכז עזרה</Link>
             <a href={supportMailto()} className={styles.colLink}>צרו קשר</a>
             <Link to="/privacy" className={styles.colLink}>מדיניות פרטיות</Link>
+            {/* Changing the answer is as easy as giving it (owner 3.10). */}
+            {analyticsConfigured && (
+              <button type="button" className={`${styles.colLink} ${styles.colButton}`} onClick={openConsentSettings}>הגדרות עוגיות</button>
+            )}
             <Link to="/terms" className={styles.colLink}>תנאי שימוש</Link>
             <Link to="/refunds" className={styles.colLink}>ביטול והחזרים</Link>
             <Link to="/accessibility" className={styles.colLink}>הצהרת נגישות</Link>

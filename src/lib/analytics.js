@@ -1,160 +1,244 @@
 import { scrubRoute } from "../utils/errorReport.js";
+import { readConsent } from "../utils/consent.js";
+import { isGuestRoute } from "../utils/guestRoutes.js";
+import { loadGtag } from "./gaLoader.js";
 
 /**
- * Product analytics.  Checklist 18.
+ * Product analytics.  Checklist 18; Google Analytics 4 since 127 (owner 3.10).
  *
  * The question it exists to answer is not "how many visitors" — during the
  * pilot there will be five, and we know their names. It is "where do they
  * stop": of the people who sign up, how many create an event, reach the tables,
  * actually run the seating, and send a link to a guest. Without that we will
- * hear "it went fine" and learn nothing.
+ * hear "it went fine" and learn nothing. In GA that is Explore → Funnel
+ * exploration over the EVENTS below.
  *
- * ── posthog-js is loaded DYNAMICALLY, and only when a key exists ────────────
- * Measured: importing it statically added 85 KB gzipped to the initial chunk —
- * 214 KB against 129 KB, so two fifths of everything a first-time visitor
- * downloads. That chunk is also what a GUEST downloads when they open an RSVP
- * link on venue wifi, and they get no benefit from it at all. With no key it is
- * now never fetched; with one it arrives after the app is interactive.
+ * ── Why GA and not PostHog (owner, 3.10) ─────────────────────────────────────
+ * The owner already runs GA for Unica and wants one place. PostHog was chosen
+ * on 31.8 for its funnels; GA4 has them too, and no PostHog key was ever set,
+ * so nothing collected was lost.
  *
- * Because the module arrives late, calls made before it lands are queued rather
- * than dropped — the first pageview is the top of the funnel, and losing it
- * would understate every step below it.
+ * ── Nothing without the visitor's yes (126) ──────────────────────────────────
+ * gtag.js is not even requested until the cookie question is answered yes
+ * (src/components/consent/ConsentBanner.jsx). Calls made before the answer are
+ * held IN MEMORY, so a yes still counts the page it was given on; a no empties
+ * them. A guest page with no answer holds nothing at all — a guest who goes on
+ * to our home page and says yes there must not send the RSVP page after the
+ * fact (3.10 review, measured).
  *
- * ── Three things are deliberately turned OFF, and each one is a leak ─────────
+ * ── What PostHog's before_send did, GA has no hook for ───────────────────────
+ * PostHog let every outgoing event pass one scrubber. gtag.js does not, and it
+ * attaches the page's URL, referrer and title to every hit on its own. Nine
+ * public routes carry a TOKEN in the path (a token opens a guest list), the
+ * personal card carries a guest's NAME in its query, and a guest page's title
+ * is the hosts' names. So:
+ *   • page_location, page_referrer and page_title are SET to scrubbed values
+ *     before every hit, so anything gtag adds by itself carries those;
+ *   • send_page_view is off — we send our own, after the path is scrubbed;
+ *   • every event parameter that looks like a path or a URL goes through the
+ *     same scrubRoute as the error reporter (scrubParams);
+ *   • Google signals and ad personalisation are off; ad storage is denied.
+ * What code cannot reach, the owner switches off in GA itself (WORKPLAN 127):
+ * ENHANCED MEASUREMENT, ALL OF IT. Its history-based page views, site search
+ * and form interactions read the raw URL, and its outbound-click event sends
+ * the link's href — the WhatsApp share buttons are wa.me links whose text
+ * carries a guest link with its token.
  *
- * `autocapture: false`
- *   PostHog's default records every click INCLUDING the text of the element
- *   clicked. On the guest manager that text is a real person's name, and on
- *   the RSVP list it is their phone number. Those people never visited this
- *   site and never agreed to anything. It is the single most dangerous default
- *   in this library for a product shaped like ours.
- *
- * `capture_pageview: false`
- *   The automatic pageview sends `window.location.href`. Nine public routes
- *   carry a TOKEN in the path — /rsvp/<token>, /gift/<token>, /album/<token> —
- *   and a token is a credential: anyone holding one can open somebody's guest
- *   list. We send our own through the same `scrubRoute` the error reporter
- *   uses, so `/rsvp/8f3c…` arrives as `/rsvp/:token`. One implementation of
- *   that rule, not two.
- *
- * `disable_session_recording: true`
- *   Same reason as autocapture, one step worse: a replay of the guest screen
- *   is a recording of three hundred names and phone numbers.
- *
- * src/lib/analytics.test.js fails if any of the three comes back.
- *
- * ── And a fourth: every URL posthog-js attaches ON ITS OWN ───────────────────
- * The scrubbed $current_url above was not enough, and the comments said it
- * was. posthog-js adds `$pathname`, `$referrer`, `$initial_referrer` and the
- * initial URL to EVERY event and to the person record — so a guest opening
- * /collab/<token> still sent the raw token in `$pathname` on the pageview, and
- * `track(RSVP_RECEIVED)` from /rsvp/<token> sent it in both. The collab token
- * opens the whole guest list, phone numbers included. Found independently by
- * two agents in the 28.9 audit, confirmed against posthog-js's own bundle.
- *
- * `before_send` now runs every outgoing event through scrubEvent(): each string
- * that looks like a path or a URL, in `properties`, `$set` and `$set_once`,
- * goes through scrubRoute. One rule for what a token-bearing URL may look like
- * when it leaves the browser, applied to everything rather than field by field.
+ * ── Its cookies are its own ─────────────────────────────────────────────────
+ * The site is moving under unica-events.co.il, whose own site runs GA too. By
+ * default GA writes `_ga` on the top domain — shared with that site, and a
+ * withdrawal here would delete theirs. So the cookie is prefixed (kh_…) and
+ * scoped to this host, and lasts 13 months rather than GA's two years.
  */
 
 /**
- * Take the tokens out of every URL-ish string in an outgoing PostHog event.
- * Pure, exported for the test. Returns the event (mutated copy) or null to
- * drop — never throws, because analytics must never break the app.
+ * Take the tokens out of every URL-ish string in a set of event parameters.
+ * Pure, exported for the test. Returns a copy, or null to drop the event —
+ * never throws, because analytics must never break the app.
  */
-export function scrubEvent(ev) {
+export function scrubParams(params) {
   try {
-    if (!ev || typeof ev !== "object") return ev;
-    const clean = (bag) => {
-      if (!bag || typeof bag !== "object") return bag;
-      const out = { ...bag };
-      // PostHog attaches document.title to every pageview, and a guest page's
-      // title is the hosts' names ("אישור הגעה · דנה ויוסי" — useGuestTitle).
-      // Names are not what the funnel needs (29.9 review).
-      delete out.title;
-      delete out.$title;
-      for (const [k, v] of Object.entries(out)) {
-        if (typeof v === "string" && (v.startsWith("/") || /^https?:\/\//i.test(v))) {
-          out[k] = scrubRoute(v);
-        }
+    if (params == null) return {};
+    if (typeof params !== "object") return null;
+    const out = { ...params };
+    // A guest page's title is the hosts' names ("אישור הגעה · דנה ויוסי" —
+    // useGuestTitle). Names are not what the funnel needs (29.9 review).
+    delete out.title;
+    delete out.page_title;
+    for (const [k, v] of Object.entries(out)) {
+      if (typeof v === "string" && (v.startsWith("/") || /^https?:\/\//i.test(v))) {
+        out[k] = scrubUrl(v);
       }
-      return out;
-    };
-    return { ...ev, properties: clean(ev.properties), $set: clean(ev.$set), $set_once: clean(ev.$set_once) };
+    }
+    return out;
   } catch {
     return null;   // if we cannot be sure it is clean, it does not leave
   }
 }
 
-const KEY  = import.meta.env?.VITE_POSTHOG_KEY;
-const HOST = import.meta.env?.VITE_POSTHOG_HOST || "https://eu.i.posthog.com";
+/** A full URL with its path scrubbed; another site's URL is cut to its origin. */
+function scrubUrl(v) {
+  if (v.startsWith("/")) return scrubRoute(v);
+  const u = new URL(v);
+  if (typeof location !== "undefined" && u.origin !== location.origin) return u.origin + "/";
+  return u.origin + scrubRoute(u.pathname + u.search + u.hash);
+}
 
-let ph      = null;    // the posthog module, once it has landed
-let loading = false;
-const queue = [];      // calls made while the module was still in flight
-const QUEUE_MAX = 20;  // a load that never resolves must not grow memory
+// Only a real measurement id reaches the script URL.
+const RAW_ID = import.meta.env?.VITE_GA_ID || "";
+const GA_ID = /^G-[A-Z0-9]{4,20}$/.test(RAW_ID) ? RAW_ID : "";
+
+const COOKIE_PREFIX = "kh";
+const BASE_CONFIG = {
+  send_page_view: false,
+  allow_google_signals: false,
+  allow_ad_personalization_signals: false,
+  cookie_prefix: COOKIE_PREFIX,
+  cookie_expires: 60 * 60 * 24 * 395,   // 13 months
+};
+
+let gtag    = null;    // set once gtag.js is set up
+let stopped = false;   // withdrawn in this visit
+let allowed = null;    // this visit's answer: null = not asked yet
+let userId  = null;
+const queue = [];      // calls made before consent
+const QUEUE_MAX = 20;  // a visitor who never answers must not grow memory
+
+/** Whether there is anything to ask about — no id, no banner. */
+export const analyticsConfigured = !!GA_ID;
+
+function onGuestPage() {
+  try { return isGuestRoute(globalThis.location?.pathname); } catch { return false; }
+}
+
+function consented() {
+  return allowed ?? readConsent()?.analytics ?? null;
+}
 
 function run(fn) {
   try {
-    if (ph) { fn(ph); return; }
-    if (!KEY) return;                       // dark: nothing to queue for
+    if (!GA_ID || stopped) return;          // dark, or withdrawn this visit
+    const c = consented();
+    if (c === false) return;                // said no: not even held
+    // A guest page with no answer: not held either (see the header).
+    if (c === null && onGuestPage()) return;
+    if (gtag && c) { fn(gtag); return; }
     if (queue.length < QUEUE_MAX) queue.push(fn);
   } catch { /* analytics must never break the app */ }
 }
 
-export function initAnalytics() {
-  if (!KEY || loading || ph) return;
-  loading = true;
-  import("posthog-js")
-    .then((mod) => {
-      const p = mod.default;
-      p.init(KEY, {
-        api_host: HOST,
-        autocapture: false,
-        capture_pageview: false,
-        capture_pageleave: false,
-        disable_session_recording: true,
-        persistence: "localStorage",   // no cross-site cookie
-        before_send: scrubEvent,       // tokens out of EVERY url posthog attaches
-        // PostHog's feature-flag call does NOT pass through before_send, and it
-        // carried "$initial_current_url": ".../collab/<raw token>" for every
-        // guest route (second review, סב10, measured on its decoded request).
-        // Nothing here reads a flag, so the call goes, and remote config with it.
-        advanced_disable_flags: true,
-      });
-      ph = p;
-      // Flush in the order the app made them, so the funnel keeps its shape.
-      while (queue.length) { try { queue.shift()(p); } catch { /* ignore */ } }
-    })
-    .catch(() => { loading = false; });     // offline, blocked, ad-blocker
+function cookieDomain() {
+  try { return globalThis.location?.hostname || "auto"; } catch { return "auto"; }
 }
 
-/** A named event. Properties are passed explicitly — nothing is inferred. */
+function config(extra) {
+  gtag("config", GA_ID, { ...BASE_CONFIG, cookie_domain: cookieDomain(), user_id: userId, ...extra });
+}
+
+/** Starts measurement — only if this browser has said yes. */
+export function initAnalytics() {
+  if (!GA_ID || gtag || stopped || consented() !== true) return;
+  try {
+    const g = loadGtag(GA_ID);
+    // Ads never: nothing here is advertising, and these stay denied whatever
+    // the visitor answered.
+    g("consent", "default", {
+      ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied",
+      analytics_storage: "granted",
+    });
+    g("js", new Date());
+    gtag = g;
+    setPage(globalThis.location?.pathname || "/");
+    config();
+    // Flush in the order the app made them, so the funnel keeps its shape.
+    while (queue.length) { try { queue.shift()(g); } catch { /* ignore */ } }
+  } catch { /* blocked, no document — analytics must never break the app */ }
+}
+
+/** The page every later hit is attributed to — scrubbed, so whatever gtag
+ *  attaches by itself carries the clean values too. */
+function setPage(pathname) {
+  const path = scrubRoute(pathname);
+  let referrer = "";
+  try { referrer = document.referrer ? scrubUrl(document.referrer) : ""; } catch { /* none */ }
+  gtag("set", {
+    page_location: (globalThis.location?.origin || "") + path,
+    page_referrer: referrer,
+    page_title: path,
+  });
+  return path;
+}
+
+/** Delete the GA cookies this site wrote — ours only (the kh prefix).
+ *  Matched on "kh_" and not on an exact name: whether gtag.js joins the prefix
+ *  as kh_ga or kh__ga could not be checked from here (Google's hosts are
+ *  blocked), and the 3.10 audit found the exact-name match missed kh__ga. */
+function deleteCookies() {
+  try {
+    const host = globalThis.location?.hostname || "";
+    const names = document.cookie.split(";").map(c => c.split("=")[0].trim())
+      .filter(n => n.startsWith(COOKIE_PREFIX + "_"));
+    for (const n of names) {
+      for (const d of ["", host, "." + host]) {
+        document.cookie = `${n}=; Max-Age=0; path=/${d ? "; domain=" + d : ""}`;
+      }
+    }
+  } catch { /* no document */ }
+}
+
+/**
+ * The visitor answered (the banner, or the preferences later). Yes starts
+ * measurement and sends what was held; no drops what was held and, if
+ * measurement was already running, stops it and deletes its cookies.
+ *
+ * A yes AFTER a withdrawal takes effect from the next page load. gtag.js may
+ * still hold the old client id in memory, and a fresh load is the one way to be
+ * sure the visits before the no are not tied to the ones after.
+ */
+export function applyConsent(yes) {
+  allowed = yes === true;
+  if (!GA_ID) return;
+  if (allowed) { initAnalytics(); return; }
+  queue.length = 0;
+  if (!gtag) return;
+  stopped = true;
+  try { window["ga-disable-" + GA_ID] = true; } catch { /* ignore */ }
+  try { gtag("consent", "update", { analytics_storage: "denied" }); } catch { /* ignore */ }
+  deleteCookies();
+}
+
+/** A named event. Parameters are passed explicitly — nothing is inferred. */
 export function track(event, props) {
-  run(p => p.capture(event, props));
+  const clean = scrubParams(props);
+  if (clean === null) return;
+  run(g => g("event", event, clean));
 }
 
 /** A pageview with the tokens taken out of the path. */
 export function trackPageview(pathname) {
-  const url = scrubRoute(pathname);
-  run(p => p.capture("$pageview", { $current_url: url }));
+  run(() => {
+    const path = setPage(pathname);
+    gtag("event", "page_view", {
+      page_location: (globalThis.location?.origin || "") + path,
+      page_title: path,
+    });
+  });
 }
 
 /**
  * Tie the events to an account once we know who it is.
  *
  * The id only — not the email. The funnel question is "did THIS person get
- * stuck", which an opaque id answers, and an email address in a third-party
- * tool is a liability with no matching benefit.
+ * stuck", which an opaque id answers; Google's terms forbid sending anything
+ * that identifies a person, and an email address would.
  */
-export function identifyUser(userId) {
-  if (!userId) return;
-  run(p => p.identify(userId));
+export function identifyUser(id) {
+  if (!id) return;
+  run(() => { userId = String(id); config(); });
 }
 
 export function resetAnalytics() {
-  run(p => p.reset());
+  run(() => { userId = null; config(); });
 }
 
 /* The funnel, named in one place so a typo cannot silently split a step in two.
@@ -166,6 +250,8 @@ export const EVENTS = {
   SHARE_COPIED:   "share_link_copied",
   RSVP_RECEIVED:  "rsvp_received",
   // The gift page's only step (WORKPLAN מ2). Guest's device, like RSVP.
+  // GA shows a parameter in reports only once it is registered as a custom
+  // dimension (type, source, answer, amount_band, …) — WORKPLAN 127.
   GIFT_DECLARED:  "gift_declared",
 };
 

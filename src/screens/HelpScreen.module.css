@@ -66,3 +66,22 @@
      starts losing its place on the return sweep. */
   max-width: 62ch;
 }
+
+/* The support address on its own line (see HelpScreen). --step-0 keeps it
+   inside the 272px column at 320 without breaking it; the block box and the
+   coarse-pointer height make it a real touch target, not a 20px text run. */
+.mail {
+  display: block;
+  width: fit-content;
+  font-size: var(--step-0);
+  white-space: nowrap;
+  padding-block: 6px;
+}
+
+@media (pointer: coarse) {
+  .mail {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

@@ -233,6 +233,14 @@
    in 15 harnesses could not fire on an RTL page (see qa/README.md), and the
    header harness only measured 390 and 1280. qa/siteHeader.mjs now sweeps
    the widths in between. */
+/* 1024–1199: the links are back, and "Unica Plan" (128) is wider than the
+   Hebrew name it replaced. qa/siteHeader.mjs measured "התחילו חינם" 26px off
+   the screen at 1024. The gaps give way before anything else does. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .navInner { gap: 24px; }
+  .navLinks { gap: 20px; }
+}
+
 @media (max-width: 1023px) {
   .navLinks { display: none; }
   .navLoginBtn { display: none; }

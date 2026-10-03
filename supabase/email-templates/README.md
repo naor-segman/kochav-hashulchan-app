@@ -1,4 +1,4 @@
-# מיילים ממותגים — רוויה
+# מיילים ממותגים — Unica Plan
 
 מדריך להפעלת מיילים בעברית ממותגים (במקום המייל הגנרי באנגלית מ־"Supabase Auth").
 כל הפעולות הן ב־**דשבורד Supabase** של הפרויקט — לא בקוד. הקוד כבר תומך (יש מסך
@@ -15,7 +15,7 @@
 | שדה | מה למלא |
 |---|---|
 | Sender email | כתובת מהדומיין שלכם, למשל `noreply@kochav-hashulchan.co.il` |
-| Sender name | **רוויה** |
+| Sender name | **Unica Plan** |
 | Host / Port / User / Pass | פרטי ספק ה־SMTP (Resend / Postmark / Brevo / SendGrid / Gmail Workspace…) |
 
 > ספק מומלץ ופשוט: **Resend** (יש free tier). דורש אימות דומיין (SPF/DKIM) כדי
@@ -30,8 +30,8 @@
 
 | תבנית ב־Supabase | Subject | קובץ HTML |
 |---|---|---|
-| **Confirm signup** | `אישור כתובת האימייל — רוויה` | `confirm-signup.html` |
-| **Reset password** | `איפוס סיסמה — רוויה` | `reset-password.html` |
+| **Confirm signup** | `אישור כתובת האימייל — Unica Plan` | `confirm-signup.html` |
+| **Reset password** | `איפוס סיסמה — Unica Plan` | `reset-password.html` |
 
 > אפשר לעצב באותו סגנון גם את *Magic Link* / *Change email* / *Invite* אם תשתמשו
 > בהם בעתיד — אותו header/footer, רק להחליף את הטקסט.
@@ -61,7 +61,7 @@
 ## 4. בדיקה
 
 1. במסך הכניסה → "שכחתם סיסמה?" → הזינו אימייל.
-2. המייל אמור להגיע **בעברית, מהשולח "רוויה"**, עם כפתור "בחירת סיסמה חדשה".
+2. המייל אמור להגיע **בעברית, מהשולח "Unica Plan"**, עם כפתור "בחירת סיסמה חדשה".
 3. הכפתור מוביל ל־`/reset-password` → בוחרים סיסמה → מועברים לאפליקציה.
 
 אם המייל עדיין באנגלית/גנרי → SMTP לא הופעל (שלב 1) או שהתבניות לא נשמרו (שלב 2).

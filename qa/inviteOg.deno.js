@@ -22,14 +22,14 @@ async function run(path, ev = EV, ct = "text/html; charset=utf-8") {
   reply = async () => new Response(JSON.stringify(ev), { status: 200 });
   const res = new Response(SHELL, { status: 200, headers: { "content-type": ct } });
   const t0 = Date.now();
-  const out = await fn(new Request("https://revaya-events.co.il" + path), { next: async () => res });
+  const out = await fn(new Request("https://plan.unica-events.co.il" + path), { next: async () => res });
   return { html: await out.text(), ms: Date.now() - t0 };
 }
 let r = await run("/rsvp/tok12345?utm_source=wa");
 ok(pick(r.html, T) === "אישור הגעה · דנה &amp; יוסי", "rsvp: title", pick(r.html, T));
 ok(pick(r.html, OGT) === "אישור הגעה · דנה &amp; יוסי", "rsvp: og:title");
-ok(pick(r.html, OGU) === "https://revaya-events.co.il/rsvp/tok12345", "rsvp: og:url is the link itself, no query", pick(r.html, OGU));
-ok(pick(r.html, CAN) === "https://revaya-events.co.il/rsvp/tok12345", "rsvp: canonical is the link itself", pick(r.html, CAN));
+ok(pick(r.html, OGU) === "https://plan.unica-events.co.il/rsvp/tok12345", "rsvp: og:url is the link itself, no query", pick(r.html, OGU));
+ok(pick(r.html, CAN) === "https://plan.unica-events.co.il/rsvp/tok12345", "rsvp: canonical is the link itself", pick(r.html, CAN));
 ok(/^https:\/\//.test(pick(r.html, OGI)), "og:image is absolute", pick(r.html, OGI));
 ok((r.html.match(/<title>/g) || []).length === 1 && (r.html.match(/og:url/g) || []).length === 1, "one title, one og:url");
 
@@ -44,7 +44,7 @@ for (const [path, want] of [
 ]) {
   const x = await run(path);
   ok(pick(x.html, T) === want, `${path.split("/")[1]}: title`, pick(x.html, T));
-  ok(pick(x.html, OGU) === "https://revaya-events.co.il" + path, `${path.split("/")[1]}: og:url is the link`, pick(x.html, OGU));
+  ok(pick(x.html, OGU) === "https://plan.unica-events.co.il" + path, `${path.split("/")[1]}: og:url is the link`, pick(x.html, OGU));
 }
 
 r = await run("/invite/tok12345");
@@ -52,7 +52,7 @@ ok(pick(r.html, T) === "אתר החתונה של דנה &amp; יוסי", "invite
 r = await run("/album/tok12345/");
 ok(pick(r.html, T) === "אלבום התמונות · דנה &amp; יוסי", "album with trailing slash", pick(r.html, T));
 r = await run("/gift/tok12345/wall");
-ok(pick(r.html, T).startsWith("רוויה"), "the projected wall is left alone", pick(r.html, T));
+ok(pick(r.html, T).startsWith("Unica Plan"), "the projected wall is left alone", pick(r.html, T));
 
 r = await run("/rsvp/tok12345", { ...EV, bride_name: `דנה "$'<b>`, groom_name: "יוסי 💍" });
 ok(pick(r.html, T) === "אישור הגעה · דנה &quot;$'&lt;b&gt; &amp; יוסי 💍", "quotes, $', tags, emoji: escaped, nothing expanded", pick(r.html, T));
@@ -72,16 +72,16 @@ ok(r.html === SHELL, "a non-HTML response is untouched");
 
 reply = async () => new Response("boom", { status: 500 });
 r = await (async () => { const res = new Response(SHELL, { headers: { "content-type": "text/html" } });
-  const o = await fn(new Request("https://revaya-events.co.il/rsvp/tok12345"), { next: async () => res }); return { html: await o.text() }; })();
-ok(pick(r.html, T).startsWith("רוויה"), "server error: the page is served as it was");
+  const o = await fn(new Request("https://plan.unica-events.co.il/rsvp/tok12345"), { next: async () => res }); return { html: await o.text() }; })();
+ok(pick(r.html, T).startsWith("Unica Plan"), "server error: the page is served as it was");
 
 reply = (_b, signal) => new Promise((res, rej) => { const id = setTimeout(() => res(new Response(JSON.stringify(EV))), 5000);
   signal.addEventListener("abort", () => { clearTimeout(id); rej(new DOMException("aborted", "AbortError")); }); });
 const t0 = Date.now();
 { const res = new Response(SHELL, { headers: { "content-type": "text/html" } });
-  const o = await fn(new Request("https://revaya-events.co.il/rsvp/tok12345"), { next: async () => res });
+  const o = await fn(new Request("https://plan.unica-events.co.il/rsvp/tok12345"), { next: async () => res });
   const h = await o.text(); const ms = Date.now() - t0;
-  ok(ms < 2600 && pick(h, T).startsWith("רוויה"), "a 5s backend does not hold the page past ~2s", `${ms}ms`); }
+  ok(ms < 2600 && pick(h, T).startsWith("Unica Plan"), "a 5s backend does not hold the page past ~2s", `${ms}ms`); }
 
 console.log(fails ? `\n${fails} FAILED` : "\nall passed");
 Deno.exit(fails ? 1 : 0);
