@@ -14,12 +14,16 @@
 
 | שדה | מה למלא |
 |---|---|
-| Sender email | כתובת מהדומיין שלכם, למשל `noreply@kochav-hashulchan.co.il` |
+| Sender email | `plan@unica-events.co.il` |
 | Sender name | **Unica Plan** |
-| Host / Port / User / Pass | פרטי ספק ה־SMTP (Resend / Postmark / Brevo / SendGrid / Gmail Workspace…) |
+| Host | `mail.myinbox.co.il` |
+| Port | `587` |
+| Username | `plan@unica-events.co.il` |
+| Password | סיסמת התיבה (אצל הבעלים בלבד) |
+| Minimum interval per user | `60` (ברירת המחדל) |
 
-> ספק מומלץ ופשוט: **Resend** (יש free tier). דורש אימות דומיין (SPF/DKIM) כדי
-> שהמיילים לא ייכנסו לספאם.
+> **פעיל מ-3.10** — התיבה אצל MyNames/MyInbox, נבדק במייל אמיתי. תשובות למייל
+> מגיעות ל-`plan@`.
 
 ---
 
@@ -36,8 +40,12 @@
 > אפשר לעצב באותו סגנון גם את *Magic Link* / *Change email* / *Invite* אם תשתמשו
 > בהם בעתיד — אותו header/footer, רק להחליף את הטקסט.
 
-התבניות משתמשות במשתנה `{{ .ConfirmationURL }}` בלבד (Supabase מזריק לתוכו את
-הקישור הנכון לכל סוג מייל).
+התבניות **לא** משתמשות ב-`{{ .ConfirmationURL }}` (131, 3.10). זה קישור חד-פעמי
+שנשרף בפתיחה הראשונה — וסורקי מייל (Outlook ואחרים) פותחים כל קישור לפני
+שהאדם לוחץ, כך שהוא הגיע ל"הקישור אינו תקף". במקומו:
+`{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery` ו-
+`{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email` — הדף שלנו
+מאמת את הקוד רק בלחיצה של האדם. לכן **Site URL חייב להיות כתובת האתר**.
 
 ---
 
@@ -45,16 +53,15 @@
 
 **Authentication → URL Configuration:**
 
-- **Site URL:** כתובת הפרודקשן, למשל `https://kochav-hashulchan.co.il`
+- **Site URL:** `https://plan.unica-events.co.il` (בלי `/` בסוף — התבניות מוסיפות אותו)
 - **Redirect URLs (allow list):** הוסיפו את שתי אלה (וגם וריאנט localhost לפיתוח):
   ```
-  https://<הדומיין-שלכם>/auth/callback
-  https://<הדומיין-שלכם>/reset-password
+  https://plan.unica-events.co.il/**
   http://localhost:5173/auth/callback
   http://localhost:5173/reset-password
   ```
 
-בלי הכתובות האלה ב־allow list, לינק האיפוס/האישור ייחסם או יופנה ל־Site URL.
+בלי הכתובות האלה ב־allow list, "שלחו לי קישור חדש" מתוך האתר עלול להיות מופנה ל־Site URL במקום לדף האיפוס.
 
 ---
 

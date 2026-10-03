@@ -52,8 +52,9 @@ describe("claims the product contradicts (סב60c)", () => {
 
   it("the auth callback speaks in the plural", () => {
     const s = src("./AuthCallbackScreen.jsx");
-    expect(s).not.toMatch(/נסה להתחבר|"[^"]*מעביר…"/);
-    expect(s).toMatch(/נסו להתחבר/);
+    expect(s).not.toMatch(/נסה להתחבר|היכנס לחשבון|"[^"]*מעביר…"/);
+    // Since 131 (3.10) the spent-link line is "פשוט היכנסו לחשבון" — still plural.
+    expect(s).toMatch(/נסו להתחבר|היכנסו לחשבון/);
   });
 
   it("the enterprise card writes to the sales mailbox with a Hebrew subject", () => {
