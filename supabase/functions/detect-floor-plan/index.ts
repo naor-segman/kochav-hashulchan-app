@@ -159,8 +159,12 @@ Deno.serve(async (req: Request) => {
 
     if (!anthropicResponse.ok) {
       const errBody = await anthropicResponse.text();
+      // The status and body (a bad key, an overloaded model) go to the log —
+      // where 13.8's misconfigured key was finally found — not to the caller
+      // (audit 3.10, S5). The host gets a sentence; the owner reads the log.
       console.error("Anthropic API error:", anthropicResponse.status, errBody);
-      return json({ error: `Anthropic API returned ${anthropicResponse.status}` }, 502);
+      return json({ error: "model_unavailable",
+                    note: "הזיהוי האוטומטי לא זמין כרגע. נסו שוב בעוד כמה דקות." }, 502);
     }
 
     const result = await anthropicResponse.json() as any;
@@ -191,7 +195,9 @@ Deno.serve(async (req: Request) => {
       parsed = JSON.parse(cleaned);
     } catch {
       console.error("JSON parse failed on Anthropic response:", rawText);
-      return json({ error: "Could not parse detection result", raw: rawText }, 502);
+      // The model's raw text stays in the log: it is not the caller's to read.
+      return json({ error: "unreadable_result",
+                    note: "לא הצלחנו לקרוא את תוצאת הזיהוי. נסו תמונה ברורה יותר." }, 502);
     }
 
     const tables: Array<{ index: number; seats: number; x: number; y: number }> =
@@ -209,6 +215,6 @@ Deno.serve(async (req: Request) => {
 
   } catch (err: any) {
     console.error("detect-floor-plan error:", err?.message ?? err);
-    return json({ error: String(err?.message ?? err) }, 500);
+    return json({ error: "detect_failed", note: "הזיהוי נכשל. נסו שוב בעוד רגע." }, 500);
   }
 });

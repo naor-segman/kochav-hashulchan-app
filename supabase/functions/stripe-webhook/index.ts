@@ -157,9 +157,11 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("STRIPE_WEBHOOK_SECRET")!
     );
   } catch (err: any) {
-    const message: string = err?.message ?? String(err);
-    console.error("Webhook signature verification failed:", message);
-    return new Response(`Webhook signature verification failed: ${message}`, { status: 400 });
+    // The reason (which header, which timestamp, what was expected) goes to
+    // the log only: echoed back, it coached whoever is forging the request
+    // (audit 3.10, S5). Stripe's dashboard shows the 400 either way.
+    console.error("Webhook signature verification failed:", err?.message ?? String(err));
+    return new Response("Webhook signature verification failed", { status: 400 });
   }
 
   // ── Event dispatch ─────────────────────────────────────────────────────────

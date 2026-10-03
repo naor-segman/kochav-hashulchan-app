@@ -294,8 +294,10 @@ Deno.serve(async (req: Request) => {
     return json({ url: session.url });
 
   } catch (err: any) {
-    const message: string = err?.message ?? String(err);
-    console.error("create-checkout-session error:", message);
-    return json({ error: message }, 500);
+    // Stripe's and the database's own words go to the log, not to the caller
+    // (audit 3.10, S5) — they named customer ids and configuration. The app
+    // shows its own Hebrew sentence for any non-Hebrew error (billingErrorMessage).
+    console.error("create-checkout-session error:", err?.message ?? String(err));
+    return json({ error: "checkout_failed" }, 500);
   }
 });

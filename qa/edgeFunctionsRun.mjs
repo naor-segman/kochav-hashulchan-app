@@ -62,6 +62,28 @@ try {
      'a valid request claims, then calls the model', JSON.stringify(d.ok?.calls));
   ok(d['user-limit']?.status === 429 && /בעוד שעה/.test(note(d['user-limit'])), 'the host\'s own limit: 429 "נסו שוב בעוד שעה"', note(d['user-limit']));
   ok(d['global-limit']?.status === 429 && /עמוס היום/.test(note(d['global-limit'])), 'the global daily limit: 429 "עמוס היום"', note(d['global-limit']));
+  // S5 — the stub plants SECRET-DETAIL-… in every upstream answer and error.
+  for (const [n, st] of [['model-garbage', 502], ['model-down', 502], ['throws', 500]]) {
+    ok(d[n]?.status === st && !d[n].leaked && /[֐-׿]/.test(note(d[n])),
+       `${n}: ${st}, a Hebrew note, and nothing of the upstream answer`, d[n]?.body?.slice(0, 120));
+  }
+
+  console.log('\n── create-checkout-session');
+  const { res: c } = run('create-checkout-session');
+  for (const n of ['stripe-error', 'stripe-throws']) {
+    ok(c[n]?.status === 500 && !c[n].leaked, `${n}: 500 without Stripe's words`, c[n]?.body?.slice(0, 120));
+  }
+  ok(c['stripe-error']?.calls?.some(k => k.includes('stripe.com')), '(the Stripe call really was made and failed)', JSON.stringify(c['stripe-error']?.calls?.slice(-1)));
+
+  console.log('\n── create-billing-portal');
+  const { res: p } = run('create-billing-portal');
+  ok(p['stripe-error']?.status === 500 && !p['stripe-error'].leaked, 'stripe-error: 500 without Stripe\'s words', p['stripe-error']?.body?.slice(0, 120));
+  ok(p['stripe-error']?.calls?.some(k => k.includes('stripe.com')), '(the Stripe call really was made and failed)');
+
+  console.log('\n── stripe-webhook');
+  const { res: w } = run('stripe-webhook');
+  ok(w['bad-signature']?.status === 400 && w['bad-signature'].body === 'Webhook signature verification failed',
+     'a forged signature: 400 and a fixed sentence, not Stripe\'s reason', w['bad-signature']?.body?.slice(0, 120));
 } finally {
   rmSync(OUT, { recursive: true, force: true });
 }

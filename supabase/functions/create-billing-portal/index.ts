@@ -122,8 +122,8 @@ Deno.serve(async (req: Request) => {
     return json({ url: session.url });
 
   } catch (err: any) {
-    const message: string = err?.message ?? String(err);
-    console.error("create-billing-portal error:", message);
-    return json({ error: message }, 500);
+    // To the log, not the caller (audit 3.10, S5) — see create-checkout-session.
+    console.error("create-billing-portal error:", err?.message ?? String(err));
+    return json({ error: "portal_failed" }, 500);
   }
 });
