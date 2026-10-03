@@ -70,15 +70,31 @@ function statusOf(text) {
   for (const [k, re] of MARKS) if (re.test(t)) return k;
   return "";
 }
+/** A row's status. The review-round tables put the finding (often opening
+ *  with 🔴 — a severity, not a state) first and the outcome (✅ …) in a later
+ *  column, so the LAST column that carries a mark wins; the "who" column
+ *  (👤 / 🤖) is an owner, not a state, and is skipped. */
+function rowStatus(r) {
+  for (let i = r.length - 1; i >= 0; i--) {
+    const c = (r[i] ?? "").trim();
+    if (i >= 2 && /^(👤|🤖)/u.test(c) && c.length < 30) continue;
+    const st = statusOf(c);
+    if (st) return st;
+  }
+  return "";
+}
 const LABEL = { done: "סגור", wait: "מחכה לך", hold: "מושהה", work: "בעבודה", urgent: "דחוף", open: "פתוח" };
 
 function table(rows) {
   const head = cells(rows[0]);
   const body = rows.slice(2).map(cells);
   const numbered = /^#$|^מס|^סדר$/.test(head[0]);
+  // A table with a commit column lists what WAS done ("מה תוקן | קומיט",
+  // "ההחלטה | מה נעשה | קומיט"): a row there without its own mark is closed.
+  const doneTable = head.some((h) => /קומיט/.test(h));
   let h = `<div class="tbl${numbered ? " list" : ""}"><table><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>`;
   for (const r of body) {
-    const st = statusOf(r[1] ?? "") || statusOf(r[0] ?? "") || statusOf(r[2] ?? "");
+    const st = rowStatus(r) || (doneTable && /[0-9a-f]{7}/.test(r[r.length - 1] ?? "") ? "done" : "");
     h += `<tr${st ? ` class="st-${st}"` : ""}>`;
     r.forEach((c, i) => {
       const lab = head[i] ? ` data-h="${esc(head[i].replace(/[*`]/g, ""))}"` : "";
