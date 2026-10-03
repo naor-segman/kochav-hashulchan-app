@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { corsHeaders } from "../_shared/cors.js";
 // =============================================================================
 // detect-floor-plan — Supabase Edge Function
 //
@@ -16,16 +17,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 //   supabase functions deploy detect-floor-plan
 // =============================================================================
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(data: unknown, status = 200) {
+// CORS: the request's Origin is echoed only when it is in APP_ORIGINS — this
+// answered `*` to every site until audit 3.10 (S6). See _shared/cors.js.
+function json(data: unknown, status = 200, cors: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 }
 
@@ -53,8 +50,11 @@ If no tables can be detected (image is unclear, not a floor plan, etc.):
 { "tables": [], "note": "explanation of why no tables were found" }`;
 
 Deno.serve(async (req: Request) => {
+  const cors = corsHeaders(req.headers.get("Origin"), Deno.env.get("APP_ORIGINS"));
+  const reply = (data: unknown, status = 200) => json(data, status, cors);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: CORS_HEADERS });
+    return new Response(null, { headers: cors });
   }
 
   // Every call spends the project's Anthropic key, so it has to belong to a
@@ -62,7 +62,7 @@ Deno.serve(async (req: Request) => {
   // holding the anon key — which ships in the browser bundle — from any origin,
   // in a loop, billed to us. The two billing functions already do exactly this.
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return json({ error: "Unauthorized" }, 401);
+  if (!authHeader) return reply({ error: "Unauthorized" }, 401);
 
   const supabaseUser = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
     { global: { headers: { Authorization: authHeader } } },
   );
   const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
-  if (authError || !user) return json({ error: "Unauthorized" }, 401);
+  if (authError || !user) return reply({ error: "Unauthorized" }, 401);
 
   // Everything that can be checked for free is checked BEFORE the claim (audit
   // 3.10, S4). The claim used to come first, so a request with no key
@@ -78,25 +78,25 @@ Deno.serve(async (req: Request) => {
   // detections — and a missing key burned every host's daily quota.
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) {
-    return json({ error: "ANTHROPIC_API_KEY is not configured for this environment." }, 503);
+    return reply({ error: "ANTHROPIC_API_KEY is not configured for this environment." }, 503);
   }
 
   let imageBase64: string, mimeType: string;
   try {
     ({ imageBase64, mimeType } = await req.json() as { imageBase64: string; mimeType: string });
   } catch {
-    return json({ error: "invalid JSON body" }, 400);
+    return reply({ error: "invalid JSON body" }, 400);
   }
   if (!imageBase64 || !mimeType) {
-    return json({ error: "imageBase64 and mimeType are required" }, 400);
+    return reply({ error: "imageBase64 and mimeType are required" }, 400);
   }
   // ~8MB of base64 is a generous venue sketch and a hard stop on someone
   // pushing arbitrarily large bodies through a paid vision model.
   if (imageBase64.length > 8_000_000) {
-    return json({ error: "image too large" }, 413);
+    return reply({ error: "image too large" }, 413);
   }
   if (!ALLOWED_TYPES.has(mimeType)) {
-    return json({ error: `Unsupported MIME type: ${mimeType}` }, 400);
+    return reply({ error: `Unsupported MIME type: ${mimeType}` }, 400);
   }
 
   // A signed-in user can still call this in a loop, and the only limit in front
@@ -118,12 +118,12 @@ Deno.serve(async (req: Request) => {
       // the service-wide daily one (20261004000000_abuse_caps), which waiting
       // an hour does not lift.
       const global = /global/i.test(limitError.message ?? "");
-      return json({ error: "rate_limited", note: global
+      return reply({ error: "rate_limited", note: global
         ? "שירות הזיהוי האוטומטי עמוס היום. נסו שוב מחר, או מקמו את השולחנות ידנית."
         : "יותר מדי בקשות זיהוי. נסו שוב בעוד שעה." }, 429);
     }
     console.error("claim_ai_call failed:", limitError);
-    return json({ error: "Rate limit check failed" }, 503);
+    return reply({ error: "Rate limit check failed" }, 503);
   }
 
   try {
@@ -163,7 +163,7 @@ Deno.serve(async (req: Request) => {
       // where 13.8's misconfigured key was finally found — not to the caller
       // (audit 3.10, S5). The host gets a sentence; the owner reads the log.
       console.error("Anthropic API error:", anthropicResponse.status, errBody);
-      return json({ error: "model_unavailable",
+      return reply({ error: "model_unavailable",
                     note: "הזיהוי האוטומטי לא זמין כרגע. נסו שוב בעוד כמה דקות." }, 502);
     }
 
@@ -183,7 +183,7 @@ Deno.serve(async (req: Request) => {
     // image when the problem is that the answer did not fit.
     if (result.stop_reason === "max_tokens") {
       console.error("detect-floor-plan truncated at max_tokens", u.output_tokens);
-      return json({ error: "too_many_tables",
+      return reply({ error: "too_many_tables",
                     note: "האולם גדול מכדי לזהות אותו בבת אחת. אפשר לצלם אותו בחלקים ולזהות כל חלק בנפרד." }, 422);
     }
 
@@ -196,7 +196,7 @@ Deno.serve(async (req: Request) => {
     } catch {
       console.error("JSON parse failed on Anthropic response:", rawText);
       // The model's raw text stays in the log: it is not the caller's to read.
-      return json({ error: "unreadable_result",
+      return reply({ error: "unreadable_result",
                     note: "לא הצלחנו לקרוא את תוצאת הזיהוי. נסו תמונה ברורה יותר." }, 502);
     }
 
@@ -210,11 +210,11 @@ Deno.serve(async (req: Request) => {
 
     // `remaining` lets the screen say how many detections are left instead of
     // only saying "no" once the ceiling is hit.
-    return json({ tables, totalDetected: tables.length, note: parsed.note ?? null,
+    return reply({ tables, totalDetected: tables.length, note: parsed.note ?? null,
                   remaining: typeof remaining === "number" ? remaining : null });
 
   } catch (err: any) {
     console.error("detect-floor-plan error:", err?.message ?? err);
-    return json({ error: "detect_failed", note: "הזיהוי נכשל. נסו שוב בעוד רגע." }, 500);
+    return reply({ error: "detect_failed", note: "הזיהוי נכשל. נסו שוב בעוד רגע." }, 500);
   }
 });

@@ -68,8 +68,20 @@ try {
        `${n}: ${st}, a Hebrew note, and nothing of the upstream answer`, d[n]?.body?.slice(0, 120));
   }
 
+  // S6 — CORS answers the app's origin only.
+  const APP = 'https://plan.unica-events.co.il';
+  const corsOk = (res, fn) => {
+    ok(res['options-app']?.status < 300 && res['options-app'].acao === APP && res['options-app'].vary === 'Origin',
+       `${fn}: the preflight from the app gets its own origin back`, `${res['options-app']?.status} ${res['options-app']?.acao}`);
+    ok(res['options-evil'] && res['options-evil'].acao === null, `${fn}: another site's preflight gets no Allow-Origin`, String(res['options-evil']?.acao));
+  };
+  corsOk(d, 'detect-floor-plan');
+  ok(d['post-evil']?.acao === null && d.ok?.acao === APP, 'detect-floor-plan: a POST from another site carries no Allow-Origin; the app\'s does',
+     `${d['post-evil']?.acao} / ${d.ok?.acao}`);
+
   console.log('\n── create-checkout-session');
   const { res: c } = run('create-checkout-session');
+  corsOk(c, 'create-checkout-session');
   for (const n of ['stripe-error', 'stripe-throws']) {
     ok(c[n]?.status === 500 && !c[n].leaked, `${n}: 500 without Stripe's words`, c[n]?.body?.slice(0, 120));
   }
@@ -77,6 +89,7 @@ try {
 
   console.log('\n── create-billing-portal');
   const { res: p } = run('create-billing-portal');
+  corsOk(p, 'create-billing-portal');
   ok(p['stripe-error']?.status === 500 && !p['stripe-error'].leaked, 'stripe-error: 500 without Stripe\'s words', p['stripe-error']?.body?.slice(0, 120));
   ok(p['stripe-error']?.calls?.some(k => k.includes('stripe.com')), '(the Stripe call really was made and failed)');
 
