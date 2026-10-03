@@ -207,6 +207,15 @@
 }
 
 /* A matched answer that waits for the host (סב63): the reason above the button. */
+/* "+ הוסיפו לרשימה" → which side. Wraps on a phone rather than overflowing. */
+.sidePick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .applyCol {
   display: flex;
   flex-direction: column;

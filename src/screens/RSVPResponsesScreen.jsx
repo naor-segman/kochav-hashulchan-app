@@ -3,6 +3,7 @@ import { fetchRSVPResponses } from "../utils/publicTokens.js";
 import { pickMeal, pickCompanions, normName, normPhone, respStatus, latestPerRespondent } from "../utils/rsvpApply.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { uid } from "../utils/uid.js";
+import { getSideLabels } from "../utils/eventHelpers.js";
 import { fmtDateTime } from "../utils/dateFormat.js";
 import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -19,6 +20,10 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   const [responses, setResponses] = useState([]);
   const [loadState, setLoadState] = useState("loading"); // "loading" | "ready" | "error" | "offline"
   const [showForecast, setShowForecast] = useState(false);
+  // The response whose "+ הוסיפו לרשימה" is asking which side (owner, 3.10:
+  // a guest added from an answer always landed on the first side).
+  const [sidePickFor, setSidePickFor] = useState(null);
+  const sideLabels = useMemo(() => getSideLabels(ev), [ev]);
 
   const load = useCallback(async () => {
     if (!isSupabaseConfigured || !ev.cloudId) {
@@ -169,12 +174,12 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     showToast(`"${guest.name}" עודכן ברשימת האורחים ✓`);
   }, [patchEvent, showToast]);
 
-  const addAsGuest = useCallback((r) => {
+  const addAsGuest = useCallback((r, side) => {
     const hasCount = respStatus(r) !== "no";
     const newGuest = {
       id: uid(),
       name: (r.guest_name || "").trim(),
-      side: "bride",
+      side,
       group: "אחר",
       count: hasCount ? (r.guests_count || 1) : 1,
       phone: r.phone || "",
@@ -519,10 +524,23 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                         עדכנו אורח קיים
                       </button>
                     </span>
+                  ) : sidePickFor === r.id ? (
+                    /* Which side — the one thing an answer cannot say and the
+                       seating needs. Not a default the host fixes later. */
+                    <span className={styles.sidePick} role="group" aria-label={`לאיזה צד להוסיף את ${r.guest_name || "האורח"}`}>
+                      <span className={base.gMeta}>לאיזה צד?</span>
+                      {["bride", "groom"].map(sd => (
+                        <button key={sd} className={[base.btnSm, base.btnGhost].join(" ")}
+                          onClick={() => { addAsGuest(r, sd); setSidePickFor(null); }}>
+                          {sideLabels[sd]}
+                        </button>
+                      ))}
+                      <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => setSidePickFor(null)}>ביטול</button>
+                    </span>
                   ) : (
                     <button
                       className={[base.btnSm, base.btnGhost].join(" ")}
-                      onClick={() => addAsGuest(r)}
+                      onClick={() => setSidePickFor(r.id)}
                     >
                       + הוסיפו לרשימה
                     </button>
