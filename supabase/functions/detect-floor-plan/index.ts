@@ -72,6 +72,33 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
   if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
+  // Everything that can be checked for free is checked BEFORE the claim (audit
+  // 3.10, S4). The claim used to come first, so a request with no key
+  // configured, no body or an oversized image still spent one of the host's
+  // detections — and a missing key burned every host's daily quota.
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    return json({ error: "ANTHROPIC_API_KEY is not configured for this environment." }, 503);
+  }
+
+  let imageBase64: string, mimeType: string;
+  try {
+    ({ imageBase64, mimeType } = await req.json() as { imageBase64: string; mimeType: string });
+  } catch {
+    return json({ error: "invalid JSON body" }, 400);
+  }
+  if (!imageBase64 || !mimeType) {
+    return json({ error: "imageBase64 and mimeType are required" }, 400);
+  }
+  // ~8MB of base64 is a generous venue sketch and a hard stop on someone
+  // pushing arbitrarily large bodies through a paid vision model.
+  if (imageBase64.length > 8_000_000) {
+    return json({ error: "image too large" }, 413);
+  }
+  if (!ALLOWED_TYPES.has(mimeType)) {
+    return json({ error: `Unsupported MIME type: ${mimeType}` }, 400);
+  }
+
   // A signed-in user can still call this in a loop, and the only limit in front
   // of it was `canUseAI(plan)` — which runs in the BROWSER. A client-side gate
   // is a UI affordance, not a limit: this endpoint is reachable with curl and a
@@ -81,38 +108,25 @@ Deno.serve(async (req: Request) => {
   const { data: remaining, error: limitError } =
     await supabaseUser.rpc("claim_ai_call", { call_kind: "detect-floor-plan" });
   if (limitError) {
-    // 53400 is the code claim_ai_call raises at the ceiling. Anything else is a
+    // 53400 is the code claim_ai_call raises at a ceiling. Anything else is a
     // real failure (function not deployed, database down) and must not be
     // reported to the host as "you have used your quota".
     const atLimit = limitError.code === "53400" ||
-      /rate limit reached/i.test(limitError.message ?? "");
+      /limit reached/i.test(limitError.message ?? "");
     if (atLimit) {
-      return json({ error: "rate_limited", note: "יותר מדי בקשות זיהוי. נסו שוב בעוד שעה." }, 429);
+      // Two ceilings, two sentences: the host's own (10 an hour, 30 a day) and
+      // the service-wide daily one (20261004000000_abuse_caps), which waiting
+      // an hour does not lift.
+      const global = /global/i.test(limitError.message ?? "");
+      return json({ error: "rate_limited", note: global
+        ? "שירות הזיהוי האוטומטי עמוס היום. נסו שוב מחר, או מקמו את השולחנות ידנית."
+        : "יותר מדי בקשות זיהוי. נסו שוב בעוד שעה." }, 429);
     }
     console.error("claim_ai_call failed:", limitError);
     return json({ error: "Rate limit check failed" }, 503);
   }
 
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) {
-    return json({ error: "ANTHROPIC_API_KEY is not configured for this environment." }, 503);
-  }
-
   try {
-    const { imageBase64, mimeType } = await req.json() as { imageBase64: string; mimeType: string };
-
-    if (!imageBase64 || !mimeType) {
-      return json({ error: "imageBase64 and mimeType are required" }, 400);
-    }
-    // ~8MB of base64 is a generous venue sketch and a hard stop on someone
-    // pushing arbitrarily large bodies through a paid vision model.
-    if (imageBase64.length > 8_000_000) {
-      return json({ error: "image too large" }, 413);
-    }
-    if (!ALLOWED_TYPES.has(mimeType)) {
-      return json({ error: `Unsupported MIME type: ${mimeType}` }, 400);
-    }
-
     const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
