@@ -9,6 +9,7 @@ import { daysUntilIsrael } from "../utils/dateFormat.js";
 import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { siteLocation } from "../utils/siteLocation.js";
 
 // Map a local (host-owned) event into the public-site shape, so the host can
 // preview drafts securely from inside the authenticated app.
@@ -213,7 +214,7 @@ export default function EventSiteScreen({ localEvent }) {
 
   const navItems = !visible ? [] : [
     site?.schedule?.length && sec.schedule && { label: "לוז", key: "schedule" },
-    (site?.address) && sec.location && { label: "מיקום", key: "location" },
+    siteLocation(site, ev) && sec.location && { label: "מיקום", key: "location" },
     site?.shuttles?.length && sec.shuttles && { label: "הסעות", key: "shuttles" },
     sec.blessings && { label: "ברכות", key: "blessings" },
     faqAnswered.length > 0 && sec.faq && { label: "שאלות", key: "faq" },
@@ -333,19 +334,17 @@ export default function EventSiteScreen({ localEvent }) {
       )}
 
       {/* ── Location ── */}
-      {visible && sec.location && site?.address && (
+      {visible && sec.location && siteLocation(site, ev) && (
         <section ref={locationRef} className={styles.section}>
           <h2 className={styles.secTitle}>מיקום והגעה</h2>
           <div className={styles.locCard}>
-            <div className={styles.locAddr}><Icon name="pin" size={15} /> {site.address}</div>
+            <div className={styles.locAddr}><Icon name="pin" size={15} /> {siteLocation(site, ev)}</div>
             {site.parkingNote && <p className={styles.locNote}><Icon name="car" size={15} /> {site.parkingNote}</p>}
-            {(site.wazeUrl || site.address) && (
-              <a
-                className={styles.locBtn}
-                href={site.wazeUrl || `https://waze.com/ul?q=${encodeURIComponent(site.address)}`}
-                target="_blank" rel="noopener noreferrer"
-              >ניווט ב-Waze ←</a>
-            )}
+            <a
+              className={styles.locBtn}
+              href={site.wazeUrl || `https://waze.com/ul?q=${encodeURIComponent(siteLocation(site, ev))}`}
+              target="_blank" rel="noopener noreferrer"
+            >ניווט ב-Waze ←</a>
             {/* .ics rather than a Google/Outlook link: opens in whatever
                 calendar the guest actually uses, with no account. */}
             {ev?.date && (
@@ -356,7 +355,7 @@ export default function EventSiteScreen({ localEvent }) {
                   const ics = buildEventIcs({
                     name:      ev.name,
                     date:      ev.date,
-                    venue:     site.address || ev.venue,
+                    venue:     siteLocation(site, ev),
                     startTime: knownStartTime(site.schedule),
                     url:       window.location.href,
                   });

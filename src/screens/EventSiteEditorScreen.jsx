@@ -499,8 +499,13 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <SectionLabel>מיקום והגעה</SectionLabel>
           <Toggle label="מיקום והגעה" on={site.sections.location} onChange={v => setSection("location", v)} />
         </div>
-        <Field label="כתובת מלאה">
-          <input className={base.input} value={site.address} placeholder="רחוב, מספר, עיר"
+        {/* Empty means "the venue from the event's details" (owner, 3.10) —
+            shown as the placeholder and said in the hint, so the host sees
+            what guests will get and can type an exact address over it. */}
+        <Field label="כתובת מלאה" hint={!site.address?.trim() && ev.venue?.trim()
+          ? `ריק — האתר מציג את המקום מפרטי האירוע. אפשר לכתוב כאן כתובת מדויקת במקום.`
+          : undefined}>
+          <input className={base.input} value={site.address} placeholder={ev.venue?.trim() || "רחוב, מספר, עיר"}
             onChange={e => set({ address: e.target.value })} />
         </Field>
         <div className={base.grid2}>
