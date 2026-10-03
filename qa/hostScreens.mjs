@@ -349,6 +349,20 @@ const CHECKS = {
     }
   },
 
+  // V10: the dashboard card and the event's map count the same guest rows.
+  async counts(b, base) {
+    const { ctx, p } = await page(b, base, { width: 1280, height: 900 });
+    const rows = async () => Number((await p.locator('main').textContent()).match(/(\d+) רשומות/)?.[1]);
+    await p.goto(base + '/app', { waitUntil: 'domcontentloaded' });
+    await p.getByText(/\d+ רשומות/).first().waitFor({ timeout: 15000 });
+    const dash = await rows();
+    await p.goto(base + '/events/e1', { waitUntil: 'domcontentloaded' });
+    await p.getByText(/\d+ רשומות/).first().waitFor({ timeout: 15000 });
+    const hub = await rows();
+    ok(dash === hub, 'dashboard and event map agree', `dashboard ${dash}, map ${hub}`);
+    await ctx.close();
+  },
+
   // WORKPLAN 129: the "send the table number" rows are 44px to a thumb, and
   // every point of a row taps THAT row (not a neighbour's hit extension).
   async seatingWaRows(b, base) {
