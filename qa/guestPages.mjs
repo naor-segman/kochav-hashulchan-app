@@ -231,6 +231,43 @@ try {
     }
   }
 
+  /* ── P2-2 · placeholder text at the browser's default grey ──────────────── */
+  if (want('placeholder')) {
+    console.log('\n── placeholder: ::placeholder colour against the field it is drawn in');
+    const pages = [
+      ['/login'], ['/signup'], ['/reset-password'], ['/start'],
+      ['/rsvp/ok', async p => { await p.getByRole('button', { name: /^כן/ }).first().click(); await p.waitForTimeout(300); }],
+      ['/rsvp/ok', async p => { await p.getByRole('button', { name: /^לא/ }).first().click(); await p.waitForTimeout(300); }],
+    ];
+    for (const [path, drive] of pages) {
+      const { ctx, p } = await open(path);
+      if (drive) await drive(p);
+      const rows = await p.evaluate(() => {
+        const parse = (c) => { const v = c.match(/[\d.]+/g).map(Number); return { r: v[0], g: v[1], b: v[2], a: v[3] ?? 1 }; };
+        const lum = ({ r, g, b }) => { const f = x => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+        const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+        // The field's own ground: its background composited over its ancestors'.
+        const ground = (el) => {
+          const layers = [];
+          for (let e = el; e; e = e.parentElement) { const c = parse(getComputedStyle(e).backgroundColor); if (c.a > 0) { layers.push(c); if (c.a >= 1) break; } }
+          let bg = { r: 255, g: 255, b: 255, a: 1 };
+          for (let i = layers.length - 1; i >= 0; i--) bg = over(layers[i], bg);
+          return bg;
+        };
+        return [...document.querySelectorAll('input[placeholder], textarea[placeholder]')].filter(el => el.getBoundingClientRect().width > 0).map(el => {
+          const ph = getComputedStyle(el, '::placeholder');
+          const bg = ground(el);
+          const fg = over({ ...parse(ph.color), a: parse(ph.color).a * Number(ph.opacity || 1) }, bg);
+          const L1 = lum(fg), L2 = lum(bg);
+          return { ph: el.placeholder, ratio: (Math.max(L1, L2) + .05) / (Math.min(L1, L2) + .05), color: ph.color };
+        });
+      });
+      for (const r of rows) ok(r.ratio >= 4.5, `${path} "${r.ph}" placeholder ≥ 4.5:1`, `${r.ratio.toFixed(2)} (${r.color})`);
+      if (!rows.length) ok(false, `${path}: found a field with a placeholder`);
+      await ctx.close();
+    }
+  }
+
 } finally {
   await browser.close();
   server.stop();

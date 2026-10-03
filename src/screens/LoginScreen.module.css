@@ -163,6 +163,13 @@
   background: var(--surface);
 }
 
+/* The browser's own placeholder grey is #757575 — 4.23:1 on this --bg field,
+   under AA (audit 3.10, P2-2). Same rule as screenBase.module.css. */
+.input::placeholder {
+  color: var(--muted);
+  opacity: 1; /* Firefox dims placeholders by default; --muted is already the dim */
+}
+
 /* Same disabled language as the button and the links: a sunken ground and a
    quieter ink, not a faded copy of the enabled state. At 0.55 the field's own
    text composited to 3.20:1 on white. */
