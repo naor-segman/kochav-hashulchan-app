@@ -19,21 +19,29 @@ import { useCollabSync }    from "./hooks/useCollabSync.js";
 import { useMigration, MIGRATION_STATUS } from "./hooks/useMigration.js";
 import { SYNC_STATUS } from "./utils/cloudSync.js";
 import { canCreateEvent } from "./utils/featureGates.js";
-import Shell              from "./components/layout/Shell.jsx";
 import Toast              from "./components/feedback/Toast.jsx";
-import MigrationBanner    from "./components/migration/MigrationBanner.jsx";
-import DashboardScreen    from "./screens/DashboardScreen.jsx";
-import EventHubScreen     from "./screens/EventHubScreen.jsx";
-import StartScreen        from "./screens/StartScreen.jsx";
-import EventSetupScreen   from "./screens/EventSetupScreen.jsx";
-import LoginScreen        from "./screens/LoginScreen.jsx";
-import SignupScreen       from "./screens/SignupScreen.jsx";
-import ResetPasswordScreen from "./screens/ResetPasswordScreen.jsx";
-import AccountScreen      from "./screens/AccountScreen.jsx";
 import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
 import Loading           from "./components/feedback/Loading.jsx";
 import HostPreviewGate   from "./components/layout/HostPreviewGate.jsx";
-import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
+/* The host's own screens, lazy (audit 3.10, H6). They were eager, so a GUEST
+   opening /rsvp/:token or /invite/:token from a WhatsApp link — on a phone, on
+   whatever network the hall has — downloaded the dashboard, the event map, the
+   account screen, the three auth forms and the 32 KB of tour copy (through
+   Shell) before their own page: the entry chunk was ~773 KB / 228 KB gzip with
+   a stub Supabase env. Every route that renders one of these wraps it in
+   Suspense; a host who is signed in pays one more parallel request on their
+   first screen. */
+const Shell              = lazy(() => import("./components/layout/Shell.jsx"));
+const MigrationBanner    = lazy(() => import("./components/migration/MigrationBanner.jsx"));
+const DashboardScreen    = lazy(() => import("./screens/DashboardScreen.jsx"));
+const EventHubScreen     = lazy(() => import("./screens/EventHubScreen.jsx"));
+const StartScreen        = lazy(() => import("./screens/StartScreen.jsx"));
+const EventSetupScreen   = lazy(() => import("./screens/EventSetupScreen.jsx"));
+const LoginScreen        = lazy(() => import("./screens/LoginScreen.jsx"));
+const SignupScreen       = lazy(() => import("./screens/SignupScreen.jsx"));
+const ResetPasswordScreen = lazy(() => import("./screens/ResetPasswordScreen.jsx"));
+const AccountScreen      = lazy(() => import("./screens/AccountScreen.jsx"));
+const AuthCallbackScreen = lazy(() => import("./screens/AuthCallbackScreen.jsx"));
 import { useStorageWarnings } from "./hooks/useStorageWarnings.js";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
@@ -155,6 +163,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
   const sp = { activeEvent, patchEvent, go, showToast };
 
   return (
+    <Suspense fallback={<Loading label="טוענים את האירוע…" />}>
     <Shell screen={screen} activeEvent={activeEvent} go={go} syncStatus={syncStatus} showToast={showToast}>
       {/* Screen-level boundary. The root one in main.jsx swallows the WHOLE app
           — nav, event, everything — when a single lazy chunk fails to load,
@@ -162,7 +171,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
           the path so navigating away is itself the recovery. */}
       <ErrorBoundary key={location.pathname}>
       <Routes>
-        <Route path="setup"       element={<EventSetupScreen   {...sp} />} />
+        <Route path="setup"       element={<Suspense fallback={<Loading />}><EventSetupScreen {...sp} /></Suspense>} />
         <Route path="tables"      element={<Suspense fallback={<Loading />}><TableBuilderScreen {...sp} /></Suspense>} />
         <Route path="guests"      element={<Suspense fallback={<Loading />}><GuestManagerScreen {...sp} /></Suspense>} />
         <Route path="constraints" element={<Suspense fallback={<Loading />}><ConstraintsScreen {...sp} /></Suspense>} />
@@ -181,7 +190,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
         {/* The event's front page. This used to redirect to `setup`, which is
             why opening an event dropped a first-time host straight into a form
             with no idea what the other thirteen screens were for. */}
-        <Route index              element={<EventHubScreen {...sp} />} />
+        <Route index              element={<Suspense fallback={<Loading />}><EventHubScreen {...sp} /></Suspense>} />
         {/* Without this, /events/:id/typo matched `/events/:eventId/*` at the
             top level and then matched nothing here — the Shell rendered with a
             blank body and no error. The top-level catch-all cannot reach it. */}
@@ -190,6 +199,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
       </ErrorBoundary>
       <Toast msg={toast?.msg} variant={toast?.variant} />
     </Shell>
+    </Suspense>
   );
 }
 
@@ -363,6 +373,7 @@ function AppRoutes() {
              different tour (124) from the one about a list of events. Not
              before the account's events have loaded: a logged-in host's list
              is briefly [] and would get the start tour first. */
+          <Suspense fallback={<Loading />}>
           <Shell screen="dashboard" tourKey={!eventsReady ? null : events.length ? "dashboard" : "start"} activeEvent={null} go={dashGo}>
             {(migration.shouldPrompt || migration.status !== MIGRATION_STATUS.IDLE) && (
               <MigrationBanner migration={migration} />
@@ -385,6 +396,7 @@ function AppRoutes() {
             />
             <Toast msg={toast?.msg} variant={toast?.variant} />
           </Shell>
+          </Suspense>
         }
       />
       {/* The opening screen — what the product does, and the two facts that are
@@ -393,6 +405,7 @@ function AppRoutes() {
       <Route
         path="/start"
         element={
+          <Suspense fallback={<Loading />}>
           <Shell screen="dashboard" tourKey="start" activeEvent={null} go={dashGo}>
             <StartScreen
               onStart={startEvent}
@@ -402,6 +415,7 @@ function AppRoutes() {
             />
             <Toast msg={toast?.msg} variant={toast?.variant} />
           </Shell>
+          </Suspense>
         }
       />
       {/* Pricing page */}
@@ -523,15 +537,15 @@ function AppRoutes() {
         }
       />
       {/* ── Customer auth routes — standalone full-page screens ── */}
-      <Route path="/login"         element={<LoginScreen />} />
-      <Route path="/signup"        element={<SignupScreen />} />
-      <Route path="/reset-password" element={<ResetPasswordScreen />} />
+      <Route path="/login"         element={<Suspense fallback={<Loading />}><LoginScreen /></Suspense>} />
+      <Route path="/signup"        element={<Suspense fallback={<Loading />}><SignupScreen /></Suspense>} />
+      <Route path="/reset-password" element={<Suspense fallback={<Loading />}><ResetPasswordScreen /></Suspense>} />
       {/* `events`, not only a count. Packages are bought per event, so this screen
           has to be able to say WHICH events were paid for — with a count it could
           only ever show one plan for the whole account, which is the model the
           product moved off. */}
-      <Route path="/account"       element={<AccountScreen events={events} eventCount={events.length} showToast={showToast} />} />
-      <Route path="/auth/callback" element={<AuthCallbackScreen />} />
+      <Route path="/account"       element={<Suspense fallback={<Loading />}><AccountScreen events={events} eventCount={events.length} showToast={showToast} /></Suspense>} />
+      <Route path="/auth/callback" element={<Suspense fallback={<Loading />}><AuthCallbackScreen /></Suspense>} />
 
       {/* ── Legal / policy / help pages ── */}
       <Route path="/help"          element={<Suspense fallback={<Loading />}><HelpScreen /></Suspense>} />
