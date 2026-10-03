@@ -110,7 +110,9 @@ export async function createBillingPortalSession(returnUrl) {
     body: { returnUrl },
   });
 
-  const PORTAL_FAILED = "לא הצלחנו לפתוח את החשבוניות — נסו שוב בעוד רגע";
+  // "הקבלות", not "החשבוניות": the operator is an עוסק פטור and issues
+  // receipts only (company.js) — the account button already says קבלות.
+  const PORTAL_FAILED = "לא הצלחנו לפתוח את הקבלות — נסו שוב בעוד רגע";
   if (error || data?.error) throw new Error(await billingErrorMessage(error, data, PORTAL_FAILED));
   if (!data?.url) throw new Error(PORTAL_FAILED);
   return data.url;
