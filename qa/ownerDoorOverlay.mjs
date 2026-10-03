@@ -73,7 +73,6 @@ try {
   await p.goto(`${server.base}/app`, { waitUntil: 'domcontentloaded' });
   await p.evaluate(() => {
     const year = Math.floor(Date.now() / 1000) + 31_536_000;
-    localStorage.setItem('kochav_orientation_v1', '1');
     localStorage.setItem('sb-stub-auth-token', JSON.stringify({
       access_token: 'stub-access', refresh_token: 'stub-refresh', token_type: 'bearer',
       expires_in: 31_536_000, expires_at: year,

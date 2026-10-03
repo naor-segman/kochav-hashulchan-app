@@ -76,6 +76,11 @@
   status = 200
 
 [[redirects]]
+  from   = "/refunds"
+  to     = "/refunds/index.html"
+  status = 200
+
+[[redirects]]
   from   = "/privacy"
   to     = "/privacy/index.html"
   status = 200
@@ -108,3 +113,16 @@
     Content-Security-Policy = "frame-ancestors 'self'"
     X-Content-Type-Options  = "nosniff"
     Referrer-Policy         = "strict-origin-when-cross-origin"
+
+# ── Long cache for the hashed build output (סב58) ───────────────────────────
+# Everything Vite writes to /assets/ carries a content hash in its name, so a
+# given URL never changes content — a new build means a new name. Netlify's
+# default is `max-age=0, must-revalidate`, which made every return visit
+# revalidate ~100 chunks. NOT /fonts/ or anything else from public/: those keep
+# their names across changes and must stay revalidated.
+# netlify/tests/cacheHeaders.test.js fails if public/assets/ ever appears (an
+# unhashed file there would be cached for a year under a name that can change).
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

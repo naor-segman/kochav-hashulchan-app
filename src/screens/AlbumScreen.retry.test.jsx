@@ -14,6 +14,10 @@ vi.mock("../utils/publicTokens.js", async (orig) => ({
   fetchAlbumPhotos: async () => [],
   uploadAlbumPhoto: (...a) => { calls.push(a); return new Promise(() => {}); },   // slow: never answers in time
 }));
+// jsdom has no canvas: the re-encode is stubbed, the bytes it returns are new.
+vi.mock("../utils/imageCompress.js", () => ({
+  compressImage: async () => ({ blob: new Blob(["re-encoded"], { type: "image/webp" }), ext: "webp" }),
+}));
 const { default: AlbumScreen } = await import("./AlbumScreen.jsx");
 afterEach(() => vi.useRealTimers());
 
@@ -25,7 +29,7 @@ describe("a slow album upload", () => {
     </Routes></MemoryRouter>);
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     const input = container.querySelector('input[type="file"]');
-    const file = new File(["x"], "IMG_1.txt", { type: "text/plain", lastModified: 1_790_000_000_000 })   // jsdom cannot downscale a real image;
+    const file = new File(["x"], "IMG_1.jpg", { type: "image/jpeg", lastModified: 1_790_000_000_000 });
     await act(async () => { fireEvent.change(input, { target: { files: [file] } }); await vi.advanceTimersByTimeAsync(0); });
     await act(async () => { await vi.advanceTimersByTimeAsync(125_000); });
     expect(screen.getByText(/החיבור איטי מאוד/)).toBeTruthy();

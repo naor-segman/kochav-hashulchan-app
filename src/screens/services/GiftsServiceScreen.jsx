@@ -143,6 +143,9 @@ export default function GiftsServiceScreen({ user = null }) {
     <div className={styles.root}>
       <SiteHeader user={user} active={SERVICE.id} />
 
+      {/* The page's one landmark (38a). SiteHeader's skip link focuses it. */}
+      <main id="main" tabIndex={-1} className={styles.main}>
+
       {/* ── The promise ── */}
       <section className={styles.hero}>
         <div className={styles.heroInner}>
@@ -332,6 +335,8 @@ export default function GiftsServiceScreen({ user = null }) {
           <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
+
+      </main>
 
       <Footer />
     </div>

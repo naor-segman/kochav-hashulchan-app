@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { render, screen, fireEvent } from "../test/dom.js";
 import { AuthProvider } from "../hooks/useAuth.js";
@@ -52,10 +52,6 @@ const renderHub = (over = {}, props = {}) =>
     </AuthProvider>
   );
 
-beforeEach(() => {
-  // The orientation overlay opens on a fresh browser and covers the page.
-  localStorage.setItem("kochav_orientation_v1", "1");
-});
 
 describe("EventHubScreen — rows are not seats", () => {
   it("reports guest ROWS and guest SEATS as two different numbers", () => {
@@ -149,5 +145,16 @@ describe("EventHubScreen — rows are not seats", () => {
     fireEvent.click(screen.getByText("אורחים"));
     expect(showToast).not.toHaveBeenCalled();
     expect(go).toHaveBeenCalledWith("guests");
+  });
+});
+
+describe("EventHubScreen — signing up from inside a draft (33d)", () => {
+  it("the guest-mode signup link carries this browser's drafts into the new account", () => {
+    // Without the mark, a host who signs up from here lands on an empty
+    // dashboard behind a "is this yours?" banner about the event they were just in.
+    sessionStorage.clear();
+    renderHub();
+    fireEvent.click(screen.getByText("פתחו חשבון חינם"));
+    expect(Number(sessionStorage.getItem("kochav_carry_drafts"))).toBeGreaterThan(0);
   });
 });

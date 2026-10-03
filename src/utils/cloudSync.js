@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
+import { purgeEventFiles } from "./eventFiles.js";
 
 // ── Sync status constants ─────────────────────────────────────────────────────
 //
@@ -199,6 +200,14 @@ export class CloudConflictError extends Error {
   }
 }
 
+/** An update with no version base that matched no row — see updateCloudEvent. */
+export class CloudRowMissingError extends Error {
+  constructor() {
+    super("cloud row not found");
+    this.name = "CloudRowMissingError";
+  }
+}
+
 // ── Cloud CRUD ────────────────────────────────────────────────────────────────
 //
 // All functions are no-ops (return null / []) when Supabase is not configured.
@@ -224,8 +233,35 @@ export async function createCloudEvent(localEvent, userId) {
     .select("id, version")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // 23505, unique violation: the row is very likely already there — an
+    // earlier create that LANDED but whose response never arrived (the
+    // connection dropped on the way back). The retry carries the same tokens,
+    // hits the unique token indexes, and failed this way on every retry,
+    // forever: the event never got its cloudId, so it never synced again
+    // (33c). Look the row up by this event's local id and adopt it — the
+    // caller merges it with the local copy, as with any row read from the
+    // cloud, rather than overwriting it.
+    if (error.code === "23505") {
+      const adopted = await findOwnRowByLocalId(localEvent.id, userId);
+      if (adopted) return { cloudId: adopted.cloudId, version: adopted.syncedVersion, adopted };
+    }
+    throw error;
+  }
   return { cloudId: data.id, version: data.version ?? row.version };
+}
+
+/** This account's events row for a local event id, mapped — or null. */
+async function findOwnRowByLocalId(localId, userId) {
+  if (!localId) return null;
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("payload->>localId", localId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapCloudEventToLocalEvent(data);
 }
 
 /**
@@ -265,12 +301,22 @@ export async function updateCloudEvent(localEvent, userId) {
   const { data, error } = await q.select("version");
 
   if (error) throw error;
-  if (base !== null && (!data || data.length === 0)) throw new CloudConflictError();
-  return data?.[0]?.version ?? row.version;
+  if (!data || data.length === 0) {
+    if (base !== null) throw new CloudConflictError();
+    // No base and nothing matched (C6): the row is gone (deleted on another
+    // device) or this account cannot see it. This used to return the local
+    // version as if it had been written — the event was then marked
+    // cloud-backed, and the sign-out prune deleted the only copy. Not a
+    // conflict either: the recovery re-reads, finds no row and drops the event.
+    // An error leaves the event owed to the cloud and the host told it failed.
+    throw new CloudRowMissingError();
+  }
+  return data[0]?.version ?? row.version;
 }
 
 /**
- * Delete a cloud events row by cloudId.
+ * Delete a cloud events row by cloudId — its files first (eventFiles.js): the
+ * storage policies stop letting the owner remove them once the row is gone.
  *
  * @param {string} cloudId — UUID of the Supabase row
  * @param {string} userId
@@ -279,6 +325,8 @@ export async function updateCloudEvent(localEvent, userId) {
 export async function deleteCloudEvent(cloudId, userId) {
   if (!isSupabaseConfigured || !supabase) return;
   if (!cloudId) return;
+
+  await purgeEventFiles(cloudId);
 
   const { error } = await supabase
     .from("events")

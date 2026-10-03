@@ -198,6 +198,10 @@ const refund = ({ pi = 'pi_1', amount = 69000, refunded = 69000 } = {}) => ({
   id: `evt_${++seq}`, object: 'event', type: 'charge.refunded',
   data: { object: { id: 'ch_' + pi, object: 'charge', payment_intent: pi, amount, amount_refunded: refunded } },
 });
+const dispute = ({ pi = 'pi_1', status = 'lost' } = {}) => ({
+  id: `evt_${++seq}`, object: 'event', type: 'charge.dispute.closed',
+  data: { object: { id: 'dp_' + pi, object: 'dispute', payment_intent: pi, status, amount: 69000 } },
+});
 const liveRow = (over = {}) => ({ user_id: USER, event_id: EVENT, plan: 'pro', status: 'active',
   stripe_checkout_session_id: 'cs_1', stripe_payment_intent_id: 'pi_1', is_manually_managed: false, expires_at: null, ...over });
 // A clean world: the host owns event-1, the session bought Pro, the charge is not refunded.
@@ -376,6 +380,31 @@ try {
   await send(refund());
   r = await send(refund());
   ok(r.status === 200 && row('cs_1').status === 'cancelled' && row('cs_2').status === 'active', 'still exactly the one purchase cancelled', JSON.stringify(db.subscriptions.map(x => x.status)));
+
+  // ── charge.dispute.closed (102b, owner 2.10) ──────────────────────────────
+  console.log('\n── a dispute lost (chargeback)');
+  two();
+  r = await send(dispute());
+  ok(r.status === 200, 'answered 200', `status ${r.status}`);
+  ok(row('cs_1').status === 'cancelled' && row('cs_1').expires_at, 'that purchase is cancelled and expired', JSON.stringify(row('cs_1')));
+  ok(row('cs_2').status === 'active', 'the OTHER purchase is untouched', JSON.stringify(row('cs_2')));
+
+  console.log('\n── a dispute won');
+  two();
+  r = await send(dispute({ status: 'won' }));
+  ok(r.status === 200 && writes().length === 0 && row('cs_1').status === 'active', 'access kept, nothing written', JSON.stringify(row('cs_1')));
+
+  console.log('\n── a dispute lost on a manually managed row');
+  world();
+  db.subscriptions = [liveRow({ is_manually_managed: true })];
+  r = await send(dispute());
+  ok(r.status === 200 && writes().length === 0 && row().status === 'active', 'left alone', JSON.stringify(row()));
+
+  console.log('\n── a dispute lost while the write fails');
+  two();
+  db.fail.add('subscriptions:PATCH');
+  r = await send(dispute());
+  ok(r.status === 500, 'answered 500 so Stripe retries', `status ${r.status}`);
 
   console.log('\n── an event type the function does not handle');
   world();

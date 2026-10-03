@@ -27,12 +27,18 @@ function toStamp(isoDate) {
   return isoDate.replace(/-/g, "");
 }
 
-/** HHMM -> HHMMSS. Missing/short input falls back to a sane evening default. */
-function toTime(hhmm, fallback = "190000") {
-  const m = /^(\d{1,2}):(\d{2})$/.exec((hhmm || "").trim());
-  if (!m) return fallback;
-  const h = String(Math.min(23, Number(m[1]))).padStart(2, "0");
-  return `${h}${m[2]}00`;
+/** "H:MM" → "HH:MM", the hour clamped to 23 (a "25:00" typo is still the
+ *  evening, not an invalid DATE-TIME that makes the calendar refuse the file);
+ *  null when it is not a time at all. */
+function normTime(hhmm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm ?? "").trim());
+  if (!m || Number(m[2]) > 59) return null;
+  return `${String(Math.min(23, Number(m[1]))).padStart(2, "0")}:${m[2]}`;
+}
+
+/** An instant (epoch ms) as an iCalendar UTC DATE-TIME: 20261001T180000Z. */
+function utcDateTime(ms) {
+  return new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
 /** When nothing in the schedule says otherwise. One value for every consumer. */
@@ -52,13 +58,28 @@ export const DEFAULT_START = "19:00";
  * @returns {string} "HH:MM"
  */
 export function eventStartTime(schedule) {
+  return knownStartTime(schedule) ?? DEFAULT_START;
+}
+
+/**
+ * The start time the schedule actually states, or null when it states none.
+ *
+ * The calendar file uses this, not eventStartTime: a countdown needs SOME
+ * moment to count to, but a calendar entry at a confident 19:00 that nobody
+ * wrote is a wrong fact in the guest's calendar (36b). With no time known the
+ * file is an all-day entry instead.
+ *
+ * @param {Array<{time?: string}>} schedule
+ * @returns {string|null} "HH:MM"
+ */
+export function knownStartTime(schedule) {
   for (const item of Array.isArray(schedule) ? schedule : []) {
     // String(): a non-string time (a number from an import, say) threw here,
     // and this now runs while the site page renders, for the countdown.
     const m = /^(\d{1,2}):(\d{2})$/.exec(String(item?.time ?? "").trim());
     if (m && Number(m[1]) <= 23 && Number(m[2]) <= 59) return `${m[1].padStart(2, "0")}:${m[2]}`;
   }
-  return DEFAULT_START;
+  return null;
 }
 
 /**
@@ -87,59 +108,65 @@ export function israelInstant(date, time) {
   return wall - offsetAt(first);
 }
 
-/** YYYYMMDD + n days, so an end time past midnight lands on the next day. */
-function addDays(stamp, n) {
-  const d = new Date(
-    Number(stamp.slice(0, 4)),
-    Number(stamp.slice(4, 6)) - 1,
-    Number(stamp.slice(6, 8)) + n
-  );
-  const p = x => String(x).padStart(2, "0");
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+/** "YYYY-MM-DD" + n calendar days, by calendar arithmetic (never n×86400000,
+ *  which a DST change breaks). */
+function addDaysIso(iso, n) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 }
 
-/**
- * Default end: four hours after the start — Israeli events run long, and one
- * hour is never right.
- *
- * Clamping the hour at 23 while keeping the start minutes produced a
- * ZERO-LENGTH entry for anything starting at 23:00 or later (23:30 → 23:30),
- * which calendars draw as a bare marker with no block. Past midnight the end
- * has to roll onto the next day instead.
- *
- * @returns {{ day: string, time: string }}
- */
-function defaultEnd(day, start) {
-  const h = Number(start.slice(0, 2)) + 4;
-  const p = x => String(x).padStart(2, "0");
-  return { day: h > 23 ? addDays(day, 1) : day, time: `${p(h % 24)}${start.slice(2)}` };
-}
+/** Default length: four hours — Israeli events run long, and one hour is
+ *  never right. As a duration it also rolls a 23:30 start past midnight
+ *  instead of clamping it into a zero-length marker. */
+const DEFAULT_LENGTH_MS = 4 * 3600_000;
 
 /**
  * Build the .ics text for an event.
  *
- * Times are written as local (no Z suffix, no VTIMEZONE): a wedding at 19:00
- * is at 19:00 wherever the guest's phone is set, and floating local time is
- * what every calendar app does with that correctly. Converting to UTC would
- * shift the entry for anyone whose phone is on another timezone.
+ * TIMES ARE UTC, WITH Z (61 / T3). They used to be written "floating" — no Z,
+ * no VTIMEZONE — on the theory that 19:00 should stay 19:00 on any phone. That
+ * is right for an alarm clock and wrong for an event that happens in ONE place:
+ * a guest flying in from London got a 19:00 London entry for a 19:00 Tel Aviv
+ * wedding, two hours late. The wall time is read as Israel time (israelInstant,
+ * DST-correct) and written as the instant it is; every calendar shows it in
+ * the guest's own zone.
  *
+ * NO START TIME KNOWN → AN ALL-DAY ENTRY (36b). A schedule with no time used to
+ * produce a confident 19:00 that nobody wrote. DTSTART;VALUE=DATE is a date
+ * without a time — which is exactly what the host told us.
+ *
+ * @param {object} p
+ * @param {string} [p.startTime]  "HH:MM" Israel time, or nothing for all-day
+ * @param {string} [p.endTime]    "HH:MM" Israel time; earlier than the start = the next day
  * @returns {string|null} null when there is no usable date
  */
 export function buildEventIcs({ name, date, venue, startTime, endTime, url, description }) {
   const day = toStamp(date);
   if (!day) return null;
 
-  const start = toTime(startTime, "190000");
-  // A host who types an end time of 01:00 for a 21:00 wedding means the small
-  // hours of the NEXT day, not a negative-length event.
-  const explicitEnd = /^\d{1,2}:\d{2}$/.test((endTime || "").trim())
-    // `<=` was meant for a wedding that starts at 21:00 and ends at 01:00. But
-    // equality falls through it too, so a host who typed the same time in both
-    // fields — or left the end equal to the start — got DTSTART 21:00 and
-    // DTEND 21:00 the NEXT DAY: a 24-hour block in every guest's calendar.
-    ? { day: toTime(endTime) < start ? addDays(day, 1) : day, time: toTime(endTime) }
-    : null;
-  const end = explicitEnd || defaultEnd(day, start);
+  const start = normTime(startTime);
+  let timing;
+  if (!start) {
+    timing = [
+      `DTSTART;VALUE=DATE:${day}`,
+      // DTEND of an all-day entry is EXCLUSIVE: the next day.
+      `DTEND;VALUE=DATE:${addDaysIso(date, 1).replace(/-/g, "")}`,
+    ];
+  } else {
+    const startMs = israelInstant(date, start);
+    const end = normTime(endTime);
+    // A host who types an end time of 01:00 for a 21:00 wedding means the small
+    // hours of the NEXT day. Strictly earlier: an end EQUAL to the start used
+    // to fall through `<=` into a 24-hour block in every guest's calendar.
+    const endMs = end
+      ? israelInstant(end < start ? addDaysIso(date, 1) : date, end)
+      : startMs + DEFAULT_LENGTH_MS;
+    timing = [
+      `DTSTART:${utcDateTime(startMs)}`,
+      // An end equal to the start would be a zero-length marker, not a block.
+      `DTEND:${utcDateTime(endMs > startMs ? endMs : startMs + DEFAULT_LENGTH_MS)}`,
+    ];
+  }
 
   const lines = [
     "BEGIN:VCALENDAR",
@@ -149,18 +176,18 @@ export function buildEventIcs({ name, date, venue, startTime, endTime, url, desc
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
     `UID:${day}-${Math.abs(hash(name + date))}@kochav-hashulchan`,
-    // DTSTAMP must be UTC (§3.8.7.2). DTSTART/DTEND stay floating local on
-    // purpose — a 19:00 wedding is 19:00 wherever the guest's phone is set.
+    // DTSTAMP must be UTC (§3.8.7.2).
     `DTSTAMP:${utcStamp()}`,
-    `DTSTART:${day}T${start}`,
-    `DTEND:${end.day}T${end.time}`,
+    ...timing,
     `SUMMARY:${esc(name || "אירוע")}`,
     venue       ? `LOCATION:${esc(venue)}`           : null,
     description ? `DESCRIPTION:${esc(description)}`  : null,
     url         ? `URL:${esc(url)}`                  : null,
     // A day-before reminder is what people actually want from a wedding invite.
+    // An all-day entry starts at midnight, so "a day before" would alert at
+    // midnight; noon the day before instead.
     "BEGIN:VALARM",
-    "TRIGGER:-P1D",
+    start ? "TRIGGER:-P1D" : "TRIGGER:-PT12H",
     "ACTION:DISPLAY",
     `DESCRIPTION:${esc(name || "אירוע")}`,
     "END:VALARM",

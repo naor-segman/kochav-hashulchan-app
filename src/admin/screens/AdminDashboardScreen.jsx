@@ -7,6 +7,7 @@ import Icon from "../../components/ui/Icon.jsx";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { NAV_ITEMS } from "../lib/adminNav.js";
 import { COMPANY } from "../../data/company.js";
+import { countAnyGranting } from "../lib/purchaseCounts.js";
 
 // Stat tile definitions — key maps to the stats object returned by fetchStats().
 // `mark` is a key into components/ui/SectionMark — the same drawings the
@@ -30,16 +31,25 @@ async function fetchStats() {
       .select("*", { count: "exact", head: true }),
     supabase.from("templates")
       .select("*", { count: "exact", head: true }),
+    // The rows, not a head count: whether a purchase is live depends on
+    // expires_at and on what it is attached to, and that rule is
+    // entitlement.js's — see admin/lib/purchaseCounts.js (סב39). The status
+    // filter only narrows what is read; it is not the rule.
     supabase.from("subscriptions")
-      .select("*", { count: "exact", head: true })
+      .select("plan, status, expires_at, event_id, is_manually_managed", { count: "exact" })
       .in("status", ["active", "trialing"]),
   ]);
 
+  const subsRows = subsRes.data || [];
   return {
     users:         usersRes.error     ? null : (usersRes.count     ?? 0),
     events:        eventsRes.error    ? null : (eventsRes.count    ?? 0),
     templates:     templatesRes.error ? null : (templatesRes.count ?? 0),
-    subscriptions: subsRes.error      ? null : (subsRes.count      ?? 0),
+    subscriptions: subsRes.error      ? null : countAnyGranting(subsRows),
+    // More candidate rows than one read returns (PostgREST max-rows): the
+    // number is then a floor, and the tile says so.
+    subscriptionsPartial: !subsRes.error
+      && typeof subsRes.count === "number" && subsRes.count > subsRows.length,
   };
 }
 
@@ -70,7 +80,7 @@ export default function AdminDashboardScreen() {
       setStats(result);
       setLastRefreshed(new Date());
       // If every value is null all queries failed — show a global error.
-      const allFailed = Object.values(result).every(v => v === null);
+      const allFailed = STAT_DEFS.every(({ key }) => result[key] === null);
       if (allFailed) setStatsError("לא ניתן לטעון נתונים. בדוק את חיבור Supabase שלך.");
     } catch {
       setStatsError("שגיאה בלתי צפויה בטעינת הנתונים.");
@@ -90,7 +100,7 @@ export default function AdminDashboardScreen() {
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <SectionMark name="adminOverview" tone="admin" size={20} className={styles.brandMark} />
-          <span className={styles.brandName}>לוח בקרה</span>
+          <h1 className={styles.brandName}>לוח בקרה</h1>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>{COMPANY.name}</span>
           {/* Was green and unconditional — it stayed green with a red error
@@ -161,7 +171,10 @@ export default function AdminDashboardScreen() {
                   <span className={loading ? styles.statValueLoading : styles.statValue}>
                     {loading ? "…" : (value === null ? "—" : value.toLocaleString())}
                   </span>
-                  <span className={styles.statLabel}>{label}</span>
+                  <span className={styles.statLabel}>
+                    {label}
+                    {key === "subscriptions" && stats?.subscriptionsPartial ? " · לפחות" : ""}
+                  </span>
                 </div>
               );
             })}

@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, memo } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink, linkForStage } from "../data/messageSequence.js";
 import { useShareGate } from "../components/share/useShareGate.jsx";
 import Icon from "../components/ui/Icon.jsx";
-import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT } from "../data/constants.js";
+import { GROUP_OPTIONS, BUSINESS_GROUP_OPTIONS, MEAL_OPTIONS, MEAL_DEFAULT, GROUP_NAME_MAX } from "../data/constants.js";
 import { getSideLabel, guestCompanionNames } from "../utils/eventHelpers.js";
 import { uid } from "../utils/uid.js";
+import { guestListSheetRows, GUEST_SHEET_COLS } from "../utils/guestListSheet.js";
 import { parseGuestList, countWithPhone, countSeats } from "../utils/parseGuestList.js";
 import { buildImportRows, readyImportRows } from "../utils/importReview.js";
 import ImportReview from "../components/guests/ImportReview.jsx";
@@ -30,6 +31,94 @@ import base from "../styles/screenBase.module.css";
 import Divider from "../components/ui/Divider.jsx";
 import styles from "./GuestManagerScreen.module.css";
 
+
+/* One row of the guest list (סב58).
+ *
+ * The rows used to be inline JSX in the screen, and the add form's state lives
+ * in the screen too — so every keystroke in the name field re-rendered all of
+ * them. Measured with 800 guests at 4x CPU throttle: ~240ms from keydown to
+ * paint, per character. A memoised row with stable callbacks lets React skip
+ * every row whose guest, table and labels did not change, which on a keystroke
+ * is all of them. The props are plain values (the labels are computed by the
+ * screen as strings) so the memo comparison holds. */
+const GuestRow = memo(function GuestRow({ g, table: t, isEditing, sideText, mealText, rsvpText, onWa, onEdit, onDelete }) {
+  const companions = guestCompanionNames(g);
+  return (
+    <div className={[base.gRow, styles.gRowLazy, isEditing ? base.gRowActive : ""].filter(Boolean).join(" ")}>
+      <SideDot side={g.side} />
+      <div className={base.gInfo}>
+        <span className={base.gName}>
+          {g.name}
+          {(g.count || 1) > 1 && <span className={base.gCountBadge}>+{(g.count || 1) - 1}</span>}
+        </span>
+        {/* The names were being stored and never shown. A pasted row
+            of "דניאל ישראל (אודליה,מיכאל,אריאל) 053…" parsed
+            correctly — companions and all — and then the list drew
+            "+3" and nothing else, so the only way to find out whether
+            the paste had understood anything was to open the edit
+            form row by row. The seating screen and the table card had
+            shown these all along; the guest list was the one place
+            that hadn't. */}
+        {companions.length > 0 && (
+          <span className={base.gCompanions}>
+            {companions.join(" · ")}
+          </span>
+        )}
+        <span className={base.gMeta}>
+          {sideText} · {g.group}
+          {(g.count || 1) > 1 ? " · " + (g.count) + " מקומות" : ""}
+          {mealText ? " · " + mealText : ""}
+          {g.phone ? " · " + g.phone : ""}
+          {g.notes ? " · " + g.notes : ""}
+        </span>
+      </div>
+      {(g.rsvp === "confirmed" || g.rsvp === "declined" || g.rsvp === "maybe") && (
+        <span className={g.rsvp === "confirmed" ? base.tagSeated : base.tagUnseated}
+          style={
+            g.rsvp === "declined" ? { color: "var(--red)", borderColor: "var(--red)" } :
+            g.rsvp === "maybe"    ? { color: "var(--warn)", borderColor: "var(--warn-border)", background: "var(--warn-bg)" } :
+            undefined
+          }>
+          {rsvpText}
+        </span>
+      )}
+      {t
+        ? (
+          <span className={[base.tagSeated, base.tagFlexible].join(" ")} title={t.name}>
+            <Icon name="hexagon" size={12} />
+            <span className={base.tagFlexibleText}>{t.name}</span>
+          </span>
+        )
+        : <span className={base.tagUnseated}>טרם שובץ לשולחן</span>
+      }
+      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        {g.phone && (
+          <button
+            type="button"
+            className={[base.btnSm, styles.waBtn].join(" ")}
+            title="שלחו הזמנה בוואטסאפ"
+            aria-label={`וואטסאפ: ${g.name}`}
+            onClick={() => onWa(g)}
+          >
+            וואטסאפ
+          </button>
+        )}
+        {/* Named with the guest (AX8): a list of 300 "עריכה" and 300
+            "מחקו" buttons is unusable by screen reader, and the
+            delete one is the dangerous one. The visible word leads
+            the name, so voice control still finds it. */}
+        <button type="button" className={[base.btnSm, base.btnGhost].join(" ")}
+          aria-label={`עריכה: ${g.name}`}
+          onClick={() => onEdit(g)}>
+          עריכה
+        </button>
+        <button type="button" className={[base.btnSm, base.btnDanger].join(" ")} aria-label={`מחקו: ${g.name}`} onClick={() => onDelete(g.id, g.name)}>
+          מחקו
+        </button>
+      </div>
+    </div>
+  );
+});
 
 export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   // Position in the build order, from src/data/eventAreas.js — never a literal.
@@ -85,6 +174,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const name = (await prompt("שם הקבוצה החדשה (למשל: חברים מהגן / צוות שיווק)", {
       placeholder: "שם הקבוצה",
       confirmLabel: "צרו קבוצה",
+      maxLength: GROUP_NAME_MAX,
     }) || "").trim();
     if (!name) return;
     if (!allGroupOptions.includes(name)) {
@@ -238,7 +328,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       // Hard-coding count: 1 here is what threw every "+1" in a pasted list
       // away, silently, along with the companion's name.
       id: uid(), name: r.name, count: r.count || 1, side: listSide, group: listGroup,
-      phone: r.phone, notes: "", rsvp: "pending", meal: MEAL_DEFAULT,
+      phone: r.phone, notes: r.notes || "", rsvp: "pending", meal: MEAL_DEFAULT,
       companions: r.companions || [],
     }));
     patchEvent(e => Object.assign({}, e, { guests: e.guests.concat(newGuests) }));
@@ -293,14 +383,10 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   // full, current guest list as a spreadsheet.
   const exportGuestsExcel = async () => {
     const XLSX = await import("xlsx");
-    const rsvpTxt = { confirmed: "אישרו", declined: "לא מגיעים", maybe: "אולי", pending: "ממתין" };
-    const aoa = [["שם מלא", "טלפון", "צד", "קבוצה", "כמות", "מנה", "אישור הגעה", "הערות"]];
-    ev.guests.forEach(g => aoa.push([
-      g.name || "", g.phone || "", sideLabel(g.side), g.group || "",
-      g.count || 1, mealLabel(g.meal), rsvpTxt[g.rsvp || "pending"] || "", g.notes || "",
-    ]));
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 22 }, { wch: 15 }, { wch: 12 }, { wch: 16 }, { wch: 6 }, { wch: 12 }, { wch: 12 }, { wch: 20 }];
+    // Rows built in utils/guestListSheet.js — which also carries the
+    // companion names this export used to drop (89).
+    const ws = XLSX.utils.aoa_to_sheet(guestListSheetRows(ev.guests, { sideLabel, mealLabel }));
+    ws["!cols"] = GUEST_SHEET_COLS;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "רשימת אורחים");
     XLSX.writeFile(wb, `אורחים-${(ev.name || "אירוע").replace(/[^\p{L}\p{N} -]/gu, "")}.xlsx`);
@@ -384,7 +470,38 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     if (n > 0) acc.push({ ...o, n });
     return acc;
   }, []).filter(o => o.value !== MEAL_DEFAULT || o.n < comingSeats);
-  const tableOf    = id => { const tid = ev.seating[id]; return tid ? ev.tables.find(t => t.id === tid) : null; };
+  // The meal chips count everyone who has not declined — including those who
+  // have not answered yet, while the RSVP screen's forecast counts confirmed
+  // guests only. Two honest numbers for two questions; this one now says what
+  // it includes (ב3, owner 2.10).
+  const unansweredSeats = coming.filter(g => g.rsvp !== "confirmed")
+                                .reduce((s, g) => s + Math.max(1, g.count || 1), 0);
+  const tableById  = useMemo(() => new Map(ev.tables.map(t => [t.id, t])), [ev.tables]);
+  const tableOf    = id => { const tid = ev.seating[id]; return tid ? tableById.get(tid) || null : null; };
+
+  // The row callbacks must keep their identity across renders, or every
+  // memoised GuestRow re-renders anyway. They call through a ref to the
+  // current render's handlers, refreshed after each commit — a click only
+  // ever happens after one.
+  const rowActions = useRef(null);
+  useLayoutEffect(() => {
+    rowActions.current = {
+      wa: waGuest,
+      del: delGuest,
+      edit: (g) => {
+        // Every editable field is loaded from the row, companion
+        // names included and padded to the seat count — a field
+        // the form renders but does not load is a field the host
+        // is being invited to blank out by accident.
+        setForm(guestToForm(g, defaultGroup));
+        setEditId(g.id);
+        window.scrollTo(0, 0);
+      },
+    };
+  });
+  const onRowWa     = useCallback((g) => rowActions.current.wa(g), []);
+  const onRowEdit   = useCallback((g) => rowActions.current.edit(g), []);
+  const onRowDelete = useCallback((id, name) => rowActions.current.del(id, name), []);
   const isFiltered = filter.side !== "all" || filter.group !== "all" || filter.rsvp !== "all" || filter.search;
 
   return (
@@ -401,7 +518,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           /* Four numbers, one of them leading. The sides and the meal
              breakdown moved to the quiet strip below the header: eleven equal
              boxes in five ink colours gave the eye nowhere to land. */
-          <div className={base.pills}>
+          <div className={base.pills} data-tour="guests.counts" data-tour-fit>
             <StatPill n={ev.guests.length} label="סה״כ" primary />
             {nConfirmed > 0 && <StatPill n={nConfirmed} label="אישרו" color="var(--green)" />}
             {nDeclined > 0 && <StatPill n={nDeclined} label="סירבו" color="var(--red)" />}
@@ -424,6 +541,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               <span className={base.statChipN}>{m.n}</span> {m.value === "none" ? "בלי מנה" : m.n === 1 ? `מנה ${m.label}` : `מנות ${m.label}`}
             </span>
           ))}
+          {mealCounts.length > 0 && unansweredSeats > 0 && (
+            <span className={base.statChip}>
+              {unansweredSeats === 1 ? "כולל מקום אחד שעוד לא ענה" : `כולל ${unansweredSeats} מקומות שעוד לא ענו`}
+            </span>
+          )}
         </div>
       )}
 
@@ -449,7 +571,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           hand and only then met the paste box and the shared link. Each option
           is titled by what HAPPENS, not by what it is called. */}
       {!editId && (
-        <div className={styles.ways}>
+        <div className={styles.ways} data-tour="guests.ways">
           <SectionLabel>איך להכניס את המוזמנים לרשימה</SectionLabel>
           <div className={styles.waysGrid}>
             <button
@@ -496,7 +618,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         </div>
       )}
 
-      <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")}>
+      <div className={[base.card, editId ? base.cardEdit : ""].filter(Boolean).join(" ")} data-tour="guests.form">
         <SectionLabel>
           {editId
             ? ("עריכת אורח — " + (ev.guests.find(g => g.id === editId)?.name ?? ""))
@@ -541,11 +663,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
               aria-label="הדביקו כאן את רשימת השמות"
             />
             <div className={styles.listAddRow}>
-              <div className={base.seg}>
+              <div className={base.seg} role="group" aria-label="הצד שכל השמות ברשימה יקבלו">
                 {["bride", "groom"].map(s => (
                   <button
                     key={s}
                     type="button"
+                    aria-pressed={listSide === s}
                     className={[base.segBtn, listSide === s ? (s === "bride" ? base.segBride : base.segGroom) : ""].filter(Boolean).join(" ")}
                     onClick={() => setListSide(s)}
                   >
@@ -588,11 +711,12 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
         <div className={base.grid2}>
           <Field label="מי הזמין אותם" hint="לפי זה נדע לשבת אותם באזור הנכון באולם">
-            <div className={base.seg}>
+            <div className={base.seg} role="group" aria-label="מי הזמין אותם">
               {["bride", "groom"].map(s => (
                 <button
                   key={s}
                   type="button"
+                  aria-pressed={form.side === s}
                   className={[
                     base.segBtn,
                     form.side === s ? (s === "bride" ? base.segBride : base.segGroom) : ""
@@ -618,6 +742,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
                   className={base.input}
                   value={customGroupInput}
                   placeholder="שם הקבוצה החדשה..."
+                  maxLength={GROUP_NAME_MAX}
                   autoFocus
                   onChange={e => setCustomGroupInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") saveGuest(); }}
@@ -755,7 +880,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       </div>
 
       {ev.guests.length > 0 && (
-        <div className={base.filterBar}>
+        <div className={base.filterBar} data-tour="guests.filter">
           <span className={styles.filterLabel}>סינון:</span>
           <input
             className={base.input}
@@ -817,87 +942,21 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {visible.length > 0 && (
-        <div className={base.gList}>
-          {visible.map(g => {
-            const t = tableOf(g.id);
-            const isEditing = editId === g.id;
-            return (
-              <div key={g.id} className={[base.gRow, isEditing ? base.gRowActive : ""].filter(Boolean).join(" ")}>
-                <SideDot side={g.side} />
-                <div className={base.gInfo}>
-                  <span className={base.gName}>
-                    {g.name}
-                    {(g.count || 1) > 1 && <span className={base.gCountBadge}>+{(g.count || 1) - 1}</span>}
-                  </span>
-                  {/* The names were being stored and never shown. A pasted row
-                      of "דניאל ישראל (אודליה,מיכאל,אריאל) 053…" parsed
-                      correctly — companions and all — and then the list drew
-                      "+3" and nothing else, so the only way to find out whether
-                      the paste had understood anything was to open the edit
-                      form row by row. The seating screen and the table card had
-                      shown these all along; the guest list was the one place
-                      that hadn't. */}
-                  {guestCompanionNames(g).length > 0 && (
-                    <span className={base.gCompanions}>
-                      {guestCompanionNames(g).join(" · ")}
-                    </span>
-                  )}
-                  <span className={base.gMeta}>
-                    {sideLabel(g.side)} · {g.group}
-                    {(g.count || 1) > 1 ? " · " + (g.count) + " מקומות" : ""}
-                    {g.meal && g.meal !== MEAL_DEFAULT ? " · " + mealLabel(g.meal) : ""}
-                    {g.phone ? " · " + g.phone : ""}
-                    {g.notes ? " · " + g.notes : ""}
-                  </span>
-                </div>
-                {(g.rsvp === "confirmed" || g.rsvp === "declined" || g.rsvp === "maybe") && (
-                  <span className={g.rsvp === "confirmed" ? base.tagSeated : base.tagUnseated}
-                    style={
-                      g.rsvp === "declined" ? { color: "var(--red)", borderColor: "var(--red)" } :
-                      g.rsvp === "maybe"    ? { color: "var(--warn)", borderColor: "var(--warn-border)", background: "var(--warn-bg)" } :
-                      undefined
-                    }>
-                    {rsvpLabel(g.rsvp)}
-                  </span>
-                )}
-                {t
-                  ? (
-                    <span className={[base.tagSeated, base.tagFlexible].join(" ")} title={t.name}>
-                      <Icon name="hexagon" size={12} />
-                      <span className={base.tagFlexibleText}>{t.name}</span>
-                    </span>
-                  )
-                  : <span className={base.tagUnseated}>טרם שובץ לשולחן</span>
-                }
-                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  {g.phone && (
-                    <button
-                      className={[base.btnSm, styles.waBtn].join(" ")}
-                      title="שלחו הזמנה בוואטסאפ"
-                      onClick={() => waGuest(g)}
-                    >
-                      וואטסאפ
-                    </button>
-                  )}
-                  <button className={[base.btnSm, base.btnGhost].join(" ")}
-                    onClick={() => {
-                      // Every editable field is loaded from the row, companion
-                      // names included and padded to the seat count — a field
-                      // the form renders but does not load is a field the host
-                      // is being invited to blank out by accident.
-                      setForm(guestToForm(g, defaultGroup));
-                      setEditId(g.id);
-                      window.scrollTo(0, 0);
-                    }}>
-                    עריכה
-                  </button>
-                  <button className={[base.btnSm, base.btnDanger].join(" ")} onClick={() => delGuest(g.id, g.name)}>
-                    מחקו
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+        <div className={base.gList} data-tour="guests.list">
+          {visible.map(g => (
+            <GuestRow
+              key={g.id}
+              g={g}
+              table={tableOf(g.id)}
+              isEditing={editId === g.id}
+              sideText={sideLabel(g.side)}
+              mealText={g.meal && g.meal !== MEAL_DEFAULT ? mealLabel(g.meal) : ""}
+              rsvpText={rsvpLabel(g.rsvp)}
+              onWa={onRowWa}
+              onEdit={onRowEdit}
+              onDelete={onRowDelete}
+            />
+          ))}
         </div>
       )}
 

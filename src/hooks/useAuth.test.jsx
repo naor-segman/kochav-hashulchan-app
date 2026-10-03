@@ -176,8 +176,46 @@ describe("useAuth — signing out clears the service worker's Supabase cache (10
     } finally { delete globalThis.caches; }
   });
 
+  it("and again when a different account signs in — a late read may have re-created it (ב11)", async () => {
+    const del = vi.fn(async () => true);
+    globalThis.caches = { delete: del };
+    try {
+      sessionResult = { user: { id: "u1" } };
+      show();
+      await waitFor(() => expect(text()).toBe("u1"));
+      await act(async () => { authCallback("SIGNED_IN", { user: { id: "u1" } }); });
+      expect(del).not.toHaveBeenCalled();                 // the same account: a token refresh, not a new person
+      await act(async () => { authCallback("SIGNED_IN", { user: { id: "u2" } }); });
+      expect(del).toHaveBeenCalledWith("supabase-api");
+    } finally { delete globalThis.caches; }
+  });
+
   it("and it is the same name the service worker uses", async () => {
     const { readFileSync } = await import("node:fs");
     expect(readFileSync("vite.config.js", "utf8")).toMatch(/cacheName: 'supabase-api'/);
+  });
+});
+
+describe("useAuth — a sign-out the server did not accept (37a)", () => {
+  // supabase-js resolves { error } and KEEPS the session when the logout call
+  // fails (offline, 5xx). signOut() used to drop that error, so the account
+  // screen navigated home as if the host had left while they were still in.
+  function Grab({ into }) { into.api = useAuth(); return null; }
+
+  it("throws the error instead of resolving as though it worked", async () => {
+    const { supabase } = await import("../lib/supabase.js");
+    const err = Object.assign(new Error("Failed to fetch"), { name: "AuthRetryableFetchError", status: 0 });
+    supabase.auth.signOut.mockResolvedValueOnce({ error: err });
+    const box = {};
+    render(<AuthProvider><Grab into={box} /></AuthProvider>);
+    await waitFor(() => expect(box.api.loading).toBe(false));
+    await expect(box.api.signOut()).rejects.toBe(err);
+  });
+
+  it("resolves when the server signed the session out", async () => {
+    const box = {};
+    render(<AuthProvider><Grab into={box} /></AuthProvider>);
+    await waitFor(() => expect(box.api.loading).toBe(false));
+    await expect(box.api.signOut()).resolves.toBeUndefined();
   });
 });

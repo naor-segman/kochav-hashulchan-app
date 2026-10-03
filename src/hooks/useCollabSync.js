@@ -286,6 +286,70 @@ function writeUnsent(cloudId, marks) {
   } catch { /* storage full or blocked: the in-memory queue still retries */ }
 }
 
+/* ── The last row both sides agreed on, per guest, across reloads (89) ───────
+ *
+ * Every decision here used to be "the table's copy, or the host's, whole":
+ *   • a relative half-way through an edit (a third seat not named yet — an
+ *     INCOMPLETE row, which is never applied) had it overwritten by the host's
+ *     copy on the host's next visit (#6);
+ *   • a host edit still owed to the table beat a relative's NEWER note on
+ *     another field of the same row, and the note was lost (#host-wins);
+ *   • a row a relative deleted while the host's app was closed came back,
+ *     because nothing remembered that the row had ever been in step (57b).
+ * The missing piece is the common ancestor, as for the event merge
+ * (syncBase.js): per field, the side that moved since the last agreed row
+ * wins. Stored per event in localStorage, so it outlives the reload — which is
+ * exactly when all three happened. */
+const COLLAB_FIELDS = ["name", "phone", "side", "guest_group", "guests_count", "companions", "notes"];
+const fieldSig = (r, f) => {
+  if (!r) return "";
+  if (f === "side") return sideOf(r.side);
+  if (f === "guests_count") return String(r.guests_count || 1);
+  if (f === "companions") return compSig(clampComp(r.companions, r.guests_count));
+  return norm(r[f]);
+};
+const agreedKey = (cloudId) => `kh_collab_synced:${cloudId}`;
+function readAgreed(cloudId) {
+  try {
+    const v = JSON.parse(localStorage.getItem(agreedKey(cloudId)) || "{}");
+    return new Map(Object.entries(v && typeof v === "object" ? v : {})
+      .filter(([id, r]) => typeof id === "string" && r && typeof r === "object"));
+  } catch { return new Map(); }
+}
+function writeAgreed(cloudId, map) {
+  try {
+    if (map.size) localStorage.setItem(agreedKey(cloudId), JSON.stringify(Object.fromEntries(map)));
+    else localStorage.removeItem(agreedKey(cloudId));
+  } catch { /* storage full or blocked: in memory still works for this visit */ }
+}
+
+/**
+ * Per field: whichever of `host` / `table` moved away from `agreed` wins; a
+ * field both moved goes to the host when `hostWinsBoth` (its edit is still
+ * owed), else to the table. Returns the merged row (table shape).
+ */
+export function mergeCollabRow(host, table, agreed, hostWinsBoth) {
+  const out = { ...table };
+  for (const f of COLLAB_FIELDS) {
+    const h = fieldSig(host, f), t = fieldSig(table, f);
+    if (h === t) continue;
+    const a = fieldSig(agreed, f);
+    const hMoved = h !== a, tMoved = t !== a;
+    if (hMoved && (!tMoved || hostWinsBoth)) out[f] = host[f];
+  }
+  return out;
+}
+
+/** The agreed row after `a` and `b` were reconciled: a field they agree on is
+ *  agreed; a field they still differ on keeps the previous agreement. */
+export function advanceAgreed(prev, a, b) {
+  const out = { id: a.id };
+  for (const f of COLLAB_FIELDS) {
+    out[f] = fieldSig(a, f) === fieldSig(b, f) || !prev ? a[f] : prev[f];
+  }
+  return out;
+}
+
 export function useCollabSync(activeEvent, patchEvent, showToast) {
   const cloudId  = activeEvent?.cloudId || null;
   const collabOn = !!activeEvent?.tokens?.collab;
@@ -315,6 +379,7 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
   const eventRef = useRef(activeEvent);
   useEffect(() => { eventRef.current = activeEvent; });
   const unsent = useRef(new Map());   // guest id -> when it was first owed
+  const agreed = useRef(new Map());   // guest id -> last row both sides agreed on (89)
 
   // ── table → app: initial pull + live subscription ──
   useEffect(() => {
@@ -340,6 +405,12 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
     toldRef.current = false;
 
     unsent.current = readUnsent(cloudId);
+    agreed.current = readAgreed(cloudId);
+    const agree = (id, a, b) => {
+      agreed.current.set(id, advanceAgreed(agreed.current.get(id), a, b));
+      writeAgreed(cloudId, agreed.current);
+    };
+    const forget = (id) => { if (agreed.current.delete(id)) writeAgreed(cloudId, agreed.current); };
 
     const applyRow = (row) => {
       mirror.current.set(row.id, row);
@@ -353,11 +424,18 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         return;
       }
       if (!collabComplete(row)) return;
-      // Our edit is still waiting to be sent: the table's copy is the older one.
-      if (unsent.current.has(row.id) && (ev?.guests || []).some(g => g.id === row.id)) return;
+      const host = (ev?.guests || []).find(g => g.id === row.id);
+      const base = agreed.current.get(row.id);
+      // Our edit is still waiting to be sent: the table's copy is the older one
+      // — for the fields WE changed. With a last-agreed row, the fields only
+      // the family changed are still theirs (89: a relative's note was lost to
+      // the host's unsent phone fix). Without one, the old whole-row rule.
+      if (unsent.current.has(row.id) && host && !base) return;
       const sig = sigCollab(row);
       if (applied.current.get(row.id) === sig) return; // already reflected
       applied.current.set(row.id, sig);
+      const take = host && base ? mergeCollabRow(guestToCollab(host), row, base, unsent.current.has(row.id)) : row;
+      if (host) agree(row.id, row, take); else agree(row.id, row, row);
       patchEvent((e) => {
         const guests = e.guests || [];
         // Match by shared id, else dedup a family addition of someone already on
@@ -368,8 +446,8 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         if (existing && existing.id === row.id) {
           // The table holds exactly what this guest clips to: nothing to take,
           // and taking it would replace the host's full value with the clipped one.
-          if (sigCollab(row) === sigGuest(existing)) return e;
-          const merged = guestFromCollab(row, existing);
+          if (sigCollab(take) === sigGuest(existing)) return e;
+          const merged = guestFromCollab(take, existing);
           // Already reflected: the same event back, so nothing is written. The
           // pull runs on every visit with `applied` empty, and each row used to
           // be a real edit — about a dozen version bumps and a cloud write per
@@ -404,7 +482,11 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
     const removeRow = (id) => {
       mirror.current.delete(id);
       if (unsent.current.delete(id)) writeUnsent(cloudId, unsent.current);
-      if (!applied.current.has(id)) return; // was only a draft, never a guest
+      // Known as a guest in this visit, or agreed in an earlier one (after a
+      // reload `applied` is empty until each row is seen again).
+      const known = applied.current.has(id) || agreed.current.has(id);
+      forget(id);
+      if (!known) return; // was only a draft, never a guest
       applied.current.delete(id);
       let removedName = "";
       patchEvent((e) => {
@@ -424,19 +506,49 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       if (removedName && showToast) showToast(`"${removedName}" הוסר — סונכרן מהטבלה השיתופית`);
     };
 
+    const onChange = (payload) => {
+      if (payload.eventType === "DELETE") removeRow(payload.old?.id);
+      else if (payload.new) applyRow(payload.new);
+    };
+    // Subscribed BEFORE the first read (89 #10). It used to start only after
+    // the pull had been applied, so a change a relative made in between —
+    // read too early to be in the pull, too early for the subscription — was
+    // missed until the next visit. Changes that arrive while the read is in
+    // flight are held and applied after it, in order.
+    let held = [];
+    unsub = subscribeCollabGuests(cloudId, (payload) => {
+      if (held) held.push(payload); else onChange(payload);
+    });
+
     (async () => {
       try {
         const rows = await fetchCollabGuestsOwner(cloudId);
         if (cancelled) return;
         rows.forEach(applyRow);
+        // A row this device had agreed on that is no longer in the table was
+        // deleted there while the app was closed (57b, the reverse direction):
+        // a relative removed it, and the host's copy used to be pushed straight
+        // back. Not when the read came back EMPTY — an empty answer is also
+        // what an expired session reads under RLS, and taking it as "the
+        // family deleted everyone" would empty the guest list. And not when
+        // the host has changed that guest since: an edit beats a delete, the
+        // row is sent again (the recoverable side).
+        if (rows.length) {
+          const inTable = new Set(rows.map(r => r.id));
+          for (const [id, base] of [...agreed.current]) {
+            if (inTable.has(id) || unsent.current.has(id)) continue;
+            const g = (eventRef.current?.guests || []).find(x => x.id === id);
+            if (!g) { forget(id); continue; }
+            if (sigGuest(g) === sigCollab(base)) removeRow(id);
+          }
+        }
       } catch { /* offline — retry on next mount */ }
       if (cancelled) return;
+      const pending = held || [];
+      held = null;
+      pending.forEach(onChange);
       ready.current = true;
       setReadyTick((t) => t + 1); // re-run the push effect now that we're ready
-      unsub = subscribeCollabGuests(cloudId, (payload) => {
-        if (payload.eventType === "DELETE") removeRow(payload.old?.id);
-        else if (payload.new) applyRow(payload.new);
-      });
     })();
 
     return () => { cancelled = true; unsub(); ready.current = false; stopQueue(); };
@@ -458,19 +570,32 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
       const m = mirror.current.get(g.id);
       if (m && sigCollab(m) === sig) {                           // already matches table
         applied.current.set(g.id, sig);
+        agreed.current.set(g.id, advanceAgreed(agreed.current.get(g.id), m, m));
+        writeAgreed(cloudId, agreed.current);
         // It landed, even if the page closed before we heard: nothing owed.
         if (unsent.current.delete(g.id)) writeUnsent(cloudId, unsent.current);
         return;
       }
+      const base = agreed.current.get(g.id);
+      // The table moved and the host did not (89 #6): a relative half-way
+      // through an edit — an incomplete row, which is never applied — had it
+      // overwritten by the host's unchanged copy. Nothing of ours to send; the
+      // family's row comes in once it is complete.
+      if (m && base && sig === sigCollab(base) && !unsent.current.has(g.id)) return;
       // NOT marked applied yet. `applied` means "the table has this", and it
       // only has it once the write lands — otherwise a failed push leaves the
       // row looking reconciled and it is never sent again.
-      const row = guestToCollab(g);
+      // With a last-agreed row, only the fields the HOST changed are sent over
+      // the table's copy; what the family changed meanwhile stays (89).
+      const own = guestToCollab(g);
+      const row = m && base ? mergeCollabRow(own, m, base, true) : own;
       if (!unsent.current.has(g.id)) { unsent.current.set(g.id, Date.now()); writeUnsent(cloudId, unsent.current); }
       queue.current.push(g.id, () =>
         upsertCollabGuestOwner(cloudId, row).then(() => {
           applied.current.set(g.id, sig);
           mirror.current.set(g.id, { ...row });
+          agreed.current.set(g.id, advanceAgreed(agreed.current.get(g.id), row, own));
+          writeAgreed(cloudId, agreed.current);
           // Only if this is still the newest copy: a later edit owes its own write.
           if (sigGuest((eventRef.current?.guests || []).find(x => x.id === g.id) || {}) === sig) {
             unsent.current.delete(g.id); writeUnsent(cloudId, unsent.current);
@@ -490,8 +615,10 @@ export function useCollabSync(activeEvent, patchEvent, showToast) {
         // it land would recreate the row the host just deleted.
         queue.current.cancel(id);
         unsent.current.delete(id);
+        agreed.current.delete(id);
       });
       writeUnsent(cloudId, unsent.current);
+      writeAgreed(cloudId, agreed.current);
       queue.current.push("delete:" + toDelete.join(","), () =>
         deleteCollabGuestsOwner(cloudId, toDelete));
     }

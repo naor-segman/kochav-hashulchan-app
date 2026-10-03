@@ -16,8 +16,9 @@ import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/storage.js";
-import { COMPANY, supportMailto } from "../data/company.js";
+import { COMPANY, contactMailto, supportMailto } from "../data/company.js";
 import { fmtShortDate } from "../utils/dateFormat.js";
+import { authErrorMessage } from "../utils/authErrors.js";
 
 
 // ── Plan card feature rows ────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
     refresh:         refreshSub,
   } = useSubscription();
   const [signingOut,      setSigningOut]      = useState(false);
+  const [signOutError,    setSignOutError]    = useState("");
   const [checkoutResult,  setCheckoutResult]  = useState(null); // "success" | "cancelled" | null
   const [pwForm,          setPwForm]          = useState({ current: "", next: "", confirm: "" });
   const [pwSaving,        setPwSaving]        = useState(false);
@@ -125,9 +127,22 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A sign-out that failed (offline, server down) used to navigate home
+  // anyway — it looked exactly like success while the session, and the
+  // account's events, stayed on the device (37a). It stays here and says so.
+  // The button is aria-disabled rather than disabled while it works, so the
+  // keyboard focus is still on it when the error is announced.
   const handleSignOut = async () => {
+    if (signingOut) return;
     setSigningOut(true);
-    await signOut();
+    setSignOutError("");
+    try {
+      await signOut();
+    } catch {
+      setSigningOut(false);
+      setSignOutError("ההתנתקות לא הושלמה ואתם עדיין מחוברים. בדקו את החיבור לאינטרנט ונסו שוב.");
+      return;
+    }
     navigate("/", { replace: true });
   };
 
@@ -203,7 +218,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
     const { error } = await supabase.auth.updateUser({ password: pwForm.next });
     setPwSaving(false);
     if (error) {
-      setPwError(error.message || "שגיאה בשינוי הסיסמה.");
+      setPwError(authErrorMessage(error, "changePassword"));
     } else {
       setPwDone(true);
       setPwForm({ current: "", next: "", confirm: "" });
@@ -219,12 +234,12 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
   const statusMeta = getStatusMeta(statusKey);
 
   return (
-    <div className={styles.page}>
+    <main className={styles.page}>
       <div className={styles.card}>
 
         {/* Brand */}
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandMark} aria-hidden="true">✦</span>
           <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 
@@ -430,7 +445,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         )}
         {sub && statusKey === "trialing" && (
           <div className={styles.trialBanner}>
-            ✦ אתם בתקופת ניסיון. ניתן לשדרג בכל עת.
+            <span aria-hidden="true">✦</span> אתם בתקופת ניסיון. ניתן לשדרג בכל עת.
           </div>
         )}
 
@@ -480,7 +495,9 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                 const handleCardAction = () => {
                   if (isCurrent || billing.checkoutTarget) return;
                   if (isEnterprise) {
-                    window.location.href = supportMailto("Enterprise Plan Inquiry");
+                    // The sales mailbox, with a Hebrew subject (סב60c, ב10) — it
+                    // went to the support mailbox with an English subject.
+                    window.location.href = contactMailto("פנייה לגבי חבילת \"אנחנו שם איתכם\"");
                     return;
                   }
                   // To the event list, not to Stripe. See cardBtnLabel: there is
@@ -587,13 +604,15 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
               </button>
             )}
 
-            {/* Beta / inactive note — shown only when Stripe is not yet configured */}
+            {/* Shown only while Stripe is not configured. Says what is true —
+                nothing is charged yet — without the beta label (checklist 23:
+                the owner took the beta label off the whole product, 1.10). */}
             {!isStripeConfigured && (
               <div className={styles.inactiveNote}>
-                <span className={styles.inactiveNoteIcon}>✦</span>
+                <span className={styles.inactiveNoteIcon} aria-hidden="true">✦</span>
                 <span>
-                  אנחנו בשלב בטא — כל הפונקציות זמינות כרגע ללא תשלום.
-                  שדרוג לתוכניות בתשלום יהיה זמין בקרוב. תודה שאתם איתנו!
+                  כרגע כל הפונקציות זמינות ללא תשלום.
+                  רכישה תהיה זמינה בקרוב.
                 </span>
               </div>
             )}
@@ -605,9 +624,11 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
           <button
             className={styles.signOutBtn}
             onClick={handleSignOut}
-            disabled={signingOut}
+            aria-disabled={signingOut || undefined}
+            aria-describedby={signOutError ? "account-signout-error" : undefined}
+            type="button"
           >
-            {signingOut ? "מתנתק…" : "התנתקות"}
+            {signingOut ? "מתנתקים…" : "התנתקות"}
           </button>
           <button
             className={styles.clearLocalBtn}
@@ -617,6 +638,11 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
             מחיקת נתונים מקומיים מהמכשיר
           </button>
         </div>
+        {signOutError && (
+          <p id="account-signout-error" role="alert" className={styles.billingError}>
+            {signOutError}
+          </p>
+        )}
         <p className={styles.clearLocalHint}>
           העותק של האירועים נשמר גם בדפדפן הזה כדי שהאפליקציה תעבוד גם בלי רשת.
           בהתנתקות נמחק מהמכשיר כל מה שכבר מסונכרן לענן; מה שטרם הספיק
@@ -634,12 +660,24 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
           <Icon name="mail" /> שלחו משוב / דווחו על בעיה
         </Link>
 
-        <p className={styles.versionLabel}>גרסה 0.1 · בטא מוקדמת</p>
+        {/* Deleting the whole account is a request, not a button (owner, 2.10):
+            a conversation is the chance to hear why, and maybe to fix it. The
+            privacy page promises it within 30 days. The mail arrives with the
+            account's address so the request can be matched without asking. */}
+        <a
+          className={styles.feedbackLink}
+          href={supportMailto(
+            "בקשה למחיקת החשבון",
+            `שלום,\nאני מבקש/ת למחוק את החשבון ${user.email} ואת כל האירועים שבו.\n\nאם תרצו לספר לנו למה — זה יעזור לנו להשתפר:\n`,
+          )}
+        >
+          בקשה למחיקת החשבון
+        </a>
 
         <Link to="/" className={styles.backLink}><Icon name="arrowRight" size={14} /> חזרה לאפליקציה</Link>
 
       </div>
       {dialog}
-    </div>
+    </main>
   );
 }

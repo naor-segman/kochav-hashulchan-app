@@ -15,6 +15,7 @@ import {
 } from "../lib/planConfig.js";
 import { formatDate, countPhrase } from "../lib/adminFormat.js";
 import { attachWindowMeta } from "../lib/listWindow.js";
+import { countGranting } from "../lib/purchaseCounts.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import Icon from "../../components/ui/Icon.jsx";
 import styles from "./AdminSubscriptionsScreen.module.css";
@@ -53,7 +54,11 @@ async function loadSubscriptionsData() {
     email: row.profiles?.email || "—",
     eventLabel: firstRes.error ? "—" : purchaseScope(row),
   }));
-  return attachWindowMeta(rows, SUBS_PAGE, countRes.error ? null : countRes.count);
+  const out = attachWindowMeta(rows, SUBS_PAGE, countRes.error ? null : countRes.count);
+  // Without event_id / is_manually_managed every row would read as orphaned
+  // and the plan cards would all say zero. Unknown, not zero.
+  out.scopeKnown = !firstRes.error;
+  return out;
 }
 
 /** What a purchase unlocks, in words: the event by name, an admin comp on the
@@ -221,7 +226,7 @@ export default function AdminSubscriptionsScreen() {
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminSubscriptions" tone="admin" size={20} className={styles.brandMark} />
-          <span className={styles.brandName}>רכישות ותשלומים</span>
+          <h1 className={styles.brandName}>רכישות ותשלומים</h1>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>{COMPANY.name}</span>
         </div>
@@ -283,10 +288,18 @@ export default function AdminSubscriptionsScreen() {
                       <FeatureLine on={limits.collaboration}   label="שיתוף פעולה" />
                     </ul>
                     <div className={styles.planCardCount}>
-                      {/* Read "1 פעילים" on every plan that had exactly one. */}
-                      {countPhrase(
-                        (subs || []).filter(s => s.plan === plan && s.status === "active" && !s.payment_past_due).length,
-                        { none: "אין רכישות פעילות", one: "רכישה פעילה אחת", many: "%n רכישות פעילות" }
+                      {/* Read "1 פעילים" on every plan that had exactly one.
+                          Counted by the customer app's entitlement rule (סב39):
+                          a refunded row still says "active", and a purchase
+                          whose event was deleted grants nothing. */}
+                      {subs?.scopeKnown === false
+                        ? "לא ניתן לספור — חסר שיוך לאירוע"
+                        : countPhrase(
+                            countGranting(subs || [], plan),
+                            { none: "אין רכישות פעילות", one: "רכישה פעילה אחת", many: "%n רכישות פעילות" }
+                          )}
+                      {subs?.truncated && subs?.scopeKnown !== false && (
+                        <span className={styles.truncNote}>{` · ב־${subs.length.toLocaleString()} האחרונות שנטענו`}</span>
                       )}
                     </div>
                   </div>

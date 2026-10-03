@@ -42,6 +42,14 @@ const FALSE = [
   [/הכל לאקסל/, "everything exports to Excel"],
   // There is no PDF export anywhere in the product (checklist 36).
   [/\(PDF/, "a PDF export"],
+  // RSVP answers update the list only for matched guests, when the RSVP
+  // screen is opened (ת, 1.10).
+  [/כל תשובה נכנסת לרשימת האורחים מעצמה/, "every RSVP answer enters the list by itself"],
+  // An unsourced statistic in the Help screen (owner, 2.10: remove it).
+  [/8% עד 15%/, "a no-show rate of 8%–15%"],
+  // seating.js scores SAME-side neighbours up — it keeps each side together;
+  // nothing balances the two sides against each other (3.10, tour review).
+  [/(מתאזנת|תתאזן|מתאזן) ביניהם/, "seating balances the two sides"],
 ];
 
 describe("claims measured false stay out of the shipped source", () => {

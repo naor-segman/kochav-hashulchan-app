@@ -6,18 +6,17 @@ import styles from "./AlbumScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { prepareAlbumPhoto, ALBUM_ACCEPT, ALBUM_REFUSAL_TEXT } from "../utils/albumPhoto.js";
 import { useRestoreFocus } from "../hooks/useRestoreFocus.js";
+import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 /**
  * Public shared album — guests and the photographer upload here.
  *
- * Photos are downscaled in the browser before upload. A modern phone photo is
- * 4–8MB; a hundred guests uploading raw would be gigabytes of storage the host
- * pays for, to display images that are never shown above ~1600px wide.
+ * Every photo is re-encoded in the browser before upload (albumPhoto.js): it
+ * is downscaled, AND its metadata — the GPS position among it — is stripped,
+ * because the bucket is public.
  */
-
-const MAX_EDGE = 1600;
-const QUALITY  = 0.82;
 
 /**
  * localStorage, guarded.
@@ -40,37 +39,6 @@ function writeName(v) {
   try { localStorage.setItem(NAME_KEY, v); } catch { /* nothing to do — it is a nicety */ }
 }
 
-function downscale(file) {
-  return new Promise((resolve, reject) => {
-    // Anything that isn't an image the canvas can read goes up untouched
-    // rather than failing the upload.
-    // HEIC is the iPhone default and the bucket allows it; without it here an
-    // 8MB original went up untouched. Browsers that can't decode it fall
-    // through to the original via the onerror path below anyway.
-    if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type)) return resolve(file);
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => resolve(file);
-      img.onload = () => {
-        const scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height));
-        if (scale === 1) return resolve(file);
-        const c = document.createElement("canvas");
-        c.width  = Math.round(img.width  * scale);
-        c.height = Math.round(img.height * scale);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        c.toBlob(
-          b => resolve(b ? new File([b], file.name, { type: "image/jpeg" }) : file),
-          "image/jpeg", QUALITY,
-        );
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function AlbumScreen() {
   const { token } = useParams();
   const [event, setEvent]   = useState(null);
@@ -80,6 +48,11 @@ export default function AlbumScreen() {
   const [name, setName]     = useState(readName);
   const [busy, setBusy]     = useState(0);
   const [error, setError]   = useState("");
+  // The photo list failing to load is not the same as an empty album (36i):
+  // "no photos yet — be the first" over a list that never arrived told a
+  // guest the album was empty when it was full.
+  const [listError, setListError] = useState(false);
+  const [listing, setListing]     = useState(false);
   const [lightbox, setLightbox] = useState(null);
   const closeLightbox = useCallback(() => setLightbox(null), []);
 
@@ -97,14 +70,27 @@ export default function AlbumScreen() {
       if (!ev) { setState(isSupabaseConfigured ? "error" : "nocloud"); return; }
       setEvent(ev);
       setState("ready");
-      try { setPhotos(await fetchAlbumPhotos(token)); } catch { /* gallery just stays empty */ }
+      try {
+        const list = await fetchAlbumPhotos(token);
+        if (!cancelled) { setPhotos(list); setListError(false); }
+      } catch {
+        if (!cancelled) setListError(true);
+      }
     })();
     return () => { cancelled = true; };
   }, [token]);
 
   const reload = useCallback(async () => {
     if (!event?.cloudId) return;
-    try { setPhotos(await fetchAlbumPhotos(token)); } catch { /* keep what we have */ }
+    setListing(true);
+    try {
+      setPhotos(await fetchAlbumPhotos(token));
+      setListError(false);
+    } catch {
+      setListError(true);              // keep what we have, and say it may be stale
+    } finally {
+      setListing(false);
+    }
   }, [event, token]);
 
   const MAX_BATCH = 30;
@@ -130,7 +116,7 @@ export default function AlbumScreen() {
     let failed = 0, lastErr = null;
     for (const f of list) {
       try {
-        const blob = await downscale(f);
+        const { blob } = await prepareAlbumPhoto(f);
         // Uploads have no request deadline (a big photo on 3G takes minutes),
         // and one that never answered left the page on "מעלה…" for good, the
         // picker disabled (fifth review 30.9). Each file gets a generous one:
@@ -152,7 +138,9 @@ export default function AlbumScreen() {
       const what = failed === 1 ? "תמונה אחת לא הועלתה" : `${failed} תמונות לא הועלו`;
       // A deadline is a SLOW line, not a missing one — and the upload may
       // still land. "אין חיבור" was wrong on both counts (sixth review 30.9).
-      const why = lastErr?.name === "TimeoutError"
+      const why = lastErr?.albumReason
+        ? ALBUM_REFUSAL_TEXT[lastErr.albumReason]
+        : lastErr?.name === "TimeoutError"
         ? "החיבור איטי מאוד. ייתכן שהיא עוד תופיע באלבום; אפשר לבחור אותה שוב — היא לא תופיע פעמיים."
         : guestWriteError(lastErr, "נסו שוב.");
       setError(`${what} — ${why}`);
@@ -160,38 +148,39 @@ export default function AlbumScreen() {
     reload();
   };
 
-  if (state === "loading") return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
+  // Every state is the page's one <main> (38a).
+  if (state === "loading") return <main className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></main>;
   if (state === "nocloud") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <p>האלבום אינו זמין</p>
         <p className={styles.sub}>האירוע עדיין לא סונכרן לענן</p>
-      </div>
+      </main>
     );
   }
   if (state === "unreachable") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
         <p className={styles.sub}>{UNREACHABLE_TEXT.body}</p>
-      </div>
+      </main>
     );
   }
   if (state === "error") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>האלבום לא נמצא</h1>
         <p className={styles.sub}>הקישור אינו תקף או שפג תוקפו</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className={styles.root}>
+    <main className={styles.root}>
       <header className={styles.head}>
         <h1 className={styles.title}>האלבום של {event.name}</h1>
         <p className={styles.sub}>
@@ -214,7 +203,7 @@ export default function AlbumScreen() {
         <label className={styles.dropZone}>
           <input
             type="file"
-            accept="image/*"
+            accept={ALBUM_ACCEPT}
             multiple
             className={styles.fileInput}
             onChange={e => { onFiles(e.target.files); e.target.value = ""; }}
@@ -228,10 +217,22 @@ export default function AlbumScreen() {
         </label>
 
         {error && <p className={styles.error} role="alert">{error}</p>}
+        <GuestPrivacyNote text="התמונות והשם שתכתבו גלויים לכל מי שיש לו את הקישור לאלבום." />
       </div>
 
+      {listError && (
+        <div className={styles.listError} role="alert">
+          <p className={styles.listErrorText}>
+            {photos.length === 0 ? "לא הצלחנו לטעון את התמונות שבאלבום." : "לא הצלחנו לרענן את האלבום — ייתכן שחסרות תמונות חדשות."}
+          </p>
+          <button type="button" className={styles.retry} onClick={reload} disabled={listing}>
+            {listing ? "טוען…" : "נסו שוב"}
+          </button>
+        </div>
+      )}
+
       {photos.length === 0 ? (
-        <p className={styles.empty}>עדיין אין תמונות — תהיו הראשונים 🎉</p>
+        !listError && <p className={styles.empty}>עדיין אין תמונות — תהיו הראשונים 🎉</p>
       ) : (
         <>
           <p className={styles.count}>{photos.length === 1 ? "תמונה אחת" : `${photos.length} תמונות`}</p>
@@ -246,7 +247,7 @@ export default function AlbumScreen() {
       )}
 
       {lightbox && <Lightbox photo={lightbox} onClose={closeLightbox} />}
-    </div>
+    </main>
   );
 }
 

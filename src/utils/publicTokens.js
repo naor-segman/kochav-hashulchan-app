@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import { toSeatIndex } from "./arrival.js";
 import { getEventPersonalConfig } from "./eventHelpers.js";
+import { albumExtForType } from "./albumPhoto.js";
 
 /* Couple names belong to couple events. The setup screen keeps them when the
  * type changes (switching back must not lose them), and the server serves
@@ -679,7 +680,11 @@ const alreadyThere = (e) => String(e?.statusCode ?? e?.status ?? "") === "409"
 
 export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader, fileKey) {
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
-  const ext  = (file.name?.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
+  // From the TYPE of the bytes being uploaded — a re-encoded "IMG_0001.HEIC"
+  // is a WebP or a JPEG (albumPhoto.js). The name is a fallback only for a
+  // body that carries no type.
+  const ext  = albumExtForType(file?.type)
+    || (file?.name?.split(".").pop() || "jpg").toLowerCase().slice(0, 5);
   // <event id>/<album token>/<file>. The storage policy admits a file only
   // under the event's CURRENT album token, so changing the album link revokes
   // uploads (migration 20260930000000); album_add_photo checks the same prefix.
@@ -690,7 +695,7 @@ export async function uploadAlbumPhoto(eventCloudId, albumToken, file, uploader,
 
   const { error: upErr } = await supabase.storage
     .from("event-album")
-    .upload(path, file, { cacheControl: "31536000", upsert: false });
+    .upload(path, file, { cacheControl: "31536000", upsert: false, ...(file?.type ? { contentType: file.type } : {}) });
   if (upErr && !(fileKey && alreadyThere(upErr))) throw upErr;
 
   // Indexed through a definer function: an RLS policy here could not validate

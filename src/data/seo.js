@@ -97,6 +97,7 @@ const STATIC_PAGES = [
     priority: "0.5",
   },
   { path: "/terms",         title: "תנאי שימוש",      description: `תנאי השימוש בשירותי ${COMPANY.name}.`, priority: "0.2" },
+  { path: "/refunds",       title: "ביטול עסקה והחזרים", description: `איך מבטלים רכישה ב${COMPANY.name}, מה מוחזר ומתי.`, priority: "0.2" },
   { path: "/privacy",       title: "מדיניות פרטיות",   description: `איזה מידע ${COMPANY.name} שומרת, למה, ולמי הוא נגיש.`, priority: "0.2" },
   { path: "/accessibility", title: "הצהרת נגישות",     description: `הצהרת הנגישות של ${COMPANY.name} ודרכי הפנייה לרכז הנגישות.`, priority: "0.2" },
 ];

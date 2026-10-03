@@ -224,6 +224,17 @@ describe("generateSuggestions — the categories that had no coverage", () => {
     expect(s.explanation).toContain("83%");
   });
 
+  it("names the sides by the event's own labels, and one guest in the singular (סב34e)", () => {
+    const guests = [g("b1"), g("b2"), g("b3"), g("b4"), g("b5"), g("g1", { side: "groom" })];
+    const seating = Object.fromEntries(guests.map(x => [x.id, "t1"]));
+    const s = find(generateSuggestions(guests, [t("t1", 10)], [], seating, null,
+      { sideLabels: { bride: "משפחת האם", groom: "משפחת האב" } }), "side_imbalance");
+    const text = [s.explanation, s.whyMatters, s.impact, s.recommendedAction].join(" ");
+    expect(s.explanation).toContain("83% ממשפחת האם");
+    expect(s.whyMatters).toBe('אורח אחד ממשפחת האב עלול להרגיש "חיצוני" בשולחן זה');
+    expect(text).not.toMatch(/כלה|חתן/);
+  });
+
   it("says nothing about balance on a single-side table — that is not an imbalance", () => {
     const guests  = Array.from({ length: 6 }, (_, i) => g("b" + i));
     const seating = Object.fromEntries(guests.map(x => [x.id, "t1"]));

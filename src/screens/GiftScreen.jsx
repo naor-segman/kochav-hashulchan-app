@@ -8,6 +8,7 @@ import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
 import { guestHosts, guestEventType } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 const MOCK_EVENT = {
   name: "חתונת נועה וטל",
@@ -17,8 +18,13 @@ const MOCK_EVENT = {
 };
 
 const AMOUNT_CHIPS = [200, 300, 500, 1000];
-/** The blessing's length limit on this page. */
+/** The blessing's length limit on this page — in CHARACTERS (code points),
+ *  the unit the server's left(message, 600) cuts in. `maxLength` and
+ *  `.length` count UTF-16 units, where an emoji is two: a blessing of
+ *  hearts stopped at 300 and the counter said 600 (106). */
 const MESSAGE_MAX = 600;
+const chars = (s) => [...String(s ?? "")].length;
+const clipChars = (s, n) => { const a = [...String(s ?? "")]; return a.length > n ? a.slice(0, n).join("") : String(s ?? ""); };
 
 // Every other money render in the app pins the locale. A bare toLocaleString()
 // on a PUBLIC page hands the grouping to whatever the guest's device is set to
@@ -115,11 +121,11 @@ export default function GiftScreen() {
   if (unreachable) {
     return (
       <div className={styles.root}>
-        <div className={styles.loadingWrap}>
+        <main className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
           <h1 className={styles.loadingText}>{UNREACHABLE_TEXT.title}</h1>
           <p className={styles.loadingText}>{UNREACHABLE_TEXT.body}</p>
-        </div>
+        </main>
       </div>
     );
   }
@@ -128,11 +134,11 @@ export default function GiftScreen() {
   if (!loading && !event) {
     return (
       <div className={styles.root}>
-        <div className={styles.loadingWrap}>
+        <main className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
           <h1 className={styles.loadingText}>הלינק לא תקין או שפג תוקפו</h1>
           <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-        </div>
+        </main>
       </div>
     );
   }
@@ -141,10 +147,10 @@ export default function GiftScreen() {
   if (loading) {
     return (
       <div className={styles.root}>
-        <div className={styles.loadingWrap}>
+        <main className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
-          <p className={styles.loadingText}>טוען...</p>
-        </div>
+          <p className={styles.loadingText} role="status">טוען…</p>
+        </main>
       </div>
     );
   }
@@ -164,7 +170,7 @@ export default function GiftScreen() {
             <span className={styles.logoName}>{COMPANY.name}</span>
           </Link>
         </header>
-        <div className={styles.successWrap}>
+        <main className={styles.successWrap}>
           <div className={styles.successCard}>
             <div className={styles.successCircle} aria-hidden="true">
               <span className={styles.successCheck}>✓</span>
@@ -203,7 +209,7 @@ export default function GiftScreen() {
             <p className={styles.successClosing}>את המתנה עצמה אפשר להעניק ביום האירוע</p>
             <p className={styles.successClosing}>שיהיה בשעה טובה</p>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -267,6 +273,8 @@ export default function GiftScreen() {
                   key={a}
                   type="button"
                   className={[styles.chip, amount === a ? styles.chipActive : ""].filter(Boolean).join(" ")}
+                  // The chosen amount was told by colour only (סב89).
+                  aria-pressed={amount === a}
                   onClick={() => {
                     setAmount(a);
                     setCustomAmt("");
@@ -315,19 +323,18 @@ export default function GiftScreen() {
             <textarea
               id="gift-message"
               className={styles.textarea}
-              maxLength={MESSAGE_MAX}
               rows={4}
               value={message}
               placeholder="כתבו ברכה מהלב..."
-              onChange={e => setMessage(e.target.value)}
-              aria-describedby={message.length >= MESSAGE_MAX - 100 ? "gift-message-count" : undefined}
+              onChange={e => setMessage(clipChars(e.target.value, MESSAGE_MAX))}
+              aria-describedby={chars(message) >= MESSAGE_MAX - 100 ? "gift-message-count" : undefined}
             />
             {/* The field stopped taking text at the limit with no sign why
                 (106). Shown only near the end, with a Hebrew word between the
                 numbers so bidi keeps them in reading order (bug class 7). */}
-            {message.length >= MESSAGE_MAX - 100 && (
+            {chars(message) >= MESSAGE_MAX - 100 && (
               <span id="gift-message-count" className={styles.counter}>
-                {message.length} מתוך {MESSAGE_MAX} תווים
+                {chars(message)} מתוך {MESSAGE_MAX} תווים
               </span>
             )}
           </div>
@@ -374,6 +381,7 @@ export default function GiftScreen() {
           >
             {btnLabel}
           </button>
+          <GuestPrivacyNote text="השם, הברכה והסכום נשמרים אצל בעלי האירוע. הסכום לא מוצג לאף אחד אחר." />
 
           {/* The "what happens now" card above already says where the blessing
               goes; repeating it here was the same sentence twice on one card. */}

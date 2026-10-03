@@ -191,6 +191,15 @@
    These genuinely float above the page, so --shadow-lg is legitimate here. */
 .tableChip {
   position: absolute;
+  /* PHYSICAL left/top on purpose. The stored position is a physical fraction
+     (the wrapper sets `left: x%`, as VenueMarker does), and the wrapper is
+     zero-width. With no inset, an RTL page anchors the chip's RIGHT edge to
+     that point, and the -50% below left its centre a whole chip-width to the
+     left of where it was placed: a click on the sketch put the table 148px
+     off, and an arranged column hung off the sketch and scrolled the page
+     sideways (סב34d). `inset-inline-start` would be `right` here — wrong. */
+  left: 0;
+  top: 0;
   transform: translate(-50%, -50%);
   min-width: 120px;
   max-width: 180px;

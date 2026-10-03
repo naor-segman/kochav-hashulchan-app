@@ -25,6 +25,10 @@ const TABS = [
   { id: "floorplan", label: "מפת אולם (רשות)", icon: "building" },
 ];
 
+// The inputs' own min/max, enforced: the HTML attributes only colour the field.
+const BATCH_MAX_COUNT    = 200;
+const BATCH_MAX_CAPACITY = 100;
+
 export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   // Position in the build order, from src/data/eventAreas.js — never a literal.
   const step = buildStep("tables");
@@ -76,20 +80,30 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   // for an event the seating screen called 8 short (browser audit 28.9).
   const totalGuestSeats = seatingTotals(ev.guests, ev.seating).totalSeats;
   const gap            = totalCap - totalGuestSeats;
-  const batchCnt    = Math.max(1, parseInt(batch.count)    || 0);
-  const batchCap    = Math.max(1, parseInt(batch.capacity) || 0);
+  // The preview used to clamp what it read to at least 1, so an empty or 0
+  // capacity previewed "(1 מקומות)" for a batch the add button then refused —
+  // and nothing capped the count: the inputs say max 200 / 100, but typing
+  // 5000 created 5000 tables in one click (89). The preview, the button and
+  // the add now read the same validated numbers.
+  const capNum      = parseInt(batch.capacity, 10);
+  const cntNum      = parseInt(batch.count, 10);
+  const capOk       = capNum >= 1 && capNum <= BATCH_MAX_CAPACITY;
+  const cntOk       = cntNum >= 1 && cntNum <= BATCH_MAX_COUNT;
+  const batchCnt    = cntOk ? cntNum : 0;
+  const batchCap    = capOk ? capNum : 0;
   const batchTotal  = batchCnt * batchCap;
   const previewPrefix = batch.prefix.trim() || "שולחן";
 
   // The same numbering the add uses. Counted from the table count, the preview
   // promised "רזרבה 7" and the table was saved as "רזרבה 1" (fourth review).
   const previewNames = nextTableNames(ev.tables, Math.min(batchCnt, 3), previewPrefix).join(", ");
+  const seatsWord = (n) => (n === 1 ? "מקום אחד" : n + " מקומות");
 
   const addBatch = () => {
-    const cap = parseInt(batch.capacity);
-    const cnt = parseInt(batch.count);
-    if (!cap || cap < 1) { showToast("יש להזין מספר מקומות תקני", "err"); return; }
-    if (!cnt || cnt < 1) { showToast("יש להזין כמות שולחנות תקנית", "err"); return; }
+    const cap = batchCap;
+    const cnt = batchCnt;
+    if (!capOk) { showToast(`יש להזין מספר מקומות בין 1 ל-${BATCH_MAX_CAPACITY}`, "err"); return; }
+    if (!cntOk) { showToast(`אפשר להוסיף בין 1 ל-${BATCH_MAX_COUNT} שולחנות בבת אחת`, "err"); return; }
     patchEvent(e => {
       const names = nextTableNames(e.tables, cnt, previewPrefix);
       const rows = names.map(name => ({
@@ -101,7 +115,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       }));
       return Object.assign({}, e, { tables: e.tables.concat(rows) });
     });
-    showToast("נוספו " + (cnt === 1 ? "שולחן אחד" : cnt + " שולחנות") + " (" + batchTotal + " מקומות) ✓");
+    showToast("נוספו " + (cnt === 1 ? "שולחן אחד" : cnt + " שולחנות") + " (" + seatsWord(batchTotal) + ") ✓");
     setBatch(p => Object.assign({}, p, { prefix: "", count: "1" }));
   };
 
@@ -160,7 +174,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
         mark="tables"
         sub="הגדירו את השולחנות באולם לפי מבנה האירוע."
         aside={
-          <div className={base.pills}>
+          <div data-tour="tables.counts" data-tour-fit className={base.pills}>
             <StatPill n={ev.tables.length} label="שולחנות" primary />
             <StatPill n={totalCap} label="מקומות" color={gap < 0 ? "var(--red)" : undefined} />
           </div>
@@ -190,7 +204,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {/* ── Tabs ── */}
-      <div className={styles.tabBar}>
+      <div data-tour="tables.tabs" className={styles.tabBar}>
         {TABS.map(t => (
           <button
             key={t.id}
@@ -206,7 +220,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       {/* ── Tab: Table list ── */}
       {tab === "list" && (
         <>
-          <div className={base.card}>
+          <div data-tour="tables.add" className={base.card}>
             <SectionLabel>הוספת שולחנות</SectionLabel>
             <p className={styles.batchHint}>ניתן להוסיף כמה שולחנות בבת אחת — כולם יקבלו את אותה קיבולת וסוג. לשמות ייווצרו אוטומטית מספרים רצופים.</p>
             <div className={base.batchGrid}>
@@ -219,11 +233,11 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                 />
               </Field>
               <Field label={<>מקומות לשולחן <InfoTip text="כמה כיסאות יש סביב שולחן אחד — הקיבולת שלו. אורח שהוא משפחה נספר לפי מספר המקומות שהזנתם לו, כך שההושבה לא תחרוג מהקיבולת." /></>}>
-                <input className={base.input} type="number" min="1" max="100" value={batch.capacity}
+                <input className={base.input} type="number" min="1" max={BATCH_MAX_CAPACITY} value={batch.capacity}
                   onChange={e => setBatch(p => Object.assign({}, p, { capacity: e.target.value }))} />
               </Field>
               <Field label="כמות שולחנות">
-                <input className={base.input} type="number" min="1" max="200" value={batch.count}
+                <input className={base.input} type="number" min="1" max={BATCH_MAX_COUNT} value={batch.count}
                   onChange={e => setBatch(p => Object.assign({}, p, { count: e.target.value }))} />
               </Field>
               <Field label="סוג">
@@ -240,17 +254,23 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
               </Field>
             </div>
 
-            {batchTotal > 0 && (
+            {batchTotal > 0 ? (
               <div className={base.batchPreview}>
                 <span style={{ color: "var(--accent)", flexShrink: 0, display: "inline-flex" }}><Icon name="hexagon" size={15} /></span>
                 <span>
                   {batchCnt === 1
-                    ? ("יתווסף שולחן אחד: " + previewNames + " (" + batchCap + " מקומות)")
-                    : ("יתווספו " + batchCnt + " שולחנות: " + previewNames + (batchCnt > 3 ? "..." : "") + " (" + batchCap + " מקומות כ\"א)")}
+                    ? ("יתווסף שולחן אחד: " + previewNames + " (" + seatsWord(batchCap) + ")")
+                    : ("יתווספו " + batchCnt + " שולחנות: " + previewNames + (batchCnt > 3 ? "..." : "") + " (" + seatsWord(batchCap) + " כ\"א)")}
                   {" · סה\"כ לאחר ההוספה: "}
-                  <strong>{totalCap + batchTotal} מקומות</strong>
+                  <strong>{seatsWord(totalCap + batchTotal)}</strong>
                 </span>
               </div>
+            ) : (
+              <p className={styles.batchHint} role="status">
+                {!capOk
+                  ? `מקומות לשולחן: מספר בין 1 ל-${BATCH_MAX_CAPACITY}.`
+                  : `כמות שולחנות: מספר בין 1 ל-${BATCH_MAX_COUNT}.`}
+              </p>
             )}
 
             <div className={base.formActions}>
@@ -261,7 +281,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
           </div>
 
           {ev.tables.length > 0 && (
-            <div className={base.card}>
+            <div data-tour="tables.list" className={base.card}>
               <SectionLabel>השולחנות שלי ({ev.tables.length})</SectionLabel>
               {totalCap > 0 && totalGuestSeats === 0 && (
                 <p className={styles.capStat}>קיבולת כוללת: {totalCap} מקומות</p>
@@ -277,7 +297,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                 </p>
               )}
               <div className={base.tableGrid}>
-                <div className={[base.tRow, base.tHead].join(" ")}>
+                <div className={[base.tRow, styles.tRowNamed, base.tHead].join(" ")}>
                   <span>שם השולחן</span>
                   <span style={{ textAlign: "center" }}>מקומות</span>
                   <span style={{ textAlign: "center" }}>סוג</span>
@@ -292,7 +312,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                   const isOver = seated > t.capacity;
                   const pct    = t.capacity > 0 ? seated / t.capacity : 0;
                   return (
-                    <div key={t.id} className={[base.tRow, isEdit ? base.tRowEdit : ""].filter(Boolean).join(" ")}>
+                    <div key={t.id} className={[base.tRow, styles.tRowNamed, isEdit ? base.tRowEdit : ""].filter(Boolean).join(" ")}>
                       {isEdit ? (
                         <>
                           <input

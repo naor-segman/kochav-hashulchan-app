@@ -84,6 +84,9 @@ export default function EventDayServiceScreen({ user = null }) {
     <div className={styles.root}>
       <SiteHeader user={user} active={SERVICE.id} />
 
+      {/* The page's one landmark (38a). SiteHeader's skip link focuses it. */}
+      <main id="main" tabIndex={-1} className={styles.main}>
+
       {/* ── The promise ── */}
       <section className={styles.hero}>
         <div className={styles.heroInner}>
@@ -155,12 +158,15 @@ export default function EventDayServiceScreen({ user = null }) {
             ))}
           </div>
 
-          {/* Named rather than buried: the scan button does not exist on an
-              iPhone, and an iPhone is the phone at the door. */}
+          {/* This paragraph used to warn that scanning did not work on an
+              iPhone. That stopped being true on 28.9 (jsQR where there is no
+              native detector — QrScanner.jsx, qa/qrScanFallback.mjs), so a host
+              was steered away from a feature that works (סב60c). It now states
+              the fact and still calls name search the main way, without
+              advertising scanning further — that is the owner's call (104). */}
           <p className={styles.frictionKicker}>
-            יש גם סריקת קוד מההזמנה, ושווה לדעת את המגבלה מראש: היא עובדת בכרום
-            ובאנדרואיד ולא בספארי, כלומר לא באייפון. החיפוש בשם עובד בכל מכשיר,
-            והוא הדרך המרכזית — הסריקה היא קיצור דרך למי שיש לו אותה.
+            יש גם סריקת קוד מההזמנה, בכל טלפון עם מצלמה — גם באייפון. החיפוש
+            בשם עובד בכל מכשיר, והוא הדרך המרכזית; הסריקה היא קיצור דרך.
           </p>
         </div>
       </section>
@@ -235,6 +241,8 @@ export default function EventDayServiceScreen({ user = null }) {
           <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
+
+      </main>
 
       <Footer />
     </div>

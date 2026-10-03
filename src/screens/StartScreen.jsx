@@ -39,6 +39,9 @@ function deriveEventName(type, a, b) {
   if (kind === "bar") return x ? `בר המצווה של ${x}` : "";
   if (kind === "bat") return x ? `בת המצווה של ${x}` : "";
   if (kind === "business") return x || "";
+  // "אחר" says nothing about the event, so it is not put in its name: the
+  // host typed "משה" and got "אחר — משה" (סב60a). The bare name instead.
+  if (type === "אחר") return x;
   return x ? `${type} — ${x}` : "";
 }
 
@@ -52,7 +55,7 @@ const DEMO_TABLES = [
   { shape: "round", capacity: 8,  taken: 0  },
 ];
 
-export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
+export default function StartScreen({ onStart, hasEvents = false, onCancel, signedIn = false }) {
   const { mainTemplates } = useTemplates();
   const [type,  setType]  = useState("חתונה");
   const [nameA, setNameA] = useState("");
@@ -107,14 +110,14 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
       {/* ── The promise ── */}
       <section className={styles.hero}>
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandMark} aria-hidden="true">✦</span>
           <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 
         <h1 className={styles.headline}>ההושבה מסתדרת לבד.</h1>
 
         <p className={styles.lead}>
-          אתם מזינים את רשימת האורחים ואת מי שאסור להושיב יחד.
+          אתם מזינים את רשימת האורחים ואת מי שאסור להושיב יחד.{" "}
           {COMPANY.name} בונה את כל השולחנות בשניות — ואומר לכם מיד מה עדיין לא מסתדר.
         </p>
 
@@ -146,7 +149,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
           שם, ותאריך אם כבר יש. כל השאר — אולם, רשימות, תקציב — נשלים תוך כדי.
         </p>
 
-        <div className={styles.fields}>
+        <div data-tour="start.names" className={styles.fields}>
           <label className={styles.field}>
             <span className={styles.fieldLabel}>{labelA}</span>
             <input
@@ -185,7 +188,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
 
         {/* The classification question, demoted to where it belongs: one line,
             with a default, after the thing that matters. */}
-        <div className={styles.typeRow}>
+        <div data-tour="start.type" className={styles.typeRow}>
           <label className={styles.typeLabel} htmlFor="start-type">סוג האירוע</label>
           <select
             id="start-type"
@@ -204,7 +207,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
           </p>
         )}
 
-        <div className={styles.actions}>
+        <div data-tour="start.go" className={styles.actions}>
           <button type="submit" className={styles.cta} disabled={!ready || busy}>
             בואו נתחיל <Icon name="arrowLeft" size={16} />
           </button>
@@ -215,14 +218,19 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
           )}
         </div>
 
-        <p className={styles.note}>
-          אפשר להתחיל בלי חשבון — הכל נשמר אוטומטית בדפדפן הזה.
-          חשבון נדרש רק כשתרצו לשתף קישור עם האורחים.
-        </p>
+        {/* For someone without an account only. A signed-in host's event is
+            saved to the cloud, and telling them it lives "in this browser"
+            is false (found 3.10 by the tour-mapping agent). */}
+        {!signedIn && (
+          <p className={styles.note}>
+            אפשר להתחיל בלי חשבון — הכל נשמר אוטומטית בדפדפן הזה.
+            חשבון נדרש רק כשתרצו לשתף קישור עם האורחים.
+          </p>
+        )}
       </form>
 
       {/* ── What is waiting inside — three things, not fourteen ── */}
-      <section className={styles.areas} aria-label="מה יש באתר">
+      <section data-tour="start.areas" className={styles.areas} aria-label="מה יש באתר">
         <p className={styles.areasHead}>ואחר כך, לפי הסדר שבו זה באמת קורה:</p>
         <ul className={styles.areaList}>
           {AREAS.map(a => (

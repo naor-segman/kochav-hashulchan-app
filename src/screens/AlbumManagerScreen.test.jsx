@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "../test/dom.js";
+import { MemoryRouter } from "react-router-dom";
 
 /* The host's album screen — checklist 57 — measured on the rendered DOM.
  *
@@ -26,6 +27,10 @@ vi.mock("../utils/publicTokens.js", () => ({
 // The confirm dialog is its own component with its own tests; here it answers
 // "yes" so the delete path runs.
 let confirmAnswer = true;
+// The upload link goes through the share gate, which reads the account.
+let currentUser = { id: "u1" };
+vi.mock("../hooks/useAuth.js", () => ({ useAuth: () => ({ user: currentUser, loading: false }) }));
+
 vi.mock("../components/ui/useConfirm.jsx", () => ({
   useConfirm: () => ({ confirm: async () => confirmAnswer, dialog: null }),
 }));
@@ -51,6 +56,7 @@ const renderScreen = (ev = EV) =>
   render(<AlbumManagerScreen activeEvent={ev} showToast={toast} go={() => {}} />);
 
 beforeEach(() => {
+  currentUser = { id: "u1" };
   fetchHostAlbumPhotos.mockReset();
   setAlbumPhotoHidden.mockReset();
   deleteAlbumPhoto.mockReset();
@@ -74,6 +80,18 @@ describe("AlbumManagerScreen — reading the album", () => {
     expect(fetchHostAlbumPhotos).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("עוד לא נשמר בענן");
     expect(document.body.textContent).not.toContain("עוד אין תמונות");
+  });
+
+  it("an empty album's button is labelled and goes to the guest links", async () => {
+    // EmptyState takes action={{ label, onClick }}. This screen handed it a
+    // whole <button> element, so EmptyState rendered a button with no label
+    // and no handler — an empty, dead box under "עוד אין תמונות".
+    fetchHostAlbumPhotos.mockResolvedValue([]);
+    const go = vi.fn();
+    render(<AlbumManagerScreen activeEvent={EV} showToast={toast} go={go} />);
+    const btn = await screen.findByRole("button", { name: "לקישורים לאורחים" });
+    fireEvent.click(btn);
+    expect(go).toHaveBeenCalledWith("share");
   });
 
   it("shows every photo, hidden ones included and labelled in words", async () => {
@@ -164,5 +182,28 @@ describe("AlbumManagerScreen — delete", () => {
     fireEvent.click(screen.getByRole("button", { name: /מחיקה/ }));
     await waitFor(() => expect(deleteAlbumPhoto).toHaveBeenCalled());
     expect(deleteAlbumPhoto.mock.calls[0][0]).toMatchObject({ id: "a", storagePath: "cloud-1/a.jpg" });
+  });
+});
+
+/* Owner, 3.10: the guests' upload link sat in the site editor's "עיצוב האתר"
+ * card. It now opens the album's own screen, with copy and a QR. */
+describe("AlbumManagerScreen — the upload link lives here", () => {
+  const WITH_TOKEN = { ...EV, tokens: { album: "albtok123" } };
+
+  it("shows the album's upload link with copy and QR", async () => {
+    fetchHostAlbumPhotos.mockResolvedValue([]);
+    render(<AlbumManagerScreen activeEvent={WITH_TOKEN} showToast={toast} go={() => {}} />);
+    const input = await screen.findByRole("textbox", { name: "הקישור לאלבום המשותף" });
+    expect(input.value).toBe(window.location.origin + "/album/albtok123");
+    expect(screen.getByRole("button", { name: "העתיקו" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "קוד QR" })).toBeInTheDocument();
+  });
+
+  it("without an account, copy explains instead of copying a link that will not open", async () => {
+    currentUser = null;
+    fetchHostAlbumPhotos.mockResolvedValue([]);
+    render(<MemoryRouter><AlbumManagerScreen activeEvent={WITH_TOKEN} showToast={toast} go={() => {}} /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole("button", { name: "העתיקו" }));
+    expect(screen.getByText(/כדי לשתף צריך חשבון/)).toBeInTheDocument();
   });
 });

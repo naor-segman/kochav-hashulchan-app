@@ -59,7 +59,7 @@ export function computeQualityScore(guests, tables, constraints, seating, violat
   let underPenalty = 0;
   tables.forEach(t => {
     const used = guests
-      .filter(g => seating[g.id] === t.id)
+      .filter(g => seating[g.id] === t.id && g.rsvp !== "declined")
       .reduce((s, g) => s + (g.count || 1), 0);
     const pct = t.capacity > 0 ? used / t.capacity : 0;
     if (used > 0 && pct < 0.4 && t.capacity >= 4) underPenalty += 2;
@@ -190,8 +190,10 @@ export function generateSuggestions(
   const guestMap    = Object.fromEntries(guests.map(g => [g.id, g]));
   const tableMap    = Object.fromEntries(tables.map(t => [t.id, t]));
 
+  // Chairs actually taken: a declined guest still listed at a table holds
+  // none — the export and seatingTotals already agree on that (סב7, RG10c).
   const tableSeats  = tid => guests
-    .filter(g => seating[g.id] === tid)
+    .filter(g => seating[g.id] === tid && g.rsvp !== "declined")
     .reduce((s, g) => s + (g.count || 1), 0);
 
   const tableGuests = tid => guests.filter(g => seating[g.id] === tid);
@@ -239,6 +241,7 @@ export function generateSuggestions(
     const ga = guestMap[c.guestA];
     const gb = guestMap[c.guestB];
     if (!ga || !gb) return;
+    if (ga.rsvp === "declined" || gb.rsvp === "declined") return; // as computeViolations
     const ta = seating[c.guestA];
     const tb = seating[c.guestB];
     if (ta && tb && ta !== tb) togetherViol.push({ ga, gb, ta, tb });
@@ -380,6 +383,7 @@ export function generateSuggestions(
     const ga = guestMap[c.guestA];
     const gb = guestMap[c.guestB];
     if (!ga || !gb) return;
+    if (ga.rsvp === "declined" || gb.rsvp === "declined") return; // as computeViolations
     const ta = seating[c.guestA];
     const tb = seating[c.guestB];
     if (ta && tb && ta === tb) apartViol.push({ ga, gb, ta });
@@ -853,8 +857,11 @@ export function generateSuggestions(
       const dominantPct = Math.max(bc, gc) / tg.length;
       if (dominantPct < 0.8) return;
 
-      const dominant = bc > gc ? "כלה" : "חתן";
-      const minority = bc > gc ? "חתן" : "כלה";
+      // The event's own side labels — "משפחת האם" at a bar mitzvah, not a
+      // hard-coded "כלה" (סב34e). Each label is a full phrase ("צד כלה"), so it
+      // takes the מ- prefix as it stands.
+      const dominant = bc > gc ? brideLabel : groomLabel;
+      const minority = bc > gc ? groomLabel : brideLabel;
       const minSide  = Math.min(bc, gc);
       imbalanceCount++;
       suggestions.push({
@@ -862,10 +869,14 @@ export function generateSuggestions(
         type:              "side_imbalance",
         severity:          "info",
         section:           "opportunities",
-        explanation:       `${t.name}: ${Math.round(dominantPct * 100)}% מצד ${dominant}`,
-        whyMatters:        `${minSide} אורחים מצד ${minority} עלולים להרגיש "חיצוניים" בשולחן זה`,
+        explanation:       `${t.name}: ${Math.round(dominantPct * 100)}% מ${dominant}`,
+        whyMatters:        minSide === 1
+          ? `אורח אחד מ${minority} עלול להרגיש "חיצוני" בשולחן זה`
+          : `${minSide} אורחים מ${minority} עלולים להרגיש "חיצוניים" בשולחן זה`,
         impact:            `חוסר איזון בין ${dominant} ל${minority} בשולחן אחד`,
-        recommendedAction: `שקלו לשבץ את ${minSide} אורחי צד ${minority} עם בני ביתם בשולחן אחר`,
+        recommendedAction: minSide === 1
+          ? `שקלו להושיב את האורח מ${minority} עם בני ביתו בשולחן אחר`
+          : `שקלו לשבץ את ${minSide} האורחים מ${minority} עם בני ביתם בשולחן אחר`,
         canApply:          false,
         applyAction:       null,
         score:             2,

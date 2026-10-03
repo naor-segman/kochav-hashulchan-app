@@ -26,7 +26,7 @@ const mount = () => render(
     <Route path="/entrance/:token" element={<EntranceScreen mode="token" />} />
   </Routes></MemoryRouter></AuthProvider>);
 
-beforeEach(() => { sessionStorage.clear(); localStorage.setItem("kochav_orientation_v1", "1"); });
+beforeEach(() => { sessionStorage.clear(); localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 })); });
 
 describe("the greeter's retry queue survives a reload", () => {
   it("a failed check-in is still queued, and shown, after the tab reloads", async () => {

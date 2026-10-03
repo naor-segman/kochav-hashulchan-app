@@ -49,6 +49,8 @@ export const AREAS = [
       { id: "seating",     label: "הושבה",        num: 5, hint: "לחיצה אחת — והשולחנות מסתדרים" },
       // No `short`: "אישורים" on its own can be read as approvals of anything.
       // The full name is what the owner asked to see in both places.
+      // "מי עוד לא ענה" is true since ת: the screen counts the guest-list rows
+      // with no answer (a non-answer has no response row to count).
       { id: "rsvps",  label: "אישורי הגעה",  mark: "rsvp",   hint: "מי אישר, מי סירב, מי עוד לא ענה" },
       { id: "collab", label: "טבלה שיתופית", mark: "collab", hint: "המשפחה מוסיפה אורחים בעצמה" },
     ],

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AREAS, BUILD_STEPS } from "../data/eventAreas.js";
 import { fmtDate, daysUntil } from "../utils/dateFormat.js";
@@ -6,14 +6,13 @@ import { useAuth } from "../hooks/useAuth.js";
 import Icon from "../components/ui/Icon.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
-import Orientation from "../components/onboarding/Orientation.jsx";
-import { useOrientation } from "../components/onboarding/useOrientation.js";
 import PhotoRetentionNotice from "../components/feedback/PhotoRetentionNotice.jsx";
 import EventPlanCard from "../components/billing/EventPlanCard.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventHubScreen.module.css";
 import { makeOpenScreen, isNameGated } from "../utils/eventNameGate.js";
 import { seatingTotals } from "../utils/eventHelpers.js";
+import { markDraftCarry } from "../utils/draftCarry.js";
 
 /* ── The event's own front page ───────────────────────────────────────────────
  *
@@ -33,7 +32,6 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   // which is how this got written twice in the first place.
   const openItem = makeOpenScreen(ev, { go, showToast });
   const { user } = useAuth();
-  const orientation = useOrientation();
 
   const stats = useMemo(() => {
     const guests = ev.guests || [];
@@ -100,11 +98,10 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   // nothing in it yet. It is a suggestion, not a gate — every other step stays
   // one click away, because some venues fix the table count in the contract.
   const nextStep = BUILD_STEPS.find(s => !done(s.id)) || null;
-  const days = daysUntil(ev.date);
 
   return (
     <div className={base.pageWide}>
-      <header className={styles.head}>
+      <header className={styles.head} data-tour="hub.head">
         <div className={styles.headMain}>
           <p className={styles.eyebrow}>{ev.type || "אירוע"}</p>
           <h1 className={styles.title}>{ev.name || "אירוע חדש"}</h1>
@@ -117,29 +114,9 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
         </div>
 
         <div className={styles.headSide}>
-          {days != null && days >= 0 && (
-            <div className={styles.countdown}>
-              <span className={styles.countBig}>{days}</span>
-              <span className={styles.countCaption}>
-                {days === 0 ? "האירוע היום" : days === 1 ? "יום לאירוע" : "ימים לאירוע"}
-              </span>
-            </div>
-          )}
-          {!orientation.open && (
-            <button className={styles.howBtn} onClick={orientation.show}>
-              <Icon name="question" size={14} /> איך זה עובד
-            </button>
-          )}
+          <HubCountdown date={ev.date} />
         </div>
       </header>
-
-      {/* Under the event's name, not above it: above, its h2 came before the
-          page's h1 and at 390px pushed the name below the fold (WORKPLAN 108).
-          The button that reopens it is in the header, so it opens right under
-          the button. */}
-      {orientation.open && (
-        <Orientation onDismiss={orientation.dismiss} onGo={go} />
-      )}
 
       {/* Above the fold on the screen the host actually lands on. A warning
           about a deletion is only a warning if it is seen before the deletion,
@@ -175,7 +152,7 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           prevent, on the same screen, two hundred lines apart. Latent rather
           than live (both name inputs trim), which is why nothing caught it. */}
       {nextStep && (
-        <button className={styles.resume} onClick={() => openItem(nextStep.id)}>
+        <button className={styles.resume} onClick={() => openItem(nextStep.id)} data-tour="hub.resume">
           <span className={styles.resumeText}>
             <span className={styles.resumeLabel}>המשיכו מכאן</span>
             <span className={styles.resumeStep}>
@@ -188,14 +165,15 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
       )}
 
       {!user && (
-        <p className={styles.guestNote}>
+        <p data-tour="hub.account" className={styles.guestNote}>
           <Icon name="cloud" size={14} />{" "}
           האירוע הזה שמור רק בדפדפן הזה. פתיחת חשבון מגבה אותו, מסנכרנת לטלפון ומאפשרת לשתף קישורים עם האורחים.{" "}
-          <Link to="/signup" className={styles.guestLink}>פתחו חשבון חינם</Link>
+          {/* Inside the draft, so signing up carries it (33d, draftCarry.js). */}
+          <Link to="/signup" className={styles.guestLink} onClick={() => markDraftCarry()}>פתחו חשבון חינם</Link>
         </p>
       )}
 
-      <div className={styles.areaGrid}>
+      <div className={styles.areaGrid} data-tour="hub.areas">
         {AREAS.map(a => (
           <section key={a.id} className={styles.area} aria-label={a.label}>
             <header className={styles.areaHead}>
@@ -232,6 +210,29 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           </section>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* Days to the event. It was computed once per render of the hub, so a hub
+ * left open overnight — the screen a host keeps open — still said "1 יום
+ * לאירוע" on the morning of the event (T5). It re-reads the date every minute,
+ * in its own component so the tick re-renders the number and not the page. */
+function HubCountdown({ date }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!date) return;
+    const id = setInterval(() => setTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, [date]);
+  const days = daysUntil(date);
+  if (days == null || days < 0) return null;
+  return (
+    <div className={styles.countdown}>
+      <span className={styles.countBig}>{days}</span>
+      <span className={styles.countCaption}>
+        {days === 0 ? "האירוע היום" : days === 1 ? "יום לאירוע" : "ימים לאירוע"}
+      </span>
     </div>
   );
 }

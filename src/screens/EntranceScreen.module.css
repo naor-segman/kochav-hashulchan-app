@@ -74,6 +74,7 @@
 }
 
 .backBtn,
+.tourBtn,
 .walkInBtn {
   display: inline-flex;
   align-items: center;
@@ -94,9 +95,14 @@
 }
 
 .backBtn:hover,
+.tourBtn:hover,
 .walkInBtn:hover { background: rgba(var(--nav-text-rgb), .08); }
 
 .walkInBtn { border-color: var(--accent-on-dark); color: var(--accent-on-dark); }
+
+/* "סיור במסך" (124): icon only — the bar is tight on a phone and the door is
+   busy; the label is its accessible name. Square, the 44px floor. */
+.tourBtn { justify-content: center; min-width: 44px; padding: 8px; }
 
 .barTitle {
   flex: 1;
@@ -380,6 +386,7 @@
 
 /* ── Guest row ── */
 .list { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.moreResults { margin: 0; padding: 8px 4px 16px; text-align: center; font-size: var(--step--1); color: var(--nav-muted); }
 
 .row {
   border: 1px solid var(--nav-border);

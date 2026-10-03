@@ -8,9 +8,10 @@ import {
   DndContext, DragOverlay,
   useDroppable,
   useSensor, useSensors,
-  pointerWithin, rectIntersection, MeasuringStrategy,
+  MeasuringStrategy,
 } from "@dnd-kit/core";
 import { RowMouseSensor, RowTouchSensor } from "../components/seating/rowSensors.js";
+import { pointerThenOverlap } from "../components/seating/collision.js";
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { canSeatMore } from "../utils/featureGates.js";
 import { usePlan } from "../hooks/usePlan.js";
@@ -27,9 +28,12 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SideDot from "../components/ui/SideDot.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
+import { useShareGate } from "../components/share/useShareGate.jsx";
 import DraggableGuestRow from "../components/seating/DraggableGuestRow.jsx";
 import SuggestionsPanel from "../components/seating/SuggestionsPanel.jsx";
 import TableCard from "../components/seating/TableCard.jsx";
+import SeatSelect from "../components/seating/SeatSelect.jsx";
+import { refocusAfterRemoval } from "../components/seating/useDeferredSelect.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
 import { tableCardKeys } from "../components/seating/tableCardKeys.js";
 import { buildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
@@ -48,22 +52,8 @@ const MAX_UNDO = 20;
 // the same reference every render instead of a fresh [] that defeats the memo.
 const EMPTY_GUESTS = [];
 
-/**
- * Drop targets here are large table cards and a long waiting list. Prefer
- * whatever is under the pointer; when the pointer sits in a gap between cards,
- * fall back to rectIntersection so a drag whose card clearly overlaps a table
- * still lands.
- *
- * Deliberately NOT closestCenter as the fallback: closestCenter always returns
- * something, so releasing over blank space seated the guest at whichever table
- * happened to be nearest. Dropping on empty space has to keep meaning "never
- * mind" — with a long list, an accidental drag is common and there is no undo
- * prompt at that moment.
- */
-const collisionStrategy = (args) => {
-  const hits = pointerWithin(args);
-  return hits.length ? hits : rectIntersection(args);
-};
+// Drop on blank space means "never mind" — see components/seating/collision.js.
+const collisionStrategy = pointerThenOverlap;
 
 // Table cards expand/collapse and the waiting list re-flows mid-drag, so
 // droppable rects measured once at drag start go stale — re-measure always.
@@ -88,6 +78,9 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   // load-bearing — a purchase references `ev.cloudId`.
   const { plan } = usePlan(ev);
   const { confirm, dialog } = useConfirm();
+  // The per-guest WhatsApp message carries the guest's entry card link, which
+  // does not open for an event that lives only in this browser (3.10).
+  const { guard, gate } = useShareGate();
   // Which table cards are open. A Set, not a single id: opening one table used
   // to close whichever other table was open, which is exactly what the host
   // complained about after running a real event. Nothing closes a card except
@@ -198,13 +191,21 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     return m;
   }, [ev.guests, ev.tables, ev.seating]);
 
+  // Chairs taken, not rows listed: a guest who declined after being seated
+  // (data from before סב7) stays visible on the card so the host can see it,
+  // but holds no chair — the same rule as computeViolations, the export and
+  // seatingTotals (RG10c). Counting them made the card say "full" while the
+  // venue's printout said there was room.
   const seatsByTable = useMemo(() => {
     const m = new Map();
-    for (const [tid, gs] of guestsByTable) m.set(tid, gs.reduce((s, g) => s + (g.count || 1), 0));
+    for (const [tid, gs] of guestsByTable)
+      m.set(tid, gs.reduce((s, g) => s + (g.rsvp === "declined" ? 0 : (g.count || 1)), 0));
     return m;
   }, [guestsByTable]);
 
   const tableGuests = tid => guestsByTable.get(tid) || [];
+  // What goes on PAPER for the venue: who is actually coming (as the export).
+  const printGuests = tid => tableGuests(tid).filter(g => g.rsvp !== "declined");
 
   const buildWhatsAppTableMsg = (g) => {
     const tid   = ev.seating[g.id];
@@ -553,6 +554,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
      compensate at the top of the page — there the panel simply appears, and the
      host can see it happen. */
   const waitingRef    = useRef(null);
+  // Where focus goes when seating the last waiting guest unmounts the list.
+  const tablesRef     = useRef(null);
   const waitingHeight = useRef(0);
   useLayoutEffect(() => {
     const el = waitingRef.current;
@@ -579,9 +582,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     if (ev.seating[guestId] === toTableId) return;
     const targetTable = ev.tables.find(t => t.id === toTableId);
     if (targetTable) {
-      const occupiedSeats = ev.guests
-        .filter(g => ev.seating[g.id] === toTableId)
-        .reduce((s, g) => s + (g.count || 1), 0);
+      const occupiedSeats = tableSeats(toTableId);
       const draggedSeats = ev.guests.find(g => g.id === guestId)?.count || 1;
       if (occupiedSeats + draggedSeats > targetTable.capacity) {
         showToast(targetTable.name + " מלא — אין מקום עבור " + (activeGuest?.name || "האורח"), "err");
@@ -594,6 +595,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
   return (
     <>
       {dialog}
+      {gate}
       <DndContext
         sensors={sensors}
         collisionDetection={collisionStrategy}
@@ -610,7 +612,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             mark="seating"
             sub="חשבו הושבה אוטומטית ואז ערכו ידנית לפי הצורך."
             aside={
-              <div className={base.pills}>
+              <div className={base.pills} data-tour="seating.counts" data-tour-fit>
                 <StatPill n={nActiveAssigned}     label="שובצו"   primary color={allSeated ? "var(--green)" : undefined} />
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
@@ -647,7 +649,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             </Banner>
           )}
 
-          <div className={styles.runCard}>
+          <div className={styles.runCard} data-tour="seating.run">
             <div className={styles.runCardInfo}>
               <div className={styles.runCardTitle}>✦ חשבו הושבה אוטומטית</div>
               <div className={styles.runCardSub}>
@@ -701,7 +703,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               </div>
 
               {/* ── Secondary: print / check-in / export ── */}
-              <div className={styles.runActionsSecondary}>
+              <div className={styles.runActionsSecondary} data-tour="seating.print">
                 <div className={styles.runActionsGroup}>
                   <button
                     className={[base.btnSm, base.btnGhost, styles.printBtn].join(" ")}
@@ -778,12 +780,15 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     const tb = ev.tables.find(t => t.id === ev.seating[b.id])?.name || "";
                     return ta.localeCompare(tb, "he") || a.name.localeCompare(b.name, "he");
                   })
-                  .slice(0, 5)
+                  // Every guest (צ). It showed five and sent the rest to the
+                  // Excel file — which had no way to send anything. The list
+                  // scrolls inside the card instead.
                   .map(g => {
                     const url = buildWhatsAppTableMsg(g);
                     const table = ev.tables.find(t => t.id === ev.seating[g.id]);
                     return url ? (
-                      <a key={g.id} href={url} target="_blank" rel="noreferrer" className={styles.waNotifyItem}>
+                      <a key={g.id} href={url} target="_blank" rel="noreferrer" className={styles.waNotifyItem}
+                        onClick={e => { if (!guard("ההודעה עם כרטיס הכניסה")) e.preventDefault(); }}>
                         <SideDot side={g.side} />
                         <span className={styles.waNotifyName}>{g.name}</span>
                         <span className={styles.waNotifyTable}>{tableLabel(table)}</span>
@@ -792,9 +797,6 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                     ) : null;
                   })
                 }
-                {whatsappBulkCount > 5 && (
-                  <div className={styles.waNotifyMore}>ועוד {whatsappBulkCount - 5} אורחים נוספים — ייצאו לאקסל לרשימה מלאה</div>
-                )}
               </div>
             </div>
           )}
@@ -856,6 +858,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               {({ ref, isOver: isDragOver }) => (
                 <div
                   ref={node => { ref(node); waitingRef.current = node; }}
+                  data-tour="seating.waiting"
                   className={[
                     styles.unassignedCard,
                     activeId && !isDragOver ? styles.unassignedDropReady : "",
@@ -909,12 +912,19 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                       {g.group}{(g.count || 1) > 1 ? " · " + g.count + " מקומות" : ""}
                                     </span>
                                   </div>
-                                  <select
+                                  {/* Commits on a deliberate choice, not on
+                                      ArrowDown; focus then goes to the next
+                                      waiting guest instead of <body> (AX2). */}
+                                  <SeatSelect
                                     className={[base.select, base.selectInline].join(" ")}
                                     value=""
                                     aria-label={`שבצו את ${g.name} לשולחן`}
                                     onPointerDown={e => e.stopPropagation()}
-                                    onChange={e => { if (e.target.value) assignGuest(g.id, e.target.value); }}
+                                    onCommit={(v, el) => {
+                                      if (!v) return;
+                                      refocusAfterRemoval(el, waitingRef.current, "select[data-seat-select]", tablesRef.current);
+                                      assignGuest(g.id, v);
+                                    }}
                                   >
                                     <option value="">שבצו לשולחן...</option>
                                     {ev.tables.map(t => {
@@ -926,7 +936,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                                         </option>
                                       );
                                     })}
-                                  </select>
+                                  </SeatSelect>
                                 </DraggableGuestRow>
                               </Fragment>
                             );
@@ -970,7 +980,13 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           )}
 
           {ev.tables.length > 0 && (
-            <div className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}>
+            <div
+              ref={tablesRef}
+              tabIndex={-1}
+              aria-label="שולחנות"
+              data-tour="seating.tables"
+              className={[styles.tableCards, activeId ? styles.tableCardsDragging : ""].filter(Boolean).join(" ")}
+            >
               {ev.tables.map((t, i) => (
                 <TableCard
                   key={cardKeys[i]}
@@ -1053,8 +1069,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
           {ev.tables.length > 0 ? (
             <div className={styles.pvGrid}>
               {ev.tables.map(t => {
-                const tg      = tableGuests(t.id);
-                const tgSeats = tg.reduce((s, g) => s + (g.count || 1), 0);
+                const tg      = printGuests(t.id);
+                const tgSeats = tableSeats(t.id);
                 const capOver = tgSeats > t.capacity;
                 return (
                   <div key={t.id} className={[styles.pvTable, capOver ? styles.pvTableOver : ""].filter(Boolean).join(" ")}>
@@ -1112,7 +1128,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         <div className={styles.pvCompactOnly}>
           <div className={styles.pvCompactGrid}>
             {ev.tables.map(t => {
-              const tg    = tableGuests(t.id);
+              const tg    = printGuests(t.id);
               const seats = tableSeats(t.id);
               return (
                 <div key={t.id} className={styles.pvCompactTable}>
@@ -1150,8 +1166,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
         {/* ── Cards mode — one card per table, meant to be cut and placed on tables ── */}
         <div className={styles.pvCardsOnly}>
           <div className={styles.pvCardsGrid}>
-            {ev.tables.filter(t => tableGuests(t.id).length > 0).map(t => {
-              const tg = tableGuests(t.id);
+            {ev.tables.filter(t => printGuests(t.id).length > 0).map(t => {
+              const tg = printGuests(t.id);
               return (
                 <div key={t.id} className={styles.pvCard}>
                   <div className={styles.pvCardBrand}>{COMPANY.name} · {ev.name || "האירוע"}</div>
@@ -1173,7 +1189,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       it matters more here because it goes to PAPER: the printed
                       cluster was "6 / 3", which anyone reading the slash as a
                       fraction takes for a table seating six of three. */}
-                  <div className={styles.pvCardFooter}>{tg.reduce((s, g) => s + (g.count || 1), 0)}/{t.capacity} מקומות</div>
+                  <div className={styles.pvCardFooter}>{tableSeats(t.id)}/{t.capacity} מקומות</div>
                 </div>
               );
             })}

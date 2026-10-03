@@ -42,6 +42,9 @@ export const TOMBSTONED_COLLECTIONS = ["guests", "tables", "constraints", "tasks
  */
 export const TOMBSTONE_TTL_MS = 180 * 24 * 60 * 60 * 1000;
 
+/** How many applied RSVP response ids an event keeps — the newest, oldest dropped. */
+export const RSVP_APPLIED_MAX = 2000;
+
 /**
  * Coerce whatever came out of storage or the cloud into
  * `{ collection: { rowId: timestamp } }`, dropping anything expired or
@@ -103,14 +106,38 @@ function normGuest(g) {
 function normTable(t) {
   const out = { ...t };
   if ("name" in t && typeof t.name !== "string") out.name = str(t.name);
-  if ("capacity" in t) out.capacity = intIn(t.capacity, 0, 500, 0);
+  // A table with NO capacity too (FZ6): every writer in the app sets one, but a
+  // row without it rendered "undefined" in the table list and summed to NaN
+  // seats. 0 — the same value a malformed capacity already gets — rather than
+  // a guessed size: a table that holds nobody until the host says otherwise
+  // cannot overbook a real table of six.
+  out.capacity = intIn(t.capacity, 0, 500, 0);
   return out;
+}
+
+/* A seat may only point at a table that exists (FZ6). The merge already
+ * prunes such seats (pruneArrangement), but one that reached storage any other
+ * way — a hand-edited row, an older build — was counted as seated by
+ * seatingTotals and shown at no table, so the guest was in nobody's
+ * "unassigned" list either.
+ * Seats of a guest id not in `guests` are left alone: no counter reads them
+ * (they count per guest), and the merge relies on them — a cloud row's seat
+ * for a guest only the other device lists is how that guest keeps its seat
+ * (useEvents.mutants.test.js, found by fuzz). */
+function liveSeating(seating, tables) {
+  if (!seating || typeof seating !== "object" || Array.isArray(seating)) return {};
+  const t = new Set(tables.map(x => x.id));
+  const entries = Object.entries(seating);
+  const kept = entries.filter(([, tid]) => t.has(tid));
+  return kept.length === entries.length ? seating : Object.fromEntries(kept);
 }
 const finiteOr = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== "" ? Number(v) : d);
 
 export function normalizeEvent(ev) {
   if (!ev || typeof ev !== "object" || Array.isArray(ev)) return null;
   const now = Date.now();
+  const tables = rows(ev.tables).map(normTable);
+  const guests = rows(ev.guests).map(normGuest);
   return {
     // Core identity — generate a fresh uid if the stored id is missing/undefined
     id:          ev.id ?? uid(),
@@ -144,9 +171,9 @@ export function normalizeEvent(ev) {
     // Standard types live in constants.js TABLE_TYPES; this holds only extras.
     customTableTypes: Array.isArray(ev.customTableTypes) ? ev.customTableTypes : [],
     // Collections — default to empty arrays/objects
-    tables:      rows(ev.tables).map(normTable),
-    guests:      rows(ev.guests).map(normGuest),
-    seating:     (ev.seating && typeof ev.seating === "object") ? ev.seating : {},
+    tables,
+    guests,
+    seating:     liveSeating(ev.seating, tables),
     // Rows, not just an array: one `null` in it took the seating AND the
     // constraints screens down ("אירעה שגיאה בלתי צפויה") — the engine was
     // guarded against it, eight readers in the analysis and the constraints
@@ -178,7 +205,7 @@ export function normalizeEvent(ev) {
     // Client-side only, like syncedVersion.
     syncBase: (ev.syncBase && typeof ev.syncBase === "object" && !Array.isArray(ev.syncBase))
       ? Object.fromEntries(Object.entries(ev.syncBase).filter(([k, v]) => typeof v === "string"
-          || (k === "guests" && v && typeof v === "object" && !Array.isArray(v))))
+          || ((k === "guests" || k === "tables") && v && typeof v === "object" && !Array.isArray(v))))
       : null,
     // Locking — guests/tables excluded from smart-assistant suggestions.
     // Must be preserved here so locks survive page reload (localStorage round-trip).
@@ -199,7 +226,7 @@ export function normalizeEvent(ev) {
     // answer over the host's manual changes. Synced with the event now; the
     // newest 2,000 are kept.
     rsvpApplied: Array.isArray(ev.rsvpApplied)
-      ? ev.rsvpApplied.filter(x => typeof x === "string" && x).slice(-2000) : [],
+      ? ev.rsvpApplied.filter(x => typeof x === "string" && x).slice(-RSVP_APPLIED_MAX) : [],
     // Which rows this account has DELETED, as `{ collection: { rowId: when } }`.
     //
     // The merge unions id-keyed collections in both directions, which is what
@@ -397,7 +424,7 @@ export function duplicateEvent(ev) {
     // with it. Stripping only the boolean left the copy with
     // `arrivedSeats: [0,1]` — nobody reads as arrived in the summary while the
     // entrance screen shows two of them already inside.
-    const { arrived, arrivedSeats, arrivedAt, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
+    const { arrived, arrivedSeats, arrivedAt, arrivedBy, giftAmount, ...rest } = g;   // eslint-disable-line no-unused-vars
     // `companions` is the one field on a guest row that is an ARRAY, and the
     // rest-spread copies the reference. The comment further down lists six
     // nested collections deep-copied "so editing the duplicate never mutates

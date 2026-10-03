@@ -1,8 +1,12 @@
 import { Link } from "react-router-dom";
 
-export default function NotFoundScreen() {
+/* The page's one <main> (38a) — except inside an event, where it renders in
+   Shell's <main> and a second one would be two landmarks of the same kind.
+   EventRoutes passes `landmark={false}` for that case. */
+export default function NotFoundScreen({ landmark = true }) {
+  const Root = landmark ? "main" : "div";
   return (
-    <div style={{
+    <Root style={{
       minHeight: "100vh",
       display: "flex",
       flexDirection: "column",
@@ -38,6 +42,6 @@ export default function NotFoundScreen() {
       >
         חזרה לדשבורד
       </Link>
-    </div>
+    </Root>
   );
 }

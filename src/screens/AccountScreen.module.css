@@ -420,13 +420,14 @@
   transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
-.signOutBtn:hover:not(:disabled) {
+.signOutBtn:hover:not(:disabled, [aria-disabled="true"]) {
   background: var(--red-bg);
   border-color: var(--red-border);
   color: var(--red);
 }
 
-.signOutBtn:disabled {
+.signOutBtn:disabled,
+.signOutBtn[aria-disabled="true"] {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -440,14 +441,6 @@
 }
 
 .feedbackLink:hover { color: var(--text2); text-decoration: underline; }
-
-.versionLabel {
-  font-size: var(--step--3);
-  color: var(--muted);
-  text-align: center;
-  margin: 0;
-  opacity: 0.7;
-}
 
 .backLink {
   display: inline-flex;

@@ -57,3 +57,17 @@ describe("EventSetupScreen — leaving with unsaved edits (E4)", () => {
     expect(dirty.defaultPrevented).toBe(true);
   });
 });
+
+/* 71d (1.10): the app's update reload cannot run the save-on-leave, so the
+ * form tells utils/unsavedWork while it holds edits, and the reload waits. */
+describe("EventSetupScreen — the update reload waits for its edits (71d)", () => {
+  it("marks unsaved work while dirty, and clears it on save and on leave", async () => {
+    const { hasUnsavedWork } = await import("../utils/unsavedWork.js");
+    const { unmount, venue } = setup();
+    expect(hasUnsavedWork()).toBe(false);
+    fireEvent.change(venue, { target: { value: "אולם בהרצליה" } });
+    expect(hasUnsavedWork()).toBe(true);
+    unmount();
+    expect(hasUnsavedWork()).toBe(false);
+  });
+});

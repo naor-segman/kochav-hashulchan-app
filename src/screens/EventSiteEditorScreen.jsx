@@ -228,7 +228,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <PageHeader
         title="אתר האירוע"
         mark="site"
-        sub="בנו את אתר האירוע שלכם — הוא נבנה אוטומטית ונשלח לאורחים. מלאו פרטים, בחרו עיצוב, ופרסמו."
+        sub="האתר נבנה אוטומטית מפרטי האירוע. מלאו פרטים, בחרו עיצוב, פרסמו — ואז שלחו את הקישור לאורחים."
       />
 
       {/* `showPurged` only here: this is the screen where an empty gallery is
@@ -237,7 +237,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <PhotoRetentionNotice ev={ev} patchEvent={patchEvent} showToast={showToast} showPurged />
 
       {/* ── Publish + share ── */}
-      <div className={[base.card, site.enabled ? "" : base.cardDirty].filter(Boolean).join(" ")}>
+      <div data-tour="site.publish" className={[base.card, site.enabled ? "" : base.cardDirty].filter(Boolean).join(" ")}>
         <div className={styles.publishRow}>
           <div>
             <div className={styles.publishTitle}>{site.enabled ? "האתר מפורסם ✓" : "האתר עדיין לא מפורסם"}</div>
@@ -252,7 +252,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
             {site.enabled ? "בטלו פרסום" : "פרסמו אתר ←"}
           </button>
         </div>
-        <div className={styles.shareRow}>
+        <div data-tour="site.link" className={styles.shareRow}>
           <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" aria-label="קישור לאתר האירוע" />
           <button className={base.btnSm} onClick={() => guard("הקישור לאתר האירוע", copyLink)}>{copied ? "הועתק ✓" : "העתיקו"}</button>
           <button
@@ -300,7 +300,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
 
       {/* ── Share with guests ── */}
       {site.enabled && (
-        <div className={base.card}>
+        <div data-tour="site.share" className={base.card}>
           <SectionLabel>שתפו עם האורחים</SectionLabel>
           <p className={base.fieldHint}>
             הודעות מוכנות לשליחה בוואטסאפ — עם קישור לאתר האירוע. העתיקו או שלחו ישירות.
@@ -316,17 +316,21 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
                 <span className={styles.msgPreview}>{m.text.split("\n")[0]}</span>
               </div>
               <div className={styles.msgActions}>
+                {/* Each message carries the site's link, so both go through the
+                    share gate like the link itself: without an account the
+                    link does not open for the guests it is sent to. */}
                 <button
                   className={[base.btnSm, base.btnGhost].join(" ")}
-                  onClick={async () => {
+                  onClick={() => guard("ההודעה עם הקישור לאתר", async () => {
                     try { await navigator.clipboard.writeText(m.text); showToast("ההודעה הועתקה ✓"); }
                     catch { showToast("לא ניתן להעתיק", "err"); }
-                  }}
+                  })}
                 >העתיקו</button>
                 <a
                   className={[base.btnSm, styles.msgWa].join(" ")}
                   href={`https://wa.me/?text=${encodeURIComponent(m.text)}`}
                   target="_blank" rel="noopener noreferrer"
+                  onClick={e => { if (!guard("ההודעה עם הקישור לאתר")) e.preventDefault(); }}
                 >שלחו בוואטסאפ</a>
               </div>
             </div>
@@ -335,7 +339,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       )}
 
       {/* ── Theme ── */}
-      <div className={base.card}>
+      <div data-tour="site.theme" className={base.card}>
         <SectionLabel>עיצוב האתר</SectionLabel>
         <p className={base.fieldHint}>בחרו ערכת צבעים לאתר האירוע שלכם.</p>
         <div className={styles.themeGrid}>
@@ -356,39 +360,13 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           ))}
         </div>
 
-        <div className={styles.domainBox}>
-          <Field label="קישור לאלבום המשותף" hint="אורחים והצלם מעלים תמונות למקום אחד">
-            <input
-              className={base.input}
-              readOnly
-              dir="ltr"
-              value={ev.tokens?.album ? `${window.location.origin}/album/${ev.tokens.album}` : "ייווצר אחרי השמירה הראשונה"}
-              onFocus={e => e.target.select()}
-            />
-          </Field>
-        </div>
-
-        <div className={styles.domainBox}>
-          <Field label="דומיין משלכם" hint="אופציונלי — למשל dana-and-yossi.co.il">
-            <input
-              className={base.input}
-              value={site.customDomain || ""}
-              dir="ltr"
-              placeholder="example.co.il"
-              onChange={e => set({ customDomain: e.target.value.trim().replace(/^https?:\/\//, "") })}
-            />
-          </Field>
-          {site.customDomain
-            ? <p className={base.fieldHint}>
-                כדי שזה יעבוד, הפנו את הדומיין לשרת שלנו אצל רשם הדומיינים:
-                רשומת <code>CNAME</code> בשם <code>www</code> אל <code>{window.location.hostname}</code>.
-                עד שההפניה תתפוס, הקישור הרגיל למעלה ממשיך לעבוד כרגיל.
-              </p>
-            : <p className={base.fieldHint}>
-                בלי דומיין משלכם האתר עובד מצוין בקישור שלמעלה — זו תוספת נוחות, לא דרישה.
-              </p>}
-        </div>
-
+        {/* The shared album's link moved to the album screen (owner, 3.10):
+            a card about colours was the last place anyone looked for it. */}
+        {/* There was a "דומיין משלכם" field here, with CNAME instructions.
+            Nothing in src/ or netlify/ ever read `site.customDomain`, so a host
+            who bought a domain and pointed it at us got nothing (נ). The field
+            is gone; the key stays in normalizeEvent/defaultEventSite so a value
+            already stored still round-trips through the cloud. */}
         <p className={[base.fieldHint, styles.sectionHint].join(" ")}>גופן הכותרות באתר.</p>
         <div className={styles.fontGrid}>
           {SITE_FONTS.map(f => (
@@ -410,7 +388,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       </div>
 
       {/* ── Hero ── */}
-      <div className={base.card}>
+      <div data-tour="site.hero" className={base.card}>
         <SectionLabel>ראש האתר</SectionLabel>
         <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
           onChange={e => { if (e.target.files[0]) onCover(e.target.files[0]); e.target.value = ""; }} />
@@ -444,7 +422,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>גלריית תמונות</SectionLabel>
-          <Toggle on={site.sections.gallery !== false} onChange={v => setSection("gallery", v)} />
+          <Toggle label="גלריית תמונות" on={site.sections.gallery !== false} onChange={v => setSection("gallery", v)} />
         </div>
         <p className={base.fieldHint}>עד {GALLERY_MAX} תמונות. הראשונה תוצג גדולה יותר.</p>
         {(site.gallery || []).length > 0 && (
@@ -467,12 +445,12 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>ספירה לאחור</SectionLabel>
-          <Toggle on={site.countdown !== false} onChange={v => set({ countdown: v })} />
+          <Toggle label="ספירה לאחור" on={site.countdown !== false} onChange={v => set({ countdown: v })} />
         </div>
         <p className={base.fieldHint}>ספירת ימים לקראת מועד האירוע.</p>
         <div className={styles.secToggleHead} style={{ marginTop: 18 }}>
           <SectionLabel>קוד לבוש</SectionLabel>
-          <Toggle on={site.sections.dressCode === true} onChange={v => setSection("dressCode", v)} />
+          <Toggle label="קוד לבוש" on={site.sections.dressCode === true} onChange={v => setSection("dressCode", v)} />
         </div>
         <Field label="הנחיית לבוש לאורחים (אופציונלי)">
           <textarea className={base.textarea} rows={2} value={site.dressCode}
@@ -482,10 +460,10 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       </div>
 
       {/* ── Schedule ── */}
-      <div className={base.card}>
+      <div data-tour="site.sections" className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>לוז האירוע</SectionLabel>
-          <Toggle on={site.sections.schedule} onChange={v => setSection("schedule", v)} />
+          <Toggle label="לוז האירוע" on={site.sections.schedule} onChange={v => setSection("schedule", v)} />
         </div>
         {site.schedule.map(item => (
           <div key={item.id} className={styles.scheduleRow}>
@@ -509,10 +487,15 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>מיקום והגעה</SectionLabel>
-          <Toggle on={site.sections.location} onChange={v => setSection("location", v)} />
+          <Toggle label="מיקום והגעה" on={site.sections.location} onChange={v => setSection("location", v)} />
         </div>
-        <Field label="כתובת מלאה">
-          <input className={base.input} value={site.address} placeholder="רחוב, מספר, עיר"
+        {/* Empty means "the venue from the event's details" (owner, 3.10) —
+            shown as the placeholder and said in the hint, so the host sees
+            what guests will get and can type an exact address over it. */}
+        <Field label="כתובת מלאה" hint={!site.address?.trim() && ev.venue?.trim()
+          ? `ריק — האתר מציג את המקום מפרטי האירוע. אפשר לכתוב כאן כתובת מדויקת במקום.`
+          : undefined}>
+          <input className={base.input} value={site.address} placeholder={ev.venue?.trim() || "רחוב, מספר, עיר"}
             onChange={e => set({ address: e.target.value })} />
         </Field>
         <div className={base.grid2}>
@@ -531,7 +514,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>הסעות</SectionLabel>
-          <Toggle on={site.sections.shuttles} onChange={v => setSection("shuttles", v)} />
+          <Toggle label="הסעות" on={site.sections.shuttles} onChange={v => setSection("shuttles", v)} />
         </div>
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>הוסיפו מסלולי הסעה הלוך וחזור עם שעות ונקודות איסוף.</p>
         {(site.shuttles || []).map(s => (
@@ -566,11 +549,11 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
         <div className={styles.toggleList}>
           <div className={styles.toggleRow}>
             <span>מתנה — קישור למסך המתנה</span>
-            <Toggle on={site.sections.gift} onChange={v => setSection("gift", v)} />
+            <Toggle label="מתנה" on={site.sections.gift} onChange={v => setSection("gift", v)} />
           </div>
           <div className={styles.toggleRow}>
             <span>קיר ברכות — ברכות מהאורחים</span>
-            <Toggle on={site.sections.blessings} onChange={v => setSection("blessings", v)} />
+            <Toggle label="קיר ברכות" on={site.sections.blessings} onChange={v => setSection("blessings", v)} />
           </div>
         </div>
       </div>
@@ -579,7 +562,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <div className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>שאלות נפוצות</SectionLabel>
-          <Toggle on={site.sections.faq} onChange={v => setSection("faq", v)} />
+          <Toggle label="שאלות נפוצות" on={site.sections.faq} onChange={v => setSection("faq", v)} />
         </div>
         {site.faq.map(f => (
           <div key={f.id} className={styles.faqEdit}>
@@ -620,14 +603,18 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
   );
 }
 
-function Toggle({ on, onChange }) {
+// Named by the section it switches (AX8). Every one of the nine used to be
+// called "פעיל" or "כבוי" — a screen reader's list of controls was nine
+// identical buttons, and the name changed with the state, which aria-pressed
+// already carries.
+function Toggle({ on, onChange, label }) {
   return (
     <button
       type="button"
       className={[styles.toggle, on ? styles.toggleOn : ""].filter(Boolean).join(" ")}
       onClick={() => onChange(!on)}
       aria-pressed={on}
-      aria-label={on ? "פעיל" : "כבוי"}
+      aria-label={label}
     >
       <span className={styles.toggleKnob} />
     </button>

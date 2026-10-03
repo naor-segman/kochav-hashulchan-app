@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase.js";
 import { invalidateTemplateCache } from "../../utils/templateHelpers.js";
@@ -8,6 +8,7 @@ import Loading from "../../components/feedback/Loading.jsx";
 import SectionMark from "../../components/ui/SectionMark.jsx";
 import Icon from "../../components/ui/Icon.jsx";
 import { useConfirm } from "../../components/ui/useConfirm.jsx";
+import { useRestoreFocus } from "../../hooks/useRestoreFocus.js";
 import { formatDate } from "../lib/adminFormat.js";
 import { useAdminLogout } from "../lib/useAdminLogout.js";
 import { COMPANY } from "../../data/company.js";
@@ -61,12 +62,50 @@ function TemplateForm({ initial, onSave, onClose, saving, formError }) {
     onSave(form);
   };
 
+  /* A modal in name only until AX8: no role, no aria-modal, Escape did
+     nothing, focus stayed on the "ערוך" button BEHIND the overlay, and Tab
+     walked out of the form into the table under it. Same contract as
+     ConfirmDialog now: focus moves in, stays in, Escape closes, and closing
+     gives focus back to whatever opened it. */
+  const cardRef = useRef(null);
+  const nameRef = useRef(null);
+  useRestoreFocus();
+  useEffect(() => { nameRef.current?.focus(); }, []);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        // Not mid-save: the write is already in flight and closing would hide
+        // its result (formError renders inside this dialog).
+        if (!saving) { e.preventDefault(); onClose(); }
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusables = cardRef.current?.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last  = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose, saving]);
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={styles.modalCard}
+        onClick={(e) => e.stopPropagation()}
+        ref={cardRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tpl-dialog-title"
+      >
 
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{isNew ? "תבנית חדשה" : "עריכת תבנית"}</h2>
+          <h2 id="tpl-dialog-title" className={styles.modalTitle}>{isNew ? "תבנית חדשה" : "עריכת תבנית"}</h2>
           <button className={styles.closeBtn} onClick={onClose} type="button" aria-label="סגור">✕</button>
         </div>
 
@@ -77,6 +116,7 @@ function TemplateForm({ initial, onSave, onClose, saving, formError }) {
               <label className={styles.label} htmlFor="tpl-name">שם התבנית *</label>
               <input
                 id="tpl-name"
+                ref={nameRef}
                 className={styles.input}
                 type="text"
                 value={form.name}
@@ -203,15 +243,20 @@ export default function AdminTemplatesScreen() {
     });
   }, []);
 
+  /* A REFRESH keeps what is on screen (RG10b). This runs again after every
+     save and from "רענן מהשרת", and it used to blank the list first and set it
+     to [] on failure — so one failed refresh after an edit made every template
+     vanish behind an error banner, with "ערוך" / "השבת" gone with them. Now
+     the rows stay, the banner says they are from the last load, and only the
+     very first load (state still null) shows the skeleton. */
   const loadTemplates = useCallback(async () => {
     if (!supabase) return;
-    setTemplates(null);
     setError(null);
     try {
       setTemplates(await loadTemplatesData());
     } catch (err) {
       setError(err.message || "טעינת התבניות נכשלה.");
-      setTemplates([]);
+      setTemplates((prev) => prev ?? []);
     }
   }, []);
 
@@ -327,7 +372,7 @@ export default function AdminTemplatesScreen() {
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminTemplates" tone="admin" size={20} className={styles.brandMark} />
-          <span className={styles.brandName}>ניהול תבניות</span>
+          <h1 className={styles.brandName}>ניהול תבניות</h1>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>{COMPANY.name}</span>
         </div>
@@ -343,6 +388,7 @@ export default function AdminTemplatesScreen() {
         {error && (
           <div className={styles.errorBanner}>
             {error}
+            {templates?.length > 0 && " · מוצגות התבניות מהטעינה הקודמת"}
             <button className={styles.retryBtn} onClick={loadTemplates}>נסה שוב</button>
           </div>
         )}
@@ -359,7 +405,7 @@ export default function AdminTemplatesScreen() {
 
         {/* ── Toolbar ── */}
         <div className={styles.toolbar}>
-          {!loading && !error && (
+          {!loading && (!error || templates.length > 0) && (
             <span className={styles.resultCount}>
               {(templates || []).length.toLocaleString()} תבניות
             </span>
@@ -384,7 +430,7 @@ export default function AdminTemplatesScreen() {
         )}
 
         {/* ── Templates table ── */}
-        {!loading && !error && templates.length > 0 && (
+        {!loading && templates.length > 0 && (
           <>
           {/* Eight columns, 693px. At 390 the phone shows four and the פעולות
               column — ערוך / השבת, the only way to change a template — was

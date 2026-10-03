@@ -106,7 +106,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
       />
 
       {/* Which of the two we're editing */}
-      <div className={styles.kindTabs} role="group" aria-label="בחירת סוג הדף">
+      <div data-tour="announce.kinds" className={styles.kindTabs} role="group" aria-label="בחירת סוג הדף">
         {ANNOUNCEMENT_KINDS.map(k => {
           const on = ev.announcements?.[k.key]?.enabled;
           return (
@@ -125,7 +125,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
       </div>
 
       {/* Publish + link */}
-      <div className={base.card}>
+      <div data-tour="announce.publish" className={base.card}>
         <SectionLabel>פרסום</SectionLabel>
         <p className={base.fieldHint}>
           {ann.enabled
@@ -148,7 +148,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
           <div className={styles.shareRow}>
             <input className={[base.input, styles.shareInput].join(" ")} readOnly value={url} dir="ltr" aria-label="קישור לדף" />
             <button className={base.btnSm} onClick={copy}>{copied ? "הועתק ✓" : "העתיקו"}</button>
-            <QrCode url={url} label={meta.label} filename={`${meta.label}.png`} />
+            <QrCode url={url} label={meta.label} filename={`${meta.label}.png`} gate={run => guard("קוד ה-QR של הדף", run)} />
           </div>
         ) : (
           <p className={base.fieldHint}>הקישור ייווצר אחרי השמירה הראשונה של האירוע.</p>
@@ -171,7 +171,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
       </div>
 
       {/* Content */}
-      <div className={base.card}>
+      <div data-tour="announce.content" className={base.card}>
         <SectionLabel>תוכן</SectionLabel>
         <div className={base.grid2}>
           <Field label="כותרת ראשית" hint="מה שקופץ לעין">
@@ -193,7 +193,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
       </div>
 
       {/* Design */}
-      <div className={base.card}>
+      <div data-tour="announce.design" className={base.card}>
         <SectionLabel>עיצוב</SectionLabel>
 
         <p className={base.fieldHint}>ערכת צבעים</p>
@@ -264,7 +264,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
       </div>
 
       {/* What to show */}
-      <div className={base.card}>
+      <div data-tour="announce.show" className={base.card}>
         <SectionLabel>מה להציג</SectionLabel>
         <div className={styles.toggles}>
           {[

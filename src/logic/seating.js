@@ -45,8 +45,11 @@ function affinityScore(guest, tableGuestIds, guestMap) {
 
 function guestSeats(g) { return g.count || 1; }
 
-function seatedCount(tState_entry, guestMap) {
-  return tState_entry.seated.reduce((s, id) => s + guestSeats(guestMap[id] || {}), 0);
+// Seats taken at a table. Kept as a running total by `sit` below instead of
+// re-summing `seated` on every call — that sum was the single hottest line of
+// the engine at 800 guests (סב58).
+function seatedCount(tState_entry) {
+  return tState_entry.used;
 }
 
 /**
@@ -61,7 +64,7 @@ function seatedCount(tState_entry, guestMap) {
  *   "we were split but we could still see each other". That is the whole point
  *   of asking someone to upload their venue sketch.
  */
-function assignOnce(guests, tables, constraints, lockedSeating = {}, positions = null, closedTableIds = []) {
+function assignOnce(guests, tables, constraints, lockedSeating = {}, positions = null, closedTableIds = [], opts = {}) {
   // A COPY, never the caller's object. Returning `lockedSeating` itself made
   // `ev.seating` and the "new" seating the same reference all the way up to
   // SeatingScreen's `patchEvent({ seating: newSeating })` — no live mutation
@@ -93,11 +96,13 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
   // this, סב9) split exactly those pairs and sent the assistant in a circle:
   // "הפעילו חשבו מחדש", which split them again (third review 30.9, סב48).
   const closed = new Set(closedTableIds);
-  const tState    = tables.map(t => ({ id:t.id, capacity:t.capacity, seated:[] }));
+  const tState    = tables.map(t => ({ id:t.id, capacity:t.capacity, seated:[], used:0 }));
+  // The ONLY way anyone joins a table, so `used` cannot drift from `seated`.
+  const sit = (t, id) => { t.seated.push(id); t.used += guestSeats(guestMap[id] || {}); };
   guests.forEach(g => {
     if (lockedIds.has(g.id)) {
       const t = tState.find(t => t.id === lockedSeating[g.id]);
-      if (t) t.seated.push(g.id);
+      if (t) sit(t, g.id);
     }
   });
 
@@ -144,7 +149,7 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
     for (const t of candidates) {
       if (seatedCount(t, guestMap) + guestSeats(g) > t.capacity) continue;
       if (apartConflict(apartSet, unlockedId, t.seated)) continue;
-      t.seated.push(unlockedId);
+      sit(t, unlockedId);
       seating[unlockedId] = t.id;
       break;
     }
@@ -184,10 +189,26 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
             if (here(a) !== here(b)) return here(b) - here(a);
             return (b.capacity - seatedCount(b, guestMap)) - (a.capacity - seatedCount(a, guestMap));
           })
-      : tState.filter(t => !closed.has(t.id)).sort((a, b) =>
-          affinityScore(guestMap[pending[0]], b.seated, guestMap) -
-          affinityScore(guestMap[pending[0]], a.seated, guestMap)
-        );
+      // Between two equally good tables, the TIGHTER fit wins (best fit).
+      // Without a tie-break the sort kept table order, so a small family took
+      // a roomy table that a later, larger family needed whole — and that
+      // family was split although a whole-family seating existed (סב34b,
+      // measured 52 of 1,908 feasible events). `fitOnly` drops affinity
+      // altogether; autoAssign uses it as a second opinion, never as the
+      // default, because affinity is what keeps a side's guests together.
+      //
+      // Both keys are computed ONCE per table, before the sort (סב58). In the
+      // comparator they were recomputed on every comparison — O(T log T)
+      // walks over every seated row, per family. Same keys, same stable sort,
+      // same order.
+      : tState.filter(t => !closed.has(t.id))
+          .map(t => ({
+            t,
+            aff: opts.fitOnly ? 0 : affinityScore(guestMap[pending[0]], t.seated, guestMap),
+            free: opts.legacyOrder ? 0 : t.capacity - seatedCount(t, guestMap),
+          }))
+          .sort((a, b) => (b.aff - a.aff) || (a.free - b.free))
+          .map(k => k.t);
 
     for (const t of candidates) {
       const used = seatedCount(t, guestMap);
@@ -199,7 +220,7 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
         combined.push(id);
       }
       if (!ok) continue;
-      pending.forEach(id => { t.seated.push(id); seating[id] = t.id; });
+      pending.forEach(id => { sit(t, id); seating[id] = t.id; });
       return true;
     }
     return false;
@@ -244,7 +265,7 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
       for (const id of remaining) {
         if (seatedCount(next, guestMap) + guestSeats(guestMap[id]) <= next.capacity
             && !apartConflict(apartSet, id, next.seated)) {
-          next.seated.push(id);
+          sit(next, id);
           seating[id] = next.id;
         } else {
           still.push(id);
@@ -256,7 +277,12 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
     }
   };
 
-  [...clusters].sort((a, b) => clusterSeats(b) - clusterSeats(a)).forEach(cluster => {
+  // Largest first. `oversizedLast` moves families that cannot fit any single
+  // table to the end, so the ones that CAN sit whole get first pick and the
+  // big family fills what is left (סב34a) — again only as a second opinion.
+  const maxCap = Math.max(0, ...tState.filter(t => !closed.has(t.id)).map(t => t.capacity));
+  const over = c => (opts.oversizedLast && clusterSeats(c) > maxCap ? 1 : 0);
+  [...clusters].sort((a, b) => (over(a) - over(b)) || (clusterSeats(b) - clusterSeats(a))).forEach(cluster => {
     if (cluster.every(id => seating[id])) return;
     if (!seatCluster(cluster)) seatClusterBestEffort(cluster);
   });
@@ -275,6 +301,10 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
   // guest who still fitted somewhere, which is the block's own precondition,
   // was 0. It also carried a regression test that never entered it.
   return seating;
+}
+
+function seatsPlaced(guests, seating) {
+  return guests.reduce((s, g) => s + (seating[g.id] ? guestSeats(g) : 0), 0);
 }
 
 /**
@@ -301,8 +331,8 @@ function assignOnce(guests, tables, constraints, lockedSeating = {}, positions =
  * The second pass only runs when somebody is left over — an event with enough
  * chairs, which is most of them, pays nothing.
  */
-export function autoAssign(guests, tables, constraints, lockedSeating = {}, positions = null, closedTableIds = []) {
-  const withPositions = assignOnce(guests, tables, constraints, lockedSeating, positions, closedTableIds);
+function roomAwareAssign(guests, tables, constraints, lockedSeating, positions, closedTableIds, opts) {
+  const withPositions = assignOnce(guests, tables, constraints, lockedSeating, positions, closedTableIds, opts);
 
   // `ev.floorPlan.tablePositions` is `{}` for every event that has never been
   // near a sketch, and one placed table has nothing to be near — neither can
@@ -310,16 +340,52 @@ export function autoAssign(guests, tables, constraints, lockedSeating = {}, posi
   const placed = positions ? Object.keys(positions).length : 0;
   if (placed < 2) return withPositions;
 
-  const seatsPlaced = seating =>
-    guests.reduce((s, g) => s + (seating[g.id] ? guestSeats(g) : 0), 0);
-
   // Nobody standing — no plan can beat that, so do not compute one.
   if (guests.every(g => withPositions[g.id])) return withPositions;
 
-  const withoutPositions = assignOnce(guests, tables, constraints, lockedSeating, null, closedTableIds);
-  return seatsPlaced(withPositions) >= seatsPlaced(withoutPositions)
+  const withoutPositions = assignOnce(guests, tables, constraints, lockedSeating, null, closedTableIds, opts);
+  return seatsPlaced(guests, withPositions) >= seatsPlaced(guests, withoutPositions)
     ? withPositions
     : withoutPositions;
+}
+
+/**
+ * The same guarantee, applied to families (סב34a/b).
+ *
+ * The greedy pass is one order of many. When it leaves anybody standing or a
+ * "together" family split, other orders are tried — the pre-34b order (no
+ * best-fit tie-break), best fit without affinity, and oversized families
+ * last — and the plan kept is the one that seats the most people, and among
+ * those, splits the fewest families. Seats are never traded for togetherness,
+ * and the result never seats fewer than the pre-34b engine did, because that
+ * engine's own plan is one of the candidates. An event where everybody sits
+ * and every family is whole (most of them) pays for nothing.
+ */
+const SECOND_OPINIONS = [
+  { legacyOrder: true },
+  { fitOnly: true },
+  { oversizedLast: true },
+  { fitOnly: true, oversizedLast: true },
+];
+
+export function autoAssign(guests, tables, constraints, lockedSeating = {}, positions = null, closedTableIds = []) {
+  const base = roomAwareAssign(guests, tables, constraints, lockedSeating, positions, closedTableIds, {});
+
+  const families = buildClusters(guests, constraints || []).filter(c => c.length > 1);
+  const splits = seating =>
+    families.filter(ids => new Set(ids.map(id => seating[id] || "")).size > 1).length;
+  const allSeated = seating => guests.every(g => seating[g.id]);
+
+  let best = base, bestSplits = splits(base), bestSeats = seatsPlaced(guests, base);
+  for (const opts of SECOND_OPINIONS) {
+    if (!bestSplits && allSeated(best)) break;
+    const alt = roomAwareAssign(guests, tables, constraints, lockedSeating, positions, closedTableIds, opts);
+    const altSeats = seatsPlaced(guests, alt), altSplits = splits(alt);
+    if (altSeats > bestSeats || (altSeats === bestSeats && altSplits < bestSplits)) {
+      best = alt; bestSplits = altSplits; bestSeats = altSeats;
+    }
+  }
+  return best;
 }
 
 export function computeViolations(guests, tables, constraints, seating) {
@@ -335,6 +401,9 @@ export function computeViolations(guests, tables, constraints, seating) {
     const ga = guestMap[c.guestA];
     const gb = guestMap[c.guestB];
     if (!ga || !gb) return;
+    // A guest who declined is not coming, so a pair with them in it cannot
+    // conflict — the same rule as the export and seatingTotals (סב7, RG10c).
+    if (ga.rsvp === "declined" || gb.rsvp === "declined") return;
     const ta = seating[c.guestA];
     const tb = seating[c.guestB];
 
@@ -362,7 +431,10 @@ export function computeViolations(guests, tables, constraints, seating) {
   });
 
   tables.forEach(t => {
-    const seated = guests.filter(g => seating[g.id] === t.id);
+    // Chairs, not rows: a declined guest still listed at the table holds no
+    // chair. Counting them here said "חריגה" while the venue export, which
+    // skips them, printed the same table as fitting (RG10c).
+    const seated = guests.filter(g => seating[g.id] === t.id && g.rsvp !== "declined");
     const count  = seated.reduce((s, g) => s + (g.count || 1), 0);
     if (count > t.capacity)
       violations.push({ type:"capacity",

@@ -112,3 +112,11 @@ export const MEAL_OPTIONS = [
 ];
 
 export const MEAL_DEFAULT = "regular";
+
+/**
+ * The longest group name a host can create. The shared family table stores a
+ * group in a 60-character column (collab_guests.guest_group) — a longer name
+ * came back from it cut, and the cut name then showed up as a new, phantom
+ * group in the host's list (106, 1.10). Said at the point of typing instead.
+ */
+export const GROUP_NAME_MAX = 60;

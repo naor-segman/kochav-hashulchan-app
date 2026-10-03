@@ -10,6 +10,10 @@ import styles from "./Shell.module.css";
 import Icon from "../ui/Icon.jsx";
 import { makeOpenScreen } from "../../utils/eventNameGate.js";
 import { COMPANY } from "../../data/company.js";
+import { markDraftCarry } from "../../utils/draftCarry.js";
+import GuidedTour from "../tour/GuidedTour.jsx";
+import { TOURS } from "../../data/tours.js";
+import { useScreenTour } from "../../hooks/useScreenTour.js";
 
 // ── Two tiers, because there are two questions ────────────────────────────────
 //
@@ -26,7 +30,7 @@ import { COMPANY } from "../../data/company.js";
 // A screen id the model does not know about simply shows no active tab rather
 // than throwing — other people are renaming routes in parallel.
 
-export default function Shell({ screen, activeEvent, go, children, syncStatus, showToast }) {
+export default function Shell({ screen, tourKey = screen, activeEvent, go, children, syncStatus, showToast }) {
   const { user, loading: authLoading } = useAuth();
   const isHub   = screen === "hub";
   const inEvent = !!activeEvent && screen !== "dashboard";
@@ -52,6 +56,11 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
   };
 
   const showAutoSave = inEvent && !isHub && screen !== "setup";
+
+  // ── The guided tour (124) ── see useScreenTour for when it opens.
+  // `tourKey` is the screen's own unless the route says otherwise: /app with
+  // no events is the start form, a different tour from the event list's.
+  const tour = useScreenTour(tourKey);
 
   // ── The tool rail ──────────────────────────────────────────────────────
   // It never scrolled: scrollLeft was 0 on every screen, so at 1024 the active
@@ -109,13 +118,23 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
   // these lines, and the two had already drifted apart once.
   const openScreen = makeOpenScreen(activeEvent, { go, showToast });
 
+  // Skip link (AX9). On an event screen a keyboard user tabbed through the
+  // topbar, the three area tabs and up to eleven sub-nav buttons on every
+  // screen before reaching the first field. It focuses <main> directly rather
+  // than following the #main hash, so the URL the router owns is not touched.
+  const mainRef = useRef(null);
+  const skipToMain = (e) => {
+    e.preventDefault();
+    mainRef.current?.focus();
+  };
+
   return (
     <div className={styles.root}>
+      <a href="#main" className={styles.skipLink} onClick={skipToMain}>דלגו לתוכן</a>
       <header className={styles.topbar}>
         <button className={styles.logo} onClick={() => go("dashboard")}>
-          <span className={styles.logoMark}>✦</span>
+          <span className={styles.logoMark} aria-hidden="true">✦</span>
           <span className={styles.logoName}>{COMPANY.name}</span>
-          <span className={styles.betaBadge}>בטא</span>
         </button>
 
         {inEvent && (
@@ -165,11 +184,23 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
         )}
 
         <div className={styles.topRight}>
+          {tour.available && (
+            <button
+              className={styles.tourBtn}
+              onClick={tour.start}
+              aria-label="סיור במסך הזה"
+              title="סיור במסך הזה — מה כל חלק עושה"
+            >
+              <Icon name="question" size={14} />
+              <span className={styles.tourLabel}>סיור במסך</span>
+            </button>
+          )}
+
           {/* The wordmark goes to the event list, which is where a logged-in
               host wants to be nine times out of ten — but that left NO way back
               out to the public site short of typing the address, and "/" bounces
               a logged-in user straight back into the app. This is that way out. */}
-          <Link to="/home" className={styles.homeBtn} title="לעמוד הבית של האתר">
+          <Link to="/home" className={[styles.homeBtn, inEvent && tour.available ? styles.homeBtnInEvent : ""].filter(Boolean).join(" ")} title="לעמוד הבית של האתר">
             <Icon name="arrowRight" size={13} />
             <span className={styles.homeLabel}>עמוד הבית</span>
           </Link>
@@ -182,8 +213,15 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
                   <span className={styles.accountLabel}>{user.email.split("@")[0]}</span>
                 </Link>
               ) : (
-                <Link to="/signup" className={styles.signupBtn}>
-                  הצטרפו חינם
+                /* Signing up from inside the logged-out app carries its
+                   drafts into the new account (33d, draftCarry.js). */
+                <Link to="/signup" className={styles.signupBtn} onClick={() => markDraftCarry()}>
+                  {/* Below 360px the long label left the event name beside it
+                      47px of a 125px name (38b); the short one is shown there.
+                      Only one is ever displayed, so the link's name is the
+                      words on screen. */}
+                  <span className={styles.signupLong}>הצטרפו חינם</span>
+                  <span className={styles.signupShort}>הצטרפו</span>
                 </Link>
               )
           )}
@@ -192,7 +230,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
       {/* ── Tier 1: the three areas, on the chrome ── */}
       {inEvent && (
-        <nav className={styles.areaBar} aria-label="אזורי האירוע">
+        <nav className={styles.areaBar} aria-label="אזורי האירוע" data-tour="shell.areas">
           <div className={styles.areaInner}>
             <button
               className={[styles.areaTab, isHub && styles.areaTabActive].filter(Boolean).join(" ")}
@@ -223,7 +261,7 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
 
       {/* ── Tier 2: only the current area's screens ── */}
       {inEvent && area && (
-        <nav className={styles.subnav} ref={subnavRef} data-fade="none" aria-label={area.label}>
+        <nav className={styles.subnav} ref={subnavRef} data-fade="none" aria-label={area.label} data-tour="shell.steps">
           <div className={styles.subnavInner}>
             {area.items.map((n, i) => {
               const isActive = screen === n.id;
@@ -261,7 +299,9 @@ export default function Shell({ screen, activeEvent, go, children, syncStatus, s
         </nav>
       )}
 
-      <main className={styles.main}>{children}</main>
+      <main id="main" tabIndex={-1} ref={mainRef} className={styles.main}>{children}</main>
+
+      {tour.open && <GuidedTour key={tourKey} steps={TOURS[tourKey]} onClose={tour.close} />}
     </div>
   );
 }

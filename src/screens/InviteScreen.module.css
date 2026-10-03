@@ -176,6 +176,8 @@
   font-weight: 400;
   letter-spacing: 0.01em;
   line-height: 1.15;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 /* Accent moment 1 of 2 — a decorative glyph, never text. */

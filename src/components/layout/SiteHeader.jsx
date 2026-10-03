@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { COMPANY } from "../../data/company.js";
 import { liveServices } from "../../data/services.js";
@@ -58,6 +58,20 @@ const SECTIONS = [
 export default function SiteHeader({ user = null, active = null }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+  const burgerRef = useRef(null);
+
+  // Escape closes the phone menu and gives focus back to the button that
+  // opened it (37f) — the event site's own menu already did.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      setMenuOpen(false);
+      burgerRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   const { pathname } = useLocation();
   const onLanding = pathname === "/" || pathname === "/home";
@@ -91,11 +105,24 @@ export default function SiteHeader({ user = null, active = null }) {
     </>
   );
 
+  /* Skip link (AX9, as Shell has). Up to eleven links sit in this bar before
+     the page itself. Every page that renders this header puts its content in
+     <main id="main" tabIndex={-1}> (38a); the link focuses it directly rather
+     than following the hash, because the landing page's own hash effect would
+     try to scroll to a section called "main". `preventScroll`: <main> starts
+     right under this sticky bar, and a plain focus() scrolled it 69px up —
+     the top of the hero went under the bar (measured). */
+  const skipToMain = (e) => {
+    e.preventDefault();
+    document.getElementById("main")?.focus({ preventScroll: true });
+  };
+
   return (
     <header className={styles.nav}>
+      <a href="#main" className={styles.skipLink} onClick={skipToMain}>דלגו לתוכן</a>
       <div className={styles.navInner}>
         <Link to="/" className={styles.navLogo}>
-          <span className={styles.navLogoMark}>✦</span>
+          <span className={styles.navLogoMark} aria-hidden="true">✦</span>
           <span className={styles.navLogoName}>{COMPANY.name}</span>
         </Link>
 
@@ -113,6 +140,7 @@ export default function SiteHeader({ user = null, active = null }) {
         <div className={styles.navActions}>{actions}</div>
 
         <button
+          ref={burgerRef}
           type="button"
           className={styles.navBurger}
           aria-label={menuOpen ? "סגירת תפריט" : "פתיחת תפריט"}

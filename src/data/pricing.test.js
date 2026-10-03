@@ -315,7 +315,10 @@ describe("pricing: the checkout does what the page promises", () => {
     // It returned 200 on every failure: money taken, nothing granted, never
     // retried, nothing anywhere to say so.
     expect(webhook).toMatch(/if \(upsertError\) \{[\s\S]{0,200}status: 500/);
-    expect(webhook).toMatch(/refund update failed", \{ status: 500 \}/);
+    // One helper revokes on a full refund AND on a lost dispute (102b), so the
+    // string names the revoke rather than the refund.
+    expect(webhook).toMatch(/revoke update failed", \{ status: 500 \}/);
+    expect(webhook).toMatch(/revoke lookup failed", \{ status: 500 \}/);
     expect(webhook).toMatch(/handler error", \{ status: 500 \}/);
     expect(webhook).not.toMatch(/return 200 to prevent Stripe retries/i);
   });

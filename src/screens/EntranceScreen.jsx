@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { tableLabel } from "../components/seating/tableLabel.js";
 import { getSideLabel, rotateEventToken } from "../utils/eventHelpers.js";
@@ -6,8 +6,16 @@ import { uid } from "../utils/uid.js";
 import {
   seatsOf, arrivedSeatsOf, arrivedCountOf, isFullyArrived, withArrivedSeats,
   setRowArrived, toggleSeat, setArrivedCount, arrivalTotals, searchGuests,
-  seatChipLabels, tableAvailability, norm, mergeArrivals,
+  seatChipLabels, tableAvailability, norm, mergeArrivals, HOST_ARRIVED_BY,
 } from "../utils/arrival.js";
+import { arrivalBase } from "../utils/syncBase.js";
+
+/* Who marked an arrival (ו2), as this screen knows it. The writers default to
+   HOST_ARRIVED_BY ("מארח"), so the greeter's own copy of a row they had just
+   marked said the HOST did it. The server RPC does not record a writer yet
+   (needs a migration); this is the greeter's screen telling the truth about
+   its own taps until the next refresh. */
+const GREETER_ARRIVED_BY = "דיילת";
 import { fetchHostessData, markArrivalByToken } from "../utils/publicTokens.js";
 import { fetchCloudEventGuests } from "../utils/cloudSync.js";
 import { isScanSupported, parseScanPayload } from "../utils/scanPayload.js";
@@ -20,6 +28,9 @@ import { useShareGate } from "../components/share/useShareGate.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { COMPANY } from "../data/company.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import GuidedTour from "../components/tour/GuidedTour.jsx";
+import { TOURS } from "../data/tours.js";
+import { useScreenTour } from "../hooks/useScreenTour.js";
 
 /**
  * עמדת הכניסה — the one screen the door runs on.
@@ -51,7 +62,10 @@ import { useGuestTitle } from "../hooks/useGuestTitle.js";
 // banked ₪3. The field has since been removed from this screen — the remount is
 // still wrong, on a phone with a queue at the door — so the hoist stays, and
 // everything the row uses from the closure arrives as `ui`.
-function GuestRow({ g, matchLabel, compact, declined, ui }) {
+//
+// memo: with `ui` now stable between keystrokes (סב35e), typing in the search
+// box re-renders the rows that changed, not all of them.
+const GuestRow = memo(function GuestRow({ g, matchLabel, compact, declined, ui }) {
   const { canWrite, expanded, isToken, lastChecked, markCount, markRow, markSeat, setExpanded, sideLabel, tableOf } = ui;
   const seats   = seatsOf(g);
   const here    = arrivedCountOf(g);
@@ -61,6 +75,12 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
   const open    = expanded === g.id;
   const chips   = seatChipLabels(g);
   const arrived = new Set(arrivedSeatsOf(g));
+  // AX4: a screen reader heard "הגיע/ה, button" forty times down the list —
+  // which guest? Every control on the row now carries the guest's name, and
+  // keeps its visible words first (label-in-name).
+  const markText = full
+    ? (seats > 1 ? `כל ${seats} הגיעו` : "הגיע/ה")
+    : (seats > 1 ? `כולם הגיעו · ${seats}` : "הגיע/ה");
 
   return (
     <div className={[
@@ -101,6 +121,8 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
           className={[styles.markBtn, full ? styles.markBtnDone : ""].filter(Boolean).join(" ")}
           onClick={() => markRow(g, !full)}
           disabled={!canWrite}
+          aria-label={`${markText} — ${g.name}`}
+          aria-pressed={full}
         >
           {full
             ? <><Icon name="check" size={18} /> {seats > 1 ? `כל ${seats} הגיעו` : "הגיע/ה"}</>
@@ -112,7 +134,7 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
             className={[styles.partialBtn, open ? styles.partialBtnOpen : ""].filter(Boolean).join(" ")}
             onClick={() => setExpanded(x => (x === g.id ? null : g.id))}
             aria-expanded={open}
-            aria-label="סימון חלקי — מי בדיוק הגיע"
+            aria-label={`סימון חלקי — ${g.name}, ${here} מתוך ${seats} הגיעו`}
           >
             <span className={styles.partialNum}>{here}/{seats}</span>
             <Icon name={open ? "chevronUp" : "chevronDown"} size={14} />
@@ -129,14 +151,14 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
               className={styles.stepBtn}
               onClick={() => markCount(g, here - 1)}
               disabled={!canWrite || here === 0}
-              aria-label="הפחיתו אחד"
+              aria-label={`הפחיתו אחד — ${g.name}`}
             >−</button>
             <span className={styles.stepNum}>{here} מתוך {seats} הגיעו</span>
             <button
               className={styles.stepBtn}
               onClick={() => markCount(g, here + 1)}
               disabled={!canWrite || full}
-              aria-label="הוסיפו אחד"
+              aria-label={`הוסיפו אחד — ${g.name}`}
             >+</button>
           </div>
           <div className={styles.chips}>
@@ -163,7 +185,12 @@ function GuestRow({ g, matchLabel, compact, declined, ui }) {
           מתנות pill and the Excel gift report all still read it. */}
     </div>
   );
-}
+});
+
+// How many by-name results are drawn. At 800 guests one letter matched ~600
+// rows and drew every one of them, on a phone, on every keystroke (סב35e). The
+// rest are counted, and one more letter narrows them.
+const RESULTS_CAP = 50;
 
 /** Same seat set, order-free. */
 const DOUBLE_TAP_MS = 600;
@@ -245,14 +272,24 @@ export default function EntranceScreen({
     try { return new Map(JSON.parse(sessionStorage.getItem(outboxKey) || "[]")); } catch { return new Map(); }
   });
   const failed = useRef(restoredOutbox);   // guestId → { name, seats, base }
+  // The host closed marking on this link (last refresh said writesOpen:false).
+  // The queue is then re-sent when it opens again — NOT "when the connection
+  // returns", which is what the message promised while nothing was retried
+  // (RG4).
+  const writesClosed = useRef(false);
+  // Names whose marks can never be sent on this link — it was replaced while
+  // they waited. Shown on the "link not valid" screen (RG4).
+  const [lostMarks, setLostMarks] = useState("");
   const showFailed = useCallback(() => {
     try {
       if (failed.current.size) sessionStorage.setItem(outboxKey, JSON.stringify([...failed.current]));
       else sessionStorage.removeItem(outboxKey);
     } catch { /* full or blocked: the in-memory queue still works */ }
-    const names = [...failed.current.values()].map(f => f.name).filter(Boolean);
+    const names = [...failed.current.values()].map(f => f.name).filter(Boolean).join(", ") || "סימון הגעה";
     setSaveError(failed.current.size === 0 ? ""
-      : `לא נשמר: ${names.join(", ") || "סימון הגעה"} — ננסה שוב אוטומטית כשהחיבור יחזור`);
+      : writesClosed.current
+        ? `לא נשמר: ${names} — בעל האירוע סגר את הסימון בקישור. נשלח שוב כשייפתח`
+        : `לא נשמר: ${names} — ננסה שוב אוטומטית כשהחיבור יחזור`);
   }, [outboxKey]);
   // A queue restored from before a reload is shown at once.
   useEffect(() => { if (failed.current.size) showFailed(); }, [showFailed]);
@@ -274,7 +311,7 @@ export default function EntranceScreen({
   // Re-send what failed, now that the server answers. A row the server already
   // shows as asked (the other greeter did it) is simply done.
   const retryFailed = useCallback((data) => {
-    if (!data?.writesOpen) return;
+    if (!data?.writesOpen) { showFailed(); return; }
     for (const [guestId, f] of failed.current) {
       if (inFlight.current.has(guestId)) continue;
       const row = data.guests.find(g => g.id === guestId);
@@ -288,7 +325,7 @@ export default function EntranceScreen({
           if (failed.current.get(guestId) === f) failed.current.delete(guestId);
           showFailed();
           const put = prev => prev && ({ ...prev, guests: prev.guests.map(g =>
-            g.id === guestId ? withArrivedSeats(g, f.seats) : g) });
+            g.id === guestId ? withArrivedSeats(g, f.seats, undefined, GREETER_ARRIVED_BY) : g) });
           remoteRef.current = put(remoteRef.current);
           setRemote(put);
         })
@@ -301,7 +338,12 @@ export default function EntranceScreen({
     const startedAt = saveTick.current;
     try {
       const data = await fetchHostessData(token);
-      if (!data) { setRemoteState("notfound"); return null; }
+      if (!data) {
+        if (failed.current.size) setLostMarks([...failed.current.values()].map(f => f.name).filter(Boolean).join(", ") || "סימון הגעה");
+        setRemoteState("notfound");
+        return null;
+      }
+      writesClosed.current = data.writesOpen === false;
       try { sessionStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), data })); } catch { /* full or blocked */ }
       setStaleAt(null);
       const ours = id => inFlight.current.has(id) || (savedAt.current.get(id) ?? 0) > startedAt;
@@ -382,9 +424,25 @@ export default function EntranceScreen({
         if (alive && g) setCloudGuests({ forId: ownerCloudId, guests: g });
       } catch { /* keep the last overlay; the next pull retries */ }
     };
-    pull();
-    const iv = setInterval(pull, 25000);
-    return () => { alive = false; clearInterval(iv); };
+    // Only while the screen is in front of someone (ב7). A host who switched
+    // to WhatsApp, or left the tab open in the background all evening, pulled
+    // the whole event every 25 seconds for nobody. Hidden: stop. Back: pull at
+    // once — the door may have moved on — and resume the cadence.
+    let iv = null;
+    const start = () => {
+      if (iv !== null) return;
+      pull();
+      iv = setInterval(pull, 25000);
+    };
+    const pause = () => { if (iv !== null) { clearInterval(iv); iv = null; } };
+    const onVisibility = () => (document.hidden ? pause() : start());
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      alive = false;
+      pause();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [ownerCloudId]);
   // The latest overlay, for the write path below: a host's tap must start
   // from the row as the screen SHOWS it. Starting from the local row, a tap on
@@ -396,11 +454,15 @@ export default function EntranceScreen({
   }, [cloudGuests, localEvent?.cloudId]);
   const ownerEvent = useMemo(() => {
     if (!localEvent || !cloudGuests || cloudGuests.forId !== localEvent.cloudId) return localEvent;
-    return { ...localEvent, guests: mergeArrivals(localEvent.guests, cloudGuests.guests) };
+    // With the last-synced base (ב1/ב8): a seat the host and the greeter each
+    // marked on one family is merged, not decided by whose clock is ahead.
+    return { ...localEvent, guests: mergeArrivals(localEvent.guests, cloudGuests.guests, arrivalBase(localEvent.syncBase)) };
   }, [localEvent, cloudGuests]);
 
   // ── One shape for both modes ───────────────────────────────────────────────
-  const ev = isToken
+  // Memoised so it is the same object between keystrokes — the row callbacks
+  // below depend on it (סב35e).
+  const ev = useMemo(() => (isToken
     ? (remote && {
         id: remote.cloudId,
         name: remote.name,
@@ -408,7 +470,10 @@ export default function EntranceScreen({
         tables: remote.tables,
         seating: remote.seating,
       })
-    : ownerEvent;
+    : ownerEvent), [isToken, remote, ownerEvent]);
+  const evGuests  = ev?.guests;
+  const evSeating = ev?.seating;
+  const evTables  = ev?.tables;
 
   const canWrite  = isToken ? !!remote?.writesOpen : true;
   const canManage = !isToken;   // walk-ins, by-table browse, the door-link switch
@@ -425,9 +490,21 @@ export default function EntranceScreen({
   // from document.activeElement: the sheet's input autofocuses before any
   // effect could read it, and Safari does not focus a clicked button at all.
   const walkInOpener = useRef(null);
+  const walkInSheet  = useRef(null);
   useEffect(() => {
     if (!walkInOpen) return undefined;
-    const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); setWalkInOpen(false); } };
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); setWalkInOpen(false); return; }
+      // aria-modal promises the rest of the page is out of reach; Tab walked
+      // straight out of the sheet into the list behind it. Wrap at both ends.
+      if (e.key !== "Tab" || !walkInSheet.current) return;
+      const f = [...walkInSheet.current.querySelectorAll("button:not([disabled]), input, [tabindex]:not([tabindex='-1'])")];
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      const inside = walkInSheet.current.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === first || !inside)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (document.activeElement === last || !inside)) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
@@ -487,25 +564,36 @@ export default function EntranceScreen({
           markSaved(guestId);
           showFailed();
         })
-        .catch(() => {
+        .catch((err) => {
           inFlight.current.delete(guestId);
           failed.current.set(guestId, { name: row.name, seats: nextSeats, base: baseSeats });
+          // The server answers "invalid token" both for a link whose marking
+          // the host closed and for one the host replaced — neither comes
+          // back with the signal, so the scan line must not promise that.
+          const linkRefused = /invalid token/i.test(err?.message || "");
           // A scan's "סומנו כהגיעו" under the camera must not outlive the save
           // it announced (סב23).
-          setScanMsg(m => (m.startsWith(`${row.name} — `) ? `${row.name} — לא נשמר, ננסה שוב כשהחיבור יחזור` : m));
+          setScanMsg(m => (m.startsWith(`${row.name} — `)
+            ? (linkRefused
+                ? `${row.name} — לא נשמר: הסימון בקישור נסגר או שהקישור הוחלף`
+                : `${row.name} — לא נשמר, ננסה שוב כשהחיבור יחזור`)
+            : m));
           // Put the row back as it was, unless a later tap has changed it
           // since — offline, the refresh below fails too and nothing else
           // would undo the optimistic mark.
-          setRemote(put(g => (sameSeats(arrivedSeatsOf(g), nextSeats) ? withArrivedSeats(g, baseSeats) : g)));
+          // `null`: who marked the restored seats is not known here — not "מארח".
+          setRemote(put(g => (sameSeats(arrivedSeatsOf(g), nextSeats) ? withArrivedSeats(g, baseSeats, undefined, null) : g)));
           showFailed();
           loadRemote();
         });
     } else {
-      const shown = g => (cloudGuestsRef.current ? mergeArrivals([g], cloudGuestsRef.current)[0] : g);
-      patchEventById(eventId, e => ({
-        ...e,
-        guests: e.guests.map(g => (g.id === guestId ? transform(shown(g)) : g)),
-      }));
+      // The same base the screen merged with, read from the event being
+      // written, so the tap starts from exactly the row on screen.
+      const shown = (g, base) => (cloudGuestsRef.current ? mergeArrivals([g], cloudGuestsRef.current, base)[0] : g);
+      patchEventById(eventId, e => {
+        const base = arrivalBase(e.syncBase);
+        return { ...e, guests: e.guests.map(g => (g.id === guestId ? transform(shown(g, base)) : g)) };
+      });
     }
   }, [canWrite, isToken, token, eventId, patchEventById, loadRemote, showFailed]);
 
@@ -514,27 +602,35 @@ export default function EntranceScreen({
   // then [] — the family, or with "כולם" the whole table, un-checked at the
   // busiest moment of the evening, no confirm and no undo (second review, סב24).
   const lastTap = useRef(new Map());
+  //
+  // Only an APPLIED tap starts the window (RG5). Recording the ignored ones
+  // too let a run of taps keep the window open forever: tap, 400ms, tap
+  // (ignored), 500ms, tap — 900ms after the one that counted, and ignored
+  // again, so a deliberate second action was swallowed.
   const isDoubleTap = useCallback((key) => {
     const now = Date.now(), prev = lastTap.current.get(key);
+    if (prev !== undefined && now - prev < DOUBLE_TAP_MS) return true;
     lastTap.current.set(key, now);
-    return prev !== undefined && now - prev < DOUBLE_TAP_MS;
+    return false;
   }, []);
+
+  const writer = isToken ? GREETER_ARRIVED_BY : HOST_ARRIVED_BY;
 
   const markRow = useCallback((g, on) => {
     if (isDoubleTap("row:" + g.id)) return;
-    applyArrival(g.id, row => setRowArrived(row, on));
+    applyArrival(g.id, row => setRowArrived(row, on, writer));
     if (on) setLastChecked(g.id);
-  }, [applyArrival, isDoubleTap]);
+  }, [applyArrival, isDoubleTap, writer]);
 
   const markSeat = useCallback((g, seat) => {
-    applyArrival(g.id, row => toggleSeat(row, seat));
+    applyArrival(g.id, row => toggleSeat(row, seat, writer));
     setLastChecked(g.id);
-  }, [applyArrival]);
+  }, [applyArrival, writer]);
 
   const markCount = useCallback((g, n) => {
-    applyArrival(g.id, row => setArrivedCount(row, n));
+    applyArrival(g.id, row => setArrivedCount(row, n, writer));
     if (n > 0) setLastChecked(g.id);
-  }, [applyArrival]);
+  }, [applyArrival, writer]);
 
   const markTable = useCallback((tableId, on) => {
     if (!canWrite) return;
@@ -546,18 +642,18 @@ export default function EntranceScreen({
       // to someone who said no and never came.
       const rows = (remote?.guests || []).filter(g =>
         remote.seating?.[g.id] === tableId && g.rsvp !== "declined");
-      rows.forEach(g => applyArrival(g.id, row => setRowArrived(row, on)));
+      rows.forEach(g => applyArrival(g.id, row => setRowArrived(row, on, writer)));
       return;
     }
     patchEventById(eventId, e => ({
       ...e,
       guests: e.guests.map(g =>
         e.seating?.[g.id] === tableId && g.rsvp !== "declined"
-          ? setRowArrived(g, on)
+          ? setRowArrived(g, on, writer)
           : g,
       ),
     }));
-  }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId, isDoubleTap]);
+  }, [canWrite, isToken, remote, applyArrival, patchEventById, eventId, isDoubleTap, writer]);
 
   const handleScan = useCallback((raw) => {
     // The host can close the door link while the camera is open. Before, the
@@ -568,6 +664,21 @@ export default function EntranceScreen({
     const guest = ev?.guests.find(g => g.id === id);
     if (!guest) { setScanMsg("הקוד לא שייך לאירוע הזה"); return; }
     if (isFullyArrived(guest)) { setScanMsg(seatsOf(guest) === 1 ? `${guest.name} — ההגעה כבר סומנה` : `${guest.name} — כל ${seatsOf(guest)} כבר סומנו`); return; }
+    // One code is one invitation, and an invitation for four is not four
+    // people at the door: "the aunt is here, her four are not" (ד2). A scan
+    // of a family row used to mark every seat. It now opens that family's
+    // panel — the greeter ticks who is actually here; one tap on "כולם הגיעו"
+    // is still there when they all are. A single seat is unambiguous and is
+    // still marked straight from the camera.
+    if (seatsOf(guest) > 1) {
+      setScanning(false);
+      setViewMode("name");
+      setSearch(guest.name);
+      setExpanded(guest.id);
+      const ask = `${guest.name} — ${seatsOf(guest)} מקומות: סמנו מי מהם הגיע`;
+      setScanMsg(guest.rsvp === "declined" ? `${ask} · שימו לב: סימנו שלא יגיעו — ייתכן שאין להם מקום` : ask);
+      return;
+    }
     markRow(guest, true);
     const done = seatsOf(guest) === 1 ? `${guest.name} — ההגעה סומנה` : `${guest.name} — ${seatsOf(guest)} סומנו כהגיעו`;
     // Someone who said they would not come, and came: the greeter must know
@@ -593,10 +704,51 @@ export default function EntranceScreen({
 
   const freeTables = availability.filter(a => a.free > 0);
 
+  // ── By-table, computed once per change instead of per table per render ────
+  // (סב35e) The by-table search ran searchGuests on every guest SEPARATELY for
+  // every table, and each table block filtered the whole guest list for its
+  // rows: tables × guests on every keystroke — 80 × 800 at a big wedding.
+  const rowsByTable = useMemo(() => {
+    const m = new Map();
+    for (const g of evGuests || []) {
+      const tid = evSeating?.[g.id];
+      if (!tid || g.rsvp === "declined") continue;
+      if (!m.has(tid)) m.set(tid, []);
+      m.get(tid).push(g);
+    }
+    return m;
+  }, [evGuests, evSeating]);
+  const tablesMatchingGuest = useMemo(() => {
+    if (!norm(tableSearch)) return null;
+    const ids = new Set();
+    for (const { guest } of searchGuests(evGuests || [], tableSearch)) {
+      const tid = evSeating?.[guest.id];
+      if (tid) ids.add(tid);
+    }
+    return ids;
+  }, [evGuests, evSeating, tableSearch]);
+
+  // The row callbacks, stable across keystrokes so memo(GuestRow) can skip
+  // rows that did not change. Above the bail-outs: hooks run on every render.
+  const sideLabel = useCallback(s => (isToken || !ev ? "" : getSideLabel(ev, s)), [isToken, ev]);
+  const tableOf = useCallback(g => {
+    const tid = evSeating?.[g.id];
+    return tid ? (evTables || []).find(t => t.id === tid) : null;
+  }, [evSeating, evTables]);
+  const rowUi = useMemo(() => ({ canWrite, expanded, isToken, lastChecked, markCount,
+                                 markRow, markSeat, setExpanded, sideLabel, tableOf }),
+    [canWrite, expanded, isToken, lastChecked, markCount, markRow, markSeat, sideLabel, tableOf]);
+
+  // The guided tour (124) — the host's own door only, never the greeter's
+  // token link (staff did not ask for a walkthrough of a page they were sent
+  // to use), and only once the event is here: the tour decides its steps when
+  // it opens, and before `ev` the page is an empty aria-busy div.
+  const tour = useScreenTour(!isToken && ev ? "entrance" : null);
+
   // ── Bail-outs — every hook above this line, on every render ────────────────
   if (isToken && remoteState !== "ready") {
     return (
-      <div className={styles.root}>
+      <main className={styles.root}>
         <div className={styles.stateWrap}>
           {remoteState === "loading"
             ? <><div className={styles.spinner} aria-hidden="true" /><span className={styles.stateText}>טוען...</span></>
@@ -607,19 +759,21 @@ export default function EntranceScreen({
                     ? "הקישור אינו תקין או שהאירוע הוסר"
                     : "אין חיבור כרגע — הרשימה תופיע ברגע שהחיבור יחזור"}
                 </h1>
+                {/* The host replaced the link mid-shift: the marks still
+                    waiting to be sent can never be sent on this one. They used
+                    to vanish with the list, silently (RG4). */}
+                {remoteState === "notfound" && lostMarks && (
+                  <p className={styles.stateText} role="alert">
+                    הסימונים של {lostMarks} לא נשמרו. בקשו מבעל האירוע את הקישור החדש וסמנו אותם שוב.
+                  </p>
+                )}
                 {remoteState === "notfound" && <Link to="/" className={styles.homeLink}>לדף הבית</Link>}
               </>}
         </div>
-      </div>
+      </main>
     );
   }
   if (!ev) return loading ? <div aria-busy="true" /> : null;
-
-  const sideLabel = s => (isToken ? "" : getSideLabel(ev, s));
-  const tableOf   = g => {
-    const tid = ev.seating?.[g.id];
-    return tid ? ev.tables.find(t => t.id === tid) : null;
-  };
 
   const addWalkIn = () => {
     const name = walkInName.trim();
@@ -667,24 +821,15 @@ export default function EntranceScreen({
       // Searching a person in the by-table view must surface their table —
       // that view had no search at all, so a hostess browsing tables had to
       // switch modes and lose her place.
-      return (ev.guests || []).some(g =>
-        ev.seating?.[g.id] === table.id &&
-        searchGuests([g], tableSearch).length > 0,
-      );
+      return !!tablesMatchingGuest?.has(table.id);
     });
 
   const unassigned = (ev.guests || []).filter(g => g.rsvp !== "declined" && !ev.seating?.[g.id]);
 
-  // A plain object, not a useMemo: two of these are defined below the early
-  // return above, so a hook here would be conditional. It costs a re-render of
-  // the visible rows per render — exactly what happened before the hoist — and
-  // the bug that mattered was the REMOUNT, which the hoist alone fixes.
-  const rowUi = { canWrite, expanded, isToken, lastChecked, markCount,
-                  markRow, markSeat, setExpanded, sideLabel, tableOf };
-
   return (
-    <div className={styles.root}>
+    <main className={styles.root}>
       {dialog}
+      {tour.open && <GuidedTour key="entrance" steps={TOURS.entrance} onClose={tour.close} />}
       {/* ── Bar ── */}
       <header className={styles.bar}>
         {!isToken && (
@@ -697,7 +842,7 @@ export default function EntranceScreen({
           <span className={styles.barRole}>עמדת כניסה</span>
         </div>
         {canManage && (
-          <button className={styles.walkInBtn} onClick={(e) => { walkInOpener.current = e.currentTarget; setWalkInName(""); setWalkInTable(""); setWalkInOpen(true); }}>
+          <button data-tour="entrance.walkin" className={styles.walkInBtn} onClick={(e) => { walkInOpener.current = e.currentTarget; setWalkInName(""); setWalkInTable(""); setWalkInOpen(true); }}>
             <Icon name="plus" size={14} /> אורח שהגיע
           </button>
         )}
@@ -705,13 +850,21 @@ export default function EntranceScreen({
 
       {/* ── The number. Seats, not rows. ── */}
       <div className={styles.counter}>
-        <div className={styles.counterNums}>
+        <div className={styles.counterNums} data-tour="entrance.counter">
           <span className={styles.counterBig}>{totals.arrivedSeats}</span>
           <span className={styles.counterOf}>מתוך {totals.totalSeats} אורחים</span>
           {totals.partialRecords > 0 && (
             <span className={styles.counterPartial}>{totals.partialRecords === 1 ? "משפחה אחת הגיעה חלקית" : `${totals.partialRecords} משפחות הגיעו חלקית`}</span>
           )}
         </div>
+        {/* The tour's "?" (124) sits here, at the far end of the counter row —
+            in the bar it cost the event's name half its width on a phone
+            (93 → 41px at 320, measured 3.10). */}
+        {tour.available && (
+          <button className={styles.tourBtn} onClick={tour.start} aria-label="סיור במסך הזה" title="סיור במסך הזה — מה כל חלק עושה">
+            <Icon name="question" size={15} />
+          </button>
+        )}
       </div>
       <div className={styles.progress}>
         <div className={styles.progressFill} style={{ width: totals.pct + "%" }} />
@@ -730,7 +883,7 @@ export default function EntranceScreen({
       {saveError && <p className={styles.saveError} role="alert">{saveError}</p>}
 
       {/* ── Tabs ── */}
-      <div className={styles.tabs} role="tablist">
+      <div data-tour="entrance.tabs" className={styles.tabs} role="tablist">
         <button
           className={[styles.tab, viewMode === "name" ? styles.tabOn : ""].filter(Boolean).join(" ")}
           onClick={() => setViewMode("name")} role="tab" aria-selected={viewMode === "name"}
@@ -744,7 +897,7 @@ export default function EntranceScreen({
       {/* ═══ BY NAME ═══ */}
       {viewMode === "name" && (
         <>
-          <div className={styles.searchWrap}>
+          <div data-tour="entrance.search" className={styles.searchWrap}>
             <span className={styles.searchIcon} aria-hidden="true"><Icon name="search" size={18} /></span>
             <input
               ref={searchRef}
@@ -765,7 +918,7 @@ export default function EntranceScreen({
           {scanning && canWrite && <QrScanner onScan={handleScan} onClose={() => { setScanning(false); setScanMsg(""); }} />}
           {scanMsg && <p className={styles.scanMsg} role="status">{scanMsg}</p>}
           {!scanning && isScanSupported() && canWrite && (
-            <button className={styles.scanBtn} onClick={() => { setScanning(true); setScanMsg(""); }}>
+            <button data-tour="entrance.scan" className={styles.scanBtn} onClick={() => { setScanning(true); setScanMsg(""); }}>
               <Icon name="camera" size={15} /> סרקו קוד מההזמנה
             </button>
           )}
@@ -802,7 +955,7 @@ export default function EntranceScreen({
 
           {results.length > 0 && (
             <div className={styles.list}>
-              {results.map(({ guest, match, declined }) => (
+              {results.slice(0, RESULTS_CAP).map(({ guest, match, declined }) => (
                 <GuestRow
                   ui={rowUi}
                   key={guest.id}
@@ -811,6 +964,11 @@ export default function EntranceScreen({
                   matchLabel={match.via === "companion" ? match.label : null}
                 />
               ))}
+              {results.length > RESULTS_CAP && (
+                <p className={styles.moreResults} role="status">
+                  ועוד {results.length - RESULTS_CAP} — הקלידו עוד אותיות כדי לצמצם
+                </p>
+              )}
             </div>
           )}
 
@@ -874,7 +1032,7 @@ export default function EntranceScreen({
               </div>
             )}
             {tableRows.map(({ table, capacity, taken, free }) => {
-              const rows  = (ev.guests || []).filter(g => ev.seating?.[g.id] === table.id && g.rsvp !== "declined");
+              const rows  = rowsByTable.get(table.id) || [];
               const here  = rows.reduce((s, g) => s + arrivedCountOf(g), 0);
               const seats = rows.reduce((s, g) => s + seatsOf(g), 0);
               const allIn = seats > 0 && here === seats;
@@ -889,6 +1047,7 @@ export default function EntranceScreen({
                       <button
                         className={[styles.tableAll, allIn ? styles.tableAllUndo : ""].filter(Boolean).join(" ")}
                         onClick={() => markTable(table.id, !allIn)}
+                        aria-label={allIn ? `בטלו את ההגעה של ${tableLabel(table)}` : `כולם הגיעו — ${tableLabel(table)}`}
                       >
                         {allIn ? "בטלו" : <>כולם <Icon name="check" size={13} /></>}
                       </button>
@@ -922,7 +1081,7 @@ export default function EntranceScreen({
 
       {/* ── The door link, and its switch ── */}
       {canManage && (
-        <div className={styles.linkCard}>
+        <div data-tour="entrance.link" className={styles.linkCard}>
           <button className={styles.linkToggle} onClick={() => setLinkOpen(o => !o)} aria-expanded={linkOpen}>
             <SectionMark name="hostess" tone="ondark" size={22} />
             <span className={styles.linkTitle}>קישור לדיילת</span>
@@ -987,12 +1146,13 @@ export default function EntranceScreen({
       {/* ── Walk-in ── */}
       {walkInOpen && canManage && (
         <div className={styles.sheetOverlay} onClick={e => { if (e.target === e.currentTarget) setWalkInOpen(false); }}>
-          <div className={styles.sheet} role="dialog" aria-modal="true" aria-label="אורח שהגיע ביום האירוע">
+          <div ref={walkInSheet} className={styles.sheet} role="dialog" aria-modal="true" aria-label="אורח שהגיע ביום האירוע">
             <div className={styles.sheetTitle}>אורח שהגיע ולא ברשימה</div>
             <input
               className={styles.sheetInput}
               value={walkInName}
               onChange={e => setWalkInName(e.target.value)}
+              aria-label="שם האורח"
               placeholder="שם מלא"
               onKeyDown={e => { if (e.key === "Enter") addWalkIn(); }}
               autoFocus
@@ -1013,6 +1173,7 @@ export default function EntranceScreen({
                     key={s}
                     className={[styles.sideBtn, walkInSide === s ? styles.sideBtnOn : ""].filter(Boolean).join(" ")}
                     onClick={() => setWalkInSide(s)}
+                    aria-pressed={walkInSide === s}
                   >{sideLabel(s)}</button>
                 ))}
               </div>
@@ -1069,6 +1230,6 @@ export default function EntranceScreen({
         </footer>
       )}
       {gate}
-    </div>
+    </main>
   );
 }

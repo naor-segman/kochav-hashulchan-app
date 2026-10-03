@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { loadState, persist, userStorageKey } from "../utils/storage.js";
-import { normalizeEvent, normalizeDeletedRows, normalizeRotations, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS } from "../utils/eventHelpers.js";
+import { normalizeEvent, normalizeDeletedRows, normalizeRotations, updateEventTimestamp, TOKEN_KEYS, TOMBSTONED_COLLECTIONS, RSVP_APPLIED_MAX } from "../utils/eventHelpers.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { mergeArrivals } from "../utils/arrival.js";
-import { syncBaseOf, threeWayScalars, threeWayGuests, canonical } from "../utils/syncBase.js";
+import { syncBaseOf, threeWayScalars, threeWayGuests, threeWaySeating, canonical, arrivalBase } from "../utils/syncBase.js";
 import { addPendingDelete, markDeleteLanded, readPendingDeletes, withoutPendingDeletes } from "../utils/pendingEventDeletes.js";
+import { takeDraftCarry, readDeclinedDrafts, addDeclinedDrafts } from "../utils/draftCarry.js";
 import {
   SYNC_STATUS,
   fetchCloudEvents,
@@ -189,13 +190,24 @@ export function freeDeclinedSeats(before, after) {
   if (!seating || !Array.isArray(after.guests)) return after;
   const was = new Map((before?.guests || []).map(g => [g?.id, g?.rsvp]));
   let next = null;
+  const unlocked = new Set();
   for (const g of after.guests) {
     if (g?.rsvp !== "declined" || was.get(g.id) === "declined" || !was.has(g.id)) continue;
     if (!seating[g.id]) continue;
     next ??= { ...seating };
     delete next[g.id];
+    unlocked.add(g.id);
   }
-  return next ? { ...after, seating: next } : after;
+  if (!next) return after;
+  // The lock goes with the seat (RG7). A lock pins a guest to the table the
+  // host chose; left behind after the seat was freed, it outlived the seat —
+  // a guest who later said yes again came back "locked" wherever they were
+  // next put: "recompute" kept them there and the assistant never suggested
+  // moving them, a pin the host never placed on that table.
+  const locks = Array.isArray(after.lockedGuests) ? after.lockedGuests : null;
+  const lockedGuests = locks && locks.some(id => unlocked.has(id))
+    ? locks.filter(id => !unlocked.has(id)) : locks;
+  return { ...after, seating: next, ...(lockedGuests !== locks ? { lockedGuests } : {}) };
 }
 
 function mergeTombstoneMaps(localTombs, cloudTombs) {
@@ -362,6 +374,30 @@ function unionStrings(cloudList, localList) {
   return out;
 }
 
+/* Applied RSVP ids, both sides, in the order they were applied, capped (ב5).
+ *
+ * A plain union (cloud first, then this device's extras) went wrong two ways.
+ * The cloud-wins branch never normalised it, so a merge of two full lists was
+ * stored 4,000 long; and the cap keeps the LAST ids, so the next normalise kept
+ * this device's old ids and dropped every id the cloud held — answers already
+ * applied elsewhere, applied again over the host's changes.
+ *
+ * Each list is chronological. An id only this device holds is either newer
+ * than the cloud's list (applied here, not pushed yet) or older than it (the
+ * cloud's copy already trimmed it). Its position says which: before the first
+ * id both share → older, after it → newer. With nothing shared, the cloud's
+ * list goes last — the side every device agrees on is what the cap keeps. */
+function mergeApplied(cloudList, localList) {
+  const c = (Array.isArray(cloudList) ? cloudList : []).filter(x => typeof x === "string" && x);
+  const l = (Array.isArray(localList) ? localList : []).filter(x => typeof x === "string" && x);
+  const inCloud = new Set(c);
+  let first = l.findIndex(id => inCloud.has(id));
+  if (first < 0) first = l.length;
+  const older = l.slice(0, first).filter(id => !inCloud.has(id));
+  const newer = l.slice(first).filter(id => !inCloud.has(id));
+  return [...new Set([...older, ...c, ...newer])].slice(-RSVP_APPLIED_MAX);
+}
+
 function keepFilledCosts(winner, loser) {
   const has = v => Array.isArray(v?.categories) && v.categories.length > 0;
   return (!has(winner) && has(loser)) ? loser : winner;
@@ -394,14 +430,30 @@ function keepFilledCosts(winner, loser) {
  * retry used to set `version: v2` outright, which is exactly that (third
  * review 30.9, סב46). The server now also refuses to let the version go down
  * (migration 20260930000300), so `v` can be above what was sent. */
-export function afterPush(e, sentVersion, v, syncBase = e.syncBase ?? null, sentUpdatedAt, sentEdits) {
+/** Two syncBase fingerprints describe the same synced content. */
+function sameSynced(a, b) {
+  if (!a || !b) return false;
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (canonical(a[k]) !== canonical(b[k])) return false;
+  }
+  return true;
+}
+
+export function afterPush(e, sentVersion, v, sentBase, sentUpdatedAt, sentEdits) {
+  const syncBase = sentBase === undefined ? (e.syncBase ?? null) : sentBase;
   // The version counter alone is not proof: a merge while the push was on the
   // wire can reset it, and the next edit then lands on the SAME number as the
   // one sent — which read as "nothing changed since", marked the edit synced,
   // and nothing sent it (fourth review 30.9). The edit's timestamp settles it.
   const unchanged = e.version === sentVersion
     && (sentUpdatedAt === undefined || e.updatedAt === sentUpdatedAt)
-    && (sentEdits === undefined || (e.localEdits ?? 0) === sentEdits);
+    && (sentEdits === undefined || (e.localEdits ?? 0) === sentEdits)
+    // And the CONTENT (71a, residual): counters and stamps can all be put
+    // back by a merge that ran while the push was on the wire, and the device
+    // then showed "synced" while holding a value the cloud did not (fuzz seed
+    // 196: costs). `syncBase` is the fingerprint of exactly what was sent;
+    // anything else held now is still owed.
+    && (!sentBase || sameSynced(syncBaseOf(e), sentBase));
   if (unchanged) return { ...e, syncedVersion: v, version: v, syncBase };
   return { ...e, syncedVersion: v, version: Math.max(e.version ?? 0, v + 1), syncBase };
 }
@@ -521,10 +573,14 @@ export function mergeCloudWithLocal(
       // only rows it has never seen take the other side's arrangement.
       const localGuestIds = new Set((localMatch.guests || []).map(g => g.id));
       const localTableIds = new Set((localMatch.tables || []).map(t => t.id));
-      const mergedTables  = unionById(localMatch.tables, ce.tables, tombs.tables);
+      // Table rows per field too (ב2): a capacity changed on the other device
+      // is no longer reverted by this one winning on an unrelated edit.
+      const mergedTables  = threeWayGuests(unionById(localMatch.tables, ce.tables, tombs.tables),
+                                           localMatch.tables, ce.tables, localMatch.syncBase?.tables, true).rows;
       // Per guest FIELD against the last-synced base (fifth review): the rows
       // this side holds no longer win whole just because the event is newer.
-      const mergedGuests  = threeWayGuests(mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests),
+      const mergedGuests  = threeWayGuests(mergeArrivals(unionById(localMatch.guests, ce.guests, tombs.guests), ce.guests,
+                                                         arrivalBase(localMatch.syncBase)),
                                            localMatch.guests, ce.guests, localMatch.syncBase?.guests, true).rows;
       const tableIdsAll   = new Set(mergedTables.map(t => t.id));
       const guestIdsAll   = new Set(mergedGuests.map(g => g.id));
@@ -536,8 +592,11 @@ export function mergeCloudWithLocal(
         .filter(([tid]) => !localTableIds.has(tid) && !(tid in localPositions) && tableIdsAll.has(tid)));
       const localWon = {
         ...localMatch,
-        seating: mergeSeating(localMatch.seating, ce.seating,
-                              (id) => localGuestIds.has(id), (id) => tableIdsAll.has(id)),
+        // Per guest against the base (ב2): a seat only the other device moved
+        // is its seat, whichever side won on updatedAt.
+        seating: threeWaySeating(mergeSeating(localMatch.seating, ce.seating,
+                                              (id) => localGuestIds.has(id), (id) => tableIdsAll.has(id)),
+                                 localMatch.seating, ce.seating, localMatch.syncBase).seating,
         lockedGuests: [...(localMatch.lockedGuests || []).filter(id => guestIdsAll.has(id)),
                        ...newFromCloud(ce.lockedGuests, localGuestIds, guestIdsAll)],
         lockedTables: [...(localMatch.lockedTables || []).filter(id => tableIdsAll.has(id)),
@@ -590,7 +649,7 @@ export function mergeCloudWithLocal(
         vendors:     unionById(localMatch.vendors,     ce.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(localMatch.messagesSent, ce.messagesSent),
         // Applied is a one-way fact: an id applied on EITHER device stays applied.
-        rsvpApplied:      unionStrings(ce.rsvpApplied, localMatch.rsvpApplied),
+        rsvpApplied:      mergeApplied(ce.rsvpApplied, localMatch.rsvpApplied),
         messageTemplates: unionByKey(localMatch.messageTemplates, ce.messageTemplates),
         costs:            keepFilledCosts(localMatch.costs, ce.costs),
         cloudId: ce.cloudId ?? localMatch.cloudId ?? null,
@@ -649,10 +708,14 @@ export function mergeCloudWithLocal(
       // carried the NEWER arrivedAt and mergeArrivals would have kept them.
       // Arguments are (local, cloud) in the other branch; here `result` is the
       // cloud side, so they swap.
-      const gw = threeWayGuests(mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests),
+      // With a base, the seat sets merge three-way and the swap does not matter.
+      const gw = threeWayGuests(mergeArrivals(unionById(result.guests, localMatch.guests, tombs.guests), localMatch.guests,
+                                              arrivalBase(localMatch.syncBase)),
                                 localMatch.guests, result.guests, localMatch.syncBase?.guests, false);
       const guests = gw.rows;
-      const tables = unionById(result.tables, localMatch.tables, tombs.tables);
+      const tw2 = threeWayGuests(unionById(result.tables, localMatch.tables, tombs.tables),
+                                 localMatch.tables, result.tables, localMatch.syncBase?.tables, false);
+      const tables = tw2.rows;
 
       // Who the CLOUD knows, computed before the union, so "the cloud has no
       // opinion about this guest" is answerable. After the union everything
@@ -661,6 +724,11 @@ export function mergeCloudWithLocal(
       const cloudTableIds = new Set((result.tables || []).map(t => t.id));
       const tableIds      = new Set(tables.map(t => t.id));
       const guestIds      = new Set(guests.map(g => g.id));
+
+      // Per guest against the base (ב2), as in the other branch.
+      const seatW = threeWaySeating(mergeSeating(result.seating, localMatch.seating,
+                                                 (id) => cloudGuestIds.has(id), (id) => tableIds.has(id)),
+                                    localMatch.seating, result.seating, localMatch.syncBase);
 
       result = {
         ...result,
@@ -671,15 +739,14 @@ export function mergeCloudWithLocal(
         tasks:       unionById(result.tasks,       localMatch.tasks,       tombs.tasks),
         vendors:     unionById(result.vendors,     localMatch.vendors,     tombs.vendors),
         messagesSent:     mergeSentMaps(result.messagesSent, localMatch.messagesSent),
-        rsvpApplied:      unionStrings(result.rsvpApplied, localMatch.rsvpApplied),
+        rsvpApplied:      mergeApplied(result.rsvpApplied, localMatch.rsvpApplied),
         messageTemplates: unionByKey(result.messageTemplates, localMatch.messageTemplates),
         costs:            keepFilledCosts(result.costs, localMatch.costs),
         // Everything below is the ARRANGEMENT around those rows. Keeping a
         // rescued table while dropping its seat, its lock and its position on
         // the floor plan leaves the host a table nobody sits at and no way to
         // tell that from having forgotten to seat it. See mergeSeating.
-        seating: mergeSeating(result.seating, localMatch.seating,
-                              (id) => cloudGuestIds.has(id), (id) => tableIds.has(id)),
+        seating: seatW.seating,
         // Locks: the cloud's, plus this tab's for rows the cloud has never seen.
         // A plain union brought back a lock the OTHER device had removed — the
         // host unlocks a table on the phone, and the laptop's stale copy locks
@@ -700,7 +767,7 @@ export function mergeCloudWithLocal(
       // something the cloud overruled (סב55). Kept, and marked for pushing.
       const tw = threeWayScalars(result, localMatch, ce, localMatch.syncBase);
       result = tw.event;
-      localKept = tw.localKept || gw.localKept;
+      localKept = tw.localKept || gw.localKept || tw2.localKept || seatW.localKept;
     }
 
     // Positions for tables the cloud has never seen. The rescue below only fires
@@ -792,6 +859,48 @@ export function mergeCloudWithLocal(
   return merged;
 }
 
+/**
+ * Another tab's saved list, merged into this one (33a). Per event: the copy
+ * with the later `updatedAt` wins whole — with its own syncedVersion and
+ * syncBase, which describe that copy — and an event only one side holds is
+ * kept. Returns `mine` itself when nothing changes. A logged-out tab never
+ * takes in a cloud-backed event (the guest view shows drafts only).
+ */
+export function mergeOtherTab(mine, theirs, loggedIn = true) {
+  const byId = new Map(mine.map((e, i) => [e.id, i]));
+  let out = null;
+  for (const raw of theirs) {
+    const t = normalizeEvent(raw);
+    if (!t || (!loggedIn && t.cloudId)) continue;
+    const i = byId.get(t.id);
+    if (i === undefined) { (out ??= [...mine]).push(t); continue; }
+    const m = (out ?? mine)[i];
+    if ((t.updatedAt ?? 0) > (m.updatedAt ?? 0)
+        || ((t.updatedAt ?? 0) === (m.updatedAt ?? 0) && !m.cloudId && t.cloudId)) {
+      // A floor-plan image this tab holds and the other could not save
+      // (33b) is not thrown away with the older copy.
+      const keep = !t.floorPlan?.image && m.floorPlan?.image && t.floorPlan
+        ? { ...t, floorPlan: { ...t.floorPlan, image: m.floorPlan.image } } : t;
+      (out ??= [...mine])[i] = keep;
+    }
+  }
+  return out ?? mine;
+}
+
+/**
+ * Take these drafts out of the logged-out bucket (33d). Once a draft belongs to
+ * an account it must not stay where the next person on this browser could be
+ * offered it too. Returns the drafts removed, freshly read — a logged-out tab
+ * may have edited one since sign-in.
+ */
+function takeGuestDrafts(ids) {
+  const want = new Set(ids);
+  const guest = (loadState(userStorageKey(null)).events || []).map(normalizeEvent).filter(Boolean);
+  const taken = guest.filter(e => !e.cloudId && want.has(e.id));
+  if (taken.length) persist({ events: guest.filter(e => !taken.includes(e)) }, userStorageKey(null));
+  return taken;
+}
+
 // ── useEvents ─────────────────────────────────────────────────────────────────
 //
 // Single source of truth for all event data at runtime.
@@ -823,7 +932,12 @@ export function useEvents(user) {
   // a warning. Both writes sit beside `setEvents` calls that were already
   // there, so the `react-hooks/set-state-in-effect` count is unchanged at 20 —
   // measured, not assumed.
-  const [hydratedFor, setHydratedFor] = useState(undefined);
+  //
+  // `drafts` rides on the same state (33d): the logged-out drafts this account
+  // is being OFFERED, which the banner shows. One setState where there was one,
+  // so the set-state-in-effect count is unchanged.
+  const [hydration, setHydration] = useState({ for: undefined, drafts: [] });
+  const hydratedFor = hydration.for;
   // Bumped when a load from the cloud has merged — the cue to send what this
   // device holds and the cloud does not (see pushUnpushed).
   const [loadedTick, setLoadedTick] = useState(0);
@@ -844,9 +958,16 @@ export function useEvents(user) {
   // Event ids removed before their initial cloud-create resolved, so the create
   // handler can delete the orphaned cloud row instead of letting it resurrect.
   const pendingDeletes = useRef(new Set());
+  // Logged-out drafts carried into this account at sign-in (33d) — owed a
+  // cloud create on the first push after the load.
+  const carriedRef     = useRef(new Set());
   // Event ids whose cloud-create is in flight, so a second debounced edit
   // cannot fire a duplicate create for the same event.
   const creatingRef    = useRef(new Set());
+  // Event ids with a cloud update on the wire, and those owed another one when
+  // it lands (71b, see pushUpdate).
+  const inFlightRef    = useRef(new Set());
+  const owedRef        = useRef(new Set());
 
   useEffect(() => () => { Object.values(syncTimers.current).forEach(clearTimeout); }, []);
 
@@ -859,6 +980,27 @@ export function useEvents(user) {
   // logged-in user's events are never written to the shared guest bucket (where
   // the next visitor could read them) and never leak into another account.
   useEffect(() => { persist({ events }, userStorageKey(ownerRef.current)); }, [events]);
+
+  // ── ANOTHER TAB (33a) ────────────────────────────────────────────────────────
+  // Every tab persists its WHOLE list, so two open tabs overwrote each other:
+  // an event created in tab A vanished from storage the moment tab B saved
+  // anything, and reloading lost it. The browser tells each tab when another
+  // one writes the same key; merge that list in, per event — the copy edited
+  // last wins, an event only one side has is kept. (Not a deletion record:
+  // an event deleted in the other tab can come back here, the recoverable
+  // side.) Nothing changed → the same state, so the tabs do not ping-pong.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.storageArea && e.storageArea !== window.localStorage) return;
+      if (e.key !== userStorageKey(ownerRef.current) || e.newValue == null) return;
+      let theirs;
+      try { theirs = JSON.parse(e.newValue)?.events; } catch { return; }
+      if (!Array.isArray(theirs)) return;
+      setEvents(prev => mergeOtherTab(prev, theirs, ownerRef.current !== null));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   // ── CLOUD HYDRATION + PER-USER STORAGE ───────────────────────────────────────
   // Runs once per logged-in user per session.
@@ -882,7 +1024,7 @@ export function useEvents(user) {
         ownerRef.current = null;
         setEvents(load(userStorageKey(null)).filter(e => !e.cloudId));
         setSyncStatus(SYNC_STATUS.LOCAL_ONLY);
-        setHydratedFor(null);
+        setHydration({ for: null, drafts: [] });
       }
       return;
     }
@@ -890,26 +1032,32 @@ export function useEvents(user) {
     if (loadedForRef.current === userId) return;
     loadedForRef.current = userId;
     ownerRef.current = userId;
+    carriedRef.current.clear();
 
-    // Start from THIS user's own bucket, plus a one-time migration of any
-    // unsynced guest-mode events (cloudId === null) created before logging in
-    // — honouring "continue without account, it'll sync later" without ever
-    // pulling in a different user's already-synced events.
+    // Start from THIS user's own bucket. Drafts made logged out on this browser
+    // (cloudId === null) are NOT pulled in by signing in (33d, owner 2.10): on
+    // a shared computer that put a stranger's guest list into whichever account
+    // signed in next. They stay in the logged-out bucket and are OFFERED — the
+    // banner names them and the host accepts or declines. The one exception is
+    // a signup/login started from inside the draft (see draftCarry.js), which
+    // is that acceptance given a screen earlier. Another account's SYNCED
+    // events are never taken either way.
     const userLocal   = load(userStorageKey(userId));
-    const guestState  = loadState(userStorageKey(null));
-    const guestEvents = (guestState.events || []).map(normalizeEvent).filter(Boolean);
-    const guestDrafts = guestEvents.filter(e => !e.cloudId);
     const seenIds     = new Set(userLocal.map(e => e.id));
-    const seeded      = [...userLocal, ...guestDrafts.filter(e => !seenIds.has(e.id))];
-    // Remove the migrated drafts from the guest bucket so they can't later be
-    // adopted by a different account on the same browser.
-    if (guestDrafts.length) {
-      persist({ events: guestEvents.filter(e => e.cloudId) }, userStorageKey(null));
+    const declined    = readDeclinedDrafts(userId);
+    const offered     = load(userStorageKey(null))
+      .filter(e => !e.cloudId && !seenIds.has(e.id) && !declined.has(e.id));
+    const carry       = takeDraftCarry() && offered.length > 0;
+    if (carry) {
+      takeGuestDrafts(offered.map(e => e.id));
+      // Consent was given, so these upload with the first push after the load
+      // instead of waiting for the banner (pushUnpushed).
+      offered.forEach(e => carriedRef.current.add(e.id));
     }
     // Show THIS user's own data immediately (optimistic local-first) — never the
     // pre-login view.
-    setEvents(seeded);
-    setHydratedFor(userId);
+    setEvents(carry ? [...userLocal, ...offered] : userLocal);
+    setHydration({ for: userId, drafts: carry ? [] : offered });
 
     // No cloud configured → auth never yields a user, so this path is unreachable.
     if (!isSupabaseConfigured) return;
@@ -963,7 +1111,7 @@ export function useEvents(user) {
   // someone edited the same event on another device. Re-read the account's rows
   // and let mergeCloudWithLocal decide per event (newest updatedAt wins),
   // instead of overwriting work this tab never loaded.
-  const pushUpdate = useCallback(async (ev, uid) => {
+  const pushUpdateOnce = useCallback(async (ev, uid) => {
     try {
       const version = await updateCloudEvent(ev, uid);
       if (Number.isFinite(version)) {
@@ -1039,6 +1187,41 @@ export function useEvents(user) {
     }
   }, []);
 
+  /* One push per event on the wire (71b). The debounce fires 1.5 s after the
+   * last edit; a push that takes longer than that (venue wifi) was joined by a
+   * second one carrying the SAME base version — which the server then rejected
+   * as a conflict, sending a perfectly ordinary edit through the conflict
+   * recovery (a re-read of every event, and a merge). Now a push asked for
+   * while one is in flight is only noted, and sent — from the latest state,
+   * against the base the first one moved — the moment the first one is done. */
+  const pushUpdate = useCallback(async (ev, uid) => {
+    if (inFlightRef.current.has(ev.id)) { owedRef.current.add(ev.id); return; }
+    inFlightRef.current.add(ev.id);
+    try {
+      await pushUpdateOnce(ev, uid);
+    } finally {
+      inFlightRef.current.delete(ev.id);
+      // As a (short) debounce: after the state the first push set has
+      // rendered (pushNow reads eventsRef), and flushed like any other on
+      // pagehide or a hidden tab.
+      if (owedRef.current.delete(ev.id)) {
+        clearTimeout(syncTimers.current[ev.id]);
+        syncTimers.current[ev.id] = setTimeout(() => { delete syncTimers.current[ev.id]; pushNowRef.current?.(ev.id); }, 250);
+      }
+    }
+  }, [pushUpdateOnce]);
+
+  /* A create whose row turned out to exist already (33c — the first create
+   * landed, its response was lost). The row is merged with the local copy
+   * exactly as a row read at load would be — it may have been edited
+   * elsewhere since — and what this device holds beyond it is then pushed
+   * (loadedTick → pushUnpushed, after the merge has rendered). In place, so
+   * the event keeps its position in the list. */
+  const adoptRow = useCallback((id, adopted) => {
+    setEvents(prev => prev.map(e => (e.id === id ? (mergeCloudWithLocal([e], [adopted])[0] ?? e) : e)));
+    setLoadedTick(t => t + 1);
+  }, []);
+
   const addEvent = useCallback((ev) => {
     const normalized = normalizeEvent(ev);
     // Apply locally first so the UI is instant.
@@ -1060,6 +1243,8 @@ export function useEvents(user) {
           const { cloudId, version } = created;
           if (wasDeleted) {
             sendCloudDelete(cloudId, currentUser.id);
+          } else if (created.adopted) {
+            adoptRow(normalized.id, created.adopted);
           } else {
             const base = syncBaseOf(normalized);
             setEvents(prev => prev.map(e =>
@@ -1076,7 +1261,7 @@ export function useEvents(user) {
         pendingDeletes.current.delete(normalized.id); // create failed → no orphan to clean
         setSyncStatus(SYNC_STATUS.ERROR);
       });
-  }, [pushUpdate]);
+  }, [pushUpdate, adoptRow]);
 
   const removeEvent = useCallback((id) => {
     // Capture cloudId before removing from state.
@@ -1138,6 +1323,11 @@ export function useEvents(user) {
             setSyncStatus(SYNC_STATUS.SYNCED);
             return;
           }
+          if (created.adopted) {
+            adoptRow(id, created.adopted);
+            setSyncStatus(SYNC_STATUS.SYNCED);
+            return;
+          }
           const base = syncBaseOf(ev);
           setEvents(prev => prev.map(e =>
             e.id === id ? { ...e, cloudId, syncedVersion: version, syncBase: base } : e));
@@ -1162,7 +1352,7 @@ export function useEvents(user) {
     if (ev.version === ev.syncedVersion) return;
     setSyncStatus(SYNC_STATUS.SYNCING);
     pushUpdate(ev, currentUser.id);
-  }, [pushUpdate]);
+  }, [pushUpdate, adoptRow]);
   const pushNowRef = useRef(pushNow);
   useEffect(() => { pushNowRef.current = pushNow; }, [pushNow]);
 
@@ -1175,14 +1365,14 @@ export function useEvents(user) {
       pushNowRef.current(id);
     }
   }, []);
-  // Only events the cloud already has a row for. An event with no cloudId is
-  // either a draft that arrived from the logged-out bucket — uploading it at
-  // sign-in, before the import banner asks, would put someone else's draft on a
-  // shared computer into this account — or a failed create, which the next
-  // edit retries as before.
+  // Events the cloud already has a row for, plus drafts the host carried in by
+  // signing up from inside them (33d). Any other event with no cloudId is a
+  // draft accepted through the banner — which uploads it itself — or a failed
+  // create, which the next edit retries as before.
   const pushUnpushed = useCallback(() => {
     for (const e of eventsRef.current) {
       if (syncTimers.current[e.id]) continue;
+      if (!e.cloudId && carriedRef.current.delete(e.id)) { pushNowRef.current(e.id); continue; }
       if (e.cloudId && e.version !== e.syncedVersion) pushNowRef.current(e.id);
     }
   }, []);
@@ -1238,6 +1428,27 @@ export function useEvents(user) {
   }, []);
 
   /**
+   * The banner's two answers to the offered drafts (33d). Accept moves them
+   * into this account (the caller uploads them); decline leaves them in the
+   * logged-out bucket, where they still open logged out, and never offers them
+   * to this account again. Both are no-ops for a draft that has gone meanwhile.
+   */
+  const adoptGuestDrafts = useCallback(() => {
+    const uid = ownerRef.current;
+    if (!uid) return [];
+    const have = new Set(eventsRef.current.map(e => e.id));
+    const taken = takeGuestDrafts(hydration.drafts.map(e => e.id)).filter(e => !have.has(e.id));
+    if (taken.length) setEvents(prev => [...prev, ...taken.filter(t => !prev.some(e => e.id === t.id))]);
+    setHydration(h => ({ ...h, drafts: [] }));
+    return taken;
+  }, [hydration.drafts]);
+  const declineGuestDrafts = useCallback(() => {
+    const uid = ownerRef.current;
+    if (uid) addDeclinedDrafts(uid, hydration.drafts.map(e => e.id));
+    setHydration(h => ({ ...h, drafts: [] }));
+  }, [hydration.drafts]);
+
+  /**
    * Is `events` the list a route guard is allowed to draw conclusions from?
    *
    * A guard cannot use `syncStatus` alone. It starts LOCAL_ONLY, and between
@@ -1254,5 +1465,6 @@ export function useEvents(user) {
    */
   const eventsReady = userId ? hydratedFor === userId : true;
 
-  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped };
+  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped,
+           guestDrafts: hydration.drafts, adoptGuestDrafts, declineGuestDrafts };
 }

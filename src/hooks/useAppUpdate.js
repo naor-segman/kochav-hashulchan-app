@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { isGuestRoute } from "../utils/guestRoutes.js";
+import { hasUnsavedWork } from "../utils/unsavedWork.js";
 
 /**
  * Keep the running app on the deployed version, without interrupting anyone.
@@ -53,6 +54,7 @@ const CHECK_EVERY_MS = 60_000;
 /** Is a reload safe right now — i.e. would it interrupt anybody? */
 export function isSafeToReload(doc = document, guestFormTouched = false) {
   if (guestFormTouched) return false;                  // a guest's unsent form
+  if (hasUnsavedWork()) return false;                  // a host's unsaved form (71d), even hidden
   if (doc.visibilityState === "hidden") return true;   // nobody is looking
   const el = doc.activeElement;
   if (!el) return true;

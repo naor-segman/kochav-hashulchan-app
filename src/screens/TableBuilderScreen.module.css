@@ -102,8 +102,13 @@
   line-height: 1.6;
 }
 
-/* Table name cell — glyph and name on one baseline, name truncating rather
-   than pushing the columns beside it out of alignment. */
+/* Table name cell — glyph and name side by side.
+   The name used to truncate with an ellipsis so it would not push the columns
+   beside it. It cannot push them: the row is a grid and this column is the 1fr
+   one, so a wrapped name only makes its row taller. Truncation, meanwhile, hid
+   the part of the name that tells two tables apart — "משפחת כהן המו…" — on
+   four of six names at 390px and two at 768, and the `title` that held the
+   rest does not exist on a phone (38c). So it wraps, at every width. */
 .rowName {
   display: flex;
   align-items: center;
@@ -114,7 +119,16 @@
 
 .rowNameText {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+
+/* Below 600px screenBase gives the row a 520px minimum and the grid scrolls
+   inside its card. The four fixed columns take 378 of that, which left the name
+   56px of text — "שולחן 1" broke onto two lines and a long name onto five.
+   The name column gets a floor of its own instead; the card already scrolls
+   sideways, so the row growing by ~50px costs nothing new. */
+@media (max-width: 600px) {
+  .tRowNamed {
+    grid-template-columns: minmax(140px, 1fr) 68px 80px 80px 150px;
+  }
 }

@@ -21,7 +21,7 @@ const { default: EntranceScreen } = await import("./EntranceScreen.jsx");
 
 describe("scanning a guest who declined", () => {
   it("warns the greeter", async () => {
-    localStorage.setItem("kochav_orientation_v1", "1");
+    localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 }));
     render(<AuthProvider><MemoryRouter initialEntries={["/entrance/tok12345678"]}><Routes>
       <Route path="/entrance/:token" element={<EntranceScreen mode="token" />} />
     </Routes></MemoryRouter></AuthProvider>);

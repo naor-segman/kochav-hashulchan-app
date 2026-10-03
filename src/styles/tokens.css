@@ -87,6 +87,12 @@
      and measures 2.64:1 on #14161A — invisible. Every dark band in the product
      needs this instead: 9.3:1, and still unmistakably the brand hue. */
   --accent-on-dark: #FA9FC0;
+  /* The keyboard focus ring. One token so a dark band can flip it in one line
+     (pointing it at --accent-on-dark on its own root) instead of re-declaring
+     every :focus-visible rule inside it. The marketing header and footer were
+     drawing --accent-text on #14161A at 2.64:1 — under the 3:1 a focus
+     indicator needs — on every link they hold (AX, measured 1.10). */
+  --focus-ring: var(--accent-text);
   --accent-bg:     #FDECF2;
   --accent-light:  #FEF6F9;
   --accent-border: #F7BED2;

@@ -1,17 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { rsvpSuccessLinks } from "../utils/rsvpLinks.js";
+import { daysUntilIsrael } from "../utils/dateFormat.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
-import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
+import { buildEventIcs, icsFileName, downloadIcs, knownStartTime } from "../utils/calendarFile.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
 import { COMPANY } from "../data/company.js";
 import { track, EVENTS } from "../lib/analytics.js";
+import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 // DEV-only preview fallback — used only when import.meta.env.DEV and Supabase
 // returns no event, so the page can be designed without a live token.
@@ -83,6 +85,17 @@ export default function RSVPScreen() {
   const [submitError, setSubmitError] = useState("");
   const [answer, setAnswer] = useState(null); // "yes" | "maybe" | "no"
   useGuestTitle(event && `אישור הגעה · ${guestHosts(event)}`);
+
+  // Each step replaces the whole card, and focus stayed on the button that
+  // was pressed — a button no longer in the page — so a screen reader was
+  // left nowhere and announced nothing (סב89). On every step CHANGE (not the
+  // first render: that is a page load) focus moves to the new step's h1.
+  const stepHeading = useRef(null);
+  const firstStep = useRef(true);
+  useEffect(() => {
+    if (firstStep.current) { firstStep.current = false; return; }
+    stepHeading.current?.focus();
+  }, [step]);
 
   useEffect(() => {
     let cancelled = false;
@@ -204,10 +217,10 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.loadingWrap}>
+        <main className={styles.loadingWrap}>
           <span className={styles.spinner} aria-hidden="true">✦</span>
-          <p className={styles.loadingText}>טוען פרטי אירוע…</p>
-        </div>
+          <p className={styles.loadingText} role="status">טוען פרטי אירוע…</p>
+        </main>
       </div>
     );
   }
@@ -216,7 +229,7 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
             <div className={styles.errorState}>
               <span className={styles.errorIcon} aria-hidden="true"><Icon name="alert" size={26} /></span>
@@ -224,7 +237,7 @@ export default function RSVPScreen() {
               <p className={styles.errorBody}>{UNREACHABLE_TEXT.body}</p>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -234,7 +247,7 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
             <div className={styles.errorState}>
               <span className={styles.errorIcon} aria-hidden="true"><Icon name="link" size={26} /></span>
@@ -246,26 +259,67 @@ export default function RSVPScreen() {
               <Link to="/" className={styles.homeLink}>לדף הבית</Link>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   const formattedDate = formatHebrewDate(event.date);
 
+  // ── The event has passed (36h) ──────────────────────────────────────────────
+  // A link opened the day after still asked "האם תגיע/י לאירוע?" and took the
+  // answer into the host's list. From the day after (Israel's date), the page
+  // says the event took place; the site (with the album) and the gift stay.
+  const daysLeft = daysUntilIsrael(event.date);
+  if (daysLeft !== null && daysLeft < 0 && step === "choice") {
+    const { inviteUrl, giftUrl } = rsvpSuccessLinks(event);
+    return (
+      <div className={styles.page}>
+        <PageHeader />
+        <main className={styles.cardWrap}>
+          <div className={styles.card}>
+            <div className={styles.eventInfo}>
+              {guestEventType(event.type) && (
+                <span className={styles.eventTypePill}>{guestEventType(event.type)}</span>
+              )}
+              <h1 className={styles.eventName}>{event.name}</h1>
+              {formattedDate && (
+                <p className={styles.eventDetail}>
+                  <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={18} /></span>
+                  {formattedDate}
+                </p>
+              )}
+            </div>
+            <div className={styles.divider} role="separator" />
+            <div className={styles.questionBlock}>
+              <h2 className={styles.questionTitle}>האירוע התקיים</h2>
+              <p className={styles.successBody}>אישורי ההגעה נסגרו. תודה לכל מי שחגג איתנו!</p>
+            </div>
+            {(inviteUrl || giftUrl) && (
+              <div className={styles.successActions}>
+                {inviteUrl && <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>}
+                {giftUrl && <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה</Link>}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   // ── Choice ──────────────────────────────────────────────────────────────────
   if (step === "choice") {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
 
             <div className={styles.eventInfo}>
               {guestEventType(event.type) && (
                 <span className={styles.eventTypePill}>{guestEventType(event.type)}</span>
               )}
-              <h1 className={styles.eventName}>{event.name}</h1>
+              <h1 className={styles.eventName} ref={stepHeading} tabIndex={-1}>{event.name}</h1>
               {formattedDate && (
                 <p className={styles.eventDetail}>
                   <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={18} /></span>
@@ -322,7 +376,7 @@ export default function RSVPScreen() {
             </div>
 
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -332,12 +386,12 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
 
             <div className={styles.eventBanner}>
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
-              <h1 className={styles.eventBannerName}>{event.name}</h1>
+              <h1 className={styles.eventBannerName} ref={stepHeading} tabIndex={-1}>{event.name}</h1>
               {formattedDate && (
                 <span className={styles.eventBannerDate}>{formattedDate}</span>
               )}
@@ -515,6 +569,7 @@ export default function RSVPScreen() {
               >
                 {submitting ? "שולח…" : (answer === "maybe" ? "שלחו תשובה ←" : "שלחו אישור הגעה ←")}
               </button>
+              <GuestPrivacyNote />
             </form>
 
             <button
@@ -527,7 +582,7 @@ export default function RSVPScreen() {
             </button>
 
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -537,12 +592,12 @@ export default function RSVPScreen() {
     return (
       <div className={styles.page}>
         <PageHeader />
-        <div className={styles.cardWrap}>
+        <main className={styles.cardWrap}>
           <div className={styles.card}>
 
             <div className={styles.eventBanner}>
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
-              <h1 className={styles.eventBannerName}>{event.name}</h1>
+              <h1 className={styles.eventBannerName} ref={stepHeading} tabIndex={-1}>{event.name}</h1>
             </div>
 
             <div className={styles.noConfirmBlock}>
@@ -582,6 +637,7 @@ export default function RSVPScreen() {
             >
               {submitting ? "שולח…" : "שלחו"}
             </button>
+            <GuestPrivacyNote />
 
             <button
               type="button"
@@ -593,7 +649,7 @@ export default function RSVPScreen() {
             </button>
 
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -615,7 +671,7 @@ export default function RSVPScreen() {
   return (
     <div className={styles.page}>
       <PageHeader />
-      <div className={styles.cardWrap}>
+      <main className={styles.cardWrap}>
         <div className={styles.card}>
           <div className={styles.successBlock}>
             {site?.coverPhoto && (
@@ -624,7 +680,7 @@ export default function RSVPScreen() {
             <div className={styles.checkCircle} aria-hidden="true">
               <span className={styles.checkMark}>{answer === "no" ? <Icon name="heart" size={26} /> : "✓"}</span>
             </div>
-            <h1 className={styles.successTitle}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h1>
+            <h1 className={styles.successTitle} ref={stepHeading} tabIndex={-1}>{titleByAnswer[answer] || "תגובתכם נשלחה"}</h1>
             <p className={styles.successBody}>{bodyByAnswer[answer]}</p>
 
             {site?.rsvpMessage && (
@@ -642,7 +698,7 @@ export default function RSVPScreen() {
                     name:  event.name,
                     date:  event.date,
                     venue: event.venue,
-                    startTime: eventStartTime(site?.schedule),
+                    startTime: knownStartTime(site?.schedule),
                     // The site only when it is published — the same rule as
                     // the button below. It linked the site regardless, and a
                     // calendar keeps "not published yet" for good (29.9 review).
@@ -679,7 +735,7 @@ export default function RSVPScreen() {
             </Link>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

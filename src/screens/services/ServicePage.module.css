@@ -15,6 +15,10 @@
   overflow-x: hidden;
 }
 
+/* <main> (38a) is unstyled, so the page lays out exactly as it did.
+   SiteHeader's skip link focuses it; the ring would outline the whole page. */
+.main:focus { outline: none; }
+
 .sectionInner {
   max-width: var(--container-max);
   margin: 0 auto;
@@ -410,6 +414,8 @@
 .close {
   background: var(--text);
   color: var(--surface);
+  /* A dark band: the ring --accent-text draws here is 2.64:1. */
+  --focus-ring: var(--accent-on-dark);
 }
 
 .closeInner {

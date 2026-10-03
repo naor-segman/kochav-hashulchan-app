@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "../test/dom.js";
+import { render, screen, fireEvent, act } from "../test/dom.js";
 
 /* The budget screen's guest count, measured on the rendered DOM.
  *
@@ -133,5 +133,43 @@ describe("CostScreen — part paid is remaining, not a saving (fifth review)", (
     const { container } = render(<CostScreen activeEvent={e} patchEvent={() => {}} showToast={() => {}} />);
     expect(container.textContent).toContain("נותר ₪6,000");
     expect(container.textContent).not.toMatch(/−₪6,000/);
+  });
+});
+
+/* The quick per-guest gift estimate REPLACES what the host typed for a
+ * specific guest. Owner, 3.10: ask first. */
+describe("CostScreen — the quick gift estimate asks before replacing", () => {
+  const withEst = (est) => ({
+    ...ev, guests: [
+      { id: "a", name: "דנה", count: 2, rsvp: "confirmed", estGift: est },
+      { id: "b", name: "יוסי", count: 1, rsvp: "confirmed" },
+    ],
+  });
+  const fill = async (evt, amount) => {
+    const patchEvent = vi.fn();
+    render(<CostScreen activeEvent={evt} patchEvent={patchEvent} showToast={() => {}} />);
+    fireEvent.change(document.getElementById("bulk-gift"), { target: { value: String(amount) } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "החילו על כל הרשומות" })); });
+    return patchEvent;
+  };
+
+  it("asks when a guest has an estimate of their own, and changes nothing on cancel", async () => {
+    const patchEvent = await fill(withEst(1500), 400);
+    expect(screen.getByText(/כבר הזנתם סכום משוער משלהם/)).toBeInTheDocument();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "ביטול" })); });
+    expect(patchEvent).not.toHaveBeenCalled();
+  });
+
+  it("replaces them all once the host agrees", async () => {
+    const patchEvent = await fill(withEst(1500), 400);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "החליפו את כולם" })); });
+    const next = patchEvent.mock.calls[0][0](withEst(1500));
+    expect(next.guests.map(g => g.estGift)).toEqual([800, 400]);
+  });
+
+  it("does not ask when nothing different would be overwritten", async () => {
+    const patchEvent = await fill(withEst(undefined), 400);
+    expect(screen.queryByText(/כבר הזנתם סכום משוער משלהם/)).toBeNull();
+    expect(patchEvent).toHaveBeenCalledTimes(1);
   });
 });

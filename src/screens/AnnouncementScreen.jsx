@@ -4,8 +4,8 @@ import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncement } from "../data/announcementTemplates.js";
-import { buildEventIcs, icsFileName, downloadIcs, eventStartTime } from "../utils/calendarFile.js";
-import { fmtDate, daysUntil } from "../utils/dateFormat.js";
+import { buildEventIcs, icsFileName, downloadIcs, knownStartTime } from "../utils/calendarFile.js";
+import { fmtDate, daysUntilIsrael } from "../utils/dateFormat.js";
 import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
@@ -53,6 +53,9 @@ const MOCK = {
  * `daysUntil` counts CALENDAR days from local midnight to local midnight, which
  * is what "ימים לאירוע" means. The interval stays: the page can sit open past
  * midnight and the number has to change when the date does.
+ *
+ * Midnight IN ISRAEL (daysUntilIsrael, T5): a guest abroad is on a different
+ * date for part of every day, and the event's date is Israel's.
  */
 function useCountdown(date) {
   const [, setTick] = useState(0);
@@ -62,7 +65,7 @@ function useCountdown(date) {
     return () => clearInterval(id);
   }, [date]);
   if (!date) return null;
-  const days = daysUntil(date);
+  const days = daysUntilIsrael(date);
   // null on an unparseable date; nothing on the day itself or after it, which
   // is where the page switches to its own "today" copy.
   if (days === null || days <= 0) return null;
@@ -106,7 +109,8 @@ export default function AnnouncementScreen({ kind, localEvent }) {
       }
       if (cancelled) return;
       if (data) { setEvent(data); setState("ready"); }
-      else if (!isSupabaseConfigured) { setEvent(MOCK); setState("ready"); }
+      // Dev only — a deploy with no env showed a made-up event (106).
+      else if (import.meta.env.DEV && !isSupabaseConfigured) { setEvent(MOCK); setState("ready"); }
       else setState("error");
     })();
     return () => { cancelled = true; };
@@ -128,25 +132,26 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   }), [theme, font]);
 
   if (state === "loading") {
-    return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
+    // Every state is the page's one <main> (38a), as the loaded page is.
+    return <main className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></main>;
   }
   if (state === "error") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>הדף לא נמצא</h1>
         <p className={styles.stateSub}>הקישור אינו תקף או שפג תוקפו</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-      </div>
+      </main>
     );
   }
   if (state === "unreachable") {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
         <p className={styles.stateSub}>{UNREACHABLE_TEXT.body}</p>
-      </div>
+      </main>
     );
   }
 
@@ -154,12 +159,12 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   // rendering a half-empty page that looks broken.
   if (!ann.enabled && !isPreview) {
     return (
-      <div className={styles.state}>
+      <main className={styles.state}>
         <span className={styles.star}>✦</span>
         <h1 className={styles.stateTitle}>הדף עדיין לא פורסם</h1>
         <p className={styles.stateSub}>בעלי האירוע עדיין עובדים עליו — נסו שוב מאוחר יותר</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-      </div>
+      </main>
     );
   }
 
@@ -174,10 +179,11 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     // The same start time as the site and the RSVP page. Without it this
     // button wrote 19:00 while the site's said 21:00 — the two-answers bug
     // WORKPLAN ס closed everywhere else (29.9 review). The invite token only
-    // carries the site once it is published; before that, 19:00 it is.
+    // carries the site once it is published; before that there is no time to
+    // give, and the file is an all-day entry rather than an invented 19:00.
     const ics = buildEventIcs({
       name: event.name, date: event.date, venue: event.venue,
-      startTime: eventStartTime(event.site?.schedule),
+      startTime: knownStartTime(event.site?.schedule),
       url: window.location.href,
     });
     if (ics) downloadIcs(ics, icsFileName(event.name));

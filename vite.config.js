@@ -185,7 +185,11 @@ export default defineConfig({
         // downloaded 1.79 MB including 137 kB of admin panel for every paying
         // customer. Code-splitting held in the JS graph and was defeated by the
         // service worker.
-        globIgnores: ['**/AdminApp-*.{js,css}', '**/xlsx-*.js'],
+        //
+        // og-image.png (1200×630) is for link-preview CRAWLERS — WhatsApp,
+        // Facebook — and no page of the app ever displays it, yet the png glob
+        // put it in every install. jsQR stays: the door screen scans offline.
+        globIgnores: ['**/AdminApp-*.{js,css}', '**/xlsx-*.js', '**/og-image.png'],
         // The self-hosted serif and the hero are what the landing page IS. They
         // are not matched by the glob (ttf, mp4, jpg), so the installed app fell
         // back to a system font and a blank hero offline.
@@ -198,7 +202,13 @@ export default defineConfig({
             // stale row as the authoritative cloud side of a last-write-wins
             // comparison. This is user data, not an asset: a few minutes is the
             // most that is defensible.
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            //
+            // And only the DATA API (ב11). The old pattern matched every
+            // supabase.co URL, so GET /auth/v1/user — the signed-in account's
+            // identity — was stored in Cache Storage too, and a NetworkFirst
+            // timeout could answer it for the previous person on a shared
+            // device. Auth, storage and edge functions now go to the network.
+            urlPattern: /^https:\/\/[^/]+\.supabase\.co\/rest\/v1\//i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-api',

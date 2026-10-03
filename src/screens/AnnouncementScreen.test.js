@@ -81,7 +81,7 @@ describe("the screen no longer does its own date maths", () => {
   const SRC = readFileSync(new URL("./AnnouncementScreen.jsx", import.meta.url), "utf8");
 
   it("calls daysUntil", () => {
-    expect(SRC).toContain("daysUntil(date)");
+    expect(SRC).toContain("daysUntilIsrael(date)");   // Israel's date, T5
   });
 
   it("has no fixed-millisecond day arithmetic left in it", () => {

@@ -111,3 +111,18 @@
 }
 
 .actions > button { flex: 1 1 0; }
+
+/* The upload link's row: the link, copy and QR on one line, wrapping on a
+   phone (same shape as the invitation editor's). */
+.shareRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.shareInput {
+  flex: 1;
+  min-width: 200px;
+  font-size: var(--step--1);
+}

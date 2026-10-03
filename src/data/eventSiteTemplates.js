@@ -115,6 +115,7 @@ function base(themeKey, heroEn, extra = {}) {
   return {
     themeKey,
     heroEn,
+    gift: true,     // the gift page section is on by default — not for business
     schedule: extra.schedule || [],
     // No ids here. These literals are evaluated ONCE at module load, so every
     // event created from a template shared the same faq/schedule ids — and the
@@ -138,18 +139,27 @@ const WEDDING_SCHEDULE = () => [
   { time: "21:00", title: "ריקודים", icon: "💃" },
 ];
 
+// The English line over the hero is a default the host can edit or clear.
+// The wedding's stays; the others were labels ("BIRTHDAY", "OUR EVENT") and
+// were rewritten as lines someone would choose to print (owner, 2.10). None
+// is gendered — a couple may be two brides or two grooms.
 export const EVENT_TYPE_TEMPLATES = {
   "חתונה":        base("rose",  "OUR WEDDING DAY", { schedule: WEDDING_SCHEDULE() }),
-  "אירוס":        base("rose",  "WE'RE ENGAGED"),
-  "חינה":         base("sand",  "HENNA NIGHT"),
-  "בר מצווה":     base("sky",   "BAR MITZVAH"),
-  "בת מצווה":     base("rose",  "BAT MITZVAH"),
-  "ברית":         base("sky",   "BRIT MILAH"),
-  "בריתה":        base("rose",  "BABY NAMING"),
-  "יום הולדת":    base("sky",   "BIRTHDAY"),
-  "אירוע משפחתי": base("olive", "FAMILY EVENT"),
-  "אירוע עסקי":   base("night", "OUR EVENT"),
-  "אחר":          base("sky",   "OUR EVENT"),
+  "אירוס":        base("rose",  "TWO HEARTS, ONE YES"),
+  "חינה":         base("sand",  "A NIGHT OF HENNA"),
+  "בר מצווה":     base("sky",   "MAZAL TOV, BAR MITZVAH"),
+  "בת מצווה":     base("rose",  "MAZAL TOV, BAT MITZVAH"),
+  "ברית":         base("sky",   "WELCOME TO THE WORLD"),
+  "בריתה":        base("rose",  "WELCOME, LITTLE ONE"),
+  "יום הולדת":    base("sky",   "LET'S CELEBRATE"),
+  "אירוע משפחתי": base("olive", "ALL OF US, TOGETHER"),
+  // No gift question in a business event's FAQ — and no gift section by
+  // default (owner, 2.10): a conference does not ask its guests for a gift.
+  "אירוע עסקי":   base("night", "SAVE YOUR SEAT", { faq: [
+    { q: "איך מגיעים לאירוע? יש חניה?", a: "" },
+    { q: "מתי צריך לאשר הגעה?", a: "מומלץ לאשר בהקדם, כדי שנוכל להיערך." },
+  ], gift: false }),
+  "אחר":          base("sky",   "JOIN THE CELEBRATION"),
 };
 
 export function getEventTypeTemplate(type) {
@@ -191,7 +201,7 @@ export function defaultEventSite(type) {
     faq: t.faq.map(f => ({ ...f, id: uid() })),
     contactPhone: "",
     rsvpMessage: "",    // personal note from the hosts, shown after RSVP
-    sections: { countdown: true, gallery: true, schedule: true, location: true, shuttles: false, dressCode: false, gift: true, blessings: true, faq: true },
+    sections: { countdown: true, gallery: true, schedule: true, location: true, shuttles: false, dressCode: false, gift: t.gift !== false, blessings: true, faq: true },
     // Photo retention. Added to normalizeEventSite first and forgotten here —
     // the exact mistake the comment above this block was written about, caught
     // by the idempotence test rather than by reading the warning.

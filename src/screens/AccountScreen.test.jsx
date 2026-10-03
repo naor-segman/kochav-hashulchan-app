@@ -48,6 +48,17 @@ const renderScreen = () =>
     </MemoryRouter>,
   );
 
+describe("AccountScreen — deleting the account is a request (owner 2.10)", () => {
+  it("offers a prefilled request, addressed to support, naming the account", () => {
+    renderScreen();
+    const link = screen.getByRole("link", { name: "בקשה למחיקת החשבון" });
+    const href = decodeURIComponent(link.getAttribute("href"));
+    expect(href).toMatch(/^mailto:support@/);
+    expect(href).toContain("subject=בקשה למחיקת החשבון");
+    expect(href).toMatch(/אני מבקש\/ת למחוק את החשבון \S+@\S+/);
+  });
+});
+
 describe("AccountScreen — reporting a problem", () => {
   it("routes to the feedback form, not to a mailbox", () => {
     renderScreen();
@@ -105,5 +116,15 @@ describe("AccountScreen — the plan cards actually differ", () => {
     const human = lists.filter(t => /מנהל הושבה/.test(t));
     expect(human.length).toBe(1);
     expect(human[0]).toMatch(/בשטח/);
+  });
+});
+
+describe("AccountScreen — landmarks (38a)", () => {
+  it("is one <main>, holding the page's h1", () => {
+    // A top-level route outside Shell, so nothing else supplies the landmark —
+    // and the browser harness cannot reach it signed out (it redirects).
+    renderScreen();
+    expect(document.querySelectorAll("main, [role=main]")).toHaveLength(1);
+    expect(screen.getByRole("main").querySelector("h1")?.textContent).toBe("החשבון שלי");
   });
 });

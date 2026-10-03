@@ -3,6 +3,10 @@
   min-height: 100vh;
 }
 
+/* <main> (38a) is unstyled, so the page lays out exactly as it did.
+   SiteHeader's skip link focuses it; the ring would outline the whole page. */
+.main:focus { outline: none; }
+
 /* ── Page header ── */
 
 .pageHeader {
@@ -360,6 +364,8 @@
 
 .ctaBanner {
   background: var(--nav-bg);
+  /* A dark band: the ring --accent-text draws here is 2.64:1. */
+  --focus-ring: var(--accent-on-dark);
   text-align: center;
   padding: 96px 24px;
 }

@@ -4,7 +4,6 @@ import {
   fetchCollabEvent, fetchCollabGuests,
   upsertCollabGuest, deleteCollabGuest, UNREACHABLE_TEXT,
 } from "../utils/publicTokens.js";
-import { isSupabaseConfigured } from "../lib/supabase.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
 import { getSideLabels } from "../utils/eventHelpers.js";
@@ -16,6 +15,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { collabGroupOptions } from "../utils/guestRoutes.js";
+import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 // DEV mock so the page can be designed without a live token.
 const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתונה", brideName: "נועה", groomName: "טל", coupleType: "bride-groom", sideLabels: null };
@@ -36,6 +36,16 @@ const MOCK = { cloudId: null, name: "חתונת נועה וטל", type: "חתו�
 // same predicate, so the badge and the behaviour cannot disagree.
 const isComplete = (r) => collabRowMissing(r).length === 0;
 
+/* The shared table stores a group name of at most 60 characters (the
+ * collab_guests CHECK); the host's app let a custom group be longer. Picked
+ * here, it was clipped on the way in and reached the host's list as a SECOND,
+ * truncated group nobody created (106). A name the table cannot hold is not
+ * offered. (The host side should cap new group names at 60 too — not in this
+ * file.) */
+const GROUP_MAX = 60;
+const storableGroups = (groups) =>
+  (Array.isArray(groups) ? groups : []).filter(g => typeof g === "string" && [...g.trim()].length <= GROUP_MAX);
+
 export default function CollabScreen() {
   const { token } = useParams();
   const [ev, setEv] = useState(null);
@@ -45,6 +55,7 @@ export default function CollabScreen() {
   // Rows whose last save failed — kept held so the poll can't revert them.
   const [failed, setFailed] = useState(() => new Set());
   const [deleteFailed, setDeleteFailed] = useState(null);   // the row's name, or null
+  const [excelFailed, setExcelFailed]   = useState(false);
   const [me, setMe] = useState(() => { try { return localStorage.getItem("collab_me") || ""; } catch { return ""; } });
 
   const editing   = useRef(new Set());  // row ids being edited locally right now
@@ -141,7 +152,7 @@ export default function CollabScreen() {
             } catch { /* a failed poll changes nothing; the next one retries */ }
           }, 3000);
         }
-      } else if (!isSupabaseConfigured || import.meta.env.DEV) {
+      } else if (import.meta.env.DEV) {             // dev only (106)
         setEv(MOCK); setState("ready");
       } else {
         setState("notfound");
@@ -151,25 +162,26 @@ export default function CollabScreen() {
     return () => { cancelled = true; if (poll) clearInterval(poll); pending.forEach(clearTimeout); };
   }, [token, mergePolled]);
 
-  if (state === "loading")  return <div className={styles.state}><span className={styles.star}>✦</span><p>טוען…</p></div>;
+  // Every state is the page's one <main> (38a).
+  if (state === "loading")  return <main className={styles.state}><span className={styles.star} aria-hidden="true">✦</span><p role="status">טוען…</p></main>;
   // The RPCs return nothing both when the token is wrong AND when the host has
   // switched the link off, and from here the two are indistinguishable — so the
   // copy has to cover both without guessing which one happened.
   if (state === "notfound") return (
-    <div className={styles.state}>
+    <main className={styles.state}>
       <span className={styles.star}><Icon name="alert" size={26} /></span>
       <h1 className={styles.stateTitle}>הקישור אינו פעיל</h1>
       <p className={styles.stateHint}>ייתכן שבעלי האירוע סגרו אותו, או שהכתובת שגויה. שווה לבקש מהם קישור מעודכן.</p>
       <Link to="/" className={styles.homeLink}>לדף הבית</Link>
-    </div>
+    </main>
   );
 
   if (state === "unreachable") return (
-    <div className={styles.state}>
+    <main className={styles.state}>
       <span className={styles.star}><Icon name="alert" size={26} /></span>
       <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
       <p className={styles.stateHint}>{UNREACHABLE_TEXT.body}</p>
-    </div>
+    </main>
   );
 
   const sides = getSideLabels(ev);
@@ -228,12 +240,21 @@ export default function CollabScreen() {
   };
 
   const addRow = () => {
-    const row = { id: uid(), name: "", phone: "", side: "bride", guest_group: "", guests_count: 1, companions: [], notes: "" };
+    // Side starts UNSET, like group. It defaulted to "bride", so every row the
+    // groom's family added without touching the select was filed on the
+    // bride's side — complete, synced, and wrong (89 #8). Side is a required
+    // field (collabRowMissing), so an unset one says "חסר: צד" until chosen.
+    const row = { id: uid(), name: "", phone: "", side: "", guest_group: "", guests_count: 1, companions: [], notes: "" };
     setRows(prev => [row, ...prev]);
   };
 
   const removeRow = async (id) => {
-    if (timers.current.has(id)) { clearTimeout(timers.current.get(id)); timers.current.delete(id); }
+    // Whether the row had typing not yet saved — a pending write, or a save
+    // that failed and is held. If the delete fails, that typing is still the
+    // relative's and still has to reach the table.
+    const hadPending = timers.current.has(id);
+    const wasHeld    = editing.current.has(id);
+    if (hadPending) { clearTimeout(timers.current.get(id)); timers.current.delete(id); }
     editing.current.delete(id);
     const gone = rows.find(r => r.id === id);
     setRows(prev => prev.filter(r => r.id !== id));
@@ -244,10 +265,17 @@ export default function CollabScreen() {
     } catch {
       // A failed delete used to be silent: the row vanished and came back on
       // the next 3-second poll, with no word why (second review, סב36). Put it
-      // back now, held, and say so.
+      // back now and say so.
+      //
+      // NOT held as "editing" unless it had unsaved typing (71c): nothing ever
+      // released that hold — no edit was pending to finish — so the row froze,
+      // and the poll could never again show what another relative changed in
+      // it. With unsaved typing, the write is rescheduled and releases the row
+      // itself once it lands.
       if (gone) {
-        editing.current.add(id);
         setRows(prev => (prev.some(r => r.id === id) ? prev : [gone, ...prev]));
+        if (wasHeld) editing.current.add(id);
+        if (hadPending) scheduleWrite(gone);
       }
       setDeleteFailed(gone?.name?.trim() || "השורה");
     }
@@ -260,8 +288,18 @@ export default function CollabScreen() {
   // the helper: a static import made the 416KB spreadsheet writer a hard
   // dependency of this page, which relatives open on their phones to type in
   // names.
-  const downloadExcel = () =>
-    exportCollabTableToExcel(rows, { eventName: ev.name, sideLabels: sides });
+  //
+  // The spreadsheet writer is a separate chunk, fetched on the tap — on a
+  // phone with a bad line that fetch fails, and the button did nothing at all,
+  // with an unhandled rejection behind it (89). Say so.
+  const downloadExcel = async () => {
+    setExcelFailed(false);
+    try {
+      await exportCollabTableToExcel(rows, { eventName: ev.name, sideLabels: sides });
+    } catch {
+      setExcelFailed(true);
+    }
+  };
 
   const completeCount = rows.filter(isComplete).length;
 
@@ -273,6 +311,9 @@ export default function CollabScreen() {
       </header>
 
       <div className={styles.wrapWide}>
+        {/* The page's one landmark (38a) — inside the column so the footer
+            stays outside it. Unstyled; the column lays out as before. */}
+        <main>
         <div className={styles.card}>
           <h1 className={styles.title}>רשימת האורחים המשותפת</h1>
           <p className={styles.sub}>
@@ -292,6 +333,10 @@ export default function CollabScreen() {
                 the guest manager's button, which hands you a different file. */}
             <button className={styles.btnGhost} onClick={downloadExcel} disabled={rows.length === 0}><Icon name="download" /> הורדת הטבלה לאקסל</button>
           </div>
+          {excelFailed && (
+            <p className={styles.saveWarn} role="alert">ההורדה לא הצליחה — בדקו את החיבור ונסו שוב.</p>
+          )}
+          <GuestPrivacyNote text="מה שתוסיפו גלוי לכל מי שיש לו את הקישור לטבלה, ועובר לבעלי האירוע." />
           <div className={styles.counts}>
             {rows.length} רשומות · <span className={styles.ok}>{completeCount} מלאות ומסונכרנות</span>
             {rows.length - completeCount > 0 && <> · <span className={styles.warn}>{rows.length - completeCount} חסרות פרטים</span></>}
@@ -314,7 +359,7 @@ export default function CollabScreen() {
             return (
               <div key={r.id} className={[styles.guestCard, complete ? styles.cardOk : styles.cardWarn].join(" ")}>
                 <div className={styles.cardTop}>
-                  <input className={[styles.input, styles.nameInput].join(" ")} value={r.name || ""} placeholder="שם מלא"
+                  <input className={[styles.input, styles.nameInput].join(" ")} value={r.name || ""} placeholder="שם מלא" aria-label="שם מלא"
                     onChange={e => editRow(r.id, { name: e.target.value })} />
                   <button className={styles.del} onClick={() => removeRow(r.id)} aria-label="מחיקת שורה" title="מחיקה"><Icon name="close" size={14} /></button>
                 </div>
@@ -324,7 +369,7 @@ export default function CollabScreen() {
                   </p>
                 )}
 
-                <input className={[styles.input, styles.phoneInput].join(" ")} value={r.phone || ""} placeholder="טלפון" dir="ltr" inputMode="tel"
+                <input className={[styles.input, styles.phoneInput].join(" ")} value={r.phone || ""} placeholder="טלפון" aria-label="טלפון" dir="ltr" inputMode="tel"
                   onChange={e => editRow(r.id, { phone: e.target.value })} />
 
                 <div className={styles.fields3}>
@@ -335,7 +380,7 @@ export default function CollabScreen() {
                   </select>
                   <select className={styles.input} aria-label="קבוצה" value={r.guest_group || ""} onChange={e => editRow(r.id, { guest_group: e.target.value })}>
                     <option value="" disabled>קבוצה</option>
-                    {collabGroupOptions(GROUP_OPTIONS, ev.customGroups, r.guest_group).map(g => <option key={g} value={g}>{g}</option>)}
+                    {collabGroupOptions(GROUP_OPTIONS, storableGroups(ev.customGroups), r.guest_group).map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                   <select className={styles.input} aria-label="מספר מקומות" value={r.guests_count || 1} onChange={e => {
                     const n = Number(e.target.value);
@@ -411,8 +456,11 @@ export default function CollabScreen() {
             );
           })}
         </div>
+        </main>
 
-        <footer className={styles.footer}>✦ נבנה ב{COMPANY.name}</footer>
+        <footer className={styles.footer}>
+          <Link to="/" className={styles.footerLink}><span aria-hidden="true">✦</span> נבנה ב{COMPANY.name}</Link>
+        </footer>
       </div>
     </div>
   );

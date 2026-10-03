@@ -38,7 +38,7 @@ export default function VenueCanvas({ tables = [], guests = [], seating = {}, ma
     guests.reduce((n, g) => n + (seating[g.id] === tid ? (g.count || 1) : 0), 0);
 
   return (
-    <figure className={styles.wrap}>
+    <figure data-tour="tables.venue" className={styles.wrap}>
       <svg viewBox={`0 0 ${w} ${h}`} className={styles.canvas} role="img"
            aria-label={`מפת אולם משוערת — ${shown.length} שולחנות`}>
         {/* The room. A hairline and a soft ground, not a box with a border —

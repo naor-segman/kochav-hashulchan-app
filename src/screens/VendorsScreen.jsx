@@ -26,6 +26,9 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
   const { confirm, dialog } = useConfirm();
   const [form, setForm]     = useState(EMPTY);
   const [editId, setEditId] = useState(null);
+  // The status the row had when the editor opened — so saving writes the
+  // form's status only if the host changed it there (see save()).
+  const [editBaseStatus, setEditBaseStatus] = useState(null);
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState("all");
 
@@ -45,13 +48,17 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
     const name = form.name.trim();
     if (!name) { showToast("שם הספק לא יכול להיות ריק", "err"); return; }
     if (editId) {
-      // Only the fields this form actually renders. Spreading the whole `form`
-      // wrote back the status it snapshotted when the editor opened, so using
-      // the row's own "✓ סגור" button while editing was silently reverted on
-      // save — and the toast still said it had worked.
+      // Spreading the whole `form` wrote back the status it snapshotted when
+      // the editor opened, so a "✓ סגור" pressed on the row while editing was
+      // silently reverted on save. Dropping the status altogether (the first
+      // fix) threw away a status the host chose IN the form, and nothing
+      // could move a vendor to "לא ממשיכים" any more (3.10). The form's status
+      // is written only when the host changed it there.
       const { category, contact, phone, price, paid, payment, note } = form;
+      const statusChanged = form.status !== editBaseStatus;
       write(l => l.map(v => v.id === editId
-        ? { ...v, name, category, contact, phone, price, paid, payment, note }
+        ? { ...v, name, category, contact, phone, price, paid, payment, note,
+            ...(statusChanged ? { status: form.status } : {}) }
         : v));
       showToast("הספק עודכן ✓");
     } else {
@@ -63,6 +70,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
 
   const startEdit = v => {
     setEditId(v.id);
+    setEditBaseStatus(v.status);
     setForm({ ...EMPTY, ...v });
     setAdding(true);
   };
@@ -101,7 +109,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
       />
 
       {vendors.length > 0 && (
-        <div className={base.card}>
+        <div data-tour="vendors.summary" className={base.card}>
           <SectionLabel>סיכום</SectionLabel>
           <div className={styles.totals}>
             <div className={styles.total}>
@@ -124,12 +132,12 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
       )}
 
       <div className={base.card}>
-        <div className={styles.toolbar}>
+        <div data-tour="vendors.toolbar" className={styles.toolbar}>
           <button className={base.btnPrimary} onClick={() => { setAdding(true); setEditId(null); setForm(EMPTY); }}>
             <Icon name="plus" size={15} /> ספק חדש
           </button>
           {vendors.length > 0 && (
-            <div className={styles.filters}>
+            <div data-tour="vendors.filters" className={styles.filters}>
               {[["all", "הכל"], ...VENDOR_STATUSES.map(s => [s.value, s.label])].map(([v, l]) => (
                 <button
                   key={v}
@@ -208,7 +216,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
         )}
 
         {shown.length > 0 && (
-          <div className={styles.list}>
+          <div data-tour="vendors.list" className={styles.list}>
             {shown.map(v => {
               const st  = vendorStatus(v.status);
               const pay = shownPayment(v.payment, parseAmount(v.price), parseAmount(v.paid));

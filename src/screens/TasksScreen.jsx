@@ -105,12 +105,12 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
       />
 
       <div className={base.card}>
-        <div className={styles.toolbar}>
+        <div data-tour="tasks.toolbar" className={styles.toolbar}>
           <button className={base.btnPrimary} onClick={() => { setAdding(true); setEditId(null); setForm(EMPTY); }}>
             <Icon name="plus" size={15} /> משימה חדשה
           </button>
           {tasks.length === 0 && (
-            <button className={base.btnSm} onClick={loadStarter}>
+            <button data-tour="tasks.starter" className={base.btnSm} onClick={loadStarter}>
               טענו רשימת התחלה ל{ev.type && ev.type !== "אחר" ? ev.type : "אירוע"}
             </button>
           )}
@@ -174,7 +174,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
         )}
 
         {tasks.length > 0 && (
-          <div className={styles.board}>
+          <div data-tour="tasks.board" className={styles.board}>
             {TASK_STATUSES.map(col => (
               <div key={col.value} className={styles.column} data-state={col.value}>
                 <div className={styles.colHead}>

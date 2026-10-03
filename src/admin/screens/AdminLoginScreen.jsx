@@ -38,7 +38,20 @@ export default function AdminLoginScreen() {
   // two bounced between each other: 96 profile requests in 6 seconds, measured
   // with the database unreachable, and the message below never on screen long
   // enough to read (second review, סב18).
-  const cameWithError = !!location.state?.error;
+  //
+  // Read ONCE, at mount (RG10a). location.state lives in the browser's history
+  // entry, so it survived a reload: the guard's message came back on every
+  // refresh of this page, long after its cause was gone, and the session
+  // redirect below stayed switched off for as long as the tab lived. The state
+  // is cleared right after it is read; this mount keeps what it read, so the
+  // loop guard still holds for the visit the guard sent us on.
+  const [cameWithError] = useState(() => !!location.state?.error);
+  useEffect(() => {
+    if (location.state?.error) {
+      navigate(location.pathname + location.search, { replace: true, state: null });
+    }
+  }, [location, navigate]);
+
   useEffect(() => {
     if (!supabase || cameWithError) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -68,7 +81,7 @@ export default function AdminLoginScreen() {
   };
 
   return (
-    <div className={styles.page}>
+    <main className={styles.page}>
       <div className={styles.card}>
 
         <div className={styles.header}>
@@ -129,6 +142,6 @@ export default function AdminLoginScreen() {
         </p>
 
       </div>
-    </div>
+    </main>
   );
 }

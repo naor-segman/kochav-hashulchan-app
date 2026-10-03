@@ -45,7 +45,6 @@ try {
     const p = await ctx.newPage();
     await p.goto(server.base + '/help');
     await p.evaluate(([u, ev]) => {
-      localStorage.setItem('kochav_orientation_v1', '1');
       localStorage.setItem('sb-stub-auth-token', JSON.stringify({
         access_token: 'stub-access', refresh_token: 'stub-refresh', token_type: 'bearer',
         expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) - 3600, user: u,

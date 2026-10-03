@@ -50,6 +50,10 @@ const FAQ = [
     a: "אישורי הגעה, אתר לאירוע, הזמנה דיגיטלית ורשימת אורחים בלי הגבלה — וגם הושבה אוטומטית עד 200 איש כדי לראות איך זה עובד. מה שבתשלום הוא ההושבה בלי תקרה, אילוצי ישיבה, מפת האולם, ההדפסות ועמדת הכניסה.",
   },
   {
+    q: "אפשר לבטל ולקבל החזר?",
+    a: "כן. בתוך 14 יום מהרכישה אפשר לבטל ולקבל את כל הכסף בחזרה, בלי דמי ביטול. אירוע שנדחה שומר על החבילה, ואם הבעיה אצלנו — ההחזר מלא. כל הפרטים בעמוד ״ביטול עסקה והחזרים״ שבתחתית האתר.",
+  },
+  {
     q: "מתי משלמים?",
     a: "כשאתם מחליטים. אפשר לבנות את כל הרשימה, לשלוח אישורי הגעה ולהקים את האתר בחינם, ולשדרג רק כשמגיעים לסידור השולחנות.",
   },
@@ -83,6 +87,9 @@ export default function PricingScreen({ user }) {
   return (
     <div className={styles.root}>
       <SiteHeader user={user} active="pricing" />
+
+      {/* The page's one landmark (38a). SiteHeader's skip link focuses it. */}
+      <main id="main" tabIndex={-1} className={styles.main}>
 
       {/* ── Header ── */}
       <section className={styles.pageHeader}>
@@ -169,6 +176,11 @@ export default function PricingScreen({ user }) {
           </div>
 
           <p className={styles.footnote}>{PRICING_FOOTNOTE}</p>
+          {/* Checklist 103: the cancellation terms are part of what a buyer is
+              told before paying (Consumer Protection Law §14ג). */}
+          <p className={styles.footnote}>
+            אפשר לבטל בתוך 14 יום — הפרטים ב<Link to="/refunds">מדיניות הביטול וההחזרים</Link>.
+          </p>
 
           {/* ── Add-ons ──
               Below the table and not inside it, on purpose: these scale with
@@ -255,6 +267,8 @@ export default function PricingScreen({ user }) {
           <Link to="/signup" className={styles.ctaBtn}>מתחילים חינם ←</Link>
         </div>
       </section>
+
+      </main>
 
       <Footer />
     </div>

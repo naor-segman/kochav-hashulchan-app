@@ -6,7 +6,11 @@ import styles from "./QrCode.module.css";
 // Inline QR for a shareable link. Click the button to reveal a scannable /
 // printable code with a download link. Used next to the event share links so a
 // host can print a QR for the entrance, hostess station, or RSVP.
-export default function QrCode({ url, label, filename }) {
+//
+// `gate` (optional) runs before the code opens — the share gate's guard, so an
+// event without an account does not hand out a QR that will not open for the
+// people who scan it (the same reason copying the link is guarded).
+export default function QrCode({ url, label, filename, gate }) {
   const [open, setOpen] = useState(false);
   const [dataUrl, setDataUrl] = useState("");
   const [failed, setFailed] = useState(false);
@@ -32,7 +36,7 @@ export default function QrCode({ url, label, filename }) {
       <button
         type="button"
         className={styles.btn}
-        onClick={() => setOpen(o => !o)}
+        onClick={() => (gate ? gate(() => setOpen(o => !o)) : setOpen(o => !o))}
         aria-expanded={open}
         aria-label="קוד QR"
         title="הצגת קוד QR להדפסה או סריקה"

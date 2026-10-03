@@ -13,6 +13,7 @@ import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventSetupScreen.module.css";
+import { setUnsavedWork } from "../utils/unsavedWork.js";
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [form, setForm] = useState({
@@ -52,11 +53,17 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   useEffect(() => {
     pending.current = { dirty, form, patchEvent, showToast, name: ev.name };
   });
+  // The update reload waits while this form holds edits (71d, utils/unsavedWork):
+  // a reload cannot run the save-on-leave below.
+  useEffect(() => {
+    setUnsavedWork("event-setup", dirty);
+  }, [dirty]);
   useEffect(() => {
     const warn = (e) => { if (pending.current.dirty) { e.preventDefault(); e.returnValue = ""; } };
     window.addEventListener("beforeunload", warn);
     return () => {
       window.removeEventListener("beforeunload", warn);
+      setUnsavedWork("event-setup", false);
       const p = pending.current;
       if (!p.dirty) return;
       p.patchEvent(p.form.name.trim() ? p.form : { ...p.form, name: p.name });
@@ -150,7 +157,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         <SectionLabel>פרטי האירוע</SectionLabel>
         <p className={styles.requiredNote}>* שדה חובה — נדרש לפני המעבר לשלב הבא</p>
 
-        <div className={base.grid2}>
+        <div className={base.grid2} data-tour="setup.basics">
           <Field label="שם האירוע" required hint="כך תזהו אותו ברשימה, וכך הוא ייקרא בכל מה שהאורחים יראו">
             <input
               ref={nameRef}
@@ -185,179 +192,187 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         </div>
 
         {/* ── Personal fields — adaptive by event type ── */}
+        {/* A plain block wrapper, so the guided tour (124) has one element to
+            light around whichever personal block this event type shows. */}
+        <div data-tour="setup.people">
 
-        {personal.kind === "wedding" && (
-          <>
-            <Divider label={personal.divider} />
-            <Field label="בני הזוג" hint="לפי זה ייקראו שני הצדדים בכל המסכים">
-              <div className={base.seg}>
-                {COUPLE_TYPES.map(c => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    className={[base.segBtn, form.coupleType === c.value ? base.segActive : ""].filter(Boolean).join(" ")}
-                    onClick={() => set("coupleType", c.value)}
-                  >
-                    {c.label}
-                  </button>
-                ))}
+          {personal.kind === "wedding" && (
+            <>
+              <Divider label={personal.divider} />
+              <Field label="בני הזוג" hint="לפי זה ייקראו שני הצדדים בכל המסכים">
+                <div className={base.seg} role="group" aria-label="בני הזוג">
+                  {COUPLE_TYPES.map(c => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      aria-pressed={form.coupleType === c.value}
+                      className={[base.segBtn, form.coupleType === c.value ? base.segActive : ""].filter(Boolean).join(" ")}
+                      onClick={() => set("coupleType", c.value)}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              {/* Bug class 7. This line used to read
+                    ("{bride}" / "{groom}")
+                  — a slash and two spaces between two quoted values, with no
+                  strong character of its own. It happens to resolve correctly
+                  while both sides are Hebrew, but a side named in Latin letters
+                  or digits (a host may type anything here) flips the pair on
+                  screen. "ו" is a strong Hebrew character and anchors the order
+                  no matter what the host types. */}
+              <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+                כל אורח ישויך לצד אחד — "{effectiveLabels.bride}" או "{effectiveLabels.groom}" — בכל המסכים.
+              </p>
+              <div className={base.grid2}>
+                <Field label={coupleCfg.brideLabel}>
+                  <input
+                    className={base.input}
+                    value={form.brideName}
+                    placeholder="לדוגמה: נועה"
+                    onChange={e => set("brideName", e.target.value)}
+                  />
+                </Field>
+                <Field label={coupleCfg.groomLabel}>
+                  <input
+                    className={base.input}
+                    value={form.groomName}
+                    placeholder="לדוגמה: טל"
+                    onChange={e => set("groomName", e.target.value)}
+                  />
+                </Field>
               </div>
-            </Field>
-            {/* Bug class 7. This line used to read
-                  ("{bride}" / "{groom}")
-                — a slash and two spaces between two quoted values, with no
-                strong character of its own. It happens to resolve correctly
-                while both sides are Hebrew, but a side named in Latin letters
-                or digits (a host may type anything here) flips the pair on
-                screen. "ו" is a strong Hebrew character and anchors the order
-                no matter what the host types. */}
-            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              כל אורח ישויך לצד אחד — "{effectiveLabels.bride}" או "{effectiveLabels.groom}" — בכל המסכים.
-            </p>
-            <div className={base.grid2}>
-              <Field label={coupleCfg.brideLabel}>
-                <input
-                  className={base.input}
-                  value={form.brideName}
-                  placeholder="לדוגמה: נועה"
-                  onChange={e => set("brideName", e.target.value)}
-                />
-              </Field>
-              <Field label={coupleCfg.groomLabel}>
-                <input
-                  className={base.input}
-                  value={form.groomName}
-                  placeholder="לדוגמה: טל"
-                  onChange={e => set("groomName", e.target.value)}
-                />
-              </Field>
-            </div>
-          </>
-        )}
+            </>
+          )}
 
-        {(personal.kind === "bar" || personal.kind === "bat") && (
-          <>
-            <Divider label={personal.divider} />
-            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              השם הזה יופיע בכותרת האירוע ובהזמנה שהאורחים יקבלו.
-            </p>
-            <div className={base.grid2}>
-              <Field label={personal.label}>
-                <input
-                  className={base.input}
-                  value={form.celebrantName}
-                  placeholder={personal.placeholder}
-                  onChange={e => set("celebrantName", e.target.value)}
-                />
-              </Field>
-            </div>
-          </>
-        )}
-
-        {personal.kind === "business" && (
-          <>
-            <Divider label={personal.divider} />
-            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              אלה יופיעו בכותרת האירוע ובהזמנה שהמוזמנים יקבלו.
-            </p>
-            <div className={base.grid2}>
-              <Field label="שם הארגון / חברה">
-                <input
-                  className={base.input}
-                  value={form.organizationName}
-                  placeholder='לדוגמה: חברת כוכב בע"מ'
-                  onChange={e => set("organizationName", e.target.value)}
-                />
-              </Field>
-              <Field label="שם איש הקשר">
-                <input
-                  className={base.input}
-                  value={form.contactName}
-                  placeholder="לדוגמה: יוסי כהן"
-                  onChange={e => set("contactName", e.target.value)}
-                />
-              </Field>
-            </div>
-          </>
-        )}
-
-        {personal.kind === "owner" && (
-          <>
-            <Divider label={personal.divider} />
-            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              השם הזה יופיע בכותרת האירוע ובהזמנה שהאורחים יקבלו.
-            </p>
-            <div className={base.grid2}>
-              <Field label={personal.label}>
-                <input
-                  className={base.input}
-                  value={form.ownerName}
-                  placeholder={personal.placeholder}
-                  onChange={e => set("ownerName", e.target.value)}
-                />
-              </Field>
-            </div>
-          </>
-        )}
-
-        {/* ── Whose two families the sides are ──
-            Gated on the event type rather than personal.kind, because "owner"
-            covers a brit AND a birthday AND "אחר" — and only the first of those
-            has parents to name. */}
-        {PARENT_EVENT_TYPES.includes(form.type) && (
-          <>
-            <Divider label="ההורים" />
-            <Field label="מי ההורים" hint="לפי זה ייקראו שני הצדדים בכל המסכים">
-              <div className={base.seg}>
-                {PARENT_TYPES.map(p => (
-                  <button
-                    key={p.value}
-                    type="button"
-                    className={[base.segBtn, form.parentsType === p.value ? base.segActive : ""].filter(Boolean).join(" ")}
-                    onClick={() => set("parentsType", p.value)}
-                  >
-                    {p.label}
-                  </button>
-                ))}
+          {(personal.kind === "bar" || personal.kind === "bat") && (
+            <>
+              <Divider label={personal.divider} />
+              <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+                השם הזה יופיע בכותרת האירוע ובהזמנה שהאורחים יקבלו.
+              </p>
+              <div className={base.grid2}>
+                <Field label={personal.label}>
+                  <input
+                    className={base.input}
+                    value={form.celebrantName}
+                    placeholder={personal.placeholder}
+                    onChange={e => set("celebrantName", e.target.value)}
+                  />
+                </Field>
               </div>
-            </Field>
-            {/* Bug class 7 again: the pair is joined by "או", a strong Hebrew
-                character, so the two side names keep their order on screen even
-                if a host has overridden one of them with Latin letters. */}
-            <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-              כל אורח ישויך לצד אחד — "{effectiveLabels.bride}" או "{effectiveLabels.groom}" — בכל המסכים.
-            </p>
-          </>
-        )}
+            </>
+          )}
 
-        {/* ── Custom side names — available for every event type ── */}
-        <Divider label="שמות הצדדים (אופציונלי)" />
-        {/* The example pair here carried the same bidi hazard as the wedding
-            hint above — "צד הכלה" / "צד החתן" — and is now joined by "או". */}
-        <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
-          כל אורח שייך לאחד משני צדדים, וכך ההושבה מתאזנת ביניהם. כאן אפשר לקרוא לצדדים
-          בשם שלכם — למשל "צד הכלה" או "צד החתן". השאירו ריק ונשתמש בשמות שמופיעים למטה.
-        </p>
-        <div className={base.grid2}>
-          <Field label={<>צד ראשון <InfoTip text="כל אורח משויך לאחד משני צדדים כדי שההושבה תתאזן ביניהם. השאירו ריק לשימוש בברירת המחדל." /></>}>
-            <input
-              className={base.input}
-              value={form.sideLabels.bride}
-              placeholder={effectiveLabels.bride}
-              onChange={e => setSideLabel("bride", e.target.value)}
-            />
-          </Field>
-          <Field label="צד שני">
-            <input
-              className={base.input}
-              value={form.sideLabels.groom}
-              placeholder={effectiveLabels.groom}
-              onChange={e => setSideLabel("groom", e.target.value)}
-            />
-          </Field>
+          {personal.kind === "business" && (
+            <>
+              <Divider label={personal.divider} />
+              <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+                אלה יופיעו בכותרת האירוע ובהזמנה שהמוזמנים יקבלו.
+              </p>
+              <div className={base.grid2}>
+                <Field label="שם הארגון / חברה">
+                  <input
+                    className={base.input}
+                    value={form.organizationName}
+                    placeholder='לדוגמה: חברת כוכב בע"מ'
+                    onChange={e => set("organizationName", e.target.value)}
+                  />
+                </Field>
+                <Field label="שם איש הקשר">
+                  <input
+                    className={base.input}
+                    value={form.contactName}
+                    placeholder="לדוגמה: יוסי כהן"
+                    onChange={e => set("contactName", e.target.value)}
+                  />
+                </Field>
+              </div>
+            </>
+          )}
+
+          {personal.kind === "owner" && (
+            <>
+              <Divider label={personal.divider} />
+              <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+                השם הזה יופיע בכותרת האירוע ובהזמנה שהאורחים יקבלו.
+              </p>
+              <div className={base.grid2}>
+                <Field label={personal.label}>
+                  <input
+                    className={base.input}
+                    value={form.ownerName}
+                    placeholder={personal.placeholder}
+                    onChange={e => set("ownerName", e.target.value)}
+                  />
+                </Field>
+              </div>
+            </>
+          )}
+
+          {/* ── Whose two families the sides are ──
+              Gated on the event type rather than personal.kind, because "owner"
+              covers a brit AND a birthday AND "אחר" — and only the first of those
+              has parents to name. */}
+          {PARENT_EVENT_TYPES.includes(form.type) && (
+            <>
+              <Divider label="ההורים" />
+              <Field label="מי ההורים" hint="לפי זה ייקראו שני הצדדים בכל המסכים">
+                <div className={base.seg} role="group" aria-label="מי ההורים">
+                  {PARENT_TYPES.map(p => (
+                    <button
+                      key={p.value}
+                      type="button"
+                      aria-pressed={form.parentsType === p.value}
+                      className={[base.segBtn, form.parentsType === p.value ? base.segActive : ""].filter(Boolean).join(" ")}
+                      onClick={() => set("parentsType", p.value)}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              {/* Bug class 7 again: the pair is joined by "או", a strong Hebrew
+                  character, so the two side names keep their order on screen even
+                  if a host has overridden one of them with Latin letters. */}
+              <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+                כל אורח ישויך לצד אחד — "{effectiveLabels.bride}" או "{effectiveLabels.groom}" — בכל המסכים.
+              </p>
+            </>
+          )}
         </div>
 
-        <div className={base.formActions}>
+        {/* ── Custom side names — available for every event type ── */}
+        <div data-tour="setup.sides">
+          <Divider label="שמות הצדדים (אופציונלי)" />
+          {/* The example pair here carried the same bidi hazard as the wedding
+              hint above — "צד הכלה" / "צד החתן" — and is now joined by "או". */}
+          <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
+            כל אורח שייך לאחד משני צדדים, וההושבה האוטומטית מושיבה את אורחי אותו צד יחד. כאן אפשר לקרוא לצדדים
+            בשם שלכם — למשל "צד הכלה" או "צד החתן". השאירו ריק ונשתמש בשמות שמופיעים למטה.
+          </p>
+          <div className={base.grid2}>
+            <Field label={<>צד ראשון <InfoTip text="כל אורח משויך לאחד משני צדדים, וההושבה האוטומטית מושיבה את אורחי אותו צד יחד. השאירו ריק לשימוש בברירת המחדל." /></>}>
+              <input
+                className={base.input}
+                value={form.sideLabels.bride}
+                placeholder={effectiveLabels.bride}
+                onChange={e => setSideLabel("bride", e.target.value)}
+              />
+            </Field>
+            <Field label="צד שני">
+              <input
+                className={base.input}
+                value={form.sideLabels.groom}
+                placeholder={effectiveLabels.groom}
+                onChange={e => setSideLabel("groom", e.target.value)}
+              />
+            </Field>
+          </div>
+        </div>
+
+        <div className={base.formActions} data-tour="setup.save">
           <button className={base.btnPrimary} onClick={saveAndNext}>
             שמרו והמשיכו ל{next.label} <Icon name="arrowLeft" size={15} />
           </button>
@@ -374,7 +389,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           receive, and this screen is the host's own details. This is the
           pointer, so nobody who knew them by their old address is left
           hunting. */}
-      <div className={base.card}>
+      <div className={base.card} data-tour="setup.links">
         <SectionLabel>הקישורים לאורחים</SectionLabel>
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
           ההזמנה, אישור ההגעה, אתר האירוע, המתנה, הטבלה השיתופית ועמדת הכניסה —

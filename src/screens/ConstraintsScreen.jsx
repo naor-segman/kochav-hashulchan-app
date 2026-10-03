@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { getSideLabel } from "../utils/eventHelpers.js";
 import { buildStep, nextBuildStep, BUILD_STEP_COUNT } from "../data/eventAreas.js";
@@ -41,6 +41,8 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
   const [hi, setHi]         = useState(-1);
   const containerRef        = useRef(null);
   const valueRef            = useRef(value);
+  const listId              = useId();
+  const optionId            = (i) => `${listId}-opt-${i}`;
 
   useEffect(() => { valueRef.current = value; }, [value]);
 
@@ -136,6 +138,10 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
     <div ref={containerRef} className={styles.acWrap}>
       <div className={[styles.acInputWrap, isSelected ? styles.acInputSelected : ""].filter(Boolean).join(" ")}>
         {isSelected && <SideDot side={selectedGuest.side} />}
+        {/* A combobox in the ARIA sense (AX3): the input owns the listbox
+            through aria-controls and names the highlighted option through
+            aria-activedescendant, so arrowing through the list is announced —
+            before, a screen reader heard nothing move. */}
         <input
           className={[base.input, styles.acInput].join(" ")}
           value={query}
@@ -144,9 +150,12 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
           onFocus={() => setOpen(true)}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          role="combobox"
           aria-label={label}
           aria-autocomplete="list"
-          aria-expanded={open}
+          aria-expanded={open && results.length > 0}
+          aria-controls={listId}
+          aria-activedescendant={open && hi >= 0 && results[hi] ? optionId(hi) : undefined}
         />
         {query && (
           <button
@@ -158,15 +167,28 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
         )}
       </div>
 
-      {open && (results.length > 0 || query) && (
-        <div className={styles.acDropdown} role="listbox">
-          {results.length > 0 ? results.map((g, i) => (
-            <button
+      {/* Only options inside the listbox: "no results" and "N more" are
+          status rows, and inside role=listbox they were read as options that
+          could not be chosen. The listbox element stays mounted (empty when
+          closed) so aria-controls always points at something.
+          Options select on CLICK — a screen reader's activation and a
+          keyboard-driven click send no mousedown, so the old mousedown-only
+          handler ignored them. mousedown still preventDefaults, which keeps
+          the focus in the input. */}
+      <div
+        className={open && (results.length > 0 || query) ? styles.acDropdown : undefined}
+        hidden={!(open && (results.length > 0 || query))}
+      >
+        <div id={listId} role="listbox" aria-label={label}>
+          {open && results.map((g, i) => (
+            <div
               key={g.id}
+              id={optionId(i)}
               role="option"
               aria-selected={i === hi}
               className={[styles.acItem, i === hi ? styles.acItemHi : ""].filter(Boolean).join(" ")}
-              onMouseDown={e => { e.preventDefault(); select(g); }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => select(g)}
               onMouseEnter={() => setHi(i)}
             >
               <SideDot side={g.side} />
@@ -178,17 +200,18 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
                 {g.group ? " · " + g.group : ""}
                 {g.phone ? " · " + g.phone : ""}
               </span>
-            </button>
-          )) : (
-            <div className={styles.acEmpty}>אין תוצאות עבור &ldquo;{query}&rdquo;</div>
-          )}
-          {more > 0 && (
-            <div className={styles.acEmpty}>
-              {more === 1 ? "ועוד אחד" : `ועוד ${more}`} — הקלידו עוד אותיות כדי לצמצם
             </div>
-          )}
+          ))}
         </div>
-      )}
+        {open && results.length === 0 && query && (
+          <div className={styles.acEmpty} role="status">אין תוצאות עבור &ldquo;{query}&rdquo;</div>
+        )}
+        {open && more > 0 && (
+          <div className={[styles.acEmpty, styles.acMore].join(" ")}>
+            {more === 1 ? "ועוד אחד" : `ועוד ${more}`} — הקלידו עוד אותיות כדי לצמצם
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -291,14 +314,18 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         <SectionLabel>הוספת אילוץ חדש</SectionLabel>
 
         <Field label="סוג האילוץ">
-          <div className={base.seg}>
+          <div data-tour="constraints.type" className={base.seg} role="group" aria-label="סוג האילוץ">
             <button
+              type="button"
+              aria-pressed={formType === "together"}
               className={[base.segBtn, formType === "together" ? base.segActive : ""].filter(Boolean).join(" ")}
               onClick={() => setFormType("together")}
             >
               <Icon name="together" /> חייבים לשבת יחד
             </button>
             <button
+              type="button"
+              aria-pressed={formType === "apart"}
               className={[base.segBtn, formType === "apart" ? base.segActive : ""].filter(Boolean).join(" ")}
               onClick={() => setFormType("apart")}
             >
@@ -313,7 +340,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
             : "האורחים שתבחרו לא יושבצו לאותו שולחן — יהיו בשולחנות שונים."}
         </p>
 
-        <div className={styles.constraintFormRow}>
+        <div data-tour="constraints.pick" className={styles.constraintFormRow}>
           <div className={styles.constraintFormField}>
             <Field label="אורח א׳">
               <GuestAutocomplete
@@ -380,59 +407,69 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         )}
       </div>
 
-      {together.length > 0 && (
-        <div className={[base.card, styles.cardTogether].join(" ")}>
-          <SectionLabel><Icon name="together" /> חייבים לשבת יחד — {together.length}</SectionLabel>
-          <div className={styles.cList}>
-            {together.map(c => {
-              const ga = gMap[c.guestA], gb = gMap[c.guestB];
-              return (
-                <div key={c.id} className={styles.cRow}>
-                  <div className={styles.cRowMain}>
-                    <SideDot side={ga.side} />
-                    <span className={styles.cstName}>{ga.name}</span>
-                    <span className={styles.cstVerb}>יחד עם</span>
-                    <SideDot side={gb.side} />
-                    <span className={styles.cstName}>{gb.name}</span>
-                  </div>
-                  <button
-                    className={[base.btnSm, base.btnDanger].join(" ")}
-                    onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
-                  >
-                    הסר
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* One element around both lists, so the guided tour (124) lights the
+          two of them — a key on each card lit only the first. */}
+      {ev.constraints.length > 0 && (
+        <div data-tour="constraints.list">
+          {together.length > 0 && (
+            <div className={[base.card, styles.cardTogether].join(" ")}>
+              <SectionLabel><Icon name="together" /> חייבים לשבת יחד — {together.length}</SectionLabel>
+              <div className={styles.cList}>
+                {together.map(c => {
+                  const ga = gMap[c.guestA], gb = gMap[c.guestB];
+                  return (
+                    <div key={c.id} className={styles.cRow}>
+                      <div className={styles.cRowMain}>
+                        <SideDot side={ga.side} />
+                        <span className={styles.cstName}>{ga.name}</span>
+                        <span className={styles.cstVerb}>יחד עם</span>
+                        <SideDot side={gb.side} />
+                        <span className={styles.cstName}>{gb.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={[base.btnSm, base.btnDanger].join(" ")}
+                        onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
+                        aria-label={`הסירו: ${ga.name} יחד עם ${gb.name}`}
+                      >
+                        הסירו
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-      {apart.length > 0 && (
-        <div className={[base.card, styles.cardApart].join(" ")}>
-          <SectionLabel><Icon name="apart" /> לא יכולים לשבת יחד — {apart.length}</SectionLabel>
-          <div className={styles.cList}>
-            {apart.map(c => {
-              const ga = gMap[c.guestA], gb = gMap[c.guestB];
-              return (
-                <div key={c.id} className={styles.cRow}>
-                  <div className={styles.cRowMain}>
-                    <SideDot side={ga.side} />
-                    <span className={styles.cstName}>{ga.name}</span>
-                    <span className={[styles.cstVerb, styles.cstVerbApart].join(" ")}>בנפרד מ-</span>
-                    <SideDot side={gb.side} />
-                    <span className={styles.cstName}>{gb.name}</span>
-                  </div>
-                  <button
-                    className={[base.btnSm, base.btnDanger].join(" ")}
-                    onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
-                  >
-                    הסר
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+          {apart.length > 0 && (
+            <div className={[base.card, styles.cardApart].join(" ")}>
+              <SectionLabel><Icon name="apart" /> לא יכולים לשבת יחד — {apart.length}</SectionLabel>
+              <div className={styles.cList}>
+                {apart.map(c => {
+                  const ga = gMap[c.guestA], gb = gMap[c.guestB];
+                  return (
+                    <div key={c.id} className={styles.cRow}>
+                      <div className={styles.cRowMain}>
+                        <SideDot side={ga.side} />
+                        <span className={styles.cstName}>{ga.name}</span>
+                        <span className={[styles.cstVerb, styles.cstVerbApart].join(" ")}>בנפרד מ-</span>
+                        <SideDot side={gb.side} />
+                        <span className={styles.cstName}>{gb.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={[base.btnSm, base.btnDanger].join(" ")}
+                        onClick={() => delConstraint(c.id, ga.name, gb.name, c.type)}
+                        aria-label={`הסירו: ${ga.name} בנפרד מ-${gb.name}`}
+                      >
+                        הסירו
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

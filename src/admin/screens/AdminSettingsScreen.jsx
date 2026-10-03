@@ -172,7 +172,7 @@ export default function AdminSettingsScreen() {
         <div className={styles.brand}>
           <Link to="/admin/dashboard" className={styles.backLink} aria-label="חזרה ללוח הבקרה">→</Link>
           <SectionMark name="adminSettings" tone="admin" size={20} className={styles.brandMark} />
-          <span className={styles.brandName}>הגדרות מערכת</span>
+          <h1 className={styles.brandName}>הגדרות מערכת</h1>
           <span className={styles.brandSep}>·</span>
           <span className={styles.brandSub}>{COMPANY.name}</span>
         </div>

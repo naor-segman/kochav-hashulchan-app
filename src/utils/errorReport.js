@@ -32,10 +32,19 @@ export function scrubRoute(pathname) {
   // NAME>&t=<table>, and cleaning `ref=` alone sent a guest's name to
   // PostHog; a Supabase recovery link lands with #access_token=… in the hash.
   // Kept: the keys, utm_* (that is what attribution is), and checkout=.
-  const tail = cut < 0 ? "" : str.slice(cut).replace(/([?&#])([^=&#]*)=[^&#]*/g, (m, sep, key) =>
-    /^ref$/i.test(key) ? `${sep}${key}=:token`
-    : /^(utm_[a-z]+|checkout)$/i.test(key) ? m
-    : `${sep}${key}=:v`);
+  //
+  // Segment by segment, not key=value pairs only (RG8): a value with NO key —
+  // `?<token>`, `#<token>`, `&<guest name>` — matched nothing and went out
+  // whole. A segment without "=" is all value, and is replaced.
+  const tail = cut < 0 ? "" : str.slice(cut).replace(/([?&#])([^&#]*)/g, (m, sep, seg) => {
+    if (!seg) return m;
+    const eq = seg.indexOf("=");
+    if (eq < 0) return `${sep}:v`;
+    const key = seg.slice(0, eq);
+    return /^ref$/i.test(key) ? `${sep}${key}=:token`
+      : /^(utm_[a-z]+|checkout)$/i.test(key) ? m
+      : `${sep}${key}=:v`;
+  });
   const parts = path.split("/");
   return parts
     .map((part, i) => {

@@ -15,7 +15,8 @@ import styles from "./PageHeader.module.css";
  */
 export default function PageHeader({ title, mark, icon, sub, aside }) {
   return (
-    <div className={styles.pageHead}>
+    // "page.head" — the guided tour's (124) opening step on any screen.
+    <div className={styles.pageHead} data-tour="page.head">
       {mark && <SectionMark name={mark} size={26} tile className={styles.mark} />}
       <div className={styles.titleWrap}>
         <h1 className={styles.pageTitle}>

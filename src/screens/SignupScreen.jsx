@@ -1,24 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { track, EVENTS } from "../lib/analytics.js";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
-import { COMPANY } from "../data/company.js";
+import { COMPANY, LEGAL_DOCS } from "../data/company.js";
 import styles from "./LoginScreen.module.css"; // shares layout styles
-
-function friendlyError(message) {
-  const m = message.toLowerCase();
-  if (m.includes("user already registered") || m.includes("already been registered"))
-    return "כתובת אימייל זו כבר רשומה. נסו להתחבר.";
-  if (m.includes("password") && m.includes("6"))
-    return "הסיסמה חייבת להכיל לפחות 6 תווים.";
-  if (m.includes("too many requests"))
-    return "יותר מדי ניסיונות. נסו שוב מאוחר יותר.";
-  if (m.includes("network") || m.includes("fetch failed"))
-    return "שגיאת חיבור. נסו שוב.";
-  return message;
-}
+import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
 
 export default function SignupScreen() {
   const { user, loading, signUp } = useAuth();
@@ -35,7 +23,10 @@ export default function SignupScreen() {
   const [password, setPassword] = useState("");
   const [confirm,  setConfirm]  = useState("");
   const [error,    setError]    = useState("");
+  // Which fields the error is about: "password" | "confirm" | "all" | "".
+  const [invalid,  setInvalid]  = useState("");
   const [showPw,   setShowPw]   = useState(false);
+  const [agree,    setAgree]    = useState(false);
   const [busy,        setBusy]        = useState(false);
   const [done,        setDone]        = useState(false); // email confirmation sent
   const [resentDone,  setResentDone]  = useState(false);
@@ -46,22 +37,42 @@ export default function SignupScreen() {
     if (!loading && user) navigate(from, { replace: true });
   }, [loading, user, navigate, from]);
 
+  // The form that had the focus is replaced by "check your email"; the focus
+  // goes to its heading instead of falling to <body> (AX6).
+  const doneHeadingRef = useRef(null);
+  useEffect(() => { if (done) doneHeadingRef.current?.focus(); }, [done]);
+
+  // Fields are readOnly and the button aria-disabled while busy — NOT
+  // `disabled`, which drops the keyboard focus to <body> on submit (AX6).
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (busy) return;
     setError("");
+    setInvalid("");
 
     if (password !== confirm) {
       setError("הסיסמאות אינן תואמות.");
+      setInvalid("confirm");
       return;
     }
     if (password.length < 6) {
       setError("הסיסמה חייבת להכיל לפחות 6 תווים.");
+      setInvalid("password");
+      return;
+    }
+    // Checklist 103: agreeing to the terms is an act, not a side effect of
+    // pressing "הרשמה" — and the version agreed to is recorded with the user.
+    if (!agree) {
+      setError("כדי להירשם צריך לאשר את תנאי השימוש ומדיניות הפרטיות.");
       return;
     }
 
     setBusy(true);
     try {
-      const { needsConfirmation } = await signUp(email.trim(), password);
+      const { needsConfirmation } = await signUp(email.trim(), password, {
+        terms_version: LEGAL_DOCS.version,
+        terms_accepted_at: new Date().toISOString(),
+      });
       // Step 1 of the funnel. Fired on success only — a failed attempt is a
       // different question, and counting it here would inflate the top of the
       // funnel with people who never got in.
@@ -72,7 +83,8 @@ export default function SignupScreen() {
         navigate(from, { replace: true });
       }
     } catch (err) {
-      setError(friendlyError(err.message));
+      setError(authErrorMessage(err, "signUp"));
+      setInvalid(isAuthInputError(err) ? "all" : "");
     } finally {
       setBusy(false);
     }
@@ -88,8 +100,8 @@ export default function SignupScreen() {
       const { error: err } = await supabase.auth.resend({ type: "signup", email: email.trim() });
       if (err) throw err;
       setResentDone(true);
-    } catch {
-      setResentError("שגיאה בשליחה חוזרת. נסו שוב.");
+    } catch (err) {
+      setResentError(authErrorMessage(err, "resend"));
     } finally {
       setResentBusy(false);
     }
@@ -97,27 +109,30 @@ export default function SignupScreen() {
 
   if (done) {
     return (
-      <div className={styles.page}>
+      <main className={styles.page}>
         <div className={styles.card}>
           <div className={styles.brand}>
-            <span className={styles.brandMark}>✦</span>
+            <span className={styles.brandMark} aria-hidden="true">✦</span>
             <span className={styles.brandName}>{COMPANY.name}</span>
           </div>
-          <h1 className={styles.title}>בדקו את האימייל שלכם</h1>
+          <h1 className={styles.title} tabIndex={-1} ref={doneHeadingRef}>בדקו את האימייל שלכם</h1>
           <p className={styles.confirmBody}>
             שלחנו קישור אישור לכתובת <strong>{email}</strong>.
             לחצו על הקישור לאישור החשבון.
           </p>
           {resentDone ? (
-            <p className={styles.confirmSuccess}>✓ הקישור נשלח שוב — בדקו את תיבת הדואר</p>
+            <p className={styles.confirmSuccess} role="status">✓ הקישור נשלח שוב — בדקו את תיבת הדואר</p>
           ) : (
             <div className={styles.resendWrap}>
               <p className={styles.resendNote}>לא קיבלתם אימייל?</p>
-              {resentError && <p className={styles.resendError}>{resentError}</p>}
+              {resentError && <p id="resend-error" role="alert" className={styles.resendError}>{resentError}</p>}
               <button
+                type="button"
                 className={styles.resendBtn}
                 onClick={handleResend}
-                disabled={resentBusy || !isSupabaseConfigured}
+                disabled={!isSupabaseConfigured}
+                aria-disabled={resentBusy || undefined}
+                aria-describedby={resentError ? "resend-error" : undefined}
               >
                 {resentBusy ? "שולח…" : "שלחו שוב"}
               </button>
@@ -125,12 +140,12 @@ export default function SignupScreen() {
           )}
           <Link to="/login" className={styles.backLink}>→ חזרה לכניסה</Link>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className={`${styles.page} ${styles.pageStack}`}>
+    <main className={`${styles.page} ${styles.pageStack}`}>
       {/* The only way back to the marketing site — the card itself has no nav
           and no footer, and the wordmark inside it is not a link. */}
       <div className={styles.homeRow}>
@@ -140,7 +155,7 @@ export default function SignupScreen() {
       <div className={styles.card}>
 
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandMark} aria-hidden="true">✦</span>
           <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
 
@@ -164,7 +179,10 @@ export default function SignupScreen() {
               placeholder="your@email.com"
               dir="ltr"
               autoComplete="email"
-              disabled={!isSupabaseConfigured || busy}
+              disabled={!isSupabaseConfigured}
+              readOnly={busy}
+              aria-invalid={invalid === "all" || undefined}
+              aria-describedby={error ? "signup-error" : undefined}
               required
             />
           </div>
@@ -181,7 +199,10 @@ export default function SignupScreen() {
                 placeholder="לפחות 6 תווים"
                 dir="ltr"
                 autoComplete="new-password"
-                disabled={!isSupabaseConfigured || busy}
+                disabled={!isSupabaseConfigured}
+                readOnly={busy}
+                aria-invalid={invalid === "all" || invalid === "password" || undefined}
+                aria-describedby={error ? "signup-error" : undefined}
                 required
               />
               <button
@@ -207,17 +228,37 @@ export default function SignupScreen() {
               placeholder="הזינו שוב את הסיסמה"
               dir="ltr"
               autoComplete="new-password"
-              disabled={!isSupabaseConfigured || busy}
+              disabled={!isSupabaseConfigured}
+              readOnly={busy}
+              aria-invalid={invalid === "all" || invalid === "confirm" || undefined}
+              aria-describedby={error ? "signup-error" : undefined}
               required
             />
           </div>
 
-          {error && <p className={styles.errorMsg}>{error}</p>}
+          <label className={styles.consent}>
+            <input
+              type="checkbox"
+              className={styles.consentBox}
+              checked={agree}
+              onChange={e => setAgree(e.target.checked)}
+              disabled={!isSupabaseConfigured || busy}
+            />
+            <span>
+              אני מעל גיל 18, וקראתי ואני מסכים/ה ל
+              <Link to="/terms" target="_blank" rel="noopener" className={styles.consentLink}>תנאי השימוש</Link>
+              {" "}ול
+              <Link to="/privacy" target="_blank" rel="noopener" className={styles.consentLink}>מדיניות הפרטיות</Link>
+            </span>
+          </label>
+
+          {error && <p id="signup-error" role="alert" className={styles.errorMsg}>{error}</p>}
 
           <button
             type="submit"
             className={styles.submitBtn}
-            disabled={!isSupabaseConfigured || busy || !email || !password || !confirm}
+            disabled={!isSupabaseConfigured || !email || !password || !confirm}
+            aria-disabled={busy || undefined}
           >
             {busy ? "יוצר חשבון…" : "הרשמה"}
           </button>
@@ -234,6 +275,6 @@ export default function SignupScreen() {
         </div>
 
       </div>
-    </div>
+    </main>
   );
 }

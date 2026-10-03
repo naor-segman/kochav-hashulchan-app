@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import Icon from "../ui/Icon.jsx";
 import { canUseAI } from "../../utils/featureGates.js";
 import { readFunctionFailure, functionFailureMessage } from "../../utils/functionError.js";
@@ -8,23 +8,25 @@ import {
   useDraggable, useDroppable,
   PointerSensor, TouchSensor,
   useSensor, useSensors,
-  pointerWithin, closestCenter, MeasuringStrategy,
+  MeasuringStrategy,
 } from "@dnd-kit/core";
+import { pointerThenOverlap as collisionStrategy } from "../seating/collision.js";
 
-// Same reasoning as SeatingScreen: prefer the target under the pointer, fall
-// back to the nearest one rather than dropping nothing, and re-measure the
-// droppables because chips move around the sketch mid-drag.
-const collisionStrategy = (args) => {
-  const hits = pointerWithin(args);
-  return hits.length ? hits : closestCenter(args);
-};
+// Re-measure the droppables, because chips move around the sketch mid-drag.
 const measuringConfig = { droppable: { strategy: MeasuringStrategy.Always } };
 import { supabase, isSupabaseConfigured } from "../../lib/supabase.js";
 import { uid } from "../../utils/uid.js";
+import { floorPlansNotSaved } from "../../utils/storage.js";
 import { nextTableNames } from "../../utils/tableNames.js";
 import { VENUE_ELEMENTS, venueElement } from "../../data/constants.js";
 import TableGlyph from "../ui/TableGlyph.jsx";
 import VenueCanvas from "./VenueCanvas.jsx";
+import { arrangeGrid } from "./arrangeGrid.js";
+import { floorPlanAnnouncements, FLOOR_PLAN_SCREEN_READER_INSTRUCTIONS } from "./floorPlanAnnouncements.js";
+import { RowKeyboardSensor } from "../seating/rowSensors.js";
+import GuidedTour from "../tour/GuidedTour.jsx";
+import { TOURS } from "../../data/tours.js";
+import { useScreenTour } from "../../hooks/useScreenTour.js";
 import styles from "./FloorPlanEditor.module.css";
 
 // AI table-detection reads the uploaded sketch and returns one table per shape
@@ -67,6 +69,24 @@ async function compressImage(file, maxPx = 1400, quality = 0.82) {
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
     img.src = url;
   });
+}
+
+// The sketch and chip sizes "סדרו על הסקיצה" lays out against (סב34d).
+// Chips that are already on the sketch are measured (they include any resize);
+// with none placed yet, the CSS max-width is used — a chip's width depends on
+// the table's name, and the widest one is the one that collides.
+const CHIP_MAX_W = 180, CHIP_MAX_W_PHONE = 150, CHIP_H = 72;
+function measureArrangeBox(container) {
+  if (!container) return {};
+  const r = container.getBoundingClientRect();
+  const chips = [...container.querySelectorAll("[data-table-chip]")].map(c => c.getBoundingClientRect());
+  const phone = typeof window !== "undefined" && window.matchMedia?.("(max-width: 600px)")?.matches;
+  return {
+    width:  r.width,
+    height: r.height,
+    chipW:  Math.max(phone ? CHIP_MAX_W_PHONE : CHIP_MAX_W, ...chips.map(c => c.width)),
+    chipH:  Math.max(CHIP_H, ...chips.map(c => c.height)),
+  };
 }
 
 // ── DnD sub-components ───────────────────────────────────────────────────────
@@ -128,6 +148,7 @@ function TableChipOnImage({ table, guests, size = 1, onRemove, onResize }) {
   return (
     <div
       ref={mergedRef}
+      data-table-chip=""
       className={[
         styles.tableChip,
         isDragging ? styles.chipDragging : "",
@@ -189,7 +210,7 @@ function TableChipOnImage({ table, guests, size = 1, onRemove, onResize }) {
 function UploadZone({ onClick, onDrop }) {
   const [dragging, setDragging] = useState(false);
   return (
-    <div
+    <div data-tour="tables.upload"
       className={[styles.uploadZone, dragging ? styles.uploadZoneDragging : ""].filter(Boolean).join(" ")}
       onClick={onClick}
       onDragOver={e => { e.preventDefault(); setDragging(true); }}
@@ -214,7 +235,7 @@ function UploadZone({ onClick, onDrop }) {
 function UnassignedPanel({ guests }) {
   const { setNodeRef, isOver } = useDroppable({ id: "unassigned" });
   return (
-    <div
+    <div data-tour="tables.unassigned"
       ref={setNodeRef}
       className={[styles.unassignedPanel, isOver ? styles.panelOver : ""].filter(Boolean).join(" ")}
     >
@@ -294,10 +315,25 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor,   { activationConstraint: { delay: 220, tolerance: 6 } }),
+    // The chip handles and guest pills are focusable buttons (dnd-kit's
+    // attributes), and dnd-kit's default instructions promised "press space
+    // to pick up" with no sensor behind it — a keyboard user tabbed onto a
+    // control that did nothing (AX8). Space lifts, arrows move, Space drops.
+    useSensor(RowKeyboardSensor),
   );
+
+  // Hebrew, with names — not dnd-kit's English "Draggable item chip-…".
+  const dndA11y = useMemo(() => ({
+    announcements: floorPlanAnnouncements(ev.guests, ev.tables, ev.seating),
+    screenReaderInstructions: FLOOR_PLAN_SCREEN_READER_INSTRUCTIONS,
+  }), [ev.guests, ev.tables, ev.seating]);
 
   const floorPlan  = ev.floorPlan ?? { image: null, tablePositions: {} };
   const hasImage   = !!floorPlan.image;
+  // The sketch editor is where hosts get lost (drag, resize, fixtures), and
+  // it only exists once a sketch is uploaded — so its tour opens then, the
+  // first time, rather than with the tables screen's own (124).
+  const sketchTour = useScreenTour(hasImage ? "floorplan" : null);
   const positions  = floorPlan.tablePositions ?? {};
   const placedIds  = new Set(Object.keys(positions));
   const unplaced   = ev.tables.filter(t => !placedIds.has(t.id));
@@ -319,7 +355,15 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
         // every חופה/במה/בר the host had placed.
         floorPlan: { ...e.floorPlan, image: dataUrl, tablePositions: e.floorPlan?.tablePositions ?? {} },
       }));
-      showToast("הסקיצה הועלתה בהצלחה ✓");
+      // Not before the write is known to have kept it (33b). The sketch is the
+      // largest thing in storage; when the device is full persist() saves the
+      // event WITHOUT it and the app says so — and this said "בהצלחה" over
+      // that, about an image gone on the next reload. persist runs in an
+      // effect after this render, so the answer is read a moment later.
+      setTimeout(() => {
+        if (floorPlansNotSaved().has(ev.id)) return;   // the app's own warning stands alone
+        showToast("הסקיצה הועלתה בהצלחה ✓");
+      }, 400);
     } catch {
       showToast("שגיאה בעיבוד התמונה", "err");
     }
@@ -329,7 +373,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
 
   const handleDetect = async () => {
     if (!isSupabaseConfigured || !supabase) {
-      showToast("זיהוי אוטומטי דורש חיבור לענן (Supabase)", "err");
+      showToast("זיהוי אוטומטי דורש חיבור לענן", "err");
       return;
     }
     // The one call in the product that spends the project's Anthropic key, and
@@ -399,6 +443,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   // from something beats arranging from nothing.
   const autoArrange = () => {
     const missingNow = (ev.tables ?? []).filter(t => !positions[t.id]).length;
+    const box = measureArrangeBox(containerRef.current);
 
     patchEvent(e => {
       const cur     = e.floorPlan?.tablePositions ?? {};
@@ -416,24 +461,13 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       // again: with one table missing the grid collapses to a single slot at
       // (0.82, 0.5), which is where the sixth table of a fourteen-table grid
       // already is.
-      const cols = Math.max(1, Math.ceil(Math.sqrt(all.length * 1.4)));
-      const rows = Math.max(1, Math.ceil(all.length / cols));
-      const dx   = cols > 1 ? 0.64 / (cols - 1) : 1;
-      const dy   = rows > 1 ? 0.52 / (rows - 1) : 1;
+      //
+      // Columns come from the sketch's measured width and a chip's width, not
+      // from the table count (סב34d) — see arrangeGrid.
+      const { cols, rows, dx, dy, slot } = arrangeGrid(all.length, box);
       // Comfortably under half the grid pitch, so one occupied chip can never
       // block more than the one slot it actually sits on.
       const minSep = Math.min(0.07, 0.4 * Math.min(dx, dy));
-
-      const slot = (i) => {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x = cols === 1 ? 0.5 : 0.82 - col * dx;
-        const y = rows === 1 ? 0.5 : 0.24 + row * dy;
-        return {
-          x: Math.min(0.94, Math.max(0.06, x)),
-          y: Math.min(0.94, Math.max(0.06, y)),
-        };
-      };
 
       const taken = Object.values(cur)
         .filter(p => Number.isFinite(p?.x) && Number.isFinite(p?.y))
@@ -454,10 +488,15 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       return { ...e, floorPlan: { ...e.floorPlan, tablePositions: next } };
     });
 
+    // A sketch too small for every chip (a phone, a very wide photo) cannot
+    // hold them apart; say so instead of a ✓ over a pile.
+    const fits = arrangeGrid((ev.tables ?? []).length, box).fits;
     showToast(
       missingNow === 0 ? "כל השולחנות כבר על הסקיצה"
       : missingNow === 1 ? "שולחן אחד הונח על הסקיצה — גררו אותו למקום הנכון ✓"
-      : `${missingNow} שולחנות הונחו על הסקיצה — גררו אותם למקום הנכון ✓`
+      : !fits ? `${missingNow} שולחנות הונחו על הסקיצה, וחלקם חופפים כי היא קטנה מדי — גררו אותם למקום, או פתחו במסך רחב יותר`
+      : `${missingNow} שולחנות הונחו על הסקיצה — גררו אותם למקום הנכון ✓`,
+      !fits && missingNow > 1 ? "warn" : undefined
     );
   };
 
@@ -690,6 +729,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
   return (
     <DndContext
       sensors={sensors}
+      accessibility={dndA11y}
       collisionDetection={collisionStrategy}
       measuring={measuringConfig}
       onDragStart={handleDragStart}
@@ -705,13 +745,19 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       />
 
       {/* Toolbar */}
-      <div className={styles.toolbar}>
+      <div data-tour="tables.sketchTools" className={styles.toolbar}>
         <button className={styles.toolBtn} onClick={autoArrange} type="button">
           <Icon name="sparkle" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />
           סדרו את השולחנות על הסקיצה
         </button>
         <button className={styles.toolBtn} onClick={() => fileInputRef.current?.click()}>
           החליפו תמונה
+        </button>
+        {/* The sketch tour, again (124) — the Shell's "?" explains the tables
+            screen; this one explains the editor. */}
+        <button className={styles.toolBtn} onClick={sketchTour.start} type="button" aria-label="סיור בעורך הסקיצה">
+          <Icon name="question" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />
+          סיור
         </button>
         {ENABLE_AI_DETECT && (
           <button
@@ -751,7 +797,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       )}
 
       {/* Floor plan image with table chips */}
-      <div
+      <div data-tour="tables.sketch"
         className={[styles.imageContainer, (placingId || placingKind) ? styles.placingMode : ""].filter(Boolean).join(" ")}
         ref={containerRef}
         onClick={handleImageClick}
@@ -796,7 +842,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       </div>
 
       {/* Venue fixtures — chuppah, stage, bar… */}
-      <div className={styles.unplacedStrip}>
+      <div data-tour="tables.fixtures" className={styles.unplacedStrip}>
         <div className={styles.unplacedLabel}>
           {placingKind
             ? "לחצו על הסקיצה כדי למקם: " + venueElement(placingKind).label
@@ -861,6 +907,8 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
           </div>
         )}
       </DragOverlay>
+
+      {sketchTour.open && <GuidedTour key="floorplan" steps={TOURS.floorplan} onClose={sketchTour.close} />}
     </DndContext>
   );
 }

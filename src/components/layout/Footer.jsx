@@ -8,7 +8,7 @@ export default function Footer() {
       <div className={styles.inner}>
         <div className={styles.brand}>
           <Link to="/" className={styles.logo}>
-            <span className={styles.logoMark}>✦</span>
+            <span className={styles.logoMark} aria-hidden="true">✦</span>
             <span className={styles.logoName}>{COMPANY.name}</span>
           </Link>
           {/* Factual, not superlative. "המובילה" is the same unearned claim as
@@ -43,6 +43,7 @@ export default function Footer() {
             <a href={supportMailto()} className={styles.colLink}>צרו קשר</a>
             <Link to="/privacy" className={styles.colLink}>מדיניות פרטיות</Link>
             <Link to="/terms" className={styles.colLink}>תנאי שימוש</Link>
+            <Link to="/refunds" className={styles.colLink}>ביטול והחזרים</Link>
             <Link to="/accessibility" className={styles.colLink}>הצהרת נגישות</Link>
           </div>
         </div>

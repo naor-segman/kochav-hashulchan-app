@@ -2,7 +2,7 @@
 
 .statsRow {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -204,4 +204,22 @@
   border-radius: var(--radius-sm);
   padding: 2px 8px;
   overflow-wrap: anywhere;
+}
+
+/* A matched answer that waits for the host (סב63): the reason above the button. */
+/* "+ הוסיפו לרשימה" → which side. Wraps on a phone rather than overflowing. */
+.sidePick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.applyCol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: end;
 }

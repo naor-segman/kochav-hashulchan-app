@@ -36,6 +36,29 @@ export const daysUntil = (iso, today = new Date()) => {
 };
 
 /**
+ * Today's date IN ISRAEL, as a Date whose local year/month/day are Israel's —
+ * the shape daysUntil's `today` reads.
+ *
+ * daysUntil counts from the DEVICE's today, which is right for the host (who
+ * is in Israel) and wrong on the guest pages: a guest in New York at 20:00 on
+ * the eve of the wedding is already on the wedding day in Israel, and the
+ * invitation still said "1 יום לאירוע" while the album link stayed hidden
+ * (T5). The event happens in Israel, so "today" is Israel's.
+ */
+const IL_DATE = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit",
+});
+export const israelToday = (now = new Date()) => {
+  const p = Object.fromEntries(IL_DATE.formatToParts(now).map(x => [x.type, x.value]));
+  // Noon, not midnight: a local midnight that does not exist (a DST jump at
+  // 00:00 in some zones) would roll the date; noon always exists.
+  return new Date(Number(p.year), Number(p.month) - 1, Number(p.day), 12);
+};
+
+/** daysUntil, counted from Israel's today. For the pages guests open. */
+export const daysUntilIsrael = (iso, now = new Date()) => daysUntil(iso, israelToday(now));
+
+/**
  * A server TIMESTAMP ("2026-09-27T22:30:00Z") as the host's local date and time.
  *
  * fmtDate is for calendar dates ("YYYY-MM-DD") and must not be handed a
@@ -50,12 +73,15 @@ export const daysUntil = (iso, today = new Date()) => {
  * `new Date(null)` is the epoch and an invalid date does not throw, it renders
  * "Invalid Date".
  */
-export const fmtDateTime = iso => {
+export const fmtDateTime = (iso, { year = false } = {}) => {
   if (iso == null || iso === "") return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString("he-IL", {
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    // On screen the year is noise; in an EXPORT it is not — a spreadsheet of
+    // gifts kept past New Year cannot tell 3 Jan of one year from the next (T5).
+    ...(year ? { year: "numeric" } : {}),
   });
 };
 

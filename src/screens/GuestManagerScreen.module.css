@@ -258,3 +258,14 @@
 @media (max-width: 480px) {
   .companionsGrid { grid-template-columns: 1fr; }
 }
+
+/* סב58. With 800 guests every keystroke in the add form repainted the whole
+   list — PrePaint and Paint walk every row, on screen or not. Rows outside the
+   viewport now skip layout and paint until they are scrolled near; they stay
+   in the accessibility tree and in find-in-page. The intrinsic size is a
+   typical row's height, remembered per row once it has been rendered (auto),
+   so the scrollbar does not jump. */
+.gRowLazy {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}

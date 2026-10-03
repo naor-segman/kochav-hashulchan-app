@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
+import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
 
 // Landing page for the password-reset link. Supabase establishes a short-lived
 // recovery session from the link; here the user picks a new password.
@@ -16,6 +17,7 @@ export default function ResetPasswordScreen() {
   const [showPw, setShowPw] = useState(false);
   const [busy,  setBusy]  = useState(false);
   const [error, setError] = useState("");
+  const [invalid, setInvalid] = useState(""); // "pw" | "pw2" | "all" | ""
   const [done,  setDone]  = useState(false);
 
   // Only a RECOVERY session may change a password without knowing the old one.
@@ -46,36 +48,38 @@ export default function ResetPasswordScreen() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  // Fields readOnly and the button aria-disabled while busy — not `disabled`,
+  // which drops the keyboard focus to <body> on submit (AX6).
   const submit = async (e) => {
     e.preventDefault();
-    if (pw.length < 6) { setError("הסיסמה חייבת להכיל לפחות 6 תווים."); return; }
-    if (pw !== pw2)    { setError("הסיסמאות אינן תואמות."); return; }
-    setBusy(true); setError("");
+    if (busy) return;
+    if (pw.length < 6) { setError("הסיסמה חייבת להכיל לפחות 6 תווים."); setInvalid("pw"); return; }
+    if (pw !== pw2)    { setError("הסיסמאות אינן תואמות."); setInvalid("pw2"); return; }
+    setBusy(true); setError(""); setInvalid("");
     try {
       const { error: err } = await supabase.auth.updateUser({ password: pw });
       if (err) throw err;
       setDone(true);
       setTimeout(() => navigate("/app", { replace: true }), 1400);
     } catch (err) {
-      setError(err.message?.includes("network")
-        ? "שגיאת חיבור. נסו שוב."
-        : "שגיאה בעדכון הסיסמה. ייתכן שהקישור פג תוקפו — בקשו קישור חדש.");
+      setError(authErrorMessage(err, "updatePassword"));
+      setInvalid(isAuthInputError(err) ? "all" : "");
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className={styles.page}>
+    <main className={styles.page}>
       <div className={styles.card}>
         <div className={styles.brand}>
-          <span className={styles.brandMark}>✦</span>
+          <span className={styles.brandMark} aria-hidden="true">✦</span>
           <span className={styles.brandName}>{COMPANY.name}</span>
         </div>
         <h1 className={styles.title}>בחירת סיסמה חדשה</h1>
 
         {done ? (
-          <p className={styles.forgotSuccess}>הסיסמה עודכנה בהצלחה ✓ מעבירים אתכם…</p>
+          <p className={styles.forgotSuccess} role="status">הסיסמה עודכנה בהצלחה ✓ מעבירים אתכם…</p>
         ) : checking ? (
           <p className={styles.forgotSuccess}>מאמתים את הקישור…</p>
         ) : !ready ? (
@@ -101,7 +105,9 @@ export default function ResetPasswordScreen() {
                   placeholder="••••••••"
                   dir="ltr"
                   autoComplete="new-password"
-                  disabled={busy}
+                  readOnly={busy}
+                  aria-invalid={invalid === "all" || invalid === "pw" || undefined}
+                  aria-describedby={error ? "rp-error" : undefined}
                   required
                 />
                 <button
@@ -127,19 +133,26 @@ export default function ResetPasswordScreen() {
                 placeholder="••••••••"
                 dir="ltr"
                 autoComplete="new-password"
-                disabled={busy}
+                readOnly={busy}
+                aria-invalid={invalid === "all" || invalid === "pw2" || undefined}
+                aria-describedby={error ? "rp-error" : undefined}
                 required
               />
             </div>
 
-            {error && <p className={styles.errorMsg}>{error}</p>}
+            {error && <p id="rp-error" role="alert" className={styles.errorMsg}>{error}</p>}
 
-            <button type="submit" className={styles.submitBtn} disabled={busy || !pw || !pw2}>
+            <button
+              type="submit"
+              className={styles.submitBtn}
+              disabled={!pw || !pw2}
+              aria-disabled={busy || undefined}
+            >
               {busy ? "מעדכן…" : "עדכנו סיסמה"}
             </button>
           </form>
         )}
       </div>
-    </div>
+    </main>
   );
 }

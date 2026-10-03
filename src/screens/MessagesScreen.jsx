@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { messageSignature } from "../data/company.js";
 import {
   MESSAGE_STAGES, audienceFor, audienceLabel, reachable,
   renderTemplate, whatsappLink, linkForStage,
 } from "../data/messageSequence.js";
 import { fmtDate } from "../utils/dateFormat.js";
+import { buildGuestCardUrl } from "../utils/guestCard.js";
 import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -68,6 +69,46 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
     },
   }));
 
+  /* ── Opened is not sent (ת2) ───────────────────────────────────────────────
+     A tap on "שלחו" opens WhatsApp with the text ready; the guest is sent
+     nothing until the host presses send THERE. The guest used to be marked
+     "נשלח" at the tap — a host who closed WhatsApp without sending saw the
+     guest done, the count went up, and the reminders skipped them.
+
+     So the tap only records that WhatsApp was OPENED, and the row asks
+     "נשלח?" — focused when the host comes back to this tab. Only "כן" writes
+     to messagesSent, the synced field, in the same shape as before. "Opened"
+     is this device's, kept in sessionStorage: it is a question waiting for
+     the person who tapped, not a fact about the guest, so it is not synced. */
+  const openedKey = `kh_msg_opened:${ev.id}`;
+  const [opened, setOpened] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem(openedKey) || "{}") || {}; } catch { return {}; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem(openedKey, JSON.stringify(opened)); } catch { /* full or blocked */ }
+  }, [openedKey, opened]);
+  const setOpenedFor = (stageKey, guestId, on) => setOpened(prev => {
+    const stage = { ...(prev[stageKey] || {}) };
+    if (on) stage[guestId] = Date.now(); else delete stage[guestId];
+    return { ...prev, [stageKey]: stage };
+  });
+  const confirmSent = (stageKey, guestId) => { markSent(stageKey, guestId); setOpenedFor(stageKey, guestId, false); };
+
+  // Back from WhatsApp: put focus on the question for the guest just opened.
+  const lastOpened = useRef(null);
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.hidden || !lastOpened.current) return;
+      document.querySelector(`[data-ask-sent="${lastOpened.current}"]`)?.focus();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, []);
+
   const clearStage = async (stageKey) => {
     if (!await confirm("לאפס את הסימונים של השלב הזה?", { danger: true, confirmLabel: "אפסו" })) return;
     patchEvent(e => {
@@ -99,10 +140,34 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
     return tid ? ev.tables?.find(t => t.id === tid) : null;
   };
 
+  // RG9: a template that asks for {{קישור}} on a stage whose page is not
+  // published goes out without it — "נשמח שתאשרו הגעה:" and then nothing. It
+  // was sent, and marked sent, with one tap. Now the first send of such a
+  // stage asks, once per stage per visit; "no" sends and marks nothing.
+  const [noLinkOk, setNoLinkOk] = useState(() => new Set());
+  const missingLink = stage => !stage.link && /\{\{\s*קישור\s*\}\}/.test(stage.body || "");
+  const sendTo = async (stage, g, url) => {
+    if (missingLink(stage) && !noLinkOk.has(stage.key)) {
+      const ok = await confirm(
+        "בהודעה הזאת יש מקום לקישור, אבל הדף שלה עוד לא פורסם — היא תצא בלי קישור.\n\n"
+        + "אפשר לפרסם את הדף קודם, או לשלוח בכל זאת.",
+        { confirmLabel: "שלחו בלי קישור" },
+      );
+      if (!ok) return;
+      setNoLinkOk(prev => new Set(prev).add(stage.key));
+    }
+    setOpenedFor(stage.key, g.id, true);
+    lastOpened.current = `${stage.key}:${g.id}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const textFor = (stage, g) =>
     renderTemplate(stage.body, {
       event: { ...ev, date: fmtDate(ev.date) },
       guest: g, table: tableOf(g), link: stage.link?.url || "",
+      // The guest's own entry card (צ). A sample guest in the preview has no id
+      // and gets none.
+      card: g.id ? buildGuestCardUrl(window.location.origin, ev.tokens?.invite, g, tableOf(g)) : null,
     }) + messageSignature();
 
   return (
@@ -127,7 +192,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
           buy and cannot avoid, on a screen whose job is to help them send an
           invitation. The analysis moved to WORKPLAN, where it belongs and where
           it now carries Meta's real rate card. */}
-      <div className={base.card}>
+      <div data-tour="messages.how" className={base.card}>
         <SectionLabel>עלות</SectionLabel>
         <p className={base.fieldHint}>
           השליחה נעשית מהוואטסאפ שלכם, ולכן <b>ללא עלות</b> — כאן רק מכינים את
@@ -141,7 +206,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
         const noPhone = stage.audience.length - stage.withPhone.length;
 
         return (
-          <div key={stage.key} className={base.card}>
+          <div data-tour={stage.key === "saveTheDate" ? "messages.stages" : undefined} key={stage.key} className={base.card}>
             <button
               className={styles.stageHead}
               onClick={() => setOpenStage(isOpen ? null : stage.key)}
@@ -190,7 +255,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                         {/* <bdi>: a Latin name ending in a period ("Tal S.")
                             painted its period on the wrong side (review). */}
                         <p className={styles.previewFor}>כך ההודעה תיראה אצל <bdi>{sample.name}</bdi>:</p>
-                        <div className={styles.preview}>{textFor(stage, sample)}</div>
+                        <div data-tour="messages.preview" className={styles.preview}>{textFor(stage, sample)}</div>
                       </>;
                     })()}
                     {/* Which page {{קישור}} opens in THIS stage, said out loud.
@@ -199,7 +264,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                         none (the site is not published, say), the message goes
                         out without it, which the host must hear here rather
                         than discover from a guest. */}
-                    <p className={styles.linkNote}>
+                    <p data-tour="messages.link" className={styles.linkNote}>
                       {stage.link
                         ? <>הקישור בהודעה הזאת: <b>{stage.link.label}</b></>
                         : "ההודעה הזאת תצא בלי קישור — הדף שמתאים לה עוד לא פורסם."}
@@ -223,22 +288,37 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                       {noPhone > 0 && <> · <span className={styles.warn}>{noPhone} ללא טלפון — לא ניתן לשלוח</span></>}
                     </p>
 
-                    <div className={styles.guestList}>
+                    <div data-tour={stage.withPhone.length ? "messages.guests" : undefined} className={styles.guestList}>
                       {stage.withPhone.map(g => {
                         const already = !!sent[stage.key]?.[g.id];
+                        const asking  = !!opened[stage.key]?.[g.id];
                         const url = whatsappLink(g.phone, textFor(stage, g));
                         return (
-                          <div key={g.id} className={[styles.guestRow, already ? styles.guestDone : ""].filter(Boolean).join(" ")}>
+                          <div key={g.id} className={[styles.guestRow, already && !asking ? styles.guestDone : ""].filter(Boolean).join(" ")}>
                             <span className={styles.guestName}>{g.name}</span>
-                            {already && <span className={styles.sentTag}>נשלח <Icon name="check" size={11} /></span>}
-                            {url && (
+                            {already && !asking && <span className={styles.sentTag}>נשלח <Icon name="check" size={11} /></span>}
+                            {asking ? (
+                              <span className={styles.askSent} role="group" aria-label={`נשלחה ההודעה ל${g.name}?`}>
+                                <span className={styles.askText}>נפתח בוואטסאפ — נשלח?</span>
+                                <button
+                                  type="button"
+                                  className={styles.askYes}
+                                  data-ask-sent={`${stage.key}:${g.id}`}
+                                  onClick={() => confirmSent(stage.key, g.id)}
+                                  aria-label={`כן, נשלחה ל${g.name}`}
+                                >כן</button>
+                                <button
+                                  type="button"
+                                  className={styles.askNo}
+                                  onClick={() => setOpenedFor(stage.key, g.id, false)}
+                                  aria-label={`לא נשלחה ל${g.name}`}
+                                >לא</button>
+                              </span>
+                            ) : url && (
                               <button
                                 className={styles.waBtn}
                                 type="button"
-                                onClick={() => guard("ההודעה לאורחים", () => {
-                                  markSent(stage.key, g.id);
-                                  window.open(url, "_blank", "noopener,noreferrer");
-                                })}
+                                onClick={() => guard("ההודעה לאורחים", () => { sendTo(stage, g, url); })}
                               >
                                 {already ? "שלחו שוב" : "שלחו בוואטסאפ"}
                               </button>
@@ -250,8 +330,8 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
 
                     {pending.length > 0 && (
                       <p className={styles.hint}>
-                        <Icon name="bulb" /> לחיצה על "שלחו" פותחת את וואטסאפ עם הטקסט מוכן ומסמנת את האורח כנשלח.
-                        עדיין צריך ללחוץ "שלח" בוואטסאפ עצמו.
+                        <Icon name="bulb" /> לחיצה על "שלחו" פותחת את וואטסאפ עם הטקסט מוכן. אחרי שתלחצו "שלח"
+                        בוואטסאפ ותחזרו לכאן, סמנו "כן" — רק אז האורח נספר כמי שקיבל את ההודעה.
                       </p>
                     )}
                   </>
@@ -270,7 +350,7 @@ function TemplateEditor({ initial, onSave, onReset, onCancel }) {
   const [body, setBody] = useState(initial);
   return (
     <div className={styles.editor}>
-      <Field label="תוכן ההודעה" hint="{{שם}} · {{אירוע}} · {{תאריך}} · {{מקום}} · {{שולחן}} · {{קישור}}">
+      <Field label="תוכן ההודעה" hint="{{שם}} · {{אירוע}} · {{תאריך}} · {{מקום}} · {{שולחן}} · {{קישור}} · {{כרטיס}} (כרטיס כניסה אישי)">
         <textarea className={base.input} rows={8} value={body} onChange={e => setBody(e.target.value)} />
       </Field>
       <div className={styles.stageActions}>

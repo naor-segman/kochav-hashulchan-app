@@ -82,8 +82,10 @@ export default function InviteScreen() {
       if (cancelled) return;
       if (data) {
         setEvent(data);
-      } else if (!isSupabaseConfigured) {
-        // Dev: Supabase not configured — use mock so the UI can be previewed
+      } else if (import.meta.env.DEV && !isSupabaseConfigured) {
+        // Dev only: Supabase not configured — use mock so the UI can be
+        // previewed. A deploy with no env (a branch preview) is NOT dev, and
+        // showed every visitor a made-up wedding (106).
         setEvent(MOCK_EVENT);
       } else {
         // Production: token not found in database
@@ -126,10 +128,10 @@ export default function InviteScreen() {
   if (loading) {
     return (
       <div className={styles.root}>
-        <div className={styles.stateCenter}>
+        <main className={styles.stateCenter}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
-          <p className={styles.stateText}>טוען הזמנה...</p>
-        </div>
+          <p className={styles.stateText} role="status">טוען הזמנה…</p>
+        </main>
       </div>
     );
   }
@@ -137,11 +139,11 @@ export default function InviteScreen() {
   if (unreachable) {
     return (
       <div className={styles.root}>
-        <div className={styles.stateCenter}>
+        <main className={styles.stateCenter}>
           <span className={styles.notFoundStar} aria-hidden="true">✦</span>
           <h1 className={styles.stateText}>{UNREACHABLE_TEXT.title}</h1>
           <p className={styles.stateSub}>{UNREACHABLE_TEXT.body}</p>
-        </div>
+        </main>
       </div>
     );
   }
@@ -150,12 +152,12 @@ export default function InviteScreen() {
   if (notFound) {
     return (
       <div className={styles.root}>
-        <div className={styles.stateCenter}>
+        <main className={styles.stateCenter}>
           <span className={styles.notFoundStar} aria-hidden="true">✦</span>
           <h1 className={styles.stateText}>ההזמנה לא נמצאה</h1>
           <p className={styles.stateSub}>קישור זה אינו תקף או שפג תוקפו</p>
           <Link to="/" className={styles.stateLink}>חזרה לדף הבית</Link>
-        </div>
+        </main>
       </div>
     );
   }

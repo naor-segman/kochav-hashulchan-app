@@ -99,43 +99,25 @@ describe("supportMailto encodes once, at the point of use", () => {
   });
 });
 
-describe("messageSignature — the growth line on every guest message", () => {
-  it("is live, and points at the site we actually own", () => {
-    // Turned on 31.8 (checklist 14), once the domain existed to point at.
+describe("messageSignature — the credit line on every guest message", () => {
+  it("is the credit and a link to the site we own — one line", () => {
     const sig = messageSignature();
-    // Reads the brand from its source. Hardcoding it here is what made this
-    // assertion the only thing that broke when the name was decided — a test
-    // that fails on a rename it is not guarding is a test that has to be
-    // edited every time, and one that gets edited carelessly.
-    expect(sig).toContain(`נבנה עם ${COMPANY.name}`);
-    expect(sig).toContain("רוצים אתר לאירוע שלכם? https://revaya-events.co.il");
+    // Reads the brand from its source, so a rename does not break it.
+    expect(sig).toBe(`\n\n— נבנה עם ${COMPANY.name} · https://revaya-events.co.il`);
   });
 
-  it("is attribution only while nothing is configured", () => {
-    // Still the state the product shipped in for months, and one keystroke
-    // away. No half-built call to action, and above all no broken link: this
-    // text goes to somebody else's wedding guests.
-    COMPANY.site = "";
-    COMPANY.whatsapp = "";
-    const sig = messageSignature();
-    expect(sig).toContain(`נבנה עם ${COMPANY.name}`);
-    expect(sig).not.toContain("רוצים אתר");
-    expect(sig).not.toContain("http");
-    expect(sig).not.toContain("wa.me");
-  });
-
-  it("adds the site link once a site exists", () => {
-    COMPANY.site = "https://kochav.co.il";
-    expect(messageSignature()).toContain("רוצים אתר לאירוע שלכם? https://kochav.co.il");
-  });
-
-  it("prefers WhatsApp over the site — a reply beats a click", () => {
-    COMPANY.site = "https://kochav.co.il";
+  it("no sales question in a message the host sends to their guests (103, §30א)", () => {
     COMPANY.whatsapp = "972501234567";
     const sig = messageSignature();
-    expect(sig).toContain("https://wa.me/972501234567");
-    expect(sig, "both routes at once is two calls to action in one line")
-      .not.toContain("https://kochav.co.il");
+    expect(sig).not.toMatch(/רוצים|\?/);
+    expect(sig.trim().split("\n")).toHaveLength(1);
+  });
+
+  it("is the credit alone while no site is configured — never a broken link", () => {
+    COMPANY.site = "";
+    const sig = messageSignature();
+    expect(sig).toContain(`נבנה עם ${COMPANY.name}`);
+    expect(sig).not.toContain("http");
   });
 
   it("follows the brand name, which is not final", () => {

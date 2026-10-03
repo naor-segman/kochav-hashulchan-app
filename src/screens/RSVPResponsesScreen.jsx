@@ -3,6 +3,7 @@ import { fetchRSVPResponses } from "../utils/publicTokens.js";
 import { pickMeal, pickCompanions, normName, normPhone, respStatus, latestPerRespondent } from "../utils/rsvpApply.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { uid } from "../utils/uid.js";
+import { getSideLabels } from "../utils/eventHelpers.js";
 import { fmtDateTime } from "../utils/dateFormat.js";
 import Banner from "../components/feedback/Banner.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -19,6 +20,10 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   const [responses, setResponses] = useState([]);
   const [loadState, setLoadState] = useState("loading"); // "loading" | "ready" | "error" | "offline"
   const [showForecast, setShowForecast] = useState(false);
+  // The response whose "+ הוסיפו לרשימה" is asking which side (owner, 3.10:
+  // a guest added from an answer always landed on the first side).
+  const [sidePickFor, setSidePickFor] = useState(null);
+  const sideLabels = useMemo(() => getSideLabels(ev), [ev]);
 
   const load = useCallback(async () => {
     if (!isSupabaseConfigured || !ev.cloudId) {
@@ -57,6 +62,13 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     if (n && guestIndex.nameCount.get(n) === 1) return guestIndex.byName.get(n) || null;
     return null;
   }, [guestIndex]);
+  // Was the match by phone? A name alone is not proof — anyone holding the
+  // public link can type a guest's name — so a name-only match is applied by
+  // the host with one tap, never automatically (סב63, owner 2.10).
+  const matchedByPhone = useCallback((r) => {
+    const p = normPhone(r.phone);
+    return !!(p && guestIndex.byPhone.get(p));
+  }, [guestIndex]);
 
   // A guest who answers twice is two rows — on purpose: the newest wins and
   // the auto-sync below keys on row ids. But every COUNT on this screen summed
@@ -77,6 +89,14 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     return { total: current.length, confirmed: confirmed.length, maybe: maybe.length, declined: declined.length, coming,
              repeats: responses.length - current.length };
   }, [current, responses.length]);
+
+  // Who has not answered at all. A non-answer produces no response row, so
+  // this comes from the GUEST LIST — the nav promised "מי עוד לא ענה" and the
+  // screen had no such number (ת).
+  const unanswered = useMemo(
+    () => (ev.guests || []).filter(g => (g?.rsvp || "pending") === "pending").length,
+    [ev.guests],
+  );
 
   // ── Shuttle registrations ────────────────────────────────────────────────
   // Guests pick a shuttle on the RSVP form; the host needs seats-per-pickup to
@@ -154,12 +174,12 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     showToast(`"${guest.name}" עודכן ברשימת האורחים ✓`);
   }, [patchEvent, showToast]);
 
-  const addAsGuest = useCallback((r) => {
+  const addAsGuest = useCallback((r, side) => {
     const hasCount = respStatus(r) !== "no";
     const newGuest = {
       id: uid(),
       name: (r.guest_name || "").trim(),
-      side: "bride",
+      side,
       group: "אחר",
       count: hasCount ? (r.guests_count || 1) : 1,
       phone: r.phone || "",
@@ -179,6 +199,21 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
   // "+ הוסיפו לרשימה" (avoids duplicates); host manual overrides afterwards stick.
   // Durable across remounts (localStorage) so navigating away and back doesn't
   // re-apply a response and clobber a manual host override made afterwards.
+  /* Did the host change this guest by hand since the last answer was applied?
+   * (סב63, owner 2.10.) An answer used to overwrite whatever the row said —
+   * including what the host had just set after a phone call. Now an answer is
+   * applied automatically only to a row that still reflects the previous
+   * applied answer, or that has no answer yet; otherwise it waits on this
+   * screen for the host, with the difference said. Nothing goes through us. */
+  const handEdited = useCallback((r, guest, applied) => {
+    const t = new Date(r.created_at).getTime() || 0;
+    const prev = responses
+      .filter(x => x.id !== r.id && applied.has(x.id) && matchGuest(x)?.id === guest.id
+                && (new Date(x.created_at).getTime() || 0) <= t)
+      .sort((a, b) => (new Date(b.created_at).getTime() || 0) - (new Date(a.created_at).getTime() || 0))[0];
+    if (prev) return !isApplied(prev, guest);
+    return (guest.rsvp || "pending") !== "pending";
+  }, [responses, matchGuest, isApplied]);
   const appliedKey = `rsvp_applied_${ev.cloudId || ev.id || "local"}`;
   const autoDone = useRef(new Set());
   const hydrated = useRef(false);
@@ -211,11 +246,13 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     // Pick the NEWEST not-yet-applied response per matched guest — a later "yes"
     // must win over an earlier "maybe" regardless of the fetch order.
     const chosen = new Map(); // guestId -> { r, guest, ts }
+    const priorApplied = new Set(autoDone.current);
     let changed = false;
     responses.forEach(r => {
       if (autoDone.current.has(r.id)) return;
       const guest = matchGuest(r);
       if (!guest) return;                       // unmatched → manual add
+      if (!matchedByPhone(r)) return;           // name only → the host taps (סב63)
       autoDone.current.add(r.id); changed = true;
       const ts = new Date(r.created_at).getTime() || 0;
       const prev = chosen.get(guest.id);
@@ -223,9 +260,10 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     });
 
     const updates = new Map();
-    let n = 0, grew = 0;
+    let n = 0, grew = 0, held = 0;
     chosen.forEach(({ r, guest }) => {
       if (isApplied(r, guest)) return;          // already reflects it
+      if (handEdited(r, guest, priorApplied)) { held++; return; }   // the host decides
       const status = respStatus(r), hasCount = status !== "no";
       const more = hasCount ? invitedFor(guest, r.guests_count || 1) : {};
       if (more.invitedCount !== undefined) grew++;
@@ -240,6 +278,11 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       n++;
     });
 
+    if (held > 0) {
+      showToast(held === 1
+        ? "תשובה אחת שונה ממה שעדכנתם ידנית — היא מחכה לכם ברשימה למטה"
+        : `${held} תשובות שונות ממה שעדכנתם ידנית — הן מחכות לכם ברשימה למטה`, "warn");
+    }
     if (!changed && n === 0) return;
     const applied = [...autoDone.current];
     patchEvent(e => ({
@@ -250,7 +293,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
     if (grew > 0) {
       showToast(`${n} אישורי הגעה סונכרנו — ${grew === 1 ? "אחד מהם אישר" : `${grew} מהם אישרו`} יותר מקומות ממה שהוזמנו. בדקו ברשימה למטה`, "warn");
     } else if (n > 0) showToast(`${n} אישורי הגעה סונכרנו לרשימה אוטומטית ✓`);
-  }, [responses, loadState, matchGuest, isApplied, patchEvent, showToast, appliedKey, ev.rsvpApplied, syncStatus]);
+  }, [responses, loadState, matchGuest, matchedByPhone, handEdited, isApplied, patchEvent, showToast, appliedKey, ev.rsvpApplied, syncStatus]);
 
   const rsvpLink = ev.tokens?.rsvp
     ? window.location.origin + "/rsvp/" + ev.tokens.rsvp
@@ -261,12 +304,15 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       <PageHeader
         title="תשובות אישורי הגעה"
         mark="rsvp"
-        sub="כל מי שמאשר דרך הקישור נכנס אוטומטית לרשימת האורחים. כאן רואים תמונת מצב ותחזית מנות."
+        /* ת: it said every answer "נכנס אוטומטית לרשימת האורחים". Only an
+           answer MATCHED to a guest on the list is applied, and only when this
+           screen opens; the rest wait below for a tap. */
+        sub="תשובה שזוהתה לפי טלפון מתעדכנת ברשימה כשנכנסים למסך הזה. תשובה שזוהתה רק לפי שם, או של אורח ששיניתם ידנית, מחכה כאן ללחיצה שלכם. תשובה שלא זוהתה מחכה כאן לשיוך. כאן גם תמונת מצב ותחזית מנות."
       />
 
       {/* ── Summary stats ── */}
       {loadState === "ready" && (
-        <div className={styles.statsRow}>
+        <div data-tour="rsvps.stats" className={styles.statsRow}>
           <div className={styles.statTile}>
             <span className={styles.statNum}>{stats.total}</span>
             <span className={styles.statLabel}>תשובות</span>
@@ -287,6 +333,10 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
             <span className={styles.statNum}>{stats.declined}</span>
             <span className={styles.statLabel}>לא מגיעים</span>
           </div>
+          <div className={styles.statTile}>
+            <span className={styles.statNum}>{unanswered}</span>
+            <span className={styles.statLabel}>ברשימה וטרם ענו</span>
+          </div>
         </div>
       )}
       {loadState === "ready" && stats.repeats > 0 && (
@@ -299,12 +349,12 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
       {/* ── Meal forecast (optional — collapsed by default) ── */}
       {confirmedSeats > 0 && !showForecast && (
-        <button className={base.btnSecondary} style={{ marginBottom: 14 }} onClick={() => setShowForecast(true)}>
+        <button data-tour="rsvps.forecast" className={base.btnSecondary} style={{ marginBottom: 14 }} onClick={() => setShowForecast(true)}>
           <Icon name="food" /> הציגו תחזית מנות (אופציונלי)
         </button>
       )}
       {shuttleCounts.length > 0 && (
-        <div className={base.card}>
+        <div data-tour="rsvps.shuttles" className={base.card}>
           <SectionLabel>הרשמה להסעות</SectionLabel>
           <p className={base.fieldHint}>
             כמה מקומות להזמין בכל הסעה, לפי מה שהאורחים סימנו בטופס אישור ההגעה.
@@ -357,11 +407,13 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
       {/* ── Offline / error states ── */}
       {loadState === "offline" && (
-        <Banner variant="warn">
-          {isSupabaseConfigured
-            ? "האירוע עדיין לא סונכרן לענן — תשובות יופיעו כאן לאחר הסנכרון הראשון (התחברו לחשבון אם עוד לא)."
-            : "סנכרון ענן אינו מוגדר בסביבה זו."}
-        </Banner>
+        <div data-tour="rsvps.offline">
+          <Banner variant="warn">
+            {isSupabaseConfigured
+              ? "האירוע עדיין לא סונכרן לענן — תשובות יופיעו כאן לאחר הסנכרון הראשון (התחברו לחשבון אם עוד לא)."
+              : "סנכרון ענן אינו מוגדר בסביבה זו."}
+          </Banner>
+        </div>
       )}
       {loadState === "error" && (
         <Banner variant="err">
@@ -375,7 +427,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
       {/* ── Empty state with share link ── */}
       {loadState === "ready" && responses.length === 0 && (
-        <div className={base.card}>
+        <div data-tour="rsvps.share" className={base.card}>
           <SectionLabel>עדיין אין תשובות</SectionLabel>
           <p className={base.fieldHint}>
             שתפו את קישור אישור ההגעה עם האורחים — כל תשובה תופיע כאן אוטומטית.
@@ -406,7 +458,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
             <button className={base.btnSecondary} onClick={load}>רעננו ↺</button>
             <span className={base.fieldHint}>מתעדכן בכל כניסה למסך</span>
           </div>
-          <div className={base.gList}>
+          <div data-tour="rsvps.list" className={base.gList}>
             {responses.map(r => {
               const guest   = matchGuest(r);
               const applied = isApplied(r, guest);
@@ -459,13 +511,36 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                   ) : !currentIds.has(r.id) ? (
                     <span className={base.gMeta}>הוחלפה בתשובה מאוחרת יותר</span>
                   ) : guest ? (
-                    <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => applyToGuest(r, guest)}>
-                      עדכנו אורח קיים
-                    </button>
+                    <span className={styles.applyCol}>
+                      {/* Why this one waits for a tap (סב63): matched by name
+                          only, or the row was changed by hand after the last
+                          answer. */}
+                      <span className={base.gMeta}>
+                        {!matchedByPhone(r)
+                          ? `זוהה לפי שם — ${guest.name}?`
+                          : handEdited(r, guest, new Set(ev.rsvpApplied || [])) ? "שונה ממה שעדכנתם ידנית" : ""}
+                      </span>
+                      <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => applyToGuest(r, guest)}>
+                        עדכנו אורח קיים
+                      </button>
+                    </span>
+                  ) : sidePickFor === r.id ? (
+                    /* Which side — the one thing an answer cannot say and the
+                       seating needs. Not a default the host fixes later. */
+                    <span className={styles.sidePick} role="group" aria-label={`לאיזה צד להוסיף את ${r.guest_name || "האורח"}`}>
+                      <span className={base.gMeta}>לאיזה צד?</span>
+                      {["bride", "groom"].map(sd => (
+                        <button key={sd} className={[base.btnSm, base.btnGhost].join(" ")}
+                          onClick={() => { addAsGuest(r, sd); setSidePickFor(null); }}>
+                          {sideLabels[sd]}
+                        </button>
+                      ))}
+                      <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => setSidePickFor(null)}>ביטול</button>
+                    </span>
                   ) : (
                     <button
                       className={[base.btnSm, base.btnGhost].join(" ")}
-                      onClick={() => addAsGuest(r)}
+                      onClick={() => setSidePickFor(r.id)}
                     >
                       + הוסיפו לרשימה
                     </button>

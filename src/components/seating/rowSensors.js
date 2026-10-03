@@ -1,4 +1,4 @@
-import { MouseSensor, TouchSensor } from "@dnd-kit/core";
+import { MouseSensor, TouchSensor, KeyboardSensor } from "@dnd-kit/core";
 
 /* A press that starts on a control INSIDE a draggable row — the waiting
  * list's table select, a table card's lock / "back to waiting" / WhatsApp
@@ -31,4 +31,11 @@ export class RowMouseSensor extends MouseSensor {
 
 export class RowTouchSensor extends TouchSensor {
   static activators = guard(TouchSensor);
+}
+
+/* Space / Enter on a control inside a draggable (the ✕ in a sketch chip's
+ * header) is that control's press. dnd-kit's own check only applies when an
+ * activator node is registered, which these draggables do not do (AX8). */
+export class RowKeyboardSensor extends KeyboardSensor {
+  static activators = guard(KeyboardSensor);
 }

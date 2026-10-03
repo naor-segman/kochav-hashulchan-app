@@ -204,6 +204,31 @@
 
 .eyeBtn:hover { color: var(--accent-text); }
 
+/* Signup consent (checklist 103). The box sits on the first line of the text,
+   not centred on a two-line label. */
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--step--1);
+  line-height: 1.6;
+  color: var(--text2);
+  cursor: pointer;
+}
+
+.consentBox {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
+.consentLink {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
 .errorMsg {
   font-size: var(--step--1);
   color: var(--red);
@@ -232,7 +257,7 @@
   letter-spacing: 0.01em;
 }
 
-.submitBtn:hover:not(:disabled) {
+.submitBtn:hover:not(:disabled, [aria-disabled="true"]) {
   background: var(--cta-dark);
   box-shadow: var(--shadow-cta-lg);
   transform: translateY(-1px);
@@ -244,7 +269,8 @@
    the fields are filled. /gift already solved the same problem by swapping to a
    grey fill instead of fading the brand one; this is that solution. --text2 on
    --border2 is 5.14:1. */
-.submitBtn:disabled {
+.submitBtn:disabled,
+.submitBtn[aria-disabled="true"] {
   background: var(--border2);
   color: var(--text2);
   box-shadow: none;
@@ -408,7 +434,8 @@
 }
 
 /* --accent-text at 0.5 composited to 2.70:1. Same language as .forgotLink. */
-.resendBtn:disabled { color: var(--muted); text-decoration: none; cursor: not-allowed; }
+.resendBtn:disabled,
+.resendBtn[aria-disabled="true"] { color: var(--muted); text-decoration: none; cursor: not-allowed; }
 
 /* One visible keyboard focus ring for every control on the page. The form had
    none outside the inputs, so tabbing through it was invisible. */

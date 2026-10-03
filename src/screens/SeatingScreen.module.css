@@ -1149,7 +1149,16 @@
     display: none !important;
   }
 
-  @page {
+  /* A NAMED page. An unnamed @page in a CSS module is still global — and the
+     module stays in the document after the seating screen is left, so its
+     15/12mm margins applied to every later print in the session: the name
+     tags' two 138mm tents per A4 no longer fit, and 8 table cards printed on
+     8 pages while the screen promised 4 (סב35c, measured). */
+  /* On the document, not on .printView — see NameTagsScreen.module.css: a
+     named page on a later box breaks before it. .printView is mounted only
+     while printing, so this applies exactly then. */
+  :global(html):has(.printView) { page: seating; }
+  @page seating {
     size: A4 portrait;
     margin: 15mm 12mm 12mm;
   }
@@ -1517,6 +1526,10 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* All of them now, not five — so it scrolls inside the card. */
+  max-height: 22rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .waNotifyItem {
@@ -1558,11 +1571,7 @@
   opacity: 0.75;
 }
 
-.waNotifyMore {
-  font-size: var(--step--2);
-  color: var(--muted);
-  padding: 4px 10px;
-}/* ─── Print: table cards mode ────────────────────────────────────────────── */
+/* ─── Print: table cards mode ────────────────────────────────────────────── */
 .pvCardsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

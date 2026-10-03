@@ -14,6 +14,29 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--nav-border);
+  /* A dark band: the ring --accent-text draws here is 2.64:1. */
+  --focus-ring: var(--accent-on-dark);
+}
+
+/* Skip link (AX9) — Shell's, on the same dark band. Out of sight above the
+   bar until it has keyboard focus. */
+.skipLink {
+  position: absolute;
+  inset-inline-start: 8px;
+  top: 8px;
+  z-index: 1;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--nav-text);
+  color: var(--nav-bg);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skipLink:focus-visible {
+  transform: none;
+  outline: 2px solid var(--accent-on-dark);
+  outline-offset: 2px;
 }
 
 .navInner {

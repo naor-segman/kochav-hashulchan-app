@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { LEGAL, legalLine, legalTel } from "./company.js";
+import { LEGAL, LEGAL_DOCS, legalLine, legalTel } from "./company.js";
 
 /**
  * The operator identity actually reaches the pages that legally need it.
@@ -22,9 +22,16 @@ const PAGES = [
   ["TermsScreen.jsx",         "תנאי שימוש"],
   ["PrivacyScreen.jsx",       "מדיניות פרטיות"],
   ["AccessibilityScreen.jsx", "הצהרת נגישות"],
+  ["RefundScreen.jsx",        "ביטול עסקה והחזרים"],
 ];
 
 describe("legal identity: the constants", () => {
+  it("the documents' version and display date name the same day", () => {
+    const [y, m, d] = LEGAL_DOCS.version.split("-").map(Number);
+    const months = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+    expect(LEGAL_DOCS.updated).toBe(`${d} ב${months[m - 1]} ${y}`);
+  });
+
   it("carries a name, a registration type and a number", () => {
     expect(LEGAL.name.trim().length).toBeGreaterThan(2);
     expect(LEGAL.type.trim().length).toBeGreaterThan(2);
@@ -44,7 +51,7 @@ describe("legal identity: the constants", () => {
   });
 });
 
-describe("legal identity: it reaches all three legal pages", () => {
+describe("legal identity: it reaches every legal page", () => {
   for (const [file, label] of PAGES) {
     it(`${label} renders the identity from company.js`, () => {
       const src = read(file);
@@ -63,7 +70,9 @@ describe("legal identity: it reaches all three legal pages", () => {
     });
 
     it(`${label} says when it was last updated`, () => {
-      expect(read(file), file).toMatch(/עודכן לאחרונה: .+\d{4}/);
+      // Either a literal date, or the shared one that a signup records as the
+      // version agreed to (checklist 103).
+      expect(read(file), file).toMatch(/עודכן לאחרונה: (.+\d{4}|\{LEGAL_DOCS\.updated\})/);
     });
   }
 

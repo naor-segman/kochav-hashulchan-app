@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "../test/dom.js";
 import StartScreen from "./StartScreen.jsx";
 import { EVENT_TYPES } from "../data/constants.js";
+import { COMPANY } from "../data/company.js";
 
 /**
  * The very first screen, and the place bug class 1 does the most damage.
@@ -104,6 +105,26 @@ describe("StartScreen — event type is a Hebrew string, not an English key", ()
     expect(seed.name).toBe('חברת כוכב בע"מ');
   });
 
+  it("names an \"אחר\" event after the person alone, not \"אחר — משה\" (סב60a)", () => {
+    const onStart = vi.fn();
+    render(<StartScreen onStart={onStart} />);
+    pickType("אחר");
+    typeInto("שם הגיבור/ה", "משה");
+    fireEvent.click(screen.getByText(/בואו נתחיל/));
+    const seed = onStart.mock.calls[0][0];
+    expect(seed.type).toBe("אחר");
+    expect(seed.name).toBe("משה");
+  });
+
+  it("a named type still says what it is: יום הולדת — דניאל", () => {
+    const onStart = vi.fn();
+    render(<StartScreen onStart={onStart} />);
+    pickType("יום הולדת");
+    typeInto("שם המחוגג/ת", "דניאל");
+    fireEvent.click(screen.getByText(/בואו נתחיל/));
+    expect(onStart.mock.calls[0][0].name).toBe("יום הולדת — דניאל");
+  });
+
   it("keeps the CTA disabled until there is a name to derive one from", () => {
     // `ready` is derived from the built name, not from the raw input, so a type
     // whose derive rule returns "" must not let a nameless event through.
@@ -127,5 +148,23 @@ describe("StartScreen — event type is a Hebrew string, not an English key", ()
     fireEvent.change(screen.getByLabelText(/תאריך/), { target: { value: "2027-06-01" } });
     fireEvent.click(screen.getByText(/בואו נתחיל/));
     expect(onStart.mock.calls[0][0].date).toBe("2027-06-01");
+  });
+});
+
+describe("StartScreen — the 'no account needed' note", () => {
+  it("is shown to someone without an account", () => {
+    render(<StartScreen onStart={vi.fn()} />);
+    expect(screen.getByText(/אפשר להתחיל בלי חשבון/)).toBeInTheDocument();
+  });
+  it("is not shown to a signed-in host, whose event is not 'only in this browser'", () => {
+    render(<StartScreen onStart={vi.fn()} signedIn />);
+    expect(screen.queryByText(/אפשר להתחיל בלי חשבון/)).toBeNull();
+  });
+});
+
+describe("StartScreen — the lead", () => {
+  it("keeps the space between the sentence and the brand (JSX drops the line break)", () => {
+    render(<StartScreen onStart={vi.fn()} />);
+    expect(document.body.textContent).toContain(`יחד. ${COMPANY.name} בונה`);
   });
 });

@@ -120,10 +120,11 @@ textarea:focus {
    system, which is the sort of inconsistency a reviewer notices immediately.
    This is the floor: any focusable element without its own ring gets this one.
    Anything with a ring of its own still wins on specificity.
-   --accent-text is >=4.67:1 on every light ground in the app; the dark chrome
-   overrides it with --nav-text in Shell.module.css. */
+   --focus-ring is --accent-text (>=4.67:1 on every light ground in the app);
+   a dark container re-points the token on its root (SiteHeader, Footer, the
+   Shell topbar) and everything inside it follows. */
 :where(button, [role="button"], a[href], summary):focus-visible {
-  outline: 2px solid var(--accent-text);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
   border-radius: var(--radius);
 }
@@ -139,6 +140,11 @@ select option:disabled {
 
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
+  /* The smooth scroll set on <html> above is motion too, and the rules below
+     did not reach it: every in-page anchor and scrollTo still glided (AX9). */
+  html {
+    scroll-behavior: auto;
+  }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;

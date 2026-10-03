@@ -25,6 +25,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 //     checkout.session.completed
 //     checkout.session.async_payment_succeeded
 //     charge.refunded
+//     charge.dispute.closed   (a chargeback decided against us — 102b)
 //
 // Deploy:
 //   supabase functions deploy stripe-webhook
@@ -62,6 +63,52 @@ function planFromPrice(priceId: string | null, metadataPlan?: string | null): st
   // actually recognise.
   if (metadataPlan === "pro" || metadataPlan === "enterprise") return metadataPlan;
   return "free";
+}
+
+/**
+ * Take a purchase back: the money has gone back to the buyer (a full refund,
+ * or a dispute lost). The row is kept — it is the record that money moved —
+ * and `expires_at` + the status are what make usePlan() return "free".
+ *
+ * Returns a Response when Stripe should retry (a failed read or write: a
+ * revocation that silently fails leaves someone with a paid plan they got
+ * back the money for — 28.9 audit B5, second review סב17), else null.
+ */
+async function revokePurchase(supabase: any, pi: string, label: string): Promise<Response | null> {
+  const { data: existing, error: readError } = await supabase
+    .from("subscriptions")
+    .select("is_manually_managed")
+    .eq("stripe_payment_intent_id", pi)
+    .maybeSingle();
+
+  // A failed READ is not "no purchase row". 500 → Stripe retries.
+  if (readError) {
+    console.error(`${label} — lookup failed, asking Stripe to retry:`, readError);
+    return new Response("revoke lookup failed", { status: 500 });
+  }
+  if (!existing) {
+    console.warn(`${label}: no purchase row for payment intent ${pi}`);
+    return null;
+  }
+  if (existing.is_manually_managed) {
+    console.log(`${label}: skipping manually managed row for ${pi}`);
+    return null;
+  }
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({
+      status:     "cancelled",
+      expires_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_payment_intent_id", pi);
+
+  if (error) {
+    console.error(`${label} — update failed, asking Stripe to retry:`, error);
+    return new Response("revoke update failed", { status: 500 });
+  }
+  return null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -351,47 +398,32 @@ Deno.serve(async (req: Request) => {
           console.log(`charge.refunded: partial (${charge.amount_refunded}/${charge.amount}) — access kept`);
           break;
         }
+        const failed = await revokePurchase(supabase, pi, "charge.refunded");
+        if (failed) return failed;
+        break;
+      }
 
-        const { data: existing, error: readError } = await supabase
-          .from("subscriptions")
-          .select("is_manually_managed")
-          .eq("stripe_payment_intent_id", pi)
-          .maybeSingle();
-
-        // A failed READ is not "no purchase row". Answering 200 here told
-        // Stripe the refund was handled and left a refunded customer with a
-        // paid plan, for good (second review, סב17). 500 → Stripe retries.
-        if (readError) {
-          console.error("charge.refunded — lookup failed, asking Stripe to retry:", readError);
-          return new Response("refund lookup failed", { status: 500 });
-        }
-        if (!existing) {
-          console.warn(`charge.refunded: no purchase row for payment intent ${pi}`);
+      // ────────────────────────────────────────────────────────────────────────
+      // charge.dispute.closed
+      // A chargeback takes the money back through the dispute, not a refund, so
+      // charge.refunded never arrives and the host kept the package for good
+      // (102b). The owner's call (2.10): the package comes off when the dispute
+      // is decided AGAINST us — "lost". Won, or still open, changes nothing: a
+      // dispute that is merely opened may be a misunderstanding we win.
+      // ────────────────────────────────────────────────────────────────────────
+      case "charge.dispute.closed": {
+        const dispute = event.data.object as Stripe.Dispute;
+        if (dispute.status !== "lost") {
+          console.log(`charge.dispute.closed: ${dispute.status} — access kept`);
           break;
         }
-        if (existing.is_manually_managed) {
-          console.log(`charge.refunded: skipping manually managed row for ${pi}`);
+        const pi = (typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id) ?? null;
+        if (!pi) {
+          console.warn("charge.dispute.closed: no payment_intent on dispute");
           break;
         }
-
-        // The row is kept, not deleted — it is the record that money moved. It is
-        // `expires_at` that makes usePlan() return "free", and the status that
-        // makes useSubscription stop selecting it.
-        const { error } = await supabase
-          .from("subscriptions")
-          .update({
-            status:     "cancelled",
-            expires_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("stripe_payment_intent_id", pi);
-
-        // 500 so Stripe retries — a refund that fails to revoke leaves a
-        // refunded customer with a paid plan (28.9 audit, B5).
-        if (error) {
-          console.error("charge.refunded — update failed, asking Stripe to retry:", error);
-          return new Response("refund update failed", { status: 500 });
-        }
+        const failed = await revokePurchase(supabase, pi, "charge.dispute.closed");
+        if (failed) return failed;
         break;
       }
 

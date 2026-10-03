@@ -59,8 +59,11 @@ const EVENT = {
   id: 'e1', name: 'החתונה של דנה ויוסי', type: 'חתונה', date: '2027-06-01',
   brideName: 'דנה', groomName: 'יוסי',
   guests: [
-    { id: 'g1', name: 'יעל כהן', count: 2, rsvp: 'confirmed', side: 'bride' },
-    { id: 'g2', name: 'איתי לוי', count: 1, rsvp: 'confirmed', side: 'groom' },
+    // g1 is ONE seat: since ד2 (1.10) a scanned FAMILY opens its panel instead
+    // of marking every seat (EntranceScreen tests cover that); a single seat is
+    // still marked straight from the scan, which is what this harness drives.
+    { id: 'g1', name: 'יעל כהן', count: 1, rsvp: 'confirmed', side: 'bride' },
+    { id: 'g2', name: 'איתי לוי', count: 2, rsvp: 'confirmed', side: 'groom' },
   ],
   tables: [{ id: 't1', name: 'שולחן 1', capacity: 10, type: 'regular', shape: 'round' }],
   seating: { g1: 't1', g2: 't1' }, constraints: [],
@@ -87,7 +90,6 @@ try {
 
   await p.goto(server.base + '/app', { waitUntil: 'domcontentloaded' });
   await p.evaluate(e => {
-    localStorage.setItem('kochav_orientation_v1', '1');
     localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: [e], activeEventId: 'e1' }));
   }, EVENT);
   await p.goto(server.base + '/events/e1/checkin', { waitUntil: 'domcontentloaded' });
@@ -108,7 +110,7 @@ try {
     });
   }
   ok(jsqrLoaded.length > 0, 'jsQR was loaded when the scanner opened');
-  ok(Array.isArray(arrived) && arrived.length === 2, 'the scanned guest is checked in — both seats, in localStorage', JSON.stringify(arrived));
+  ok(Array.isArray(arrived) && arrived.length === 1, 'the scanned guest is checked in, in localStorage', JSON.stringify(arrived));
   const g2 = await p.evaluate(() => JSON.parse(localStorage.getItem('kochav_hashulchan_v1')).events[0].guests.find(g => g.id === 'g2').arrivedSeats ?? []);
   ok(g2.length === 0, 'and nobody else is');
   ok(/יעל כהן/.test(await p.evaluate(() => document.body.innerText)), 'the screen names who was checked in');
@@ -124,7 +126,6 @@ try {
     const pg = await c.newPage();
     await pg.goto(server.base + '/app', { waitUntil: 'domcontentloaded' });
     await pg.evaluate(e => {
-      localStorage.setItem('kochav_orientation_v1', '1');
       localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: [e], activeEventId: 'e1' }));
     }, EVENT);
     await pg.goto(server.base + '/events/e1/checkin', { waitUntil: 'domcontentloaded' });
@@ -150,7 +151,7 @@ try {
   try {
     const DATA = {
       id: '11111111-1111-4111-8111-111111111111', name: 'החתונה של דנה ויוסי', writes_open: true,
-      guests: [{ id: 'g1', name: 'יעל כהן', count: 2 }, { id: 'g2', name: 'איתי לוי', count: 1 }],
+      guests: [{ id: 'g1', name: 'יעל כהן', count: 1 }, { id: 'g2', name: 'איתי לוי', count: 2 }],
       tables: [{ id: 't1', name: 'שולחן 1', capacity: 10 }], seating: { g1: 't1', g2: 't1' },
     };
     const run = async (offline) => {
@@ -188,9 +189,9 @@ try {
     };
 
     const on = await run(false);
-    ok(on.marks.length === 1 && JSON.stringify(on.marks[0].seats) === '[0,1]' && JSON.stringify(on.marks[0].base) === '[]',
-       'a scan sends the scanned family\'s seats, and what the screen showed before', JSON.stringify(on.marks[0]));
-    ok(JSON.stringify(on.serverSeats.g1) === '[0,1]', 'and the server ends up with both seats', JSON.stringify(on.serverSeats));
+    ok(on.marks.length === 1 && JSON.stringify(on.marks[0].seats) === '[0]' && JSON.stringify(on.marks[0].base) === '[]',
+       'a scan sends the scanned guest\'s seat, and what the screen showed before', JSON.stringify(on.marks[0]));
+    ok(JSON.stringify(on.serverSeats.g1) === '[0]', 'and the server ends up with it', JSON.stringify(on.serverSeats));
 
     // Offline at the door: the save fails. The mark must not stay on screen
     // as if it had been saved.

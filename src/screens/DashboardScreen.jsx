@@ -5,8 +5,6 @@ import { eventHealth, dashStats, summaryMessages } from "../utils/eventAnalytics
 import Chip from "../components/ui/Chip.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
-import Orientation from "../components/onboarding/Orientation.jsx";
-import { useOrientation } from "../components/onboarding/useOrientation.js";
 import StartScreen from "./StartScreen.jsx";
 import base from "../styles/screenBase.module.css";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
@@ -20,9 +18,8 @@ import { COMPANY } from "../data/company.js";
    for. Defaulting to 0 rather than events.length keeps the gate open when the
    prop is missing: a screen that hides the "new event" button because a prop
    did not arrive is worse than one that lets a free user try. */
-export default function DashboardScreen({ events, cloudCapped = false, unpaidCount = 0, isPaid = () => false, onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
+export default function DashboardScreen({ events, signedIn = false, cloudCapped = false, unpaidCount = 0, isPaid = () => false, onStartEvent, onNewEvent, onOpenEvent, onDeleteEvent, onDuplicateEvent }) {
   const { confirm, dialog } = useConfirm();
-  const orientation = useOrientation();
 
   const hasEvents     = events.length > 0;
   const stats         = useMemo(() => dashStats(events), [events]);
@@ -62,14 +59,14 @@ export default function DashboardScreen({ events, cloudCapped = false, unpaidCou
   // logged-in first paint `events` is briefly [] while the cloud pull runs and
   // a redirect would fire against a list that is about to arrive.
   if (!hasEvents) {
-    return <StartScreen onStart={onStartEvent} />;
+    return <StartScreen onStart={onStartEvent} signedIn={signedIn} />;
   }
 
   return (
     <div className={base.pageWide}>
       {dialog}
       {/* The page's h1, for the heading outline (29.9 review: the dashboard had
-          none, and the onboarding panel's h2 came first). Not drawn: the
+          none). Not drawn: the
           visible heading is the list's own, below, and a second visible title
           would say the same thing twice. */}
       <h1 className="sr-only">האירועים שלי</h1>
@@ -82,18 +79,11 @@ export default function DashboardScreen({ events, cloudCapped = false, unpaidCou
           <span className={styles.heroBarSub}>סידור הושבה לאירועים</span>
         </div>
         <div className={styles.heroBarActions}>
-          {!orientation.open && (
-            <button className={styles.howBtn} onClick={orientation.show}>
-              <Icon name="question" size={14} /> איך זה עובד
-            </button>
-          )}
-          <button className={styles.heroCta} onClick={onNewEvent}>
+          <button data-tour="dashboard.new" className={styles.heroCta} onClick={onNewEvent}>
             + אירוע חדש
           </button>
         </div>
       </div>
-
-      {orientation.open && <Orientation onDismiss={orientation.dismiss} />}
 
       {/* Over the cloud read's cap, the oldest events were not loaded. Said
           here, where a host would look for them (WORKPLAN 115). */}
@@ -115,7 +105,7 @@ export default function DashboardScreen({ events, cloudCapped = false, unpaidCou
       )}
 
       {/* ── Global stats bar ── */}
-      <div className={styles.statsBar}>
+      <div data-tour="dashboard.stats" className={styles.statsBar}>
           <div className={styles.statTile}>
             <span className={styles.statValue}>{stats.totalEvents}</span>
             <span className={styles.statLabel}>אירועים</span>
@@ -167,7 +157,7 @@ export default function DashboardScreen({ events, cloudCapped = false, unpaidCou
               const feat = ev.id === featuredId && events.length > 0;
               const days = daysUntil(ev.date);
               return (
-                <div
+                <div data-tour="dashboard.event"
                   key={ev.id}
                   className={[
                     styles.eventCard,
@@ -224,7 +214,7 @@ export default function DashboardScreen({ events, cloudCapped = false, unpaidCou
                       {h.needsAttention && (
                         <span className={styles.attentionDot} title="דורש טיפול" />
                       )}
-                      <button
+                      <button data-tour="dashboard.delete"
                         className={styles.deleteBtn}
                         title="מחקו אירוע"
                         onClick={async () => {
@@ -333,7 +323,7 @@ export default function DashboardScreen({ events, cloudCapped = false, unpaidCou
                     ))}
                   </div>
 
-                  <div className={styles.eventActions}>
+                  <div data-tour="dashboard.actions" className={styles.eventActions}>
                     <button className={styles.eventOpenBtn} onClick={() => onOpenEvent(ev.id)}>
                       פתחו לניהול <Icon name="arrowLeft" size={14} />
                     </button>

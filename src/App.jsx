@@ -10,7 +10,8 @@ import { uid } from "./utils/uid.js";
 import { duplicateEvent } from "./utils/eventHelpers.js";
 import { AuthProvider, useAuth } from "./hooks/useAuth.js";
 import { useEvents }        from "./hooks/useEvents.js";
-import { trackPageview, identifyUser, track, EVENTS } from "./lib/analytics.js";
+import { track, EVENTS } from "./lib/analytics.js";
+import { usePageAnalytics } from "./hooks/usePageAnalytics.js";
 import { useToast }         from "./hooks/useToast.js";
 import { usePlan }          from "./hooks/usePlan.js";
 import { useActiveEvent }   from "./hooks/useActiveEvent.js";
@@ -32,6 +33,7 @@ import AccountScreen      from "./screens/AccountScreen.jsx";
 import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
 import Loading           from "./components/feedback/Loading.jsx";
 import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
+import { useStorageWarnings } from "./hooks/useStorageWarnings.js";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
 // Heavy authenticated screens. SeatingScreen alone drags in @dnd-kit, and a
@@ -87,6 +89,7 @@ const HelpScreen          = lazy(() => import("./screens/HelpScreen.jsx"));
 const FeedbackScreen      = lazy(() => import("./screens/FeedbackScreen.jsx"));
 const PrivacyScreen       = lazy(() => import("./screens/PrivacyScreen.jsx"));
 const TermsScreen         = lazy(() => import("./screens/TermsScreen.jsx"));
+const RefundScreen        = lazy(() => import("./screens/RefundScreen.jsx"));
 const AccessibilityScreen = lazy(() => import("./screens/AccessibilityScreen.jsx"));
 
 // ── Event layout + nested routes ─────────────────────────────────────────────
@@ -181,7 +184,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
         {/* Without this, /events/:id/typo matched `/events/:eventId/*` at the
             top level and then matched nothing here — the Shell rendered with a
             blank body and no error. The top-level catch-all cannot reach it. */}
-        <Route path="*"           element={<NotFoundScreen />} />
+        <Route path="*"           element={<NotFoundScreen landmark={false} />} />
       </Routes>
       </ErrorBoundary>
       <Toast msg={toast?.msg} variant={toast?.variant} />
@@ -222,35 +225,26 @@ export default function App() {
 
 function AppRoutes() {
   const { user, loading: authLoading }                                  = useAuth();
-  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped } = useEvents(user);
+  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped,
+          guestDrafts, adoptGuestDrafts, declineGuestDrafts }                = useEvents(user);
   const { toast, showToast }                                            = useToast();
   // No event in scope here — AppRoutes sits above /events/:eventId — so this is
   // the account-level form, used for nothing but the event allowance below.
   // Every real gate asks usePlan(ev).
   const { unpaidEvents, planFor }                                       = usePlan();
   const navigate                                                        = useNavigate();
-  const migration = useMigration(events, patchEventById, user);
+  // Logged-out drafts on this browser are offered, not taken (33d).
+  const migration = useMigration(events, patchEventById, user,
+    { guestDrafts, adoptGuestDrafts, declineGuestDrafts, ready: eventsReady });
 
   // Keep this tab on the deployed build. See useAppUpdate — the browser's own
   // update check is far too lazy for a link handed to hundreds of guests, and
   // the reload waits for a moment when it will not interrupt anyone.
   useAppUpdate();
 
-  /* Pageviews, with the tokens taken out of the path (checklist 18).
-   *
-   * PostHog's own pageview capture is off, because it sends the raw URL — and
-   * nine public routes carry a token there, which is a credential. This sends
-   * the scrubbed path instead, so `/rsvp/8f3c…` arrives as `/rsvp/:token`.
-   *
-   * `identify` runs on the same effect rather than its own: the funnel's
-   * whole question is "did THIS person get stuck", and events fired before
-   * the id is known are anonymous ones that never join up. The id only — an
-   * email address in a third-party tool is a liability with no benefit. */
-  const trackedPath = useLocation().pathname;
-  useEffect(() => {
-    if (user?.id) identifyUser(user.id);
-    trackPageview(trackedPath);
-  }, [trackedPath, user?.id]);
+  // Pageviews (token-scrubbed path) and identify — two separate effects, so a
+  // session restoring after first paint is not a second pageview (37c).
+  usePageAnalytics(useLocation().pathname, user?.id);
 
   /* <title>, description and canonical per route (checklist 87).
      The build writes a correct <head> into a real document per indexable route,
@@ -267,12 +261,9 @@ function AppRoutes() {
     prevSyncRef.current = syncStatus;
   }, [syncStatus, showToast]);
 
-  // Warn when localStorage quota is exceeded (data not persisted).
-  useEffect(() => {
-    const handler = () => showToast("הנפח המקומי מלא — הנתונים לא נשמרו! ייצאו לאקסל כעת.", "err");
-    window.addEventListener("storage-quota-exceeded", handler);
-    return () => window.removeEventListener("storage-quota-exceeded", handler);
-  }, [showToast]);
+  // Full browser storage: nothing saved, or everything but the floor-plan
+  // sketches (33b). See useStorageWarnings.
+  useStorageWarnings(showToast);
 
   // Creation now carries the two facts the start screen collected, so the event
   // arrives already named and dated instead of arriving empty and demanding a
@@ -363,12 +354,17 @@ function AppRoutes() {
       <Route
         path="/app"
         element={
-          <Shell screen="dashboard" activeEvent={null} go={dashGo}>
+          /* With no events the dashboard IS the start form, and that is a
+             different tour (124) from the one about a list of events. Not
+             before the account's events have loaded: a logged-in host's list
+             is briefly [] and would get the start tour first. */
+          <Shell screen="dashboard" tourKey={!eventsReady ? null : events.length ? "dashboard" : "start"} activeEvent={null} go={dashGo}>
             {(migration.shouldPrompt || migration.status !== MIGRATION_STATUS.IDLE) && (
               <MigrationBanner migration={migration} />
             )}
             <DashboardScreen
               events={events}
+              signedIn={!!user}
               cloudCapped={cloudCapped}
               /* The unpaid count, not a plan. There is no account-level plan any
                  more — three events can sit on three different packages — and
@@ -392,9 +388,10 @@ function AppRoutes() {
       <Route
         path="/start"
         element={
-          <Shell screen="dashboard" activeEvent={null} go={dashGo}>
+          <Shell screen="dashboard" tourKey="start" activeEvent={null} go={dashGo}>
             <StartScreen
               onStart={startEvent}
+              signedIn={!!user}
               hasEvents={events.length > 0}
               onCancel={() => navigate("/app")}
             />
@@ -535,6 +532,7 @@ function AppRoutes() {
       <Route path="/help"          element={<Suspense fallback={<Loading />}><HelpScreen /></Suspense>} />
       <Route path="/privacy"       element={<Suspense fallback={<Loading />}><PrivacyScreen /></Suspense>} />
       <Route path="/terms"         element={<Suspense fallback={<Loading />}><TermsScreen /></Suspense>} />
+      <Route path="/refunds"       element={<Suspense fallback={<Loading />}><RefundScreen /></Suspense>} />
       <Route path="/accessibility" element={<Suspense fallback={<Loading />}><AccessibilityScreen /></Suspense>} />
       <Route path="/feedback"      element={<Suspense fallback={<Loading />}><FeedbackScreen /></Suspense>} />
 

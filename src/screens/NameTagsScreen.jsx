@@ -4,6 +4,7 @@ import { guestSeatNames } from "../utils/eventHelpers.js";
 import { bigLabel, bigLabelTier } from "../utils/tableCardLabel.js";
 import { seatsOf } from "../utils/arrival.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
+import { fitTentNames } from "../utils/tentNames.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -34,11 +35,15 @@ import styles from "./NameTagsScreen.module.css";
  * name tags and small stickers are all still here.
  */
 
+/* perPage is print geometry, not a guess — the columns and fixed row heights
+   in the @media print block of NameTagsScreen.module.css (סב35c). It used to
+   say 8 / 12 / 16 while content-height rows printed 16 / 24 / 32, and the
+   count read "22 pages" for a job that printed on 9. */
 const SIZES = [
   { key: "table", label: "כרטיס שולחן",  perPage: 2,  note: "עומד על השולחן — המספר נקרא מרחוק" },
   { key: "card",  label: "כרטיס מקום",   perPage: 8,  note: "מונח על הצלחת — אחד לכל אורח" },
   { key: "tag",   label: "תג שם",        perPage: 12, note: "לענידה — נפוץ באירועים עסקיים" },
-  { key: "small", label: "מדבקה קטנה",   perPage: 16, note: "מדבקות / כרטיסיות קטנות" },
+  { key: "small", label: "מדבקה קטנה",   perPage: 32, note: "מדבקות / כרטיסיות קטנות" },
 ];
 
 // bigLabel/bigLabelTier moved to utils/tableCardLabel.js — they are pure, and
@@ -58,14 +63,20 @@ const BIG_TIER = {
 
 /** One side of the tent. Both sides are identical; only one is rotated. */
 function TentFace({ card, showNames, flip = false }) {
+  const { shown, more, size } = card.fit;
+  const dense = showNames && size === "sm";
   return (
-    <div className={[styles.tentFace, flip ? styles.tentFaceFlip : ""].filter(Boolean).join(" ")}>
+    <div className={[styles.tentFace, flip ? styles.tentFaceFlip : "", dense ? styles.tentFaceDense : ""].filter(Boolean).join(" ")}>
       <span className={[styles.tentBig, BIG_TIER[card.tier] || BIG_TIER.xl].join(" ")}>
         {card.big}
       </span>
       {card.full !== card.big && <span className={styles.tentFull}>{card.full}</span>}
-      {showNames && card.names.length > 0 && (
-        <span className={styles.tentNames}>{card.names.join(" · ")}</span>
+      {/* Fitted to the face: a smaller size first, then "ועוד N" — never a
+          list that silently loses its tail (סב35b). */}
+      {showNames && shown.length > 0 && (
+        <span className={[styles.tentNames, dense ? styles.tentNamesSm : ""].filter(Boolean).join(" ")}>
+          {[...shown, ...(more > 0 ? [`ועוד ${more}`] : [])].join(" · ")}
+        </span>
       )}
     </div>
   );
@@ -109,6 +120,9 @@ export default function NameTagsScreen({ activeEvent: ev }) {
       .map(t => {
         const rows = active.filter(g => ev.seating?.[g.id] === t.id);
         const big  = bigLabel(t);
+        // Every person at the table by name, in the same order the place
+        // cards are printed in, so the two artefacts agree.
+        const names = rows.flatMap(g => guestSeatNames(g)).sort((a, b) => a.localeCompare(b, "he"));
         return {
           key: t.id,
           big,
@@ -118,9 +132,8 @@ export default function NameTagsScreen({ activeEvent: ev }) {
           tier: bigLabelTier(big),
           full: tableLabel(t),
           seats: rows.reduce((s, g) => s + seatsOf(g), 0),
-          // Every person at the table by name, in the same order the place
-          // cards are printed in, so the two artefacts agree.
-          names: rows.flatMap(g => guestSeatNames(g)).sort((a, b) => a.localeCompare(b, "he")),
+          names,
+          fit: fitTentNames(names),
         };
       })
       // An empty table gets no card: it is a card someone has to carry, fold
@@ -134,7 +147,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
   const pages    = Math.ceil(cards.length / sizeMeta.perPage) || 0;
 
   return (
-    <div className={base.page}>
+    <div className={[base.page, styles.root].join(" ")}>
       <div className={styles.screenOnly}>
         <PageHeader
           title="כרטיסי שולחן ותגי שם"
@@ -145,43 +158,49 @@ export default function NameTagsScreen({ activeEvent: ev }) {
         <div className={base.card}>
           <SectionLabel>מה מדפיסים</SectionLabel>
 
-          <p className={base.fieldHint}>גודל</p>
-          <div className={styles.opts}>
-            {SIZES.map(s => (
-              <button
-                key={s.key}
-                className={[styles.opt, size === s.key ? styles.optOn : ""].filter(Boolean).join(" ")}
-                onClick={() => setSize(s.key)}
-                aria-pressed={size === s.key}
-              >
-                <b>{s.label}</b>
-                <span>{s.note}</span>
-              </button>
-            ))}
+          {/* A wrapper per option group: the guided tour (124) lights the label
+              AND its options — tagging the label alone lit a 19px line. */}
+          <div data-tour="nametags.size">
+            <p className={base.fieldHint}>גודל</p>
+            <div className={styles.opts}>
+              {SIZES.map(s => (
+                <button
+                  key={s.key}
+                  className={[styles.opt, size === s.key ? styles.optOn : ""].filter(Boolean).join(" ")}
+                  onClick={() => setSize(s.key)}
+                  aria-pressed={size === s.key}
+                >
+                  <b>{s.label}</b>
+                  <span>{s.note}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <p className={base.fieldHint} style={{ marginTop: 14 }}>למי</p>
-          <div className={styles.opts}>
-            {(isTableMode
-              ? [
-                ["seated", "שולחנות מאוישים", "רק שולחנות שיושבים בהם"],
-                ["all",    "כל השולחנות",     "כולל שולחנות ריקים"],
-              ]
-              : [
-                ["seated",    "רק משובצים", "מי שכבר יש לו שולחן"],
-                ["confirmed", "רק שאישרו",  "כולל מי שעדיין לא שובץ"],
-                ["all",       "כל האורחים", "חוץ ממי שסירב"],
-              ]
-            ).map(([v, l, note]) => (
-              <button
-                key={v}
-                className={[styles.opt, scope === v ? styles.optOn : ""].filter(Boolean).join(" ")}
-                onClick={() => setScope(v)}
-                aria-pressed={scope === v}
-              >
-                <b>{l}</b><span>{note}</span>
-              </button>
-            ))}
+          <div data-tour="nametags.scope">
+            <p className={base.fieldHint} style={{ marginTop: 14 }}>למי</p>
+            <div className={styles.opts}>
+              {(isTableMode
+                ? [
+                  ["seated", "שולחנות מאוישים", "רק שולחנות שיושבים בהם"],
+                  ["all",    "כל השולחנות",     "כולל שולחנות ריקים"],
+                ]
+                : [
+                  ["seated",    "רק משובצים", "מי שכבר יש לו שולחן"],
+                  ["confirmed", "רק שאישרו",  "כולל מי שעדיין לא שובץ"],
+                  ["all",       "כל האורחים", "חוץ ממי שסירב"],
+                ]
+              ).map(([v, l, note]) => (
+                <button
+                  key={v}
+                  className={[styles.opt, scope === v ? styles.optOn : ""].filter(Boolean).join(" ")}
+                  onClick={() => setScope(v)}
+                  aria-pressed={scope === v}
+                >
+                  <b>{l}</b><span>{note}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {isTableMode ? (
@@ -190,7 +209,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
                 <input type="checkbox" checked={showNames} onChange={e => setShowNames(e.target.checked)} />
                 <span>הציגו את שמות היושבים מתחת למספר</span>
               </label>
-              <p className={styles.foldNote}>
+              <p data-tour="nametags.fold" className={styles.foldNote}>
                 <Icon name="cards" size={15} /> כל כרטיס מודפס כפול — קפלו על הקו המקווקו
                 והכרטיס עומד לבד, קריא משני הצדדים.
               </p>
@@ -202,14 +221,13 @@ export default function NameTagsScreen({ activeEvent: ev }) {
             </label>
           )}
 
-          <div className={styles.actions}>
+          <div data-tour="nametags.print" className={styles.actions}>
             <button className={base.btnPrimary} onClick={() => window.print()} disabled={cards.length === 0}>
               <Icon name="print" /> הדפיסו {cards.length} {isTableMode ? "כרטיסי שולחן" : "כרטיסים"}
             </button>
             <span className={styles.count}>
-              {isTableMode
-                ? `${sizeMeta.perPage} בעמוד · ${pages} דפים`
-                : `${sizeMeta.perPage} בעמוד · ${pages} דפים בערך`}
+              {/* Exact now for every size — the place-card line said "בערך". */}
+              {`${sizeMeta.perPage} בעמוד · ${pages === 1 ? "דף אחד" : pages + " דפים"}`}
             </span>
           </div>
 
@@ -230,7 +248,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
       {/* The print surface. On screen it renders as a preview; @media print
           hides everything else and lays these out on the page. */}
       {cards.length > 0 && isTableMode && (
-        <div className={[styles.sheet, styles.sheet_table].join(" ")}>
+        <div data-tour="nametags.preview" className={[styles.sheet, styles.sheet_table].join(" ")}>
           {tableCards.map(c => (
             <div key={c.key} className={styles.tent}>
               {/* Upper half, upside-down: once folded it faces the other side of
@@ -244,7 +262,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
       )}
 
       {cards.length > 0 && !isTableMode && (
-        <div className={[styles.sheet, styles["sheet_" + size]].join(" ")}>
+        <div data-tour="nametags.preview" className={[styles.sheet, styles["sheet_" + size]].join(" ")}>
           {seatCards.map(c => (
             <div key={c.key} className={styles.card}>
               <span className={styles.cardName}>{c.name}</span>

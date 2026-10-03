@@ -18,13 +18,14 @@ describe("buildEventIcs", () => {
     expect(buildEventIcs(base)).toContain("\r\n");
   });
 
-  it("writes local times with no Z, so 19:00 stays 19:00 on any phone", () => {
+  // 61 / T3: the times used to be "floating" (no Z), so a guest whose phone
+  // was in London got a 19:00 LONDON entry for a 19:00 Tel Aviv wedding. The
+  // event happens in Israel; the file carries the instant, in UTC.
+  it("writes the start as the Israel instant in UTC, with Z", () => {
     const ics = buildEventIcs({ ...base, startTime: "19:00" });
-    expect(get(ics, "DTSTART")).toBe("20260915T190000");
-    // The EVENT times are floating local. DTSTAMP is the exception — RFC 5545
-    // §3.8.7.2 requires it in UTC, and it is not an event time.
-    expect(get(ics, "DTSTART")).not.toMatch(/Z$/);
-    expect(get(ics, "DTEND")).not.toMatch(/Z$/);
+    expect(get(ics, "DTSTART")).toBe("20260915T160000Z");     // IDT, +3
+    expect(get(buildEventIcs({ ...base, date: "2027-01-15", startTime: "19:00" }), "DTSTART"))
+      .toBe("20270115T170000Z");                                 // IST, +2
   });
 
   it("writes DTSTAMP in UTC, as the spec requires", () => {
@@ -48,31 +49,43 @@ describe("buildEventIcs", () => {
     expect(ics.split("\r\n").some(l => l.startsWith(" "))).toBe(true);
   });
 
-  it("defaults to a four-hour evening event", () => {
+  // 36b: with no start time known the file said a confident 19:00 nobody wrote.
+  it("with no start time, writes an all-day entry", () => {
     const ics = buildEventIcs(base);
-    expect(get(ics, "DTSTART")).toBe("20260915T190000");
-    expect(get(ics, "DTEND")).toBe("20260915T230000");
+    expect(get(ics, "DTSTART;VALUE=DATE")).toBe("20260915");
+    expect(get(ics, "DTEND;VALUE=DATE")).toBe("20260916");      // exclusive
+    expect(ics).not.toMatch(/T190000/);
+    expect(buildEventIcs({ ...base, startTime: "ערב" })).toContain("DTSTART;VALUE=DATE:20260915");
+  });
+
+  it("an all-day entry on the last day of a month ends on the 1st", () => {
+    expect(get(buildEventIcs({ ...base, date: "2026-12-31" }), "DTEND;VALUE=DATE")).toBe("20270101");
+  });
+
+  it("defaults to a four-hour event", () => {
+    const ics = buildEventIcs({ ...base, startTime: "19:00" });
+    expect(get(ics, "DTEND")).toBe("20260915T200000Z");
   });
 
   it("honours an explicit end time", () => {
     const ics = buildEventIcs({ ...base, startTime: "18:30", endTime: "23:45" });
-    expect(get(ics, "DTSTART")).toBe("20260915T183000");
-    expect(get(ics, "DTEND")).toBe("20260915T234500");
+    expect(get(ics, "DTSTART")).toBe("20260915T153000Z");
+    expect(get(ics, "DTEND")).toBe("20260915T204500Z");
   });
 
   // Clamping at 23:00 instead of rolling over gave a 23:30 event a DTEND of
   // 23:30 — a zero-length entry the calendar draws as a bare marker.
   it("rolls an end time past midnight onto the next day", () => {
     expect(get(buildEventIcs({ ...base, startTime: "21:00" }), "DTEND"))
-      .toBe("20260916T010000");
+      .toBe("20260915T220000Z");                                 // 01:00 Israel, the 16th
     expect(get(buildEventIcs({ ...base, startTime: "23:30" }), "DTEND"))
-      .toBe("20260916T033000");
+      .toBe("20260916T003000Z");                                 // 03:30 Israel, the 16th
   });
 
   it("reads an explicit end time earlier than the start as the small hours", () => {
     const ics = buildEventIcs({ ...base, startTime: "21:00", endTime: "01:30" });
-    expect(get(ics, "DTSTART")).toBe("20260915T210000");
-    expect(get(ics, "DTEND")).toBe("20260916T013000");
+    expect(get(ics, "DTSTART")).toBe("20260915T180000Z");
+    expect(get(ics, "DTEND")).toBe("20260915T223000Z");          // 01:30 Israel, the 16th
   });
 
   it("never emits a zero-length event", () => {
@@ -88,7 +101,9 @@ describe("buildEventIcs", () => {
   });
 
   it("includes a day-before reminder", () => {
-    expect(buildEventIcs(base)).toContain("TRIGGER:-P1D");
+    expect(buildEventIcs({ ...base, startTime: "19:00" })).toContain("TRIGGER:-P1D");
+    // An all-day entry starts at midnight: noon the day before, not midnight.
+    expect(buildEventIcs(base)).toContain("TRIGGER:-PT12H");
   });
 
   it("keeps a stable UID for the same event", () => {
@@ -137,9 +152,10 @@ describe("an end time equal to the start", () => {
       name: "חתונה", date: "2027-09-15", venue: "אולמי הגן",
       startTime: "21:00", endTime: "01:00",
     });
-    const start = /DTSTART[^:]*:(\d{8})/.exec(ics)[1];
-    const end   = /DTEND[^:]*:(\d{8})/.exec(ics)[1];
-    expect(Number(end)).toBe(Number(start) + 1);
+    // 21:00 → 01:00 Israel is four hours, the end on the NEXT Israel day.
+    const start = /DTSTART:(\d{8}T\d{6}Z)/.exec(ics)[1];
+    const end   = /DTEND:(\d{8}T\d{6}Z)/.exec(ics)[1];
+    expect([start, end]).toEqual(["20270915T180000Z", "20270915T220000Z"]);
   });
 });
 

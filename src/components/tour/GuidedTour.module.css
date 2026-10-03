@@ -1,0 +1,182 @@
+/* The guided tour (WORKPLAN 124). Above the WhatsApp support button (900) —
+   a lit part with that button floating over it is the one thing the tour
+   must not show — and below the toast (9999). */
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.blocker {
+  position: absolute;
+  inset: 0;
+}
+
+/* No part to light (an opening or closing card): the page simply dims. */
+.dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(var(--text-rgb), 0.62);
+  animation: fadeIn 0.18s ease;
+}
+
+/* The lit part. The scrim is this box's own shadow, so the hole is exactly
+   the part's shape, and moving to the next part is one transition of four
+   numbers rather than a repaint of the page. The white-then-accent ring is
+   what makes it read as "this one", on any background the part sits on. */
+.spot {
+  position: fixed;
+  border-radius: var(--radius);
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 0 0 6px var(--accent),
+    0 0 0 200vmax rgba(var(--text-rgb), 0.62);
+  transition: top 0.32s var(--ease-out), left 0.32s var(--ease-out),
+              width 0.32s var(--ease-out), height 0.32s var(--ease-out);
+  pointer-events: none;
+}
+
+/* A slow breath on the ring, so the eye finds the part without reading. */
+.spot::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.55);
+  animation: breathe 1.8s var(--ease-out) infinite;
+}
+
+@keyframes breathe {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.55); }
+  70%  { box-shadow: 0 0 0 14px rgba(var(--accent-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.card {
+  position: fixed;
+  width: min(360px, calc(100vw - 32px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 16px 18px 16px;
+  text-align: start;
+  transition: top 0.32s var(--ease-out), left 0.32s var(--ease-out);
+  animation: rise 0.2s var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dim, .card, .spot::after { animation: none; }
+  .spot, .card { transition: none; }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.count {
+  font-size: var(--step--2);
+  font-weight: var(--font-weight-bold);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.skip {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: var(--step--1);
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.skip:hover {
+  color: var(--text);
+}
+
+/* Touch target, without moving the link (same technique as ConfirmDialog). */
+@media (pointer: coarse) {
+  .skip::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: var(--step-1);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--text);
+  line-height: 1.35;
+}
+
+/* Body size, not metadata: this is read on a phone, once, and it is the
+   whole point of the card. */
+.text {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+.dots {
+  display: flex;
+  gap: 5px;
+  margin: 14px 0 12px;
+}
+
+.dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+  transition: width 0.2s var(--ease-out), background 0.2s;
+}
+
+.dots .dotPast {
+  background: var(--accent-border);
+}
+
+.dots .dotOn {
+  width: 18px;
+  background: var(--accent);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.actions > * {
+  flex: 1 1 auto;
+}
+
+.next {
+  flex: 2 1 auto;
+}

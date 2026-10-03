@@ -9,6 +9,12 @@ import { pruneCloudBackedEvents, userStorageKey } from "../utils/storage.js";
 /** The service-worker cache that holds Supabase reads — see vite.config.js. */
 const SUPABASE_CACHE = "supabase-api";
 
+function clearSupabaseCache() {
+  try {
+    globalThis.caches?.delete(SUPABASE_CACHE)?.catch?.(() => {});
+  } catch { /* no Cache API here — nothing was cached */ }
+}
+
 // Supabase v2 auth — null-safe when VITE_SUPABASE_* env vars are missing.
 //
 // This is a CONTEXT, not a plain hook. It used to be a plain hook and there are
@@ -26,8 +32,8 @@ const SUPABASE_CACHE = "supabase-api";
 //   loading — true only during initial session restore; false immediately when
 //             Supabase is not configured
 //   signIn(email, password) — throws on error
-//   signUp(email, password) — resolves { needsConfirmation: bool }; throws on error
-//   signOut()               — no-op when not configured
+//   signUp(email, password, meta?) — resolves { needsConfirmation: bool }; throws on error
+//   signOut()               — throws on error; no-op when not configured
 
 const AuthContext = createContext(null);
 
@@ -141,13 +147,19 @@ export function AuthProvider({ children }) {
         // minutes (vite.config.js, cache "supabase-api"). On a shared or
         // borrowed device the next person could be served them — guest lists
         // with phone numbers — while the network is slow (102, 28.9).
-        try {
-          globalThis.caches?.delete(SUPABASE_CACHE)?.catch?.(() => {});
-        } catch { /* no Cache API here — nothing was cached */ }
+        clearSupabaseCache();
         // PostHog keeps the identified id in localStorage until told otherwise:
         // without this, whoever uses the device next was recorded as the
         // account that just left (second review, סב11 — nothing called it).
         resetAnalytics();
+      }
+
+      // And again when a DIFFERENT account signs in (ב11, 1.10): a read the
+      // previous account had in flight when it signed out lands after the
+      // delete above and re-creates the cache — the service worker writes it
+      // back. The next account's first slow request could then be served it.
+      if (event === "SIGNED_IN" && session?.user?.id && session.user.id !== prevUserIdRef.current) {
+        clearSupabaseCache();
       }
 
       // The first event after a failed offline refresh is INITIAL_SESSION with
@@ -172,21 +184,31 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   }, []);
 
-  const signUp = useCallback(async (email, password) => {
+  // `meta` lands in the auth user's metadata — the signup records which
+  // version of the terms was agreed to and when (checklist 103).
+  const signUp = useCallback(async (email, password, meta) => {
     if (!supabase) throw new Error("Supabase not configured");
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin + "/auth/callback" },
+      options: {
+        emailRedirectTo: window.location.origin + "/auth/callback",
+        ...(meta ? { data: meta } : {}),
+      },
     });
     if (error) throw error;
     // session is null when email confirmation is required
     return { needsConfirmation: !data.session };
   }, []);
 
+  // Throws when the server refused or could not be reached (37a). supabase-js
+  // then KEEPS the session — it only clears it after a successful logout call,
+  // and even `scope: "local"` makes that call first — so the caller must not
+  // carry on as though the user had left: the next page would still be theirs.
   const signOut = useCallback(async () => {
     if (!supabase) return;
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   }, []);
 
   const value = useMemo(

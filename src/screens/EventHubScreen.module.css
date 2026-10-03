@@ -26,6 +26,7 @@
   color: var(--text);
   margin: 0 0 6px;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .meta {
@@ -52,6 +53,11 @@
   gap: 14px;
   flex-shrink: 0;
 }
+
+/* No date, no countdown, and since the "איך זה עובד" button left (3.10)
+   nothing else: an empty side wrapped onto its own line on a phone and added
+   a 12px gap under the title. */
+.headSide:empty { display: none; }
 
 /* One number at real size — the question the host arrived with. Blush ground,
    so it carries weight without spending the accent. */
@@ -80,27 +86,6 @@
   color: var(--text2);
   margin-top: 4px;
 }
-
-.howBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-pill);
-  padding: 9px 16px;
-  font-family: inherit;
-  font-size: var(--step--1);
-  font-weight: var(--font-weight-bold);
-  color: var(--text2);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background var(--transition), color var(--transition), border-color var(--transition);
-}
-
-.howBtn:hover { background: var(--blush-soft); border-color: var(--blush-line); color: var(--text); }
-
-.howBtn:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 
 .glyphStrip {
   display: flex;
@@ -342,5 +327,5 @@
 }
 
 @media (pointer: coarse) {
-  .howBtn, .item { min-height: 44px; }
+  .item { min-height: 44px; }
 }
