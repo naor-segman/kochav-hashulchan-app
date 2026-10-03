@@ -178,6 +178,10 @@ const CONTRAST_JS = () => {
   };
 };
 
+/** SHOTS=<dir> saves a full-page screenshot per check step, for a human look. */
+const shot = (p, name) => process.env.SHOTS
+  ? p.screenshot({ path: `${process.env.SHOTS}/${name}.png`, fullPage: true }) : null;
+
 /* ── Checks ─────────────────────────────────────────────────────────────── */
 const CHECKS = {
   // V1: the host previews, opened on a full page load while signed in.
@@ -302,6 +306,30 @@ const CHECKS = {
     const sel = p.locator('[data-tour="seating.waiting"] select[data-seat-select]').first();
     ok(await sel.isVisible(), 'every waiting row still has its table select');
     await ctx.close();
+  },
+
+  // V7: the account screen on a phone — tap targets and the plan cards.
+  async account(b, base) {
+    for (const width of [360, 390]) {
+      const { ctx, p } = await page(b, base, { width, height: 800, touch: true });
+      await p.goto(base + '/account', { waitUntil: 'domcontentloaded' });
+      await p.getByRole('link', { name: /חזרה לאפליקציה/ }).waitFor({ timeout: 15000 });
+      await p.waitForTimeout(500);
+      const m = await p.evaluate(() => {
+        const box = (el) => { const r = el.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), t: el.textContent.trim().slice(0, 24) }; };
+        const links = [...document.querySelectorAll('main a[class*=feedbackLink], main button[class*=feedbackLink], main a[class*=backLink]')].map(box);
+        const planBtns = [...document.querySelectorAll('main [class*=planCardBtn]')].map(box);
+        const cards = [...document.querySelectorAll('main [class*=planCard]:not([class*=planCardB]):not([class*=planCardH]):not([class*=planCardF]):not([class*=planCardI]):not([class*=planCardN]):not([class*=planCardM])')].map(box);
+        return { links, planBtns, cards };
+      });
+      ok(m.links.length >= 3, `${width}px: found the text links`, String(m.links.length));
+      for (const l of m.links) ok(l.h >= 44, `${width}px: "${l.t}" ≥ 44px tall`, `${l.w}x${l.h}`);
+      for (const l of m.planBtns) ok(l.h >= 44, `${width}px: plan button "${l.t}" ≥ 44px tall`, `${l.w}x${l.h}`);
+      ok(m.cards.length === 3 && m.cards.every(c => c.w >= 240), `${width}px: each plan card has the width to be read`, m.cards.map(c => c.w).join(', '));
+      ok(await hscroll(p) === 0, `${width}px: no sideways scroll`);
+      await shot(p, `account-${width}`);
+      await ctx.close();
+    }
   },
 
   // WORKPLAN 129: the "send the table number" rows are 44px to a thumb, and
