@@ -21,7 +21,6 @@ function walk(dir, out = []) {
   return out;
 }
 const stripComments = s => s
-  .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "")
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 

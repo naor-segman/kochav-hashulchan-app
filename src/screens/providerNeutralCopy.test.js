@@ -31,7 +31,6 @@ function walk(dir, out = []) {
 /** Source with block, line and JSX comments removed (URLs' "//" kept). */
 function stripComments(src) {
   return src
-    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 }

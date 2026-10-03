@@ -68,10 +68,14 @@ const FAQ = [
        and nothing ever flips it, and the guest's own confirmation screen says
        the gift itself is given on the day. /services/gifts on this same site
        already said that, so the site gave two answers and the false one was on
-       the page with the price. The clearing arrangement is real and stays — as
-       what it is: arranged with us, not a button in the app. */
+       the page with the price.
+       The next version kept "סליקה בכרטיס אשראי היא הסדר נפרד שאנחנו מסדרים
+       איתכם מראש" — and that arrangement does not exist either: there is no
+       clearing agreement and no provider (WORKPLAN 90, blocked on 46), and
+       /services/gifts calls card payment "in development". Audit 3.10, C10:
+       the answer now says the same as that page. */
     q: "מה קורה עם המתנות?",
-    a: "באפליקציה האורח מצהיר על המתנה וכותב ברכה. הברכות עולות לקיר ברכות שמוקרן על מסך באולם — בלי סכומים — ואצלכם נשמרת רשימה של מי בירך ומה. הכסף עצמו עובר ביום האירוע. סליקה בכרטיס אשראי היא הסדר נפרד שאנחנו מסדרים איתכם מראש, ולא משהו שקורה דרך האתר.",
+    a: "באפליקציה האורח מצהיר על המתנה וכותב ברכה. הברכות עולות לקיר ברכות שמוקרן על מסך באולם — בלי סכומים — ואצלכם נשמרת רשימה של מי בירך ומה. הכסף עצמו עובר ביום האירוע, כמו תמיד. תשלום המתנה בכרטיס אשראי מהטלפון נמצא בפיתוח ועוד לא זמין.",
   },
   {
     q: `מי עומד בכניסה בחבילה של ${ONSITE_PRICE}?`,

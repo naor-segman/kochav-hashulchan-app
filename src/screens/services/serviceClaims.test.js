@@ -4,6 +4,10 @@ import { readFileSync } from "fs";
 /* The public service pages, checked against the product (audit 3.10).
  * Each assertion pins a sentence that was false, or internal, when found. */
 const read = f => readFileSync(new URL(f, import.meta.url), "utf8");
+// Copy only: the reasons for a fix are written in comments and quote the old text.
+const copy = f => read(f)
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
 
 describe("service pages say what the product does (audit 3.10)", () => {
   it("RSVP: no internal decision log on a public page (C5)", () => {
@@ -27,5 +31,16 @@ describe("service pages say what the product does (audit 3.10)", () => {
     expect(t).not.toMatch(/כל האילוצים מכובדים|מכבדת כל/);
     expect(t).toMatch(/ככל שהאולם מאפשר — ומה שלא הסתדר מסומן לכם/);
     expect(t).toMatch(/ומסמנת לכם כל אילוץ שלא הסתדר/);
+  });
+
+  it("gifts: pricing and the gifts page give one answer — card payment is in development (C10)", () => {
+    // The pricing FAQ offered card clearing as "an arrangement we set up with
+    // you" while /services/gifts said it is in development (WORKPLAN 90: no
+    // clearing agreement, no provider). Both must say it is not available.
+    const pricing = copy("../PricingScreen.jsx");
+    const gifts = copy("./GiftsServiceScreen.jsx");
+    expect(pricing).not.toMatch(/מסדרים איתכם|הסדר נפרד/);
+    expect(pricing).toMatch(/בכרטיס אשראי מהטלפון נמצא בפיתוח ועוד לא זמין/);
+    expect(gifts).toMatch(/תשלום בכרטיס אשראי בפיתוח/);
   });
 });
