@@ -15,7 +15,7 @@ import styles from "./ConsentBanner.module.css";
  *
  * What it is honest about: there are exactly TWO categories here. Essential
  * (the login, the events kept on the device, this answer) and usage
- * measurement (PostHog). No marketing, no personalisation — listing them would
+ * measurement (Google Analytics). No marketing, no personalisation — listing them would
  * describe a site that does not exist.
  *
  * The rules it keeps, each one from the law reading of 3.10:
@@ -26,7 +26,7 @@ import styles from "./ConsentBanner.module.css";
  *     and the account screen all open the same preferences.
  *   • Guests on an RSVP or gift link are never asked: measurement does not run
  *     for them, so there is nothing to ask about.
- *   • No key, no banner: with VITE_POSTHOG_KEY unset there is nothing optional
+ *   • No id, no banner: with VITE_GA_ID unset there is nothing optional
  *     on the site at all.
  */
 export default function ConsentBanner() {
@@ -169,11 +169,10 @@ function ConsentPreferences({ initial, onDecide, onClose }) {
             <span className={styles.catName}>מדידת שימוש</span>
           </label>
           <p className={styles.catText}>
-            עוזרת לנו לראות באיזה שלב אנשים נתקעים. נשמר מזהה אקראי בדפדפן,
-            ונשלחים העמוד (בלי קודי הקישורים), מזהה החשבון, פרטים כלליים על
-            הדפדפן והמכשיר וכתובת הרשת (כמו בכל פנייה לשרת) — לא אימייל, לא
-            שמות אורחים, לא הקלטות מסך ולא מעקב אחרי לחיצות. דרך PostHog,
-            בשרתים באירופה.
+            עוזרת לנו לראות באיזה שלב אנשים נתקעים. נשמרת עוגייה עם מזהה אקראי
+            (עד 13 חודשים), ונשלחים העמוד (בלי קודי הקישורים), מזהה החשבון,
+            פרטים כלליים על הדפדפן והמכשיר ואזור גאוגרפי משוער — לא אימייל, לא
+            שמות אורחים, לא הקלטות מסך ולא פרסום. דרך Google Analytics.
           </p>
         </div>
 

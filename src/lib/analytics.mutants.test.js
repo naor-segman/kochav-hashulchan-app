@@ -1,73 +1,57 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Four edits to analytics.js passed the whole suite in the third-review mutation
-// run (29.9). Two of them are privacy defaults of exactly the kind
-// analytics.test.js exists for — a setting that comes back silently and leaks
-// into a third-party tool — and that file did not watch them.
+// Edits to analytics.js that once passed the whole suite in a mutation run
+// (29.9), kept watched after the move to Google Analytics (127).
 
-const init = vi.fn();
-const capture = vi.fn();
-// analytics.js loads posthog-js through ./posthogLoader.js (so the service
-// worker can leave its chunk out of the precache); mocking that module keeps
-// the load one hop, as it was.
-vi.mock("./posthogLoader.js", () => ({
-  default: { init, capture, identify: vi.fn(), reset: vi.fn() },
-}));
-const settle = () => new Promise(r => setTimeout(r, 0));
+const gtag = vi.fn();
+vi.mock("./gaLoader.js", () => ({ loadGtag: () => gtag }));
 
-// This browser has said yes to the cookie question (owner 3.10). Without that
-// answer nothing loads at all — analytics.consent.test.js covers that side.
-const yes = () => vi.stubGlobal("localStorage", {
-  getItem: k => (k === "kochav_consent_v1" ? JSON.stringify({ analytics: true, at: "2026-10-03T00:00:00.000Z" }) : null),
-  setItem() {}, removeItem() {},
+beforeEach(() => {
+  vi.resetModules();
+  gtag.mockClear();
+  localStorage.clear();
+  vi.stubEnv("VITE_GA_ID", "G-TEST12345");
 });
-beforeEach(() => { vi.resetModules(); yes(); init.mockClear(); capture.mockClear(); });
-afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllEnvs(); });
 
-describe("PostHog stores its id in localStorage, not a cookie", () => {
-  // A cookie is sent with every request to the domain and, for posthog-js,
-  // can be cross-subdomain. analytics.js promises "no cross-site cookie" and
-  // main.jsx "no cookies" while dark, and the consent banner (3.10) describes
-  // what is kept as local storage, never as a cookie sent to the server.
-  // Switching the persistence to a cookie would break that promise for every
-  // visitor who said yes.
-  it("init persistence: localStorage", async () => {
-    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test");
+describe("scrubParams fails CLOSED", () => {
+  // It is the last thing between a token-bearing URL and Google. If scrubbing
+  // throws, the only safe answer is to drop the event — sending it as it came
+  // sends exactly the unscrubbed payload the function exists to stop.
+  it("parameters it cannot read are dropped (null), and the event is not sent", async () => {
+    localStorage.setItem("kochav_consent_v1", JSON.stringify({ analytics: true, at: "x" }));
     const a = await import("./analytics.js");
     a.initAnalytics();
-    await settle();
-    expect(init.mock.calls[0][1].persistence).toBe("localStorage");
-  });
-});
-
-describe("scrubEvent fails CLOSED", () => {
-  // before_send is the last thing between a token-bearing URL and PostHog. If
-  // scrubbing throws, the only safe answer is to drop the event — returning it
-  // as it came sends exactly the unscrubbed payload the function exists to stop.
-  it("an event it cannot read is dropped (null), not passed through", async () => {
-    const { scrubEvent } = await import("./analytics.js");
     const hostile = new Proxy({}, { ownKeys() { throw new Error("cannot enumerate"); } });
     // Compared as a boolean on purpose: handing the proxy itself to expect()
     // makes the failure message try to print it, and that throws too.
-    const out = scrubEvent({ event: "$pageview", properties: hostile });
-    expect(out === null, "the event came back instead of being dropped").toBe(true);
+    expect(a.scrubParams(hostile) === null, "the parameters came back instead of being dropped").toBe(true);
+    a.track("x", hostile);
+    expect(gtag.mock.calls.filter(c => c[0] === "event")).toHaveLength(0);
   });
 });
 
-describe("the pre-load queue is bounded", () => {
-  // posthog-js arrives late (it is dynamically imported), so calls made first
-  // are queued. On a network where the import never resolves — venue wifi, an
-  // ad blocker that stalls rather than refuses — an unbounded queue grows for
-  // as long as the tab is open. Twenty keeps the top of the funnel and caps
-  // the rest.
-  it("25 calls before the module lands → 20 delivered", async () => {
-    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test");
+describe("the pre-consent queue is bounded", () => {
+  // A visitor who never answers keeps calling track() for as long as the tab
+  // is open. Twenty keeps the top of the funnel and caps the rest.
+  it("25 calls before the yes → 20 delivered, in order", async () => {
     const a = await import("./analytics.js");
-    a.initAnalytics();
     for (let i = 0; i < 25; i++) a.track("e" + i);
-    await settle();
-    expect(capture).toHaveBeenCalledTimes(20);
-    expect(capture.mock.calls[0][0]).toBe("e0");
+    a.applyConsent(true);
+    const events = gtag.mock.calls.filter(c => c[0] === "event");
+    expect(events).toHaveLength(20);
+    expect(events[0][1]).toBe("e0");
+  });
+});
+
+describe("the queue is flushed once", () => {
+  it("a second yes does not send the held events again", async () => {
+    const a = await import("./analytics.js");
+    a.track("once");
+    a.applyConsent(true);
+    a.applyConsent(true);
+    expect(gtag.mock.calls.filter(c => c[0] === "event").map(c => c[1])).toEqual(["once"]);
   });
 });
 

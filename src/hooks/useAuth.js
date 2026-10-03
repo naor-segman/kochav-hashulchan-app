@@ -148,9 +148,9 @@ export function AuthProvider({ children }) {
         // borrowed device the next person could be served them — guest lists
         // with phone numbers — while the network is slow (102, 28.9).
         clearSupabaseCache();
-        // PostHog keeps the identified id in localStorage until told otherwise:
-        // without this, whoever uses the device next was recorded as the
-        // account that just left (second review, סב11 — nothing called it).
+        // The analytics keep the account id until told otherwise: without
+        // this, whoever uses the device next was recorded as the account that
+        // just left (second review, סב11 — nothing called it).
         resetAnalytics();
       }
 

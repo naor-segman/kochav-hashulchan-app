@@ -1,7 +1,7 @@
 // The visitor's answer to the cookie question (owner 3.10).
 //
-// Only ONE thing on this site needs consent: usage measurement (PostHog). The
-// rest of what the browser keeps — the login, the copy of the host's events,
+// Only ONE thing on this site needs consent: usage measurement (Google
+// Analytics). The rest of what the browser keeps — the login, the copy of the host's events,
 // a name typed into the album — is what the site cannot work without, and the
 // law does not ask for consent for that. So the answer is a single yes/no.
 //

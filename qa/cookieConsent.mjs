@@ -1,30 +1,34 @@
-// The cookie question (WORKPLAN 126, owner 3.10), in a real browser.
+// The cookie question (WORKPLAN 126, owner 3.10) with Google Analytics (127),
+// in a real browser.
 //
-// Builds with a fake PostHog key and a host the page routes to a stub, then
-// reads every claim back off the wire and out of storage — never from the code
-// that wrote it:
-//   • before an answer: the banner is there, posthog-js is not even fetched,
-//     nothing reaches PostHog, nothing of PostHog's is stored;
+// Builds with a fake GA id. www.googletagmanager.com is unreachable from here,
+// so the page is served a stub gtag.js and every request to a Google host is
+// recorded. What GA WOULD receive is everything our code hands gtag(), and that
+// all lands in window.dataLayer — so the checks read dataLayer, cookies and the
+// network back, never the code that wrote them:
+//   • before an answer: the banner is there, gtag.js is not even requested,
+//     dataLayer does not exist, no cookie is written;
 //   • the two answers are the same size and skin; nothing is pre-ticked;
-//   • yes: it loads and sends; reload: not asked again;
-//   • no (first layer, or later from the footer): nothing is sent, and the id
-//     PostHog stored is gone;
+//   • yes: gtag.js loads, ads stay denied, the page view goes in scrubbed;
+//   • no (first layer, or later from the footer): nothing more goes in, our
+//     GA cookies are deleted and another site's _ga is left alone;
 //   • guest pages: never asked, never measured;
 //   • the guided tour waits for the answer instead of covering the banner;
 //   • phones: fits at 320, no horizontal scroll, 44px targets.
+// What it cannot see: what the REAL gtag.js adds by itself. That is checked in
+// GA's DebugView after deploy (WORKPLAN 127).
 //   node qa/cookieConsent.mjs
 import { createRequire } from 'module';
 import { execFileSync } from 'child_process';
-import { mkdtempSync, rmSync, readdirSync, readFileSync } from 'fs';
+import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import zlib from 'zlib';
 import { startPreview } from './lib/preview.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const { chromium } = createRequire(ROOT + '/')('playwright');
 const OUT = mkdtempSync(join(tmpdir(), 'consent-'));
-const PH = 'http://127.0.0.1:4796';   // nothing listens: answered by the route below
+const GA_ID = 'G-TEST12345';
 let fails = 0;
 const ok = (c, what, detail = '') => {
   if (!c) fails++;
@@ -33,15 +37,8 @@ const ok = (c, what, detail = '') => {
 
 execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT, '--emptyOutDir', '--logLevel', 'error'], {
   cwd: ROOT, stdio: 'inherit',
-  env: { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '', VITE_POSTHOG_KEY: 'phc_test', VITE_POSTHOG_HOST: PH },
+  env: { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '', VITE_GA_ID: GA_ID },
 });
-// posthog-js's own chunk, found by CONTENT: a name match passed vacuously once
-// (it was module-<hash>.js before src/lib/posthogLoader.js gave it a name).
-// The app's entry calls opt_out_capturing too (to withdraw), so it is excluded.
-const PH_CHUNKS = readdirSync(join(OUT, 'assets'))
-  .filter(f => f.endsWith('.js') && !f.startsWith('index-') && readFileSync(join(OUT, 'assets', f), 'utf8').includes('opt_out_capturing'));
-if (PH_CHUNKS.length !== 1) throw new Error('expected one posthog-js chunk, found: ' + PH_CHUNKS.join(', '));
-const SW = readFileSync(join(OUT, 'sw.js'), 'utf8');
 const server = await startPreview(4795, ROOT, ['--outDir', OUT]);
 const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
@@ -49,59 +46,36 @@ const browser = await chromium.launch({
   args: ['--no-proxy-server', '--disable-blink-features=AutomationControlled'],
 });
 
-const decode = (buf) => {
-  if (!buf?.length) return '';
-  try { return zlib.gunzipSync(buf).toString('utf8'); } catch { /* not gzip */ }
-  const raw = buf.toString('utf8');
-  const m = /data=([^&]+)/.exec(raw);
-  if (m) { try { return Buffer.from(decodeURIComponent(m[1]), 'base64').toString('utf8'); } catch { /* */ } }
-  return raw;
-};
-/** The capture times of every event in a request body. */
-const eventTimes = (body) => {
-  try {
-    const j = JSON.parse(body);
-    const list = Array.isArray(j) ? j : j.batch || [j];
-    return list.map(e => Date.parse(e.timestamp || e.properties?.$time * 1000)).filter(Number.isFinite);
-  } catch { return [NaN]; }
-};
+const GOOGLE = /(^|\.)(googletagmanager\.com|google-analytics\.com|analytics\.google\.com|doubleclick\.net)$/;
 
-/** One "computer": a fresh profile, every PostHog request and chunk recorded. */
+/** One "computer": a fresh profile, every request to a Google host recorded. */
 async function computer({ width = 390, height = 844, touch = width < 600 } = {}) {
-  const ctx = await browser.newContext({
-    viewport: { width, height }, hasTouch: touch, isMobile: touch, serviceWorkers: 'block',
-    // PostHog drops events from a headless user agent; without a real one the
-    // "it sends after a yes" checks would pass vacuously in the other direction.
-    userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36',
-  });
+  const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: touch, isMobile: touch, serviceWorkers: 'block' });
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(e.message.slice(0, 140)));
-  const sent = [];
-  const chunks = [];
-  p.on('request', r => { if (PH_CHUNKS.some(f => r.url().includes(f))) chunks.push(r.url()); });
-  await ctx.route(PH + '/**', async (route) => {
-    const u = new String(route.request().url().slice(PH.length));
-    u.body = decode(route.request().postDataBuffer());
-    sent.push(u);
-    if (/\.js(\?|$)/.test(route.request().url())) return route.fulfill({ status: 200, contentType: 'text/javascript', body: '' });
-    await route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":1}' });
+  const google = [];
+  await ctx.route(u => GOOGLE.test(new URL(u).hostname), async (route) => {
+    google.push(route.request().url());
+    // A stub gtag.js: it does nothing, so dataLayer keeps exactly what we gave it.
+    await route.fulfill({ status: 200, contentType: 'text/javascript', body: '/* stub */' });
   });
-  return { ctx, p, errs, sent, chunks };
+  return { ctx, p, errs, google };
 }
 const go = async (p, path) => { await p.goto(server.base + path, { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(1500); };
 const banner = (p) => p.$('section[aria-labelledby="consent-title"]');
-const phKeys = (p) => p.evaluate(() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)].filter(k => k.startsWith('ph_')));
 const consent = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('kochav_consent_v1') || 'null'));
 const btn = (p, name) => p.getByRole('button', { name, exact: true });
-// Flushes posthog's batch: a pagehide sends whatever is queued.
-const flush = async (p) => { await p.waitForTimeout(3500); await p.goto('about:blank'); await p.waitForTimeout(600); };
+/** dataLayer as plain arrays (gtag pushes Arguments objects), or null if absent. */
+const layer = (p) => p.evaluate(() => window.dataLayer ? window.dataLayer.map(a => Array.from(a, v => v instanceof Date ? 'date' : v)) : null);
+const pageViews = (l) => (l || []).filter(a => a[0] === 'event' && a[1] === 'page_view').map(a => a[2].page_location.replace(/^https?:\/\/[^/]+/, ''));
+const cookies = (p) => p.evaluate(() => document.cookie.split(';').map(c => c.split('=')[0].trim()).filter(Boolean));
 const hscroll = (p) => p.evaluate(() => { window.scrollTo({ left: -1e5, behavior: 'instant' }); const x = window.scrollX; window.scrollTo({ left: 0, behavior: 'instant' }); return x; });
 
 try {
   for (const [w, h] of [[320, 640], [390, 844], [1280, 860]]) {
     console.log(`\n── first visit, ${w}px`);
-    const { ctx, p, errs, sent, chunks } = await computer({ width: w, height: h });
+    const { ctx, p, errs, google } = await computer({ width: w, height: h });
     await go(p, '/home');
     const b = await banner(p);
     ok(!!b, 'the question is shown');
@@ -123,90 +97,79 @@ try {
       }
     }
     ok(await hscroll(p) === 0, 'no horizontal scroll');
-    ok(chunks.length === 0, 'posthog-js is not even downloaded', chunks.join(' '));
-    ok((await phKeys(p)).length === 0, 'nothing of PostHog\'s is stored');
-    await flush(p);
-    ok(sent.length === 0, 'nothing reaches PostHog before an answer', sent.join(' '));
+    await p.waitForTimeout(1500);
+    ok(google.length === 0, 'nothing is requested from Google before an answer', google.join(' '));
+    ok(await layer(p) === null, 'no dataLayer — nothing is held for Google');
+    ok((await cookies(p)).length === 0, 'no cookie is written', (await cookies(p)).join(','));
     ok(errs.length === 0, 'no page errors', errs.join(' | '));
     await ctx.close();
   }
 
   console.log('\n── אישור');
   {
-    const { ctx, p, errs, sent, chunks } = await computer();
+    const { ctx, p, errs, google } = await computer();
     await go(p, '/home');
     await btn(p, 'אישור').click();
     await p.waitForTimeout(800);
     ok(!(await banner(p)), 'the question goes away');
     const c = await consent(p);
     ok(c?.analytics === true && !!Date.parse(c?.at), 'the answer is stored, with when it was given', JSON.stringify(c));
-    ok(chunks.length > 0, 'posthog-js is fetched now');
-    await p.waitForTimeout(1500);
-    ok((await phKeys(p)).length > 0, 'and keeps its id', (await phKeys(p)).join(','));
-    await go(p, '/pricing');
-    ok(!(await banner(p)), 'not asked again on the next page');
-    await flush(p);
-    ok(sent.some(u => /^\/(e|i|batch)\//.test(u)), 'events reach PostHog — the page the yes was given on included', sent.map(u => u.split('?')[0]).join(' '));
+    ok(google.length === 1 && google[0].includes('/gtag/js?id=' + GA_ID), 'gtag.js is requested now — once, with our id', google.join(' '));
+    const l = await layer(p);
+    const cons = l.find(a => a[0] === 'consent' && a[1] === 'default');
+    ok(cons && cons[2].ad_storage === 'denied' && cons[2].ad_user_data === 'denied' && cons[2].ad_personalization === 'denied', 'ads stay denied', JSON.stringify(cons?.[2]));
+    const cfg = l.find(a => a[0] === 'config');
+    ok(cfg && cfg[2].send_page_view === false && cfg[2].allow_google_signals === false && cfg[2].cookie_prefix === 'kh', 'no automatic page view, no Google signals, our own cookie prefix', JSON.stringify(cfg?.[2]));
+    ok(JSON.stringify(pageViews(l)) === '["/home"]', 'the page the yes was given on is counted', JSON.stringify(pageViews(l)));
+    await p.evaluate(() => { history.pushState({}, '', '/pricing'); dispatchEvent(new PopStateEvent('popstate')); });
+    await p.waitForTimeout(800);
+    ok(JSON.stringify(pageViews(await layer(p))) === '["/home","/pricing"]', 'and the next page, once', JSON.stringify(pageViews(await layer(p))));
     await go(p, '/home');
     ok(!(await banner(p)), 'not asked again after a reload');
+    ok(pageViews(await layer(p)).length === 1, 'and measured from the first page of the new load');
 
     console.log('\n── changing your mind: the footer');
+    // What the real gtag.js would have written, plus another site's _ga (the
+    // Unica site, once this one is a subdomain of it).
+    await p.evaluate(() => {
+      document.cookie = 'kh_ga=GA1.1.123.456; path=/';
+      document.cookie = 'kh_ga_TEST12345=GS1.1.789; path=/';
+      document.cookie = '_ga=GA1.1.999.888; path=/';
+    });
     await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await btn(p, 'הגדרות עוגיות').click();
-    const dlg = p.getByRole('dialog', { name: 'העדפות עוגיות ופרטיות' });
-    ok(await dlg.isVisible(), 'the footer opens the preferences');
+    ok(await p.getByRole('dialog', { name: 'העדפות עוגיות ופרטיות' }).isVisible(), 'the footer opens the preferences');
     ok(await p.getByRole('checkbox', { name: 'מדידת שימוש' }).isChecked(), 'showing the yes that was given');
-    const withdrawnAt = Date.now();
     await btn(p, 'דחיית הכל').click();
     await p.waitForTimeout(500);
     ok((await consent(p))?.analytics === false, 'the no is stored');
-    ok((await phKeys(p)).length === 0, 'PostHog\'s id is deleted from the browser', (await phKeys(p)).join(','));
-    const before = sent.length;
-    await go(p, '/pricing');
-    await go(p, '/help');
-    await flush(p);
-    // posthog-js batches for ~3s. Events captured while the yes still stood
-    // can leave in that batch just after the no (opt-out does not empty it) —
-    // withdrawal is not retroactive, so that is allowed. Anything CAPTURED
-    // after the no is not.
-    const after = sent.slice(before).flatMap(u => eventTimes(u.body));
-    ok(after.every(t => t < withdrawnAt), 'and nothing captured after the no is sent',
-      `${sent.length - before} late request(s), event times ${after.map(t => Number.isFinite(t) ? t - withdrawnAt + 'ms' : 'unreadable').join(', ')}`);
-    ok(errs.length === 0, 'no page errors', errs.join(' | '));
-    await ctx.close();
-  }
+    const ck = await cookies(p);
+    ok(!ck.some(n => n.startsWith('kh_ga')), 'our GA cookies are deleted', ck.join(','));
+    ok(ck.includes('_ga'), 'another site\'s _ga is left alone', ck.join(','));
+    ok(await p.evaluate(id => window['ga-disable-' + id], GA_ID) === true, 'Google\'s off switch is set');
+    const l2 = await layer(p);
+    ok(l2.some(a => a[0] === 'consent' && a[1] === 'update' && a[2].analytics_storage === 'denied'), 'and gtag is told: analytics denied');
+    const n2 = l2.length;
+    await p.evaluate(() => { history.pushState({}, '', '/help'); dispatchEvent(new PopStateEvent('popstate')); });
+    await p.waitForTimeout(800);
+    ok((await layer(p)).length === n2, 'nothing more goes in after the no', JSON.stringify((await layer(p)).slice(n2)));
 
-  console.log('\n── no, then yes again, without leaving the page');
-  {
-    // The id lives in posthog's memory too. Clearing storage alone brought the
-    // SAME id back on a yes in the same visit, tying the visits before the
-    // withdrawal to the ones after (3.10 review, measured). A reload hides it,
-    // so this stays on one page.
-    const { ctx, p, errs } = await computer({ width: 1280, height: 860, touch: false });
-    const phId = () => p.evaluate(() => { const k = Object.keys(localStorage).find(x => /^ph_.*_posthog$/.test(x)); return k ? JSON.parse(localStorage.getItem(k)).distinct_id : null; });
-    await go(p, '/home');
-    await btn(p, 'אישור').click();
-    await p.waitForTimeout(1500);
-    const idBefore = await phId();
-    await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await btn(p, 'הגדרות עוגיות').click();
-    await btn(p, 'דחיית הכל').click();
-    await p.waitForTimeout(300);
+    console.log('\n── and yes again, on the same page');
+    await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));   // /help has the footer too
     await btn(p, 'הגדרות עוגיות').click();
     await btn(p, 'אישור הכל').click();
-    // Nothing is persisted until something is captured: a client-side page
-    // change sends a pageview (a reload would hide what is being tested).
     await p.evaluate(() => { history.pushState({}, '', '/pricing'); dispatchEvent(new PopStateEvent('popstate')); });
-    await p.waitForTimeout(1500);
-    const idAfter = await phId();
-    ok(!!idBefore && !!idAfter && idAfter !== idBefore, 'a yes after a no starts a new id', `${idBefore} → ${idAfter}`);
+    await p.waitForTimeout(800);
+    ok((await layer(p)).length === n2, 'nothing is sent in the same visit — the old id may still be in memory');
+    await go(p, '/home');
+    ok(pageViews(await layer(p)).length === 1, 'and the next load measures again');
     ok(errs.length === 0, 'no page errors', errs.join(' | '));
     await ctx.close();
   }
 
   console.log('\n── סירוב');
   {
-    const { ctx, p, errs, sent, chunks } = await computer({ width: 1280, height: 860, touch: false });
+    const { ctx, p, errs, google } = await computer({ width: 1280, height: 860, touch: false });
     await go(p, '/home');
     await btn(p, 'סירוב').click();
     await p.waitForTimeout(400);
@@ -215,8 +178,7 @@ try {
     await go(p, '/pricing');
     await go(p, '/home');
     ok(!(await banner(p)), 'not asked again');
-    await flush(p);
-    ok(chunks.length === 0 && sent.length === 0, 'posthog-js never fetched, nothing sent', `${chunks.length} chunks, ${sent.length} requests`);
+    ok(google.length === 0 && await layer(p) === null, 'nothing requested from Google, nothing held', `${google.length} requests`);
     ok(errs.length === 0, 'no page errors', errs.join(' | '));
     await ctx.close();
   }
@@ -245,11 +207,10 @@ try {
 
   console.log('\n── guest pages');
   for (const path of ['/rsvp/abc123token', '/gift/abc123token', '/album/abc123token', '/invite/abc123token']) {
-    const { ctx, p, sent, chunks } = await computer();
+    const { ctx, p, google } = await computer();
     await go(p, path);
     const asked = !!(await banner(p));
-    await flush(p);
-    ok(!asked && chunks.length === 0 && sent.length === 0, `${path.split('/')[1]}: not asked, not measured`, `${asked ? 'asked' : ''} ${chunks.length} chunks, ${sent.length} requests`);
+    ok(!asked && google.length === 0 && await layer(p) === null, `${path.split('/')[1]}: not asked, not measured`, `${asked ? 'asked ' : ''}${google.length} requests`);
     await ctx.close();
   }
 
@@ -267,21 +228,18 @@ try {
     await ctx.close();
   }
 
-  console.log('\n── service worker');
-  ok(!PH_CHUNKS.some(f => SW.includes(f)), 'posthog-js is not in the precache — no guest downloads it', PH_CHUNKS.join(', '));
-
   console.log('\n── a guest who goes on to our home page and says yes there');
   {
-    const { ctx, p, sent } = await computer();
+    const { ctx, p } = await computer();
     await go(p, '/rsvp/GUESTTOKEN123');
     ok(!(await banner(p)), 'not asked on the RSVP page');
     // Client-side, as the RSVP page's own link does: the same JS, the same memory.
     await p.evaluate(() => { history.pushState({}, '', '/home'); dispatchEvent(new PopStateEvent('popstate')); });
     await p.waitForTimeout(1200);
     await btn(p, 'אישור').click();
-    await flush(p);
-    const bodies = sent.map(u => u.body).join(' ');
-    ok(sent.length > 0 && !/rsvp/i.test(bodies), 'the RSVP page is not sent after the yes', `${sent.length} requests; rsvp in body: ${/rsvp/i.test(bodies)}`);
+    await p.waitForTimeout(600);
+    const l = JSON.stringify(await layer(p));
+    ok(pageViews(await layer(p)).length > 0 && !/rsvp/i.test(l), 'the RSVP page is not sent after the yes', JSON.stringify(pageViews(await layer(p))));
     await ctx.close();
   }
 
