@@ -26,12 +26,18 @@ export function useScreenTour(key) {
 
   useEffect(() => {
     if (!available || hasSeenTour(key) || navigator.webdriver) return undefined;
-    let tries = 0, timer = 0;
+    let tries = 0, timer = 0, lastInput = 0;
+    // A host already typing (the start form and the guest form focus a field
+    // as they open) would have the tour take their focus mid-word. Wait for a
+    // pause of a second and a half in their typing or tapping first.
+    const onInput = () => { lastInput = Date.now(); };
+    window.addEventListener("keydown", onInput, true);
+    window.addEventListener("pointerdown", onInput, true);
     const open = () => {
       // Another dialog is open, or the screen is still loading (a Loading
       // skeleton is aria-busy): the tour decides which parts exist when it
       // opens, so opening now would drop the ones about to arrive.
-      if (document.querySelector('[aria-modal="true"], [aria-busy="true"]')) {
+      if (document.querySelector('[aria-modal="true"], [aria-busy="true"]') || Date.now() - lastInput < 1500) {
         // Still blocked after ~30s: give up for this visit rather than open
         // over a dialog the host is in the middle of, or over a screen whose
         // parts never arrived. Not marked seen — it opens next time.
@@ -41,7 +47,11 @@ export function useScreenTour(key) {
       setOpenFor(key);
     };
     timer = setTimeout(open, 700);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("keydown", onInput, true);
+      window.removeEventListener("pointerdown", onInput, true);
+    };
   }, [key, available]);
 
   const start = useCallback(() => setOpenFor(key), [key]);

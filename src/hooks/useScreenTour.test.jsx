@@ -54,6 +54,17 @@ describe("useScreenTour", () => {
     expect(result.current.open).toBe(true);
   });
 
+  it("does not take focus from a host who is typing; opens once they pause", async () => {
+    const { result } = renderHook(() => useScreenTour("start"));
+    for (let k = 0; k < 6; k++) {          // typing for 3 seconds
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "א" }));
+      await after(500);
+    }
+    expect(result.current.open).toBe(false);
+    await after(2300);                      // a pause
+    expect(result.current.open).toBe(true);
+  });
+
   it("gives up after ~30s rather than open on top of something still there", async () => {
     block("aria-modal");
     const { result } = renderHook(() => useScreenTour("guests"));
