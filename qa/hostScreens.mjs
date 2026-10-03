@@ -164,6 +164,27 @@ const CHECKS = {
       await ctx.close();
     }
   },
+
+  // V2: the responses list does not scroll sideways on a phone.
+  async rsvpScroll(b, base) {
+    for (const width of [360, 390, 412, 800, 1280]) {
+      const { ctx, p } = await page(b, base, { width });
+      await p.goto(base + '/events/e1/rsvps', { waitUntil: 'domcontentloaded' });
+      await p.getByText('זוהה לפי שם', { exact: false }).first().waitFor({ timeout: 15000 });
+      const x = await hscroll(p);
+      const name = await p.evaluate(() => {
+        const el = [...document.querySelectorAll('span')].find(s => s.textContent.startsWith('זוהה לפי שם'));
+        const row = el.closest('[class*=gRow]');
+        const nm = row.querySelector('[class*=gName]').getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        return { nameW: Math.round(nm.width), left: Math.round(r.left), right: Math.round(r.right), W: innerWidth };
+      });
+      ok(x === 0, `${width}px: /rsvps does not scroll sideways`, `scrollX=${x}`);
+      ok(name.left >= 0 && name.right <= name.W, `${width}px: the name-match reason fits the viewport`, JSON.stringify(name));
+      ok(name.nameW >= 80, `${width}px: the guest's own name keeps room`, `${name.nameW}px`);
+      await ctx.close();
+    }
+  },
 };
 
 const want = process.argv.slice(2);
