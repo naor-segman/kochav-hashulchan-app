@@ -29,9 +29,19 @@ const RULES = {
   "singular שלך": new RegExp(`(^|[^א-ת])שלך${NOT_HEB}`),
   "slash-gendered plural": new RegExp(`[א-ת]/(ות|ן)${NOT_HEB}`),
   "שניה (→ שנייה)": new RegExp(`(^|[^א-ת])שניה${NOT_HEB}`),
+  // C14: מקטע is masculine.
+  "שתי מקטעות (→ שני מקטעים)": /מקטעות/,
+  // C15: English and developer slang in Hebrew copy. Each was found once:
+  // "בטאב" ×4 and "בדשבורד" (Help), "חזרה לדשבורד" (404), "בפולינג הבא"
+  // (gifts page), "כל הפונקציות" (account), "עותק Excel" (Help).
+  "טאב (→ מסך)": new RegExp(`(^|[^א-ת])[בל]?טאב${NOT_HEB}`),
+  "דשבורד": /דשבורד/,
+  "פולינג": /פולינג/,
+  "הפונקציות": /הפונקציות/,
+  "עותק Excel (→ עותק לאקסל)": /עותק Excel/,
 };
 
-describe("customer copy: plural address, no slash-gender (audit 3.10, C17)", () => {
+describe("customer copy: plural address, no slash-gender, no slang (audit 3.10, C14, C15, C17)", () => {
   const files = walk(SRC).map(f => [relative(SRC, f), stripComments(readFileSync(f, "utf8"))]);
   for (const [name, re] of Object.entries(RULES)) {
     it(`no ${name}`, () => {

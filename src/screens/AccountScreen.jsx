@@ -631,7 +631,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
               <div className={styles.inactiveNote}>
                 <span className={styles.inactiveNoteIcon} aria-hidden="true">✦</span>
                 <span>
-                  כרגע כל הפונקציות זמינות ללא תשלום.
+                  כרגע הכל זמין ללא תשלום.
                   רכישה תהיה זמינה בקרוב.
                 </span>
               </div>

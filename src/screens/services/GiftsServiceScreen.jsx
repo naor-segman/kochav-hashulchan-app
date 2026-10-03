@@ -116,7 +116,7 @@ const HOST_SIDE = [
   },
   {
     title: "וגם אפשר להחזיר",
-    body: "ההסתרה הפיכה. הסתרתם בטעות באמצע האירוע, לחצתם \"החזירו לקיר\", וזה חזר בפולינג הבא.",
+    body: "ההסתרה הפיכה. הסתרתם בטעות באמצע האירוע, לחצתם \"החזירו לקיר\", והיא חוזרת למסך תוך חצי דקה.",
   },
 ];
 
@@ -285,7 +285,7 @@ export default function GiftsServiceScreen({ user = null }) {
           <article className={[styles.step, styles.stepFlip].join(" ")}>
             <div className={styles.stepText}>
               <span className={styles.stepNum}>אתר האירוע</span>
-              <h3 className={styles.h3}>שתי מקטעות, ואתם מחליטים אם בכלל</h3>
+              <h3 className={styles.h3}>שני מקטעים, ואתם מחליטים אם בכלל</h3>
               <p className={styles.stepBody}>
                 לאתר האירוע נכנסים בלאו הכי — בשביל הכתובת, הוויז וההסעות. שם
                 יושבים גם כפתור למסך המתנה וגם קיר ברכות מוקטן עם הברכות

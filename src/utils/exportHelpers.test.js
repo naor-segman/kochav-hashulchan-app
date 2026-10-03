@@ -345,6 +345,21 @@ describe("exportToExcel — translations", () => {
     expect(all).toContain("ממתין"); // unknown rsvp falls back
     expect(all).toContain("רגיל");  // unknown meal falls back
   });
+
+  it("the column is headed in Hebrew, as the guest-list import names it (audit 3.10, C15)", async () => {
+    await exportToExcel(
+      {
+        name: "e",
+        guests: [g("a", { rsvp: "confirmed" }), g("b", { rsvp: "pending" })],
+        tables: [t("t1")], seating: { a: "t1" }, constraints: [],
+      },
+      sideLabel, []
+    );
+    // Both header rows — the seating sheet and the "waiting to be seated" block.
+    const headers = sheets.flatMap(s => s.rows).filter(r => r.includes("שם אורח"));
+    expect(headers.filter(h => h.includes("אישור הגעה")).length).toBe(2);
+    expect(headers.filter(h => h.includes("RSVP"))).toEqual([]);
+  });
 });
 
 // ── From the 12.8 logic review ───────────────────────────────────────────────

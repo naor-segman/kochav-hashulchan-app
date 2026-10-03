@@ -40,7 +40,7 @@ export default function NotFoundScreen({ landmark = true }) {
           display: "inline-block",
         }}
       >
-        חזרה לדשבורד
+        חזרה לאירועים שלי
       </Link>
     </Root>
   );

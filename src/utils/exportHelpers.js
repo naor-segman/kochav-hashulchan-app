@@ -169,7 +169,7 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
   rows.push([
     "שולחן", "קיבולת", "סוג שולחן", "שובצו/קיבולת",
     "שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים",
-    "RSVP", "מנה", "טלפון", "הערות", ...cardHead,
+    "אישור הגעה", "מנה", "טלפון", "הערות", ...cardHead,
   ]);
 
   ev.tables.forEach(t => {
@@ -250,7 +250,7 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
     const uRows = [
       ["ממתינים לשיבוץ — " + (ev.name || "")],
       [],
-      ["שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים", "RSVP", "מנה", "טלפון", "הערות", ...cardHead],
+      ["שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים", "אישור הגעה", "מנה", "טלפון", "הערות", ...cardHead],
       ...unassigned.map(g => [
         g.name  || "",
         sideLabel(g.side),
