@@ -143,11 +143,9 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
           mark="album"
           title="עוד אין תמונות"
           text="שלחו לאורחים את הקישור לאלבום המשותף — כל מה שהם יעלו יופיע כאן."
-          action={go && (
-            <button type="button" className={base.btnSm} onClick={() => go("share")}>
-              לקישורים לאורחים
-            </button>
-          )}
+          /* EmptyState draws the button from { label, onClick }. A <button>
+             element passed here rendered as an empty, dead button. */
+          action={go && { label: "לקישורים לאורחים", onClick: () => go("share") }}
         />
       )}
 

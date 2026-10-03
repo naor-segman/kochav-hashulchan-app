@@ -76,6 +76,18 @@ describe("AlbumManagerScreen — reading the album", () => {
     expect(document.body.textContent).not.toContain("עוד אין תמונות");
   });
 
+  it("an empty album's button is labelled and goes to the guest links", async () => {
+    // EmptyState takes action={{ label, onClick }}. This screen handed it a
+    // whole <button> element, so EmptyState rendered a button with no label
+    // and no handler — an empty, dead box under "עוד אין תמונות".
+    fetchHostAlbumPhotos.mockResolvedValue([]);
+    const go = vi.fn();
+    render(<AlbumManagerScreen activeEvent={EV} showToast={toast} go={go} />);
+    const btn = await screen.findByRole("button", { name: "לקישורים לאורחים" });
+    fireEvent.click(btn);
+    expect(go).toHaveBeenCalledWith("share");
+  });
+
   it("shows every photo, hidden ones included and labelled in words", async () => {
     fetchHostAlbumPhotos.mockResolvedValue([photo("a"), photo("b", { hidden: true })]);
     renderScreen();
