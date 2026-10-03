@@ -35,7 +35,9 @@ import { COMPANY } from "../src/data/company.js";
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
 
-const ROOT = "/home/user/kochav-hashulchan-app";
+// The checkout this file is in (see qa/lib/preview.mjs): a fixed path read
+// the main checkout's dist when run from a worktree.
+const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 const DIST = join(ROOT, "dist");
 const PORT = 4342;
 const BASE = `http://127.0.0.1:${PORT}`;

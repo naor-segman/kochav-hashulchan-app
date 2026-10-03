@@ -37,7 +37,13 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
-const ROOT = "/home/user/kochav-hashulchan-app";
+/* The checkout THIS file is in — not a fixed path. It was
+ * "/home/user/kochav-hashulchan-app", so a harness run from a git worktree
+ * (`node qa/siteHeader.mjs` with the default cwd) previewed the MAIN
+ * checkout's dist and reported on code that was not the code under test:
+ * the failure this module exists to prevent, by another door (audit 3.10).
+ * In the main checkout this resolves to the same path as before. */
+const ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 
 /** Does anything already answer on this port? */
 async function portTaken(base) {
