@@ -73,7 +73,7 @@ execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT,
   cwd: ROOT, stdio: 'inherit',
   env: { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' },
 });
-const server = await startPreview(4741, ROOT, ['--outDir', OUT]);
+const server = await startPreview(+process.env.PREVIEW_PORT || 4741, ROOT, ['--outDir', OUT]);
 const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--no-proxy-server', '--disable-blink-features=AutomationControlled'],
@@ -114,6 +114,27 @@ const state = (p) => p.evaluate(() => {
     focus: document.activeElement?.textContent?.trim().slice(0, 20) || '',
   };
 });
+/* Wait until step n is up AND has stopped moving: the counter reads "n מתוך
+ * total" and the card, the light and the part give the same rects on three
+ * reads one animation frame apart. This was a fixed 420 ms (audit 3.10, H2) —
+ * a guess at the transition plus the smooth scroll, which a slow machine
+ * outruns (a false FAIL) and which a fast one wastes 21 tours × 2 widths × 2
+ * events over. Gives up after 5 s and hands back whatever is there, so a step
+ * that never settles fails the checks below instead of hanging. */
+async function settled(p, n, total) {
+  const key = (s) => s && JSON.stringify([s.count, s.card, s.spot, s.part]);
+  const until = Date.now() + 5000;
+  let prev = null, same = 0;
+  while (Date.now() < until) {
+    const s = await state(p);
+    const k = key(s);
+    if (s && s.count === `${n} מתוך ${total}` && k === prev) { if (++same >= 2) return s; }
+    else same = 0;
+    prev = k;
+    await p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  }
+  return state(p);
+}
 const hScroll = (p) => p.evaluate(() => { scrollTo({ left: -1e5, behavior: 'instant' }); const x = scrollX; scrollTo({ left: 0, behavior: 'instant' }); return x; });
 const seen = (p, key) => p.evaluate(k => JSON.parse(localStorage.getItem('kochav_tour_v1') || '{}')[k] === 1, key);
 
@@ -128,8 +149,7 @@ async function walk(p, label, w, shotAll) {
   const total = m ? +m[1] : 1;
   if (total < 3) notes.push(`${label}: only ${total} step(s) on this page`);
   for (let n = 1; n <= total; n++) {
-    await p.waitForTimeout(420);
-    st = await state(p);
+    st = await settled(p, n, total);
     const tag = `${label} ${n}/${total} "${st.title}"`;
     ok(st.count === `${n} מתוך ${total}`, `${tag}: counter`, st.count);
     const inView = st.card.top >= 0 && st.card.left >= 0 && st.card.bottom <= st.vh + 0.5 && st.card.right <= st.vw + 0.5;
