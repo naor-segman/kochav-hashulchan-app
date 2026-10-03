@@ -14,6 +14,7 @@ import {
   updateCloudEvent,
   deleteCloudEvent,
   CloudConflictError,
+  cloudQuotaNote,
 } from "../utils/cloudSync.js";
 
 // Tokens are merged PER KEY, never as a whole object.
@@ -956,6 +957,11 @@ export function useEvents(user) {
   // back full, older events were not loaded and the host has to be told — the
   // merge already refuses to treat them as deleted (WORKPLAN 115).
   const [cloudCapped, setCloudCapped] = useState(false);
+  // Why the last write failed, when the server said it was a ceiling (event
+  // count, event size, account size — 20261004000000_abuse_caps). Set beside
+  // every SYNC_STATUS.ERROR, null when the failure was anything else, so the
+  // toast never shows an old ceiling for a new network error.
+  const [syncNote, setSyncNote] = useState(null);
 
   // Refs let callbacks read the latest values without stale-closure issues.
   const eventsRef    = useRef(events);
@@ -1108,6 +1114,7 @@ export function useEvents(user) {
         setLoadedTick(t => t + 1);
       } catch {
         if (cancelled) return;
+        setSyncNote(null);
         setSyncStatus(SYNC_STATUS.ERROR); // keep the seeded local view on failure
       }
     })();
@@ -1179,7 +1186,8 @@ export function useEvents(user) {
                   e.id === ev.id ? afterPush(e, mergedThis.version, v2, base, mergedThis.updatedAt, mergedThis.localEdits ?? 0) : e));
               }
               setSyncStatus(SYNC_STATUS.SYNCED);
-            } catch {
+            } catch (err2) {
+              setSyncNote(cloudQuotaNote(err2));
               // A second conflict is NOT retried — two devices writing in a
               // tight loop would recurse. The event stays unpushed, which is
               // the honest state: the prune will leave it alone and the next
@@ -1190,10 +1198,12 @@ export function useEvents(user) {
           }
           setSyncStatus(SYNC_STATUS.SYNCED);
         } catch {
+          setSyncNote(null);
           setSyncStatus(SYNC_STATUS.ERROR);
         }
         return;
       }
+      setSyncNote(cloudQuotaNote(err));
       setSyncStatus(SYNC_STATUS.ERROR);
     }
   }, []);
@@ -1267,9 +1277,10 @@ export function useEvents(user) {
         }
         setSyncStatus(SYNC_STATUS.SYNCED);
       })
-      .catch(() => {
+      .catch((err) => {
         creatingRef.current.delete(normalized.id);
         pendingDeletes.current.delete(normalized.id); // create failed → no orphan to clean
+        setSyncNote(cloudQuotaNote(err));
         setSyncStatus(SYNC_STATUS.ERROR);
       });
   }, [pushUpdate, adoptRow]);
@@ -1327,7 +1338,7 @@ export function useEvents(user) {
         .then(created => {
           creatingRef.current.delete(id);
           const wasDeleted = pendingDeletes.current.delete(id);
-          if (!created) { setSyncStatus(SYNC_STATUS.ERROR); return; }
+          if (!created) { setSyncNote(null); setSyncStatus(SYNC_STATUS.ERROR); return; }
           const { cloudId, version } = created;
           if (wasDeleted) {
             sendCloudDelete(cloudId, currentUser.id);
@@ -1349,9 +1360,10 @@ export function useEvents(user) {
           if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
           setSyncStatus(SYNC_STATUS.SYNCED);
         })
-        .catch(() => {
+        .catch((err) => {
           creatingRef.current.delete(id);
           pendingDeletes.current.delete(id); // create failed → no orphan to clean
+          setSyncNote(cloudQuotaNote(err));
           setSyncStatus(SYNC_STATUS.ERROR);
         });
       return;
@@ -1476,6 +1488,6 @@ export function useEvents(user) {
    */
   const eventsReady = userId ? hydratedFor === userId : true;
 
-  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped,
+  return { events, addEvent, removeEvent, patchEventById, syncStatus, syncNote, eventsReady, cloudCapped,
            guestDrafts: hydration.drafts, adoptGuestDrafts, declineGuestDrafts };
 }

@@ -240,7 +240,7 @@ export default function App() {
 
 function AppRoutes() {
   const { user, loading: authLoading }                                  = useAuth();
-  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped,
+  const { events, addEvent, removeEvent, patchEventById, syncStatus, syncNote, eventsReady, cloudCapped,
           guestDrafts, adoptGuestDrafts, declineGuestDrafts }                = useEvents(user);
   const { toast, showToast }                                            = useToast();
   // No event in scope here — AppRoutes sits above /events/:eventId — so this is
@@ -267,14 +267,16 @@ function AppRoutes() {
      once the app has booted and every navigation is client-side. */
   usePageMeta();
 
-  // Show a one-time toast whenever a cloud sync error occurs.
+  // Show a one-time toast whenever a cloud sync error occurs. A server ceiling
+  // (syncNote — too many events, too large) says which, because retrying it
+  // cannot help and "failed" alone reads as a network blip.
   const prevSyncRef = useRef(null);
   useEffect(() => {
     if (syncStatus === SYNC_STATUS.ERROR && prevSyncRef.current !== SYNC_STATUS.ERROR) {
-      showToast("סנכרון ענן נכשל — הנתונים שמורים מקומית", "err");
+      showToast(syncNote || "סנכרון ענן נכשל — הנתונים שמורים מקומית", "err");
     }
     prevSyncRef.current = syncStatus;
-  }, [syncStatus, showToast]);
+  }, [syncStatus, syncNote, showToast]);
 
   // Full browser storage: nothing saved, or everything but the floor-plan
   // sketches (33b). See useStorageWarnings.

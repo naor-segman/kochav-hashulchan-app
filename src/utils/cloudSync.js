@@ -200,6 +200,22 @@ export class CloudConflictError extends Error {
   }
 }
 
+/* The server's ceilings on a host's events (migration 20261004000000_abuse_caps,
+ * audit 3.10 S1): 500 events per account, 8 MB per event, 100 MB per account.
+ * The trigger refuses with `event_quota:<count|size|total>`; retrying cannot
+ * help, so the host is told which ceiling it is and that the event is on this
+ * device only — not the generic "sync failed", which reads as a network blip. */
+const CLOUD_QUOTA_NOTES = {
+  count: "הגעתם למספר האירועים המרבי בחשבון. האירוע נשמר במכשיר הזה בלבד — מחקו אירוע שכבר לא צריך, או פנו אלינו.",
+  size:  "האירוע גדול מכדי להישמר בענן. הוא נשמר במכשיר הזה בלבד — פנו אלינו ונעזור.",
+  total: "נגמר מקום האחסון בענן בחשבון. האירוע נשמר במכשיר הזה בלבד — פנו אלינו ונעזור.",
+};
+/** The Hebrew sentence for a refused cloud write, or null when it was not a ceiling. */
+export function cloudQuotaNote(err) {
+  const m = /event_quota:(count|size|total)\b/.exec(String(err?.message ?? ""));
+  return m ? CLOUD_QUOTA_NOTES[m[1]] : null;
+}
+
 /** An update with no version base that matched no row — see updateCloudEvent. */
 export class CloudRowMissingError extends Error {
   constructor() {
