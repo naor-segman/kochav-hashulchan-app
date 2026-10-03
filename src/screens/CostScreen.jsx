@@ -5,6 +5,7 @@ import styles from "./CostScreen.module.css";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import { fetchEventGifts, setGiftHidden } from "../utils/publicTokens.js";
+import { useConfirm } from "../components/ui/useConfirm.jsx";
 
 const DEFAULT_CATEGORIES = [
   { id: "venue",        name: "אולם",           budget: 0, actual: 0 },
@@ -49,6 +50,7 @@ function sameContent(a, b) {
 }
 
 export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
+  const { confirm, dialog } = useConfirm();
   const [cats, setCats]    = useState(() => initCategories(ev));
   const [bulkGift, setBulkGift] = useState("");
   // Gifts a guest declared on the public gift page. Read here and nowhere else
@@ -201,9 +203,23 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
 
   // Convenience: set a per-person estimate on every attending guest at once
   // (host can then fine-tune individuals in the guest list).
-  const applyBulkEstimate = () => {
+  //
+  // It REPLACES every estimate, including ones the host typed for a specific
+  // guest. Silently, until 3.10 (owner: ask first). Asked only when it would
+  // actually overwrite something different.
+  const applyBulkEstimate = async () => {
     const per = parseAmt(bulkGift);
     if (per <= 0) return;
+    const custom = (ev.guests || []).filter(g => g.rsvp !== "declined"
+      && parseAmt(g.estGift) > 0 && parseAmt(g.estGift) !== per * (g.count || 1)).length;
+    if (custom > 0) {
+      const who = custom === 1 ? "לאורח אחד" : `ל-${custom} אורחים`;
+      const ok = await confirm(
+        `${who} כבר הזנתם סכום משוער משלהם.\nהמילוי המהיר יחליף גם ${custom === 1 ? "אותו" : "אותם"} בסכום לפי ₪${per.toLocaleString("he-IL")} לאדם.`,
+        { confirmLabel: "החליפו את כולם" },
+      );
+      if (!ok) return;
+    }
     patchEvent(e => ({
       ...e,
       guests: (e.guests || []).map(g => g.rsvp === "declined" ? g : { ...g, estGift: per * (g.count || 1) }),
@@ -237,6 +253,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
 
   return (
     <div className={base.page}>
+      {dialog}
       <PageHeader
         title="תכנון תקציב"
         mark="budget"
@@ -503,7 +520,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
               placeholder="למשל 400" onChange={e => setBulkGift(e.target.value)} />
           </div>
           <button className={base.btnSecondary} onClick={applyBulkEstimate} disabled={parseAmt(bulkGift) <= 0}>
-            החל לכל הרשומות
+            החילו על כל הרשומות
           </button>
         </div>
         {nAttending > 0 && (
