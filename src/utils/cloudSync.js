@@ -365,8 +365,14 @@ export async function deleteCloudEvent(cloudId, userId) {
  * A caller that needs to trust an absence must check
  * `rows.length < CLOUD_EVENTS_LIMIT` before doing so. No real account is near
  * this; the guard is for the case where one is.
+ *
+ * ONE MORE than the server's per-account ceiling (max_events_per_user = 500,
+ * migration 20261004000000): at exactly 500 events a limit of 500 came back
+ * "full" and showed the "older events not loaded" banner, which was false —
+ * the account cannot hold a 501st. Reading 501 makes a full read mean what it
+ * says. Pinned against the migration in cloudSyncWrite.test.js.
  */
-export const CLOUD_EVENTS_LIMIT = 500;
+export const CLOUD_EVENTS_LIMIT = 501;
 
 /**
  * Fetch all cloud events for the given user.

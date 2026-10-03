@@ -195,4 +195,14 @@ describe("fetchCloudEvents", () => {
     expect(lim[1]).toBe(CLOUD_EVENTS_LIMIT);
     expect(CLOUD_EVENTS_LIMIT).toBeGreaterThan(0);
   });
+
+  it("reads one more row than the server lets an account hold, so a full read really means more exist", async () => {
+    // At the server ceiling (500) a read capped at 500 looked truncated and
+    // showed a false "older events not loaded" banner (audit 3.10).
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261004000000_abuse_caps.sql"), "utf8");
+    const cap = Number(sql.match(/max_events_per_user\s+integer not null default (\d+)/)[1]);
+    expect(CLOUD_EVENTS_LIMIT).toBe(cap + 1);
+  });
 });
