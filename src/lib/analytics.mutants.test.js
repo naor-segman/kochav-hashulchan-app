@@ -7,7 +7,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const init = vi.fn();
 const capture = vi.fn();
-vi.mock("posthog-js", () => ({
+// analytics.js loads posthog-js through ./posthogLoader.js (so the service
+// worker can leave its chunk out of the precache); mocking that module keeps
+// the load one hop, as it was.
+vi.mock("./posthogLoader.js", () => ({
   default: { init, capture, identify: vi.fn(), reset: vi.fn() },
 }));
 const settle = () => new Promise(r => setTimeout(r, 0));

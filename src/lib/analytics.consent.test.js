@@ -12,12 +12,16 @@ const init = vi.fn();
 const capture = vi.fn();
 const optOut = vi.fn();
 const optIn = vi.fn();
+const reset = vi.fn();
 // Counts how often the module is actually FETCHED: before a yes, not even the
 // 85 KB download should happen.
 let fetched = 0;
-vi.mock("posthog-js", () => {
+// analytics.js loads posthog-js through ./posthogLoader.js (so the service
+// worker can leave its chunk out of the precache); mocking that module keeps
+// the load one hop, as it was.
+vi.mock("./posthogLoader.js", () => {
   fetched++;
-  return { default: { init, capture, identify: vi.fn(), reset: vi.fn(), opt_out_capturing: optOut, opt_in_capturing: optIn } };
+  return { default: { init, capture, identify: vi.fn(), reset, opt_out_capturing: optOut, opt_in_capturing: optIn } };
 });
 const settle = () => new Promise(r => setTimeout(r, 0));
 
@@ -41,7 +45,7 @@ let local, session;
 beforeEach(() => {
   vi.resetModules();
   fetched = 0;
-  [init, capture, optOut, optIn].forEach(f => f.mockClear());
+  [init, capture, optOut, optIn, reset].forEach(f => f.mockClear());
   vi.stubEnv("VITE_POSTHOG_KEY", "phc_test");
   local = fakeStorage();
   session = fakeStorage();
@@ -89,6 +93,33 @@ describe("before the visitor answers", () => {
   });
 });
 
+describe("guest pages", () => {
+  // A guest is never asked on the RSVP page. If they tap "לדף הבית" and say
+  // yes THERE (client-side navigation, same JS), the RSVP page's view and
+  // their answer must not go out after the fact (3.10 review, measured).
+  it("with no answer, a guest page's calls are not even held", async () => {
+    vi.stubGlobal("location", { pathname: "/rsvp/abc123token" });
+    const a = await import("./analytics.js");
+    a.trackPageview("/rsvp/abc123token");
+    a.track(a.EVENTS.RSVP_RECEIVED, { attending: true });
+    vi.stubGlobal("location", { pathname: "/" });
+    a.trackPageview("/");
+    a.applyConsent(true);
+    await settle();
+    expect(capture.mock.calls.map(c => c[1]?.$current_url || c[0])).toEqual(["/"]);
+  });
+
+  it("a browser that already said yes (the host trying the link) is measured there", async () => {
+    local.setItem("kochav_consent_v1", answered(true));
+    vi.stubGlobal("location", { pathname: "/rsvp/abc123token" });
+    const a = await import("./analytics.js");
+    a.initAnalytics();
+    a.trackPageview("/rsvp/abc123token");
+    await settle();
+    expect(capture.mock.calls.map(c => c[1]?.$current_url)).toEqual(["/rsvp/:token"]);
+  });
+});
+
 describe("an answer given on an earlier visit", () => {
   it("yes: starts on load", async () => {
     local.setItem("kochav_consent_v1", answered(true));
@@ -125,6 +156,11 @@ describe("withdrawing", () => {
     a.track("after");
 
     expect(optOut).toHaveBeenCalledTimes(1);
+    // reset() FIRST: the id is in posthog's memory too, and a later yes
+    // brought the same id back when only storage was cleared (3.10 review).
+    // reset() also clears the opt-out mark, so it cannot come second.
+    expect(reset).toHaveBeenCalledTimes(1);
+    expect(reset.mock.invocationCallOrder[0]).toBeLessThan(optOut.mock.invocationCallOrder[0]);
     expect(capture).not.toHaveBeenCalled();
     expect(local.getItem("ph_phc_test_posthog"), "the random id stays behind").toBeNull();
     expect(session.getItem("ph_phc_test_window_id")).toBeNull();

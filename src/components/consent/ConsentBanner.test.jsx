@@ -76,6 +76,17 @@ describe("the first layer", () => {
   });
 });
 
+describe("focus after answering", () => {
+  it("goes to the page's main content, not to <body> (3.10 review)", async () => {
+    render(<MemoryRouter initialEntries={["/home"]}><main id="main" tabIndex={-1}>x</main><ConsentBanner /></MemoryRouter>);
+    const no = screen.getByRole("button", { name: "סירוב" });
+    no.focus();
+    fireEvent.click(no);
+    await act(() => new Promise(r => setTimeout(r, 10)));
+    expect(document.activeElement.id).toBe("main");
+  });
+});
+
 describe("the preferences", () => {
   it("measurement is NOT ticked in advance; essential is on and locked", () => {
     at("/app");

@@ -189,7 +189,11 @@ export default defineConfig({
         // og-image.png (1200×630) is for link-preview CRAWLERS — WhatsApp,
         // Facebook — and no page of the app ever displays it, yet the png glob
         // put it in every install. jsQR stays: the door screen scans offline.
-        globIgnores: ['**/AdminApp-*.{js,css}', '**/xlsx-*.js', '**/og-image.png'],
+        //
+        // posthogLoader-*.js (posthog-js, 259 kB) loads only after a yes to the
+        // cookie question (126). Precached, every visitor — every guest on an
+        // RSVP link — downloaded it on the first visit whatever they answered.
+        globIgnores: ['**/AdminApp-*.{js,css}', '**/xlsx-*.js', '**/og-image.png', '**/posthogLoader-*.js'],
         // The self-hosted serif and the hero are what the landing page IS. They
         // are not matched by the glob (ttf, mp4, jpg), so the installed app fell
         // back to a system font and a blank hero offline.

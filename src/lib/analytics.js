@@ -1,5 +1,6 @@
 import { scrubRoute } from "../utils/errorReport.js";
 import { readConsent } from "../utils/consent.js";
+import { isGuestRoute } from "../utils/guestRoutes.js";
 
 /**
  * Product analytics.  Checklist 18.
@@ -114,6 +115,10 @@ const QUEUE_MAX = 20;  // a load that never resolves must not grow memory
 /** Whether there is anything to ask about — no key, no banner. */
 export const analyticsConfigured = !!KEY;
 
+function onGuestPage() {
+  try { return isGuestRoute(globalThis.location?.pathname); } catch { return false; }
+}
+
 function consented() {
   return allowed ?? readConsent()?.analytics ?? null;
 }
@@ -123,6 +128,10 @@ function run(fn) {
     if (!KEY) return;                       // dark: nothing to queue for
     const c = consented();
     if (c === false) return;                // said no: not even held
+    // A guest page with no answer: not held either. A guest who taps "לדף
+    // הבית" and says yes THERE would otherwise send the RSVP page's view and
+    // their answer after the fact (3.10 review, measured on /rsvp → / → yes).
+    if (c === null && onGuestPage()) return;
     if (ph && c) { fn(ph); return; }
     if (queue.length < QUEUE_MAX) queue.push(fn);
   } catch { /* analytics must never break the app */ }
@@ -132,7 +141,11 @@ function run(fn) {
 export function initAnalytics() {
   if (!KEY || loading || ph || consented() !== true) return;
   loading = true;
-  import("posthog-js")
+  // Through a one-line module of our own so the chunk has a name the service
+  // worker can leave out of its precache (vite.config.js): otherwise every
+  // visitor — guests included — downloads 259 KB of posthog-js on the first
+  // visit whatever they answer (3.10 review).
+  import("./posthogLoader.js")
     .then((mod) => {
       const p = mod.default;
       // Withdrawn while the module was loading: it is not even started, so it
@@ -160,6 +173,11 @@ export function initAnalytics() {
 }
 
 function stop(p) {
+  // reset() first: the id lives in posthog's MEMORY as well as in storage, and
+  // deleting the stored copy alone brought the same id back on a later yes,
+  // tying the visits before the withdrawal to the ones after (3.10 review,
+  // measured). reset() also clears the opt-out mark, so the opt-out comes after.
+  try { p.reset(); } catch { /* ignore */ }
   try { p.opt_out_capturing(); } catch { /* ignore */ }
   // What posthog-js keeps: ph_<key>_posthog (the random id) in localStorage,
   // and its session/window ids in sessionStorage. Its own opt-out mark

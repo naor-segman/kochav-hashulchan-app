@@ -18,6 +18,14 @@
   animation: rise 0.18s var(--ease-out);
 }
 
+/* Another dialog open over the page (a delete confirm, the share gate): the
+   banner steps aside. At z 1000 it sat over the confirm's own buttons on a
+   360px phone, and a tap on "מחקו" landed on the banner (3.10 review,
+   elementFromPoint). Its own preferences dialog is the exception. */
+:global(body):has([aria-modal="true"]:not([data-consent-prefs])) .banner {
+  display: none;
+}
+
 .title {
   margin: 0 0 6px;
   font-size: var(--step-1);

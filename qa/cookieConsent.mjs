@@ -35,13 +35,13 @@ execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT,
   cwd: ROOT, stdio: 'inherit',
   env: { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '', VITE_POSTHOG_KEY: 'phc_test', VITE_POSTHOG_HOST: PH },
 });
-// posthog-js's own chunk, by content: Vite names it after the package's entry
-// file (module-<hash>.js), so a name match on "posthog" saw nothing and the
-// first run's "not even downloaded" passed vacuously. The app's entry calls
-// opt_out_capturing too (to withdraw), so it is excluded by name.
+// posthog-js's own chunk, found by CONTENT: a name match passed vacuously once
+// (it was module-<hash>.js before src/lib/posthogLoader.js gave it a name).
+// The app's entry calls opt_out_capturing too (to withdraw), so it is excluded.
 const PH_CHUNKS = readdirSync(join(OUT, 'assets'))
   .filter(f => f.endsWith('.js') && !f.startsWith('index-') && readFileSync(join(OUT, 'assets', f), 'utf8').includes('opt_out_capturing'));
 if (PH_CHUNKS.length !== 1) throw new Error('expected one posthog-js chunk, found: ' + PH_CHUNKS.join(', '));
+const SW = readFileSync(join(OUT, 'sw.js'), 'utf8');
 const server = await startPreview(4795, ROOT, ['--outDir', OUT]);
 const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
@@ -176,6 +176,34 @@ try {
     await ctx.close();
   }
 
+  console.log('\n── no, then yes again, without leaving the page');
+  {
+    // The id lives in posthog's memory too. Clearing storage alone brought the
+    // SAME id back on a yes in the same visit, tying the visits before the
+    // withdrawal to the ones after (3.10 review, measured). A reload hides it,
+    // so this stays on one page.
+    const { ctx, p, errs } = await computer({ width: 1280, height: 860, touch: false });
+    const phId = () => p.evaluate(() => { const k = Object.keys(localStorage).find(x => /^ph_.*_posthog$/.test(x)); return k ? JSON.parse(localStorage.getItem(k)).distinct_id : null; });
+    await go(p, '/home');
+    await btn(p, 'אישור').click();
+    await p.waitForTimeout(1500);
+    const idBefore = await phId();
+    await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await btn(p, 'הגדרות עוגיות').click();
+    await btn(p, 'דחיית הכל').click();
+    await p.waitForTimeout(300);
+    await btn(p, 'הגדרות עוגיות').click();
+    await btn(p, 'אישור הכל').click();
+    // Nothing is persisted until something is captured: a client-side page
+    // change sends a pageview (a reload would hide what is being tested).
+    await p.evaluate(() => { history.pushState({}, '', '/pricing'); dispatchEvent(new PopStateEvent('popstate')); });
+    await p.waitForTimeout(1500);
+    const idAfter = await phId();
+    ok(!!idBefore && !!idAfter && idAfter !== idBefore, 'a yes after a no starts a new id', `${idBefore} → ${idAfter}`);
+    ok(errs.length === 0, 'no page errors', errs.join(' | '));
+    await ctx.close();
+  }
+
   console.log('\n── סירוב');
   {
     const { ctx, p, errs, sent, chunks } = await computer({ width: 1280, height: 860, touch: false });
@@ -236,6 +264,53 @@ try {
     // The click itself counts as input: the tour then waits its 1.5s pause.
     await p.waitForSelector('[role="dialog"][data-side]', { timeout: 6000 }).catch(() => {});
     ok(!!(await tour()), 'answered: the tour opens');
+    await ctx.close();
+  }
+
+  console.log('\n── service worker');
+  ok(!PH_CHUNKS.some(f => SW.includes(f)), 'posthog-js is not in the precache — no guest downloads it', PH_CHUNKS.join(', '));
+
+  console.log('\n── a guest who goes on to our home page and says yes there');
+  {
+    const { ctx, p, sent } = await computer();
+    await go(p, '/rsvp/GUESTTOKEN123');
+    ok(!(await banner(p)), 'not asked on the RSVP page');
+    // Client-side, as the RSVP page's own link does: the same JS, the same memory.
+    await p.evaluate(() => { history.pushState({}, '', '/home'); dispatchEvent(new PopStateEvent('popstate')); });
+    await p.waitForTimeout(1200);
+    await btn(p, 'אישור').click();
+    await flush(p);
+    const bodies = sent.map(u => u.body).join(' ');
+    ok(sent.length > 0 && !/rsvp/i.test(bodies), 'the RSVP page is not sent after the yes', `${sent.length} requests; rsvp in body: ${/rsvp/i.test(bodies)}`);
+    await ctx.close();
+  }
+
+  console.log('\n── another dialog while the question is open (360px)');
+  {
+    const { ctx, p } = await computer({ width: 360, height: 640 });
+    await go(p, '/home');
+    await p.evaluate(() => {
+      const d = document.createElement('div');
+      d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.id = 'probe';
+      d.style.cssText = 'position:fixed;inset-inline:16px;bottom:200px;height:44px;z-index:200;background:#eee';
+      document.body.appendChild(d);
+    });
+    const hit = await p.evaluate(() => { const r = document.getElementById('probe').getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.id; });
+    ok(hit === 'probe', 'a tap on the dialog reaches the dialog, not the banner', String(hit));
+    await p.evaluate(() => document.getElementById('probe').remove());
+    ok(await (await banner(p))?.isVisible(), 'and the banner is back when it closes');
+    await ctx.close();
+  }
+
+  console.log('\n── focus after a keyboard answer');
+  {
+    const { ctx, p } = await computer({ width: 1280, height: 860, touch: false });
+    await go(p, '/home');
+    await btn(p, 'סירוב').focus();
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(300);
+    const where = await p.evaluate(() => document.activeElement?.tagName + '#' + document.activeElement?.id);
+    ok(where === 'MAIN#main', 'focus goes to the page content, not <body>', where);
     await ctx.close();
   }
 

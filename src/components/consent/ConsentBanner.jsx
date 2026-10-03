@@ -55,9 +55,20 @@ export default function ConsentBanner() {
   if (!analyticsConfigured) return null;
 
   const decide = (yes) => {
+    // Answered from the banner itself (or the preferences it opened): the
+    // banner goes, and focus with it — to <body>, the top of the page for a
+    // keyboard user (3.10 review). The page's own content takes it instead.
+    const fromBanner = !!document.activeElement?.closest?.("[data-consent-pending], [data-consent-prefs]") && !answer;
     setAnswer(saveConsent({ analytics: yes }));
     applyConsent(yes);
     setPrefsOpen(false);
+    if (fromBanner) {
+      setTimeout(() => {
+        if (document.activeElement && document.activeElement !== document.body) return;
+        const main = document.getElementById("main") || document.querySelector("main");
+        main?.focus?.({ preventScroll: true });
+      }, 0);
+    }
   };
 
   // Stays under the preferences while they are open, so closing them puts
@@ -76,9 +87,9 @@ export default function ConsentBanner() {
         >
           <h2 id="consent-title" className={styles.title}>הסכמה לשימוש בעוגיות</h2>
           <p className={styles.text}>
-            האתר שומר בדפדפן רק מה שהוא צריך כדי לעבוד: החיבור לחשבון והאירועים
-            שלכם. באישורכם נפעיל גם מדידת שימוש, כדי לראות איפה האתר לא ברור
-            ולתקן — בלי פרסום, בלי הקלטות מסך ובלי שמות אורחים.{" "}
+            האתר שומר בדפדפן את מה שהוא צריך כדי לפעול — למשל החיבור לחשבון
+            והאירועים שלכם. באישורכם נפעיל גם מדידת שימוש, כדי לראות איפה האתר
+            לא ברור ולתקן — בלי פרסום, בלי הקלטות מסך ובלי שמות אורחים.{" "}
             <Link to="/privacy#device" className={styles.inlineLink}>מדיניות הפרטיות</Link>
           </p>
           <div className={styles.actions}>
@@ -124,7 +135,7 @@ function ConsentPreferences({ initial, onDecide, onClose }) {
 
   return (
     <div className={styles.overlay} onMouseDown={e => { if (e.target === e.currentTarget) { e.preventDefault(); onClose(); } }}>
-      <div className={styles.card} ref={cardRef} role="dialog" aria-modal="true" aria-labelledby="consent-prefs-title">
+      <div className={styles.card} ref={cardRef} role="dialog" aria-modal="true" aria-labelledby="consent-prefs-title" data-consent-prefs="">
         <button ref={firstRef} type="button" className={styles.close} onClick={onClose} aria-label="סגירה">
           <Icon name="close" size={16} />
         </button>
@@ -141,8 +152,9 @@ function ConsentPreferences({ initial, onDecide, onClose }) {
             <span className={styles.always}>תמיד פעיל</span>
           </label>
           <p className={styles.catText}>
-            החיבור לחשבון, עותק האירועים במכשיר כדי שהאפליקציה תעבוד גם בלי רשת,
-            וזכירת הבחירה הזו. בלעדיהם האתר לא עובד, ולכן אין עליהם בחירה.
+            מה שהאתר צריך כדי לפעול: החיבור לחשבון, עותק האירועים במכשיר כדי
+            שהאפליקציה תעבוד גם בלי רשת, שמות שהקלדתם, מה שכבר ראיתם, וזכירת
+            הבחירה הזו. הם לא נשלחים לאף אחד אחר, ולכן אין עליהם בחירה.
           </p>
         </div>
 
@@ -158,9 +170,10 @@ function ConsentPreferences({ initial, onDecide, onClose }) {
           </label>
           <p className={styles.catText}>
             עוזרת לנו לראות באיזה שלב אנשים נתקעים. נשמר מזהה אקראי בדפדפן,
-            ונשלחים העמוד (בלי קודי הקישורים), מזהה החשבון ופרטים כלליים על
-            הדפדפן — לא אימייל, לא שמות אורחים, לא הקלטות מסך ולא מעקב אחרי
-            לחיצות. דרך PostHog, בשרתים באירופה.
+            ונשלחים העמוד (בלי קודי הקישורים), מזהה החשבון, פרטים כלליים על
+            הדפדפן והמכשיר וכתובת הרשת (כמו בכל פנייה לשרת) — לא אימייל, לא
+            שמות אורחים, לא הקלטות מסך ולא מעקב אחרי לחיצות. דרך PostHog,
+            בשרתים באירופה.
           </p>
         </div>
 
