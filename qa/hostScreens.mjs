@@ -224,6 +224,21 @@ const CHECKS = {
     await ctx.close();
   },
 
+  // V6: opening the guest list does not jump the page down to the form.
+  async guestsArrive(b, base) {
+    const { ctx, p } = await page(b, base, { width: 390, height: 800, touch: true });
+    await p.goto(base + '/events/e1/guests', { waitUntil: 'domcontentloaded' });
+    await p.getByPlaceholder('שם ושם משפחה').waitFor({ timeout: 15000 });
+    await p.waitForTimeout(1500);
+    const m = await p.evaluate(() => ({ y: Math.round(scrollY), focused: document.activeElement?.tagName }));
+    ok(m.y === 0, 'the page stays at the top on arrival', `scrollY=${m.y}, focus on ${m.focused}`);
+    await p.getByRole('button', { name: /פשוט להקליד בעצמכם/ }).click();
+    await p.waitForTimeout(600);
+    const f = await p.evaluate(() => document.activeElement?.getAttribute('placeholder'));
+    ok(f === 'שם ושם משפחה', 'choosing manual entry focuses the name field', String(f));
+    await ctx.close();
+  },
+
   // V2: the responses list does not scroll sideways on a phone.
   async rsvpScroll(b, base) {
     for (const width of [360, 390, 412, 800, 1280]) {
