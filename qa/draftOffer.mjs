@@ -31,9 +31,11 @@ const draft = {
   createdAt: 1, updatedAt: 1, version: 1,
 };
 
-const { base, stop } = await startDev(5195, {
+// THIS checkout (startDev defaults to the main one — from a worktree the
+// harness measured other code). PORT overrides the fixed port.
+const { base, stop } = await startDev(Number(process.env.PORT || 5195), {
   VITE_SUPABASE_URL: 'https://stub.supabase.co', VITE_SUPABASE_ANON_KEY: 'stub-anon-key',
-});
+}, ROOT);
 const b = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--no-proxy-server'],
@@ -59,8 +61,15 @@ async function computer(uid, { carry = false } = {}) {
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
   });
-  await p.goto(`${base}/home`, { waitUntil: 'domcontentloaded' });
-  await p.evaluate(([gk, d, id, carryIt]) => {
+  // Seeded BEFORE any app script runs (audit 3.10, H1). This used to open
+  // /home — the app itself — and write storage from page.evaluate while that
+  // app was already running its own load-and-persist effects on the same keys:
+  // whichever wrote last won, and the harness raced the code it measures. An
+  // init script runs first on every navigation; the sessionStorage mark keeps
+  // it to the first one, so the reload below sees the app's own writes.
+  await p.addInitScript(([gk, d, id, carryIt]) => {
+    if (sessionStorage.getItem('qa-draft-seeded')) return;
+    sessionStorage.setItem('qa-draft-seeded', '1');
     // The draft someone made logged out on this browser.
     localStorage.setItem(gk, JSON.stringify({ events: [d] }));
     const year = Math.floor(Date.now() / 1000) + 31_536_000;

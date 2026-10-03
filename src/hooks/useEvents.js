@@ -893,11 +893,22 @@ export function mergeOtherTab(mine, theirs, loggedIn = true) {
  * offered it too. Returns the drafts removed, freshly read — a logged-out tab
  * may have edited one since sign-in.
  */
-function takeGuestDrafts(ids) {
+function takeGuestDrafts(ids, userId) {
   const want = new Set(ids);
   const guest = (loadState(userStorageKey(null)).events || []).map(normalizeEvent).filter(Boolean);
   const taken = guest.filter(e => !e.cloudId && want.has(e.id));
-  if (taken.length) persist({ events: guest.filter(e => !taken.includes(e)) }, userStorageKey(null));
+  if (!taken.length) return taken;
+  /* Write first, then delete (audit 3.10, H1). The drafts used to leave the
+     logged-out bucket HERE, while their copy in the account's bucket was only
+     written later, by the persist effect after the next render. A tab closed,
+     a crash or a full disk in between, and the draft existed nowhere. Now the
+     account's bucket holds them before the logged-out one lets go — and if
+     that write fails, the logged-out copy stays put. */
+  const userKey = userStorageKey(userId);
+  const mine    = loadState(userKey);
+  const have    = new Set((mine.events || []).map(e => e?.id));
+  const wrote   = persist({ ...mine, events: [...(mine.events || []), ...taken.filter(e => !have.has(e.id))] }, userKey);
+  if (wrote) persist({ events: guest.filter(e => !taken.includes(e)) }, userStorageKey(null));
   return taken;
 }
 
@@ -1049,7 +1060,7 @@ export function useEvents(user) {
       .filter(e => !e.cloudId && !seenIds.has(e.id) && !declined.has(e.id));
     const carry       = takeDraftCarry() && offered.length > 0;
     if (carry) {
-      takeGuestDrafts(offered.map(e => e.id));
+      takeGuestDrafts(offered.map(e => e.id), userId);
       // Consent was given, so these upload with the first push after the load
       // instead of waiting for the banner (pushUnpushed).
       offered.forEach(e => carriedRef.current.add(e.id));
@@ -1437,7 +1448,7 @@ export function useEvents(user) {
     const uid = ownerRef.current;
     if (!uid) return [];
     const have = new Set(eventsRef.current.map(e => e.id));
-    const taken = takeGuestDrafts(hydration.drafts.map(e => e.id)).filter(e => !have.has(e.id));
+    const taken = takeGuestDrafts(hydration.drafts.map(e => e.id), uid).filter(e => !have.has(e.id));
     if (taken.length) setEvents(prev => [...prev, ...taken.filter(t => !prev.some(e => e.id === t.id))]);
     setHydration(h => ({ ...h, drafts: [] }));
     return taken;

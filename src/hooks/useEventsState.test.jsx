@@ -445,6 +445,45 @@ describe("useEvents — switching user", () => {
     expect(sessionStorage.getItem("kochav_carry_drafts")).toBeNull();
   });
 
+  /* audit 3.10, H1: the move was delete-then-write. The logged-out bucket was
+   * emptied inside the hydration effect and the account's bucket was written
+   * only by the persist effect after the next render — a closed tab or a full
+   * disk in between, and the draft existed nowhere. */
+  it("carrying a draft writes the account's bucket BEFORE emptying the logged-out one", async () => {
+    seed(STORAGE_KEY, [ev("draft")]);
+    sessionStorage.setItem("kochav_carry_drafts", String(Date.now()));
+    const real = Storage.prototype.setItem;
+    let userHadItWhenGuestLetGo = null;
+    const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (k, v) {
+      if (k === STORAGE_KEY && userHadItWhenGuestLetGo === null && !JSON.parse(v).events.some(e => e.id === "draft")) {
+        userHadItWhenGuestLetGo = stored(userKey("u1")).some(e => e.id === "draft");
+      }
+      return real.call(this, k, v);
+    });
+    try {
+      renderHook(() => useEvents(USER));
+      await settle();
+    } finally { spy.mockRestore(); }
+    expect(userHadItWhenGuestLetGo).toBe(true);
+    expect(stored(STORAGE_KEY)).toHaveLength(0);
+  });
+
+  it("and when the account's bucket cannot be written, the logged-out copy stays", async () => {
+    seed(STORAGE_KEY, [ev("draft")]);
+    const real = Storage.prototype.setItem;
+    const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (k, v) {
+      if (k === userKey("u1")) throw new Error("storage blocked");
+      return real.call(this, k, v);
+    });
+    try {
+      const { result } = renderHook(() => useEvents(USER));
+      await settle();
+      act(() => { result.current.adoptGuestDrafts(); });
+      await settle();
+    } finally { spy.mockRestore(); }
+    expect(stored(STORAGE_KEY).map(e => e.id)).toEqual(["draft"]);
+  });
+
   it("a carry mark older than half an hour authorises nothing", async () => {
     seed(STORAGE_KEY, [ev("draft")]);
     sessionStorage.setItem("kochav_carry_drafts", String(Date.now() - 31 * 60 * 1000));
