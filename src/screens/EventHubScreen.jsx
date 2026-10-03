@@ -6,8 +6,6 @@ import { useAuth } from "../hooks/useAuth.js";
 import Icon from "../components/ui/Icon.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
-import Orientation from "../components/onboarding/Orientation.jsx";
-import { useOrientation } from "../components/onboarding/useOrientation.js";
 import PhotoRetentionNotice from "../components/feedback/PhotoRetentionNotice.jsx";
 import EventPlanCard from "../components/billing/EventPlanCard.jsx";
 import base from "../styles/screenBase.module.css";
@@ -34,7 +32,6 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   // which is how this got written twice in the first place.
   const openItem = makeOpenScreen(ev, { go, showToast });
   const { user } = useAuth();
-  const orientation = useOrientation();
 
   const stats = useMemo(() => {
     const guests = ev.guests || [];
@@ -118,21 +115,8 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
 
         <div className={styles.headSide}>
           <HubCountdown date={ev.date} />
-          {!orientation.open && (
-            <button className={styles.howBtn} onClick={orientation.show}>
-              <Icon name="question" size={14} /> איך זה עובד
-            </button>
-          )}
         </div>
       </header>
-
-      {/* Under the event's name, not above it: above, its h2 came before the
-          page's h1 and at 390px pushed the name below the fold (WORKPLAN 108).
-          The button that reopens it is in the header, so it opens right under
-          the button. */}
-      {orientation.open && (
-        <Orientation onDismiss={orientation.dismiss} onGo={go} />
-      )}
 
       {/* Above the fold on the screen the host actually lands on. A warning
           about a deletion is only a warning if it is seen before the deletion,
@@ -181,7 +165,7 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
       )}
 
       {!user && (
-        <p className={styles.guestNote}>
+        <p data-tour="hub.account" className={styles.guestNote}>
           <Icon name="cloud" size={14} />{" "}
           האירוע הזה שמור רק בדפדפן הזה. פתיחת חשבון מגבה אותו, מסנכרנת לטלפון ומאפשרת לשתף קישורים עם האורחים.{" "}
           {/* Inside the draft, so signing up carries it (33d, draftCarry.js). */}

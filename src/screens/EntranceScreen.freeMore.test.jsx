@@ -8,7 +8,7 @@ import EntranceScreen from "./EntranceScreen.jsx";
 // WORKPLAN 114 (1.10): the door's free-seat strip drew eight tables and dropped the rest.
 const tables = (n) => Array.from({ length: n }, (_, i) => ({ id: "t" + i, name: `שולחן ${i + 1}`, capacity: 10, shape: "round" }));
 const mount = (n) => {
-  localStorage.setItem("kochav_orientation_v1", "1");
+  localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 }));
   const EV = { id: "e1", name: "החתונה", cloudId: null, tokens: { hostess: "h1234567" }, tables: tables(n), seating: {},
     guests: [{ id: "g1", name: "דנה", count: 1, rsvp: "confirmed" }] };
   render(<AuthProvider><MemoryRouter initialEntries={["/events/e1/entrance"]}><Routes>

@@ -355,8 +355,10 @@ function AppRoutes() {
         path="/app"
         element={
           /* With no events the dashboard IS the start form, and that is a
-             different tour (124) from the one about a list of events. */
-          <Shell screen="dashboard" tourKey={events.length ? "dashboard" : "start"} activeEvent={null} go={dashGo}>
+             different tour (124) from the one about a list of events. Not
+             before the account's events have loaded: a logged-in host's list
+             is briefly [] and would get the start tour first. */
+          <Shell screen="dashboard" tourKey={!eventsReady ? null : events.length ? "dashboard" : "start"} activeEvent={null} go={dashGo}>
             {(migration.shouldPrompt || migration.status !== MIGRATION_STATUS.IDLE) && (
               <MigrationBanner migration={migration} />
             )}

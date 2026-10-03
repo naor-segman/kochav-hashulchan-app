@@ -17,7 +17,7 @@ const { default: EntranceScreen } = await import("./EntranceScreen.jsx");
 
 const addWalkIn = (clicksUp) => {
   const patchEventById = vi.fn();
-  localStorage.setItem("kochav_orientation_v1", "1");
+  localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 }));
   render(<AuthProvider><MemoryRouter initialEntries={["/events/e1/entrance"]}><Routes>
     <Route path="/events/:eventId/entrance" element={
       <EntranceScreen mode="owner" events={[EV]} loading={false} patchEventById={patchEventById} />} />
@@ -44,7 +44,7 @@ describe("walk-in table", () => {
 // Fourth review 30.9 (AX8): no Escape, and closing left focus nowhere.
 describe("walk-in sheet keyboard", () => {
   it("Escape closes it and focus returns to the button that opened it", () => {
-    localStorage.setItem("kochav_orientation_v1", "1");
+    localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 }));
     render(<AuthProvider><MemoryRouter initialEntries={["/events/e1/entrance"]}><Routes>
       <Route path="/events/:eventId/entrance" element={
         <EntranceScreen mode="owner" events={[EV]} loading={false} patchEventById={vi.fn()} />} />

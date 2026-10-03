@@ -58,7 +58,7 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
       />
 
       {isGuest ? (
-        <div className={styles.guestNote}>
+        <div data-tour="share.locked" className={styles.guestNote}>
           <p className={styles.guestTitle}>הקישורים ממתינים לחשבון</p>
           <p className={styles.guestBody}>
             האירוע הזה שמור רק בדפדפן הזה, ולכן קישור שתשלחו לא ייפתח אצל האורחים.
@@ -66,14 +66,14 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
           </p>
         </div>
       ) : (
-        <p className={styles.intro}>
+        <p data-tour="share.intro" className={styles.intro}>
           הקישורים קבועים — אפשר לשלוח אותם היום ולעדכן את התוכן מאחוריהם מחר.
           לכל אחד יש גם קוד QR, להדפסה על שילוט בכניסה או על ההזמנה.
         </p>
       )}
 
       {SHARE_GROUPS.map(group => (
-        <div key={group.id} className={base.card}>
+        <div data-tour={"share." + group.id} key={group.id} className={base.card}>
           <SectionLabel>{group.title}</SectionLabel>
           <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>{group.sub}</p>
 
@@ -138,7 +138,7 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
         </div>
       ))}
 
-      <div className={base.card}>
+      <div data-tour="share.edit" className={base.card}>
         <SectionLabel>איפה עורכים את מה שמאחורי הקישור</SectionLabel>
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
           הכתובת נשארת אותה כתובת גם אחרי שמשנים את התוכן. את ההזמנה ואת דף שמירת

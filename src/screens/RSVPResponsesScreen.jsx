@@ -307,7 +307,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
       {/* ── Summary stats ── */}
       {loadState === "ready" && (
-        <div className={styles.statsRow}>
+        <div data-tour="rsvps.stats" className={styles.statsRow}>
           <div className={styles.statTile}>
             <span className={styles.statNum}>{stats.total}</span>
             <span className={styles.statLabel}>תשובות</span>
@@ -344,12 +344,12 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
       {/* ── Meal forecast (optional — collapsed by default) ── */}
       {confirmedSeats > 0 && !showForecast && (
-        <button className={base.btnSecondary} style={{ marginBottom: 14 }} onClick={() => setShowForecast(true)}>
+        <button data-tour="rsvps.forecast" className={base.btnSecondary} style={{ marginBottom: 14 }} onClick={() => setShowForecast(true)}>
           <Icon name="food" /> הציגו תחזית מנות (אופציונלי)
         </button>
       )}
       {shuttleCounts.length > 0 && (
-        <div className={base.card}>
+        <div data-tour="rsvps.shuttles" className={base.card}>
           <SectionLabel>הרשמה להסעות</SectionLabel>
           <p className={base.fieldHint}>
             כמה מקומות להזמין בכל הסעה, לפי מה שהאורחים סימנו בטופס אישור ההגעה.
@@ -402,11 +402,13 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
       {/* ── Offline / error states ── */}
       {loadState === "offline" && (
-        <Banner variant="warn">
-          {isSupabaseConfigured
-            ? "האירוע עדיין לא סונכרן לענן — תשובות יופיעו כאן לאחר הסנכרון הראשון (התחברו לחשבון אם עוד לא)."
-            : "סנכרון ענן אינו מוגדר בסביבה זו."}
-        </Banner>
+        <div data-tour="rsvps.offline">
+          <Banner variant="warn">
+            {isSupabaseConfigured
+              ? "האירוע עדיין לא סונכרן לענן — תשובות יופיעו כאן לאחר הסנכרון הראשון (התחברו לחשבון אם עוד לא)."
+              : "סנכרון ענן אינו מוגדר בסביבה זו."}
+          </Banner>
+        </div>
       )}
       {loadState === "error" && (
         <Banner variant="err">
@@ -420,7 +422,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
 
       {/* ── Empty state with share link ── */}
       {loadState === "ready" && responses.length === 0 && (
-        <div className={base.card}>
+        <div data-tour="rsvps.share" className={base.card}>
           <SectionLabel>עדיין אין תשובות</SectionLabel>
           <p className={base.fieldHint}>
             שתפו את קישור אישור ההגעה עם האורחים — כל תשובה תופיע כאן אוטומטית.
@@ -451,7 +453,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
             <button className={base.btnSecondary} onClick={load}>רעננו ↺</button>
             <span className={base.fieldHint}>מתעדכן בכל כניסה למסך</span>
           </div>
-          <div className={base.gList}>
+          <div data-tour="rsvps.list" className={base.gList}>
             {responses.map(r => {
               const guest   = matchGuest(r);
               const applied = isApplied(r, guest);

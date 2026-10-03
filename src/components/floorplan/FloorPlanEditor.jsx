@@ -24,6 +24,9 @@ import VenueCanvas from "./VenueCanvas.jsx";
 import { arrangeGrid } from "./arrangeGrid.js";
 import { floorPlanAnnouncements, FLOOR_PLAN_SCREEN_READER_INSTRUCTIONS } from "./floorPlanAnnouncements.js";
 import { RowKeyboardSensor } from "../seating/rowSensors.js";
+import GuidedTour from "../tour/GuidedTour.jsx";
+import { TOURS } from "../../data/tours.js";
+import { useScreenTour } from "../../hooks/useScreenTour.js";
 import styles from "./FloorPlanEditor.module.css";
 
 // AI table-detection reads the uploaded sketch and returns one table per shape
@@ -207,7 +210,7 @@ function TableChipOnImage({ table, guests, size = 1, onRemove, onResize }) {
 function UploadZone({ onClick, onDrop }) {
   const [dragging, setDragging] = useState(false);
   return (
-    <div
+    <div data-tour="tables.upload"
       className={[styles.uploadZone, dragging ? styles.uploadZoneDragging : ""].filter(Boolean).join(" ")}
       onClick={onClick}
       onDragOver={e => { e.preventDefault(); setDragging(true); }}
@@ -232,7 +235,7 @@ function UploadZone({ onClick, onDrop }) {
 function UnassignedPanel({ guests }) {
   const { setNodeRef, isOver } = useDroppable({ id: "unassigned" });
   return (
-    <div
+    <div data-tour="tables.unassigned"
       ref={setNodeRef}
       className={[styles.unassignedPanel, isOver ? styles.panelOver : ""].filter(Boolean).join(" ")}
     >
@@ -327,6 +330,10 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
 
   const floorPlan  = ev.floorPlan ?? { image: null, tablePositions: {} };
   const hasImage   = !!floorPlan.image;
+  // The sketch editor is where hosts get lost (drag, resize, fixtures), and
+  // it only exists once a sketch is uploaded — so its tour opens then, the
+  // first time, rather than with the tables screen's own (124).
+  const sketchTour = useScreenTour(hasImage ? "floorplan" : null);
   const positions  = floorPlan.tablePositions ?? {};
   const placedIds  = new Set(Object.keys(positions));
   const unplaced   = ev.tables.filter(t => !placedIds.has(t.id));
@@ -738,7 +745,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       />
 
       {/* Toolbar */}
-      <div className={styles.toolbar}>
+      <div data-tour="tables.sketchTools" className={styles.toolbar}>
         <button className={styles.toolBtn} onClick={autoArrange} type="button">
           <Icon name="sparkle" size={15} style={{ verticalAlign: "middle", marginInlineEnd: 4 }} />
           סדרו את השולחנות על הסקיצה
@@ -784,7 +791,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       )}
 
       {/* Floor plan image with table chips */}
-      <div
+      <div data-tour="tables.sketch"
         className={[styles.imageContainer, (placingId || placingKind) ? styles.placingMode : ""].filter(Boolean).join(" ")}
         ref={containerRef}
         onClick={handleImageClick}
@@ -829,7 +836,7 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
       </div>
 
       {/* Venue fixtures — chuppah, stage, bar… */}
-      <div className={styles.unplacedStrip}>
+      <div data-tour="tables.fixtures" className={styles.unplacedStrip}>
         <div className={styles.unplacedLabel}>
           {placingKind
             ? "לחצו על הסקיצה כדי למקם: " + venueElement(placingKind).label
@@ -894,6 +901,8 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
           </div>
         )}
       </DragOverlay>
+
+      {sketchTour.open && <GuidedTour key="floorplan" steps={TOURS.floorplan} onClose={sketchTour.close} />}
     </DndContext>
   );
 }

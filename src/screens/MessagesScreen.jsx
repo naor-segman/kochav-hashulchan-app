@@ -192,7 +192,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
           buy and cannot avoid, on a screen whose job is to help them send an
           invitation. The analysis moved to WORKPLAN, where it belongs and where
           it now carries Meta's real rate card. */}
-      <div className={base.card}>
+      <div data-tour="messages.how" className={base.card}>
         <SectionLabel>עלות</SectionLabel>
         <p className={base.fieldHint}>
           השליחה נעשית מהוואטסאפ שלכם, ולכן <b>ללא עלות</b> — כאן רק מכינים את
@@ -206,7 +206,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
         const noPhone = stage.audience.length - stage.withPhone.length;
 
         return (
-          <div key={stage.key} className={base.card}>
+          <div data-tour={stage.key === "saveTheDate" ? "messages.stages" : undefined} key={stage.key} className={base.card}>
             <button
               className={styles.stageHead}
               onClick={() => setOpenStage(isOpen ? null : stage.key)}
@@ -255,7 +255,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                         {/* <bdi>: a Latin name ending in a period ("Tal S.")
                             painted its period on the wrong side (review). */}
                         <p className={styles.previewFor}>כך ההודעה תיראה אצל <bdi>{sample.name}</bdi>:</p>
-                        <div className={styles.preview}>{textFor(stage, sample)}</div>
+                        <div data-tour="messages.preview" className={styles.preview}>{textFor(stage, sample)}</div>
                       </>;
                     })()}
                     {/* Which page {{קישור}} opens in THIS stage, said out loud.
@@ -264,7 +264,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                         none (the site is not published, say), the message goes
                         out without it, which the host must hear here rather
                         than discover from a guest. */}
-                    <p className={styles.linkNote}>
+                    <p data-tour="messages.link" className={styles.linkNote}>
                       {stage.link
                         ? <>הקישור בהודעה הזאת: <b>{stage.link.label}</b></>
                         : "ההודעה הזאת תצא בלי קישור — הדף שמתאים לה עוד לא פורסם."}
@@ -288,7 +288,7 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                       {noPhone > 0 && <> · <span className={styles.warn}>{noPhone} ללא טלפון — לא ניתן לשלוח</span></>}
                     </p>
 
-                    <div className={styles.guestList}>
+                    <div data-tour={stage.withPhone.length ? "messages.guests" : undefined} className={styles.guestList}>
                       {stage.withPhone.map(g => {
                         const already = !!sent[stage.key]?.[g.id];
                         const asking  = !!opened[stage.key]?.[g.id];

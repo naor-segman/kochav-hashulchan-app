@@ -149,7 +149,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
           שם, ותאריך אם כבר יש. כל השאר — אולם, רשימות, תקציב — נשלים תוך כדי.
         </p>
 
-        <div className={styles.fields}>
+        <div data-tour="start.names" className={styles.fields}>
           <label className={styles.field}>
             <span className={styles.fieldLabel}>{labelA}</span>
             <input
@@ -188,7 +188,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
 
         {/* The classification question, demoted to where it belongs: one line,
             with a default, after the thing that matters. */}
-        <div className={styles.typeRow}>
+        <div data-tour="start.type" className={styles.typeRow}>
           <label className={styles.typeLabel} htmlFor="start-type">סוג האירוע</label>
           <select
             id="start-type"
@@ -207,7 +207,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
           </p>
         )}
 
-        <div className={styles.actions}>
+        <div data-tour="start.go" className={styles.actions}>
           <button type="submit" className={styles.cta} disabled={!ready || busy}>
             בואו נתחיל <Icon name="arrowLeft" size={16} />
           </button>
@@ -225,7 +225,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel }) {
       </form>
 
       {/* ── What is waiting inside — three things, not fourteen ── */}
-      <section className={styles.areas} aria-label="מה יש באתר">
+      <section data-tour="start.areas" className={styles.areas} aria-label="מה יש באתר">
         <p className={styles.areasHead}>ואחר כך, לפי הסדר שבו זה באמת קורה:</p>
         <ul className={styles.areaList}>
           {AREAS.map(a => (

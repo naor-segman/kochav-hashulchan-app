@@ -8,7 +8,7 @@ import { AuthProvider } from "../hooks/useAuth.js";
 
 const { default: EntranceScreen } = await import("./EntranceScreen.jsx");
 const mount = (guests) => {
-  localStorage.setItem("kochav_orientation_v1", "1");
+  localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 }));
   const EV = { id: "e1", name: "החתונה", cloudId: null, tokens: { hostess: "h1234567" }, tables: [], seating: {}, guests };
   render(<AuthProvider><MemoryRouter initialEntries={["/events/e1/entrance"]}><Routes>
     <Route path="/events/:eventId/entrance" element={

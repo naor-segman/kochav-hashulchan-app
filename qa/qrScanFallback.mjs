@@ -90,7 +90,6 @@ try {
 
   await p.goto(server.base + '/app', { waitUntil: 'domcontentloaded' });
   await p.evaluate(e => {
-    localStorage.setItem('kochav_orientation_v1', '1');
     localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: [e], activeEventId: 'e1' }));
   }, EVENT);
   await p.goto(server.base + '/events/e1/checkin', { waitUntil: 'domcontentloaded' });
@@ -127,7 +126,6 @@ try {
     const pg = await c.newPage();
     await pg.goto(server.base + '/app', { waitUntil: 'domcontentloaded' });
     await pg.evaluate(e => {
-      localStorage.setItem('kochav_orientation_v1', '1');
       localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: [e], activeEventId: 'e1' }));
     }, EVENT);
     await pg.goto(server.base + '/events/e1/checkin', { waitUntil: 'domcontentloaded' });

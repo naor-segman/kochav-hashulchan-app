@@ -28,6 +28,9 @@ import { useShareGate } from "../components/share/useShareGate.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { COMPANY } from "../data/company.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import GuidedTour from "../components/tour/GuidedTour.jsx";
+import { TOURS } from "../data/tours.js";
+import { useScreenTour } from "../hooks/useScreenTour.js";
 
 /**
  * עמדת הכניסה — the one screen the door runs on.
@@ -736,6 +739,12 @@ export default function EntranceScreen({
                                  markRow, markSeat, setExpanded, sideLabel, tableOf }),
     [canWrite, expanded, isToken, lastChecked, markCount, markRow, markSeat, sideLabel, tableOf]);
 
+  // The guided tour (124) — the host's own door only, never the greeter's
+  // token link (staff did not ask for a walkthrough of a page they were sent
+  // to use), and only once the event is here: the tour decides its steps when
+  // it opens, and before `ev` the page is an empty aria-busy div.
+  const tour = useScreenTour(!isToken && ev ? "entrance" : null);
+
   // ── Bail-outs — every hook above this line, on every render ────────────────
   if (isToken && remoteState !== "ready") {
     return (
@@ -820,6 +829,7 @@ export default function EntranceScreen({
   return (
     <main className={styles.root}>
       {dialog}
+      {tour.open && <GuidedTour key="entrance" steps={TOURS.entrance} onClose={tour.close} />}
       {/* ── Bar ── */}
       <header className={styles.bar}>
         {!isToken && (
@@ -831,15 +841,20 @@ export default function EntranceScreen({
           <h1 className={styles.barName}>{ev.name || "אירוע"}</h1>
           <span className={styles.barRole}>עמדת כניסה</span>
         </div>
+        {tour.available && (
+          <button className={styles.tourBtn} onClick={tour.start} aria-label="סיור במסך הזה" title="סיור במסך הזה — מה כל חלק עושה">
+            <Icon name="question" size={15} />
+          </button>
+        )}
         {canManage && (
-          <button className={styles.walkInBtn} onClick={(e) => { walkInOpener.current = e.currentTarget; setWalkInName(""); setWalkInTable(""); setWalkInOpen(true); }}>
+          <button data-tour="entrance.walkin" className={styles.walkInBtn} onClick={(e) => { walkInOpener.current = e.currentTarget; setWalkInName(""); setWalkInTable(""); setWalkInOpen(true); }}>
             <Icon name="plus" size={14} /> אורח שהגיע
           </button>
         )}
       </header>
 
       {/* ── The number. Seats, not rows. ── */}
-      <div className={styles.counter}>
+      <div data-tour="entrance.counter" className={styles.counter}>
         <div className={styles.counterNums}>
           <span className={styles.counterBig}>{totals.arrivedSeats}</span>
           <span className={styles.counterOf}>מתוך {totals.totalSeats} אורחים</span>
@@ -865,7 +880,7 @@ export default function EntranceScreen({
       {saveError && <p className={styles.saveError} role="alert">{saveError}</p>}
 
       {/* ── Tabs ── */}
-      <div className={styles.tabs} role="tablist">
+      <div data-tour="entrance.tabs" className={styles.tabs} role="tablist">
         <button
           className={[styles.tab, viewMode === "name" ? styles.tabOn : ""].filter(Boolean).join(" ")}
           onClick={() => setViewMode("name")} role="tab" aria-selected={viewMode === "name"}
@@ -879,7 +894,7 @@ export default function EntranceScreen({
       {/* ═══ BY NAME ═══ */}
       {viewMode === "name" && (
         <>
-          <div className={styles.searchWrap}>
+          <div data-tour="entrance.search" className={styles.searchWrap}>
             <span className={styles.searchIcon} aria-hidden="true"><Icon name="search" size={18} /></span>
             <input
               ref={searchRef}
@@ -900,7 +915,7 @@ export default function EntranceScreen({
           {scanning && canWrite && <QrScanner onScan={handleScan} onClose={() => { setScanning(false); setScanMsg(""); }} />}
           {scanMsg && <p className={styles.scanMsg} role="status">{scanMsg}</p>}
           {!scanning && isScanSupported() && canWrite && (
-            <button className={styles.scanBtn} onClick={() => { setScanning(true); setScanMsg(""); }}>
+            <button data-tour="entrance.scan" className={styles.scanBtn} onClick={() => { setScanning(true); setScanMsg(""); }}>
               <Icon name="camera" size={15} /> סרקו קוד מההזמנה
             </button>
           )}
@@ -1063,7 +1078,7 @@ export default function EntranceScreen({
 
       {/* ── The door link, and its switch ── */}
       {canManage && (
-        <div className={styles.linkCard}>
+        <div data-tour="entrance.link" className={styles.linkCard}>
           <button className={styles.linkToggle} onClick={() => setLinkOpen(o => !o)} aria-expanded={linkOpen}>
             <SectionMark name="hostess" tone="ondark" size={22} />
             <span className={styles.linkTitle}>קישור לדיילת</span>

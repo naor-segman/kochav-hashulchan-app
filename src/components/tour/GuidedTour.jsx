@@ -22,7 +22,8 @@ import styles from "./GuidedTour.module.css";
  * outside the card is not "next", and a tap that reached the page would act on
  * something the host has not been told about yet. */
 
-// The Shell's sticky top bar and areas bar together, plus a little air.
+// The Shell's sticky top bar and areas bar together, plus a little air: the
+// highest a lit part is scrolled to, so the bars never cover it.
 const TALL_TOP = 124;
 
 const findTarget = (t) => (t ? document.querySelector(`[data-tour="${t}"]`) : null);
@@ -50,15 +51,19 @@ export default function GuidedTour({ steps, onClose }) {
     if (!step) return undefined;
     const el = findTarget(step.target);
     if (el) {
+      // Scroll so the part AND its card fit on screen together: the pair is
+      // centred in the room under the sticky bars. Centring the part alone
+      // left a half-screen part no room above or below, and the card landed
+      // on top of what it was explaining (measured: 19 steps). A part too tall
+      // to share the screen with the card is shown from its top instead, so
+      // its title is in view.
+      el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
       const r = el.getBoundingClientRect();
-      // A part taller than most of the screen (the add-guest form) is shown
-      // from its TOP, under the sticky header, so its title is in view —
-      // centred, the light framed the middle of a form with no heading.
-      if (r.height > window.innerHeight * 0.6) {
-        window.scrollBy({ top: r.top - TALL_TOP, behavior: "instant" });
-      } else {
-        el.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
-      }
+      const cardH = cardRef.current?.offsetHeight || 240;
+      const room = window.innerHeight - TALL_TOP - 16;
+      const pair = r.height + 14 + cardH;
+      const top = pair <= room ? TALL_TOP + (room - pair) / 2 : TALL_TOP;
+      window.scrollBy({ top: r.top - top, behavior: "instant" });
     }
     let frame = 0;
     const measure = () => {

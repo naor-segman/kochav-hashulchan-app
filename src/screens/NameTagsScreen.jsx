@@ -158,7 +158,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
         <div className={base.card}>
           <SectionLabel>מה מדפיסים</SectionLabel>
 
-          <p className={base.fieldHint}>גודל</p>
+          <p data-tour="nametags.size" className={base.fieldHint}>גודל</p>
           <div className={styles.opts}>
             {SIZES.map(s => (
               <button
@@ -173,7 +173,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
             ))}
           </div>
 
-          <p className={base.fieldHint} style={{ marginTop: 14 }}>למי</p>
+          <p data-tour="nametags.scope" className={base.fieldHint} style={{ marginTop: 14 }}>למי</p>
           <div className={styles.opts}>
             {(isTableMode
               ? [
@@ -203,7 +203,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
                 <input type="checkbox" checked={showNames} onChange={e => setShowNames(e.target.checked)} />
                 <span>הציגו את שמות היושבים מתחת למספר</span>
               </label>
-              <p className={styles.foldNote}>
+              <p data-tour="nametags.fold" className={styles.foldNote}>
                 <Icon name="cards" size={15} /> כל כרטיס מודפס כפול — קפלו על הקו המקווקו
                 והכרטיס עומד לבד, קריא משני הצדדים.
               </p>
@@ -215,7 +215,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
             </label>
           )}
 
-          <div className={styles.actions}>
+          <div data-tour="nametags.print" className={styles.actions}>
             <button className={base.btnPrimary} onClick={() => window.print()} disabled={cards.length === 0}>
               <Icon name="print" /> הדפיסו {cards.length} {isTableMode ? "כרטיסי שולחן" : "כרטיסים"}
             </button>
@@ -242,7 +242,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
       {/* The print surface. On screen it renders as a preview; @media print
           hides everything else and lays these out on the page. */}
       {cards.length > 0 && isTableMode && (
-        <div className={[styles.sheet, styles.sheet_table].join(" ")}>
+        <div data-tour="nametags.preview" className={[styles.sheet, styles.sheet_table].join(" ")}>
           {tableCards.map(c => (
             <div key={c.key} className={styles.tent}>
               {/* Upper half, upside-down: once folded it faces the other side of
@@ -256,7 +256,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
       )}
 
       {cards.length > 0 && !isTableMode && (
-        <div className={[styles.sheet, styles["sheet_" + size]].join(" ")}>
+        <div data-tour="nametags.preview" className={[styles.sheet, styles["sheet_" + size]].join(" ")}>
           {seatCards.map(c => (
             <div key={c.key} className={styles.card}>
               <span className={styles.cardName}>{c.name}</span>

@@ -7,6 +7,9 @@
 // below the fold. A screen reader's heading list opened on "לא צריך לעשות הכל
 // היום" instead of the event.
 //
+// That panel was removed on 3.10 — the guided tour (124) replaced it, and the
+// tour is a modal dialog over the page, not a heading in its outline.
+//
 // Local-only build (no Supabase), the event seeded straight into localStorage.
 // The guest pages' error states are checked in qa/linkUnreachable.mjs, which
 // already drives them.
@@ -76,25 +79,19 @@ try {
   await p.evaluate(evs => localStorage.setItem('kochav_hashulchan_v1',
     JSON.stringify({ events: evs, activeEventId: 'e1' })), [EVENT, EMPTY]);
 
-  console.log('── the event hub, with the onboarding panel open, at 390px');
+  console.log('── the event hub, at 390px');
   await p.goto(server.base + '/events/e1');
   await p.waitForTimeout(700);
-  const how = p.getByRole('button', { name: 'איך זה עובד' });
-  if (await how.count()) await how.click();
-  await p.waitForTimeout(300);
   const hub = await outline(p);
-  ok(hub.some(h => h.text.startsWith('לא צריך לעשות הכל היום')), 'the onboarding panel is open');
+  ok(!hub.some(h => h.text.startsWith('לא צריך לעשות הכל היום')), 'the old onboarding panel is gone');
   judge('hub', hub);
   const name = hub.find(h => h.level === 1);
   ok(name && name.top >= 0 && name.top < 844, "the event's name is above the fold", name ? `top=${Math.round(name.top)}` : '');
 
-  // The dashboard, with the onboarding panel open (29.9 review: it had no h1).
+  // The dashboard (29.9 review: it had no h1).
   console.log('\n── the dashboard (/app)');
   await p.goto(server.base + '/app');
   await p.waitForTimeout(600);
-  const howApp = p.getByRole('button', { name: 'איך זה עובד' });
-  if (await howApp.count()) await howApp.click();
-  await p.waitForTimeout(300);
   judge('dashboard', await outline(p, true));
 
   // The guest-list import review sits under the page's h1 (review: its h3

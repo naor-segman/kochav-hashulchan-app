@@ -28,6 +28,7 @@ export default function Loading({ rows = 0, label = "טוען…", className = "
         className={[styles.skeleton, className].filter(Boolean).join(" ")}
         role="status"
         aria-label={label}
+        aria-busy="true"
       >
         {Array.from({ length: rows }, (_, i) => (
           <div key={i} className={styles.row}>
@@ -40,7 +41,10 @@ export default function Loading({ rows = 0, label = "טוען…", className = "
   }
 
   return (
-    <div className={[styles.block, className].filter(Boolean).join(" ")} role="status">
+    // aria-busy on both forms: true of a loading region, and what the guided
+    // tour (useScreenTour) waits on so it does not open over a screen whose
+    // parts have not arrived yet.
+    <div className={[styles.block, className].filter(Boolean).join(" ")} role="status" aria-busy="true">
       <span className={styles.mark} aria-hidden="true">✦</span>
       <span className={styles.label}>{label}</span>
     </div>

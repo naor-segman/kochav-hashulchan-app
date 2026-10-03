@@ -35,7 +35,7 @@ const mount = () => render(<MemoryRouter initialEntries={["/entrance/tok12345678
   <Route path="/entrance/:token" element={<EntranceScreen mode="token" />} />
 </Routes></MemoryRouter>);
 
-beforeEach(() => { sessionStorage.clear(); localStorage.setItem("kochav_orientation_v1", "1"); mark.mockClear(); });
+beforeEach(() => { sessionStorage.clear(); localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 })); mark.mockClear(); });
 
 describe("scanning a family row", () => {
   it("opens the family's panel and marks nobody", async () => {

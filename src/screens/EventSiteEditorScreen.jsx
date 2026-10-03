@@ -237,7 +237,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       <PhotoRetentionNotice ev={ev} patchEvent={patchEvent} showToast={showToast} showPurged />
 
       {/* ── Publish + share ── */}
-      <div className={[base.card, site.enabled ? "" : base.cardDirty].filter(Boolean).join(" ")}>
+      <div data-tour="site.publish" className={[base.card, site.enabled ? "" : base.cardDirty].filter(Boolean).join(" ")}>
         <div className={styles.publishRow}>
           <div>
             <div className={styles.publishTitle}>{site.enabled ? "האתר מפורסם ✓" : "האתר עדיין לא מפורסם"}</div>
@@ -252,7 +252,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
             {site.enabled ? "בטלו פרסום" : "פרסמו אתר ←"}
           </button>
         </div>
-        <div className={styles.shareRow}>
+        <div data-tour="site.link" className={styles.shareRow}>
           <input className={[base.input, styles.shareInput].join(" ")} readOnly value={siteUrl} dir="ltr" aria-label="קישור לאתר האירוע" />
           <button className={base.btnSm} onClick={() => guard("הקישור לאתר האירוע", copyLink)}>{copied ? "הועתק ✓" : "העתיקו"}</button>
           <button
@@ -300,7 +300,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
 
       {/* ── Share with guests ── */}
       {site.enabled && (
-        <div className={base.card}>
+        <div data-tour="site.share" className={base.card}>
           <SectionLabel>שתפו עם האורחים</SectionLabel>
           <p className={base.fieldHint}>
             הודעות מוכנות לשליחה בוואטסאפ — עם קישור לאתר האירוע. העתיקו או שלחו ישירות.
@@ -335,7 +335,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       )}
 
       {/* ── Theme ── */}
-      <div className={base.card}>
+      <div data-tour="site.theme" className={base.card}>
         <SectionLabel>עיצוב האתר</SectionLabel>
         <p className={base.fieldHint}>בחרו ערכת צבעים לאתר האירוע שלכם.</p>
         <div className={styles.themeGrid}>
@@ -394,7 +394,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       </div>
 
       {/* ── Hero ── */}
-      <div className={base.card}>
+      <div data-tour="site.hero" className={base.card}>
         <SectionLabel>ראש האתר</SectionLabel>
         <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
           onChange={e => { if (e.target.files[0]) onCover(e.target.files[0]); e.target.value = ""; }} />
@@ -466,7 +466,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       </div>
 
       {/* ── Schedule ── */}
-      <div className={base.card}>
+      <div data-tour="site.sections" className={base.card}>
         <div className={styles.secToggleHead}>
           <SectionLabel>לוז האירוע</SectionLabel>
           <Toggle label="לוז האירוע" on={site.sections.schedule} onChange={v => setSection("schedule", v)} />

@@ -36,7 +36,7 @@ const T = 1_800_000_000_000;
 const fam = { id: "g1", name: "דן לוי", count: 2, rsvp: "confirmed", companions: ["נועה"] };
 const BASE_EV = { id: "e1", name: "החתונה", cloudId: "c1", tables: [], seating: {}, guests: [fam], tokens: { hostess: "h1234567" } };
 
-beforeEach(() => { localStorage.setItem("kochav_orientation_v1", "1"); sessionStorage.clear(); writers.by.length = 0; mark.mockClear(); });
+beforeEach(() => { localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 })); sessionStorage.clear(); writers.by.length = 0; mark.mockClear(); });
 
 describe("the host's door merges the greeter's marks against the base", () => {
   it("host marked נועה (newer clock), greeter marked דן: both are in", async () => {

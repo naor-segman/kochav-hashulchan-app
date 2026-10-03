@@ -123,14 +123,18 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
       />
 
       {state === "idle" && (
-        <EmptyState
-          mark="album"
-          title="האירוע עוד לא נשמר בענן"
-          text="התמונות של האורחים נשמרות בענן, ליד האירוע. כשהאירוע יישמר — הן יופיעו כאן."
-        />
+        <div data-tour="album.offline">
+          <EmptyState
+            mark="album"
+            title="האירוע עוד לא נשמר בענן"
+            text="התמונות של האורחים נשמרות בענן, ליד האירוע. כשהאירוע יישמר — הן יופיעו כאן."
+          />
+        </div>
       )}
 
-      {state === "loading" && <p className={styles.status}>טוען את התמונות…</p>}
+      {/* aria-busy: the guided tour (124) waits for the photos before it
+          decides which of its steps are on the page. */}
+      {state === "loading" && <p className={styles.status} aria-busy="true">טוען את התמונות…</p>}
 
       {state === "error" && (
         <p className={styles.statusErr} role="alert">
@@ -139,14 +143,16 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
       )}
 
       {state === "ready" && photos.length === 0 && (
-        <EmptyState
-          mark="album"
-          title="עוד אין תמונות"
-          text="שלחו לאורחים את הקישור לאלבום המשותף — כל מה שהם יעלו יופיע כאן."
-          /* EmptyState draws the button from { label, onClick }. A <button>
-             element passed here rendered as an empty, dead button. */
-          action={go && { label: "לקישורים לאורחים", onClick: () => go("share") }}
-        />
+        <div data-tour="album.empty">
+          <EmptyState
+            mark="album"
+            title="עוד אין תמונות"
+            text="שלחו לאורחים את הקישור לאלבום המשותף — כל מה שהם יעלו יופיע כאן."
+            /* EmptyState draws the button from { label, onClick }. A <button>
+               element passed here rendered as an empty, dead button. */
+            action={go && { label: "לקישורים לאורחים", onClick: () => go("share") }}
+          />
+        </div>
       )}
 
       {state === "ready" && photos.length > 0 && (
@@ -158,7 +164,7 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
             עדיין יכול לפתוח אותה. כדי שתיעלם לגמרי — מחקו.
           </p>
 
-          <ul className={styles.grid}>
+          <ul data-tour="album.grid" className={styles.grid}>
             {photos.map(p => (
               <li
                 key={p.id}
@@ -178,7 +184,7 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
                   <span className={styles.who}>{p.uploader || "ללא שם"}</span>
                   <span className={styles.when}>{fmtDateTime(p.createdAt)}</span>
                 </div>
-                <div className={styles.actions}>
+                <div data-tour="album.actions" className={styles.actions}>
                   <button
                     type="button"
                     className={base.btnSm}

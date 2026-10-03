@@ -101,7 +101,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
       />
 
       {vendors.length > 0 && (
-        <div className={base.card}>
+        <div data-tour="vendors.summary" className={base.card}>
           <SectionLabel>סיכום</SectionLabel>
           <div className={styles.totals}>
             <div className={styles.total}>
@@ -124,12 +124,12 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
       )}
 
       <div className={base.card}>
-        <div className={styles.toolbar}>
+        <div data-tour="vendors.toolbar" className={styles.toolbar}>
           <button className={base.btnPrimary} onClick={() => { setAdding(true); setEditId(null); setForm(EMPTY); }}>
             <Icon name="plus" size={15} /> ספק חדש
           </button>
           {vendors.length > 0 && (
-            <div className={styles.filters}>
+            <div data-tour="vendors.filters" className={styles.filters}>
               {[["all", "הכל"], ...VENDOR_STATUSES.map(s => [s.value, s.label])].map(([v, l]) => (
                 <button
                   key={v}
@@ -208,7 +208,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
         )}
 
         {shown.length > 0 && (
-          <div className={styles.list}>
+          <div data-tour="vendors.list" className={styles.list}>
             {shown.map(v => {
               const st  = vendorStatus(v.status);
               const pay = shownPayment(v.payment, parseAmount(v.price), parseAmount(v.paid));

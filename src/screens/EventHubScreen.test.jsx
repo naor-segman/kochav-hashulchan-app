@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { render, screen, fireEvent } from "../test/dom.js";
 import { AuthProvider } from "../hooks/useAuth.js";
@@ -52,10 +52,6 @@ const renderHub = (over = {}, props = {}) =>
     </AuthProvider>
   );
 
-beforeEach(() => {
-  // The orientation overlay opens on a fresh browser and covers the page.
-  localStorage.setItem("kochav_orientation_v1", "1");
-});
 
 describe("EventHubScreen — rows are not seats", () => {
   it("reports guest ROWS and guest SEATS as two different numbers", () => {

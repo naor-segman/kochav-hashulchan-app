@@ -314,7 +314,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
         <SectionLabel>הוספת אילוץ חדש</SectionLabel>
 
         <Field label="סוג האילוץ">
-          <div className={base.seg} role="group" aria-label="סוג האילוץ">
+          <div data-tour="constraints.type" className={base.seg} role="group" aria-label="סוג האילוץ">
             <button
               type="button"
               aria-pressed={formType === "together"}
@@ -340,7 +340,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
             : "האורחים שתבחרו לא יושבצו לאותו שולחן — יהיו בשולחנות שונים."}
         </p>
 
-        <div className={styles.constraintFormRow}>
+        <div data-tour="constraints.pick" className={styles.constraintFormRow}>
           <div className={styles.constraintFormField}>
             <Field label="אורח א׳">
               <GuestAutocomplete
@@ -408,7 +408,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       </div>
 
       {together.length > 0 && (
-        <div className={[base.card, styles.cardTogether].join(" ")}>
+        <div data-tour="constraints.list" className={[base.card, styles.cardTogether].join(" ")}>
           <SectionLabel><Icon name="together" /> חייבים לשבת יחד — {together.length}</SectionLabel>
           <div className={styles.cList}>
             {together.map(c => {
@@ -438,7 +438,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       )}
 
       {apart.length > 0 && (
-        <div className={[base.card, styles.cardApart].join(" ")}>
+        <div data-tour="constraints.list" className={[base.card, styles.cardApart].join(" ")}>
           <SectionLabel><Icon name="apart" /> לא יכולים לשבת יחד — {apart.length}</SectionLabel>
           <div className={styles.cList}>
             {apart.map(c => {

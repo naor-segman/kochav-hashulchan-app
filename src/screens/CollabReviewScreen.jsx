@@ -5,6 +5,7 @@ import { getSideLabels } from "../utils/eventHelpers.js";
 import { exportCollabTableToExcel, collabRowMissing } from "../utils/exportHelpers.js";
 import { rotateEventToken } from "../utils/eventHelpers.js";
 import Banner from "../components/feedback/Banner.jsx";
+import Loading from "../components/feedback/Loading.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import QrCode from "../components/ui/QrCode.jsx";
 import StatPill from "../components/ui/StatPill.jsx";
@@ -83,14 +84,14 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
       />
 
       {collabLink ? (
-        <div className={base.card}>
+        <div data-tour="collab.link" className={base.card}>
           {/* The link is a full-control capability — whoever holds it can read
               every phone number, edit, delete and export. It is minted once and
               never changes, so a forward in a family group is permanent. The
               switch is how it gets taken back: same link, on or off. Enforced
               in the token RPCs, not here — a toggle that only hides a button
               would be decoration. */}
-          <div className={styles.linkSwitch}>
+          <div data-tour="collab.switch" className={styles.linkSwitch}>
             <div className={styles.linkSwitchText}>
               <span className={styles.linkSwitchTitle}>
                 {collabActive ? "הקישור פעיל" : "הקישור סגור"}
@@ -138,7 +139,7 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
           <p className={[base.fieldHint, styles.rotateHint].join(" ")}>
             שלחתם את הקישור למקום הלא נכון? אפשר להחליף אותו בקישור חדש — הישן יפסיק לעבוד ברגע שהשינוי יישמר.
           </p>
-          <div className={base.actionBar} style={{ marginTop: 14 }}>
+          <div data-tour="collab.actions" className={base.actionBar} style={{ marginTop: 14 }}>
             <button className={base.btnPrimary} onClick={() => guard("הקישור לטבלה השיתופית",
               () => window.open(collabLink, "_blank", "noopener,noreferrer"))}>
               פתחו את הטבלה <Icon name="arrowLeft" size={15} />
@@ -181,8 +182,12 @@ export default function CollabReviewScreen({ activeEvent: ev, patchEvent, go, sh
         </Banner>
       )}
 
+      {/* A placeholder while the rows load: the tour waits for it (124), and
+          the slot no longer jumps from nothing to a card. */}
+      {loadState === "loading" && <Loading rows={2} label="טוען את הטבלה…" />}
+
       {loadState === "ready" && (
-        <div className={base.card}>
+        <div data-tour="collab.status" className={base.card}>
           <div className={base.pills}>
             <StatPill n={rows.length} label="רשומות בטבלה" primary />
             <StatPill n={completeCount} label="מלאות ומסונכרנות" color="var(--green)" />

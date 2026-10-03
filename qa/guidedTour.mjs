@@ -1,16 +1,20 @@
 // The first-visit guided tour (WORKPLAN 124, owner 2.10 #13), driven in a real
-// browser on the screens that have one, at 390 and 1280.
+// browser on EVERY screen that has one — 21 tours — on an empty event (a real
+// first visit: nothing in it yet) and on a full one, at 390 and 1280.
 //
 // Per step it reads back, from the page: the lit box sits on the part the step
 // names (within 8px — the box is the part plus 6px of padding); the card is
 // fully on screen and does not cover the part unless the part is taller than
-// the screen; the step counter says "N מתוך M"; nothing scrolls sideways. Then:
-// the page under the tour takes no clicks; Escape ends it; it does not open by
-// itself a second time; "סיור במסך" opens it again; focus goes back.
+// the screen; the step counter says "N מתוך M"; focus is on the forward
+// button; nothing scrolls sideways. Then the last button ends it and it is
+// remembered. Once per width: a click outside the card does nothing, the arrow
+// keys walk it (RTL), Escape ends it, it does not open by itself twice, the
+// replay button opens it again and focus comes back to that button.
 //
 // The app skips the tour in an automated browser (navigator.webdriver), so
 // every other harness keeps working; this one launches Chromium with that flag
-// off. Screenshots of every step go to SHOTS (default qa/shots, ignored by git).
+// off, and checks at the end that an ordinary automated browser gets no tour.
+// Screenshots go to SHOTS (default qa/shots, ignored by git).
 //
 //   node qa/guidedTour.mjs
 import { createRequire } from 'module';
@@ -27,30 +31,43 @@ const SHOTS = process.env.SHOTS || join(ROOT, 'qa/shots');
 mkdirSync(SHOTS, { recursive: true });
 
 let fails = 0;
+const notes = [];
 const ok = (c, what, detail = '') => {
   if (!c) fails++;
   console.log(`  ${c ? 'ok  ' : 'FAIL'} ${what}${detail ? '  — ' + detail : ''}`);
 };
 
+// A 1×1 PNG — enough for the floor plan to count as "has a sketch".
+const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 const guests = Array.from({ length: 14 }, (_, i) => ({
   id: 'g' + i, name: ['טל שוורץ', 'נועה לוי', 'משפחת כהן', 'אבי מזרחי', 'רותם בר', 'שירן אזולאי', 'יואב פרץ'][i % 7] + (i > 6 ? ' ' + (i - 6) : ''),
+  phone: i % 3 ? '05012345' + String(10 + i) : '',
   side: i % 2 ? 'groom' : 'bride', group: i % 3 ? 'חברים' : 'משפחה', count: (i % 3) + 1,
-  rsvp: ['confirmed', 'pending', 'declined', 'confirmed'][i % 4],
+  rsvp: ['confirmed', 'pending', 'declined', 'confirmed'][i % 4], meal: 'regular',
 }));
-const EVENT = {
+const FULL = {
   id: 'e1', name: 'החתונה של דנה ויוסי', type: 'חתונה', date: '2027-06-01', venue: 'אולמי הגן',
-  brideName: 'דנה', groomName: 'יוסי',
-  guests,
+  brideName: 'דנה', groomName: 'יוסי', guests,
   tables: [1, 2, 3].map(n => ({ id: 't' + n, name: 'שולחן ' + n, capacity: 10, type: 'regular', shape: 'round' })),
-  // Some seated, some waiting — so the seating tour has both parts to light.
   seating: { g0: 't1', g1: 't1', g3: 't2', g4: 't2', g6: 't3' },
+  constraints: [{ id: 'c1', type: 'together', guestA: 'g0', guestB: 'g1' }, { id: 'c2', type: 'apart', guestA: 'g3', guestB: 'g6' }],
+  tasks: [{ id: 'k1', title: 'לסגור צלם', status: 'todo', priority: 'high', due: '2027-01-01' }],
+  vendors: [{ id: 'v1', name: 'צלם', category: 'צילום', status: 'quote', price: 6000, paid: 1000 }],
+  costs: { categories: [{ id: 'k1', name: 'אולם', planned: 50000, actual: 20000 }] },
+  floorPlan: { image: PNG, tablePositions: {} },
 };
+const EMPTY = { id: 'e2', name: 'אירוע חדש לגמרי', type: 'חתונה', guests: [], tables: [], seating: {} };
 
-const TOURS = {
-  hub:     { path: '/events/e1',         steps: 5 },
-  guests:  { path: '/events/e1/guests',  steps: 6 },
-  seating: { path: '/events/e1/seating', steps: 4 },
-};
+// [tour key, path, which event] — every tour in src/data/tours.js.
+const SCREENS = [
+  ['hub', '/events/:id'], ['setup', '/events/:id/setup'], ['guests', '/events/:id/guests'],
+  ['tables', '/events/:id/tables'], ['constraints', '/events/:id/constraints'],
+  ['seating', '/events/:id/seating'], ['rsvps', '/events/:id/rsvps'], ['collab', '/events/:id/collab'],
+  ['tasks', '/events/:id/tasks'], ['costs', '/events/:id/costs'], ['vendors', '/events/:id/vendors'],
+  ['announce', '/events/:id/announce'], ['site', '/events/:id/site'], ['share', '/events/:id/share'],
+  ['messages', '/events/:id/messages'], ['nametags', '/events/:id/nametags'], ['album', '/events/:id/album'],
+  ['entrance', '/events/:id/entrance'],
+];
 
 execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT, '--emptyOutDir', '--logLevel', 'error'], {
   cwd: ROOT, stdio: 'inherit',
@@ -63,14 +80,18 @@ const browser = await chromium.launch({
 });
 
 const state = (p) => p.evaluate(() => {
-  const card = document.querySelector('[role="dialog"][aria-modal="true"]');
+  const card = document.querySelector('[role="dialog"][aria-modal="true"][data-side]');
   if (!card) return null;
   const spot = card.parentElement.querySelector('[class*="spot"]');
   const c = card.getBoundingClientRect();
   const s = spot?.getBoundingClientRect() || null;
+  const t = card.dataset.target;
+  const r = t ? document.querySelector(`[data-tour="${t}"]`)?.getBoundingClientRect() : null;
   return {
     title: card.querySelector('h2')?.textContent || '',
     count: card.querySelector('[class*="count"]')?.textContent || '',
+    target: t || null,
+    part: r && { top: r.top, left: r.left, bottom: r.bottom, right: r.right },
     card: { top: c.top, left: c.left, bottom: c.bottom, right: c.right },
     spot: s && { top: s.top, left: s.left, bottom: s.bottom, right: s.right, height: s.height },
     vw: innerWidth, vh: innerHeight,
@@ -78,86 +99,134 @@ const state = (p) => p.evaluate(() => {
   };
 });
 const hScroll = (p) => p.evaluate(() => { scrollTo({ left: -1e5, behavior: 'instant' }); const x = scrollX; scrollTo({ left: 0, behavior: 'instant' }); return x; });
+const seen = (p, key) => p.evaluate(k => JSON.parse(localStorage.getItem('kochav_tour_v1') || '{}')[k] === 1, key);
+
+/** Walk one open tour to the end with "הבא", checking every step. */
+async function walk(p, label, w, shotAll) {
+  await p.waitForSelector('[role="dialog"][aria-modal="true"][data-side]', { timeout: 8000 }).catch(() => {});
+  let st = await state(p);
+  ok(!!st, `${label}: opens by itself on the first visit`);
+  if (!st) return;
+  const m = /^1 מתוך (\d+)$/.exec(st.count);
+  ok(!!m, `${label}: starts at step 1`, st.count);
+  const total = m ? +m[1] : 1;
+  if (total < 3) notes.push(`${label}: only ${total} step(s) on this page`);
+  for (let n = 1; n <= total; n++) {
+    await p.waitForTimeout(420);
+    st = await state(p);
+    const tag = `${label} ${n}/${total} "${st.title}"`;
+    ok(st.count === `${n} מתוך ${total}`, `${tag}: counter`, st.count);
+    const inView = st.card.top >= 0 && st.card.left >= 0 && st.card.bottom <= st.vh + 0.5 && st.card.right <= st.vw + 0.5;
+    ok(inView, `${tag}: card on screen`, JSON.stringify(st.card));
+    if (st.target) {
+      ok(!!st.part, `${tag}: its part "${st.target}" is on the page`);
+      if (st.spot && st.part) {
+        const fits = st.part.top >= 6 && st.part.bottom <= st.vh - 6;
+        const near = ['left', 'right'].every(k => Math.abs(st.part[k] - st.spot[k]) <= 8 || (k === 'left' ? st.part.left < 6 : st.part.right > st.vw - 6))
+          && (!fits || ['top', 'bottom'].every(k => Math.abs(st.part[k] - st.spot[k]) <= 8));
+        ok(near, `${tag}: the light is on its part`, JSON.stringify({ part: st.part, spot: st.spot }));
+        const overlap = !(st.card.bottom <= st.spot.top || st.card.top >= st.spot.bottom);
+        // Allowed only when the part and the card cannot share the screen
+        // (the same rule the tour scrolls by: room under the 124px bars).
+        const tooTall = st.spot.height + 14 + (st.card.bottom - st.card.top) > st.vh - 124 - 16;
+        ok(!overlap || tooTall, `${tag}: card does not cover the part`, overlap ? `part ${Math.round(st.spot.height)}px` : '');
+      }
+    }
+    ok(/^(הבא|הבנתי|בואו נתחיל)/.test(st.focus), `${tag}: focus on the forward button`, st.focus);
+    ok(await hScroll(p) === 0, `${tag}: no sideways scroll`);
+    if (shotAll || n === 1) await p.screenshot({ path: join(SHOTS, `tour-${label.replace(/\W+/g, '_')}-${w}-${n}.png`) });
+    await p.locator('[role="dialog"][data-side] button').last().click();
+  }
+  await p.waitForTimeout(250);
+  ok(!(await state(p)), `${label}: the last button ends it`);
+}
+
+async function context(w, events) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: w === 390 ? 844 : 860 }, serviceWorkers: 'block' });
+  const p = await ctx.newPage();
+  const errs = [];
+  p.on('pageerror', e => errs.push(e.message.slice(0, 140)));
+  await p.goto(server.base + '/home');
+  await p.evaluate(evs => {
+    localStorage.clear();
+    if (evs.length) localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: evs, activeEventId: evs[0].id }));
+  }, events);
+  return { ctx, p, errs };
+}
 
 try {
   for (const w of [390, 1280]) {
     console.log(`\n══ @${w}`);
-    const ctx = await browser.newContext({ viewport: { width: w, height: w === 390 ? 844 : 860 }, serviceWorkers: 'block' });
-    const p = await ctx.newPage();
-    const errs = [];
-    p.on('pageerror', e => errs.push(e.message.slice(0, 140)));
-    await p.goto(server.base + '/app');
-    await p.evaluate(ev => {
-      localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: [ev], activeEventId: 'e1' }));
-      localStorage.setItem('kochav_orientation_v1', '1');
-    }, EVENT);
-    ok(await p.evaluate(() => navigator.webdriver) === false, 'this browser is not flagged as automated (the tour may open)');
 
-    for (const [screen, t] of Object.entries(TOURS)) {
-      console.log(`── ${screen}`);
-      await p.goto(server.base + t.path);
-      await p.waitForSelector('[role="dialog"][aria-modal="true"]', { timeout: 5000 }).catch(() => {});
-      let st = await state(p);
-      ok(!!st, 'opens by itself on the first visit');
-      if (!st) continue;
-      ok(st.count === `1 מתוך ${t.steps}`, 'counter on the first step', st.count);
+    // ── A brand-new host: no events at all → the start form.
+    {
+      const { ctx, p, errs } = await context(w, []);
+      ok(await p.evaluate(() => navigator.webdriver) === false, 'this browser is not flagged as automated (the tour may open)');
+      console.log('── start');
+      await p.goto(server.base + '/app');
+      await walk(p, 'start', w, w === 390);
+      ok(await seen(p, 'start'), 'start: remembered');
+      ok(errs.length === 0, 'start: no page errors', errs.join(' | '));
+      await ctx.close();
+    }
 
-      for (let n = 1; n <= t.steps; n++) {
-        await p.waitForTimeout(450);          // the move transition
-        st = await state(p);
-        if (st.spot) {
-          // The lit box is the named part plus 6px — read the part's own box.
-          const part = await p.evaluate(() => {
-            const t = document.querySelector('[role="dialog"]').dataset.target;
-            const r = document.querySelector(`[data-tour="${t}"]`)?.getBoundingClientRect();
-            return r && { top: r.top, left: r.left, bottom: r.bottom, right: r.right };
-          });
-          const fits = part && part.top >= 6 && part.bottom <= st.vh - 6;
-          const near = part && ['left', 'right'].every(k => Math.abs(part[k] - st.spot[k]) <= 8)
-            && (!fits || ['top', 'bottom'].every(k => Math.abs(part[k] - st.spot[k]) <= 8));
-          ok(near, `step ${n}: the light is on its part`, JSON.stringify({ part, spot: st.spot }));
-        }
-        const inView = st.card.top >= 0 && st.card.left >= 0 && st.card.bottom <= st.vh + 0.5 && st.card.right <= st.vw + 0.5;
-        ok(inView, `step ${n} "${st.title}": card fully on screen`, JSON.stringify(st.card));
-        if (st.spot) {
-          const overlap = !(st.card.bottom <= st.spot.top || st.card.top >= st.spot.bottom);
-          const tall = st.spot.height > st.vh * 0.55;
-          ok(!overlap || tall, `step ${n}: card does not cover the lit part`, tall ? 'part taller than half the screen' : '');
-        }
-        ok(st.focus.startsWith('הבא') || st.focus.startsWith('הבנתי') || st.focus.startsWith('בואו'), `step ${n}: focus on the forward button`, st.focus);
-        ok(await hScroll(p) === 0, `step ${n}: no sideways scroll`);
-        await p.screenshot({ path: join(SHOTS, `tour-${screen}-${w}-${n}.png`) });
-        if (n === 1) {
-          // A click on the page itself must not reach it.
-          const before = p.url();
-          await p.mouse.click(10, st.vh - 10);
-          await p.waitForTimeout(200);
-          ok(p.url() === before && !!(await state(p)), 'a click outside the card does nothing');
-        }
-        if (n < t.steps) await p.keyboard.press('ArrowLeft');      // RTL: left = forward
+    for (const [kind, ev] of [['empty', EMPTY], ['full', FULL]]) {
+      const { ctx, p, errs } = await context(w, kind === 'full' ? [FULL, EMPTY] : [EMPTY]);
+      console.log(`\n── ${kind} event`);
+      await p.goto(server.base + '/app');
+      await walk(p, `dashboard(${kind})`, w, w === 390 && kind === 'full');
+      for (const [key, path] of SCREENS) {
+        await p.goto(server.base + path.replace(':id', ev.id));
+        await walk(p, `${key}(${kind})`, w, w === 390 && kind === 'full');
+        ok(await seen(p, key), `${key}(${kind}): remembered`);
       }
-      ok((await state(p)).count === `${t.steps} מתוך ${t.steps}`, 'ArrowLeft walked to the last step');
-      await p.keyboard.press('ArrowRight');
-      await p.waitForTimeout(300);
-      ok((await state(p)).count === `${t.steps - 1} מתוך ${t.steps}`, 'ArrowRight goes back one');
-      await p.keyboard.press('Escape');
-      await p.waitForTimeout(200);
-      ok(!(await state(p)), 'Escape ends it');
-      ok(await p.evaluate(s => JSON.parse(localStorage.getItem('kochav_tour_v1') || '{}')[s] === 1, screen), 'remembered as seen');
+      if (kind === 'full') {
+        // The sketch editor's own tour opens the first time it is shown.
+        await p.goto(server.base + '/events/e1/tables');
+        await p.waitForTimeout(900);
+        await p.getByRole('button', { name: /מפת אולם/ }).first().click();
+        await walk(p, 'floorplan(full)', w, w === 390);
+        ok(await seen(p, 'floorplan'), 'floorplan: remembered');
+      }
+      ok(errs.length === 0, `${kind}: no page errors`, errs.join(' | '));
+      await ctx.close();
+    }
 
-      await p.reload();
-      await p.waitForTimeout(1600);
-      ok(!(await state(p)), 'does not open by itself a second time');
-
+    // ── The controls, once per width, on a screen in the Shell and on the door.
+    console.log('\n── controls');
+    const { ctx, p, errs } = await context(w, [FULL]);
+    await p.goto(server.base + '/events/e1/guests');
+    await p.waitForSelector('[role="dialog"][data-side]', { timeout: 8000 }).catch(() => {});
+    let st = await state(p);
+    const before = p.url();
+    await p.mouse.click(8, st.vh - 8);
+    await p.waitForTimeout(200);
+    ok(p.url() === before && !!(await state(p)), 'a click outside the card does nothing');
+    const total = +/מתוך (\d+)/.exec(st.count)[1];
+    for (let n = 1; n < total; n++) { await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(80); }
+    ok((await state(p)).count === `${total} מתוך ${total}`, 'ArrowLeft walks forward (RTL)');
+    await p.keyboard.press('ArrowRight');
+    await p.waitForTimeout(150);
+    ok((await state(p)).count === `${total - 1} מתוך ${total}`, 'ArrowRight goes back');
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(200);
+    ok(!(await state(p)) && await seen(p, 'guests'), 'Escape ends it, and it is remembered');
+    await p.reload();
+    await p.waitForTimeout(1800);
+    ok(!(await state(p)), 'does not open by itself a second time');
+    for (const path of ['/events/e1/guests', '/events/e1/entrance']) {
+      await p.goto(server.base + path);
+      await p.waitForTimeout(1800);
+      if (await state(p)) await p.keyboard.press('Escape');
       await p.getByRole('button', { name: 'סיור במסך הזה' }).click();
-      await p.waitForSelector('[role="dialog"][aria-modal="true"]', { timeout: 3000 }).catch(() => {});
-      ok(!!(await state(p)), '"סיור במסך" opens it again');
+      await p.waitForSelector('[role="dialog"][data-side]', { timeout: 3000 }).catch(() => {});
+      ok(!!(await state(p)), `${path}: "סיור במסך" opens it again`);
       await p.getByRole('button', { name: 'דלגו על ההסבר' }).click();
       await p.waitForTimeout(200);
-      ok(!(await state(p)), '"דלגו" closes it');
-      ok(await p.evaluate(() => document.activeElement?.getAttribute('aria-label')) === 'סיור במסך הזה', 'focus returns to the button that opened it');
+      ok(!(await state(p)), `${path}: "דלגו" closes it`);
+      ok(await p.evaluate(() => document.activeElement?.getAttribute('aria-label')) === 'סיור במסך הזה', `${path}: focus returns to the button`);
     }
-    ok(errs.length === 0, 'no page errors', errs.join(' | '));
+    ok(errs.length === 0, 'controls: no page errors', errs.join(' | '));
     await ctx.close();
   }
 
@@ -170,13 +239,14 @@ try {
   });
   try {
     const p = await (await plain.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })).newPage();
-    await p.goto(server.base + '/app');
-    await p.evaluate(ev => localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: [ev], activeEventId: 'e1' })), EVENT);
-    await p.goto(server.base + '/events/e1/guests');
-    await p.waitForTimeout(1800);
-    ok(await p.evaluate(() => navigator.webdriver) === true, 'flagged as automated');
-    ok(!(await state(p)), 'the tour does not open by itself');
-    ok(await p.getByRole('button', { name: 'סיור במסך הזה' }).count() === 1, 'but the button to open it is there');
+    await p.goto(server.base + '/home');
+    await p.evaluate(ev => localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: [ev], activeEventId: 'e1' })), FULL);
+    for (const path of ['/events/e1/guests', '/events/e1/entrance']) {
+      await p.goto(server.base + path);
+      await p.waitForTimeout(1800);
+      ok(!(await state(p)), `${path}: the tour does not open by itself`);
+      ok(await p.getByRole('button', { name: 'סיור במסך הזה' }).count() === 1, `${path}: but the button to open it is there`);
+    }
   } finally {
     await plain.close();
   }
@@ -184,5 +254,6 @@ try {
   await browser.close();
   await server.stop();
 }
+if (notes.length) console.log('\nnotes (not failures):\n  ' + notes.join('\n  '));
 console.log(fails ? `\n${fails} FAILED` : '\nall passed');
 process.exit(fails ? 1 : 0);

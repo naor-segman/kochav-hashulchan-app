@@ -244,7 +244,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
       />
 
       {/* ── Stats ── */}
-      <div className={styles.statsRow}>
+      <div data-tour="costs.stats" className={styles.statsRow}>
         <div className={styles.stat}>
           <span className={styles.statNum}>{fmtILS(totalBudget)}</span>
           <span className={styles.statLabel}>תקציב מתוכנן</span>
@@ -286,7 +286,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
       )}
 
       {/* ── Categories table ── */}
-      <div className={base.card}>
+      <div data-tour="costs.categories" className={base.card}>
         <SectionLabel>פירוט קטגוריות</SectionLabel>
 
         <div className={styles.tableWrap}>
@@ -450,7 +450,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
 
       {/* ── Expenses chart: planned vs actual per category ── */}
       {catsWithData.length > 0 && (
-        <div className={base.card}>
+        <div data-tour="costs.chart" className={base.card}>
           <SectionLabel>הוצאות — מתוכנן מול בפועל</SectionLabel>
           <div className={styles.chart}>
             {catsWithData.map(c => {
@@ -484,7 +484,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
       )}
 
       {/* ── Income forecast + net picture ── */}
-      <div className={base.card}>
+      <div data-tour="costs.income" className={base.card}>
         <SectionLabel>הכנסה צפויה ותמונת נטו</SectionLabel>
         <p className={base.fieldHint}>
           "הכנסה צפויה" מסכמת את המתנה המשוערת שהזנתם לכל אורח (במסך האורחים).
@@ -571,7 +571,7 @@ export default function CostScreen({ activeEvent: ev, patchEvent, showToast }) {
             it is deliberately absent from the blessing wall, which is projected
             in a room full of people. */}
         {giftsState === "ready" && declaredGifts.length > 0 && (
-          <ul className={styles.giftList}>
+          <ul data-tour="costs.gifts" className={styles.giftList}>
             {declaredGifts.map(g => (
               <li key={g.id} className={styles.giftRow}>
                 <span className={[styles.giftName, g.hidden ? styles.giftHidden : ""].filter(Boolean).join(" ")}>

@@ -32,7 +32,7 @@ afterEach(() => { vi.useRealTimers(); hidden = false; fetchGuests.mockClear(); }
 describe("the host's door polls only while visible", () => {
   it("pauses when hidden, pulls at once and resumes when visible again", async () => {
     vi.useFakeTimers();
-    localStorage.setItem("kochav_orientation_v1", "1");
+    localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 }));
     render(<MemoryRouter initialEntries={["/events/e1/entrance"]}><Routes>
       <Route path="/events/:eventId/entrance" element={
         <EntranceScreen mode="owner" events={[EV]} loading={false} patchEventById={vi.fn()} />} />

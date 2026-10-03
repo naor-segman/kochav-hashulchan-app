@@ -38,7 +38,7 @@ const greeter = () => render(<MemoryRouter initialEntries={["/entrance/tok123456
 
 beforeEach(() => {
   sessionStorage.clear();
-  localStorage.setItem("kochav_orientation_v1", "1");
+  localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 }));
   hostess.mockReset(); mark.mockReset();
 });
 

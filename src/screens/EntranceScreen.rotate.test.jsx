@@ -23,7 +23,7 @@ const open = () => render(
 
 describe("the host can revoke the door link", () => {
   it("asks first, then rotates only the hostess token", async () => {
-    localStorage.setItem("kochav_orientation_v1", "1");
+    localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 }));
     open();
     fireEvent.click(await screen.findByRole("button", { name: /קישור לדיילת/ }));
     fireEvent.click(screen.getByRole("button", { name: /החליפו קישור/ }));

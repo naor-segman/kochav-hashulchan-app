@@ -174,7 +174,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
         mark="tables"
         sub="הגדירו את השולחנות באולם לפי מבנה האירוע."
         aside={
-          <div className={base.pills}>
+          <div data-tour="tables.counts" className={base.pills}>
             <StatPill n={ev.tables.length} label="שולחנות" primary />
             <StatPill n={totalCap} label="מקומות" color={gap < 0 ? "var(--red)" : undefined} />
           </div>
@@ -204,7 +204,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {/* ── Tabs ── */}
-      <div className={styles.tabBar}>
+      <div data-tour="tables.tabs" className={styles.tabBar}>
         {TABS.map(t => (
           <button
             key={t.id}
@@ -220,7 +220,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
       {/* ── Tab: Table list ── */}
       {tab === "list" && (
         <>
-          <div className={base.card}>
+          <div data-tour="tables.add" className={base.card}>
             <SectionLabel>הוספת שולחנות</SectionLabel>
             <p className={styles.batchHint}>ניתן להוסיף כמה שולחנות בבת אחת — כולם יקבלו את אותה קיבולת וסוג. לשמות ייווצרו אוטומטית מספרים רצופים.</p>
             <div className={base.batchGrid}>
@@ -281,7 +281,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
           </div>
 
           {ev.tables.length > 0 && (
-            <div className={base.card}>
+            <div data-tour="tables.list" className={base.card}>
               <SectionLabel>השולחנות שלי ({ev.tables.length})</SectionLabel>
               {totalCap > 0 && totalGuestSeats === 0 && (
                 <p className={styles.capStat}>קיבולת כוללת: {totalCap} מקומות</p>

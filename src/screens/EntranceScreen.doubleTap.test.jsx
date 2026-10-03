@@ -26,7 +26,7 @@ afterEach(() => vi.useRealTimers());
 function open() {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2027-06-01T19:00:00"));
-  localStorage.setItem("kochav_orientation_v1", "1");
+  localStorage.setItem("kochav_tour_v1", JSON.stringify({ entrance: 1 }));
   const patch = vi.fn();
   render(<MemoryRouter initialEntries={["/events/e1/entrance"]}><Routes>
     <Route path="/events/:eventId/entrance" element={
