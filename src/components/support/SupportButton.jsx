@@ -8,7 +8,10 @@ import { COMPANY } from "../../data/company.js";
 const RAW = import.meta.env.VITE_SUPPORT_WHATSAPP || "";
 const PHONE = RAW.replace(/[^\d]/g, "");
 
-const GREETING = encodeURIComponent(`היי, אני צריך עזרה עם ${COMPANY.name} 🙂`);
+// Neutral on purpose: this is the HOST's first message, typed for them, and
+// "אני צריך" made every host who is not a man send a sentence in the wrong
+// gender (audit 3.10, C17).
+const GREETING = encodeURIComponent(`היי, אשמח לעזרה עם ${COMPANY.name} 🙂`);
 
 export default function SupportButton() {
   const { pathname } = useLocation();

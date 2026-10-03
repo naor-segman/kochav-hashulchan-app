@@ -37,7 +37,7 @@ export async function billingErrorMessage(error, data, fallback) {
   const said = f.note || f.code;
   if (HEBREW.test(said)) return said;
   if (f.status === 401) return "פג תוקף ההתחברות — התחברו מחדש ונסו שוב";
-  if (f.status === 403) return "האירוע הזה לא נמצא בחשבון שלך — רעננו את הדף ונסו שוב";
+  if (f.status === 403) return "האירוע הזה לא נמצא בחשבון שלכם — רעננו את הדף ונסו שוב";
   return fallback;
 }
 

@@ -56,7 +56,7 @@ export const MESSAGE_STAGES = [
     // Only chase the people who haven't answered — messaging everyone again is
     // what makes guests mute the thread.
     audience: "pending",
-    body: "היי {{שם}} 🙂\n\nעדיין לא קיבלנו את אישור ההגעה שלכם ל{{אירוע}}.\nנשמח אם תעדכנו — זה לוקח שניה:\n{{קישור}}",
+    body: "היי {{שם}} 🙂\n\nעדיין לא קיבלנו את אישור ההגעה שלכם ל{{אירוע}}.\nנשמח אם תעדכנו — זה לוקח שנייה:\n{{קישור}}",
   },
   {
     key: "reminder2",
