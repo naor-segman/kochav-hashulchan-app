@@ -128,6 +128,7 @@ async function page(b, base, { width = 390, height = 800, seed = true, delayEven
   const ctx = await b.newContext({ viewport: { width, height }, serviceWorkers: 'block', hasTouch: touch, isMobile: touch });
   const p = await ctx.newPage();
   await stub(p, { delayEvents });
+  await p.addInitScript(CONTRAST_JS);
   if (seed) {
     await p.addInitScript(([ev, user, tours]) => {
       if (sessionStorage.getItem('qa-seeded')) return;
@@ -151,6 +152,32 @@ const hscroll = (p) => p.evaluate(() => {
   return x;
 });
 
+/* Contrast of an element's text against what is actually painted behind it
+ * (CLAUDE.md bug class 5: a tint is a ground). Composites every ancestor's
+ * background top-down and applies each ancestor's `opacity` as a group, so a
+ * row dimmed with opacity is measured as dimmed. Ignores background images
+ * and overlapping siblings — none on the elements checked here. Installed as
+ * window.__contrast(el) → ratio. */
+const CONTRAST_JS = () => {
+  const parse = (s) => { const m = s.match(/[\d.]+/g)?.map(Number) || [0, 0, 0, 0]; return [m[0], m[1], m[2], m[3] ?? 1]; };
+  const over = (top, base) => { const a = top[3]; return [0, 1, 2].map(i => top[i] * a + base[i] * (1 - a)).concat(1); };
+  const mix = (c, back, o) => [0, 1, 2].map(i => c[i] * o + back[i] * (1 - o)).concat(1);
+  const lum = (c) => { const v = c.slice(0, 3).map(x => x / 255).map(x => x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+  window.__contrast = (el) => {
+    const nodes = []; for (let n = el; n; n = n.parentElement) nodes.unshift(n);
+    const text = parse(getComputedStyle(el).color);
+    const paint = (i, back, withText) => {
+      if (i === nodes.length) return withText ? over(text, back) : back;
+      const cs = getComputedStyle(nodes[i]);
+      const c = paint(i + 1, over(parse(cs.backgroundColor), back), withText);
+      const o = Number(cs.opacity);
+      return o < 1 ? mix(c, back, o) : c;
+    };
+    const fg = lum(paint(0, [255, 255, 255, 1], true)), bg = lum(paint(0, [255, 255, 255, 1], false));
+    return Math.round(((Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05)) * 100) / 100;
+  };
+};
+
 /* ── Checks ─────────────────────────────────────────────────────────────── */
 const CHECKS = {
   // V1: the host previews, opened on a full page load while signed in.
@@ -163,6 +190,20 @@ const CHECKS = {
       ok(url === path, `${path} stays on the preview when signed in`, `landed on ${url}`);
       await ctx.close();
     }
+  },
+
+  // V4: every stat tile's label passes AA on its own tile's ground.
+  async rsvpStats(b, base) {
+    const { ctx, p } = await page(b, base, { width: 390 });
+    await p.goto(base + '/events/e1/rsvps', { waitUntil: 'domcontentloaded' });
+    await p.locator('[data-tour="rsvps.stats"]').waitFor({ timeout: 15000 });
+    const rows = await p.evaluate(() => [...document.querySelectorAll('[data-tour="rsvps.stats"] > *')].map(t => {
+      const label = t.lastElementChild;
+      return { text: label.textContent.trim(), ratio: window.__contrast(label) };
+    }));
+    ok(rows.length >= 4, 'found the stat tiles', String(rows.length));
+    for (const r of rows) ok(r.ratio >= 4.5, `"${r.text}" label ≥ 4.5:1 on its tile`, `${r.ratio}:1`);
+    await ctx.close();
   },
 
   // V2: the responses list does not scroll sideways on a phone.
