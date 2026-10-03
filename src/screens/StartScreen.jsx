@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EVENT_TYPES, eventTypeHeading } from "../data/constants.js";
 import { AREAS } from "../data/eventAreas.js";
 import { getEventPersonalConfig } from "../utils/eventHelpers.js";
@@ -62,6 +62,20 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel, sign
   const [nameB, setNameB] = useState("");
   const [date,  setDate]  = useState("");
   const [busy,  setBusy]  = useState(false);
+
+  /* The first name field takes the caret — but without moving the page.
+     `autoFocus` scrolled any focus target below the fold into view, so on a
+     320×568 phone /start opened 596px down, past the whole hero that explains
+     what the product does, straight into a form (audit 3.10, P2-4).
+     `preventScroll` keeps the page at its top. And only for a fine pointer:
+     on a phone, focus on load would raise the keyboard over that same hero
+     on a browser that allows it, and nobody types before reading. */
+  const nameARef = useRef(null);
+  useEffect(() => {
+    if (window.matchMedia?.("(pointer: fine)").matches) {
+      nameARef.current?.focus({ preventScroll: true });
+    }
+  }, []);
 
   // The type list stays driven by the admin-managed templates where they exist,
   // so nothing about that feature is lost — it just is not the opening question
@@ -157,7 +171,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel, sign
               value={nameA}
               onChange={e => setNameA(e.target.value)}
               placeholder={placeholderA}
-              autoFocus
+              ref={nameARef}
             />
           </label>
 

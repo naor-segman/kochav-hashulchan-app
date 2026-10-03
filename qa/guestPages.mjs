@@ -291,6 +291,28 @@ try {
     }
   }
 
+  /* ── P2-4 · /start opens at its hero, not scrolled to the form ──────────── */
+  if (want('start')) {
+    console.log('\n── start: the first screen a new host sees opens at the top');
+    for (const [width, height] of [[320, 568], [360, 640], [390, 844], [768, 1024], [1280, 720], [1024, 560]]) {
+      const { ctx, p } = await open('/start', { width, height });
+      await p.waitForTimeout(400);
+      const r = await p.evaluate(() => {
+        const h1 = document.querySelector('h1');
+        const name = document.querySelector('[data-tour="start.names"] input');
+        // Any scroller that moved, not only the window.
+        const moved = [...document.querySelectorAll('*')].filter(e => e.scrollTop > 0).map(e => `${e.tagName}${e.id ? '#' + e.id : ''}:${e.scrollTop}`);
+        return { y: Math.round(scrollY), moved, h1Top: h1 ? Math.round(h1.getBoundingClientRect().top) : null,
+          nameTop: name ? Math.round(name.getBoundingClientRect().top) : null, focusedName: document.activeElement === name };
+      });
+      ok(r.y === 0 && r.h1Top !== null && r.h1Top >= 0, `@${width} /start is not scrolled past its hero`, JSON.stringify(r));
+      // On a pointer device the first field still takes the caret — the
+      // shortcut is kept, only the jump is gone.
+      if (width >= 1024) ok(r.focusedName, `@${width} the first name field still has focus`);
+      await ctx.close();
+    }
+  }
+
 } finally {
   await browser.close();
   server.stop();
