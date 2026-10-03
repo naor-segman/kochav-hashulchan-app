@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   loadState, persist, userStorageKey,
   clearState, isCloudBacked, pruneCloudBackedEvents,
+  cloudHoldsEventData, holdsLocalOnlySketch,
 } from "./storage.js";
+import { mapLocalEventToCloudPayload, mapCloudEventToLocalEvent } from "./cloudSync.js";
 import { STORAGE_KEY } from "../data/constants.js";
 
 // Minimal in-memory localStorage shim (the test env has no DOM).
@@ -132,6 +134,34 @@ describe("pruneCloudBackedEvents", () => {
     ] }, key);
     pruneCloudBackedEvents(key);
     expect(loadState(key).activeEventId).toBe("keepme");
+  });
+
+  /* audit 3.10, L1. The sketch is the one thing that never syncs, so an
+   * event holding one is not "provably in the cloud" however equal its
+   * counters are. Before the fix the prune removed it and the sign-in after
+   * brought back everything but the image. */
+  it("keeps an event whose floor-plan sketch exists only on this device", () => {
+    const sketch = "data:image/jpeg;base64,AAAA";
+    const withSketch = ev("plan", { cloudId: "c1", version: 4, syncedVersion: 4,
+      floorPlan: { image: sketch, tablePositions: { t1: { x: 0.5, y: 0.5 } }, elements: [] } });
+    persist({ events: [withSketch, ev("pushed", { cloudId: "c2", version: 1, syncedVersion: 1 })] }, key);
+
+    // The premise, measured rather than assumed: the cloud round-trip drops it.
+    const back = mapCloudEventToLocalEvent({ ...mapLocalEventToCloudPayload(withSketch, "u"), id: "c1" });
+    expect(back.floorPlan.image).toBe(null);
+
+    expect(pruneCloudBackedEvents(key)).toEqual({ removed: 1, kept: 1 });
+    expect(loadState(key).events[0].floorPlan.image).toBe(sketch);
+  });
+
+  it("tells the sketch apart from the event data", () => {
+    const base = { cloudId: "c1", version: 2, syncedVersion: 2 };
+    const sk = { ...base, floorPlan: { image: "data:image/png;base64,QQ" } };
+    expect(isCloudBacked(sk)).toBe(false);
+    expect(cloudHoldsEventData(sk)).toBe(true);
+    expect(holdsLocalOnlySketch(sk)).toBe(true);
+    expect(holdsLocalOnlySketch({ ...base, floorPlan: { image: null } })).toBe(false);
+    expect(isCloudBacked({ ...base, floorPlan: { image: null, tablePositions: {} } })).toBe(true);
   });
 
   it("is a no-op on a bucket that does not exist", () => {

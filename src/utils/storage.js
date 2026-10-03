@@ -52,9 +52,28 @@ export function clearState(key = STORAGE_KEY) {
  * device, a false positive costs somebody their guest list.
  */
 export function isCloudBacked(ev) {
+  if (!cloudHoldsEventData(ev)) return false;
+  // The floor-plan sketch never leaves the device (cloudSync.js sends positions
+  // and fixtures, never `image`; FloorPlanEditor tells the host "נשמרת במכשיר
+  // שלכם בלבד"). An event that holds one is therefore NOT fully in the cloud,
+  // however equal its counters are — the sign-out prune deleted the sketch with
+  // the event, and the next sign-in brought back everything except it (audit
+  // 3.10, L1).
+  return !holdsLocalOnlySketch(ev);
+}
+
+/** The cloud row holds this event's data — everything that syncs, that is.
+ *  Says nothing about the floor-plan image, which never syncs; see
+ *  isCloudBacked for the full "nothing is lost if this copy goes" test. */
+export function cloudHoldsEventData(ev) {
   if (!ev || !ev.cloudId) return false;
   if (!Number.isFinite(ev.syncedVersion)) return false;
   return ev.syncedVersion === (ev.version ?? 1);
+}
+
+/** True when the event carries a floor-plan image — which exists only here. */
+export function holdsLocalOnlySketch(ev) {
+  return typeof ev?.floorPlan?.image === "string" && ev.floorPlan.image.length > 0;
 }
 
 /**

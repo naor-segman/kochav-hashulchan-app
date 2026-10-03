@@ -62,3 +62,22 @@ describe("AccountScreen — signing out (37a)", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 });
+
+describe("AccountScreen — clearing the local copy names what would be lost (audit 3.10, L1)", () => {
+  it("does not promise that a floor-plan sketch comes back from the cloud", async () => {
+    const { userStorageKey, persist } = await import("../utils/storage.js");
+    persist({ events: [
+      { id: "a", name: "חתונה עם שרטוט", cloudId: "c1", version: 2, syncedVersion: 2,
+        floorPlan: { image: "data:image/png;base64,QQ", tablePositions: {}, elements: [] } },
+      { id: "b", name: "בר מצווה", cloudId: "c2", version: 1, syncedVersion: 1 },
+    ] }, userStorageKey("u1"));
+    renderScreen();
+    fireEvent.click(screen.getByRole("button", { name: "מחיקת נתונים מקומיים מהמכשיר" }));
+    const text = (await screen.findByText(/למחוק את העותק המקומי/)).closest("[role]").textContent;
+    expect(text).toMatch(/אירוע אחד כבר בענן/);              // only the plain one
+    expect(text).toMatch(/שרטוט האולם שלו שמור רק על המכשיר הזה/);
+    expect(text).toMatch(/חתונה עם שרטוט/);
+    expect(text).not.toMatch(/שום דבר לא יאבד/);
+    localStorage.clear();
+  });
+});
