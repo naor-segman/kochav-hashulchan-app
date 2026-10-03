@@ -152,7 +152,10 @@ export default function Shell({ screen, tourKey = screen, activeEvent, go, child
               <Icon name="arrowRight" size={14} />
               <span className={styles.bcBackLabel}>כל האירועים</span>
             </button>
-            <span className={styles.bcSep}>/</span>
+            {/* Decoration between two controls, faded on purpose: hidden from
+                assistive tech, which otherwise read "slash" between "כל
+                האירועים" and the event name (audit 3.10, V9). */}
+            <span className={styles.bcSep} aria-hidden="true">/</span>
             {/* The event name is the way back to its own map. It used to be
                 inert text, so the only way out of a screen was the browser. */}
             {isHub ? (
