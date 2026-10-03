@@ -282,6 +282,11 @@
 @media (max-width: 480px) {
   .homeLabel,
   .tourLabel { display: none; }
+  /* Inside an event on a phone, the "?" of the guided tour takes the home
+     link's place rather than a place of its own: with both, the event name
+     was squeezed to 0px at 320 and 360 and 8px at 390 (3.10, measured). The
+     home link is still in the bar on the event list. */
+  .homeBtnInEvent { display: none; }
 }
 
 .accountBtn:hover {
@@ -343,8 +348,10 @@
   }
 
   /* The home link is icon-only below 480px (its label is dropped so the event
-     name can be seen), which left it 31px wide. */
-  .homeBtn {
+     name can be seen), which left it 31px wide. The tour button is the same
+     shape and was 36px (3.10 review). */
+  .homeBtn,
+  .tourBtn {
     min-width: 44px;
     justify-content: center;
   }

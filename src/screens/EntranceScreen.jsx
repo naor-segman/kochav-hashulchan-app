@@ -841,11 +841,6 @@ export default function EntranceScreen({
           <h1 className={styles.barName}>{ev.name || "אירוע"}</h1>
           <span className={styles.barRole}>עמדת כניסה</span>
         </div>
-        {tour.available && (
-          <button className={styles.tourBtn} onClick={tour.start} aria-label="סיור במסך הזה" title="סיור במסך הזה — מה כל חלק עושה">
-            <Icon name="question" size={15} />
-          </button>
-        )}
         {canManage && (
           <button data-tour="entrance.walkin" className={styles.walkInBtn} onClick={(e) => { walkInOpener.current = e.currentTarget; setWalkInName(""); setWalkInTable(""); setWalkInOpen(true); }}>
             <Icon name="plus" size={14} /> אורח שהגיע
@@ -854,14 +849,22 @@ export default function EntranceScreen({
       </header>
 
       {/* ── The number. Seats, not rows. ── */}
-      <div data-tour="entrance.counter" className={styles.counter}>
-        <div className={styles.counterNums}>
+      <div className={styles.counter}>
+        <div className={styles.counterNums} data-tour="entrance.counter">
           <span className={styles.counterBig}>{totals.arrivedSeats}</span>
           <span className={styles.counterOf}>מתוך {totals.totalSeats} אורחים</span>
           {totals.partialRecords > 0 && (
             <span className={styles.counterPartial}>{totals.partialRecords === 1 ? "משפחה אחת הגיעה חלקית" : `${totals.partialRecords} משפחות הגיעו חלקית`}</span>
           )}
         </div>
+        {/* The tour's "?" (124) sits here, at the far end of the counter row —
+            in the bar it cost the event's name half its width on a phone
+            (93 → 41px at 320, measured 3.10). */}
+        {tour.available && (
+          <button className={styles.tourBtn} onClick={tour.start} aria-label="סיור במסך הזה" title="סיור במסך הזה — מה כל חלק עושה">
+            <Icon name="question" size={15} />
+          </button>
+        )}
       </div>
       <div className={styles.progress}>
         <div className={styles.progressFill} style={{ width: totals.pct + "%" }} />

@@ -54,6 +54,11 @@
   flex-shrink: 0;
 }
 
+/* No date, no countdown, and since the "איך זה עובד" button left (3.10)
+   nothing else: an empty side wrapped onto its own line on a phone and added
+   a 12px gap under the title. */
+.headSide:empty { display: none; }
+
 /* One number at real size — the question the host arrived with. Blush ground,
    so it carries weight without spending the accent. */
 .countdown {

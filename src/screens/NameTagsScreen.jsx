@@ -158,43 +158,49 @@ export default function NameTagsScreen({ activeEvent: ev }) {
         <div className={base.card}>
           <SectionLabel>מה מדפיסים</SectionLabel>
 
-          <p data-tour="nametags.size" className={base.fieldHint}>גודל</p>
-          <div className={styles.opts}>
-            {SIZES.map(s => (
-              <button
-                key={s.key}
-                className={[styles.opt, size === s.key ? styles.optOn : ""].filter(Boolean).join(" ")}
-                onClick={() => setSize(s.key)}
-                aria-pressed={size === s.key}
-              >
-                <b>{s.label}</b>
-                <span>{s.note}</span>
-              </button>
-            ))}
+          {/* A wrapper per option group: the guided tour (124) lights the label
+              AND its options — tagging the label alone lit a 19px line. */}
+          <div data-tour="nametags.size">
+            <p className={base.fieldHint}>גודל</p>
+            <div className={styles.opts}>
+              {SIZES.map(s => (
+                <button
+                  key={s.key}
+                  className={[styles.opt, size === s.key ? styles.optOn : ""].filter(Boolean).join(" ")}
+                  onClick={() => setSize(s.key)}
+                  aria-pressed={size === s.key}
+                >
+                  <b>{s.label}</b>
+                  <span>{s.note}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <p data-tour="nametags.scope" className={base.fieldHint} style={{ marginTop: 14 }}>למי</p>
-          <div className={styles.opts}>
-            {(isTableMode
-              ? [
-                ["seated", "שולחנות מאוישים", "רק שולחנות שיושבים בהם"],
-                ["all",    "כל השולחנות",     "כולל שולחנות ריקים"],
-              ]
-              : [
-                ["seated",    "רק משובצים", "מי שכבר יש לו שולחן"],
-                ["confirmed", "רק שאישרו",  "כולל מי שעדיין לא שובץ"],
-                ["all",       "כל האורחים", "חוץ ממי שסירב"],
-              ]
-            ).map(([v, l, note]) => (
-              <button
-                key={v}
-                className={[styles.opt, scope === v ? styles.optOn : ""].filter(Boolean).join(" ")}
-                onClick={() => setScope(v)}
-                aria-pressed={scope === v}
-              >
-                <b>{l}</b><span>{note}</span>
-              </button>
-            ))}
+          <div data-tour="nametags.scope">
+            <p className={base.fieldHint} style={{ marginTop: 14 }}>למי</p>
+            <div className={styles.opts}>
+              {(isTableMode
+                ? [
+                  ["seated", "שולחנות מאוישים", "רק שולחנות שיושבים בהם"],
+                  ["all",    "כל השולחנות",     "כולל שולחנות ריקים"],
+                ]
+                : [
+                  ["seated",    "רק משובצים", "מי שכבר יש לו שולחן"],
+                  ["confirmed", "רק שאישרו",  "כולל מי שעדיין לא שובץ"],
+                  ["all",       "כל האורחים", "חוץ ממי שסירב"],
+                ]
+              ).map(([v, l, note]) => (
+                <button
+                  key={v}
+                  className={[styles.opt, scope === v ? styles.optOn : ""].filter(Boolean).join(" ")}
+                  onClick={() => setScope(v)}
+                  aria-pressed={scope === v}
+                >
+                  <b>{l}</b><span>{note}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {isTableMode ? (

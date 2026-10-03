@@ -518,7 +518,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           /* Four numbers, one of them leading. The sides and the meal
              breakdown moved to the quiet strip below the header: eleven equal
              boxes in five ink colours gave the eye nowhere to land. */
-          <div className={base.pills} data-tour="guests.counts">
+          <div className={base.pills} data-tour="guests.counts" data-tour-fit>
             <StatPill n={ev.guests.length} label="סה״כ" primary />
             {nConfirmed > 0 && <StatPill n={nConfirmed} label="אישרו" color="var(--green)" />}
             {nDeclined > 0 && <StatPill n={nDeclined} label="סירבו" color="var(--red)" />}

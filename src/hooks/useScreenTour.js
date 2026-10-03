@@ -10,7 +10,8 @@ import { hasSeenTour, markTourSeen } from "../utils/tourState.js";
  * so the rules are written once:
  *   • after the screen has painted, never over another open dialog (the name
  *     gate, the share gate), and not while the screen is still loading — it
- *     waits for either to finish, up to 30 seconds;
+ *     waits for either to finish, and after 30 seconds gives up for this
+ *     visit instead of opening on top of them;
  *   • never in an automated browser (navigator.webdriver): every qa/ harness
  *     would find its clicks landing on the tour. qa/guidedTour.mjs turns that
  *     flag off to test the tour itself;
@@ -30,7 +31,13 @@ export function useScreenTour(key) {
       // Another dialog is open, or the screen is still loading (a Loading
       // skeleton is aria-busy): the tour decides which parts exist when it
       // opens, so opening now would drop the ones about to arrive.
-      if (document.querySelector('[aria-modal="true"], [aria-busy="true"]') && tries++ < 40) { timer = setTimeout(open, 750); return; }
+      if (document.querySelector('[aria-modal="true"], [aria-busy="true"]')) {
+        // Still blocked after ~30s: give up for this visit rather than open
+        // over a dialog the host is in the middle of, or over a screen whose
+        // parts never arrived. Not marked seen — it opens next time.
+        if (tries++ < 40) timer = setTimeout(open, 750);
+        return;
+      }
       setOpenFor(key);
     };
     timer = setTimeout(open, 700);

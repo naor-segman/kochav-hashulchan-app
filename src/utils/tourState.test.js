@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
-import { placeCard, hasSeenTour, markTourSeen } from "./tourState.js";
+import { placeCard, hasSeenTour, markTourSeen, litBox, unionRect } from "./tourState.js";
 
 const VIEW = { w: 390, h: 844 };
 const CARD = { w: 358, h: 220 };
@@ -57,5 +57,32 @@ describe("which tours this browser has seen", () => {
       markTourSeen("hub");
       expect(hasSeenTour("hub")).toBe(true);
     }
+  });
+});
+
+describe("litBox — the light stays where it can be seen", () => {
+  const VIEW = { w: 390, h: 844 };
+  it("pads the part all round", () => {
+    expect(litBox({ top: 200, bottom: 300, left: 40, right: 300 }, VIEW))
+      .toMatchObject({ top: 194, bottom: 306, left: 34, right: 306 });
+  });
+  it("keeps an edge-to-edge part's ring on the screen", () => {
+    const b = litBox({ top: 200, bottom: 300, left: 0, right: 390 }, VIEW);
+    expect(b.left).toBe(8);
+    expect(b.right).toBe(382);
+  });
+  it("never rises under the sticky bars", () => {
+    const b = litBox({ top: 90, bottom: 400, left: 16, right: 374 }, VIEW, { topLimit: 103 });
+    expect(b.top).toBe(107);
+  });
+});
+
+describe("unionRect", () => {
+  it("is the box around the content, not the row", () => {
+    expect(unionRect([
+      { top: 10, bottom: 40, left: 200, right: 260, width: 60, height: 30 },
+      { top: 10, bottom: 40, left: 270, right: 375, width: 105, height: 30 },
+      { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 },
+    ])).toMatchObject({ left: 200, right: 375, top: 10, bottom: 40 });
   });
 });

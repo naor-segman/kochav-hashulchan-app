@@ -174,7 +174,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
         mark="tables"
         sub="הגדירו את השולחנות באולם לפי מבנה האירוע."
         aside={
-          <div data-tour="tables.counts" className={base.pills}>
+          <div data-tour="tables.counts" data-tour-fit className={base.pills}>
             <StatPill n={ev.tables.length} label="שולחנות" primary />
             <StatPill n={totalCap} label="מקומות" color={gap < 0 ? "var(--red)" : undefined} />
           </div>

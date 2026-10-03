@@ -86,11 +86,27 @@ const state = (p) => p.evaluate(() => {
   const c = card.getBoundingClientRect();
   const s = spot?.getBoundingClientRect() || null;
   const t = card.dataset.target;
-  const r = t ? document.querySelector(`[data-tour="${t}"]`)?.getBoundingClientRect() : null;
+  const el = t ? document.querySelector(`[data-tour="${t}"]`) : null;
+  // A data-tour-fit part is lit around its children, so measure it that way.
+  let r = el?.getBoundingClientRect() || null;
+  if (el?.hasAttribute('data-tour-fit')) {
+    const cs = [...el.children].map(c => c.getBoundingClientRect()).filter(c => c.width || c.height);
+    if (cs.length) r = { top: Math.min(...cs.map(c => c.top)), bottom: Math.max(...cs.map(c => c.bottom)),
+                         left: Math.min(...cs.map(c => c.left)), right: Math.max(...cs.map(c => c.right)) };
+  }
+  // The bottom of the bars stuck to the top of the screen — the light must
+  // never sit under them (3.10: the guest list's first part did).
+  let sticky = 0;
+  [...document.querySelectorAll('header, nav')].map(h => ({ h, b: h.getBoundingClientRect() }))
+    .filter(({ h, b }) => b.height > 0 && /sticky|fixed/.test(getComputedStyle(h).position))
+    .sort((a, b) => a.b.top - b.b.top)
+    .forEach(({ b }) => { if (b.top <= sticky + 2) sticky = Math.max(sticky, b.bottom); });
+  const bar = el?.closest('header, nav');
+  const inBar = !!bar && /sticky|fixed/.test(getComputedStyle(bar).position);
   return {
     title: card.querySelector('h2')?.textContent || '',
     count: card.querySelector('[class*="count"]')?.textContent || '',
-    target: t || null,
+    target: t || null, sticky, inBar,
     part: r && { top: r.top, left: r.left, bottom: r.bottom, right: r.right },
     card: { top: c.top, left: c.left, bottom: c.bottom, right: c.right },
     spot: s && { top: s.top, left: s.left, bottom: s.bottom, right: s.right, height: s.height },
@@ -121,15 +137,24 @@ async function walk(p, label, w, shotAll) {
     if (st.target) {
       ok(!!st.part, `${tag}: its part "${st.target}" is on the page`);
       if (st.spot && st.part) {
-        const fits = st.part.top >= 6 && st.part.bottom <= st.vh - 6;
-        const near = ['left', 'right'].every(k => Math.abs(st.part[k] - st.spot[k]) <= 8 || (k === 'left' ? st.part.left < 6 : st.part.right > st.vw - 6))
-          && (!fits || ['top', 'bottom'].every(k => Math.abs(st.part[k] - st.spot[k]) <= 8));
-        ok(near, `${tag}: the light is on its part`, JSON.stringify({ part: st.part, spot: st.spot }));
+        // Edges: the light may be pulled in to keep its ring on the screen,
+        // its top kept under the sticky bars, and — for a part too tall to
+        // share the screen with the card — its bottom trimmed above the card.
+        const top0 = st.inBar ? 0 : st.sticky;
+        const cardH = st.card.bottom - st.card.top;
+        const tooTall = (st.part.bottom - st.part.top) + 14 + cardH > st.vh - top0 - 28;
+        const near = (k, slack) => Math.abs(st.part[k] - st.spot[k]) <= 8 || slack;
+        const ok4 = near('left', st.part.left < 16 && st.spot.left >= 8)
+          && near('right', st.part.right > st.vw - 16 && st.spot.right <= st.vw - 8)
+          && near('top', st.part.top < top0 + 10 && st.spot.top >= top0)
+          && near('bottom', tooTall || st.part.bottom > st.vh - 10);
+        ok(ok4, `${tag}: the light is on its part`, JSON.stringify({ part: st.part, spot: st.spot }));
+        ok(st.inBar || st.spot.top >= st.sticky, `${tag}: the light is not under the sticky bars`, `spot ${Math.round(st.spot.top)} < bars ${Math.round(st.sticky)}`);
+        ok(st.spot.left >= 6 && st.spot.right <= st.vw - 6, `${tag}: the ring is on the screen`, `${Math.round(st.spot.left)}–${Math.round(st.spot.right)}`);
+        // The card never sits on the light — a too-tall part's light now ends
+        // above the card instead (3.10 visual review).
         const overlap = !(st.card.bottom <= st.spot.top || st.card.top >= st.spot.bottom);
-        // Allowed only when the part and the card cannot share the screen
-        // (the same rule the tour scrolls by: room under the 124px bars).
-        const tooTall = st.spot.height + 14 + (st.card.bottom - st.card.top) > st.vh - 124 - 16;
-        ok(!overlap || tooTall, `${tag}: card does not cover the part`, overlap ? `part ${Math.round(st.spot.height)}px` : '');
+        ok(!overlap, `${tag}: card does not cover the light`, overlap ? `part ${Math.round(st.part.bottom - st.part.top)}px` : '');
       }
     }
     ok(/^(הבא|הבנתי|בואו נתחיל)/.test(st.focus), `${tag}: focus on the forward button`, st.focus);
@@ -202,6 +227,23 @@ try {
     await p.mouse.click(8, st.vh - 8);
     await p.waitForTimeout(200);
     ok(p.url() === before && !!(await state(p)), 'a click outside the card does nothing');
+    // The keyboard cannot leave the card either (3.10: a review agent tabbed
+    // to a guest's "מחקו" behind the scrim and deleted the guest).
+    const guestsBefore = await p.evaluate(() => JSON.parse(localStorage.getItem('kochav_hashulchan_v1')).events[0].guests.length);
+    let stayed = true;
+    for (const key of ['Shift+Tab', 'Tab']) {
+      for (let n = 0; n < 6 && stayed; n++) {
+        await p.keyboard.press(key);
+        stayed = await p.evaluate(() => !!document.activeElement?.closest('[role="dialog"][data-side]'));
+        if (!stayed) ok(false, `${key} #${n + 1} stays in the card`);
+      }
+    }
+    ok(stayed, 'Tab and Shift+Tab never leave the card (from a tap on the page, focus on <body>)');
+    ok(await p.evaluate(() => document.getElementById('root')?.inert === true), 'the page is inert while the tour is open');
+    ok(await p.evaluate(() => JSON.parse(localStorage.getItem('kochav_hashulchan_v1')).events[0].guests.length) === guestsBefore && p.url() === before, 'nothing on the page was reached by the keyboard');
+    for (let n = 0; n < 8; n++) await p.keyboard.press('ArrowRight');
+    await p.waitForTimeout(150);
+    st = await state(p);
     const total = +/מתוך (\d+)/.exec(st.count)[1];
     for (let n = 1; n < total; n++) { await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(80); }
     ok((await state(p)).count === `${total} מתוך ${total}`, 'ArrowLeft walks forward (RTL)');
@@ -227,6 +269,44 @@ try {
       ok(await p.evaluate(() => document.activeElement?.getAttribute('aria-label')) === 'סיור במסך הזה', `${path}: focus returns to the button`);
     }
     ok(errs.length === 0, 'controls: no page errors', errs.join(' | '));
+    await ctx.close();
+  }
+
+  // ── A real phone (touch: buttons get their 44px), 320–390 wide. The tour's
+  // "?" must cost the event's name nothing: measured 3.10, it squeezed the
+  // name from 27→0px at 320 and 52→8px at 390, and on the door 93→41px.
+  // Compared against the same bar with the "?" taken out, so the check does
+  // not depend on how long the name is.
+  console.log('\n── phone bars');
+  for (const pw of [320, 360, 390]) {
+    const ctx = await browser.newContext({ viewport: { width: pw, height: 780 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    const p = await ctx.newPage();
+    await p.goto(server.base + '/home');
+    await p.evaluate(ev => {
+      localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({ events: [ev], activeEventId: 'e1' }));
+      localStorage.setItem('kochav_tour_v1', JSON.stringify({ guests: 1, entrance: 1 }));
+    }, FULL);
+    for (const [path, find] of [['/events/e1/guests', 'header a, header span'], ['/events/e1/entrance', 'header h1']]) {
+      await p.goto(server.base + path);
+      await p.waitForTimeout(900);
+      const r = await p.evaluate((sel) => {
+        const name = () => [...document.querySelectorAll(sel)].filter(x => x.textContent.trim().startsWith('החתונה של'))
+          .map(x => x.getBoundingClientRect().width).sort((a, b) => a - b)[0] ?? -1;
+        const btn = document.querySelector('[aria-label="סיור במסך הזה"]');
+        const withBtn = name();
+        // The bar before the tour: no "?", and the home link back in its place
+        // (on a phone inside an event the "?" took that place — Shell.module.css).
+        const home = document.querySelector('header a[href="/home"]');
+        const homeHidden = home && getComputedStyle(home).display === 'none';
+        if (btn) btn.style.display = 'none';
+        if (homeHidden) home.style.display = 'inline-flex';
+        const without = name();
+        if (btn) btn.style.display = '';
+        if (homeHidden) home.style.display = '';
+        return { withBtn: Math.round(withBtn), without: Math.round(without), hasBtn: !!btn };
+      }, find);
+      ok(r.hasBtn && r.withBtn >= r.without - 2, `@${pw} ${path}: the "?" costs the event name nothing`, `${r.withBtn}px with, ${r.without}px without`);
+    }
     await ctx.close();
   }
 

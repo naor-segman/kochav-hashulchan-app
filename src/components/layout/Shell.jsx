@@ -200,7 +200,7 @@ export default function Shell({ screen, tourKey = screen, activeEvent, go, child
               host wants to be nine times out of ten — but that left NO way back
               out to the public site short of typing the address, and "/" bounces
               a logged-in user straight back into the app. This is that way out. */}
-          <Link to="/home" className={styles.homeBtn} title="לעמוד הבית של האתר">
+          <Link to="/home" className={[styles.homeBtn, inEvent && tour.available ? styles.homeBtnInEvent : ""].filter(Boolean).join(" ")} title="לעמוד הבית של האתר">
             <Icon name="arrowRight" size={13} />
             <span className={styles.homeLabel}>עמוד הבית</span>
           </Link>

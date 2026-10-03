@@ -129,6 +129,10 @@ try {
     ok(await banner(p) === '', 'no question asked');
     ok(await onDashboard(p), 'the event is on the dashboard straight away');
     ok(JSON.stringify(await ids(p, GUEST_KEY)) === '[]', 'gone from the logged-out bucket');
+    // The upload starts once the account's cloud read returns; on a loaded
+    // machine that is past a fixed 2.5s wait, and a single read flaked (3.10).
+    for (let t = 0; t < 40 && creates.length === 0; t++) await p.waitForTimeout(200);
+    await p.waitForTimeout(400);   // and no second upload follows
     ok(creates.length === 1, 'uploaded once, with no click', `${creates.length}`);
     ok(await p.evaluate(() => sessionStorage.getItem('kochav_carry_drafts')) === null, 'the carry mark is used up');
     ok(errs.length === 0, 'no page errors', errs.join(' | '));

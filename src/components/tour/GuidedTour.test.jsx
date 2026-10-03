@@ -15,14 +15,17 @@ const STEPS = [
   { target: "b", title: "חלק ב", text: "זה ב", done: "סיימתי" },
 ];
 
+let page;
 function mount(onClose = vi.fn()) {
-  const page = document.createElement("div");
-  page.innerHTML = '<div data-tour="a">A</div><div data-tour="b">B</div>';
+  page = document.createElement("div");
+  page.innerHTML = '<div data-tour="a">A</div><div data-tour="b">B</div><button>מחקו</button>';
   document.body.appendChild(page);
   const view = render(<GuidedTour steps={STEPS} onClose={onClose} />);
   return { ...view, onClose, page };
 }
-afterEach(() => { document.body.innerHTML = ""; });
+// Only what the test added: the tour is portalled to <body>, and clearing the
+// whole body pulls its node out from under React.
+afterEach(() => { page?.remove(); page = null; });
 
 describe("GuidedTour", () => {
   it("skips a step whose part is not on the page, and counts without it", () => {
@@ -67,5 +70,39 @@ describe("GuidedTour", () => {
     expect(screen.queryByText("הקודם")).toBeNull();
     fireEvent.click(screen.getByText("הבא"));
     expect(screen.getByText("הקודם")).toBeInTheDocument();
+  });
+
+  it("makes the page inert while open — keyboard and screen reader cannot reach it — and gives it back", () => {
+    // A review agent tabbed out of the card, opened a delete confirm hidden
+    // under the scrim and deleted a guest (3.10). Only the mouse was blocked.
+    const { unmount } = mount();
+    expect(page.inert).toBe(true);
+    const tourRoot = screen.getByRole("dialog").parentElement;
+    expect(tourRoot.inert).not.toBe(true);
+    unmount();
+    expect(page.inert).not.toBe(true);
+  });
+
+  it("Tab from outside the card (focus on <body>) lands in the card, not on the page", () => {
+    mount();
+    document.activeElement?.blur();
+    act(() => { fireEvent.keyDown(document, { key: "Tab" }); });
+    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
+    act(() => { fireEvent.keyDown(document, { key: "Tab", shiftKey: true }); });
+    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
+  });
+
+  it("leaves Alt+arrow to the browser (Back), and Ctrl/Meta combinations too", () => {
+    mount();
+    act(() => { fireEvent.keyDown(document, { key: "ArrowLeft", altKey: true }); });
+    expect(screen.getByText("1 מתוך 3")).toBeInTheDocument();
+  });
+
+  it("announces each new step to a screen reader", () => {
+    mount();
+    const live = document.querySelector('[aria-live="polite"]');
+    expect(live.textContent).toBe("");
+    fireEvent.click(screen.getByText("הבא"));
+    expect(live.textContent).toBe("2 מתוך 3. חלק א. זה א");
   });
 });
