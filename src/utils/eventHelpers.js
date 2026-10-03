@@ -97,6 +97,10 @@ const TEXT_GUEST_FIELDS = ["name", "phone", "group", "notes", "side"];
 function normGuest(g) {
   const out = { ...g };
   for (const k of TEXT_GUEST_FIELDS) if (k in g && typeof g[k] !== "string") out[k] = str(g[k]);
+  // The name ALWAYS, present or not (audit 3.10, L5). `{ name: undefined }`
+  // survives JSON as a row with no name key at all, `"name" in g` was false,
+  // and the guest list's search (`g.name.includes(…)`) threw on it.
+  if (typeof out.name !== "string") out.name = str(g.name);
   // 1..50, the width every other writer uses (guest form, shared table CHECK).
   // "3" was concatenated into "032" seats; "abc" became NaN on every counter.
   if ("count" in g) out.count = intIn(g.count, 1, 50, 1);

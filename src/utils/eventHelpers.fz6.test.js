@@ -66,6 +66,19 @@ describe("normalizeEvent — duplicate table ids (audit 3.10, L2)", () => {
   });
 });
 
+/* audit 3.10, L5: `{ name: undefined }` comes back from JSON with no name
+ * key; normGuest only fixed names that were present, and the guest list's
+ * search (`g.name.includes(…)`, GuestManagerScreen) threw on the row. */
+describe("normalizeEvent — a guest with no name key (audit 3.10, L5)", () => {
+  it("gets an empty-string name, and search over it does not throw", () => {
+    const stored = JSON.parse(JSON.stringify({ id: "e", guests: [{ id: "g", name: undefined, count: 2 }, { id: "h", name: "דנה" }] }));
+    expect("name" in stored.guests[0]).toBe(false);                       // the premise
+    const guests = normalizeEvent(stored).guests;
+    expect(guests.map(g => g.name)).toEqual(["", "דנה"]);
+    expect(() => guests.filter(g => g.name.includes("ד"))).not.toThrow();
+  });
+});
+
 /* audit 3.10, L4: the floor plan's parts checked for their shape. */
 describe("normalizeEvent — floor plan shape (audit 3.10, L4)", () => {
   const fp = (floorPlan) => normalizeEvent({ id: "e", floorPlan }).floorPlan;
