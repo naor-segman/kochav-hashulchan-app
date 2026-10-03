@@ -145,6 +145,16 @@ function uniqueTableIds(tables) {
   });
 }
 
+/** { [tableId]: {…} } — a plain object of objects, or {}. See floorPlan in
+ *  normalizeEvent. The x/y values themselves are left to the readers, which
+ *  already check them (FloorPlanEditor's Number.isFinite). */
+function tablePositionsOf(v) {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  const entries = Object.entries(v);
+  const kept = entries.filter(([, p]) => p && typeof p === "object" && !Array.isArray(p));
+  return kept.length === entries.length ? v : Object.fromEntries(kept);
+}
+
 function liveSeating(seating, tables) {
   if (!seating || typeof seating !== "object" || Array.isArray(seating)) return {};
   const t = new Set(tables.map(x => x.id));
@@ -265,11 +275,16 @@ export function normalizeEvent(ev) {
     // tablePositions: { [tableId]: { x, y } } — fractional positions (0-1) on the image.
     // elements: [{ id, kind, x, y, size }] — venue fixtures (chuppah, stage, bar…)
     //   that sit on the sketch but never hold guests, so they are not tables.
-    floorPlan: (ev.floorPlan && typeof ev.floorPlan === "object")
+    //   Each part is checked for its SHAPE (audit 3.10, L4): a string or array
+    //   in tablePositions passed straight through, and the merge's
+    //   `tid in known` threw a TypeError on it when a cloud row carried one —
+    //   at load, taking the whole account's hydration down. Positions must be
+    //   an object of objects, fixtures objects, the image a string.
+    floorPlan: (ev.floorPlan && typeof ev.floorPlan === "object" && !Array.isArray(ev.floorPlan))
       ? {
-          image:          ev.floorPlan.image ?? null,
-          tablePositions: ev.floorPlan.tablePositions ?? {},
-          elements:       Array.isArray(ev.floorPlan.elements) ? ev.floorPlan.elements : [],
+          image:          typeof ev.floorPlan.image === "string" && ev.floorPlan.image ? ev.floorPlan.image : null,
+          tablePositions: tablePositionsOf(ev.floorPlan.tablePositions),
+          elements:       rows(ev.floorPlan.elements),
         }
       : null,
     // Public-URL tokens — stable random UUIDs generated once, never changed.

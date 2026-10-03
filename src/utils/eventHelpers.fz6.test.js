@@ -65,3 +65,31 @@ describe("normalizeEvent — duplicate table ids (audit 3.10, L2)", () => {
     expect(normalizeEvent({ id: "e", tables }).tables.map(t => t.id)).toEqual(["a", "b"]);
   });
 });
+
+/* audit 3.10, L4: the floor plan's parts checked for their shape. */
+describe("normalizeEvent — floor plan shape (audit 3.10, L4)", () => {
+  const fp = (floorPlan) => normalizeEvent({ id: "e", floorPlan }).floorPlan;
+
+  it("positions that are not an object become {}", () => {
+    for (const bad of ["x", ["a"], 7, true]) expect(fp({ tablePositions: bad }).tablePositions).toEqual({});
+  });
+
+  it("a position that is not an object is dropped; good ones are kept as they are", () => {
+    const good = { x: 0.2, y: 0.4, size: 1.2 };
+    expect(fp({ tablePositions: { t1: good, t2: "x", t3: [1, 2], t4: null } }).tablePositions)
+      .toEqual({ t1: good });
+    const ok = { t1: good };
+    expect(fp({ tablePositions: ok }).tablePositions).toBe(ok);
+  });
+
+  it("fixtures: only objects; image: only a non-empty string", () => {
+    expect(fp({ elements: "x" }).elements).toEqual([]);
+    expect(fp({ elements: [null, 3, { id: "a", kind: "stage" }] }).elements).toEqual([{ id: "a", kind: "stage" }]);
+    expect(fp({ image: 5 }).image).toBe(null);
+    expect(fp({ image: "data:image/png;base64,QQ" }).image).toBe("data:image/png;base64,QQ");
+  });
+
+  it("an array is not a floor plan", () => {
+    expect(fp([1, 2])).toBe(null);
+  });
+});
