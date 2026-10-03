@@ -206,6 +206,24 @@ const CHECKS = {
     await ctx.close();
   },
 
+  // V5: a done task is marked by its title; its buttons keep full contrast.
+  async tasksDone(b, base) {
+    const { ctx, p } = await page(b, base, { width: 390 });
+    await p.goto(base + '/events/e1/tasks', { waitUntil: 'domcontentloaded' });
+    const card = p.locator('[class*=taskDone]').first();
+    await card.waitFor({ timeout: 15000 });
+    const m = await card.evaluate((c) => ({
+      title: window.__contrast(c.querySelector('[class*=taskTitle]')),
+      strike: getComputedStyle(c.querySelector('[class*=taskTitle]')).textDecorationLine,
+      buttons: [...c.querySelectorAll('button')].map(btn => ({ name: btn.getAttribute('aria-label') || btn.textContent.trim(), ratio: window.__contrast(btn) })),
+    }));
+    ok(m.strike.includes('line-through'), 'the done title is struck through');
+    ok(m.title >= 4.5, 'the done title is still readable', `${m.title}:1`);
+    ok(m.buttons.length >= 3, 'found the card\'s buttons', String(m.buttons.length));
+    for (const x of m.buttons) ok(x.ratio >= 4.5, `button "${x.name}" ≥ 4.5:1`, `${x.ratio}:1`);
+    await ctx.close();
+  },
+
   // V2: the responses list does not scroll sideways on a phone.
   async rsvpScroll(b, base) {
     for (const width of [360, 390, 412, 800, 1280]) {
