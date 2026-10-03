@@ -79,7 +79,11 @@ const STEPS = [
   {
     n: "04",
     title: "לוחצים פעם אחת",
-    body: "וזהו. כל האולם מסודר, כל האילוצים מכובדים, וכל שולחן בקיבולת שלו. משם אפשר לגרור ידנית כל מי שתרצו — שום דבר לא נעול.",
+    /* Until 3.10 this said every constraint is honoured — more than the engine can always do: two
+       "together" pairs and a full table can contradict each other. It honours
+       what fits and REPORTS the rest by name (logic/seating.js violations) —
+       which is the honest claim, and still the selling point (audit 3.10, C6). */
+    body: "וזהו. כל האולם מסודר וכל שולחן בקיבולת שלו. האילוצים נשמרים ככל שהאולם מאפשר — ומה שלא הסתדר מסומן לכם בשמות, כדי שתחליטו. משם אפשר לגרור ידנית כל מי שתרצו — שום דבר לא נעול.",
     img: "/shots/seating.jpg",
     alt: "מסך סידור ההושבה אחרי הרצה — 56 רשומות שובצו ל-14 שולחנות ללא הפרות",
   },
@@ -140,11 +144,13 @@ export default function SeatingServiceScreen({ user = null }) {
           </h1>
           <p className={styles.lead}>
             מזינים את רשימת האורחים, מסמנים מי חייב לשבת יחד ומי בשום אופן לא —
-            ולוחצים פעם אחת. {COMPANY.name} בונה את כל האולם בשניות, מכבדת כל
+            ולוחצים פעם אחת. {COMPANY.name} בונה את כל האולם בשניות,
             {/* "וממלאת כל שולחן עד הקיבולת שלו" was the earlier line, and it
                 promises the wrong thing — the engine RESPECTS capacity, it does
-                not pack every table to the brim. */}
-            {" "}אילוץ, ולא חורגת מהקיבולת של אף שולחן.
+                not pack every table to the brim. The line that replaced it (until 3.10)
+                promised every constraint — too much the other way; see step 04. */}
+            {" "}בלי לחרוג מהקיבולת של אף שולחן, שומרת את האילוצים ככל שאפשר,
+            ומסמנת לכם כל אילוץ שלא הסתדר.
           </p>
           <div className={styles.heroActions}>
             <Link to="/signup" className={styles.cta}>נסו בחינם ←</Link>
