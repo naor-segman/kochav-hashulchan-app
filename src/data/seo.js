@@ -28,7 +28,7 @@ import { COMPANY, DESCRIPTOR } from "./company.js";
  * The services half is DERIVED from SERVICES rather than retyped: bug class 6 in
  * CLAUDE.md is a hand-maintained duplicate drifting, and `supabase/setup_full.sql`
  * fell seven migrations behind that way. `SERVICE_SEO` is keyed by service id and
- * `seo.test.js` fails if a live service has no entry or an entry has no service,
+ * `netlify/tests/seoRoutes.test.js` fails if a live service has no entry or an entry has no service,
  * so a seventh service cannot be added without its metadata.
  */
 
