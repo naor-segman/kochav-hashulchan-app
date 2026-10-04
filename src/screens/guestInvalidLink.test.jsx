@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
-import { render, screen } from "../test/dom.js";
+import { render, screen, waitFor } from "../test/dom.js";
 import { AuthProvider } from "../hooks/useAuth.js";
+import { COMPANY } from "../data/company.js";
 
 /* Audit 3.10, P2-7. A dead link said eight different things across ten guest
  * pages — "הלינק לא תקין…", "ההזמנה לא נמצאה", "האלבום לא נמצא", "הדף לא
@@ -97,5 +98,34 @@ describe("the save-the-date after the event", () => {
     expect(text).not.toContain("פרטים בהמשך");
     expect(text).not.toContain("מתחתנים");
     expect(screen.getByRole("link", { name: /לאתר האירוע/ }).getAttribute("href")).toBe("/invite/i1");
+  });
+});
+
+/* Audit 3.10, leftovers: a save-the-date or invitation the host has not
+ * published yet. The page says "הדף עדיין לא פורסם", but the tab said
+ * "שמרו את התאריך · דנה ויוסי" — the title of the page the guest is told
+ * does not exist yet. It now names its own state, as the dead link and the
+ * offline state do: "<the page's h1> · <brand>". */
+describe("an unpublished announcement names its state in the tab", () => {
+  const unpublished = {
+    name: "החתונה של דנה ויוסי", type: "חתונה", date: "2099-10-20", brideName: "דנה", groomName: "יוסי",
+    rsvpToken: "r1", inviteToken: "i1", site: { enabled: true },
+    announcements: { saveTheDate: { enabled: false }, invitation: { enabled: false } },
+  };
+  for (const [route, kind] of [["/save-the-date/:token", "saveTheDate"], ["/invitation/:token", "invitation"]]) {
+    it(route, async () => {
+      EVENT = unpublished;
+      document.title = "default";
+      at(route, <AnnouncementScreen kind={kind} />);
+      const h1 = await screen.findByRole("heading", { level: 1 });
+      expect(h1.textContent).toBe("הדף עדיין לא פורסם");
+      await waitFor(() => expect(document.title).toBe(`הדף עדיין לא פורסם · ${COMPANY.name}`));
+    });
+  }
+  it("once published, the tab names the page and the hosts again", async () => {
+    EVENT = { ...unpublished, announcements: { saveTheDate: { enabled: true } } };
+    at("/save-the-date/:token", <AnnouncementScreen kind="saveTheDate" />);
+    await screen.findByRole("heading", { level: 1 });
+    await waitFor(() => expect(document.title).toBe("שמרו את התאריך · דנה ויוסי"));
   });
 });

@@ -81,6 +81,8 @@ function eventFor(token) {
   if (k === 'long') return { ...BASE_EV, name: LONG_NAME, bride_name: 'אלכסנדרה-מרגריטה', groom_name: 'בנימין-זאב יהונתן', site: LONG_SITE };
   // No couple: the wall shows the event's own name, and this one is long.
   if (k === 'longorg') return { ...BASE_EV, name: `${LONG_NAME} — ערב ההוקרה השנתי למשפחות המייסדים`, bride_name: null, groom_name: null };
+  // A working link to a save-the-date / invitation the host has not published.
+  if (k === 'unpub') return { ...BASE_EV, announcements: { saveTheDate: { ...BASE_EV.announcements.saveTheDate, enabled: false }, invitation: { ...BASE_EV.announcements.invitation, enabled: false } } };
   if (k === 'past') return { ...BASE_EV, date: PAST, announcements: { ...BASE_EV.announcements, saveTheDate: { ...BASE_EV.announcements.saveTheDate, showRsvp: true } } };
   // Announcement layouts over a photo. The photo's colour comes from the
   // context's image route, so one token serves every photo.
@@ -363,14 +365,17 @@ try {
     console.log('\n── titles: document.title per route and state, read from the live page');
     const { ROUTE_TITLES, NOT_FOUND_TITLE, SEO_PAGES, pageTitle } = await import('../src/data/seo.js');
     const { COMPANY, DESCRIPTOR } = await import('../src/data/company.js');
-    const { INVALID_LINK_TEXT, UNREACHABLE_TEXT } = await import('../src/data/guestCopy.js');
+    const { INVALID_LINK_TEXT, UNREACHABLE_TEXT, NOT_PUBLISHED_TEXT } = await import('../src/data/guestCopy.js');
     const DEAD = `${INVALID_LINK_TEXT.title} · ${COMPANY.name}`, OFF = `${UNREACHABLE_TEXT.title} · ${COMPANY.name}`;
+    const UNPUB = `${NOT_PUBLISHED_TEXT.title} · ${COMPANY.name}`;
     const want = [
       ...Object.entries(ROUTE_TITLES).map(([path, t]) => [path, `${t} · ${COMPANY.name}`]),
       ['/no-such-page', NOT_FOUND_TITLE],
       ...['invite', 'rsvp', 'gift', 'card', 'album', 'save-the-date', 'invitation', 'collab', 'hostess'].map(r => [`/${r}/bad`, DEAD]),
       ['/gift/bad/wall', DEAD],
       ...['invite', 'rsvp', 'gift', 'card', 'album', 'save-the-date', 'collab', 'hostess'].map(r => [`/${r}/down`, OFF]), ['/gift/down/wall', OFF],
+      // Not published yet (3.10, leftovers) — and published, for contrast.
+      ['/save-the-date/unpub', UNPUB], ['/invitation/unpub', UNPUB], ['/save-the-date/ok', 'שמרו את התאריך · דנה ויוסי'],
       // Unchanged: an indexable page keeps its own, the home page its own.
       ['/pricing', pageTitle(SEO_PAGES.find(p => p.path === '/pricing'))],
       ['/home', `${COMPANY.name} — ${DESCRIPTOR}`],

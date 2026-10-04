@@ -24,6 +24,17 @@ export const INVALID_LINK_TEXT = {
   body:  "ייתכן שהכתובת שגויה, או שבעלי האירוע סגרו את הקישור או החליפו אותו. בקשו מהם קישור מעודכן.",
 };
 
+/**
+ * A save-the-date or invitation whose link works but the host has not
+ * published the page yet. Its own state, with its own tab title (audit
+ * 3.10, leftovers): the tab used to announce the page — "שמרו את התאריך ·
+ * דנה ויוסי" — over a screen saying it does not exist yet.
+ */
+export const NOT_PUBLISHED_TEXT = {
+  title: "הדף עדיין לא פורסם",
+  body:  "בעלי האירוע עדיין עובדים עליו — נסו שוב מאוחר יותר",
+};
+
 /** The server cannot be reached. One copy. */
 export const UNREACHABLE_TEXT = {
   title: "אין חיבור כרגע",

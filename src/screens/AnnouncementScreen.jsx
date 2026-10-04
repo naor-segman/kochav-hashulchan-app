@@ -10,7 +10,8 @@ import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { guestHosts } from "../utils/guestRoutes.js";
-import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB, NOT_PUBLISHED_TAB } from "../hooks/useGuestTitle.js";
+import { NOT_PUBLISHED_TEXT } from "../data/guestCopy.js";
 
 /**
  * Public Save-the-Date / designed invitation.
@@ -80,9 +81,6 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   const isPreview = !!localEvent;
   const [event, setEvent] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | error
-  useGuestTitle(!localEvent && (event
-    ? `${kind === "saveTheDate" ? "שמרו את התאריך" : "הזמנה"} · ${guestHosts(event)}`
-    : state === "unreachable" ? OFFLINE_TAB : state === "error" && DEAD_LINK_TAB));
 
   useEffect(() => {
     if (localEvent) {
@@ -122,6 +120,11 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     () => normalizeAnnouncement(event?.announcements?.[kind], kind, event?.type),
     [event, kind],
   );
+  // After `ann`: a page the host has not published names that state in the
+  // tab, not the page it is not yet (audit 3.10, leftovers).
+  useGuestTitle(!localEvent && (event
+    ? (ann.enabled ? `${kind === "saveTheDate" ? "שמרו את התאריך" : "הזמנה"} · ${guestHosts(event)}` : NOT_PUBLISHED_TAB)
+    : state === "unreachable" ? OFFLINE_TAB : state === "error" && DEAD_LINK_TAB));
   const theme = useMemo(() => getSiteTheme(ann.themeKey), [ann.themeKey]);
   const font  = useMemo(() => getSiteFont(ann.fontKey), [ann.fontKey]);
   const days  = useCountdown(event?.date);
@@ -163,8 +166,8 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     return (
       <main className={styles.state}>
         <span className={styles.star}>✦</span>
-        <h1 className={styles.stateTitle}>הדף עדיין לא פורסם</h1>
-        <p className={styles.stateSub}>בעלי האירוע עדיין עובדים עליו — נסו שוב מאוחר יותר</p>
+        <h1 className={styles.stateTitle}>{NOT_PUBLISHED_TEXT.title}</h1>
+        <p className={styles.stateSub}>{NOT_PUBLISHED_TEXT.body}</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </main>
     );
