@@ -16,7 +16,7 @@ import { arrivalBase } from "../utils/syncBase.js";
    (needs a migration); this is the greeter's screen telling the truth about
    its own taps until the next refresh. */
 const GREETER_ARRIVED_BY = "דיילת";
-import { fetchHostessData, markArrivalByToken } from "../utils/publicTokens.js";
+import { fetchHostessData, markArrivalByToken, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { fetchCloudEventGuests } from "../utils/cloudSync.js";
 import { isScanSupported, parseScanPayload } from "../utils/scanPayload.js";
 import QrScanner from "../components/ui/QrScanner.jsx";
@@ -756,9 +756,12 @@ export default function EntranceScreen({
                 <span className={styles.stateIcon} aria-hidden="true"><Icon name="alert" size={30} /></span>
                 <h1 className={styles.stateText}>
                   {remoteState === "notfound"
-                    ? "הקישור אינו תקין או שהאירוע הוסר"
+                    ? INVALID_LINK_TEXT.title
                     : "אין חיבור כרגע — הרשימה תופיע ברגע שהחיבור יחזור"}
                 </h1>
+                {remoteState === "notfound" && !lostMarks && (
+                  <p className={styles.stateText}>{INVALID_LINK_TEXT.body}</p>
+                )}
                 {/* The host replaced the link mid-shift: the marks still
                     waiting to be sent can never be sent on this one. They used
                     to vanish with the list, silently (RG4). */}

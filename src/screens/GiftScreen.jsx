@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitGift, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitGift, guestWriteError, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { uid } from "../utils/uid.js";
 import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
@@ -136,7 +136,8 @@ export default function GiftScreen() {
       <div className={styles.root}>
         <main className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
-          <h1 className={styles.loadingText}>הלינק לא תקין או שפג תוקפו</h1>
+          <h1 className={styles.loadingText}>{INVALID_LINK_TEXT.title}</h1>
+          <p className={styles.loadingText}>{INVALID_LINK_TEXT.body}</p>
           <Link to="/" className={styles.homeLink}>לדף הבית</Link>
         </main>
       </div>

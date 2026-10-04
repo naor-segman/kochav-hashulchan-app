@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { rsvpSuccessLinks } from "../utils/rsvpLinks.js";
 import { daysUntilIsrael } from "../utils/dateFormat.js";
@@ -251,11 +251,8 @@ export default function RSVPScreen() {
           <div className={styles.card}>
             <div className={styles.errorState}>
               <span className={styles.errorIcon} aria-hidden="true"><Icon name="link" size={26} /></span>
-              <h1 className={styles.errorTitle}>הלינק לא תקין או שפג תוקפו</h1>
-              <p className={styles.errorBody}>
-                ייתכן שהקישור פג תוקף, שגוי, או שהאירוע בוטל.
-                <br />אנא פנו לבעלי האירוע לקבלת לינק מעודכן.
-              </p>
+              <h1 className={styles.errorTitle}>{INVALID_LINK_TEXT.title}</h1>
+              <p className={styles.errorBody}>{INVALID_LINK_TEXT.body}</p>
               <Link to="/" className={styles.homeLink}>לדף הבית</Link>
             </div>
           </div>

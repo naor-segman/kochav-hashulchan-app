@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import styles from "./GiftWallScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
@@ -135,8 +135,8 @@ export default function GiftWallScreen() {
               <h1 className={styles.stateTitle}>{UNREACHABLE_TEXT.title}</h1>
               <p>{UNREACHABLE_TEXT.body}</p>
             </> : <>
-              <h1 className={styles.stateTitle}>הקישור לקיר הברכות אינו תקין.</h1>
-              <p>בקשו מבעלי האירוע את הקישור העדכני.</p>
+              <h1 className={styles.stateTitle}>{INVALID_LINK_TEXT.title}</h1>
+              <p>{INVALID_LINK_TEXT.body}</p>
               <Link to="/" className={styles.homeLink}>לדף הבית</Link>
             </>}
           </div>

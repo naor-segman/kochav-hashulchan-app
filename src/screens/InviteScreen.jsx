@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import QRCode from "qrcode";
-import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { readGuestCardParams, guestScanPayload } from "../utils/guestCard.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
@@ -154,9 +154,9 @@ export default function InviteScreen() {
       <div className={styles.root}>
         <main className={styles.stateCenter}>
           <span className={styles.notFoundStar} aria-hidden="true">✦</span>
-          <h1 className={styles.stateText}>ההזמנה לא נמצאה</h1>
-          <p className={styles.stateSub}>קישור זה אינו תקף או שפג תוקפו</p>
-          <Link to="/" className={styles.stateLink}>חזרה לדף הבית</Link>
+          <h1 className={styles.stateText}>{INVALID_LINK_TEXT.title}</h1>
+          <p className={styles.stateSub}>{INVALID_LINK_TEXT.body}</p>
+          <Link to="/" className={styles.stateLink}>לדף הבית</Link>
         </main>
       </div>
     );

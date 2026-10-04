@@ -12,7 +12,10 @@ import { render, screen, fireEvent, waitFor } from "../test/dom.js";
 
 const hostess = vi.fn();
 const mark = vi.fn();
-vi.mock("../utils/publicTokens.js", () => ({
+// The real module underneath: the dead-link state reads its copy from it
+// (INVALID_LINK_TEXT, audit 3.10 P2-7).
+vi.mock("../utils/publicTokens.js", async (orig) => ({
+  ...(await orig()),
   fetchHostessData: (...a) => hostess(...a),
   markArrivalByToken: (...a) => mark(...a),
 }));

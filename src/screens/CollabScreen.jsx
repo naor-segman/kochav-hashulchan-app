@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   fetchCollabEvent, fetchCollabGuests,
-  upsertCollabGuest, deleteCollabGuest, UNREACHABLE_TEXT,
+  upsertCollabGuest, deleteCollabGuest, UNREACHABLE_TEXT, INVALID_LINK_TEXT,
 } from "../utils/publicTokens.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
@@ -170,8 +170,8 @@ export default function CollabScreen() {
   if (state === "notfound") return (
     <main className={styles.state}>
       <span className={styles.star}><Icon name="alert" size={26} /></span>
-      <h1 className={styles.stateTitle}>הקישור אינו פעיל</h1>
-      <p className={styles.stateHint}>ייתכן שבעלי האירוע סגרו אותו, או שהכתובת שגויה. שווה לבקש מהם קישור מעודכן.</p>
+      <h1 className={styles.stateTitle}>{INVALID_LINK_TEXT.title}</h1>
+      <p className={styles.stateHint}>{INVALID_LINK_TEXT.body}</p>
       <Link to="/" className={styles.homeLink}>לדף הבית</Link>
     </main>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useId } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle } from "../hooks/useGuestTitle.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
@@ -175,8 +175,9 @@ export default function EventSiteScreen({ localEvent }) {
   if (state === "notfound") {
     return (
       <main className={styles.stateWrap}>
-        <span className={styles.stateStar}>✦</span>
-        <h1 className={styles.stateTitle}>הקישור אינו תקין או שפג תוקפו</h1>
+        <span className={styles.stateStar} aria-hidden="true">✦</span>
+        <h1 className={styles.stateTitle}>{INVALID_LINK_TEXT.title}</h1>
+        <p>{INVALID_LINK_TEXT.body}</p>
         <Link to="/" className={styles.stateLink}>לדף הבית</Link>
       </main>
     );

@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { render, screen, fireEvent } from "../test/dom.js";
+import { INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 
 /* 106 leftovers on the guest pages:
  *  - the blessing counter counted UTF-16 units: an emoji is two, so a
@@ -59,23 +60,23 @@ describe("no made-up event outside dev", () => {
   it("event site", async () => {
     vi.stubEnv("DEV", false);
     at("/invite/tok12345", "/invite/:token", <EventSiteScreen />);
-    expect(await screen.findByText(/הקישור אינו תקין/)).toBeTruthy();
+    expect(await screen.findByText(INVALID_LINK_TEXT.title)).toBeTruthy();
     expect(document.body.textContent).not.toMatch(MOCK_NAME);
   });
   it("shared table", async () => {
     vi.stubEnv("DEV", false);
     at("/collab/tok12345", "/collab/:token", <CollabScreen />);
-    expect(await screen.findByText(/הקישור אינו פעיל/)).toBeTruthy();
+    expect(await screen.findByText(INVALID_LINK_TEXT.title)).toBeTruthy();
   });
   it("invite card", async () => {
     vi.stubEnv("DEV", false);
     at("/i/tok12345", "/i/:token", <InviteScreen />);
-    expect(await screen.findByText("ההזמנה לא נמצאה")).toBeTruthy();
+    expect(await screen.findByText(INVALID_LINK_TEXT.title)).toBeTruthy();
   });
   it("invitation / save-the-date", async () => {
     vi.stubEnv("DEV", false);
     at("/s/tok12345", "/s/:token", <AnnouncementScreen kind="invitation" />);
-    expect(await screen.findByText("הדף לא נמצא")).toBeTruthy();
+    expect(await screen.findByText(INVALID_LINK_TEXT.title)).toBeTruthy();
     expect(document.body.textContent).not.toMatch(MOCK_NAME);
   });
 });

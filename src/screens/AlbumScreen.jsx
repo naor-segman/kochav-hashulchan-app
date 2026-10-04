@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, guestWriteError, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
@@ -171,9 +171,9 @@ export default function AlbumScreen() {
   if (state === "error") {
     return (
       <main className={styles.state}>
-        <span className={styles.star}>✦</span>
-        <h1 className={styles.stateTitle}>האלבום לא נמצא</h1>
-        <p className={styles.sub}>הקישור אינו תקף או שפג תוקפו</p>
+        <span className={styles.star} aria-hidden="true">✦</span>
+        <h1 className={styles.stateTitle}>{INVALID_LINK_TEXT.title}</h1>
+        <p className={styles.sub}>{INVALID_LINK_TEXT.body}</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </main>
     );
