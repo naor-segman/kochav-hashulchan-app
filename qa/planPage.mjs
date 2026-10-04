@@ -144,7 +144,7 @@ function blocks(lines) {
     if (hm) {
       const lv = Math.min(hm[1].length + 1, 5);
       const id = `s${++hn}`;
-      if (lv <= 3) toc.push({ lv, id, text: hm[2].replace(/\*\*|`|~~/g, "") });
+      if (lv <= 4) toc.push({ lv, id, text: hm[2].replace(/\*|`|~~/g, "") });
       h += `<h${lv} id="${id}">${inline(hm[2])}</h${lv}>`;
       i++; continue;
     }
@@ -180,7 +180,8 @@ const title = all[h1s[0]].replace(/^#\s+/, "");
 const liveLines = all.slice(h1s[0] + 1, h1s[1] ?? all.length);
 const histLines = h1s[1] != null ? all.slice(h1s[1]) : [];
 const live = blocks(liveLines);
-const liveToc = toc.filter((t) => t.lv === 2 || t.lv === 3).slice();
+// "##" renders as h3 and "###" as h4 (the page's own title is the h1).
+const liveToc = toc.filter((t) => t.lv === 3 || t.lv === 4);
 const hist = histLines.length ? blocks(histLines) : "";
 
 const counts = {};
@@ -263,7 +264,7 @@ footer{margin-top:40px;color:var(--ink3);font-size:13px}
 <p class="sub">כל מילה בדף הזה באה מ-<code>WORKPLAN.md</code> כמו שהוא — שום דבר לא סוכם ביד. הצבע של כל שורה נקבע לפי הסימן שבתחילתה (✅ סגור · ❓/👤 מחכה לך · ⏸️ מושהה · 🔨/🔄 בעבודה · 🔴 דחוף · ⬜ פתוח).</p>
 <ul class="legend">${Object.entries(LABEL).map(([k, v]) => `<li class="st-${k}">${v}: ${counts[k] || 0}</li>`).join("")}</ul>
 </header>
-<nav class="toc" aria-label="תוכן"><details open><summary>תוכן העניינים</summary><ol>${liveToc.map((t) => `<li class="l${t.lv}"><a href="#${t.id}">${esc(t.text)}</a></li>`).join("")}</ol></details></nav>
+<nav class="toc" aria-label="תוכן"><details open><summary>תוכן העניינים</summary><ol>${liveToc.map((t) => `<li class="l${t.lv - 1}"><a href="#${t.id}">${esc(t.text)}</a></li>`).join("")}</ol></details></nav>
 <main>
 ${live}
 ${hist ? `<details class="hist"><summary>היסטוריה — התוכנית הממוקדת של 11.8 והארכיון (לחצו לפתיחה)</summary>${hist}</details>` : ""}
