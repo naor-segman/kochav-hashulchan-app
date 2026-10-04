@@ -128,7 +128,9 @@ selectors. Fix the check, not the code, when the check is what is wrong.
 ## Decisions already made — do not re-open without being asked
 
 - **Income before features (27.7).** Every feature is measured against "does
-  this bring a shekel closer?"
+  this bring a shekel closer?" — **superseded for now by the owner on 4.10:**
+  design the site first ("בסוף נחבר את כל שאר הדברים אחרי שהוא מעוצב פיקס
+  ומושלם"); payments (41) and the server caps (132) come after (WORKPLAN 136).
 - **The free/paid split is FROZEN** at the owner's explicit request. Do not
   propose or implement it until they raise it. (The prices and tiers were decided
   and built 27.9; what is frozen is ENFORCING them — switching the gates on, 42 /
