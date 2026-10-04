@@ -293,7 +293,8 @@
   font-size: var(--step-0);
   line-height: 1.7;
   color: var(--text2);
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9).
+     The tinted box already sets the host's words apart. */
   background: var(--accent-bg);
   border-radius: var(--radius);
   padding: 14px 16px;

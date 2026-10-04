@@ -270,7 +270,7 @@ export default function SignupScreen() {
         </p>
 
         <div className={styles.guestBlock}>
-          <Link to="/app" className={styles.backLink}>← רק להתנסות? המשיכו ללא חשבון</Link>
+          <Link to="/app" className={styles.backLink}>רק להתנסות? המשיכו ללא חשבון ←</Link>
           <p className={styles.guestNote}>תמיד אפשר ליצור חשבון אחר כך והכל יסונכרן לענן.</p>
         </div>
 

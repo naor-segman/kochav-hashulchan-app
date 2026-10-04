@@ -294,7 +294,7 @@ export default function RSVPScreen() {
             </div>
             {(inviteUrl || giftUrl) && (
               <div className={styles.successActions}>
-                {inviteUrl && <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>}
+                {inviteUrl && <Link to={inviteUrl} className={styles.successBtnPrimary}>לאתר האירוע ←</Link>}
                 {giftUrl && <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה</Link>}
               </div>
             )}
@@ -709,7 +709,7 @@ export default function RSVPScreen() {
             {(inviteUrl || giftUrl) && (
               <div className={styles.successActions}>
                 {inviteUrl && (
-                  <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>
+                  <Link to={inviteUrl} className={styles.successBtnPrimary}>לאתר האירוע ←</Link>
                 )}
                 {giftUrl && answer !== "no" && (
                   <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה</Link>

@@ -143,7 +143,9 @@
      the card past the screen (fifth review 30.9). */
   overflow-wrap: anywhere;
   font-size: 1.2rem;
-  font-style: italic;
+  /* Upright: Hebrew has no italic, and Heebo ships none — the browser
+     slanted the letters itself (audit 3.10, P2-9). The quote marks around
+     it already say whose words these are. */
   color: var(--blush);
   line-height: 1.55;
   overflow: hidden;

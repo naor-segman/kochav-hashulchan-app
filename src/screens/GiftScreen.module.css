@@ -631,7 +631,8 @@
 .successBlessing {
   font-size: var(--step-0);
   color: var(--text2);
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none — the browser
+     slanted it synthetically (audit 3.10, P2-9). */
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
@@ -639,7 +640,6 @@
 .successClosing {
   font-size: var(--step-0);
   color: var(--muted);
-  font-style: italic;
   margin: 0;
   font-weight: 400;
   letter-spacing: 0.02em;
