@@ -12,6 +12,13 @@
 // Now there is one source. Buying the domain is ONE LINE below, and setting
 // VITE_SUPPORT_EMAIL is an alternative that needs no code change at all.
 
+// The business phone — on the legal pages, and the WhatsApp support line too
+// (owner, 4.10: "זה גם טלפון של העסק וגם תמיכה. לא צריך 2 מספרים"). One
+// number, written once, so the legal pages and the support button cannot
+// disagree.
+const BUSINESS_PHONE = "050-2296734";
+const toWhatsapp = (local) => "972" + local.replace(/\D/g, "").replace(/^0/, "");
+
 export const COMPANY = {
   // The brand (owner, 3.10 — WORKPLAN 128): "Unica Plan", a product of Unica.
   // ENGLISH ONLY, everywhere, Hebrew sentences included — there is no Hebrew
@@ -30,7 +37,9 @@ export const COMPANY = {
   // Two mailboxes, so support does not drown the day-to-day mail (owner, 3.10).
   supportMailbox: "plansupport",   // questions and problems — every "תמיכה"
   contactMailbox: "plan",          // the main business address — "צרו קשר", sales
-  whatsapp: "",            // company WhatsApp digits, e.g. "972500000000" (checklist 16)
+  // International digits for wa.me — the floating support button (checklist 16).
+  // VITE_SUPPORT_WHATSAPP, if ever set in Netlify, still wins.
+  whatsapp: toWhatsapp(BUSINESS_PHONE),
 };
 
 /**
@@ -75,7 +84,7 @@ export const LEGAL = {
   taxId:  "313614067",
   /** Business phone. Also the accessibility coordinator's, which the
       Accessibility Regulations ask for by name and by phone. */
-  phone:  "050-2296734",
+  phone:  BUSINESS_PHONE,
   /** Supplied 11.9. Rendered only when non-empty — see the note above. */
   address: "גלוסקין 38, רחובות",
 };
