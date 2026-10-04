@@ -26,6 +26,8 @@
 import { createRequire } from "node:module";
 import { startPreview } from "./lib/preview.mjs";
 import { mkdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { staleBrand } from "./lib/staleBrand.mjs";
 
 /** Width/height straight out of a JPEG's SOF marker — no image library. */
 function jpegSize(path) {
@@ -47,9 +49,14 @@ import { COMPANY } from "../src/data/company.js";
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
 
-const PORT = 5188;
+/* The checkout this file lives in — NOT a hardcoded path to the main repo. Run
+   from a worktree, the hardcoded version built nothing of its own, previewed the
+   MAIN checkout's dist and wrote the images into the main checkout's public/,
+   so the branch that changed the product got none of the new pictures. */
+const ROOT = fileURLToPath(new URL("..", import.meta.url)).replace(/\/$/, "");
+const PORT = Number(process.env.SHOTS_PORT) || 5188;
 const BASE = `http://127.0.0.1:${PORT}`;
-const OUT  = "/home/user/kochav-hashulchan-app/public/shots";
+const OUT  = `${ROOT}/public/shots`;
 /* The origin the screenshots must show — read from company.js, not typed, so it
    follows the domain instead of becoming a second place to update. That is the
    whole point of checklist 15, and a hardcoded origin here would put the old
@@ -275,7 +282,9 @@ const FRAMES = [
      result with a table number instead of the "הקלידו שם" empty state. The name
      is picked from the seed at run time, not typed here, so it cannot drift
      from the data. `expect` now names what has to be ON the screen. */
-  { name: "checkin",     path: "/events/e1/checkin",  typeGuest: true,
+  // The door screen is full-bleed with no app bar (measured 3.10), so it has no
+  // brand to show — `noBrandBar` skips only the positive brand check below.
+  { name: "checkin",     path: "/events/e1/checkin",  typeGuest: true, noBrandBar: true,
     expect: ["דנה ויוסי", "מתוך 96 אורחים", "שולחן"] },
   // ── Service page 5: the day ──────────────────────────────────────────────
   { name: "nametags",    path: "/events/e1/nametags", expect: ["כרטיסי שם"] },
@@ -298,7 +307,7 @@ const FRAMES = [
 let server = { stop: () => {} };
 
 try {
-  server = await startPreview(PORT);
+  server = await startPreview(PORT, ROOT);
 
   const browser = await chromium.launch({
     executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
@@ -439,7 +448,11 @@ try {
     // reached this screen. The whole reason for this harness is a set of images
     // that carried a stale name for eleven days without anyone noticing.
     const bodyText = await page.evaluate(() => document.body.innerText);
-    const stale = bodyText.includes("כוכב השולחן");
+    /* And the CURRENT name must be there: every host frame carries the top bar.
+       A stale-name list only knows the names someone remembered to add; the
+       positive check also catches a name nobody has thought of yet. */
+    const stale = staleBrand(bodyText)
+      || (f.noBrandBar || bodyText.includes(COMPANY.name) ? null : `no "${COMPANY.name}"`);
 
     /* Any frame that still shows a locked or empty state is a marketing image of
      * the product refusing to work. Both of these have already been shipped
@@ -475,7 +488,7 @@ try {
     const want = `${1200 * 2}x${H * 2}`;
     const got  = `${size.w}x${size.h}`;
     const bad  = got !== want;
-    const flag = stale ? "STALE-BRAND" : bad ? "WRONG-SIZE"
+    const flag = stale ? `STALE-BRAND (${stale})` : bad ? "WRONG-SIZE"
       : blocked ? "LOCKED-STATE" : missing.length ? "EMPTY-FRAME" : "ok";
     console.log(`${flag}  ${f.name}.jpg  (y=${y}, ${got}` +
       `${bad ? ` — expected ${want}` : ""}${blocked ? ` — "${blocked}"` : ""}` +

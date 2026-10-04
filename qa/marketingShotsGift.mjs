@@ -35,14 +35,17 @@ import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { startPreview } from "./lib/preview.mjs";
 import { mkdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { staleBrand } from "./lib/staleBrand.mjs";
 
 import { COMPANY } from "../src/data/company.js";
 
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
 
-const ROOT   = "/home/user/kochav-hashulchan-app";
-const PORT   = 5189;
+// This checkout, not the main repo — see the same note in marketingShots.mjs.
+const ROOT   = fileURLToPath(new URL("..", import.meta.url)).replace(/\/$/, "");
+const PORT   = Number(process.env.SHOTS_GIFT_PORT) || 5189;
 const BASE   = `http://127.0.0.1:${PORT}`;
 const OUT    = `${ROOT}/public/shots`;
 const ORIGIN = COMPANY.site;
@@ -209,7 +212,7 @@ try {
     const blocked = ["הלינק לא תקין או שפג תוקפו", "ממתין לברכות…", "טוען...",
       "לא הצלחנו לטעון את קיר הברכות."].find(s => body.includes(s)) || null;
     const missing = expect.filter(t => !body.includes(t));
-    const stale = body.includes("כוכב השולחן");
+    const stale = staleBrand(body);
 
     await page.screenshot({
       path: `${OUT}/${name}.jpg`, type: "jpeg", quality: 86,
@@ -217,7 +220,7 @@ try {
     });
     const size = jpegSize(`${OUT}/${name}.jpg`);
     const want = `${geom.w * 2}x${geom.h * 2}`, got = `${size.w}x${size.h}`;
-    const flag = stale ? "STALE-BRAND" : got !== want ? "WRONG-SIZE"
+    const flag = stale ? `STALE-BRAND (${stale})` : got !== want ? "WRONG-SIZE"
       : blocked ? "LOCKED-STATE" : missing.length ? "EMPTY-FRAME" : "ok";
     console.log(`${flag}  ${name}.jpg  (${got}` +
       `${got !== want ? ` — expected ${want}` : ""}` +
