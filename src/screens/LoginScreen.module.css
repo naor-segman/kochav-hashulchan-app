@@ -535,12 +535,17 @@
 
 /* Touch target — see qa/mobile.mjs. The way back to the site is new on these
    two screens and arrived at 32px. Only the tappable area grows; the box does
-   not move. */
+   not move.
+   The signup consent links ("תנאי השימוש", "מדיניות הפרטיות") were 20px —
+   links in a sentence, but the sentence is a checkbox label, and a thumb that
+   misses the link ticks the box instead (audit 3.10, P2-5). */
 @media (pointer: coarse) {
-  .homeLink {
+  .homeLink,
+  .consentLink {
     position: relative;
   }
 
+  .consentLink::after,
   .homeLink::after {
     content: "";
     position: absolute;

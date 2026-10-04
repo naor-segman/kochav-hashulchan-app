@@ -68,7 +68,10 @@
 
 .header {
   position: relative;
-  z-index: 1;
+  /* Above .main (z-index 1, later in the DOM): main's transparent 40px of
+     top padding otherwise sits over the logo's tap area and takes the
+     bottom of it (measured 33px effective with the expansion below). */
+  z-index: 2;
   width: 100%;
   max-width: 560px;
   display: flex;
@@ -86,6 +89,26 @@
 
 .logo:hover {
   opacity: 0.75;
+}
+
+/* Touch target — the brand at the top of the personal invitation was 23px
+   tall on a phone (audit 3.10, P2-5). As the gift page's logo: only the
+   tappable area grows, the mark does not move. */
+@media (pointer: coarse) {
+  .logo {
+    position: relative;
+  }
+
+  .logo::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
 }
 
 .logoMark {

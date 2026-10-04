@@ -185,5 +185,6 @@
    back to the container. */
 .stateTitle { font: inherit; letter-spacing: inherit; }
 
-/* A way out of a dead link (WORKPLAN 108). */
-.homeLink { display: inline-block; padding: 8px 12px; color: var(--accent-text); font-weight: 700; text-decoration: none; }
+/* A way out of a dead link (WORKPLAN 108) — 44px tall: it measured 40–42
+   on a phone with 8px of padding (audit 3.10, P2-5). */
+.homeLink { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; color: var(--accent-text); font-weight: 700; text-decoration: none; }

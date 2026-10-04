@@ -313,6 +313,51 @@ try {
     }
   }
 
+  /* ── P2-5 · tap targets on the public and guest pages ───────────────────── */
+  if (want('targets')) {
+    console.log('\n── targets: EFFECTIVE tap area on a phone (elementFromPoint, so ::after expansions count)');
+    // A standalone control needs 44px (measured as ≥43: the walk steps whole
+    // pixels from a fractional centre and loses one). A link inside a line of
+    // running text is WCAG 2.5.8's inline exception and needs 24.
+    const PAGES = ['/login', '/signup', '/terms', '/privacy', '/refunds', '/accessibility', '/pricing', '/help',
+      '/invite/ok', '/gift/ok', '/card/ok?g=g1&n=%D7%99%D7%A2%D7%9C&t=4', '/rsvp/ok', '/save-the-date/ok', '/save-the-date/lay-card', '/album/ok',
+      // Every guest page's dead-link state, which is a page with one way out.
+      ...['invite', 'gift', 'card', 'rsvp', 'save-the-date', 'album', 'collab', 'hostess'].map(r => `/${r}/bad`), '/gift/bad/wall'];
+    // Two columns of the legal identity box on a touch tablet.
+    const CASES = [...PAGES.map(p => [p, 390]), ['/terms', 768], ['/accessibility', 768]];
+    for (const [path, width] of CASES) {
+      const { ctx, p } = await open(path, { width, mobile: true });
+      const rows = await p.evaluate(() => {
+        document.documentElement.style.scrollBehavior = 'auto';
+        const out = [];
+        for (const el of document.querySelectorAll('a[href], button')) {
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.visibility === 'hidden' || !el.getClientRects().length) continue;
+          if (el.closest('[class*=skipLink]')) continue;
+          const text = (el.getAttribute('aria-label') || el.textContent).trim().replace(/\s+/g, ' ').slice(0, 26);
+          const par = el.parentElement;
+          const inline = cs.display === 'inline' && par && par.textContent.trim().length > el.textContent.trim().length + 8;
+          el.scrollIntoView({ block: 'center', inline: 'center' });
+          const r = el.getClientRects()[0];
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          const own = (x, y) => { const t = document.elementFromPoint(x, y); return !!t && (t === el || el.contains(t)); };
+          if (!own(cx, cy)) { out.push({ text, inline, w: 0, h: 0, covered: true }); continue; }
+          let up = 0, down = 0, l = 0, rt = 0;
+          while (up < 30 && own(cx, cy - up - 1)) up++;
+          while (down < 30 && own(cx, cy + down + 1)) down++;
+          while (l < 40 && own(cx - l - 1, cy)) l++;
+          while (rt < 40 && own(cx + rt + 1, cy)) rt++;
+          out.push({ text, inline, w: l + rt + 1, h: up + down + 1 });
+        }
+        return out;
+      });
+      const bad = rows.filter(r => r.inline ? r.h < 24 : (r.h < 43 || r.w < 43));
+      ok(bad.length === 0, `@${width} ${path}: every control ≥44 (inline links ≥24)`,
+        bad.map(r => `"${r.text}" ${r.w}×${r.h}${r.inline ? ' inline' : ''}${r.covered ? ' COVERED' : ''}`).join(' · '));
+      await ctx.close();
+    }
+  }
+
 } finally {
   await browser.close();
   server.stop();

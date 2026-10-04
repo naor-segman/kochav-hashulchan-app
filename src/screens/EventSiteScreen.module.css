@@ -379,6 +379,31 @@
   }
 }
 
+/* Touch targets the 30.9 pass missed (audit 3.10, P2-5), measured as the
+   effective area on a phone: a shuttle's contact (the WhatsApp link on the
+   driver's name, 20px), "הוסיפו ליומן" (42px), and the way home from a dead
+   link (24px — WORKPLAN 129). */
+@media (pointer: coarse) {
+  .shuttleContact a,
+  .stateLink {
+    position: relative;
+  }
+
+  .shuttleContact a::after,
+  .stateLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .locBtnGhost { min-height: 44px; }
+}
+
 /* The error state's title is the page's h1 (WORKPLAN 108) and must look
    exactly as the paragraph it replaced, so the heading defaults are handed
    back to the container. */
