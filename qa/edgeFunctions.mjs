@@ -28,7 +28,11 @@ import { createRequire } from "node:module";
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { transformWithOxc } = require("vite");
 
-const ROOT = "/home/user/kochav-hashulchan-app/supabase/functions";
+/* The functions of the checkout THIS file is in, as qa/lib/preview.mjs does.
+   It was the main checkout's fixed path, so a run from a git worktree parsed
+   the main tree's functions and passed on code that was not under test
+   (audit 3.10, leftovers). */
+const ROOT = new URL("../supabase/functions", import.meta.url).pathname.replace(/\/$/, "");
 
 /** Every .ts/.js file under supabase/functions, at any depth. */
 function walk(dir) {
