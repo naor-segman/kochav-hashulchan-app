@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import styles from "./Footer.module.css";
-import { COMPANY, legalLine, supportMailto } from "../../data/company.js";
+import { COMPANY, legalLine, contactMailto } from "../../data/company.js";
 import { openConsentSettings } from "../../utils/consent.js";
 import { analyticsConfigured } from "../../lib/analytics.js";
 
@@ -42,7 +42,9 @@ export default function Footer() {
           <div className={styles.col}>
             <div className={styles.colTitle}>תמיכה ומידע</div>
             <Link to="/help" className={styles.colLink}>מרכז עזרה</Link>
-            <a href={supportMailto()} className={styles.colLink}>צרו קשר</a>
+            {/* plan@, not plansupport@: "צרו קשר" is the main business address
+                (owner 3.10); questions and problems go to support from Help. */}
+            <a href={contactMailto()} className={styles.colLink}>צרו קשר</a>
             <Link to="/privacy" className={styles.colLink}>מדיניות פרטיות</Link>
             {/* Changing the answer is as easy as giving it (owner 3.10). */}
             {analyticsConfigured && (
