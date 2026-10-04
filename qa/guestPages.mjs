@@ -394,6 +394,58 @@ try {
     await ctx.close();
   }
 
+  /* ── P2-8 · one word alone on a heading's last line ─────────────────────── */
+  if (want('orphans')) {
+    console.log('\n── orphans: h1–h3 whose last line is a single word (counted per word box)');
+    const PAGES = ['/home', '/pricing', '/help', '/services/seating', '/services/event-site', '/services/planning',
+      '/services/rsvp', '/services/event-day', '/services/gifts', '/login', '/signup', '/start', '/terms', '/privacy',
+      '/accessibility', '/refunds', '/invite/ok', '/invite/long', '/rsvp/ok', '/gift/ok', '/save-the-date/ok', '/album/ok', '/no-such-page'];
+    let total = 0, headings = 0;
+    const list = [];
+    for (const width of [320, 390, 768, 1280]) {
+      for (const path of PAGES) {
+        const { ctx, p } = await open(path, { width, mobile: width < 800 });
+        const r = await p.evaluate(() => {
+          const out = []; let n = 0;
+          for (const h of document.querySelectorAll('h1,h2,h3')) {
+            if (!h.getClientRects().length || getComputedStyle(h).visibility === 'hidden') continue;
+            n++;
+            const words = [];
+            const tw = document.createTreeWalker(h, NodeFilter.SHOW_TEXT);
+            for (let t; (t = tw.nextNode());) {
+              const re = /\S+/g; let m;
+              while ((m = re.exec(t.nodeValue))) {
+                const rg = document.createRange(); rg.setStart(t, m.index); rg.setEnd(t, m.index + m[0].length);
+                const b = rg.getBoundingClientRect(); if (b.width < 1) continue;
+                words.push({ w: m[0], y: b.top + b.height / 2 });
+              }
+            }
+            const lines = [];
+            for (const w of words) { const L = lines.find(l => Math.abs(l.y - w.y) < 6); if (L) L.ws.push(w.w); else lines.push({ y: w.y, ws: [w.w] }); }
+            lines.sort((a, b) => a.y - b.y);
+            const last = lines.at(-1);
+            if (lines.length >= 2 && last.ws.filter(w => /[\p{L}\p{N}]/u.test(w)).length === 1) out.push(`${h.tagName} "${h.textContent.trim().replace(/\s+/g, ' ').slice(0, 50)}" alone="${last.ws.join(' ')}"`);
+          }
+          return { out, n };
+        });
+        total += r.out.length; headings += r.n;
+        r.out.forEach(o => list.push(`@${width} ${path} ${o}`));
+        await ctx.close();
+      }
+    }
+    list.forEach(l => console.log('     ' + l));
+    // 41 before the fix (4.10). Not zero after: at 320px two headings are
+    // wider than two of their words can share a line with the third, and
+    // balance cannot help a line that holds one word.
+    ok(total <= 2, `orphaned headings ≤ 2 (41 before audit 3.10 P2-8)`, `${total} of ${headings} measured`);
+    const style = await (async () => {
+      const { ctx, p } = await open('/home', { width: 1280, mobile: false });
+      const s = await p.evaluate(() => [...document.querySelectorAll('h1,h2,h3')].filter(h => !/balance|pretty/.test(getComputedStyle(h).textWrapStyle || getComputedStyle(h).textWrap)).map(h => h.textContent.trim().slice(0, 30)));
+      await ctx.close(); return s;
+    })();
+    ok(style.length === 0, 'every h1–h3 on /home wraps with balance (or a deliberate pretty)', style.join(' · '));
+  }
+
 } finally {
   await browser.close();
   server.stop();

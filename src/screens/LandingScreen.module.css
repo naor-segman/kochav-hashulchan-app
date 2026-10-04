@@ -880,17 +880,23 @@
     gap: 32px;
   }
 
+  /* The number beside the text, the title OVER its description. As a flex
+     row the title was a third column squeezed between the two, as narrow as
+     its longest word: all five step titles broke one word per line at 320
+     and four at 390 ("הוסיפו / אורחים") — 9 of the 15 orphaned headings
+     left on the public pages after text-wrap: balance (audit 3.10, P2-8). */
   .howStep {
-    flex-direction: row;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
     text-align: start;
-    gap: 20px;
+    column-gap: 20px;
     padding: 0;
   }
 
   .howNum {
+    grid-row: span 2;
     margin-bottom: 0;
-    flex-shrink: 0;
   }
 
   .howConnector {
