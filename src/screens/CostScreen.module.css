@@ -440,6 +440,14 @@
     min-height: 44px;
   }
 
+  /* "+ הוסיפו קטגוריה" at the foot of the table: 41px on a phone (10px
+     padding round a 0.875rem label). Full width, so the box grows (audit
+     3.10 leftovers — found once qa/hitAreaFull stopped skipping the band
+     under the sticky bar). */
+  .addBtn {
+    min-height: 44px;
+  }
+
   .delBtn {
     position: relative;
   }
