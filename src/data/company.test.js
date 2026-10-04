@@ -47,10 +47,13 @@ describe("the support address, now that the domain is bought", () => {
   it("still falls back rather than rendering a blank mailto: if the domain is cleared", () => {
     // The fallback is not dead code just because the domain is set — clearing
     // it is one keystroke, and a blank `mailto:` renders as a link that opens
-    // an empty compose window addressed to nobody.
+    // an empty compose window addressed to nobody. Until 3.10 the fallback was
+    // the first brand's unowned domain (audit C21); it is now the operator's
+    // own, so the answer is a real mailbox and says so.
     COMPANY.domain = "";
-    expect(supportEmail()).toBe("plansupport@kochav-hashulchan.co.il");
-    expect(supportContactIsReal()).toBe(false);
+    expect(supportEmail()).toBe("plansupport@unica-events.co.il");
+    expect(supportEmail()).not.toMatch(/kochav/);
+    expect(supportContactIsReal()).toBe(true);
   });
 });
 
@@ -148,15 +151,13 @@ describe("nobody has hardcoded the address again", () => {
     expect(walk(SRC).length).toBeGreaterThan(150);
   });
 
-  /* One exemption, argued in the open rather than by a looser regex.
-   *
-   * `calendarFile.js` puts `@kochav-hashulchan` in an iCalendar UID. RFC 5545
-   * UIDs are shaped like an addr-spec but they are IDENTIFIERS, not mailboxes —
-   * nobody mails one. And they are load-bearing in the other direction: a
-   * calendar client dedupes on UID, so changing the suffix would make every
-   * "save the date" already in a guest's calendar re-appear as a second entry.
-   * It stays exactly as it is. */
-  const NOT_AN_ADDRESS = { "utils/calendarFile.js": "iCalendar UID, not a mailbox" };
+  /* There was one exemption here: `calendarFile.js` put `@kochav-hashulchan` in
+   * an iCalendar UID, kept because calendar clients dedupe on UID. On 3.10
+   * (audit C21) it moved to `@plan.unica-events.co.il`, once, before any guest
+   * had saved an event, so nothing matches the old name any more and the
+   * exemption list is empty. Kept as a list so an exemption is still argued in
+   * the open rather than by a looser regex. */
+  const NOT_AN_ADDRESS = {};
 
   /* Comments are stripped before scanning.
    *
@@ -182,12 +183,13 @@ describe("nobody has hardcoded the address again", () => {
       "route these through supportMailto() / contactMailto()").toEqual([]);
   });
 
-  it("the exemption is real — remove the file and this must notice", () => {
-    // An exemption list that names a file which no longer matches is an
-    // exemption that has quietly become a hole for the next one.
+  it("the calendar UID carries the Unica domain, not the first brand (C21)", () => {
+    // It replaces the test that kept the old exemption honest: the exemption is
+    // gone, and what is pinned now is where the UID points.
     const raw = readFileSync(join(SRC, "utils/calendarFile.js"), "utf8");
-    expect(raw).toContain("@kochav-hashulchan");
-    expect(raw, "if this is ever a mailto:, the exemption is wrong").not.toContain("mailto:");
+    expect(raw).toMatch(/`UID:[^`]*@plan\.unica-events\.co\.il`/);
+    expect(stripComments(raw)).not.toMatch(/kochav/);
+    expect(raw, "a UID is not a mailto:").not.toContain("mailto:");
   });
 
   it("no file builds its own mailto: by hand", () => {

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import QRCode from "qrcode";
-import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { readGuestCardParams, guestScanPayload } from "../utils/guestCard.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
@@ -10,7 +10,7 @@ import styles from "./InviteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { guestHosts } from "../utils/guestRoutes.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 
 // Development fallback — displayed when Supabase is not configured locally
 const MOCK_EVENT = {
@@ -50,9 +50,33 @@ export default function InviteScreen() {
   const [loading,  setLoading]  = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
-  useGuestTitle(event && `הזמנה · ${guestHosts(event)}`);
+  useGuestTitle(event ? `הזמנה · ${guestHosts(event)}` : unreachable ? OFFLINE_TAB : notFound && DEAD_LINK_TAB);
   const [copied,   setCopied]   = useState(false);
   const [qrUrl,    setQrUrl]    = useState("");
+
+  /* "name ✦ name" on one line when it fits, and a stack of three when it
+     does not. Left to flex-wrap, a long pair broke anywhere it liked: the ✦
+     rode at the end of the first name's line or led the second's, a stray
+     mark beside one name — on 7 of 12 measured name/width pairs (audit 3.10,
+     P2-9). CSS cannot ask "did this wrap", so the row's natural width is
+     measured against the heading's: in both layouts each item is its own
+     content width, so the answer does not flip-flop. A ref callback with a
+     cleanup (React 19), because the heading only exists once the event has
+     loaded; the observer also fires when the serif font arrives and widens
+     the names. */
+  const [namesStacked, setNamesStacked] = useState(false);
+  const namesRef = useCallback((h) => {
+    if (!h || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(() => {
+      const kids = [...h.children];
+      const gap = parseFloat(getComputedStyle(h).columnGap) || 0;
+      const row = kids.reduce((s, k) => s + k.getBoundingClientRect().width, 0) + gap * (kids.length - 1);
+      setNamesStacked(row > h.clientWidth + 0.5);
+    });
+    ro.observe(h);
+    for (const k of h.children) ro.observe(k);
+    return () => ro.disconnect();
+  }, []);
 
   // Personal card → QR carries the guest id, which is what the entrance
   // scanner reads. Plain invitation → QR opens the RSVP page (using the RSVP
@@ -154,9 +178,9 @@ export default function InviteScreen() {
       <div className={styles.root}>
         <main className={styles.stateCenter}>
           <span className={styles.notFoundStar} aria-hidden="true">✦</span>
-          <h1 className={styles.stateText}>ההזמנה לא נמצאה</h1>
-          <p className={styles.stateSub}>קישור זה אינו תקף או שפג תוקפו</p>
-          <Link to="/" className={styles.stateLink}>חזרה לדף הבית</Link>
+          <h1 className={styles.stateText}>{INVALID_LINK_TEXT.title}</h1>
+          <p className={styles.stateSub}>{INVALID_LINK_TEXT.body}</p>
+          <Link to="/" className={styles.stateLink}>לדף הבית</Link>
         </main>
       </div>
     );
@@ -222,7 +246,7 @@ export default function InviteScreen() {
 
           {/* Hosts — a couple, a single celebrant, or nothing at all */}
           {isCouple ? (
-            <h1 className={styles.names}>
+            <h1 ref={namesRef} className={[styles.names, namesStacked && styles.namesStacked].filter(Boolean).join(" ")}>
               <span className={styles.coupleName}>{brideName}</span>
               <span className={styles.nameSep} aria-hidden="true">✦</span>
               <span className={styles.coupleName}>{groomName}</span>

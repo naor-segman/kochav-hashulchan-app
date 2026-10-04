@@ -12,6 +12,13 @@
 // Now there is one source. Buying the domain is ONE LINE below, and setting
 // VITE_SUPPORT_EMAIL is an alternative that needs no code change at all.
 
+// The business phone — on the legal pages, and the WhatsApp support line too
+// (owner, 4.10: "זה גם טלפון של העסק וגם תמיכה. לא צריך 2 מספרים"). One
+// number, written once, so the legal pages and the support button cannot
+// disagree.
+const BUSINESS_PHONE = "050-2296734";
+const toWhatsapp = (local) => "972" + local.replace(/\D/g, "").replace(/^0/, "");
+
 export const COMPANY = {
   // The brand (owner, 3.10 — WORKPLAN 128): "Unica Plan", a product of Unica.
   // ENGLISH ONLY, everywhere, Hebrew sentences included — there is no Hebrew
@@ -30,7 +37,9 @@ export const COMPANY = {
   // Two mailboxes, so support does not drown the day-to-day mail (owner, 3.10).
   supportMailbox: "plansupport",   // questions and problems — every "תמיכה"
   contactMailbox: "plan",          // the main business address — "צרו קשר", sales
-  whatsapp: "",            // company WhatsApp digits, e.g. "972500000000" (checklist 16)
+  // International digits for wa.me — the floating support button (checklist 16).
+  // VITE_SUPPORT_WHATSAPP, if ever set in Netlify, still wins.
+  whatsapp: toWhatsapp(BUSINESS_PHONE),
 };
 
 /**
@@ -75,7 +84,7 @@ export const LEGAL = {
   taxId:  "313614067",
   /** Business phone. Also the accessibility coordinator's, which the
       Accessibility Regulations ask for by name and by phone. */
-  phone:  "050-2296734",
+  phone:  BUSINESS_PHONE,
   /** Supplied 11.9. Rendered only when non-empty — see the note above. */
   address: "גלוסקין 38, רחובות",
 };
@@ -90,6 +99,24 @@ export const LEGAL = {
  */
 export const LEGAL_DOCS = {
   version: "2026-10-03",
+  updated: "3 באוקטובר 2026",
+};
+
+/**
+ * The accessibility statement's "last updated" date.
+ *
+ * Kept apart from LEGAL_DOCS on purpose: LEGAL_DOCS.version is what a signup
+ * consents to (terms_version), and the accessibility statement is not part of
+ * that consent — tying them would make an accessibility edit look like a new
+ * version of the terms.
+ *
+ * It was typed into AccessibilityScreen.jsx ("11 בספטמבר 2026") and stayed
+ * there while the statement changed under it: the operator's brand and its
+ * contact mailbox render from COMPANY/LEGAL, and both changed on 3.10
+ * (WORKPLAN 128). Audit 3.10, C19. Change it whenever the statement — or the
+ * identity and contact details it shows — changes in substance.
+ */
+export const ACCESSIBILITY_DOC = {
   updated: "3 באוקטובר 2026",
 };
 
@@ -113,34 +140,34 @@ export function legalTel() {
 export const DESCRIPTOR = "סידור הושבה, אישורי הגעה וניהול אירועים";
 
 
-// The address the product has always shown. Kept as the last resort so nothing
-// renders a blank `mailto:` before the domain is bought — but it is NOT OWNED,
-// and mail sent to it goes nowhere. `supportContactIsReal()` is how a caller
-// asks whether that is still the case.
-const PLACEHOLDER_DOMAIN = "kochav-hashulchan.co.il";
+// The last resort, so nothing renders a blank `mailto:` if COMPANY.domain is
+// ever cleared. Until 3.10 it was "kochav-hashulchan.co.il" — the first brand's
+// domain, which nobody owns, so mail to it went nowhere (audit C21). It is now
+// the operator's own mail domain: owned, with MX at MyInbox (WORKPLAN 128), so
+// even the fallback reaches a real mailbox.
+const FALLBACK_DOMAIN = "unica-events.co.il";
 
 /** The support address, best available source first. */
 export function supportEmail() {
   return import.meta.env?.VITE_SUPPORT_EMAIL
-    || `${COMPANY.supportMailbox || "support"}@${COMPANY.domain || PLACEHOLDER_DOMAIN}`;
+    || `${COMPANY.supportMailbox || "support"}@${COMPANY.domain || FALLBACK_DOMAIN}`;
 }
 
 /** The main business address — "צרו קשר", sales, enterprise. */
 export function contactEmail() {
   return import.meta.env?.VITE_CONTACT_EMAIL
-    || `${COMPANY.contactMailbox || "contact"}@${COMPANY.domain || PLACEHOLDER_DOMAIN}`;
+    || `${COMPANY.contactMailbox || "contact"}@${COMPANY.domain || FALLBACK_DOMAIN}`;
 }
 
 /**
  * Is anyone actually reading that mailbox?
  *
- * False means the product is still showing the placeholder — every "צרו קשר"
- * on the site is decorative. Nothing branches on this yet; it exists so the
- * decision to hide or replace those links can be made in one place when the
- * legal pages get their real contact details (checklist 19-20).
+ * It was false while the fallback was an unowned placeholder. The fallback is
+ * now an owned domain (above), so every source answers yes. Nothing branches on
+ * this; it is kept so a caller that asks still gets a true answer.
  */
 export function supportContactIsReal() {
-  return Boolean(import.meta.env?.VITE_SUPPORT_EMAIL || COMPANY.domain);
+  return Boolean(import.meta.env?.VITE_SUPPORT_EMAIL || COMPANY.domain || FALLBACK_DOMAIN);
 }
 
 /** A `mailto:` with an optional pre-filled subject and body, encoded once. */

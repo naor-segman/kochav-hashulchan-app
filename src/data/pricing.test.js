@@ -424,3 +424,15 @@ describe("pricing: the free tier is usable", () => {
     expect(PLAN_LIMITS.free.maxSeatedSeats).toBe(200);
   });
 });
+
+// Owner, 4.10: "כרטיס החינם — תתקן את זה לאירוע אחד". The free card listed
+// "ריבוי אירועים" and "שכפול אירוע שלם" while the free tier holds one event.
+describe("the free card promises what the free tier holds", () => {
+  it("one event — no multi-event board, no duplicating into a second", () => {
+    expect(PLAN_LIMITS.free.maxEvents).toBe(1);
+    const free = PLANS.find(p => p.key === "free");
+    const items = free.groups.flatMap(g => g.items).join(" · ");
+    expect(items).not.toMatch(/ריבוי אירועים|שכפול אירוע/);
+    expect(free.per).toBe("אירוע אחד");
+  });
+});

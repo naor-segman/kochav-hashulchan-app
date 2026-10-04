@@ -1,10 +1,10 @@
-# CLAUDE.md – Kochav Hashulchan Production Rules
+# CLAUDE.md – Unica Plan Production Rules
 
 ## ⚠️ Work plan — single source of truth
-**`WORKPLAN.md` (repo root) is the living work plan.** It is the source of truth for everything built, in-progress, deferred, every idea raised, and every key decision. At the START of a session read it; DURING the session ADD every new task/idea/decision the user raises (never drop anything); at the END update statuses and COMMIT it. Never reconstruct a fresh plan from the latest chat — always update the existing WORKPLAN.md. The published artifact (a77cf4f1-…) is generated from it.
+**`WORKPLAN.md` (repo root) is the living work plan.** It is the source of truth for everything built, in-progress, deferred, every idea raised, and every key decision. At the START of a session read it; DURING the session ADD every new task/idea/decision the user raises (never drop anything); at the END update statuses and COMMIT it. Never reconstruct a fresh plan from the latest chat — always update the existing WORKPLAN.md. The page the owner reads is GENERATED from it — `node qa/planPage.mjs <out.html>`, published to https://claude.ai/artifact/TBS15K46nUyTwmFXvV6Ry2 — never written by hand (a hand-kept page drifted: item 23, 3.10). Each row's colour comes from its leading status mark, so the first mark in a row must be true.
 
 ## Project identity
-**Kochav Hashulchan** (כוכב השולחן) – Premium Hebrew RTL automatic seating arrangement SaaS for Israeli events (weddings, bar/bat mitzvahs, britot, henna, corporate).
+**Unica Plan** – Premium Hebrew RTL automatic seating arrangement SaaS for Israeli events (weddings, bar/bat mitzvahs, britot, henna, corporate), run under the owner's business Unica at https://plan.unica-events.co.il. **The name is English only, everywhere — never transliterated** (owner, 3.10). Formerly "כוכב השולחן", then "רוויה"; neither may appear in anything a user sees. Mail: `plan@unica-events.co.il` (main/contact), `plansupport@unica-events.co.il` (support).
 
 This project is entirely independent. Never reference, import, or copy from any other repository.
 
@@ -15,8 +15,8 @@ The project has a full production stack. The previous CLAUDE.md described a Phas
 
 - **Auth**: Supabase email/password (`src/hooks/useAuth.js`)
 - **Cloud sync**: Supabase Postgres, optimistic local-first with 1500ms debounce (`src/utils/cloudSync.js`, `src/hooks/useEvents.js`)
-- **Billing**: Stripe Checkout + Billing Portal via Supabase Edge Functions (`src/hooks/useSubscription.js`, `src/lib/stripe.js`)
-- **Plans**: Free / Pro / Enterprise via `src/utils/featureGates.js` + `src/hooks/usePlan.js` (gates are currently **soft / client-side only**)
+- **Billing**: built on Stripe Checkout + webhook via Supabase Edge Functions (`src/hooks/useSubscription.js`, `src/lib/stripe.js`) — **but Stripe cannot onboard an Israeli business** (verified 3.10). The provider is moving to **Grow via Morning** (WORKPLAN 41); no keys are configured, purchase buttons are disabled. Do not invest in Stripe-specific code.
+- **Plans**: ₪0 / ₪690 / ₪1,290 **per event, one-time** (not a subscription; internal keys still free/pro/enterprise) via `src/utils/featureGates.js` + `src/hooks/usePlan.js`. Gates are **soft / client-side only** and `PLAN_GATES_ENFORCED = false`.
 - **Admin panel**: `src/admin/screens/` + the guard are lazy-loaded and genuinely absent from the customer chunk (verified against a real build). **`src/admin/lib/` is NOT** — `src/hooks/usePlan.js` and `src/lib/stripe.js` import `planConfig.js` and `stripeConfig.js`, so plan limits and Stripe status labels do ship to customers. No secrets in either, but the blanket "never imported" claim was wrong.
 - **Primary storage**: localStorage (`kochav_hashulchan_v1`) as source of truth; Supabase is secondary/sync
 - **React version**: React 19
@@ -89,6 +89,13 @@ src/
 
 ## How this project is worked on
 
+**Standing preferences (from the conversations, recorded 3.10):** reply in
+Hebrew, short and precise — not long explanations. **Never start work without his
+approval** (3.10: "שים לב שאתה לא עובד על כלום בלי אישור שלי!") — **except
+findings**: "את כל הממצאים אתה יכול לטפל בהם אתה לא צריך אותי" (3.10). Merge only
+when he says so. "תחשוב לפני שאתה ממליץ": one considered recommendation, not a
+changing list of options. Never ask for passwords, keys or IDs in chat.
+
 **One person builds this.** Address them in the singular in Hebrew. There is no
 team, no reviewer, no designer to hand something to — if it is wrong, it ships
 wrong. That is also why every finding below was worth the time it took to find.
@@ -123,10 +130,14 @@ selectors. Fix the check, not the code, when the check is what is wrong.
 - **Income before features (27.7).** Every feature is measured against "does
   this bring a shekel closer?"
 - **The free/paid split is FROZEN** at the owner's explicit request. Do not
-  propose or implement it until they raise it.
+  propose or implement it until they raise it. (The prices and tiers were decided
+  and built 27.9; what is frozen is ENFORCING them — switching the gates on, 42 /
+  סב30 — and any change to what each tier contains.)
 - **The palette is magenta**, chosen by the owner from an Isracard reference,
   after analysis. The collisions it created were fixed rather than used as an
-  argument against it. Do not re-litigate the hue.
+  argument against it. Do not re-litigate the hue. (On 3.10 the owner himself
+  opened 130 — moving toward Unica's colours, "not now". Until he starts it,
+  magenta stands.)
 - **A gold palette was proposed and rejected** — it measured ΔE 8.5 from the
   warning colour, i.e. indistinguishable from it.
 - **Do not copy evenzza.** Learn the level of craft, build our own language. A
@@ -162,19 +173,19 @@ Check for these first — each has bitten more than once:
    fell seven migrations behind and a fresh project built from it came up with
    the public-insert holes still open and three tables missing entirely. It is
    generated now (`node qa/genSetupSql.mjs`).
-7. **Numbers reverse in an RTL line with no strong Hebrew character.** `{a} / {b}`
-   rendered `300 / 250` for a DOM value of `250 / 300` — bidi rule N1 resolves
-   the neutrals around the slash as RTL. `250 מתוך 300` is correct, because the
-   Hebrew word anchors it. Measure the VISUAL order with Range rects, not the DOM.
-   🔬 **Measured 10.9, four shapes, Range rects on a live RTL page in this
-   Chromium:** `250/300` **reverses** — 300 paints to the RIGHT of 250. `250 / 300`
-   with spaces does **not**, and neither does the same pair split across text
-   nodes or across spans, nor `250 מתוך 300`. So the shape to hunt is a separator
-   with **no spaces**, and a mutation that reproduces only the spaced form will
-   pass while the bug is live — that happened here twice before the right shape
-   was found. `qa/servicePages.mjs` compares numbers per ELEMENT and was observed
-   failing on `96/140`; its first version compared them per text node and passed
-   the mutation, because `{a} / {b}` is three separate text nodes.
+7. **Numbers reverse in an RTL line with no strong Hebrew character.** A slash
+   with NO spaces between two numbers paints them reversed. `250 מתוך 300` is
+   correct, because the Hebrew word anchors it. Measure the VISUAL order with Range
+   rects, not the DOM.
+   🔬 **Re-measured 3.10 (Range rects, `dir="rtl"`, this Chromium) — the 10.9 note
+   here was partly wrong:** `250/300` **reverses** (250 paints LEFT of 300) —
+   whether it is one text node, three text nodes (`{a}/{b}` in JSX) or three
+   spans. `250 / 300` **with spaces does not reverse**, again in one node or
+   three. So the shape to hunt is "no spaces", and splitting into nodes changes
+   nothing. A mutation that reproduces only the spaced form will pass while the
+   bug is live — that happened here twice. `qa/servicePages.mjs` compares numbers
+   per ELEMENT and was observed failing on `96/140`. 14 unspaced `{a}/{b}` sites
+   remain in `src` by the owner's decision to defer (109 / סב27, 1.10).
 8. **`String.replace` with a string replacement expands `$&`, `` $` ``, `$'`
    AFTER your escaping.** The OG tag builder escaped a host-controlled name
    correctly and then let the replacement expand raw page HTML into the
@@ -305,4 +316,4 @@ chore(cleanup): remove unused CSS token system
 - `seating.js` is marked "V1 — copied from legacy". ~~No tests.~~ **Covered since 27.7** — `seating.test.js` + `seatingStress.test.js` + `seatingAnalysis.test.js` pin capacity, together/apart constraints, locks and overbooking. Refactors are now safe to attempt against that suite.
 - **Lint:** `react-hooks/set-state-in-effect` is downgraded to `warn` in `eslint.config.js` (21 sites measured 1.10 with `npx eslint src`, all the same load-then-setState shape; `npx eslint src --max-warnings 21` holds the line). Do not add new ones; see the comment there before "fixing" them mechanically.
 - Feature gates in `featureGates.js` are **soft (client-side only)**. Server-side RLS enforcement is planned but not implemented.
-- ~~`setStorageAdapter()` in `storage.js`, and `isLocalNewer()` / `isSynced()` in `cloudSync.js` are dead code.~~ **Resolved (27.7)** — verified gone. Re-counted 1.10 (the 27.7 list had gone stale): `storage.js` exports **6** — `userStorageKey` / `loadState` / `clearState` / `isCloudBacked` / `pruneCloudBackedEvents` / `persist`; `cloudSync.js` exports **10** — the two mappers, **five** cloud calls (`createCloudEvent` / `updateCloudEvent` / `deleteCloudEvent` / `fetchCloudEvents` / `fetchCloudEventGuests`), and `SYNC_STATUS` / `CloudConflictError` / `CLOUD_EVENTS_LIMIT`.
+- ~~`setStorageAdapter()` in `storage.js`, and `isLocalNewer()` / `isSynced()` in `cloudSync.js` are dead code.~~ **Resolved (27.7)** — verified gone. Re-counted 1.10 (the 27.7 list had gone stale): `storage.js` exports **10** (re-counted 3.10 with `grep "^export"` — the earlier "6" had already missed two) — `userStorageKey` / `loadState` / `clearState` / `isCloudBacked` / `cloudHoldsEventData` / `holdsLocalOnlySketch` (3.10: sign-out keeps an event whose floor-plan sketch exists only on the device) / `pruneCloudBackedEvents` / `FLOORPLAN_NOT_SAVED_EVENT` / `floorPlansNotSaved` / `persist`; `cloudSync.js` exports **10** — the two mappers, **five** cloud calls (`createCloudEvent` / `updateCloudEvent` / `deleteCloudEvent` / `fetchCloudEvents` / `fetchCloudEventGuests`), and `SYNC_STATUS` / `CloudConflictError` / `CLOUD_EVENTS_LIMIT`.

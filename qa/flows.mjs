@@ -150,7 +150,7 @@ await p.goto(BASE + '/events/e1/messages', { waitUntil: 'domcontentloaded' });
 await p.waitForTimeout(1000);
 const waHrefs = await p.evaluate(() => [...document.querySelectorAll('a[href*="wa.me"]')].map(a => a.href).slice(0, 3));
 const msgText = await p.evaluate(() => document.body.innerText);
-check('all six stages listed', ['Save the Date', 'הזמנה', 'תזכורת', 'פרטי הגעה', 'תודה'].every(s => msgText.includes(s)));
+check('all six stages listed', ['שמרו את התאריך', 'הזמנה', 'תזכורת', 'פרטי הגעה', 'תודה'].every(s => msgText.includes(s)));
 check('renders wa.me links with 972 prefix', waHrefs.length === 0 || waHrefs.every(h => /wa\.me\/972/.test(h)), waHrefs[0] || 'none rendered yet');
 const rendered = waHrefs.map(h => decodeURIComponent(new URL(h).searchParams.get('text') || '')).join('\n');
 check('prefix letter absorbs the article (לחתונה, not להחתונה)', !/[לבכ]ה[א-ת]/.test(rendered.split('\n')[2] || ''), (rendered.split('\n')[2] || '').slice(0, 40));

@@ -26,6 +26,14 @@ describe("matchExistingGuest (collab dedup)", () => {
     expect(matchExistingGuest(list, { id: "new", name: "מיכל כהן", phone: "0501234567" })).toBeNull();
   });
 
+  // audit 3.10, L3: a relative types the same number the way it is printed on
+  // a business card, or with its leading zero lost to a spreadsheet. Before,
+  // both became a NEW guest — a duplicate of someone already on the list.
+  it("merges the same person written +972 (0)5x… or as 9 digits", () => {
+    expect(matchExistingGuest(list, { id: "n1", name: "דוד כהן", phone: "+972 (0)50-123-4567" })).toBe(list[0]);
+    expect(matchExistingGuest(list, { id: "n2", name: "רותי לוי", phone: "527654321" })).toBe(list[1]);
+  });
+
   it("does NOT merge two people with the same name but different phones", () => {
     expect(matchExistingGuest(list, { id: "new", name: "דוד כהן", phone: "0539999999" })).toBeNull();
   });

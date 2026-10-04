@@ -15,6 +15,25 @@
   text-underline-offset: 2px;
 }
 
+/* Touch target: 18px on the gift and album forms, under the submit button
+   (audit 3.10, P2-5). Only the tappable area grows. */
+@media (pointer: coarse) {
+  .link {
+    position: relative;
+  }
+
+  .link::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}
+
 .link:focus-visible {
   outline: 2px solid var(--cta);
   outline-offset: 2px;

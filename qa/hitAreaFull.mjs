@@ -61,19 +61,51 @@ await page.goto(BASE + '/app', { waitUntil: 'domcontentloaded' });
 await page.evaluate(e => localStorage.setItem('kochav_hashulchan_v1',
   JSON.stringify({ events: [e], activeEventId: 'e1' })), EVENT);
 
+/* Three things this measured wrong, found on the 3.10 leftovers pass — each
+ * checked by walking the pixels by hand before the check was changed:
+ *
+ *   • A control was judged at ONE scroll position per screen page. Right under
+ *     the sticky area bar, the setup screen's "הסבר" tip lost 7px of its 44px
+ *     pad to the bar and read 36 — one screen earlier the same tip read 43
+ *     (= 44, see below). Sticky chrome covers whatever scrolls under it; that
+ *     is not the control's size. So a control whose 44px area is under sticky
+ *     chrome at an offset is not measured there (seating's "שלחו מספר שולחן"
+ *     row read 19 from the one sliver below the bar), and each control keeps
+ *     its BEST reading across the offsets it was measured at. Fixed elements
+ *     are not excused: a control buried under one at every offset still fails.
+ *   • "Fully on screen" was checked vertically only. The tables screen's
+ *     sub-nav scrolls sideways and "האירוע" sat half past the right edge; the
+ *     walk stopped at the viewport, not at a neighbour (38w for a 76px box).
+ *   • A big target with a control drawn ON it — the seating card's header is
+ *     one stretched expand button, and the table's name is a rename button on
+ *     top of it (SeatingScreen.module.css .tCardToggle) — was measured from its
+ *     centre only, which on a long name is 3px from the name. It is now
+ *     sampled on a 3x3 grid when its box is ≥ 44 both ways, and passes if any
+ *     point has 44 of its own. The same pair was reported as an OVERLAP: one
+ *     box containing the other is nesting by design (the inner control wins
+ *     the taps on it), not two neighbours fighting over an edge.
+ */
 const small = [], overlap = [];
 for (const [name, path] of SCREENS) {
   await page.goto(BASE + path, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1100);
+  const best = new Map();   // control id → its best reading on this screen
 
   // elementFromPoint is VIEWPORT-relative and returns null below the fold, so
-  // the page is walked one screen at a time rather than measured in one pass.
-  const pages = await page.evaluate(() => Math.ceil(document.body.scrollHeight / innerHeight));
-  for (let i = 0; i < Math.min(pages, 8); i++) {
-    await page.evaluate((i) => {
+  // the page is walked a screen at a time rather than measured in one pass.
+  // Three-quarter screens, not whole ones: with a whole-screen step, the band
+  // that lands under the sticky bar at the top of each screen was off the
+  // bottom of the screen before — never measured at all. Measured: with the
+  // WORKPLAN-129 waNotifyItem fix removed, the whole-screen walk (before and
+  // after the changes above) reported nothing; the rows only ever came into
+  // view under the bar. Same reach as before: 8 whole screens.
+  const STEP = Math.floor(844 * 0.75);
+  const pages = await page.evaluate((step) => Math.ceil(document.body.scrollHeight / step), STEP);
+  for (let i = 0; i < Math.min(pages, Math.ceil(8 * 844 / STEP)); i++) {
+    await page.evaluate((y) => {
       document.documentElement.style.scrollBehavior = 'auto';
-      window.scrollTo(0, i * innerHeight);
-    }, i);
+      window.scrollTo(0, y);
+    }, i * STEP);
     await page.waitForTimeout(250);
 
     const found = await page.evaluate(() => {
@@ -83,12 +115,33 @@ for (const [name, path] of SCREENS) {
         return !!hit && (hit === el || el.contains(hit) ||
                (hit.closest && hit.closest('a,button,label,select') === el));
       };
-      const out = { small: [], overlap: [] };
+      const walk = (el, x, y) => {
+        let up = 0, down = 0, lft = 0, rgt = 0;
+        while (up   < 30 && own(el, x, y - up   - 1)) up++;
+        while (down < 30 && own(el, x, y + down + 1)) down++;
+        while (lft  < 40 && own(el, x - lft  - 1, y)) lft++;
+        while (rgt  < 40 && own(el, x + rgt  + 1, y)) rgt++;
+        return { x, y, up, down, lft, rgt, h: up + down, w: lft + rgt };
+      };
+      window.__hitN = window.__hitN || 0;
+      // Sticky chrome on screen at this offset. Content scrolls under it and
+      // always scrolls back out — a sticky element returns to its own place at
+      // the end of the scroll — so a control whose 44px area is under one
+      // right now is not measurable HERE, the same as one past the fold.
+      // Fixed elements are NOT excused: one can cover a control for good.
+      const sticky = [...document.querySelectorAll('body *')]
+        .filter(s => getComputedStyle(s).position === 'sticky')
+        .map(s => ({ s, r: s.getBoundingClientRect() }))
+        .filter(({ r }) => r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight);
+      const underSticky = (el, cx, cy) => sticky.some(({ s, r }) => !s.contains(el) &&
+        cx + 22 > r.left && cx - 22 < r.right && cy + 22 > r.top && cy - 22 < r.bottom);
+      const out = { measured: [], overlap: [] };
       const seen = [];
       for (const el of document.querySelectorAll('button, a[href], select, input[type=checkbox], input[type=radio]')) {
         const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) continue;
-        if (r.top < 0 || r.bottom > innerHeight) continue;     // only what is fully on screen
+        // only what is fully on screen — both ways
+        if (r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) continue;
         const cs = getComputedStyle(el);
         if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
         // A checkbox inside a label IS the label as far as a finger is
@@ -103,22 +156,33 @@ for (const [name, path] of SCREENS) {
           }
         }
         const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-        if (!own(el, cx, cy)) continue;   // covered by something else entirely; not a size question
-        let up = 0, down = 0, lft = 0, rgt = 0;
-        while (up   < 30 && own(el, cx, cy - up   - 1)) up++;
-        while (down < 30 && own(el, cx + 0, cy + down + 1)) down++;
-        while (lft  < 40 && own(el, cx - lft  - 1, cy)) lft++;
-        while (rgt  < 40 && own(el, cx + rgt  + 1, cy)) rgt++;
+        if (underSticky(el, cx, cy)) continue;
+        const pts = [[cx, cy]];
+        if (r.width >= 44 && r.height >= 44) {
+          for (const fy of [1 / 6, 1 / 2, 5 / 6]) for (const fx of [1 / 6, 1 / 2, 5 / 6])
+            pts.push([r.left + r.width * fx, r.top + r.height * fy]);
+        }
+        let m = null;
+        for (const [x, y] of pts) {
+          if (!own(el, x, y)) continue;
+          const w = walk(el, x, y);
+          if (!m || Math.min(w.h, w.w) > Math.min(m.h, m.w)) m = w;
+          if (m.h >= 43 && m.w >= 43) break;
+        }
+        if (!m) continue;   // covered by something else entirely; not a size question
+        if (!el.dataset.hitId) el.dataset.hitId = String(++window.__hitN);
         const label = (el.getAttribute('aria-label') || el.textContent || el.tagName)
           .trim().replace(/\s+/g, ' ').slice(0, 30);
-        // The walk steps whole pixels from a fractional centre and loses one at
-        // each end, so a true 44 measures 43.
-        if (up + down < 43 || lft + rgt < 43)
-          out.small.push(`${up + down}h x ${lft + rgt}w  box ${Math.round(r.width)}x${Math.round(r.height)}  "${label}"`);
+        out.measured.push({ id: el.dataset.hitId, h: m.h, w: m.w,
+          text: `${m.h}h x ${m.w}w  box ${Math.round(r.width)}x${Math.round(r.height)}  "${label}"` });
         // Two targets whose EFFECTIVE areas intersect: the later sibling paints
-        // on top, so part of one control belongs to its neighbour.
-        const eff = { l: cx - lft, r: cx + rgt, t: cy - up, b: cy + down, label };
+        // on top, so part of one control belongs to its neighbour. Not when one
+        // BOX contains the other — that is a control drawn on a bigger one.
+        const eff = { l: m.x - m.lft, r: m.x + m.rgt, t: m.y - m.up, b: m.y + m.down, label,
+                      box: { l: r.left, r: r.right, t: r.top, b: r.bottom } };
+        const inside = (a, b) => a.l >= b.l - 0.5 && a.r <= b.r + 0.5 && a.t >= b.t - 0.5 && a.b <= b.b + 0.5;
         for (const p of seen) {
+          if (inside(eff.box, p.box) || inside(p.box, eff.box)) continue;
           if (eff.l < p.r && eff.r > p.l && eff.t < p.b && eff.b > p.t)
             out.overlap.push(`"${p.label}" ∩ "${eff.label}"`);
         }
@@ -126,9 +190,15 @@ for (const [name, path] of SCREENS) {
       }
       return out;
     });
-    for (const s of found.small)   small.push(`${name.padEnd(12)} ${s}`);
+    for (const m of found.measured) {
+      const b0 = best.get(m.id);
+      if (!b0 || Math.min(m.h, m.w) > Math.min(b0.h, b0.w)) best.set(m.id, m);
+    }
     for (const o of found.overlap) overlap.push(`${name.padEnd(12)} ${o}`);
   }
+  // The walk steps whole pixels from a fractional centre and loses one at
+  // each end, so a true 44 measures 43.
+  for (const m of best.values()) if (m.h < 43 || m.w < 43) small.push(`${name.padEnd(12)} ${m.text}`);
 }
 await b.close();
 

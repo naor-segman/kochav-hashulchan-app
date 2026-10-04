@@ -345,6 +345,40 @@ describe("exportToExcel — translations", () => {
     expect(all).toContain("ממתין"); // unknown rsvp falls back
     expect(all).toContain("רגיל");  // unknown meal falls back
   });
+
+  it("a guest stored with meal \"none\" reads \"בלי ארוחה\" — label changed, stored key not (audit 3.10, C18)", async () => {
+    // Bug classes 1 and 3: what is STORED is the English key "none"; only the
+    // label changed. An event saved before the change must read the new label
+    // after normalizeEvent, with its stored value untouched.
+    const { normalizeEvent } = await import("./eventHelpers.js");
+    const { MEAL_OPTIONS } = await import("../data/constants.js");
+    const stored = normalizeEvent({
+      id: "e", name: "e", type: "חתונה",
+      guests: [g("a", { meal: "none", rsvp: "confirmed" })],
+      tables: [t("t1")], seating: { a: "t1" }, constraints: [],
+    });
+    expect(stored.guests[0].meal).toBe("none");
+    expect(MEAL_OPTIONS.find(o => o.value === stored.guests[0].meal).label).toBe("בלי ארוחה");
+    await exportToExcel(stored, sideLabel, []);
+    const all = sheets.map(s => s.rows.flat().join(" | ")).join(" || ");
+    expect(all).toContain("בלי ארוחה");
+    expect(all).not.toContain("לא אוכל");
+  });
+
+  it("the column is headed in Hebrew, as the guest-list import names it (audit 3.10, C15)", async () => {
+    await exportToExcel(
+      {
+        name: "e",
+        guests: [g("a", { rsvp: "confirmed" }), g("b", { rsvp: "pending" })],
+        tables: [t("t1")], seating: { a: "t1" }, constraints: [],
+      },
+      sideLabel, []
+    );
+    // Both header rows — the seating sheet and the "waiting to be seated" block.
+    const headers = sheets.flatMap(s => s.rows).filter(r => r.includes("שם אורח"));
+    expect(headers.filter(h => h.includes("אישור הגעה")).length).toBe(2);
+    expect(headers.filter(h => h.includes("RSVP"))).toEqual([]);
+  });
 });
 
 // ── From the 12.8 logic review ───────────────────────────────────────────────

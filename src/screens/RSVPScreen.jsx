@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { rsvpSuccessLinks } from "../utils/rsvpLinks.js";
 import { daysUntilIsrael } from "../utils/dateFormat.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
 import { buildEventIcs, icsFileName, downloadIcs, knownStartTime } from "../utils/calendarFile.js";
@@ -84,7 +84,7 @@ export default function RSVPScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [answer, setAnswer] = useState(null); // "yes" | "maybe" | "no"
-  useGuestTitle(event && `אישור הגעה · ${guestHosts(event)}`);
+  useGuestTitle(event ? `אישור הגעה · ${guestHosts(event)}` : loadState === "unreachable" ? OFFLINE_TAB : loadState === "error" && DEAD_LINK_TAB);
 
   // Each step replaces the whole card, and focus stayed on the button that
   // was pressed — a button no longer in the page — so a screen reader was
@@ -251,11 +251,8 @@ export default function RSVPScreen() {
           <div className={styles.card}>
             <div className={styles.errorState}>
               <span className={styles.errorIcon} aria-hidden="true"><Icon name="link" size={26} /></span>
-              <h1 className={styles.errorTitle}>הלינק לא תקין או שפג תוקפו</h1>
-              <p className={styles.errorBody}>
-                ייתכן שהקישור פג תוקף, שגוי, או שהאירוע בוטל.
-                <br />אנא פנו לבעלי האירוע לקבלת לינק מעודכן.
-              </p>
+              <h1 className={styles.errorTitle}>{INVALID_LINK_TEXT.title}</h1>
+              <p className={styles.errorBody}>{INVALID_LINK_TEXT.body}</p>
               <Link to="/" className={styles.homeLink}>לדף הבית</Link>
             </div>
           </div>
@@ -297,7 +294,7 @@ export default function RSVPScreen() {
             </div>
             {(inviteUrl || giftUrl) && (
               <div className={styles.successActions}>
-                {inviteUrl && <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>}
+                {inviteUrl && <Link to={inviteUrl} className={styles.successBtnPrimary}>לאתר האירוע ←</Link>}
                 {giftUrl && <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה</Link>}
               </div>
             )}
@@ -712,7 +709,7 @@ export default function RSVPScreen() {
             {(inviteUrl || giftUrl) && (
               <div className={styles.successActions}>
                 {inviteUrl && (
-                  <Link to={inviteUrl} className={styles.successBtnPrimary}>← לאתר האירוע</Link>
+                  <Link to={inviteUrl} className={styles.successBtnPrimary}>לאתר האירוע ←</Link>
                 )}
                 {giftUrl && answer !== "no" && (
                   <Link to={giftUrl} className={styles.successBtnGhost}>שליחת מתנה</Link>

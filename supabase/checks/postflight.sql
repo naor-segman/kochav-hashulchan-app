@@ -43,7 +43,7 @@ with c(n, check_name, ok, detail) as (
     coalesce((select prosrc ~ 'custom_groups' from pg_proc where oid = to_regprocedure('public.collab_event_by_token(text)')), false), null
   union all
   select 10, 'כניסה: סימון הגעה נועל את השורה ומבין סימון ישן',
-    coalesce((select prosrc ~* 'for update' and prosrc ~ 'legacy_all'
+    coalesce((select prosrc ~* 'for (no key )?update' and prosrc ~ 'legacy_all'
        from pg_proc where oid = to_regprocedure('public.hostess_mark_arrival_by_token(text,text,jsonb,jsonb)')), false), null
   union all
   select 11, 'מתנה: נעילה נגד כפילות',

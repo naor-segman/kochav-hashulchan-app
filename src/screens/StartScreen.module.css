@@ -176,6 +176,13 @@
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.16);
 }
 
+/* The browser's own placeholder grey is #757575 — 4.23:1 on this --bg field,
+   under AA (audit 3.10, P2-2). Same rule as screenBase.module.css. */
+.input::placeholder {
+  color: var(--muted);
+  opacity: 1; /* Firefox dims placeholders by default; --muted is already the dim */
+}
+
 /* ── The demoted classification question ── */
 .typeRow {
   display: flex;

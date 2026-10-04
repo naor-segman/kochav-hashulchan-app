@@ -14,6 +14,7 @@ import {
   updateCloudEvent,
   deleteCloudEvent,
   CloudConflictError,
+  cloudQuotaNote,
 } from "../utils/cloudSync.js";
 
 // Tokens are merged PER KEY, never as a whole object.
@@ -893,11 +894,22 @@ export function mergeOtherTab(mine, theirs, loggedIn = true) {
  * offered it too. Returns the drafts removed, freshly read — a logged-out tab
  * may have edited one since sign-in.
  */
-function takeGuestDrafts(ids) {
+function takeGuestDrafts(ids, userId) {
   const want = new Set(ids);
   const guest = (loadState(userStorageKey(null)).events || []).map(normalizeEvent).filter(Boolean);
   const taken = guest.filter(e => !e.cloudId && want.has(e.id));
-  if (taken.length) persist({ events: guest.filter(e => !taken.includes(e)) }, userStorageKey(null));
+  if (!taken.length) return taken;
+  /* Write first, then delete (audit 3.10, H1). The drafts used to leave the
+     logged-out bucket HERE, while their copy in the account's bucket was only
+     written later, by the persist effect after the next render. A tab closed,
+     a crash or a full disk in between, and the draft existed nowhere. Now the
+     account's bucket holds them before the logged-out one lets go — and if
+     that write fails, the logged-out copy stays put. */
+  const userKey = userStorageKey(userId);
+  const mine    = loadState(userKey);
+  const have    = new Set((mine.events || []).map(e => e?.id));
+  const wrote   = persist({ ...mine, events: [...(mine.events || []), ...taken.filter(e => !have.has(e.id))] }, userKey);
+  if (wrote) persist({ events: guest.filter(e => !taken.includes(e)) }, userStorageKey(null));
   return taken;
 }
 
@@ -945,6 +957,11 @@ export function useEvents(user) {
   // back full, older events were not loaded and the host has to be told — the
   // merge already refuses to treat them as deleted (WORKPLAN 115).
   const [cloudCapped, setCloudCapped] = useState(false);
+  // Why the last write failed, when the server said it was a ceiling (event
+  // count, event size, account size — 20261004000000_abuse_caps). Set beside
+  // every SYNC_STATUS.ERROR, null when the failure was anything else, so the
+  // toast never shows an old ceiling for a new network error.
+  const [syncNote, setSyncNote] = useState(null);
 
   // Refs let callbacks read the latest values without stale-closure issues.
   const eventsRef    = useRef(events);
@@ -1049,7 +1066,7 @@ export function useEvents(user) {
       .filter(e => !e.cloudId && !seenIds.has(e.id) && !declined.has(e.id));
     const carry       = takeDraftCarry() && offered.length > 0;
     if (carry) {
-      takeGuestDrafts(offered.map(e => e.id));
+      takeGuestDrafts(offered.map(e => e.id), userId);
       // Consent was given, so these upload with the first push after the load
       // instead of waiting for the banner (pushUnpushed).
       offered.forEach(e => carriedRef.current.add(e.id));
@@ -1097,6 +1114,7 @@ export function useEvents(user) {
         setLoadedTick(t => t + 1);
       } catch {
         if (cancelled) return;
+        setSyncNote(null);
         setSyncStatus(SYNC_STATUS.ERROR); // keep the seeded local view on failure
       }
     })();
@@ -1168,7 +1186,8 @@ export function useEvents(user) {
                   e.id === ev.id ? afterPush(e, mergedThis.version, v2, base, mergedThis.updatedAt, mergedThis.localEdits ?? 0) : e));
               }
               setSyncStatus(SYNC_STATUS.SYNCED);
-            } catch {
+            } catch (err2) {
+              setSyncNote(cloudQuotaNote(err2));
               // A second conflict is NOT retried — two devices writing in a
               // tight loop would recurse. The event stays unpushed, which is
               // the honest state: the prune will leave it alone and the next
@@ -1179,10 +1198,12 @@ export function useEvents(user) {
           }
           setSyncStatus(SYNC_STATUS.SYNCED);
         } catch {
+          setSyncNote(null);
           setSyncStatus(SYNC_STATUS.ERROR);
         }
         return;
       }
+      setSyncNote(cloudQuotaNote(err));
       setSyncStatus(SYNC_STATUS.ERROR);
     }
   }, []);
@@ -1256,9 +1277,10 @@ export function useEvents(user) {
         }
         setSyncStatus(SYNC_STATUS.SYNCED);
       })
-      .catch(() => {
+      .catch((err) => {
         creatingRef.current.delete(normalized.id);
         pendingDeletes.current.delete(normalized.id); // create failed → no orphan to clean
+        setSyncNote(cloudQuotaNote(err));
         setSyncStatus(SYNC_STATUS.ERROR);
       });
   }, [pushUpdate, adoptRow]);
@@ -1316,7 +1338,7 @@ export function useEvents(user) {
         .then(created => {
           creatingRef.current.delete(id);
           const wasDeleted = pendingDeletes.current.delete(id);
-          if (!created) { setSyncStatus(SYNC_STATUS.ERROR); return; }
+          if (!created) { setSyncNote(null); setSyncStatus(SYNC_STATUS.ERROR); return; }
           const { cloudId, version } = created;
           if (wasDeleted) {
             sendCloudDelete(cloudId, currentUser.id);
@@ -1338,9 +1360,10 @@ export function useEvents(user) {
           if (latest) pushUpdate({ ...latest, cloudId, syncedVersion: version }, currentUser.id);
           setSyncStatus(SYNC_STATUS.SYNCED);
         })
-        .catch(() => {
+        .catch((err) => {
           creatingRef.current.delete(id);
           pendingDeletes.current.delete(id); // create failed → no orphan to clean
+          setSyncNote(cloudQuotaNote(err));
           setSyncStatus(SYNC_STATUS.ERROR);
         });
       return;
@@ -1437,7 +1460,7 @@ export function useEvents(user) {
     const uid = ownerRef.current;
     if (!uid) return [];
     const have = new Set(eventsRef.current.map(e => e.id));
-    const taken = takeGuestDrafts(hydration.drafts.map(e => e.id)).filter(e => !have.has(e.id));
+    const taken = takeGuestDrafts(hydration.drafts.map(e => e.id), uid).filter(e => !have.has(e.id));
     if (taken.length) setEvents(prev => [...prev, ...taken.filter(t => !prev.some(e => e.id === t.id))]);
     setHydration(h => ({ ...h, drafts: [] }));
     return taken;
@@ -1465,6 +1488,6 @@ export function useEvents(user) {
    */
   const eventsReady = userId ? hydratedFor === userId : true;
 
-  return { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped,
+  return { events, addEvent, removeEvent, patchEventById, syncStatus, syncNote, eventsReady, cloudCapped,
            guestDrafts: hydration.drafts, adoptGuestDrafts, declineGuestDrafts };
 }

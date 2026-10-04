@@ -44,6 +44,11 @@
 .statOk .statNum { color: var(--green); }
 .statNo .statNum { color: var(--red); }
 
+/* The tint is the ground (CLAUDE.md, bug class 5): --muted is 5.30:1 on white
+   but 4.40:1 on --red-bg, under AA for this 12px label. --text2 there is
+   6.84:1 (audit 3.10, V4). The green tile keeps --muted at 4.65:1. */
+.statNo .statLabel { color: var(--text2); }
+
 .statLabel {
   font-size: var(--step--1);
   color: var(--muted);
@@ -216,10 +221,30 @@
   gap: 6px;
 }
 
+/* The reason line names the guest, and a guest's name can be a whole family
+   ("משפחת בן־אבו־רוזנבלום מרמת השרון (כולל הסבתא)"). It was base.gMeta —
+   nowrap — inside a column with the flex default `min-width: auto`, so its
+   width was the full sentence: on a phone, where this column wraps to its own
+   line, the page scrolled sideways by 9–61px at 412–360 (audit 3.10, V2).
+   The column may shrink now, and the reason wraps instead of the page. Beside
+   the name (wider screens) it takes at most a bit over half the row, so the
+   name it sits next to keeps the rest. */
 .applyCol {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
   text-align: end;
+  min-width: 0;
+  max-width: 55%;
+}
+
+.applyWhy {
+  font-size: var(--step--1);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+  .applyCol { max-width: 100%; }
 }

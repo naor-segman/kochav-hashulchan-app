@@ -175,7 +175,14 @@ export function buildEventIcs({ name, date, venue, startTime, endTime, url, desc
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${day}-${Math.abs(hash(name + date))}@kochav-hashulchan`,
+    /* The UID's right-hand side is an identifier, not a mailbox, and calendar
+       clients dedupe on the whole UID. It carried the FIRST brand
+       ("@kochav-hashulchan") through two renames because changing it makes an
+       event already saved in a guest's calendar come back as a second entry.
+       Changed once, on 3.10 (audit C21), before the first pilot user — no
+       guest has saved one yet. Written out, NOT read from COMPANY.host: a
+       future rename must not move every UID again. */
+    `UID:${day}-${Math.abs(hash(name + date))}@plan.unica-events.co.il`,
     // DTSTAMP must be UTC (§3.8.7.2).
     `DTSTAMP:${utcStamp()}`,
     ...timing,

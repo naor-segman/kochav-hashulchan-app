@@ -30,6 +30,7 @@ export const par = (db, sqls) => Promise.all(sqls.map(sql => new Promise(res => 
 })));
 
 export const allMigs = () => readdirSync(MIGDIR).filter(f => f.endsWith('.sql')).sort();
+// main.txt is a FIXTURE, not a live list: production's migrations before the 1.10 rollout (ends 20260830000100), the baseline this rehearsal replays — do not "refresh" it from main.
 export const mainMigs = () => readFileSync(`${SCR}/main.txt`, 'utf8').trim().split('\n').map(s => s.split('/').pop());
 export const pendingMigs = () => { const m = new Set(mainMigs()); return allMigs().filter(f => !m.has(f)); };
 export const mig = (f) => readFileSync(`${MIGDIR}/${f}`, 'utf8');

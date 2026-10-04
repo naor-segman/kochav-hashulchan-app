@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, memo } from "react";
+import { useState, useLayoutEffect, useRef, useMemo, useCallback, memo } from "react";
 import InfoTip from "../components/ui/InfoTip.jsx";
 import { messageSignature } from "../data/company.js";
 import { renderTemplate, whatsappLink, linkForStage } from "../data/messageSequence.js";
@@ -203,10 +203,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
      rather than fixing something a host can see. */
   const capLabel  = maxGuests === Infinity ? "הרשומות" : `${maxGuests} הרשומות`;
 
-  // Focus the name field once, on mount. Depending on editId would yank focus
-  // back to the top of the form every time the host starts editing a row.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!editId) nameRef.current && nameRef.current.focus(); }, []);
+  /* No focus on mount (audit 3.10, V6). The name field sits under the "how to
+     add guests" choice, the summary and the side picker, and focusing it on
+     arrival scrolled the page ~1,070px down past all of it on a phone — and
+     opened the keyboard — before the host had chosen anything. The field is
+     focused when the host picks "פשוט להקליד בעצמכם", and after each save. */
 
   const sideLabel = s => getSideLabel(ev, s);
 
@@ -350,7 +351,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const delGuest = async (id, name) => {
     const tableId   = ev.seating[id];
     const tableName = tableId ? (ev.tables.find(t => t.id === tableId)?.name || null) : null;
-    const collabNote = ev.tokens?.collab ? `\n\nהאורח יימחק גם מהטבלה המשותפת של ${collabWho}.` : "";
+    const collabNote = ev.tokens?.collab ? `\n\nהאורח יימחק גם מהטבלה השיתופית של ${collabWho}.` : "";
     const msg = tableName
       ? "למחוק את \"" + name + "\"?\n\nהאורח שובץ לשולחן " + tableName + " — שיבוצו יוסר אוטומטית." + collabNote + "\n\nפעולה זו אינה ניתנת לביטול."
       : "למחוק את \"" + name + "\" מרשימת האורחים?" + collabNote + "\n\nפעולה זו אינה ניתנת לביטול.";
@@ -513,7 +514,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         mark="guests"
         /* What this screen IS, in one line — because the owner's hosts kept
            trying to answer questions here that only the guest can answer. */
-        sub="רשימת המוזמנים: מי הוזמן, מאיזה צד, וכמה מקומות לשמור לו. מי באמת הגיע ומה הוא נתן נרשם ביום האירוע."
+        sub="רשימת המוזמנים: מי הוזמן, מאיזה צד, וכמה מקומות לשמור לו. מי באמת הגיע נרשם ביום האירוע, בעמדת הכניסה."
         aside={
           /* Four numbers, one of them leading. The sides and the meal
              breakdown moved to the quiet strip below the header: eleven equal

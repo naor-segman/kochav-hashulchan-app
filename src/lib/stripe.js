@@ -37,7 +37,7 @@ export async function billingErrorMessage(error, data, fallback) {
   const said = f.note || f.code;
   if (HEBREW.test(said)) return said;
   if (f.status === 401) return "פג תוקף ההתחברות — התחברו מחדש ונסו שוב";
-  if (f.status === 403) return "האירוע הזה לא נמצא בחשבון שלך — רעננו את הדף ונסו שוב";
+  if (f.status === 403) return "האירוע הזה לא נמצא בחשבון שלכם — רעננו את הדף ונסו שוב";
   return fallback;
 }
 
@@ -110,7 +110,9 @@ export async function createBillingPortalSession(returnUrl) {
     body: { returnUrl },
   });
 
-  const PORTAL_FAILED = "לא הצלחנו לפתוח את החשבוניות — נסו שוב בעוד רגע";
+  // "הקבלות", not "החשבוניות": the operator is an עוסק פטור and issues
+  // receipts only (company.js) — the account button already says קבלות.
+  const PORTAL_FAILED = "לא הצלחנו לפתוח את הקבלות — נסו שוב בעוד רגע";
   if (error || data?.error) throw new Error(await billingErrorMessage(error, data, PORTAL_FAILED));
   if (!data?.url) throw new Error(PORTAL_FAILED);
   return data.url;

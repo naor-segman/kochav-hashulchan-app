@@ -11,6 +11,7 @@
 // each distinct control once with the worst box seen.
 import { createRequire } from 'module';
 import { writeFileSync } from 'fs';
+import { outDir } from './lib/outDir.mjs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 
@@ -127,4 +128,6 @@ for (const r of list) {
   console.log(`${String(r.w).padStart(4)}x${String(r.h).padStart(3)} ${r.why.padEnd(3)} ${String(r.screens.length).padStart(2)} screens  "${r.label}"`);
   console.log(`            ${r.path}`);
 }
-writeFileSync('/tmp/claude-0/-home-user-kochav-hashulchan-app/94fef7cd-f944-597e-9253-a6fe3d65a52a/scratchpad/audit/tapTargets.json', JSON.stringify(list,null,2));
+const report = `${outDir('tapTargets')}/tapTargets.json`;
+writeFileSync(report, JSON.stringify(list,null,2));
+console.log(`\nreport: ${report}`);

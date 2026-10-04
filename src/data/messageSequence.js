@@ -34,7 +34,7 @@ import { SHARE_LINKS, shareUrl } from "../components/share/shareLinks.js";
 export const MESSAGE_STAGES = [
   {
     key: "saveTheDate",
-    label: "Save the Date",
+    label: "שמרו את התאריך",
     icon: "calendar",
     when: "3-6 חודשים לפני",
     audience: "all",
@@ -56,7 +56,7 @@ export const MESSAGE_STAGES = [
     // Only chase the people who haven't answered — messaging everyone again is
     // what makes guests mute the thread.
     audience: "pending",
-    body: "היי {{שם}} 🙂\n\nעדיין לא קיבלנו את אישור ההגעה שלכם ל{{אירוע}}.\nנשמח אם תעדכנו — זה לוקח שניה:\n{{קישור}}",
+    body: "היי {{שם}} 🙂\n\nעדיין לא קיבלנו את אישור ההגעה שלכם ל{{אירוע}}.\nנשמח אם תעדכנו — זה לוקח שנייה:\n{{קישור}}",
   },
   {
     key: "reminder2",

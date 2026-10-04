@@ -97,6 +97,10 @@ const TEXT_GUEST_FIELDS = ["name", "phone", "group", "notes", "side"];
 function normGuest(g) {
   const out = { ...g };
   for (const k of TEXT_GUEST_FIELDS) if (k in g && typeof g[k] !== "string") out[k] = str(g[k]);
+  // The name ALWAYS, present or not (audit 3.10, L5). `{ name: undefined }`
+  // survives JSON as a row with no name key at all, `"name" in g` was false,
+  // and the guest list's search (`g.name.includes(…)`) threw on it.
+  if (typeof out.name !== "string") out.name = str(g.name);
   // 1..50, the width every other writer uses (guest form, shared table CHECK).
   // "3" was concatenated into "032" seats; "abc" became NaN on every counter.
   if ("count" in g) out.count = intIn(g.count, 1, 50, 1);
@@ -124,6 +128,37 @@ function normTable(t) {
  * (they count per guest), and the merge relies on them — a cloud row's seat
  * for a guest only the other device lists is how that guest keeps its seat
  * (useEvents.mutants.test.js, found by fuzz). */
+/* Two tables sharing an id (audit 3.10, L2). Nothing in the app writes one —
+ * every table gets uid() — but a hand-edited or imported row can, and every
+ * by-id reader then breaks a different way: React keys collide, both cards
+ * claim the same guests, and the seating engine threw. The first keeps its id,
+ * so every seat, lock and sketch position that names it still lands there;
+ * each later one gets "<id>-2", "<id>-3"… — DETERMINISTIC, so two devices and
+ * the cloud copy, each normalising on its own, agree on the new ids instead of
+ * minting different ones and merging both in. */
+function uniqueTableIds(tables) {
+  const all = new Set(tables.map(t => t.id));
+  if (all.size === tables.length) return tables;
+  const used = new Set();
+  return tables.map(t => {
+    if (t.id == null || !used.has(t.id)) { used.add(t.id); return t; }
+    let n = 2, id;
+    do { id = `${t.id}-${n++}`; } while (used.has(id) || all.has(id));
+    used.add(id);
+    return { ...t, id };
+  });
+}
+
+/** { [tableId]: {…} } — a plain object of objects, or {}. See floorPlan in
+ *  normalizeEvent. The x/y values themselves are left to the readers, which
+ *  already check them (FloorPlanEditor's Number.isFinite). */
+function tablePositionsOf(v) {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+  const entries = Object.entries(v);
+  const kept = entries.filter(([, p]) => p && typeof p === "object" && !Array.isArray(p));
+  return kept.length === entries.length ? v : Object.fromEntries(kept);
+}
+
 function liveSeating(seating, tables) {
   if (!seating || typeof seating !== "object" || Array.isArray(seating)) return {};
   const t = new Set(tables.map(x => x.id));
@@ -136,7 +171,7 @@ const finiteOr = (v, d) => (Number.isFinite(Number(v)) && v !== null && v !== ""
 export function normalizeEvent(ev) {
   if (!ev || typeof ev !== "object" || Array.isArray(ev)) return null;
   const now = Date.now();
-  const tables = rows(ev.tables).map(normTable);
+  const tables = uniqueTableIds(rows(ev.tables).map(normTable));
   const guests = rows(ev.guests).map(normGuest);
   return {
     // Core identity — generate a fresh uid if the stored id is missing/undefined
@@ -244,11 +279,16 @@ export function normalizeEvent(ev) {
     // tablePositions: { [tableId]: { x, y } } — fractional positions (0-1) on the image.
     // elements: [{ id, kind, x, y, size }] — venue fixtures (chuppah, stage, bar…)
     //   that sit on the sketch but never hold guests, so they are not tables.
-    floorPlan: (ev.floorPlan && typeof ev.floorPlan === "object")
+    //   Each part is checked for its SHAPE (audit 3.10, L4): a string or array
+    //   in tablePositions passed straight through, and the merge's
+    //   `tid in known` threw a TypeError on it when a cloud row carried one —
+    //   at load, taking the whole account's hydration down. Positions must be
+    //   an object of objects, fixtures objects, the image a string.
+    floorPlan: (ev.floorPlan && typeof ev.floorPlan === "object" && !Array.isArray(ev.floorPlan))
       ? {
-          image:          ev.floorPlan.image ?? null,
-          tablePositions: ev.floorPlan.tablePositions ?? {},
-          elements:       Array.isArray(ev.floorPlan.elements) ? ev.floorPlan.elements : [],
+          image:          typeof ev.floorPlan.image === "string" && ev.floorPlan.image ? ev.floorPlan.image : null,
+          tablePositions: tablePositionsOf(ev.floorPlan.tablePositions),
+          elements:       rows(ev.floorPlan.elements),
         }
       : null,
     // Public-URL tokens — stable random UUIDs generated once, never changed.

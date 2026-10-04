@@ -11,13 +11,12 @@
 //
 // Runs on a phone, because that is where the owner's customers are.
 import { createRequire } from 'module';
-import { mkdirSync } from 'fs';
+import { outDir } from './lib/outDir.mjs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 
 const BASE = process.env.APP_BASE || 'http://127.0.0.1:5188';
-const OUT = '/tmp/claude-0/-home-user-kochav-hashulchan-app/94fef7cd-f944-597e-9253-a6fe3d65a52a/scratchpad/e2e';
-mkdirSync(OUT, { recursive: true });
+const OUT = outDir('e2e');
 
 let step = 0, fails = 0;
 const ok = (cond, what, detail = '') => {

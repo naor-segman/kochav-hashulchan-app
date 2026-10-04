@@ -8,13 +8,14 @@
 // scrollable child inflates scrollWidth on every ancestor and sent an
 // afternoon into "fixing" CSS that was already correct.
 import { createRequire } from 'module';
-import { mkdirSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
+import { outDir } from './lib/outDir.mjs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 
 const BASE = 'http://127.0.0.1:5188';
-const OUT = process.env.SHOT_DIR || '/tmp/claude-0/-home-user-kochav-hashulchan-app/94fef7cd-f944-597e-9253-a6fe3d65a52a/scratchpad/audit/shots';
-mkdirSync(OUT, { recursive: true });
+// SHOT_DIR still works; otherwise QA_OUT_DIR/walkthrough or a fresh temp dir.
+const OUT = process.env.SHOT_DIR || outDir('walkthrough');
 
 const VIEWPORTS = [
   { name: 'mobile',  width: 390,  height: 844 },
@@ -173,7 +174,7 @@ for (const vp of VIEWPORTS) {
 }
 
 await b.close();
-writeFileSync(`${OUT}/../walkthrough.json`, JSON.stringify(findings, null, 2));
+writeFileSync(`${OUT}/walkthrough.json`, JSON.stringify(findings, null, 2));
 const fails = findings.filter(f => f.severity === 'FAIL');
 console.log(`\n${findings.length} findings (${fails.length} FAIL, ${findings.length - fails.length} WARN)`);
 console.log(`screenshots: ${OUT}`);

@@ -776,6 +776,17 @@ export default function FloorPlanEditor({ ev, patchEvent, showToast }) {
           </span>
         )}
       </div>
+      {/* Said where the choice is made, not only in the privacy policy: the
+          button sends the sketch to an outside AI service (Anthropic, via the
+          detect-floor-plan function). Same facts as PrivacyScreen §2 and §6 —
+          sent for analysis, not kept by us (audit 3.10, C24). A plain <a> in a
+          new tab, so the editor's state survives the click. */}
+      {ENABLE_AI_DETECT && (
+        <p className={styles.detectNote}>
+          בזיהוי האוטומטי התמונה נשלחת לניתוח בשירות AI חיצוני (Anthropic) ולא נשמרת אצלנו.{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer">מדיניות הפרטיות</a>
+        </p>
+      )}
 
       {/* Detection result */}
       {ENABLE_AI_DETECT && detResult && (

@@ -100,7 +100,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
   return (
     <div className={base.page}>
       <PageHeader
-        title="Save the Date והזמנה"
+        title="שמרו את התאריך וההזמנה"
         mark="announcements"
         sub="שני דפים מעוצבים לאותו אירוע — אחד לשמירת התאריך, אחד להזמנה עצמה."
       />
@@ -281,7 +281,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
         </div>
         {kind === "saveTheDate" && ann.showRsvp && (
           <p className={base.fieldHint}>
-            <Icon name="bulb" /> Save the Date נשלח בדרך כלל חודשים מראש — שקלו אם אישורי ההגעה כבר פתוחים.
+            <Icon name="bulb" /> &quot;שמרו את התאריך&quot; נשלח בדרך כלל חודשים מראש — שקלו אם אישורי ההגעה כבר פתוחים.
           </p>
         )}
       </div>

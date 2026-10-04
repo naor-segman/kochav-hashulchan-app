@@ -36,6 +36,10 @@ const FALSE = [
   [/מי כבר קיבל/, "tracking who already received"],
   // The floor plan has no print view.
   [/מפת אולם להדפסה/, "a printable floor plan"],
+  // …and the same claim in other words: the event-day SEO description said
+  // the door "מדפיס … מפת הושבה לאולם" (audit 3.10, C22). What prints is the
+  // seating LIST — full, or the compact one for the venue staff.
+  [/מפת הושבה (לאולם|להדפסה)|מדפיס[^"\n]{0,40}מפת הושבה/, "a printed seating map"],
   // Event-site photos are purged 30 days after the event.
   [/ההושבה והתמונות/, "photos stay with you after the event"],
   // There are three xlsx exports, not "everything".

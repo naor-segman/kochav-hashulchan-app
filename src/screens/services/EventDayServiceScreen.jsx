@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import SiteHeader from "../../components/layout/SiteHeader.jsx";
 import Footer from "../../components/layout/Footer.jsx";
 import { serviceById } from "../../data/services.js";
+import { PER_PAGE } from "../../data/nameTagSizes.js";
 import styles from "./ServicePage.module.css";
 
 /**
@@ -72,10 +73,11 @@ const GREETER = [
 const PRINTS = [
   { title: "כרטיס שולחן שעומד לבד", body: "מודפס כפול ומתקפל על הקו — עומד על השולחן וקריא משני הצדדים. המספר גדול בכוונה: הוא צריך להיקרא מקצה אולם חשוך." },
   { title: "כרטיס מקום לכל אורח", body: "אחד לכל מושב, לא לכל הזמנה — כולל מלווים, כך שגם \"יעל\" מקבלת כרטיס משלה ולא \"דודה רחל +1\"." },
-  /* SIZES in NameTagsScreen.jsx: table 2, card 8, tag 12, small 16. The first
-     draft put "8, 12, 16" on the tag+sticker row, where 8 belongs to the place
-     card above it. */
-  { title: "תג שם ומדבקה", body: "לענידה או להדבקה, נפוץ באירועים עסקיים — שנים-עשר תגים או שש-עשרה מדבקות בעמוד. כרטיס מקום יוצא שמונה בעמוד, וכרטיס שולחן שניים." },
+  /* Read from data/nameTagSizes.js — the same table NameTagsScreen prints by.
+     This row was typed as words ("שש-עשרה מדבקות") and kept saying 16 after
+     the sticker sheet became 32 (audit 3.10, C8). The first draft had also
+     put "8, 12, 16" on this row, where 8 belongs to the place card above. */
+  { title: "תג שם ומדבקה", body: `לענידה או להדבקה, נפוץ באירועים עסקיים — ${PER_PAGE.tag} תגים או ${PER_PAGE.small} מדבקות בעמוד. כרטיס מקום יוצא ${PER_PAGE.card} בעמוד, וכרטיס שולחן ${PER_PAGE.table}.` },
   { title: "דף לצוות האולם", body: "גרסה צפופה, שמות בלבד, שלוש עמודות — מה שהמלצרים צריכים ולא יותר. ולצידה גרסה מלאה עם צד, קבוצה ומלווים בשבילכם." },
 ];
 

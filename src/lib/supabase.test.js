@@ -21,14 +21,27 @@ describe("request deadlines", () => {
 
   it("a request that never answers is aborted at the deadline", async () => {
     vi.useFakeTimers();
+    // Fake timers do not drive AbortSignal.timeout(), so this test used to wait
+    // a REAL 15 s (audit 3.10, H5) — and could not tell 15 s from 14. Route the
+    // timeout through setTimeout, which the fake clock does control.
+    const realTimeout = AbortSignal.timeout;
+    AbortSignal.timeout = (ms) => {
+      const c = new AbortController();
+      setTimeout(() => c.abort(new DOMException("timed out", "TimeoutError")), ms);
+      return c.signal;
+    };
     const hung = vi.fn((_u, init) => new Promise((_res, rej) => {
       init.signal.addEventListener("abort", () => rej(init.signal.reason));
     }));
     vi.stubGlobal("fetch", hung);
     const p = timedFetch("https://x.supabase.co/rest/v1/rpc/x", {});
-    const settled = p.then(() => "resolved", () => "rejected");
-    await vi.advanceTimersByTimeAsync(15_001);
-    expect(await settled).toBe("rejected");
+    let state = "pending";
+    p.then(() => { state = "resolved"; }, () => { state = "rejected"; });
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(state, "aborted before the deadline").toBe("pending");
+    await vi.advanceTimersByTimeAsync(2);
+    expect(state).toBe("rejected");
+    AbortSignal.timeout = realTimeout;
     vi.unstubAllGlobals();
     vi.useRealTimers();
   });

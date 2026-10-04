@@ -281,13 +281,15 @@
    The row also WRAPS at 390px, and two wrapped lines of 34px chips 4px apart
    put their centres 38px apart — so each chip's 44px target ran into the one
    on the line below and both were trimmed to 37px. A pseudo-element cannot
-   invent room that is not there. 10px of row-gap puts the centres exactly
-   44px apart; nothing moves on a mouse. */
+   invent room that is not there. 10px of row-gap put the centres 44px apart
+   for a 34px chip — but the chip renders 33.5px, so they were 43.5 apart and
+   both measured 42 (qa/hitAreaFull, audit 3.10 leftovers). 12px leaves the
+   half-pixel no say; nothing moves on a mouse. */
 @media (pointer: coarse) {
   .filters {
     min-height: 44px;
     align-items: center;
-    row-gap: 10px;
+    row-gap: 12px;
   }
 
   /* Same collision one level up: the phone link is the last line of .rowMain,

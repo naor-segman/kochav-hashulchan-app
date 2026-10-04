@@ -585,7 +585,7 @@
   font-size: var(--step--2);
   color: var(--muted);
   margin-top: 2px;
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
   transition: color 0.15s;
 }
 
@@ -626,7 +626,7 @@
   color: var(--muted);
   padding: 8px 14px;
   display: block;
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
   transition: color 0.15s;
 }
 
@@ -976,6 +976,22 @@
 }
 
 /* ─── Unassigned side-group labels ──────────────────────────────────────── */
+/* The waiting list scrolls inside the card (audit 3.10, V3). Uncapped, 67
+   waiting guests made a 5,100px card and put the tables ~7,300px down at
+   1280x900 — a drag from the list had to autoscroll five screens. Capped, the
+   tables follow within one screen. dnd-kit autoscrolls this box first and then
+   the page (it walks the dragged row's scrollable ancestors), and the row
+   travels in a DragOverlay, so nothing is clipped by the overflow. The
+   per-row table select stays the no-drag alternative. A little inline padding
+   keeps the focus ring of a row inside the clip. */
+.unassignedList {
+  max-block-size: min(28rem, 55vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+  padding-inline-end: 6px;
+}
+
 .unassignedSideLabel {
   font-size: var(--step--3);
   font-weight: 700;
@@ -1348,7 +1364,7 @@
   padding: 4px 10px;
   font-size: var(--step--3);
   color: var(--muted);
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
 }
 
 /* Unassigned section */
@@ -1455,7 +1471,7 @@
   padding: 4px 8px;
   font-size: var(--step--3);
   color: var(--muted);
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
 }
 
 .pvCompactUnassigned {
@@ -1731,19 +1747,22 @@
    through a pseudo-element; the box does not move, so the dense seating chrome
    keeps its density on a phone. */
 @media (pointer: coarse) {
+  /* The row itself, not a pseudo-element (WORKPLAN 129). These rows sit 4px
+     apart, so each one's 44px ::after reached into its neighbour, and the
+     neighbour — later in the DOM — painted over it: a tap 3px from a row's
+     edge opened the NEXT guest's WhatsApp message. Measured reach 38px. */
   .waNotifyItem {
-    position: relative;
+    min-height: 44px;
   }
 
-  .waNotifyItem::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    min-width: 44px;
-    height: 44px;
+  /* The run card's .btnSm rows ("נקו הכל" · "בטלו", then "עמדת כניסה",
+     then "ייצוא לאקסל" when it wraps) are 34px boxes 8px / 6px apart, so
+     each 44px ::after reached into the row below and the later one won:
+     measured 41, 41 and 39px (qa/hitAreaFull, audit 3.10 leftovers).
+     12px between rows puts the centres 46px apart; a mouse sees no change. */
+  .runCardActions,
+  .runActionsSecondary {
+    row-gap: 12px;
   }
 
   .expandAllBtn {

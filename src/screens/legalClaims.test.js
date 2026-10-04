@@ -14,8 +14,23 @@ describe("legal pages match the product", () => {
   it("privacy: no account-screen deletion; every processor named", () => {
     const t = read("./PrivacyScreen.jsx");
     expect(t).not.toMatch(/דרך מסך החשבון/);
-    for (const p of ["Supabase", "Netlify", "Google Fonts", "Anthropic", "Google Analytics", "Stripe"]) expect(t).toContain(p);
+    // "Stripe" was on this list until the 3.10 audit (C2): Stripe cannot serve
+    // an Israeli merchant, the provider is not chosen, and the page named it as
+    // the current processor. The assertion encoded the wrong fact — the payment
+    // processor is now named by role, and Stripe must NOT appear. MyInbox (C12)
+    // sends the auth emails since 3.10; the page credited Supabase with it.
+    for (const p of ["Supabase", "Netlify", "Google Fonts", "Anthropic", "Google Analytics", "MyInbox", "חברת הסליקה"]) expect(t).toContain(p);
+    expect(t).not.toMatch(/Stripe/);
+    expect(t).not.toMatch(/Supabase<\/strong> — [^<]*שליחת מיילי/);
     expect(t).toMatch(/<strong>טבלה שיתופית<\/strong> — כל השורות שבה, כולל טלפונים/);
+  });
+  it("privacy: GA retention is stated where retention lives (audit 3.10, C11)", () => {
+    const t = read("./PrivacyScreen.jsx");
+    // §8 is "how long information is kept"; GA's 14-month property setting was
+    // missing from it, and §7 sent the reader to §6 for a duration §6 never gave.
+    const s8 = t.slice(t.indexOf("8. כמה זמן המידע נשמר"), t.indexOf("9. אבטחה"));
+    expect(s8).toMatch(/Google Analytics[^<]*14 חודשים/);
+    expect(t).not.toMatch(/13 חודשים \(סעיף 6\)/);
   });
   it("terms: no subscription clause, no bit / PayBox", () => {
     const t = read("./TermsScreen.jsx");

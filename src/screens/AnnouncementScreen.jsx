@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { normalizeAnnouncement } from "../data/announcementTemplates.js";
@@ -10,7 +10,8 @@ import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { guestHosts } from "../utils/guestRoutes.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB, NOT_PUBLISHED_TAB } from "../hooks/useGuestTitle.js";
+import { NOT_PUBLISHED_TEXT } from "../data/guestCopy.js";
 
 /**
  * Public Save-the-Date / designed invitation.
@@ -80,7 +81,6 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   const isPreview = !!localEvent;
   const [event, setEvent] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | error
-  useGuestTitle(!localEvent && event && `${kind === "saveTheDate" ? "שמרו את התאריך" : "הזמנה"} · ${guestHosts(event)}`);
 
   useEffect(() => {
     if (localEvent) {
@@ -120,6 +120,11 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     () => normalizeAnnouncement(event?.announcements?.[kind], kind, event?.type),
     [event, kind],
   );
+  // After `ann`: a page the host has not published names that state in the
+  // tab, not the page it is not yet (audit 3.10, leftovers).
+  useGuestTitle(!localEvent && (event
+    ? (ann.enabled ? `${kind === "saveTheDate" ? "שמרו את התאריך" : "הזמנה"} · ${guestHosts(event)}` : NOT_PUBLISHED_TAB)
+    : state === "unreachable" ? OFFLINE_TAB : state === "error" && DEAD_LINK_TAB));
   const theme = useMemo(() => getSiteTheme(ann.themeKey), [ann.themeKey]);
   const font  = useMemo(() => getSiteFont(ann.fontKey), [ann.fontKey]);
   const days  = useCountdown(event?.date);
@@ -138,9 +143,9 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   if (state === "error") {
     return (
       <main className={styles.state}>
-        <span className={styles.star}>✦</span>
-        <h1 className={styles.stateTitle}>הדף לא נמצא</h1>
-        <p className={styles.stateSub}>הקישור אינו תקף או שפג תוקפו</p>
+        <span className={styles.star} aria-hidden="true">✦</span>
+        <h1 className={styles.stateTitle}>{INVALID_LINK_TEXT.title}</h1>
+        <p className={styles.stateSub}>{INVALID_LINK_TEXT.body}</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </main>
     );
@@ -161,8 +166,8 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     return (
       <main className={styles.state}>
         <span className={styles.star}>✦</span>
-        <h1 className={styles.stateTitle}>הדף עדיין לא פורסם</h1>
-        <p className={styles.stateSub}>בעלי האירוע עדיין עובדים עליו — נסו שוב מאוחר יותר</p>
+        <h1 className={styles.stateTitle}>{NOT_PUBLISHED_TEXT.title}</h1>
+        <p className={styles.stateSub}>{NOT_PUBLISHED_TEXT.body}</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </main>
     );
@@ -174,6 +179,15 @@ export default function AnnouncementScreen({ kind, localEvent }) {
              // name here — without it a birthday invitation named nobody and
              // the page had no h1 at all (second review, סב20).
              || event.ownerName || "";
+
+  /* After the day (Israel's date), the page stops announcing. It went on
+     saying "שמרו את התאריך" with "הוסיפו ליומן" under it about a date that
+     had passed (audit 3.10, P2-7). The same rule as the RSVP page (36h):
+     from the day after, say the event took place, drop the calendar and the
+     RSVP, keep the way to the site — which is where the album lives. The
+     host's eyebrow and message go too: both were written to announce it. */
+  const daysLeft = event.date ? daysUntilIsrael(event.date) : null;
+  const passed = daysLeft !== null && daysLeft < 0;
 
   const addToCalendar = () => {
     // The same start time as the site and the RSVP page. Without it this
@@ -198,11 +212,11 @@ export default function AnnouncementScreen({ kind, localEvent }) {
 
       <main className={styles.content}>
         <div className={styles.card}>
-          {ann.subheadline && <p className={styles.eyebrow}>{ann.subheadline}</p>}
+          {ann.subheadline && !passed && <p className={styles.eyebrow}>{ann.subheadline}</p>}
 
           {names && <h1 className={styles.names}>{names}</h1>}
 
-          <h2 className={styles.headline}>{ann.headline}</h2>
+          <h2 className={styles.headline}>{passed ? "האירוע התקיים" : ann.headline}</h2>
 
           {event.date && (
             <p className={styles.date}>{fmtDate(event.date)}</p>
@@ -218,15 +232,17 @@ export default function AnnouncementScreen({ kind, localEvent }) {
             </p>
           )}
 
-          {ann.message && <p className={styles.message}>{ann.message}</p>}
+          {passed
+            ? <p className={styles.message}>תודה לכל מי שחגג איתנו!</p>
+            : ann.message && <p className={styles.message}>{ann.message}</p>}
 
           <div className={styles.actions}>
-            {event.date && (
+            {event.date && !passed && (
               <button type="button" className={styles.btnGhost} onClick={addToCalendar}>
                 <Icon name="calendar" /> הוסיפו ליומן
               </button>
             )}
-            {ann.showRsvp && event.rsvpToken && (
+            {ann.showRsvp && event.rsvpToken && !passed && (
               <a className={styles.btnPrimary} href={`/rsvp/${event.rsvpToken}`}>
                 אישור הגעה ←
               </a>

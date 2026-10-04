@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { TASK_PRIORITIES } from "../data/taskTemplates.js";
 import { ANNOUNCEMENT_LAYOUTS } from "../data/announcementTemplates.js";
 import { VENDOR_STATUSES, PAYMENT_STATUSES } from "../data/vendorConstants.js";
+import { NAME_TAG_SIZES } from "../data/nameTagSizes.js";
 
 /* Computed CSS-module lookups — `styles["prio_" + p]` — are the one shape
  * qa/cssmod.mjs cannot check: it sees a prefix, not a class. A value with no
@@ -32,7 +33,9 @@ const SITES = [
   { file: "src/screens/AnnouncementScreen.jsx", css: "src/screens/AnnouncementScreen.module.css",
     prefix: "layout_", values: ANNOUNCEMENT_LAYOUTS.map(l => l.key) },
   { file: "src/screens/NameTagsScreen.jsx", css: "src/screens/NameTagsScreen.module.css",
-    prefix: "sheet_", values: localValues("src/screens/NameTagsScreen.jsx", /\{ key: "([a-z]+)",\s+label:/g).filter(k => k !== "table") },
+    // The sizes moved to data/nameTagSizes.js (audit 3.10, C8) so the event-day
+    // page can quote them; read from there, still the source that produces them.
+    prefix: "sheet_", values: NAME_TAG_SIZES.map(s => s.key).filter(k => k !== "table") },
   { file: "src/screens/TasksScreen.jsx", css: "src/screens/TasksScreen.module.css",
     prefix: "prio_", values: TASK_PRIORITIES.map(p => p.value) },
   { file: "src/screens/VendorsScreen.jsx", css: "src/screens/VendorsScreen.module.css",

@@ -1,5 +1,6 @@
 import { createRequire } from 'module';
 import { mkdirSync } from 'fs';
+import { outDir } from './lib/outDir.mjs';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
 const phase = process.argv[2] || 'before';
@@ -7,8 +8,12 @@ const phase = process.argv[2] || 'before';
 // old path was a /tmp directory belonging to the session that wrote this
 // script; every session since has been silently screenshotting into a folder
 // that no longer exists on disk and that nobody could open.
-const DIR = new URL('./shots/', import.meta.url).pathname;
+// QA_OUT_DIR moves it like every other harness (qa/lib/outDir.mjs). Not a
+// fresh temp dir by default: the "before" and "after" runs are compared side
+// by side, so they must land in the same folder.
+const DIR = process.env.QA_OUT_DIR ? outDir('shots') : new URL('./shots/', import.meta.url).pathname;
 mkdirSync(DIR, { recursive: true });
+console.log(`shots: ${DIR}`);
 const routes = [['home','/'],['pricing','/pricing'],['login','/login'],['signup','/signup'],['help','/help'],['terms','/terms'],['privacy','/privacy'],['accessibility','/accessibility']];
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args:['--no-proxy-server'] });
 const results = [];

@@ -143,7 +143,9 @@
      the card past the screen (fifth review 30.9). */
   overflow-wrap: anywhere;
   font-size: 1.2rem;
-  font-style: italic;
+  /* Upright: Hebrew has no italic, and Heebo ships none — the browser
+     slanted the letters itself (audit 3.10, P2-9). The quote marks around
+     it already say whose words these are. */
   color: var(--blush);
   line-height: 1.55;
   overflow: hidden;
@@ -282,6 +284,15 @@
   .eventName {
     text-align: start;
     font-size: var(--step-3);
+    /* In this column the bar's flex-start alignment sized the h1 to its
+       nowrap text — 456px of a long couple's name in a 390px screen, the
+       start of it cut off by .root's overflow:hidden and the ellipsis it is
+       styled with never firing (audit 3.10, P2-3). Stretched, it takes the
+       bar's width and the ellipsis has an edge to stop at.
+       (Not `min-width: 0` on the row layout, which the audit suggested:
+       `overflow: hidden` already lets a flex item shrink, and removing it
+       changed nothing at 768 or 1280 — measured.) */
+    align-self: stretch;
   }
 
   .content {
@@ -314,5 +325,7 @@
    back to the container. */
 .stateTitle { font: inherit; letter-spacing: inherit; }
 
-/* A way out of a dead link (WORKPLAN 108). */
-.homeLink { display: inline-block; padding: 8px 12px; color: var(--accent-on-dark); font-weight: 700; text-decoration: none; }
+/* A way out of a dead link (WORKPLAN 108) — the one shared rule (ב9).
+   The wall sets bigger type, and this copy kept its 8px block padding:
+   49px tall, measured, so it keeps that box rather than shrink to 44. */
+.homeLink { composes: homeLinkOnDark from "../styles/homeLink.module.css"; padding-block: 8px; }

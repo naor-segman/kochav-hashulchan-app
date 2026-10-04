@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { seoFor, pageTitle, pageCanonical } from "../data/seo.js";
+import { seoFor, titleFor, pageCanonical } from "../data/seo.js";
 import { COMPANY, DESCRIPTOR } from "../data/company.js";
 
 /**
@@ -41,7 +41,9 @@ export function usePageMeta() {
 
   useEffect(() => {
     const page = seoFor(pathname);
-    document.title = page ? pageTitle(page) : DEFAULT_TITLE;
+    // The non-indexable routes have titles too (audit 3.10, P2-6) — they just
+    // get no description, canonical or sitemap entry of their own.
+    document.title = titleFor(pathname) ?? DEFAULT_TITLE;
 
     setMeta(
       'meta[name="description"]',
@@ -63,4 +65,20 @@ export function usePageMeta() {
       link.remove();
     }
   }, [pathname]);
+}
+
+/**
+ * usePageMeta as an element, rendered as the FIRST sibling of <Routes>.
+ *
+ * Why not just the hook in App: React runs passive effects child-first, so an
+ * effect in App runs AFTER every effect in the route it renders. A screen that
+ * sets its own title on mount — the 404, which is the only one that knows the
+ * route matched nothing — was overwritten in the same commit by the route
+ * default, and the tab read the site title (audit 3.10, P2-6). Siblings run
+ * in order, so as an earlier sibling the route default is written first and
+ * the screen's own title lands on top of it, on mount and on every navigation.
+ */
+export function PageMeta() {
+  usePageMeta();
+  return null;
 }

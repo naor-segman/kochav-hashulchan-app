@@ -35,7 +35,9 @@ import { COMPANY } from "../src/data/company.js";
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
 
-const ROOT = "/home/user/kochav-hashulchan-app";
+// The checkout this file is in (see qa/lib/preview.mjs): a fixed path read
+// the main checkout's dist when run from a worktree.
+const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 const DIST = join(ROOT, "dist");
 const PORT = 4342;
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -151,6 +153,9 @@ try {
      is fetched here, so if the title changes it changed in JavaScript. */
   await page.goto(BASE + "/home", { waitUntil: "networkidle" });
   const before = await head();
+  // /services/rsvp sits behind "השירותים ▾" since audit 3.10 P2-1 — open it
+  // the way a visitor does, then follow the link.
+  await page.click('header button[aria-controls]:has-text("השירותים")');
   await page.click('header a[href="/services/rsvp"]');
   await page.waitForTimeout(600);
   const after = await head();

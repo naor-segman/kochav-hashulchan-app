@@ -294,8 +294,8 @@
        name tags     3 columns × 4 rows of 69mm     = 12
        small         4 columns × 8 rows of 34mm     = 32
      Fixed heights, not content heights: a name that wraps to two lines used to
-     grow its row and push the last row onto the next page. SIZES.perPage in
-     NameTagsScreen.jsx is the same arithmetic. */
+     grow its row and push the last row onto the next page. NAME_TAG_SIZES in
+     data/nameTagSizes.js is the same arithmetic. */
   @page nametags {
     size: A4 portrait;
     margin: 10mm;

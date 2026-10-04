@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { LEGAL, LEGAL_DOCS, legalLine, legalTel } from "./company.js";
+import { LEGAL, LEGAL_DOCS, ACCESSIBILITY_DOC, legalLine, legalTel } from "./company.js";
 
 /**
  * The operator identity actually reaches the pages that legally need it.
@@ -30,6 +30,11 @@ describe("legal identity: the constants", () => {
     const [y, m, d] = LEGAL_DOCS.version.split("-").map(Number);
     const months = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
     expect(LEGAL_DOCS.updated).toBe(`${d} ב${months[m - 1]} ${y}`);
+  });
+
+  it("the accessibility statement's date is a real Hebrew date (C19)", () => {
+    const months = "ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר";
+    expect(ACCESSIBILITY_DOC.updated).toMatch(new RegExp(`^([1-9]|[12]\\d|3[01]) ב(${months}) 20\\d\\d$`));
   });
 
   it("carries a name, a registration type and a number", () => {
@@ -69,10 +74,14 @@ describe("legal identity: it reaches every legal page", () => {
       expect(read(file), file).toContain("LEGAL.address &&");
     });
 
-    it(`${label} says when it was last updated`, () => {
-      // Either a literal date, or the shared one that a signup records as the
-      // version agreed to (checklist 103).
-      expect(read(file), file).toMatch(/עודכן לאחרונה: (.+\d{4}|\{LEGAL_DOCS\.updated\})/);
+    it(`${label} says when it was last updated, from company.js`, () => {
+      // The shared date a signup records as the version agreed to (checklist
+      // 103), or — for the accessibility statement, which nobody consents to —
+      // its own constant. A literal date was allowed here until the 3.10 audit
+      // (C19) found the accessibility page still saying 11.9 after the brand
+      // and contact mailbox it prints had changed under it.
+      expect(read(file), file).toMatch(/עודכן לאחרונה: \{(LEGAL_DOCS|ACCESSIBILITY_DOC)\.updated\}/);
+      expect(read(file), file).not.toMatch(/עודכן לאחרונה: [^{<]*\d{4}/);
     });
   }
 

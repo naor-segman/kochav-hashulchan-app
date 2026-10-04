@@ -98,6 +98,9 @@ describe("useCollabSync — unsent work survives a reload (סב88)", () => {
     const patch = vi.fn();
     renderHook(() => useCollabSync(ev, patch, toast));
     await settle(); await settle();
+    // The loop alone passed with zero calls — a hook that never read the table
+    // looked the same as one that protected the edit (audit 3.10, H4).
+    expect(pub.fetchCollabGuestsOwner).toHaveBeenCalled();
     for (const [fn] of patch.mock.calls) expect(fn(ev).guests[0].notes).toBe("צמחוני");
   });
 });

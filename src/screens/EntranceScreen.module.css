@@ -879,5 +879,5 @@
   }
 }
 
-/* A way out of a dead link (WORKPLAN 108). */
-.homeLink { display: inline-block; padding: 8px 12px; color: var(--accent-on-dark); font-weight: 700; text-decoration: none; }
+/* A way out of a dead link (WORKPLAN 108) — the one shared rule (ב9). */
+.homeLink { composes: homeLinkOnDark from "../styles/homeLink.module.css"; }

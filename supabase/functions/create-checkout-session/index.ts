@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import Stripe from "https://esm.sh/stripe@14.25.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { corsHeaders } from "../_shared/cors.js";
 
 // =============================================================================
 // create-checkout-session — Supabase Edge Function
@@ -11,7 +12,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 // ONE-TIME PAYMENT (mode: "payment"), not a subscription. A couple has one
 // wedding; the price is per event and charged once. The two price secrets below
 // must therefore be ONE-TIME prices in Stripe — a recurring price is refused by
-// this function with an error that names the secret.
+// this function, with a log line that names the secret (the caller gets
+// "not_configured").
 //
 // Request  (POST, JSON): { plan: "pro" | "enterprise", returnUrl: string,
 //                          eventId: uuid }   ← the events.id being bought
@@ -29,16 +31,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 //   SUPABASE_SERVICE_ROLE_KEY    — auto-injected (used for profile reads/writes)
 // =============================================================================
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(data: unknown, status = 200) {
+// CORS: the request's Origin is echoed only when it is in APP_ORIGINS — this
+// answered `*` to every site until audit 3.10 (S6). See _shared/cors.js.
+function json(data: unknown, status = 200, cors: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 }
 
@@ -69,9 +67,12 @@ function safeReturnUrl(raw: string): string | null {
 }
 
 Deno.serve(async (req: Request) => {
+  const cors = corsHeaders(req.headers.get("Origin"), Deno.env.get("APP_ORIGINS"));
+  const reply = (data: unknown, status = 200) => json(data, status, cors);
+
   // Respond to CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: CORS_HEADERS });
+    return new Response(null, { headers: cors });
   }
 
   try {
@@ -86,7 +87,7 @@ Deno.serve(async (req: Request) => {
 
     // ── Authenticate via Supabase JWT ─────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    if (!authHeader) return reply({ error: "Unauthorized" }, 401);
 
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -95,7 +96,7 @@ Deno.serve(async (req: Request) => {
     );
 
     const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !user) return json({ error: "Unauthorized" }, 401);
+    if (authError || !user) return reply({ error: "Unauthorized" }, 401);
 
     // ── Validate plan ─────────────────────────────────────────────────────────
     const { plan, returnUrl, eventId } = await req.json() as {
@@ -105,15 +106,23 @@ Deno.serve(async (req: Request) => {
     // checkout with a message that blames the caller's URL. That is the first
     // thing that will happen the day billing is switched on, and "returnUrl is
     // not an allowed origin" sends you looking at the wrong end of it.
+    //
+    // Configuration problems are named in the LOG, not to the caller (audit
+    // 3.10, leftovers — S5's rule, which the catch below already followed):
+    // which secret is missing, or which price is recurring, is the owner's to
+    // read in the Supabase log; the browser gets a fixed code and the app shows
+    // its own Hebrew sentence for it (billingErrorMessage).
     if (!Deno.env.get("APP_ORIGINS")) {
       console.error("APP_ORIGINS is not set — every checkout will be refused.");
-      return json({ error: "APP_ORIGINS is not configured for this environment." }, 503);
+      return reply({ error: "not_configured" }, 503);
     }
     const safeReturn = safeReturnUrl(returnUrl);
-    if (!safeReturn) return json({ error: "returnUrl is not an allowed origin" }, 400);
+    if (!safeReturn) return reply({ error: "returnUrl is not an allowed origin" }, 400);
 
     if (!plan || !["pro", "enterprise"].includes(plan)) {
-      return json({ error: `Invalid plan: ${plan}` }, 400);
+      // Not echoed back: the value is whatever the caller sent.
+      console.error("create-checkout-session: invalid plan", JSON.stringify(plan)?.slice(0, 80));
+      return reply({ error: "invalid_plan" }, 400);
     }
 
     // ── Which event is being bought ────────────────────────────────────────
@@ -124,7 +133,7 @@ Deno.serve(async (req: Request) => {
     // accident, i.e. the exact bug this whole change removes, and it would only
     // ever be noticed as revenue that failed to arrive.
     if (!eventId) {
-      return json({ error: "eventId is required — a purchase belongs to one event" }, 400);
+      return reply({ error: "eventId is required — a purchase belongs to one event" }, 400);
     }
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)) {
       // Not cosmetic: the client's uid() has a fallback branch that returns
@@ -132,12 +141,14 @@ Deno.serve(async (req: Request) => {
       // legitimately look like that. Sending it here means the caller passed
       // ev.id instead of ev.cloudId, and it must fail loudly at the door rather
       // than as a Postgres cast error after the customer has paid.
-      return json({ error: "eventId is not a UUID — pass ev.cloudId, not ev.id" }, 400);
+      return reply({ error: "eventId is not a UUID — pass ev.cloudId, not ev.id" }, 400);
     }
 
     const priceId = PRICE_IDS[plan];
     if (!priceId) {
-      return json({ error: `No Stripe price ID configured for plan: ${plan}. Set STRIPE_${plan.toUpperCase()}_PRICE_ID in Edge Function secrets.` }, 400);
+      // 503, not 400: the request was fine, this deployment is not.
+      console.error(`No Stripe price ID for plan "${plan}" — set STRIPE_${plan.toUpperCase()}_PRICE_ID in Edge Function secrets.`);
+      return reply({ error: "not_configured" }, 503);
     }
 
     // ── Get or create Stripe customer ─────────────────────────────────────────
@@ -162,7 +173,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (!ownedEvent) {
-      return json({ error: "Event not found for this user" }, 403);
+      return reply({ error: "Event not found for this user" }, 403);
     }
 
     // Already paid for? Refuse BEFORE Stripe is called.
@@ -185,7 +196,7 @@ Deno.serve(async (req: Request) => {
       !p.expires_at || new Date(p.expires_at) > new Date()
     );
     if (live.some((p: any) => p.plan === plan)) {
-      return json({
+      return reply({
         error: `האירוע הזה כבר נרכש בחבילה הזאת.`,
         alreadyPurchased: true,
       }, 409);
@@ -218,17 +229,16 @@ Deno.serve(async (req: Request) => {
     // `mode: "payment"` with a recurring price is rejected by Stripe with
     // "You specified `payment` mode but passed a recurring price" — accurate and
     // completely opaque from inside the app, where it surfaces as a 500 and a
-    // Hebrew toast saying the upgrade failed. One API call buys an error that
+    // Hebrew toast saying the upgrade failed. One API call buys a log line that
     // names the secret to fix, which matters because this is the first thing
     // anyone will hit on the day billing is switched on: the prices in Stripe
     // were created for the subscription model this replaced.
     const price = await stripe.prices.retrieve(priceId);
     if (price.recurring) {
       const secret = `STRIPE_${plan.toUpperCase()}_PRICE_ID`;
-      console.error(`${secret} points at a RECURRING price (${priceId}). Purchases are one-time.`);
-      return json({
-        error: `${secret} is a recurring price. Pricing is one payment per event, not a subscription — create a one-time price in Stripe and update that secret.`,
-      }, 500);
+      console.error(`${secret} points at a RECURRING price (${priceId}). Pricing is one payment per event, ` +
+        "not a subscription — create a one-time price in Stripe and update that secret.");
+      return reply({ error: "not_configured" }, 503);
     }
 
     // ── Create Stripe Checkout session ────────────────────────────────────────
@@ -291,11 +301,13 @@ Deno.serve(async (req: Request) => {
       },
     });
 
-    return json({ url: session.url });
+    return reply({ url: session.url });
 
   } catch (err: any) {
-    const message: string = err?.message ?? String(err);
-    console.error("create-checkout-session error:", message);
-    return json({ error: message }, 500);
+    // Stripe's and the database's own words go to the log, not to the caller
+    // (audit 3.10, S5) — they named customer ids and configuration. The app
+    // shows its own Hebrew sentence for any non-Hebrew error (billingErrorMessage).
+    console.error("create-checkout-session error:", err?.message ?? String(err));
+    return reply({ error: "checkout_failed" }, 500);
   }
 });

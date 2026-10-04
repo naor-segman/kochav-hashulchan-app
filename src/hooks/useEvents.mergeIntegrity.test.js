@@ -164,3 +164,19 @@ describe("R11 rotating one link does not bring back another link revoked elsewhe
     expect(out.tokens.collab).toBe("LOCAL");
   });
 });
+
+/* audit 3.10, L4: a floor plan of the wrong SHAPE — a string where the
+ * positions object belongs — passed normalizeEvent, and when a cloud row
+ * carried one, the merge's `tid in known` threw a TypeError while the account
+ * loaded. */
+describe("a malformed floor plan does not take the merge down (audit 3.10, L4)", () => {
+  it("cloud copy newer, its positions a string, this device has positions", () => {
+    const local = [ev({ updatedAt: 5000, tables: [{ id: "t1" }, { id: "t3" }],
+      floorPlan: { image: null, tablePositions: { t3: { x: 1, y: 1 } }, elements: [] } })];
+    const cloud = [ev({ updatedAt: 9000, tables: [{ id: "t1" }],
+      floorPlan: { image: null, tablePositions: "x", elements: [] } })];
+    let out;
+    expect(() => { [out] = mergeCloudWithLocal(local, cloud); }).not.toThrow();
+    expect(out.floorPlan.tablePositions).toEqual({ t3: { x: 1, y: 1 } });
+  });
+});

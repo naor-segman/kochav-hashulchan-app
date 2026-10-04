@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { COMPANY } from "../../data/company.js";
-import { liveServices } from "../../data/services.js";
+import { liveServices, flagService, menuServices } from "../../data/services.js";
 import styles from "./SiteHeader.module.css";
 
 /**
@@ -76,11 +76,57 @@ export default function SiteHeader({ user = null, active = null }) {
   const { pathname } = useLocation();
   const onLanding = pathname === "/" || pathname === "/home";
 
-  /* Only services whose page exists. While there are few they sit in the bar;
-     the `השירותים ▾` dropdown arrives with the third, which is the point at
-     which a flat bar of six labels plus מחירים stops fitting. The flag keeps
-     its own slot either way — see the note in src/data/services.js. */
+  /* Only services whose page exists. The `השירותים ▾` dropdown was meant to
+     arrive with the third; it arrived with none, and with all six flat in the
+     bar plus two section links and מחירים, seven labels broke onto two lines
+     at 1024, 1280 AND 1440 — "אתר לאירוע / והזמנה" stacked in a 68px bar
+     (audit 3.10, P2-1, measured with the real font in qa/siteHeader.mjs).
+     The flag keeps its own slot — see the note in src/data/services.js; the
+     other five sit behind one disclosure button. The phone menu, which has
+     the room, still lists all six. */
   const live = liveServices();
+  const flag = flagService();
+  const inMenu = menuServices();
+
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const servicesBtnRef = useRef(null);
+  const servicesWrapRef = useRef(null);
+  const servicesId = useId();
+
+  // A disclosure, not an ARIA menu: a button that says whether it is open and
+  // a plain list of links, reachable with Tab like the rest of the bar.
+  // Escape closes and hands focus back; so does a click or a tap anywhere
+  // else, and focus leaving the whole thing (tabbing past the last link).
+  useEffect(() => {
+    if (!servicesOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      setServicesOpen(false);
+      servicesBtnRef.current?.focus();
+    };
+    const onPointer = (e) => {
+      if (!servicesWrapRef.current?.contains(e.target)) setServicesOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [servicesOpen]);
+
+  // Following a link closes it — whichever way the route changed. Adjusting
+  // state while rendering, keyed on the pathname (React's documented pattern
+  // for "reset when a prop changes"), not an effect.
+  const [openedOn, setOpenedOn] = useState(pathname);
+  if (openedOn !== pathname) {
+    setOpenedOn(pathname);
+    setServicesOpen(false);
+  }
+
+  const closeServicesOnBlur = (e) => {
+    if (!servicesWrapRef.current?.contains(e.relatedTarget)) setServicesOpen(false);
+  };
 
   /** A section link, in whichever of its two forms this page needs. */
   const section = ({ id, label }, className, onClick) =>
@@ -127,12 +173,39 @@ export default function SiteHeader({ user = null, active = null }) {
         </Link>
 
         <div className={styles.navLinks}>
-          {live.map(s => (
-            <Link key={s.id} to={s.path}
-              className={[styles.navLink, active === s.id && styles.navLinkActive].filter(Boolean).join(" ")}>
-              {s.label}
+          {flag && (
+            <Link to={flag.path}
+              className={[styles.navLink, active === flag.id && styles.navLinkActive].filter(Boolean).join(" ")}>
+              {flag.label}
             </Link>
-          ))}
+          )}
+          {inMenu.length > 0 && (
+            <div className={styles.servicesWrap} ref={servicesWrapRef} onBlur={closeServicesOnBlur}>
+              <button
+                ref={servicesBtnRef}
+                type="button"
+                className={[styles.navLink, styles.servicesBtn,
+                  inMenu.some(s => s.id === active) && styles.navLinkActive].filter(Boolean).join(" ")}
+                aria-expanded={servicesOpen}
+                aria-controls={servicesId}
+                onClick={() => setServicesOpen(o => !o)}
+              >
+                השירותים <span className={styles.servicesCaret} aria-hidden="true">▾</span>
+              </button>
+              <ul id={servicesId} className={styles.servicesMenu} hidden={!servicesOpen}>
+                {inMenu.map(s => (
+                  <li key={s.id}>
+                    <Link to={s.path} className={styles.servicesItem}
+                      aria-current={active === s.id ? "page" : undefined}
+                      onClick={() => setServicesOpen(false)}>
+                      <span className={styles.servicesLabel}>{s.label}</span>
+                      <span className={styles.servicesBlurb}>{s.blurb}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {SECTIONS.map(s => section(s, styles.navLink))}
           <Link to="/pricing" className={pricingClass}>מחירים</Link>
         </div>

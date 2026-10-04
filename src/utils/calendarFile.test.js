@@ -110,6 +110,10 @@ describe("buildEventIcs", () => {
     expect(get(buildEventIcs(base), "UID")).toBe(get(buildEventIcs(base), "UID"));
   });
 
+  it("puts the UID under the product's own domain, not the first brand's (audit 3.10, C21)", () => {
+    expect(get(buildEventIcs(base), "UID")).toMatch(/^[^@]+@plan\.unica-events\.co\.il$/);
+  });
+
   it("returns null for a missing or malformed date rather than a broken file", () => {
     expect(buildEventIcs({ ...base, date: "" })).toBeNull();
     expect(buildEventIcs({ ...base, date: "15/09/2026" })).toBeNull();

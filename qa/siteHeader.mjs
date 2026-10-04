@@ -15,6 +15,7 @@
  */
 import { createRequire } from "node:module";
 import { startPreview } from "./lib/preview.mjs";
+import { routeGoogleFonts } from "./lib/googleFonts.mjs";
 
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
@@ -81,6 +82,92 @@ try {
     await page.close();
   }
 
+  /* 0b — every label in the bar on ONE line (audit 3.10, P2-1). With six
+   * service links, two section links and מחירים flat in the bar, seven of the
+   * labels broke onto two lines at 1024, 1280 and 1440 — "אתר לאירוע / והזמנה"
+   * stacked in a 68px bar. Measured with the real Heebo (served through curl,
+   * see qa/lib/googleFonts.mjs): on the fallback font the widths are not the
+   * ones a visitor sees. Lines are counted from the text's own line boxes. */
+  {
+    const page = await browser.newPage({ viewport: DESKTOP });
+    const fonts = await routeGoogleFonts(page);
+    for (const w of [1024, 1100, 1280, 1440]) {
+      await page.setViewportSize({ width: w, height: 900 });
+      for (const route of ["/home", "/pricing", "/services/event-site"]) {
+        await page.goto(BASE + route, { waitUntil: "networkidle" });
+        await page.evaluate(() => document.fonts.ready);
+        const wrapped = await page.evaluate(() => {
+          const out = [];
+          for (const el of document.querySelectorAll("header a, header button")) {
+            const b = el.getBoundingClientRect();
+            if (!b.width || b.bottom < 0 || getComputedStyle(el).visibility === "hidden") continue;
+            // Per text node: the logo's mark and name are two flex items whose
+            // boxes sit at different heights, and that is not a wrap.
+            const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            for (let n; (n = tw.nextNode());) {
+              if (!n.nodeValue.trim()) continue;
+              const rg = document.createRange(); rg.selectNodeContents(n);
+              const tops = new Set([...rg.getClientRects()].filter(r => r.width > 1).map(r => Math.round(r.top)));
+              if (tops.size > 1) out.push(`"${n.nodeValue.trim()}" ${tops.size} lines`);
+            }
+          }
+          return out;
+        });
+        check(`@${w} ${route}: every header label on one line`, wrapped.length === 0, wrapped.join(" | "));
+      }
+    }
+    const fs = fonts.status();
+    check("one-line check measured on the real font", fs.served > 0 && fs.failed === 0, JSON.stringify(fs));
+    await page.close();
+  }
+
+  /* 0c — the services disclosure (audit 3.10, P2-1). All six service pages
+   * must stay reachable from the bar once five of them move behind
+   * "השירותים": a button that says whether it is open, opens on a click (a
+   * tap — there is no hover on a phone-sized tablet), lists the pages, closes
+   * on Escape with focus back on the button, and closes on a click outside. */
+  {
+    const page = await browser.newPage({ viewport: DESKTOP });
+    await page.goto(BASE + "/home", { waitUntil: "networkidle" });
+    const btn = page.locator("header button[aria-expanded]", { hasText: "השירותים" });
+    check("services: one disclosure button in the bar", (await btn.count()) === 1, `${await btn.count()} found`);
+    if (await btn.count() === 1) {
+      check("services: closed at rest", (await btn.getAttribute("aria-expanded")) === "false");
+      await btn.click();
+      check("services: a click opens it", (await btn.getAttribute("aria-expanded")) === "true");
+      const ctl = await btn.getAttribute("aria-controls");
+      const hrefs = await page.$$eval(`#${ctl} a`, as => as.filter(a => a.getBoundingClientRect().width > 0).map(a => a.getAttribute("href")));
+      const barHrefs = await page.$$eval("header a", as => as.filter(a => a.getBoundingClientRect().width > 0).map(a => a.getAttribute("href")));
+      for (const s of ["seating", "event-site", "planning", "rsvp", "event-day", "gifts"]) {
+        check(`services: /services/${s} reachable from the bar`, barHrefs.includes(`/services/${s}`), hrefs.join(" · "));
+      }
+      const inView = await page.$$eval(`#${ctl}`, ([m]) => { const r = m.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; });
+      check("services: the open panel lies inside the screen", inView);
+      await page.keyboard.press("Escape");
+      check("services: Escape closes", (await btn.getAttribute("aria-expanded")) === "false");
+      check("services: focus returns to the button", await btn.evaluate(b => document.activeElement === b));
+      await btn.click();
+      await page.mouse.click(640, 600);
+      check("services: a click outside closes", (await btn.getAttribute("aria-expanded")) === "false");
+      await btn.click();
+      await page.click(`#${ctl} a[href='/services/gifts']`);
+      await page.waitForTimeout(300);
+      check("services: following a link navigates and closes",
+        (await page.evaluate(() => location.pathname)) === "/services/gifts" &&
+        (await page.locator("header button[aria-expanded]", { hasText: "השירותים" }).getAttribute("aria-expanded")) === "false");
+      // Keyboard: Tab from the button walks into the open list, and tabbing
+      // past its last link closes it rather than leaving a panel hanging.
+      await page.goto(BASE + "/home", { waitUntil: "networkidle" });
+      await btn.focus(); await page.keyboard.press("Enter");
+      await page.keyboard.press("Tab");
+      check("services: Tab moves into the open list",
+        await page.evaluate(id => document.getElementById(id)?.contains(document.activeElement), ctl));
+      for (let i = 0; i < 8; i++) await page.keyboard.press("Tab");
+      check("services: tabbing out of the list closes it", (await btn.getAttribute("aria-expanded")) === "false");
+    }
+    await page.close();
+  }
+
   for (const [label, viewport] of [["desktop", DESKTOP], ["phone", PHONE]]) {
     const page = await browser.newPage({ viewport });
     const errors = [];
@@ -121,7 +208,9 @@ try {
         for (const want of ["תכונות", "איך זה עובד", "מחירים", "כניסה", "התחילו חינם"]) {
           check(`${label} ${route}: "${want}"`, links.some(t => t === want), links.join(" · "));
         }
-        const burger = await page.$$eval("header button", els =>
+        // The burger by its label: "השירותים ▾" is a visible header button on
+        // desktop now (P2-1), and "no visible button" would count it.
+        const burger = await page.$$eval("header button[aria-label]", els =>
           els.filter(el => el.getBoundingClientRect().width > 0).length);
         check(`${label} ${route}: no burger`, burger === 0, `${burger} visible`);
       } else {
@@ -129,7 +218,9 @@ try {
         const links = await visibleText(page, "header a");
         check(`${label} ${route}: links hidden`, !links.includes("תכונות"), links.join(" · "));
 
-        const burger = await page.$("header button[aria-expanded]");
+        // [aria-label]: the services disclosure is also a header button with
+        // aria-expanded, first in the DOM, and hidden at this width.
+        const burger = await page.$("header button[aria-expanded][aria-label]");
         check(`${label} ${route}: burger exists`, !!burger);
 
         /* 4 — THE BUG, asserted OUTSIDE the `if (burger)` below.

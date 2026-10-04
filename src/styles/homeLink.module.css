@@ -1,0 +1,31 @@
+/* "לדף הבית" — the way out of a dead or unpublished guest link (WORKPLAN 108).
+ *
+ * ONE definition (WORKPLAN ב9, audit 3.10 leftovers). It was copied by hand
+ * into seven guest sheets — Gift, GiftWall, RSVP, Album, Collab,
+ * Announcement, Entrance — and the copies had already drifted: P2-5 raised
+ * six of them to 44px and missed the seventh. Each screen now composes this:
+ *
+ *   .homeLink { composes: homeLink from "../styles/homeLink.module.css"; }
+ *
+ * so the JSX keeps `styles.homeLink` and the rule lives here.
+ *
+ * 44px tall on every pointer: it is the only control on a dead-link page,
+ * and it measured 40–42 on a phone with 8px of padding (P2-5).
+ * The 12px inline padding is the same literal every copy carried; V1 has no
+ * spacing token, and the semantic --space-* set takes no new users.
+ */
+.homeLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  color: var(--accent-text);      /* 6.9:1 on a light ground — not --accent */
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* On the dark guest grounds (the blessing wall, the hostess screen). */
+.homeLinkOnDark {
+  composes: homeLink;
+  color: var(--accent-on-dark);
+}

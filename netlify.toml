@@ -114,6 +114,66 @@
     X-Content-Type-Options  = "nosniff"
     Referrer-Policy         = "strict-origin-when-cross-origin"
 
+# ── Token links stay out of search indexes (audit 3.10, S9) ─────────────────
+# Every page reached through a per-event token: the guest links, and the staff
+# links (/hostess, /collab, /entrance) that can WRITE to the event. A link
+# pasted on a public page is a link a search engine can find, and a token in
+# an index is a token anyone can use. noindex, not robots.txt: the preview
+# crawlers (WhatsApp, Facebook) honour robots.txt — blocking /invite/ there
+# would kill the per-event preview invite-og builds — but read noindex as
+# being about search results, not about previews. public/robots.txt says the
+# same. netlify/tests/noindexRoutes.test.js fails when an App.jsx route with a
+# :token has no block here.
+[[headers]]
+  for = "/invite/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/rsvp/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/invitation/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/save-the-date/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/card/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/album/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/gift/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/hostess/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/collab/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/entrance/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
 # ── Long cache for the hashed build output (סב58) ───────────────────────────
 # Everything Vite writes to /assets/ carries a content hash in its name, so a
 # given URL never changes content — a new build means a new name. Netlify's

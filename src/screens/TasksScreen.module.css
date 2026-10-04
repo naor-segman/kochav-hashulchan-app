@@ -101,8 +101,13 @@
 }
 .task:last-child { margin-bottom: 0; }
 
-.taskDone { opacity: 0.62; }
-.taskDone .taskTitle { text-decoration: line-through; }
+/* Done reads as done through the TITLE only. The whole card used to be at
+   opacity .62, which took its working buttons — "move back", edit, delete —
+   down to 3.01:1 with them (audit 3.10, V5). --muted on the card is 5.30:1. */
+.taskDone .taskTitle {
+  color: var(--muted);
+  text-decoration: line-through;
+}
 
 .taskTop {
   display: flex;

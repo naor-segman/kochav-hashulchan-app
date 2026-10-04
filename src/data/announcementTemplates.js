@@ -15,7 +15,7 @@ import { SITE_THEMES } from "./eventSiteTemplates.js";
  */
 
 export const ANNOUNCEMENT_KINDS = [
-  { key: "saveTheDate", label: "Save the Date",      route: "save-the-date", icon: "calendar" },
+  { key: "saveTheDate", label: "שמרו את התאריך",     route: "save-the-date", icon: "calendar" },
   { key: "invitation",  label: "הזמנה דיגיטלית",     route: "invitation",    icon: "mail" },
 ];
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { useAppUpdate } from "./hooks/useAppUpdate.js";
-import { usePageMeta } from "./hooks/usePageMeta.js";
+import { PageMeta } from "./hooks/usePageMeta.js";
 import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
@@ -19,20 +19,29 @@ import { useCollabSync }    from "./hooks/useCollabSync.js";
 import { useMigration, MIGRATION_STATUS } from "./hooks/useMigration.js";
 import { SYNC_STATUS } from "./utils/cloudSync.js";
 import { canCreateEvent } from "./utils/featureGates.js";
-import Shell              from "./components/layout/Shell.jsx";
 import Toast              from "./components/feedback/Toast.jsx";
-import MigrationBanner    from "./components/migration/MigrationBanner.jsx";
-import DashboardScreen    from "./screens/DashboardScreen.jsx";
-import EventHubScreen     from "./screens/EventHubScreen.jsx";
-import StartScreen        from "./screens/StartScreen.jsx";
-import EventSetupScreen   from "./screens/EventSetupScreen.jsx";
-import LoginScreen        from "./screens/LoginScreen.jsx";
-import SignupScreen       from "./screens/SignupScreen.jsx";
-import ResetPasswordScreen from "./screens/ResetPasswordScreen.jsx";
-import AccountScreen      from "./screens/AccountScreen.jsx";
 import NotFoundScreen     from "./screens/NotFoundScreen.jsx";
 import Loading           from "./components/feedback/Loading.jsx";
-import AuthCallbackScreen from "./screens/AuthCallbackScreen.jsx";
+import HostPreviewGate   from "./components/layout/HostPreviewGate.jsx";
+/* The host's own screens, lazy (audit 3.10, H6). They were eager, so a GUEST
+   opening /rsvp/:token or /invite/:token from a WhatsApp link — on a phone, on
+   whatever network the hall has — downloaded the dashboard, the event map, the
+   account screen, the three auth forms and the 32 KB of tour copy (through
+   Shell) before their own page: the entry chunk was ~773 KB / 228 KB gzip with
+   a stub Supabase env. Every route that renders one of these wraps it in
+   Suspense; a host who is signed in pays one more parallel request on their
+   first screen. */
+const Shell              = lazy(() => import("./components/layout/Shell.jsx"));
+const MigrationBanner    = lazy(() => import("./components/migration/MigrationBanner.jsx"));
+const DashboardScreen    = lazy(() => import("./screens/DashboardScreen.jsx"));
+const EventHubScreen     = lazy(() => import("./screens/EventHubScreen.jsx"));
+const StartScreen        = lazy(() => import("./screens/StartScreen.jsx"));
+const EventSetupScreen   = lazy(() => import("./screens/EventSetupScreen.jsx"));
+const LoginScreen        = lazy(() => import("./screens/LoginScreen.jsx"));
+const SignupScreen       = lazy(() => import("./screens/SignupScreen.jsx"));
+const ResetPasswordScreen = lazy(() => import("./screens/ResetPasswordScreen.jsx"));
+const AccountScreen      = lazy(() => import("./screens/AccountScreen.jsx"));
+const AuthCallbackScreen = lazy(() => import("./screens/AuthCallbackScreen.jsx"));
 import { useStorageWarnings } from "./hooks/useStorageWarnings.js";
 // Lazy-load the entire admin subtree — Supabase and admin screens never
 // appear in the customer-facing initial bundle.
@@ -154,6 +163,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
   const sp = { activeEvent, patchEvent, go, showToast };
 
   return (
+    <Suspense fallback={<Loading label="טוענים את האירוע…" />}>
     <Shell screen={screen} activeEvent={activeEvent} go={go} syncStatus={syncStatus} showToast={showToast}>
       {/* Screen-level boundary. The root one in main.jsx swallows the WHOLE app
           — nav, event, everything — when a single lazy chunk fails to load,
@@ -161,7 +171,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
           the path so navigating away is itself the recovery. */}
       <ErrorBoundary key={location.pathname}>
       <Routes>
-        <Route path="setup"       element={<EventSetupScreen   {...sp} />} />
+        <Route path="setup"       element={<Suspense fallback={<Loading />}><EventSetupScreen {...sp} /></Suspense>} />
         <Route path="tables"      element={<Suspense fallback={<Loading />}><TableBuilderScreen {...sp} /></Suspense>} />
         <Route path="guests"      element={<Suspense fallback={<Loading />}><GuestManagerScreen {...sp} /></Suspense>} />
         <Route path="constraints" element={<Suspense fallback={<Loading />}><ConstraintsScreen {...sp} /></Suspense>} />
@@ -180,7 +190,7 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
         {/* The event's front page. This used to redirect to `setup`, which is
             why opening an event dropped a first-time host straight into a form
             with no idea what the other thirteen screens were for. */}
-        <Route index              element={<EventHubScreen {...sp} />} />
+        <Route index              element={<Suspense fallback={<Loading />}><EventHubScreen {...sp} /></Suspense>} />
         {/* Without this, /events/:id/typo matched `/events/:eventId/*` at the
             top level and then matched nothing here — the Shell rendered with a
             blank body and no error. The top-level catch-all cannot reach it. */}
@@ -189,26 +199,31 @@ function EventRoutes({ events, patchEventById, showToast, toast, syncStatus, rea
       </ErrorBoundary>
       <Toast msg={toast?.msg} variant={toast?.variant} />
     </Shell>
+    </Suspense>
   );
 }
 
 // Host-only preview of the event site, rendered from local (owned) event data.
-function EventSitePreview({ events }) {
+function EventSitePreview({ events, ready, syncStatus }) {
   const { eventId } = useParams();
-  const ev = events.find(e => e.id === eventId);
-  if (!ev) return <Navigate to="/app" replace />;
-  return <Suspense fallback={<Loading />}><EventSiteScreen localEvent={ev} /></Suspense>;
+  return (
+    <HostPreviewGate events={events} eventId={eventId} ready={ready} syncStatus={syncStatus}>
+      {ev => <Suspense fallback={<Loading />}><EventSiteScreen localEvent={ev} /></Suspense>}
+    </HostPreviewGate>
+  );
 }
 
 // Host-only draft preview of a Save-the-Date / invitation. Renders from local
 // data so the host sees the page before publishing — and before the event has
 // ever been synced to the cloud, where the public route would find nothing.
-function AnnouncementPreview({ events }) {
+function AnnouncementPreview({ events, ready, syncStatus }) {
   const { eventId, kind } = useParams();
-  const ev = events.find(e => e.id === eventId);
-  if (!ev) return <Navigate to="/app" replace />;
   const safeKind = kind === "saveTheDate" ? "saveTheDate" : "invitation";
-  return <Suspense fallback={<Loading />}><AnnouncementScreen kind={safeKind} localEvent={ev} /></Suspense>;
+  return (
+    <HostPreviewGate events={events} eventId={eventId} ready={ready} syncStatus={syncStatus}>
+      {ev => <Suspense fallback={<Loading />}><AnnouncementScreen kind={safeKind} localEvent={ev} /></Suspense>}
+    </HostPreviewGate>
+  );
 }
 
 // ── Root app ──────────────────────────────────────────────────────────────────
@@ -225,7 +240,7 @@ export default function App() {
 
 function AppRoutes() {
   const { user, loading: authLoading }                                  = useAuth();
-  const { events, addEvent, removeEvent, patchEventById, syncStatus, eventsReady, cloudCapped,
+  const { events, addEvent, removeEvent, patchEventById, syncStatus, syncNote, eventsReady, cloudCapped,
           guestDrafts, adoptGuestDrafts, declineGuestDrafts }                = useEvents(user);
   const { toast, showToast }                                            = useToast();
   // No event in scope here — AppRoutes sits above /events/:eventId — so this is
@@ -246,20 +261,17 @@ function AppRoutes() {
   // session restoring after first paint is not a second pageview (37c).
   usePageAnalytics(useLocation().pathname, user?.id);
 
-  /* <title>, description and canonical per route (checklist 87).
-     The build writes a correct <head> into a real document per indexable route,
-     which is what a crawler reads; this is the half that keeps the tab right
-     once the app has booted and every navigation is client-side. */
-  usePageMeta();
 
-  // Show a one-time toast whenever a cloud sync error occurs.
+  // Show a one-time toast whenever a cloud sync error occurs. A server ceiling
+  // (syncNote — too many events, too large) says which, because retrying it
+  // cannot help and "failed" alone reads as a network blip.
   const prevSyncRef = useRef(null);
   useEffect(() => {
     if (syncStatus === SYNC_STATUS.ERROR && prevSyncRef.current !== SYNC_STATUS.ERROR) {
-      showToast("סנכרון ענן נכשל — הנתונים שמורים מקומית", "err");
+      showToast(syncNote || "סנכרון ענן נכשל — הנתונים שמורים מקומית", "err");
     }
     prevSyncRef.current = syncStatus;
-  }, [syncStatus, showToast]);
+  }, [syncStatus, syncNote, showToast]);
 
   // Full browser storage: nothing saved, or everything but the floor-plan
   // sketches (33b). See useStorageWarnings.
@@ -336,6 +348,16 @@ function AppRoutes() {
   }, [navigate]);
 
   return (
+    <>
+    {/* <title>, description and canonical per route (checklist 87).
+        The build writes a correct <head> into a real document per indexable
+        route, which is what a crawler reads; this is the half that keeps the
+        tab right once the app has booted and every navigation is client-side.
+        A sibling placed BEFORE the route table, not a hook in this component
+        — see PageMeta for why the order decides whether a screen's own title
+        survives. (No literal tag names in this comment: mainLandmark.test.jsx
+        slices the route table out of this file by its opening tag.) */}
+    <PageMeta />
     <Routes>
       {/* Landing page — unauthenticated visitors */}
       <Route
@@ -358,6 +380,7 @@ function AppRoutes() {
              different tour (124) from the one about a list of events. Not
              before the account's events have loaded: a logged-in host's list
              is briefly [] and would get the start tour first. */
+          <Suspense fallback={<Loading />}>
           <Shell screen="dashboard" tourKey={!eventsReady ? null : events.length ? "dashboard" : "start"} activeEvent={null} go={dashGo}>
             {(migration.shouldPrompt || migration.status !== MIGRATION_STATUS.IDLE) && (
               <MigrationBanner migration={migration} />
@@ -380,6 +403,7 @@ function AppRoutes() {
             />
             <Toast msg={toast?.msg} variant={toast?.variant} />
           </Shell>
+          </Suspense>
         }
       />
       {/* The opening screen — what the product does, and the two facts that are
@@ -388,6 +412,7 @@ function AppRoutes() {
       <Route
         path="/start"
         element={
+          <Suspense fallback={<Loading />}>
           <Shell screen="dashboard" tourKey="start" activeEvent={null} go={dashGo}>
             <StartScreen
               onStart={startEvent}
@@ -397,6 +422,7 @@ function AppRoutes() {
             />
             <Toast msg={toast?.msg} variant={toast?.variant} />
           </Shell>
+          </Suspense>
         }
       />
       {/* Pricing page */}
@@ -498,11 +524,11 @@ function AppRoutes() {
       {/* Host-only draft preview of the event site — renders from local data */}
       <Route
         path="/events/:eventId/preview-site"
-        element={<EventSitePreview events={events} />}
+        element={<EventSitePreview events={events} ready={!authLoading && eventsReady} syncStatus={syncStatus} />}
       />
       <Route
         path="/events/:eventId/preview-announce/:kind"
-        element={<AnnouncementPreview events={events} />}
+        element={<AnnouncementPreview events={events} ready={!authLoading && eventsReady} syncStatus={syncStatus} />}
       />
       <Route
         path="/events/:eventId/*"
@@ -518,15 +544,15 @@ function AppRoutes() {
         }
       />
       {/* ── Customer auth routes — standalone full-page screens ── */}
-      <Route path="/login"         element={<LoginScreen />} />
-      <Route path="/signup"        element={<SignupScreen />} />
-      <Route path="/reset-password" element={<ResetPasswordScreen />} />
+      <Route path="/login"         element={<Suspense fallback={<Loading />}><LoginScreen /></Suspense>} />
+      <Route path="/signup"        element={<Suspense fallback={<Loading />}><SignupScreen /></Suspense>} />
+      <Route path="/reset-password" element={<Suspense fallback={<Loading />}><ResetPasswordScreen /></Suspense>} />
       {/* `events`, not only a count. Packages are bought per event, so this screen
           has to be able to say WHICH events were paid for — with a count it could
           only ever show one plan for the whole account, which is the model the
           product moved off. */}
-      <Route path="/account"       element={<AccountScreen events={events} eventCount={events.length} showToast={showToast} />} />
-      <Route path="/auth/callback" element={<AuthCallbackScreen />} />
+      <Route path="/account"       element={<Suspense fallback={<Loading />}><AccountScreen events={events} eventCount={events.length} showToast={showToast} /></Suspense>} />
+      <Route path="/auth/callback" element={<Suspense fallback={<Loading />}><AuthCallbackScreen /></Suspense>} />
 
       {/* ── Legal / policy / help pages ── */}
       <Route path="/help"          element={<Suspense fallback={<Loading />}><HelpScreen /></Suspense>} />
@@ -545,7 +571,8 @@ function AppRoutes() {
           </Suspense>
         }
       />
-      <Route path="*" element={<NotFoundScreen />} />
+      <Route path="*" element={<NotFoundScreen hasApp={!!user || events.length > 0} />} />
     </Routes>
+    </>
   );
 }

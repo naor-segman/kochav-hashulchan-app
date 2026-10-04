@@ -1,6 +1,6 @@
 import { guestCompanionNames, guestSeatNames } from "./eventHelpers.js";
 import { missingCompanionSeats } from "./guestForm.js";
-import { TABLE_TYPES } from "../data/constants.js";
+import { TABLE_TYPES, MEAL_OPTIONS } from "../data/constants.js";
 // Shared with the app rather than re-implemented. The local copy pushed the ISO
 // string through `new Date()`, which parses it as UTC — so west of Greenwich the
 // exported sheet showed a different date than the screen, and a New Year's Eve
@@ -18,7 +18,10 @@ import { arrivedCountOf, arrivalTotals } from "./arrival.js";
 const TABLE_TYPE_HE = Object.fromEntries(TABLE_TYPES.map(t => [t.value, t.label]));
 const RSVP_HE = { confirmed: "אישר/ה", declined: "סירב/ה", maybe: "אולי", pending: "ממתין" };
 const rsvpHe = r => RSVP_HE[r] || "ממתין";
-const MEAL_HE = { regular: "רגיל", kosher: "כשר מהדרין", vegan: "טבעוני", vegetarian: "צמחוני", child: "ילדים", none: "לא אוכל" };
+// Read from MEAL_OPTIONS, not typed again: this was a second copy of the six
+// labels, and when "לא אוכל" became "בלי ארוחה" (audit 3.10, C18) the export
+// would have kept the old one (bug class 6 — a hand-kept duplicate drifts).
+const MEAL_HE = Object.fromEntries(MEAL_OPTIONS.map(o => [o.value, o.label]));
 const mealHe = m => MEAL_HE[m] || "רגיל";
 
 
@@ -169,7 +172,7 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
   rows.push([
     "שולחן", "קיבולת", "סוג שולחן", "שובצו/קיבולת",
     "שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים",
-    "RSVP", "מנה", "טלפון", "הערות", ...cardHead,
+    "אישור הגעה", "מנה", "טלפון", "הערות", ...cardHead,
   ]);
 
   ev.tables.forEach(t => {
@@ -250,7 +253,7 @@ export async function exportToExcel(ev, sideLabel, violations, declaredGifts = [
     const uRows = [
       ["ממתינים לשיבוץ — " + (ev.name || "")],
       [],
-      ["שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים", "RSVP", "מנה", "טלפון", "הערות", ...cardHead],
+      ["שם אורח", "צד", "קבוצה", "כמות", "שמות המצטרפים", "אישור הגעה", "מנה", "טלפון", "הערות", ...cardHead],
       ...unassigned.map(g => [
         g.name  || "",
         sideLabel(g.side),

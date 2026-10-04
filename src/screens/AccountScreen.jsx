@@ -15,7 +15,9 @@ import Loading from "../components/feedback/Loading.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
-import { userStorageKey, loadState, clearState, isCloudBacked } from "../utils/storage.js";
+import {
+  userStorageKey, loadState, clearState, isCloudBacked, cloudHoldsEventData, holdsLocalOnlySketch,
+} from "../utils/storage.js";
 import { COMPANY, contactMailto, supportMailto } from "../data/company.js";
 import { fmtShortDate } from "../utils/dateFormat.js";
 import { authErrorMessage } from "../utils/authErrors.js";
@@ -58,7 +60,7 @@ function planFeatures(key) {
 // ── Upgrade button label per card (from current plan perspective) ────────────
 
 function cardBtnLabel(cardKey, currentPlanKey) {
-  if (cardKey === currentPlanKey) return "תוכנית נוכחית ✓";
+  if (cardKey === currentPlanKey) return "החבילה הנוכחית";
   if (cardKey === "free")         return "—";
   /* The ₪690 card cannot start a checkout FROM HERE any more, and that is the
      point of per-event entitlement rather than an oversight: a purchase unlocks
@@ -166,8 +168,13 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
       ...(loadState(userKey).events  || []),
       ...(loadState(guestKey).events || []),
     ];
-    const doomed    = onDevice.filter(ev => !isCloudBacked(ev));
-    const recovers  = onDevice.length - doomed.length;
+    // Three kinds, not two (audit 3.10, L1). An event whose data the cloud
+    // holds but which carries a floor-plan sketch is neither "already in the
+    // cloud" (the sketch never syncs and would not come back) nor "only on this
+    // device" (everything else would). Saying either one was untrue.
+    const sketchOnly = onDevice.filter(ev => !isCloudBacked(ev) && cloudHoldsEventData(ev) && holdsLocalOnlySketch(ev));
+    const doomed     = onDevice.filter(ev => !isCloudBacked(ev) && !sketchOnly.includes(ev));
+    const recovers   = onDevice.length - doomed.length - sketchOnly.length;
 
     const lines = ["למחוק את העותק המקומי של האירועים מהדפדפן הזה?"];
     if (recovers > 0) {
@@ -175,12 +182,18 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         ? "אירוע אחד כבר בענן ויחזור בכניסה הבאה."
         : `${recovers} אירועים כבר בענן ויחזרו בכניסה הבאה.`);
     }
+    if (sketchOnly.length > 0) {
+      lines.push(sketchOnly.length === 1
+        ? "אירוע אחד יחזור מהענן, אבל שרטוט האולם שלו שמור רק על המכשיר הזה ויימחק לצמיתות:"
+        : `${sketchOnly.length} אירועים יחזרו מהענן, אבל שרטוטי האולם שלהם שמורים רק על המכשיר הזה ויימחקו לצמיתות:`);
+      lines.push(sketchOnly.map(ev => ev.name?.trim() || "אירוע ללא שם").join(" · "));
+    }
     if (doomed.length > 0) {
       lines.push(doomed.length === 1
         ? "אירוע אחד קיים רק על המכשיר הזה ויימחק לצמיתות:"
         : `${doomed.length} אירועים קיימים רק על המכשיר הזה ויימחקו לצמיתות:`);
       lines.push(doomed.map(ev => ev.name?.trim() || "אירוע ללא שם").join(" · "));
-    } else if (onDevice.length > 0) {
+    } else if (onDevice.length > 0 && sketchOnly.length === 0) {
       lines.push("שום דבר לא יאבד — כל מה ששמור כאן קיים גם בענן.");
     } else {
       lines.push("אין כרגע נתונים שמורים על המכשיר הזה.");
@@ -418,7 +431,12 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
           )}
         </section>
 
-        {/* ── Subscription status notices ── */}
+        {/* ── Status notices ──
+            The product sells a one-time package per event, not a subscription,
+            and no checkout is live yet (audit 3.10, C23). These banners said
+            "ההרשמה לתוכנית", "לשדרג" and "תוכניות ושדרוג" — the vocabulary
+            of a plan you subscribe to and upgrade. They name a purchase for an
+            event now, and nothing promises it is live. */}
         {sub && isPaymentFailed && (
           <div className={styles.paymentFailedBanner}>
             {/* No longer written by any webhook — a one-time payment produces no
@@ -447,19 +465,19 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         )}
         {sub && statusKey === "trialing" && (
           <div className={styles.trialBanner}>
-            <span aria-hidden="true">✦</span> אתם בתקופת ניסיון. ניתן לשדרג בכל עת.
+            <span aria-hidden="true">✦</span> החבילה פתוחה לכם לתקופת ניסיון. חבילה לאירוע נרכשת מתוך האירוע עצמו.
           </div>
         )}
 
         {/* ── Checkout result banners ── */}
         {checkoutResult === "success" && (
           <div className={styles.checkoutSuccessBanner}>
-            <Icon name="check" size={14} /> ההרשמה לתוכנית הצליחה! ייתכן שיידרשו כמה שניות לעדכון התוכנית.
+            <Icon name="check" size={14} /> התשלום התקבל. ייתכן שיעברו כמה שניות עד שהחבילה תופיע באירוע.
           </div>
         )}
         {checkoutResult === "cancelled" && (
           <div className={styles.checkoutCancelledBanner}>
-            הרשמה לתוכנית בוטלה — לא חויבתם. תוכלו לשדרג בכל עת.
+            הרכישה בוטלה — לא חויבתם. אפשר לרכוש חבילה מתוך האירוע בכל עת.
           </div>
         )}
 
@@ -471,7 +489,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         {/* ── Plan comparison cards ── */}
         {sub !== undefined && (
           <section className={styles.section}>
-            <h2 className={styles.sectionLabel}>תוכניות ושדרוג</h2>
+            <h2 className={styles.sectionLabel}>החבילות לאירוע</h2>
 
             <div className={styles.planGrid}>
               {PLAN_KEYS.map((key) => {
@@ -613,7 +631,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
               <div className={styles.inactiveNote}>
                 <span className={styles.inactiveNoteIcon} aria-hidden="true">✦</span>
                 <span>
-                  כרגע כל הפונקציות זמינות ללא תשלום.
+                  כרגע הכל זמין ללא תשלום.
                   רכישה תהיה זמינה בקרוב.
                 </span>
               </div>
@@ -648,7 +666,8 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
         <p className={styles.clearLocalHint}>
           העותק של האירועים נשמר גם בדפדפן הזה כדי שהאפליקציה תעבוד גם בלי רשת.
           בהתנתקות נמחק מהמכשיר כל מה שכבר מסונכרן לענן; מה שטרם הספיק
-          להסתנכרן נשאר כאן כדי שלא ילך לאיבוד. במחשב משותף כדאי למחוק גם אותו.
+          להסתנכרן, ואירוע ששרטוט האולם שלו שמור רק כאן, נשארים כדי שלא ילכו
+          לאיבוד. במחשב משותף כדאי למחוק גם אותם.
         </p>
 
         {/* Was a `mailto:` here (checklist 25). It depended on the reader having

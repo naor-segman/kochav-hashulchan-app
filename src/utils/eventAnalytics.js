@@ -56,7 +56,7 @@ export function eventHealth(ev) {
     indicators.push({ key: "complete", label: "הושבה מלאה ✓",      severity: "ok" });
   }
 
-  return { pct, indicators, needsAttention, totalSeats, seatedSeats, unassigned, viols };
+  return { pct, indicators, needsAttention, totalSeats, seatedSeats, unassigned, viols, activeRecords: guests.length };
 }
 
 export function dashStats(events) {

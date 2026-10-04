@@ -204,15 +204,21 @@
 /* Touch targets — see qa/mobile.mjs. Two links on the help screen had none:
    the support address (20px) and the way back to the dashboard (18px). The
    mailto has no class of its own — it is a link inside body copy — so the
-   paragraph selects it. */
+   paragraph selects it.
+   The operator's phone and email in the identity box had none either: 20px,
+   on the four legal pages, the one place someone comes to FIND them (audit
+   3.10, P2-5). Stacked under 520px they sit 52px apart centre to centre, so
+   the two 44px areas do not meet. */
 @media (pointer: coarse) {
   .backLink,
-  .text a {
+  .text a,
+  .identityVal a {
     position: relative;
   }
 
   .backLink::after,
-  .text a::after {
+  .text a::after,
+  .identityVal a::after {
     content: "";
     position: absolute;
     top: 50%;
@@ -270,4 +276,11 @@
      the key column then eats a third of the width. Stack instead. */
   .identityList { grid-template-columns: 1fr; gap: 2px; }
   .identityKey { margin-top: 8px; }
+}
+
+/* Two columns on a touch tablet: rows 26px apart would put the phone's 44px
+   tap area half under the email's (the later sibling paints on top). 24px of
+   row gap puts the centres 44px apart. */
+@media (pointer: coarse) and (min-width: 521px) {
+  .identityList { row-gap: 24px; }
 }

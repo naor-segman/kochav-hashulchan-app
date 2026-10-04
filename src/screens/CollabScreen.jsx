@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   fetchCollabEvent, fetchCollabGuests,
-  upsertCollabGuest, deleteCollabGuest, UNREACHABLE_TEXT,
+  upsertCollabGuest, deleteCollabGuest, UNREACHABLE_TEXT, INVALID_LINK_TEXT,
 } from "../utils/publicTokens.js";
 import { GROUP_OPTIONS } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
@@ -13,7 +13,7 @@ import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.j
 import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import { collabGroupOptions } from "../utils/guestRoutes.js";
 import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
@@ -51,7 +51,7 @@ export default function CollabScreen() {
   const [ev, setEv] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | notfound
   const [rows, setRows] = useState([]);
-  useGuestTitle(ev && `רשימת האורחים · ${ev.name || ""}`);
+  useGuestTitle(ev ? `רשימת האורחים · ${ev.name || ""}` : state === "unreachable" ? OFFLINE_TAB : state === "notfound" && DEAD_LINK_TAB);
   // Rows whose last save failed — kept held so the poll can't revert them.
   const [failed, setFailed] = useState(() => new Set());
   const [deleteFailed, setDeleteFailed] = useState(null);   // the row's name, or null
@@ -170,8 +170,8 @@ export default function CollabScreen() {
   if (state === "notfound") return (
     <main className={styles.state}>
       <span className={styles.star}><Icon name="alert" size={26} /></span>
-      <h1 className={styles.stateTitle}>הקישור אינו פעיל</h1>
-      <p className={styles.stateHint}>ייתכן שבעלי האירוע סגרו אותו, או שהכתובת שגויה. שווה לבקש מהם קישור מעודכן.</p>
+      <h1 className={styles.stateTitle}>{INVALID_LINK_TEXT.title}</h1>
+      <p className={styles.stateHint}>{INVALID_LINK_TEXT.body}</p>
       <Link to="/" className={styles.homeLink}>לדף הבית</Link>
     </main>
   );
@@ -315,9 +315,9 @@ export default function CollabScreen() {
             stays outside it. Unstyled; the column lays out as before. */}
         <main>
         <div className={styles.card}>
-          <h1 className={styles.title}>רשימת האורחים המשותפת</h1>
+          <h1 className={styles.title}>טבלת האורחים השיתופית</h1>
           <p className={styles.sub}>
-            כולם עורכים את אותה טבלה יחד, בזמן אמת. הוסיפו את המוזמנים/ות שלכם/ן —
+            כולם עורכים את אותה טבלה יחד, בזמן אמת. הוסיפו את המוזמנים שלכם —
             שם וטלפון בהקלדה או מרשימה. רשומה מלאה נכנסת אוטומטית לרשימה של {hostsLabel(ev)}.
           </p>
 

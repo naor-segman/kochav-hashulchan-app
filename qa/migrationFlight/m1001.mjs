@@ -81,7 +81,9 @@ async function run(db, label) {
 }
 
 newDb('m1001'); 
-const before = applyAll('m1001', allMigs().filter(f => f !== NEW), { log: false });
+// Only what came BEFORE this migration: a later one (20261004000000 rewrites
+// claim_ai_call) would otherwise be in the "before" schema and hide the bug.
+const before = applyAll('m1001', allMigs().filter(f => f < NEW), { log: false });
 if (before.some(r => !r.ok)) throw new Error('base schema failed: ' + before.find(r => !r.ok).f);
 const s = runScript('m1001', seed); if (!s.ok) throw new Error(s.err);
 const POST = (await import('fs')).readFileSync(new URL('../../supabase/checks/postflight_20261001.sql', import.meta.url), 'utf8');

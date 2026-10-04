@@ -91,6 +91,15 @@
   gap: 6px;
 }
 
+/* Under the toolbar: where the sketch goes if the host presses "detect". */
+.detectNote {
+  font-size: var(--step--2);
+  color: var(--text2);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+.detectNote a { color: var(--accent-text); }
+
 .cancelPlace {
   background: none;
   border: none;

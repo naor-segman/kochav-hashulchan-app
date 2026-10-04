@@ -293,7 +293,8 @@
   font-size: var(--step-0);
   line-height: 1.7;
   color: var(--text2);
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9).
+     The tinted box already sets the host's words apart. */
   background: var(--accent-bg);
   border-radius: var(--radius);
   padding: 14px 16px;
@@ -433,6 +434,13 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-bg);
   background: var(--surface);
+}
+
+/* The browser's own placeholder grey is #757575 — 4.23:1 on this --bg field,
+   under AA (audit 3.10, P2-2). Same rule as screenBase.module.css. */
+.input::placeholder {
+  color: var(--muted);
+  opacity: 1; /* Firefox dims placeholders by default; --muted is already the dim */
 }
 
 .input:hover:not(:focus) {
@@ -736,5 +744,5 @@
   border-color: var(--accent);
 }
 
-/* A way out of a dead link (WORKPLAN 108). */
-.homeLink { display: inline-block; padding: 8px 12px; color: var(--accent-text); font-weight: 700; text-decoration: none; }
+/* A way out of a dead link (WORKPLAN 108) — the one shared rule (ב9). */
+.homeLink { composes: homeLink from "../styles/homeLink.module.css"; }

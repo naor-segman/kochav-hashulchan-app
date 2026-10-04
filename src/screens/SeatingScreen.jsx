@@ -655,7 +655,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               <div className={styles.runCardSub}>
                 {noTables ? `לפני ההרצה — הגדירו שולחנות בשלב ${buildStep("tables").num}.`
                   : noGuests ? `לפני ההרצה — הוסיפו אורחים בשלב ${buildStep("guests").num}.`
-                  : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
+                  : "המערכת תשבץ את כל האורחים לפי קבוצות וצדדים, ותשמור את האילוצים ככל שהאולם מאפשר — מה שלא הסתדר יסומן לכם."}
               </div>
               <div className={styles.runCardStats}>
                 {/* No spaces around the slash — and the accurate reason, which is
@@ -881,7 +881,10 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
                       <p className={styles.unassignedHint}>
                         גררו אורח לשולחן, או בחרו שולחן מהרשימה. לסידור חדש — &quot;חשבו מחדש&quot; למעלה.
                       </p>
-                      <div className={base.gList}>
+                      {/* Scrolls inside itself (audit 3.10, V3): uncapped, 67
+                          waiting guests pushed the tables ~5,000px down at
+                          1280px, past where anyone drags. */}
+                      <div className={[base.gList, styles.unassignedList].join(" ")}>
                         {[...unassigned]
                           // normalizeEvent does not normalise guest rows, so a
                           // legacy or hand-edited guest can arrive with no `side`

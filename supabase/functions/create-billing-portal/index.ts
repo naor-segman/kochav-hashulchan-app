@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import Stripe from "https://esm.sh/stripe@14.25.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
+import { corsHeaders } from "../_shared/cors.js";
 
 // =============================================================================
 // create-billing-portal — Supabase Edge Function
@@ -24,16 +25,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 //   SUPABASE_SERVICE_ROLE_KEY    — auto-injected
 // =============================================================================
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function json(data: unknown, status = 200) {
+// CORS: the request's Origin is echoed only when it is in APP_ORIGINS — this
+// answered `*` to every site until audit 3.10 (S6). See _shared/cors.js.
+function json(data: unknown, status = 200, cors: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 }
 
@@ -63,8 +60,11 @@ function safeReturnUrl(raw: string): string | null {
 }
 
 Deno.serve(async (req: Request) => {
+  const cors = corsHeaders(req.headers.get("Origin"), Deno.env.get("APP_ORIGINS"));
+  const reply = (data: unknown, status = 200) => json(data, status, cors);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: CORS_HEADERS });
+    return new Response(null, { headers: cors });
   }
 
   try {
@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
 
     // ── Authenticate ──────────────────────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    if (!authHeader) return reply({ error: "Unauthorized" }, 401);
 
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
     );
 
     const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !user) return json({ error: "Unauthorized" }, 401);
+    if (authError || !user) return reply({ error: "Unauthorized" }, 401);
 
     // ── Look up Stripe customer ───────────────────────────────────────────────
     const supabaseAdmin = createClient(
@@ -98,7 +98,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (!profile?.stripe_customer_id) {
-      return json({
+      return reply({
         error: "עוד אין רכישה בחשבון הזה — הקבלות יופיעו כאן אחרי הרכישה הראשונה.",
       }, 404);
     }
@@ -108,10 +108,10 @@ Deno.serve(async (req: Request) => {
     // refuses everything with a message that blames the caller's URL.
     if (!Deno.env.get("APP_ORIGINS")) {
       console.error("APP_ORIGINS is not set — every portal session will be refused.");
-      return json({ error: "APP_ORIGINS is not configured for this environment." }, 503);
+      return reply({ error: "APP_ORIGINS is not configured for this environment." }, 503);
     }
     const safeReturn = safeReturnUrl(returnUrl);
-    if (!safeReturn) return json({ error: "returnUrl is not an allowed origin" }, 400);
+    if (!safeReturn) return reply({ error: "returnUrl is not an allowed origin" }, 400);
 
     // ── Create Billing Portal session ─────────────────────────────────────────
     const session = await stripe.billingPortal.sessions.create({
@@ -119,11 +119,11 @@ Deno.serve(async (req: Request) => {
       return_url: safeReturn,
     });
 
-    return json({ url: session.url });
+    return reply({ url: session.url });
 
   } catch (err: any) {
-    const message: string = err?.message ?? String(err);
-    console.error("create-billing-portal error:", message);
-    return json({ error: message }, 500);
+    // To the log, not the caller (audit 3.10, S5) — see create-checkout-session.
+    console.error("create-billing-portal error:", err?.message ?? String(err));
+    return reply({ error: "portal_failed" }, 500);
   }
 });

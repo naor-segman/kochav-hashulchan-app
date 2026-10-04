@@ -515,7 +515,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
                       {/* Why this one waits for a tap (סב63): matched by name
                           only, or the row was changed by hand after the last
                           answer. */}
-                      <span className={base.gMeta}>
+                      <span className={styles.applyWhy}>
                         {!matchedByPhone(r)
                           ? `זוהה לפי שם — ${guest.name}?`
                           : handEdited(r, guest, new Set(ev.rsvpApplied || [])) ? "שונה ממה שעדכנתם ידנית" : ""}

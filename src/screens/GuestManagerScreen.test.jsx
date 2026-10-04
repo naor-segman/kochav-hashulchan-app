@@ -320,4 +320,12 @@ describe("GuestManagerScreen — meal chips count meals (107)", () => {
     const chips = [...document.querySelectorAll("[class*=statChip]")].map(el => el.textContent.replace(/\s+/g, " ").trim());
     expect(chips).toContain("כולל 3 מקומות שעוד לא ענו");
   });
+
+  /* audit 3.10, C7: the door marks arrival only — the gift field left the
+   * entrance screen — so the header must not promise it records gifts. */
+  it("the header says the door records who came, not what they gave", () => {
+    render(<AuthProvider><GuestManagerScreen activeEvent={EV} patchEvent={vi.fn()} go={vi.fn()} showToast={vi.fn()} /></AuthProvider>);
+    expect(screen.getByText(/מי באמת הגיע נרשם ביום האירוע, בעמדת הכניסה\./)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/ומה הוא נתן/);
+  });
 });

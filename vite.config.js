@@ -189,10 +189,14 @@ export default defineConfig({
         // og-image.png (1200×630) is for link-preview CRAWLERS — WhatsApp,
         // Facebook — and no page of the app ever displays it, yet the png glob
         // put it in every install. jsQR stays: the door screen scans offline.
-        globIgnores: ['**/AdminApp-*.{js,css}', '**/xlsx-*.js', '**/og-image.png'],
+        //
+        // fonts/*.woff2: the serif was TTF until audit 3.10 (H7) and so never
+        // matched the woff2 glob; as WOFF2 it would have slipped into the
+        // precache. It stays runtime-cached below, as it always was.
+        globIgnores: ['**/AdminApp-*.{js,css}', '**/xlsx-*.js', '**/og-image.png', 'fonts/*.woff2'],
         // The self-hosted serif and the hero are what the landing page IS. They
-        // are not matched by the glob (ttf, mp4, jpg), so the installed app fell
-        // back to a system font and a blank hero offline.
+        // are not matched by the glob (ignored above, or mp4/jpg), so the
+        // installed app fell back to a system font and a blank hero offline.
         runtimeCaching: [
           {
             // Supabase GETs were cached for 24 HOURS behind a 5-second network

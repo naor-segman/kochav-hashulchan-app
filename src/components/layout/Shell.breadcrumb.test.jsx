@@ -35,3 +35,13 @@ describe("Shell signup button on a narrow phone (38b)", () => {
     expect(mq).toMatch(/\.signupShort\s*\{\s*display:\s*inline/);
   });
 });
+
+describe("Shell breadcrumb separator (audit 3.10, V9)", () => {
+  it("is decoration: hidden from assistive tech", () => {
+    const ev = normalizeEvent({ id: "e1", name: "החתונה של דנה ויוסי", type: "חתונה" });
+    const { container } = render(<MemoryRouter><Shell screen="guests" activeEvent={ev} go={vi.fn()} showToast={vi.fn()}><p /></Shell></MemoryRouter>);
+    const sep = [...container.querySelectorAll("span")].find(s => s.textContent === "/");
+    expect(sep).toBeTruthy();
+    expect(sep.closest("[aria-hidden='true']")).toBe(sep);
+  });
+});

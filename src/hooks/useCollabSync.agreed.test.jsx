@@ -88,6 +88,17 @@ describe("per-field merge against the last agreed row (89)", () => {
     expect(after.guests.map(g => g.id).sort()).toEqual(["r2", "r3"]);
   });
 
+  // audit 3.10: a read the server may have cut short (PostgREST max_rows) is
+  // not a list of what the family kept — a row past the cut is not deleted.
+  it("57b: a read marked incomplete deletes nothing", async () => {
+    agreeOn(ROW, ROW3);
+    const partial = [ROW3];
+    Object.defineProperty(partial, "complete", { value: false });
+    pub.fetchCollabGuestsOwner.mockResolvedValue(partial);
+    const { after } = await run(eventWith([guestFromCollab(ROW, null), guestFromCollab(ROW3, null)]));
+    expect(after.guests.map(g => g.id).sort()).toEqual(["r2", "r3"]);
+  });
+
   it("a push that landed is remembered as agreed across a reload", async () => {
     const ev = eventWith([guestFromCollab(ROW, null)]);
     await run(ev);

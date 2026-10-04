@@ -30,8 +30,15 @@ const run = async (ev) => {
 
 describe("RSVP auto-sync on a second device", () => {
   it("an answer applied on the other device is NOT applied again here", async () => {
-    const results = await run({ ...base, rsvpApplied: ["r1"] });
-    for (const r of results) expect(r.guests[0].rsvp).toBe("declined");
+    // A guest the host did NOT edit by hand, so the only thing standing
+    // between r1 and a second application is the list. With the hand-edited
+    // "declined" guest this test passed even with an EMPTY list — the
+    // hand-edit hold stopped it first — and its only expect sat in a loop
+    // over zero calls (audit 3.10, H4). The next test is the positive control:
+    // the same guest with an empty list IS applied.
+    const pending = { ...base, guests: [{ ...base.guests[0], rsvp: "pending" }] };
+    const results = await run({ ...pending, rsvpApplied: ["r1"] });
+    expect(results.some(r => r.guests[0].rsvp === "confirmed")).toBe(false);
   });
 
   it("a new answer is applied, and recorded in the event — not in this browser", async () => {

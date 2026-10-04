@@ -11,7 +11,8 @@
  * Both read their data through Supabase, and there is no .env in this repo, so
  * `isSupabaseConfigured` is FALSE in a normal build — `fetchEventByToken` and
  * `fetchGiftWall` return null/[] without ever making a request. In a production
- * build the gift page then renders "הלינק לא תקין או שפג תוקפו" and the wall
+ * build the gift page then renders the shared dead-link sentence
+ * (INVALID_LINK_TEXT, src/data/guestCopy.js — "הקישור אינו פעיל") and the wall
  * renders "ממתין לברכות…". marketingShots' own LOCKED-STATE guard is what
  * stopped share.jpg and rsvps.jpg from shipping in exactly that condition.
  *
@@ -35,14 +36,21 @@ import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { startPreview } from "./lib/preview.mjs";
 import { mkdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { staleBrand } from "./lib/staleBrand.mjs";
 
 import { COMPANY } from "../src/data/company.js";
+/* The guest pages' own error sentences, imported rather than copied: until
+   3.10 this guard watched for "הלינק לא תקין או שפג תוקפו", a sentence the
+   pages had stopped printing (P2-7), so a dead-link frame would have passed. */
+import { INVALID_LINK_TEXT, UNREACHABLE_TEXT } from "../src/data/guestCopy.js";
 
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
 
-const ROOT   = "/home/user/kochav-hashulchan-app";
-const PORT   = 5189;
+// This checkout, not the main repo — see the same note in marketingShots.mjs.
+const ROOT   = fileURLToPath(new URL("..", import.meta.url)).replace(/\/$/, "");
+const PORT   = Number(process.env.SHOTS_GIFT_PORT) || 5189;
 const BASE   = `http://127.0.0.1:${PORT}`;
 const OUT    = `${ROOT}/public/shots`;
 const ORIGIN = COMPANY.site;
@@ -206,10 +214,10 @@ try {
   let failed = false;
   const shoot = async (name, geom, expect) => {
     const body = await page.evaluate(() => document.body.innerText);
-    const blocked = ["הלינק לא תקין או שפג תוקפו", "ממתין לברכות…", "טוען...",
-      "לא הצלחנו לטעון את קיר הברכות."].find(s => body.includes(s)) || null;
+    const blocked = [INVALID_LINK_TEXT.title, UNREACHABLE_TEXT.title,
+      "ממתין לברכות…", "טוען…", "טוען..."].find(s => body.includes(s)) || null;
     const missing = expect.filter(t => !body.includes(t));
-    const stale = body.includes("כוכב השולחן");
+    const stale = staleBrand(body);
 
     await page.screenshot({
       path: `${OUT}/${name}.jpg`, type: "jpeg", quality: 86,
@@ -217,7 +225,7 @@ try {
     });
     const size = jpegSize(`${OUT}/${name}.jpg`);
     const want = `${geom.w * 2}x${geom.h * 2}`, got = `${size.w}x${size.h}`;
-    const flag = stale ? "STALE-BRAND" : got !== want ? "WRONG-SIZE"
+    const flag = stale ? `STALE-BRAND (${stale})` : got !== want ? "WRONG-SIZE"
       : blocked ? "LOCKED-STATE" : missing.length ? "EMPTY-FRAME" : "ok";
     console.log(`${flag}  ${name}.jpg  (${got}` +
       `${got !== want ? ` — expected ${want}` : ""}` +

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef, useId } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs, eventStartTime, knownStartTime, israelInstant } from "../utils/calendarFile.js";
 import { daysUntilIsrael } from "../utils/dateFormat.js";
@@ -97,7 +97,7 @@ export default function EventSiteScreen({ localEvent }) {
   const [wishes, setWishes] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   // Not in the host's in-app preview: that tab is the host's app.
-  useGuestTitle(!isPreview && ev && guestHosts(ev));
+  useGuestTitle(!isPreview && (ev ? guestHosts(ev) : state === "unreachable" ? OFFLINE_TAB : state === "notfound" && DEAD_LINK_TAB));
   const scheduleRef = useRef(null);
   const locationRef = useRef(null);
   const shuttlesRef = useRef(null);
@@ -175,8 +175,9 @@ export default function EventSiteScreen({ localEvent }) {
   if (state === "notfound") {
     return (
       <main className={styles.stateWrap}>
-        <span className={styles.stateStar}>✦</span>
-        <h1 className={styles.stateTitle}>הקישור אינו תקין או שפג תוקפו</h1>
+        <span className={styles.stateStar} aria-hidden="true">✦</span>
+        <h1 className={styles.stateTitle}>{INVALID_LINK_TEXT.title}</h1>
+        <p>{INVALID_LINK_TEXT.body}</p>
         <Link to="/" className={styles.stateLink}>לדף הבית</Link>
       </main>
     );
@@ -447,7 +448,7 @@ export default function EventSiteScreen({ localEvent }) {
       {/* ── Shared album ── */}
       {visible && albumUrl && (
         <section className={styles.section}>
-          <h2 className={styles.secTitle}>אלבום האירוע</h2>
+          <h2 className={styles.secTitle}>אלבום משותף</h2>
           <div className={styles.giftCard}>
             <p>צילמתם? העלו את התמונות שלכם לאלבום המשותף — וראו מה צילמו כולם.</p>
             <Link to={albumUrl} className={styles.locBtn}>לאלבום ←</Link>

@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, guestWriteError, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { guestHosts } from "../utils/guestRoutes.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import { prepareAlbumPhoto, ALBUM_ACCEPT, ALBUM_REFUSAL_TEXT } from "../utils/albumPhoto.js";
 import { useRestoreFocus } from "../hooks/useRestoreFocus.js";
 import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
@@ -44,7 +44,7 @@ export default function AlbumScreen() {
   const [event, setEvent]   = useState(null);
   const [state, setState]   = useState("loading");
   const [photos, setPhotos] = useState([]);
-  useGuestTitle(event && `אלבום התמונות · ${guestHosts(event)}`);
+  useGuestTitle(event ? `אלבום משותף · ${guestHosts(event)}` : state === "unreachable" ? OFFLINE_TAB : state === "error" && DEAD_LINK_TAB);
   const [name, setName]     = useState(readName);
   const [busy, setBusy]     = useState(0);
   const [error, setError]   = useState("");
@@ -171,9 +171,9 @@ export default function AlbumScreen() {
   if (state === "error") {
     return (
       <main className={styles.state}>
-        <span className={styles.star}>✦</span>
-        <h1 className={styles.stateTitle}>האלבום לא נמצא</h1>
-        <p className={styles.sub}>הקישור אינו תקף או שפג תוקפו</p>
+        <span className={styles.star} aria-hidden="true">✦</span>
+        <h1 className={styles.stateTitle}>{INVALID_LINK_TEXT.title}</h1>
+        <p className={styles.sub}>{INVALID_LINK_TEXT.body}</p>
         <Link to="/" className={styles.homeLink}>לדף הבית</Link>
       </main>
     );

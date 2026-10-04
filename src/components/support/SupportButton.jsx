@@ -3,12 +3,17 @@ import styles from "./SupportButton.module.css";
 import { isGuestRoute } from "../../utils/guestRoutes.js";
 import { COMPANY } from "../../data/company.js";
 
-// Floating WhatsApp support button. Renders only when a support number is
-// configured via VITE_SUPPORT_WHATSAPP (international format, no "+").
-const RAW = import.meta.env.VITE_SUPPORT_WHATSAPP || "";
+// Floating WhatsApp support button, for hosts. The number is the business
+// phone (COMPANY.whatsapp — owner, 4.10: one number for the business and for
+// support); VITE_SUPPORT_WHATSAPP, international format without "+", overrides
+// it. With neither, nothing renders.
+const RAW = import.meta.env.VITE_SUPPORT_WHATSAPP || COMPANY.whatsapp || "";
 const PHONE = RAW.replace(/[^\d]/g, "");
 
-const GREETING = encodeURIComponent(`היי, אני צריך עזרה עם ${COMPANY.name} 🙂`);
+// Neutral on purpose: this is the HOST's first message, typed for them, and
+// "אני צריך" made every host who is not a man send a sentence in the wrong
+// gender (audit 3.10, C17).
+const GREETING = encodeURIComponent(`היי, אשמח לעזרה עם ${COMPANY.name} 🙂`);
 
 export default function SupportButton() {
   const { pathname } = useLocation();

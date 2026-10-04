@@ -86,6 +86,16 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.01em;
 }
 
+/* A heading that wraps leaves one word alone on its last line far too often
+   — measured 41 times across 984 headings on the public and guest pages at
+   320/390/768/1280 (audit 3.10, P2-8; qa/guestPages.mjs `orphans`). Balance
+   evens the lines out. Headings only: it is costly on long text, and a
+   heading is short by nature. A module that sets its own `text-wrap` (some
+   use `pretty`) still wins. */
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
 #root {
   min-height: 100dvh;
   display: flex;

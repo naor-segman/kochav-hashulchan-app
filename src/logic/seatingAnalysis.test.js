@@ -319,7 +319,7 @@ describe("every applicable suggestion is actually safe to apply", () => {
      [{ id: "c", type: "apart", guestA: "A", guestB: "B" }], { A: "t1", B: "t1", C: "t2" }],
     ["overloaded table", [g("a"), g("b"), g("c")], [t("t1", 2), t("t2", 10)], [], { a: "t1", b: "t1", c: "t1" }],
     ["isolated guest", [g("lonely", { group: "משפחה" }), g("m1", { group: "משפחה" }),
-                        g("m2", { group: "משפחה" }), g("x")],
+                        g("m2", { group: "משפחה" }), g("x", { group: "חברים" })],
      [t("t1", 10), t("t2", 10)], [], { lonely: "t1", x: "t1", m1: "t2", m2: "t2" }],
     ["side-heavy tables", [g("b1"), g("b2"), g("b3"), g("b4"), g("gg1", { side: "groom" }),
                            g("g1", { side: "groom" }), g("g2", { side: "groom" }),
@@ -335,14 +335,19 @@ describe("every applicable suggestion is actually safe to apply", () => {
 
   it.each(scenarios)("%s", (_label, guests, tables, cons, seating) => {
     const before = computeViolations(guests, tables, cons, seating);
+    let here = 0;
     for (const s of generateSuggestions(guests, tables, cons, seating, {})) {
       if (!s.canApply || !s.applyAction || s.applyAction.type === "seatUnassigned") continue;
-      applicableSeen++;
+      applicableSeen++; here++;
       const after = computeViolations(guests, tables, cons, apply(seating, s.applyAction));
       expect(after.length, `"${s.explanation}" made things worse`).toBeLessThanOrEqual(before.length);
       // A fix that claims to remove a violation must actually remove one.
       if (s.violationDelta < 0) expect(after.length).toBeLessThan(before.length);
     }
+    // Per scenario, not only in total: "isolated guest" produced nothing to
+    // replay — its "lonely" guest shared a group with the default — and passed
+    // with zero assertions for months (audit 3.10, H4).
+    expect(here, "this scenario offers nothing to apply, so it tests nothing").toBeGreaterThan(0);
   });
 
   it("actually exercised some applicable suggestions (guards against a vacuous pass)", () => {

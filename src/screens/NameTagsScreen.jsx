@@ -5,6 +5,7 @@ import { bigLabel, bigLabelTier } from "../utils/tableCardLabel.js";
 import { seatsOf } from "../utils/arrival.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
 import { fitTentNames } from "../utils/tentNames.js";
+import { NAME_TAG_SIZES } from "../data/nameTagSizes.js";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
@@ -35,16 +36,10 @@ import styles from "./NameTagsScreen.module.css";
  * name tags and small stickers are all still here.
  */
 
-/* perPage is print geometry, not a guess — the columns and fixed row heights
-   in the @media print block of NameTagsScreen.module.css (סב35c). It used to
-   say 8 / 12 / 16 while content-height rows printed 16 / 24 / 32, and the
-   count read "22 pages" for a job that printed on 9. */
-const SIZES = [
-  { key: "table", label: "כרטיס שולחן",  perPage: 2,  note: "עומד על השולחן — המספר נקרא מרחוק" },
-  { key: "card",  label: "כרטיס מקום",   perPage: 8,  note: "מונח על הצלחת — אחד לכל אורח" },
-  { key: "tag",   label: "תג שם",        perPage: 12, note: "לענידה — נפוץ באירועים עסקיים" },
-  { key: "small", label: "מדבקה קטנה",   perPage: 32, note: "מדבקות / כרטיסיות קטנות" },
-];
+/* perPage is print geometry (the @media print block of
+   NameTagsScreen.module.css). The table lives in data/nameTagSizes.js so the
+   event-day service page quotes the same numbers instead of a copy. */
+const SIZES = NAME_TAG_SIZES;
 
 // bigLabel/bigLabelTier moved to utils/tableCardLabel.js — they are pure, and
 // the size a label is set at is now the thing that decides whether the card

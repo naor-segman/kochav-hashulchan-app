@@ -78,4 +78,15 @@ describe("vite.config.js: precache (סב58)", () => {
   it("still precaches jsQR — the door screen scans offline", () => {
     expect(ignores).not.toMatch(/jsQR|jsqr/i);
   });
+
+  /* Audit 3.10, H7: the serif became WOFF2, which the precache glob matches.
+     It was always runtime-cached (the `fonts` rule below); measured on a
+     build, dropping this ignore puts all three files into sw.js. */
+  it("the self-hosted serif stays out of the precache, and the runtime rule still serves it", () => {
+    expect(ignores).toContain("'fonts/*.woff2'");
+    const media = vite.match(/urlPattern:\s*\/(\\\/\(fonts\|hero\)[^\n]*?)\/i,/)?.[1];
+    expect(media, "the fonts|hero runtime rule").toBeTruthy();
+    const pattern = new RegExp(media, "i");
+    expect(pattern.test("https://plan.example/fonts/frl-700.woff2")).toBe(true);
+  });
 });

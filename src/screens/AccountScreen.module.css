@@ -144,7 +144,7 @@
   font-size: var(--step--2);
   color: var(--muted);
   margin: 0;
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
 }
 
 /* ── Usage stats ── */
@@ -532,11 +532,31 @@
 @media (max-width: 480px) {
   .card { padding: 28px 20px 24px; }
 
-  /* Was 9px on both. The plan card gets narrower on a phone, but the answer
-     is the card, not type below the product's own 11px floor. */
-  .planCardFeature { font-size: var(--step--3); }
-  .planCardName    { font-size: var(--step--3); }
-  .planCardBtn     { font-size: var(--step--3); padding: 5px 4px; }
+  /* One plan per row on a phone (audit 3.10, V7). Three columns left each
+     card ~90px at 360: names and feature lines broke a word per line and the
+     button was 72x29. Stacked, each card has the width of the screen, so the
+     head becomes a row and the type steps back up from the 11px floor. */
+  .planGrid        { grid-template-columns: 1fr; }
+  .planCardHead    { flex-direction: row; justify-content: flex-start; gap: 8px; text-align: start; }
+  .planCardName    { font-size: var(--step-0); }
+  .planCardFeature { font-size: var(--step--2); }
+  .planCardBtn     { font-size: var(--step--2); padding: 8px; }
+}
+
+/* Touch targets on a phone (audit 3.10, V7): the three text links under the
+   actions were 286x18 and the plan button 29px tall. They stack in a column
+   with a 20px gap, so the boxes themselves grow — no pseudo-element reaching
+   into a neighbour. */
+@media (pointer: coarse) {
+  .feedbackLink,
+  .backLink {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+  }
+  .planCardBtn { min-height: 44px; }
 }
 
 /* Password change form */

@@ -253,11 +253,17 @@ export default function DashboardScreen({ events, signedIn = false, cloudCapped 
                     </div>
                   )}
 
-                  {(ev.tables.length > 0 || cap > 0 || ev.guests.length > 0) && (
+                  {(ev.tables.length > 0 || cap > 0 || h.activeRecords > 0) && (
                     <div className={styles.eventChips}>
                       {ev.tables.length > 0 && <Chip icon={<Icon name="hexagon" size={13} />} label={ev.tables.length + " שולחנות"} />}
                       {cap > 0 && <Chip icon={<Icon name="chair" size={13} />} label={cap + " מקומות"} />}
-                      {ev.guests.length > 0 && <Chip icon={<Icon name="users" size={13} />} label={ev.guests.length + " רשומות"} />}
+                      {/* Rows that are coming — declined excluded — the count the
+                          event's own map, the seating screen and the health line
+                          above all use. It was ev.guests.length, so the same
+                          event read 150 here and 138 one click later (audit
+                          3.10, V10). The delete dialog keeps the full count: it
+                          deletes every row. */}
+                      {h.activeRecords > 0 && <Chip icon={<Icon name="users" size={13} />} label={h.activeRecords + " רשומות"} />}
                     </div>
                   )}
 

@@ -95,6 +95,89 @@
   color: var(--nav-text);
 }
 
+/* ── "השירותים ▾" — five of the six service pages (audit 3.10, P2-1) ──
+   A disclosure: the button below and a list of links that drops under it.
+   Same type and colour as the links beside it, so the bar reads as one row. */
+.servicesWrap {
+  position: relative;
+}
+
+.servicesBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.servicesBtn[aria-expanded="true"] {
+  color: var(--nav-text);
+}
+
+.servicesCaret {
+  font-size: var(--step--2);
+  transition: transform var(--transition);
+}
+
+.servicesBtn[aria-expanded="true"] .servicesCaret {
+  transform: rotate(180deg);
+}
+
+.servicesMenu {
+  position: absolute;
+  top: calc(100% + 22px);   /* clears the bottom of the 68px bar */
+  inset-inline-start: -16px;
+  z-index: 1;
+  min-width: 280px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--nav-bg);
+  border: 1px solid var(--nav-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+/* `hidden` keeps the list in the DOM, so aria-controls always names a real
+   element — but `display: flex` above would beat the attribute's own
+   display:none, and the list would never close. */
+.servicesMenu[hidden] {
+  display: none;
+}
+
+.servicesItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  min-height: 44px;
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+
+.servicesItem:hover,
+.servicesItem[aria-current="page"] {
+  background: var(--white-glass-dim);
+}
+
+.servicesLabel {
+  color: var(--nav-text);
+  font-size: var(--step-0);
+  font-weight: 600;
+}
+
+.servicesBlurb {
+  color: var(--nav-muted);
+  font-size: var(--step--1);
+}
+
 /* The page you are already on. Came from the pricing copy, where it was one of
    the two things the sheets did not share.
    "You are here" is a state, not a brand moment — and --accent-text was

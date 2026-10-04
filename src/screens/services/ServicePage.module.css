@@ -58,7 +58,12 @@
   color: var(--text);
 }
 
-.h1Soft { color: var(--accent-text); }
+/* Its own block: `text-wrap: balance` (reset.css) does not even out a line
+   that ends at a <br>, so the second sentence kept leaving its last word
+   alone at 320/390 — "…של דודה / שרה." (audit 3.10, P2-8). As a block it is
+   balanced on its own; the <br> before it then ends an empty line box and
+   adds no height. */
+.h1Soft { display: block; color: var(--accent-text); }
 
 .lead {
   margin: 0 auto 32px;

@@ -108,7 +108,7 @@ export const MEAL_OPTIONS = [
   { value: "vegan",      label: "טבעוני" },
   { value: "vegetarian", label: "צמחוני" },
   { value: "child",      label: "ילדים" },
-  { value: "none",       label: "לא אוכל" },
+  { value: "none",       label: "בלי ארוחה" },
 ];
 
 export const MEAL_DEFAULT = "regular";

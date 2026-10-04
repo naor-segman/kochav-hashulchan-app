@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchEventByToken, submitGift, guestWriteError, UNREACHABLE_TEXT } from "../utils/publicTokens.js";
+import { fetchEventByToken, submitGift, guestWriteError, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { uid } from "../utils/uid.js";
 import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
 import { guestHosts, guestEventType } from "../utils/guestRoutes.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 const MOCK_EVENT = {
@@ -39,7 +39,7 @@ export default function GiftScreen() {
   const [event, setEvent]         = useState(null);
   const [loading, setLoading]     = useState(true);
   const [unreachable, setUnreachable] = useState(false);
-  useGuestTitle(event && `מתנה וברכה · ${guestHosts(event)}`);
+  useGuestTitle(event ? `מתנה וברכה · ${guestHosts(event)}` : unreachable ? OFFLINE_TAB : !loading && DEAD_LINK_TAB);
   const [amount, setAmount]       = useState(null);   // number | "custom" | null
   const [customAmt, setCustomAmt] = useState("");
   const [message, setMessage]     = useState("");
@@ -136,7 +136,8 @@ export default function GiftScreen() {
       <div className={styles.root}>
         <main className={styles.loadingWrap}>
           <span className={styles.loadingStar} aria-hidden="true">✦</span>
-          <h1 className={styles.loadingText}>הלינק לא תקין או שפג תוקפו</h1>
+          <h1 className={styles.loadingText}>{INVALID_LINK_TEXT.title}</h1>
+          <p className={styles.loadingText}>{INVALID_LINK_TEXT.body}</p>
           <Link to="/" className={styles.homeLink}>לדף הבית</Link>
         </main>
       </div>

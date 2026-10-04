@@ -539,6 +539,30 @@
   color: var(--text2);
 }
 
+/* "מדיניות הביטול וההחזרים" — the one link on the page that sells, to the
+   terms a buyer is entitled to read before paying, measured 23px on a phone
+   (WORKPLAN 129; audit 3.10, P2-5). Only the tappable area grows. */
+@media (pointer: coarse) {
+  .footnote a {
+    position: relative;
+    /* At 390px it broke across two lines, and an expansion on a broken
+       inline box lands between the fragments, not on them (measured 23px
+       with it in place). Three words, ~170px: it fits on a line. */
+    white-space: nowrap;
+  }
+
+  .footnote a::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}
+
 /* ── Add-ons ── */
 
 .addons { margin-top: 56px; }
