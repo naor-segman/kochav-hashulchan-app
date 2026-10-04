@@ -33,6 +33,16 @@ describe("service pages say what the product does (audit 3.10)", () => {
     expect(t).toMatch(/ומסמנת לכם כל אילוץ שלא הסתדר/);
   });
 
+  it("the same promise inside the app and in the help answers is best effort too (C6, 3.10)", () => {
+    // "תוך כיבוד קבוצות, צדדים ואילוצים" sat on the seating screen itself and
+    // in the help answer after the service page was fixed.
+    for (const f of ["../SeatingScreen.jsx", "../HelpScreen.jsx"]) {
+      const t = copy(f);
+      expect(t, f).not.toMatch(/כיבוד קבוצות, צדדים ואילוצים/);
+      expect(t, f).toMatch(/האילוצים[^"]{0,40}ככל שהאולם מאפשר/);
+    }
+  });
+
   it("gifts: pricing and the gifts page give one answer — card payment is in development (C10)", () => {
     // The pricing FAQ offered card clearing as "an arrangement we set up with
     // you" while /services/gifts said it is in development (WORKPLAN 90: no

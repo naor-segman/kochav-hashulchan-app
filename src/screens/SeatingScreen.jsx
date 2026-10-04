@@ -655,7 +655,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               <div className={styles.runCardSub}>
                 {noTables ? `לפני ההרצה — הגדירו שולחנות בשלב ${buildStep("tables").num}.`
                   : noGuests ? `לפני ההרצה — הוסיפו אורחים בשלב ${buildStep("guests").num}.`
-                  : "המערכת תשבץ את כל האורחים תוך כיבוד קבוצות, צדדים ואילוצים."}
+                  : "המערכת תשבץ את כל האורחים לפי קבוצות וצדדים, ותשמור את האילוצים ככל שהאולם מאפשר — מה שלא הסתדר יסומן לכם."}
               </div>
               <div className={styles.runCardStats}>
                 {/* No spaces around the slash — and the accurate reason, which is
