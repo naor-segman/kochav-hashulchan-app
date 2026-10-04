@@ -50,6 +50,26 @@ describe("customer app: upright type everywhere", () => {
   });
 });
 
+/* WORKPLAN ב9 (audit 3.10, leftovers): "לדף הבית" on a dead guest link was
+ * one rule copied into seven sheets, and the copies drifted (P2-5 fixed six
+ * of seven). Each sheet now composes src/styles/homeLink.module.css; a sheet
+ * that writes its own colour, display or height again is a new copy. */
+describe("the guest 'לדף הבית' link has one definition", () => {
+  it("every guest .homeLink composes the shared rule and restates none of it", () => {
+    const offenders = [];
+    for (const f of walkExt("src/screens", /\.module\.css$/)) {
+      if (/LoginScreen|SignupScreen/.test(f)) continue;   // the auth pages' back link is a different control
+      const css = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      for (const m of css.matchAll(/\.homeLink\s*\{([^}]*)\}/g)) {
+        const body = m[1];
+        if (!/composes:\s*homeLink(OnDark)?\s+from\s+"\.\.\/styles\/homeLink\.module\.css"/.test(body)
+            || /(^|;)\s*(color|display|min-height|font-weight|text-decoration)\s*:/.test(body)) offenders.push(f);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("a forward arrow follows its label", () => {
   it("no link or button text in the customer app starts with '← '", () => {
     const offenders = [];

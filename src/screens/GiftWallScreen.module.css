@@ -325,5 +325,7 @@
    back to the container. */
 .stateTitle { font: inherit; letter-spacing: inherit; }
 
-/* A way out of a dead link (WORKPLAN 108). */
-.homeLink { display: inline-block; padding: 8px 12px; color: var(--accent-on-dark); font-weight: 700; text-decoration: none; }
+/* A way out of a dead link (WORKPLAN 108) — the one shared rule (ב9).
+   The wall sets bigger type, and this copy kept its 8px block padding:
+   49px tall, measured, so it keeps that box rather than shrink to 44. */
+.homeLink { composes: homeLinkOnDark from "../styles/homeLink.module.css"; padding-block: 8px; }
