@@ -131,34 +131,34 @@ export function legalTel() {
 export const DESCRIPTOR = "סידור הושבה, אישורי הגעה וניהול אירועים";
 
 
-// The address the product has always shown. Kept as the last resort so nothing
-// renders a blank `mailto:` before the domain is bought — but it is NOT OWNED,
-// and mail sent to it goes nowhere. `supportContactIsReal()` is how a caller
-// asks whether that is still the case.
-const PLACEHOLDER_DOMAIN = "kochav-hashulchan.co.il";
+// The last resort, so nothing renders a blank `mailto:` if COMPANY.domain is
+// ever cleared. Until 3.10 it was "kochav-hashulchan.co.il" — the first brand's
+// domain, which nobody owns, so mail to it went nowhere (audit C21). It is now
+// the operator's own mail domain: owned, with MX at MyInbox (WORKPLAN 128), so
+// even the fallback reaches a real mailbox.
+const FALLBACK_DOMAIN = "unica-events.co.il";
 
 /** The support address, best available source first. */
 export function supportEmail() {
   return import.meta.env?.VITE_SUPPORT_EMAIL
-    || `${COMPANY.supportMailbox || "support"}@${COMPANY.domain || PLACEHOLDER_DOMAIN}`;
+    || `${COMPANY.supportMailbox || "support"}@${COMPANY.domain || FALLBACK_DOMAIN}`;
 }
 
 /** The main business address — "צרו קשר", sales, enterprise. */
 export function contactEmail() {
   return import.meta.env?.VITE_CONTACT_EMAIL
-    || `${COMPANY.contactMailbox || "contact"}@${COMPANY.domain || PLACEHOLDER_DOMAIN}`;
+    || `${COMPANY.contactMailbox || "contact"}@${COMPANY.domain || FALLBACK_DOMAIN}`;
 }
 
 /**
  * Is anyone actually reading that mailbox?
  *
- * False means the product is still showing the placeholder — every "צרו קשר"
- * on the site is decorative. Nothing branches on this yet; it exists so the
- * decision to hide or replace those links can be made in one place when the
- * legal pages get their real contact details (checklist 19-20).
+ * It was false while the fallback was an unowned placeholder. The fallback is
+ * now an owned domain (above), so every source answers yes. Nothing branches on
+ * this; it is kept so a caller that asks still gets a true answer.
  */
 export function supportContactIsReal() {
-  return Boolean(import.meta.env?.VITE_SUPPORT_EMAIL || COMPANY.domain);
+  return Boolean(import.meta.env?.VITE_SUPPORT_EMAIL || COMPANY.domain || FALLBACK_DOMAIN);
 }
 
 /** A `mailto:` with an optional pre-filled subject and body, encoded once. */
