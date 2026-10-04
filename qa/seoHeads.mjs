@@ -153,6 +153,9 @@ try {
      is fetched here, so if the title changes it changed in JavaScript. */
   await page.goto(BASE + "/home", { waitUntil: "networkidle" });
   const before = await head();
+  // /services/rsvp sits behind "השירותים ▾" since audit 3.10 P2-1 — open it
+  // the way a visitor does, then follow the link.
+  await page.click('header button[aria-controls]:has-text("השירותים")');
   await page.click('header a[href="/services/rsvp"]');
   await page.waitForTimeout(600);
   const after = await head();
