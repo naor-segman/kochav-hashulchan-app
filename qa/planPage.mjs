@@ -94,7 +94,12 @@ function table(rows) {
   const doneTable = head.some((h) => /קומיט/.test(h));
   let h = `<div class="tbl${numbered ? " list" : ""}"><table><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>`;
   for (const r of body) {
-    const st = rowStatus(r) || (doneTable && /[0-9a-f]{7}/.test(r[r.length - 1] ?? "") ? "done" : "");
+    // In a commit table the finding column opens with its SEVERITY (🔴), not a
+    // state: a row with a commit is done unless its outcome column says
+    // otherwise (⬜ "waits for you").
+    const committed = doneTable && /[0-9a-f]{7}/.test(r[r.length - 1] ?? "");
+    const outcome = committed ? r.slice(2, -1).map(statusOf).find(Boolean) : "";
+    const st = committed ? (outcome || "done") : rowStatus(r);
     h += `<tr${st ? ` class="st-${st}"` : ""}>`;
     r.forEach((c, i) => {
       const lab = head[i] ? ` data-h="${esc(head[i].replace(/[*`]/g, ""))}"` : "";
