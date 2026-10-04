@@ -11,7 +11,8 @@
  * Both read their data through Supabase, and there is no .env in this repo, so
  * `isSupabaseConfigured` is FALSE in a normal build — `fetchEventByToken` and
  * `fetchGiftWall` return null/[] without ever making a request. In a production
- * build the gift page then renders "הלינק לא תקין או שפג תוקפו" and the wall
+ * build the gift page then renders the shared dead-link sentence
+ * (INVALID_LINK_TEXT, src/data/guestCopy.js — "הקישור אינו פעיל") and the wall
  * renders "ממתין לברכות…". marketingShots' own LOCKED-STATE guard is what
  * stopped share.jpg and rsvps.jpg from shipping in exactly that condition.
  *
@@ -39,6 +40,10 @@ import { fileURLToPath } from "node:url";
 import { staleBrand } from "./lib/staleBrand.mjs";
 
 import { COMPANY } from "../src/data/company.js";
+/* The guest pages' own error sentences, imported rather than copied: until
+   3.10 this guard watched for "הלינק לא תקין או שפג תוקפו", a sentence the
+   pages had stopped printing (P2-7), so a dead-link frame would have passed. */
+import { INVALID_LINK_TEXT, UNREACHABLE_TEXT } from "../src/data/guestCopy.js";
 
 const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
@@ -209,8 +214,8 @@ try {
   let failed = false;
   const shoot = async (name, geom, expect) => {
     const body = await page.evaluate(() => document.body.innerText);
-    const blocked = ["הלינק לא תקין או שפג תוקפו", "ממתין לברכות…", "טוען...",
-      "לא הצלחנו לטעון את קיר הברכות."].find(s => body.includes(s)) || null;
+    const blocked = [INVALID_LINK_TEXT.title, UNREACHABLE_TEXT.title,
+      "ממתין לברכות…", "טוען…", "טוען..."].find(s => body.includes(s)) || null;
     const missing = expect.filter(t => !body.includes(t));
     const stale = staleBrand(body);
 
