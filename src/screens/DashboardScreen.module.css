@@ -484,7 +484,7 @@
 
 .eventNameEmpty {
   opacity: 0.4;
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
   font-weight: 400;
 }
 

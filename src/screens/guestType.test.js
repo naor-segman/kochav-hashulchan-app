@@ -26,9 +26,28 @@ describe("guest pages: upright type", () => {
   }
 });
 
-const walk = (dir) => readdirSync(dir).flatMap(n => {
+const walkExt = (dir, ext) => readdirSync(dir).flatMap(n => {
   const p = join(dir, n);
-  return statSync(p).isDirectory() ? (n === "admin" ? [] : walk(p)) : (/\.jsx$/.test(n) && !/\.test\./.test(n) ? [p] : []);
+  return statSync(p).isDirectory() ? (n === "admin" ? [] : walkExt(p, ext)) : (ext.test(n) && !/\.test\./.test(n) ? [p] : []);
+});
+const walk = (dir) => walkExt(dir, /\.jsx$/);
+
+/* The host app too (audit 3.10, P2-9 leftovers). The guest fix left eight
+ * rules in Seating, the suggestions panel, Dashboard and Account — every one
+ * on a Hebrew sentence ("שולחן ריק", "ללא שם", "לא נרכשה חבילה…", the
+ * suggestions' disclaimer). Every user-facing string in the customer app is
+ * Hebrew, so the rule is simply: no synthetic slant anywhere outside admin
+ * (the owner has not reviewed that panel yet; it is left alone). */
+describe("customer app: upright type everywhere", () => {
+  it("no stylesheet sets font-style italic or oblique", () => {
+    const offenders = walkExt("src", /\.css$/).filter(f =>
+      /font-style:\s*(italic|oblique)/.test(readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "")));
+    expect(offenders).toEqual([]);
+  });
+  it("no component sets fontStyle italic inline", () => {
+    const offenders = walkExt("src", /\.jsx?$/).filter(f => /fontStyle\s*:\s*["'](italic|oblique)/.test(readFileSync(f, "utf8")));
+    expect(offenders).toEqual([]);
+  });
 });
 
 describe("a forward arrow follows its label", () => {

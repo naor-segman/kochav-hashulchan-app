@@ -144,7 +144,7 @@
   font-size: var(--step--2);
   color: var(--muted);
   margin: 0;
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
 }
 
 /* ── Usage stats ── */

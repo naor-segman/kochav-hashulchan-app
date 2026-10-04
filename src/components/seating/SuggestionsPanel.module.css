@@ -197,7 +197,7 @@
   font-size: var(--step--3);
   color: var(--text2);
   line-height: 1.4;
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
 }
 
 /* ── Apply button ──────────────────────────────────────────────────────────── */
@@ -294,7 +294,7 @@
   padding: 8px 16px 10px;
   font-size: var(--step--3);
   color: var(--text2);
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
   border-top: 1px solid var(--border);
 }
 

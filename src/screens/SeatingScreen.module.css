@@ -585,7 +585,7 @@
   font-size: var(--step--2);
   color: var(--muted);
   margin-top: 2px;
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
   transition: color 0.15s;
 }
 
@@ -626,7 +626,7 @@
   color: var(--muted);
   padding: 8px 14px;
   display: block;
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
   transition: color 0.15s;
 }
 
@@ -1364,7 +1364,7 @@
   padding: 4px 10px;
   font-size: var(--step--3);
   color: var(--muted);
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
 }
 
 /* Unassigned section */
@@ -1471,7 +1471,7 @@
   padding: 4px 8px;
   font-size: var(--step--3);
   color: var(--muted);
-  font-style: italic;
+  /* Upright: Hebrew has no italic and Heebo ships none (audit 3.10, P2-9 leftovers). */
 }
 
 .pvCompactUnassigned {
