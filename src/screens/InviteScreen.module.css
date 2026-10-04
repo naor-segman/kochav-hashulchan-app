@@ -203,6 +203,13 @@
   max-width: 100%;
 }
 
+/* The pair does not fit on one line: name, ✦, name — a stack, the star on
+   its own line between them (see namesRef in the JSX). */
+.namesStacked {
+  flex-direction: column;
+  gap: 6px;
+}
+
 /* Accent moment 1 of 2 — a decorative glyph, never text. */
 .nameSep {
   color: var(--accent);

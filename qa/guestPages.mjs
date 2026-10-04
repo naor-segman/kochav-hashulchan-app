@@ -446,6 +446,37 @@ try {
     ok(style.length === 0, 'every h1–h3 on /home wraps with balance (or a deliberate pretty)', style.join(' · '));
   }
 
+  /* ── P2-9 · the personal card's ✦ between the two names ─────────────────── */
+  if (want('card')) {
+    console.log('\n── card: the ✦ between the couple\'s names — one line, or a stack of three, never beside one name');
+    const NAMES = [['דנה', 'יוסי'], ['אלכסנדרה-מרגריטה', 'בנימין-זאב יהונתן'], ['שירה', 'בנימין-זאב יהונתן'], ['אלכסנדרה-מרגריטה', 'טל']];
+    for (const width of [320, 390, 768]) {
+      for (const [a, b] of NAMES) {
+        const { ctx, p } = await open('/card/ok', { width, setup: async (pg) => {
+          await pg.route(SUPA + '/rest/v1/rpc/public_event_by_token', r => r.fulfill({ status: 200, contentType: 'application/json',
+            body: JSON.stringify({ ...BASE_EV, bride_name: a, groom_name: b }) }));
+        } });
+        const r = await p.evaluate(() => {
+          const h = document.querySelector('h1'); const kids = [...h.children];
+          const sep = kids.find(k => k.textContent.trim() === '✦');
+          if (!sep) return { err: 'no separator' };
+          const mid = el => { const x = el.getBoundingClientRect(); return x.top + x.height / 2; };
+          const names = kids.filter(k => k !== sep);
+          const sameLine = names.filter(n => Math.abs(mid(n) - mid(sep)) < 8);
+          const sx = (() => { scrollTo({ left: -1e5, behavior: 'instant' }); const v = scrollX; scrollTo({ left: 0, behavior: 'instant' }); return v; })();
+          return { lines: new Set(kids.map(k => Math.round(mid(k)))).size, withSep: sameLine.length, sx };
+        });
+        // Fine: all three on one line, or a stack of three with the star on
+        // its own line between the names. Not fine: the star riding at the end
+        // of the first name's line or leading the second's — a stray mark
+        // beside one name, which is what flex-wrap produced.
+        const good = !r.err && r.sx === 0 && (r.withSep === 2 || (r.withSep === 0 && r.lines === 3));
+        ok(good, `@${width} "${a}" ✦ "${b}"`, JSON.stringify(r));
+        await ctx.close();
+      }
+    }
+  }
+
 } finally {
   await browser.close();
   server.stop();
