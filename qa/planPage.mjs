@@ -137,15 +137,26 @@ const toc = [];
 let hn = 0;
 function blocks(lines) {
   let h = "";
+  // An item (4.10): "#### <status> <id> · <title>" opens a card that holds
+  // everything up to the next heading — its "מי / מצב" line and its sub-items.
+  let inItem = false;
+  const closeItem = () => { if (inItem) { h += "</div>"; inItem = false; } };
   for (let i = 0; i < lines.length;) {
     const l = lines[i];
     if (!l.trim()) { i++; continue; }
     const hm = l.match(/^(#{1,4})\s+(.*)$/);
     if (hm) {
+      closeItem();
       const lv = Math.min(hm[1].length + 1, 5);
       const id = `s${++hn}`;
       if (lv <= 4) toc.push({ lv, id, text: hm[2].replace(/\*|`|~~/g, "") });
-      h += `<h${lv} id="${id}">${inline(hm[2])}</h${lv}>`;
+      const st = lv === 5 ? statusOf(hm[2]) : "";
+      if (st) {
+        h += `<div class="item st-${st}"><h5 id="${id}"><span class="chip">${LABEL[st]}</span>${inline(hm[2])}</h5>`;
+        inItem = true;
+      } else {
+        h += `<h${lv} id="${id}">${inline(hm[2])}</h${lv}>`;
+      }
       i++; continue;
     }
     if (/^---+\s*$/.test(l)) { h += "<hr>"; i++; continue; }
@@ -169,6 +180,7 @@ function blocks(lines) {
     if (!p.length) { h += `<p>${inline(lines[i++])}</p>`; continue; }
     h += `<p>${inline(p.join(" "))}</p>`;
   }
+  closeItem();
   return h;
 }
 
@@ -185,7 +197,7 @@ const liveToc = toc.filter((t) => t.lv === 3 || t.lv === 4);
 const hist = histLines.length ? blocks(histLines) : "";
 
 const counts = {};
-for (const m of live.matchAll(/<tr class="st-(\w+)"/g)) counts[m[1]] = (counts[m[1]] || 0) + 1;
+for (const m of live.matchAll(/<(?:tr|div) class="(?:item )?st-(\w+)"/g)) counts[m[1]] = (counts[m[1]] || 0) + 1;
 
 const html = `<!doctype html>
 <html lang="he" dir="rtl">
@@ -251,6 +263,13 @@ tr[class^="st-"] td:first-child{border-inline-start:4px solid var(--c)}
   .tbl td:first-child{border:0!important;white-space:normal}
   .tbl td[data-h]:not(:first-child):not(:nth-child(2))::before{content:attr(data-h) ": ";color:var(--ink3);font-weight:700;font-size:13px}
 }
+.item{background:var(--paper);border:1px solid var(--line);border-inline-start:5px solid var(--c);border-radius:12px;padding:10px 14px 8px;margin:14px 0}
+.item h5{font-size:16.5px;line-height:1.4;margin:2px 0 6px;border:0;padding:0}
+.item p{margin:4px 0;color:var(--ink2);font-size:14.5px}
+.item ul{margin:6px 0 4px;padding-inline-start:20px}
+.item li{margin:5px 0}
+.item li ul{margin:2px 0}
+li.st-open,li.st-wait{font-weight:500}
 details.hist{margin:48px 0 0;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
 details.hist>summary{cursor:pointer;font-weight:700;min-height:36px;display:flex;align-items:center}
 footer{margin-top:40px;color:var(--ink3);font-size:13px}
