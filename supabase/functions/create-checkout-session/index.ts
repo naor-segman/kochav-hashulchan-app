@@ -12,7 +12,8 @@ import { corsHeaders } from "../_shared/cors.js";
 // ONE-TIME PAYMENT (mode: "payment"), not a subscription. A couple has one
 // wedding; the price is per event and charged once. The two price secrets below
 // must therefore be ONE-TIME prices in Stripe — a recurring price is refused by
-// this function with an error that names the secret.
+// this function, with a log line that names the secret (the caller gets
+// "not_configured").
 //
 // Request  (POST, JSON): { plan: "pro" | "enterprise", returnUrl: string,
 //                          eventId: uuid }   ← the events.id being bought
@@ -105,15 +106,23 @@ Deno.serve(async (req: Request) => {
     // checkout with a message that blames the caller's URL. That is the first
     // thing that will happen the day billing is switched on, and "returnUrl is
     // not an allowed origin" sends you looking at the wrong end of it.
+    //
+    // Configuration problems are named in the LOG, not to the caller (audit
+    // 3.10, leftovers — S5's rule, which the catch below already followed):
+    // which secret is missing, or which price is recurring, is the owner's to
+    // read in the Supabase log; the browser gets a fixed code and the app shows
+    // its own Hebrew sentence for it (billingErrorMessage).
     if (!Deno.env.get("APP_ORIGINS")) {
       console.error("APP_ORIGINS is not set — every checkout will be refused.");
-      return reply({ error: "APP_ORIGINS is not configured for this environment." }, 503);
+      return reply({ error: "not_configured" }, 503);
     }
     const safeReturn = safeReturnUrl(returnUrl);
     if (!safeReturn) return reply({ error: "returnUrl is not an allowed origin" }, 400);
 
     if (!plan || !["pro", "enterprise"].includes(plan)) {
-      return reply({ error: `Invalid plan: ${plan}` }, 400);
+      // Not echoed back: the value is whatever the caller sent.
+      console.error("create-checkout-session: invalid plan", JSON.stringify(plan)?.slice(0, 80));
+      return reply({ error: "invalid_plan" }, 400);
     }
 
     // ── Which event is being bought ────────────────────────────────────────
@@ -137,7 +146,9 @@ Deno.serve(async (req: Request) => {
 
     const priceId = PRICE_IDS[plan];
     if (!priceId) {
-      return reply({ error: `No Stripe price ID configured for plan: ${plan}. Set STRIPE_${plan.toUpperCase()}_PRICE_ID in Edge Function secrets.` }, 400);
+      // 503, not 400: the request was fine, this deployment is not.
+      console.error(`No Stripe price ID for plan "${plan}" — set STRIPE_${plan.toUpperCase()}_PRICE_ID in Edge Function secrets.`);
+      return reply({ error: "not_configured" }, 503);
     }
 
     // ── Get or create Stripe customer ─────────────────────────────────────────
@@ -218,17 +229,16 @@ Deno.serve(async (req: Request) => {
     // `mode: "payment"` with a recurring price is rejected by Stripe with
     // "You specified `payment` mode but passed a recurring price" — accurate and
     // completely opaque from inside the app, where it surfaces as a 500 and a
-    // Hebrew toast saying the upgrade failed. One API call buys an error that
+    // Hebrew toast saying the upgrade failed. One API call buys a log line that
     // names the secret to fix, which matters because this is the first thing
     // anyone will hit on the day billing is switched on: the prices in Stripe
     // were created for the subscription model this replaced.
     const price = await stripe.prices.retrieve(priceId);
     if (price.recurring) {
       const secret = `STRIPE_${plan.toUpperCase()}_PRICE_ID`;
-      console.error(`${secret} points at a RECURRING price (${priceId}). Purchases are one-time.`);
-      return reply({
-        error: `${secret} is a recurring price. Pricing is one payment per event, not a subscription — create a one-time price in Stripe and update that secret.`,
-      }, 500);
+      console.error(`${secret} points at a RECURRING price (${priceId}). Pricing is one payment per event, ` +
+        "not a subscription — create a one-time price in Stripe and update that secret.");
+      return reply({ error: "not_configured" }, 503);
     }
 
     // ── Create Stripe Checkout session ────────────────────────────────────────

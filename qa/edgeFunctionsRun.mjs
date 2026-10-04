@@ -14,6 +14,8 @@
  *   S5  an exception, a Stripe error, the model's raw output and a signature
  *       failure stay in the log; the caller gets a fixed message.
  *   S6  CORS answers only the app's own origin (APP_ORIGINS).
+ *   and the S5 leftovers: create-checkout-session's configuration and plan
+ *       errors, purge-event-photos' database and storage errors.
  */
 import { spawnSync } from 'child_process';
 import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
@@ -86,6 +88,24 @@ try {
     ok(c[n]?.status === 500 && !c[n].leaked, `${n}: 500 without Stripe's words`, c[n]?.body?.slice(0, 120));
   }
   ok(c['stripe-error']?.calls?.some(k => k.includes('stripe.com')), '(the Stripe call really was made and failed)', JSON.stringify(c['stripe-error']?.calls?.slice(-1)));
+  // Leftovers of S5 (audit 3.10): no input echoed, no secret or price named.
+  const named = (s) => /STRIPE_|APP_ORIGINS|price_pro|recurring/i.test(s?.body ?? '');
+  ok(c['bad-plan']?.status === 400 && !c['bad-plan'].leaked, 'bad-plan: 400 without the value it was sent', c['bad-plan']?.body?.slice(0, 120));
+  for (const [n, st] of [['no-origins', 503], ['no-price', 503], ['recurring-price', 503]]) {
+    ok(c[n]?.status === st && !named(c[n]), `${n}: ${st} and no secret, origin list or price named`, `${c[n]?.status} ${c[n]?.body?.slice(0, 120)}`);
+  }
+  ok(c['recurring-price']?.calls?.some(k => k.includes('stripe.com/v1/prices')), '(the price really was retrieved and was recurring)');
+
+  console.log('\n── purge-event-photos');
+  const { res: g } = run('purge-event-photos');
+  const failuresOf = (s) => { try { return JSON.parse(s.body).failures ?? []; } catch { return []; } };
+  ok(g['due-fails']?.status === 500 && !g['due-fails'].leaked, 'photo_purge_due fails: 500 without the database\'s words', g['due-fails']?.body?.slice(0, 120));
+  ok(g['remove-fails']?.status === 200 && !g['remove-fails'].leaked && failuresOf(g['remove-fails'])[0]?.reason === 'remove_failed',
+     'storage remove fails: reported as remove_failed, not storage\'s words', g['remove-fails']?.body?.slice(0, 160));
+  ok(g['finalize-fails']?.status === 200 && !g['finalize-fails'].leaked && failuresOf(g['finalize-fails'])[0]?.reason === 'finalize_failed',
+     'finalize fails: reported as finalize_failed, not the database\'s words', g['finalize-fails']?.body?.slice(0, 160));
+  ok(g['purge-ok']?.status === 200 && /"purged":1/.test(g['purge-ok'].body) && /"objectsRemoved":1/.test(g['purge-ok'].body),
+     '(control) a due event with one owned photo: removed and finalized', g['purge-ok']?.body?.slice(0, 160));
 
   console.log('\n── create-billing-portal');
   const { res: p } = run('create-billing-portal');

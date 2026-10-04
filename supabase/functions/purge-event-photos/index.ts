@@ -28,6 +28,8 @@ import { ownedPaths } from "../_shared/purgePaths.js";
 //
 // Request  (POST): no body. Header `x-purge-secret` must match PURGE_SECRET.
 // Response (JSON): { scanned, purged, objectsRemoved, failures: [...] }
+//   each failure is { eventId, reason: "remove_failed" | "finalize_failed" };
+//   the storage/database message is in the function's log, not here.
 //
 // Deploy:
 //   supabase functions deploy purge-event-photos
@@ -94,9 +96,13 @@ Deno.serve(async (req) => {
 
   const { data: dueRows, error: dueErr } = await supabase
     .rpc("photo_purge_due", { batch_limit: BATCH });
+  // The database's own words go to the log, not the response (audit 3.10,
+  // leftovers — the same rule as S5 for the other functions). The caller is
+  // only the scheduler, but a response body is what a cron dashboard stores
+  // and shows; the log is where the detail belongs.
   if (dueErr) {
     console.error("photo_purge_due failed", dueErr);
-    return json({ error: dueErr.message }, 500);
+    return json({ error: "purge_due_failed" }, 500);
   }
 
   const rows = (dueRows ?? []) as Array<{ event_id: string; urls: string[] }>;
@@ -120,7 +126,8 @@ Deno.serve(async (req) => {
         // Do NOT finalize. Leaving the URLs in the payload keeps the event due,
         // so the next run tries again. Clearing them here would strand the
         // objects with nothing left pointing at them.
-        failures.push({ eventId: row.event_id, reason: rmErr.message });
+        console.error("purge-event-photos remove failed", row.event_id, rmErr.message);
+        failures.push({ eventId: row.event_id, reason: "remove_failed" });
         continue;
       }
       objectsRemoved += paths.length;
@@ -131,7 +138,8 @@ Deno.serve(async (req) => {
       // The objects are gone but the payload still names them. The event stays
       // due and the next run finalizes it — `remove()` on already-deleted keys
       // is not an error, which is what makes the retry safe.
-      failures.push({ eventId: row.event_id, reason: `finalize: ${finErr.message}` });
+      console.error("purge-event-photos finalize failed", row.event_id, finErr.message);
+      failures.push({ eventId: row.event_id, reason: "finalize_failed" });
       continue;
     }
     purged++;

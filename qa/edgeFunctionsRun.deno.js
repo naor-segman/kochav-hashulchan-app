@@ -86,8 +86,27 @@ if (fnName === "create-checkout-session") {
     : k.includes("/rest/v1/profiles") ? json({ stripe_customer_id: "cus_1", email: "host@x.test" }) : null;
   await scenario("stripe-error", { body, routes: (k) => db(k) ?? (k.includes("stripe.com") ? stripeErr() : null) });
   await scenario("stripe-throws", { body, routes: (k) => db(k) ?? (k.includes("stripe.com") ? new Error(SECRET) : null) });
+  // Configuration and input errors (audit 3.10, leftovers): the plan value is
+  // the caller's own, and a secret's NAME is the deployment's business.
+  await scenario("bad-plan", { body: JSON.stringify({ plan: SECRET, returnUrl: `${ORIGIN}/events/x`, eventId: "22222222-2222-4222-8222-222222222222" }) });
+  await scenario("no-origins", { body, env: { APP_ORIGINS: null } });
+  await scenario("no-price", { body, env: { STRIPE_PRO_PRICE_ID: null } });
+  await scenario("recurring-price", { body, routes: (k) => db(k) ?? (k.includes("stripe.com/v1/prices") ? json({ id: "price_pro", object: "price", recurring: { interval: "month" } }) : null) });
+  setEnv();
   await scenario("options-app", { method: "OPTIONS" });
   await scenario("options-evil", { method: "OPTIONS", origin: "https://evil.example" });
+}
+
+if (fnName === "purge-event-photos") {
+  const PURGE = "purge-secret-0123456789";
+  const ev = "33333333-3333-4333-8333-333333333333";
+  const due = (k) => k.includes("/rpc/photo_purge_due")
+    ? json([{ event_id: ev, urls: [`http://supabase.test/storage/v1/object/public/event-site/${ev}/a.jpg`] }]) : null;
+  const opt = { headers: { "x-purge-secret": PURGE }, env: { PURGE_SECRET: PURGE }, origin: null };
+  await scenario("due-fails", { ...opt, routes: (k) => k.includes("/rpc/photo_purge_due") ? json({ code: "XX000", message: SECRET }, 500) : null });
+  await scenario("remove-fails", { ...opt, routes: (k) => due(k) ?? (k.includes("/storage/v1/object") ? json({ statusCode: "500", error: SECRET, message: SECRET }, 500) : null) });
+  await scenario("finalize-fails", { ...opt, routes: (k) => due(k) ?? (k.includes("/storage/v1/object") ? json([]) : k.includes("/rpc/photo_purge_finalize") ? json({ code: "XX000", message: SECRET }, 500) : null) });
+  await scenario("purge-ok", { ...opt, routes: (k) => due(k) ?? (k.includes("/storage/v1/object") ? json([]) : null) });
 }
 
 if (fnName === "create-billing-portal") {
