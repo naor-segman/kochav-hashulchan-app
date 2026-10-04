@@ -133,13 +133,15 @@ selectors. Fix the check, not the code, when the check is what is wrong.
   ומושלם"); payments (41) and the server caps (132) come after (WORKPLAN 136).
 - **The free/paid split is FROZEN** at the owner's explicit request. Do not
   propose or implement it until they raise it. (The prices and tiers were decided
-  and built 27.9; what is frozen is ENFORCING them — switching the gates on, 42 /
+  and built 27.9; on 4.10 the owner himself reopened the NUMBERS only — "less
+  round", WORKPLAN 139. What is frozen is ENFORCING them — switching the gates on, 42 /
   סב30 — and any change to what each tier contains.)
 - **The palette is magenta**, chosen by the owner from an Isracard reference,
   after analysis. The collisions it created were fixed rather than used as an
   argument against it. Do not re-litigate the hue. (On 3.10 the owner himself
-  opened 130 — moving toward Unica's colours, "not now". Until he starts it,
-  magenta stands.)
+  opened 130 — moving toward Unica's colours, "not now". On 4.10 he started
+  it as part of the design work (136 stage A): palettes are compared on real
+  components and HE picks. Until he picks, magenta stands.)
 - **A gold palette was proposed and rejected** — it measured ΔE 8.5 from the
   warning colour, i.e. indistinguishable from it.
 - **Do not copy evenzza.** Learn the level of craft, build our own language. A
