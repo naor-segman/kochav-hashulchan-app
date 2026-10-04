@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useId } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchGiftWall, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import { getSiteTheme, getSiteFont } from "../data/eventSiteTemplates.js";
 import { buildEventIcs, icsFileName, downloadIcs, eventStartTime, knownStartTime, israelInstant } from "../utils/calendarFile.js";
 import { daysUntilIsrael } from "../utils/dateFormat.js";
@@ -97,7 +97,7 @@ export default function EventSiteScreen({ localEvent }) {
   const [wishes, setWishes] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   // Not in the host's in-app preview: that tab is the host's app.
-  useGuestTitle(!isPreview && ev && guestHosts(ev));
+  useGuestTitle(!isPreview && (ev ? guestHosts(ev) : state === "unreachable" ? OFFLINE_TAB : state === "notfound" && DEAD_LINK_TAB));
   const scheduleRef = useRef(null);
   const locationRef = useRef(null);
   const shuttlesRef = useRef(null);

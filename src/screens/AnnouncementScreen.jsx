@@ -10,7 +10,7 @@ import styles from "./AnnouncementScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { guestHosts } from "../utils/guestRoutes.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 
 /**
  * Public Save-the-Date / designed invitation.
@@ -80,7 +80,9 @@ export default function AnnouncementScreen({ kind, localEvent }) {
   const isPreview = !!localEvent;
   const [event, setEvent] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | error
-  useGuestTitle(!localEvent && event && `${kind === "saveTheDate" ? "שמרו את התאריך" : "הזמנה"} · ${guestHosts(event)}`);
+  useGuestTitle(!localEvent && (event
+    ? `${kind === "saveTheDate" ? "שמרו את התאריך" : "הזמנה"} · ${guestHosts(event)}`
+    : state === "unreachable" ? OFFLINE_TAB : state === "error" && DEAD_LINK_TAB));
 
   useEffect(() => {
     if (localEvent) {

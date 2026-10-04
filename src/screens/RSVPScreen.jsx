@@ -5,7 +5,7 @@ import { fetchEventByToken, submitRSVP, guestWriteError, UNREACHABLE_TEXT, INVAL
 import { guestEventType, guestHosts } from "../utils/guestRoutes.js";
 import { rsvpSuccessLinks } from "../utils/rsvpLinks.js";
 import { daysUntilIsrael } from "../utils/dateFormat.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import { MEAL_OPTIONS } from "../data/constants.js";
 import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.js";
 import { buildEventIcs, icsFileName, downloadIcs, knownStartTime } from "../utils/calendarFile.js";
@@ -84,7 +84,7 @@ export default function RSVPScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [answer, setAnswer] = useState(null); // "yes" | "maybe" | "no"
-  useGuestTitle(event && `אישור הגעה · ${guestHosts(event)}`);
+  useGuestTitle(event ? `אישור הגעה · ${guestHosts(event)}` : loadState === "unreachable" ? OFFLINE_TAB : loadState === "error" && DEAD_LINK_TAB);
 
   // Each step replaces the whole card, and focus stayed on the button that
   // was pressed — a button no longer in the page — so a screen reader was

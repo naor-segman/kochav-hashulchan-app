@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import { useAppUpdate } from "./hooks/useAppUpdate.js";
-import { usePageMeta } from "./hooks/usePageMeta.js";
+import { PageMeta } from "./hooks/usePageMeta.js";
 import {
   Routes, Route, Navigate,
   useNavigate, useParams, useLocation,
@@ -261,11 +261,6 @@ function AppRoutes() {
   // session restoring after first paint is not a second pageview (37c).
   usePageAnalytics(useLocation().pathname, user?.id);
 
-  /* <title>, description and canonical per route (checklist 87).
-     The build writes a correct <head> into a real document per indexable route,
-     which is what a crawler reads; this is the half that keeps the tab right
-     once the app has booted and every navigation is client-side. */
-  usePageMeta();
 
   // Show a one-time toast whenever a cloud sync error occurs. A server ceiling
   // (syncNote — too many events, too large) says which, because retrying it
@@ -353,6 +348,16 @@ function AppRoutes() {
   }, [navigate]);
 
   return (
+    <>
+    {/* <title>, description and canonical per route (checklist 87).
+        The build writes a correct <head> into a real document per indexable
+        route, which is what a crawler reads; this is the half that keeps the
+        tab right once the app has booted and every navigation is client-side.
+        A sibling placed BEFORE the route table, not a hook in this component
+        — see PageMeta for why the order decides whether a screen's own title
+        survives. (No literal tag names in this comment: mainLandmark.test.jsx
+        slices the route table out of this file by its opening tag.) */}
+    <PageMeta />
     <Routes>
       {/* Landing page — unauthenticated visitors */}
       <Route
@@ -568,5 +573,6 @@ function AppRoutes() {
       />
       <Route path="*" element={<NotFoundScreen />} />
     </Routes>
+    </>
   );
 }

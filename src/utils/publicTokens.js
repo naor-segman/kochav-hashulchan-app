@@ -87,31 +87,10 @@ export function guestWriteError(err, fallback) {
   return fallback;
 }
 
-/**
- * What a guest page says when its link resolves to nothing. One copy.
- *
- * There were eight: "הלינק לא תקין או שפג תוקפו", "הקישור אינו תקין או שפג
- * תוקפו", "ההזמנה לא נמצאה", "האלבום לא נמצא", "הדף לא נמצא", "הקישור לקיר
- * הברכות אינו תקין.", "הקישור אינו תקין או שהאירוע הוסר", "הקישור אינו פעיל"
- * — across ten guest pages, two of them in slang ("לינק") and one in the
- * singular imperative (audit 3.10, P2-7). A guest who opens two links from
- * the same host should not meet two products.
- *
- * "אינו פעיל", not "אינו תקין": the token RPCs return nothing both for a
- * mistyped link AND for one the host has switched off or replaced, and from
- * the page the two cannot be told apart — the shared table worked this out
- * first, and its sentence is the one kept. Plural address, like the rest.
- */
-export const INVALID_LINK_TEXT = {
-  title: "הקישור אינו פעיל",
-  body:  "ייתכן שהכתובת שגויה, או שבעלי האירוע סגרו את הקישור או החליפו אותו. בקשו מהם קישור מעודכן.",
-};
-
-/** What a guest page says when the server cannot be reached. One copy. */
-export const UNREACHABLE_TEXT = {
-  title: "אין חיבור כרגע",
-  body:  "לא הצלחנו להגיע לשרת — הקישור עצמו בסדר. נסו לרענן את הדף בעוד רגע.",
-};
+/** What a guest page says with no event to show — dead link, no connection.
+ *  The copy lives in data/guestCopy.js; re-exported so the pages' imports
+ *  stay where they were. */
+export { INVALID_LINK_TEXT, UNREACHABLE_TEXT } from "../data/guestCopy.js";
 
 /**
  * Fetch the public event data for a given token type and token value.

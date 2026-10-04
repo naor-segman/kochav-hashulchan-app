@@ -7,7 +7,7 @@ import styles from "./GiftScreen.module.css";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
 import { guestHosts, guestEventType } from "../utils/guestRoutes.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
 const MOCK_EVENT = {
@@ -39,7 +39,7 @@ export default function GiftScreen() {
   const [event, setEvent]         = useState(null);
   const [loading, setLoading]     = useState(true);
   const [unreachable, setUnreachable] = useState(false);
-  useGuestTitle(event && `מתנה וברכה · ${guestHosts(event)}`);
+  useGuestTitle(event ? `מתנה וברכה · ${guestHosts(event)}` : unreachable ? OFFLINE_TAB : !loading && DEAD_LINK_TAB);
   const [amount, setAmount]       = useState(null);   // number | "custom" | null
   const [customAmt, setCustomAmt] = useState("");
   const [message, setMessage]     = useState("");

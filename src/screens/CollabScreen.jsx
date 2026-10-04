@@ -13,7 +13,7 @@ import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.j
 import styles from "./CollabScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import { collabGroupOptions } from "../utils/guestRoutes.js";
 import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
 
@@ -51,7 +51,7 @@ export default function CollabScreen() {
   const [ev, setEv] = useState(null);
   const [state, setState] = useState("loading"); // loading | ready | notfound
   const [rows, setRows] = useState([]);
-  useGuestTitle(ev && `רשימת האורחים · ${ev.name || ""}`);
+  useGuestTitle(ev ? `רשימת האורחים · ${ev.name || ""}` : state === "unreachable" ? OFFLINE_TAB : state === "notfound" && DEAD_LINK_TAB);
   // Rows whose last save failed — kept held so the poll can't revert them.
   const [failed, setFailed] = useState(() => new Set());
   const [deleteFailed, setDeleteFailed] = useState(null);   // the row's name, or null

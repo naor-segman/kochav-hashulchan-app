@@ -27,7 +27,7 @@ import styles from "./EntranceScreen.module.css";
 import { useShareGate } from "../components/share/useShareGate.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import { COMPANY } from "../data/company.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import GuidedTour from "../components/tour/GuidedTour.jsx";
 import { TOURS } from "../data/tours.js";
 import { useScreenTour } from "../hooks/useScreenTour.js";
@@ -229,7 +229,7 @@ export default function EntranceScreen({
   // When the list on screen is not fresh: the time it was fetched, while the
   // last refresh failed. null when the last refresh worked.
   const [staleAt, setStaleAt] = useState(null);
-  useGuestTitle(isToken && remote && `כניסה · ${remote.name || ""}`);
+  useGuestTitle(isToken && (remote ? `כניסה · ${remote.name || ""}` : remoteState === "notfound" ? DEAD_LINK_TAB : remoteState === "error" && OFFLINE_TAB));
 
   // Guests with a write still in flight. A refresh that landed mid-write used to
   // overwrite them with the server's pre-write state: the greeter's correction

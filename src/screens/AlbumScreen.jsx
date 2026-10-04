@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { guestHosts } from "../utils/guestRoutes.js";
-import { useGuestTitle } from "../hooks/useGuestTitle.js";
+import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
 import { prepareAlbumPhoto, ALBUM_ACCEPT, ALBUM_REFUSAL_TEXT } from "../utils/albumPhoto.js";
 import { useRestoreFocus } from "../hooks/useRestoreFocus.js";
 import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
@@ -44,7 +44,7 @@ export default function AlbumScreen() {
   const [event, setEvent]   = useState(null);
   const [state, setState]   = useState("loading");
   const [photos, setPhotos] = useState([]);
-  useGuestTitle(event && `אלבום משותף · ${guestHosts(event)}`);
+  useGuestTitle(event ? `אלבום משותף · ${guestHosts(event)}` : state === "unreachable" ? OFFLINE_TAB : state === "error" && DEAD_LINK_TAB);
   const [name, setName]     = useState(readName);
   const [busy, setBusy]     = useState(0);
   const [error, setError]   = useState("");

@@ -147,5 +147,35 @@ export function seoFor(pathname) {
   return SEO_PAGES.find(p => p.path === clean) || null;
 }
 
+/**
+ * Tab titles for routes that are NOT indexable — no canonical, no sitemap
+ * entry, no build-time document — but that a person still has open in a tab,
+ * in their history, or in a password manager's list. Until audit 3.10 (P2-6)
+ * every one of them read the site default, "<brand> — <descriptor>": a
+ * visitor with /login and /signup open side by side could not tell them
+ * apart. Each title is the page's own h1, so the tab and the page agree.
+ */
+export const ROUTE_TITLES = {
+  "/login":          "כניסה לחשבון",
+  "/signup":         "הרשמה",
+  "/reset-password": "בחירת סיסמה חדשה",
+  "/auth/callback":  "אישור כתובת האימייל",
+  "/feedback":       "ספרו לנו",
+};
+
+/** The 404's tab. Set by NotFoundScreen, which is the only one that knows. */
+export const NOT_FOUND_TITLE = `הדף לא נמצא · ${COMPANY.name}`;
+
+/**
+ * The <title> for a pathname: an indexable page's, else a known route's,
+ * else null (the caller's default).
+ */
+export function titleFor(pathname) {
+  const page = seoFor(pathname);
+  if (page) return pageTitle(page);
+  const clean = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return Object.hasOwn(ROUTE_TITLES, clean) ? `${ROUTE_TITLES[clean]} · ${COMPANY.name}` : null;
+}
+
 /** The ids this file carries copy for — used by the test that pins the two. */
 export const seoServiceIds = () => Object.keys(SERVICE_SEO);

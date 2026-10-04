@@ -358,6 +358,42 @@ try {
     }
   }
 
+  /* ── P2-6 · the tab names the page ──────────────────────────────────────── */
+  if (want('titles')) {
+    console.log('\n── titles: document.title per route and state, read from the live page');
+    const { ROUTE_TITLES, NOT_FOUND_TITLE, SEO_PAGES, pageTitle } = await import('../src/data/seo.js');
+    const { COMPANY, DESCRIPTOR } = await import('../src/data/company.js');
+    const { INVALID_LINK_TEXT, UNREACHABLE_TEXT } = await import('../src/data/guestCopy.js');
+    const DEAD = `${INVALID_LINK_TEXT.title} · ${COMPANY.name}`, OFF = `${UNREACHABLE_TEXT.title} · ${COMPANY.name}`;
+    const want = [
+      ...Object.entries(ROUTE_TITLES).map(([path, t]) => [path, `${t} · ${COMPANY.name}`]),
+      ['/no-such-page', NOT_FOUND_TITLE],
+      ...['invite', 'rsvp', 'gift', 'card', 'album', 'save-the-date', 'invitation', 'collab', 'hostess'].map(r => [`/${r}/bad`, DEAD]),
+      ['/gift/bad/wall', DEAD],
+      ...['invite', 'rsvp', 'gift', 'card', 'album', 'save-the-date', 'collab', 'hostess'].map(r => [`/${r}/down`, OFF]), ['/gift/down/wall', OFF],
+      // Unchanged: an indexable page keeps its own, the home page its own.
+      ['/pricing', pageTitle(SEO_PAGES.find(p => p.path === '/pricing'))],
+      ['/home', `${COMPANY.name} — ${DESCRIPTOR}`],
+    ];
+    for (const [path, title] of want) {
+      const { ctx, p } = await open(path, { width: 1280, mobile: false });
+      await p.waitForTimeout(300);
+      const got = await p.title();
+      ok(got === title, `${path} → "${title}"`, got === title ? '' : `got "${got}"`);
+      await ctx.close();
+    }
+    // A client-side move from one 404 to another keeps the screen mounted;
+    // the route default runs again and must not win.
+    const { ctx, p } = await open('/no-such-page', { width: 1280, mobile: false });
+    await p.evaluate(() => { history.pushState({}, '', '/another-missing-page'); dispatchEvent(new PopStateEvent('popstate')); });
+    await p.waitForTimeout(300);
+    ok((await p.title()) === NOT_FOUND_TITLE, '404 → 404 by client navigation keeps the 404 title', await p.title());
+    await p.evaluate(() => { history.pushState({}, '', '/login'); dispatchEvent(new PopStateEvent('popstate')); });
+    await p.waitForTimeout(300);
+    ok((await p.title()) === `${ROUTE_TITLES['/login']} · ${COMPANY.name}`, '404 → /login by client navigation takes the login title', await p.title());
+    await ctx.close();
+  }
+
 } finally {
   await browser.close();
   server.stop();
