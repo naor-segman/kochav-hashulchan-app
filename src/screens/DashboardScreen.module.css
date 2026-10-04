@@ -1189,6 +1189,13 @@
    through a pseudo-element; the box does not move, so dense rows keep their
    density on a phone. */
 @media (pointer: coarse) {
+  /* The card's main action measured 41.5px tall on a phone (10px padding
+     round a 0.875rem label) — qa/hitAreaFull, audit 3.10 leftovers. The box
+     itself grows here: it is a full-width button, not a dense row. */
+  .eventOpenBtn {
+    min-height: 44px;
+  }
+
   .deleteBtn {
     position: relative;
   }

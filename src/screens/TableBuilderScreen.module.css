@@ -132,3 +132,11 @@
     grid-template-columns: minmax(140px, 1fr) 68px 80px 80px 150px;
   }
 }
+
+/* Touch: the two tabs measured 41.5px tall on a phone (qa/hitAreaFull,
+   audit 3.10 leftovers). The tab itself grows; a mouse keeps the 8px pad. */
+@media (pointer: coarse) {
+  .tabBtn {
+    min-height: 44px;
+  }
+}

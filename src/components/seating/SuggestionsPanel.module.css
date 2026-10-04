@@ -314,6 +314,12 @@
 /* Touch targets — see qa/mobile.mjs. "החילו" is the one button that acts on a
    suggestion, and it was 27px. Only the tappable area grows. */
 @media (pointer: coarse) {
+  /* The panel's header is the button that opens it: 42.5px tall on a phone
+     (qa/hitAreaFull, audit 3.10 leftovers). */
+  .toggle {
+    min-height: 44px;
+  }
+
   .applyBtn {
     position: relative;
   }

@@ -1755,6 +1755,16 @@
     min-height: 44px;
   }
 
+  /* The run card's .btnSm rows ("נקו הכל" · "בטלו", then "עמדת כניסה",
+     then "ייצוא לאקסל" when it wraps) are 34px boxes 8px / 6px apart, so
+     each 44px ::after reached into the row below and the later one won:
+     measured 41, 41 and 39px (qa/hitAreaFull, audit 3.10 leftovers).
+     12px between rows puts the centres 46px apart; a mouse sees no change. */
+  .runCardActions,
+  .runActionsSecondary {
+    row-gap: 12px;
+  }
+
   .expandAllBtn {
     position: relative;
   }
