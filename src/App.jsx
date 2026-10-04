@@ -571,7 +571,7 @@ function AppRoutes() {
           </Suspense>
         }
       />
-      <Route path="*" element={<NotFoundScreen />} />
+      <Route path="*" element={<NotFoundScreen hasApp={!!user || events.length > 0} />} />
     </Routes>
     </>
   );

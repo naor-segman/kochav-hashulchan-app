@@ -1,0 +1,55 @@
+/* The 404 — moved out of inline styles, which carried four hardcoded sizes
+   (48/22/14/14px) past every token rule in CLAUDE.md (audit 3.10, P2-9).
+   Each value is the nearest token to what was there. */
+
+.root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+
+/* Decoration, in the quiet border grey; aria-hidden in the JSX. */
+.star {
+  font-size: var(--step-4);
+  line-height: 1;
+  color: var(--border2);
+}
+
+.title {
+  font-size: var(--step-2);
+  font-weight: 700;
+}
+
+.text {
+  font-size: var(--step-0);
+  color: var(--text2);
+  max-width: 320px;
+  line-height: 1.6;
+}
+
+/* --accent under a white label is 3.80:1 and --accent is fills-only. --cta
+   is the token for exactly this job, at 4.71:1. */
+.action {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 24px;
+  background: var(--cta);
+  color: var(--on-accent);
+  border-radius: var(--radius);
+  font-size: var(--step-0);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.action:hover {
+  background: var(--cta-dark);
+}
