@@ -78,8 +78,10 @@ export const PLANS = [
       {
         title: "האירוע שלכם",
         items: [
-          "ריבוי אירועים בלוח אחד, עם ספירת ימים לכל אחד",
-          "שכפול אירוע שלם — שולחנות, אורחים, אילוצים וספקים",
+          // The free tier holds ONE event (planConfig maxEvents: 1; owner, 4.10:
+          // "תתקן את זה לאירוע אחד"). It listed "ריבוי אירועים" and "שכפול
+          // אירוע שלם" — both make a second event, which the free tier refuses.
+          "אירוע אחד, עם ספירת ימים עד היום הגדול",
           "מפת האירוע: מתי כל כלי רלוונטי, ו״המשיכו מכאן״ לשלב הבא",
           "11 סוגי אירועים — חתונה, בר ובת מצווה, ברית, חינה, עסקי ועוד",
           "זוג מאותו מין · שתי אמהות · שני אבות · הורה יחיד",
@@ -295,7 +297,8 @@ export const PLANS = [
     // "בדקו אם התאריך פנוי" → /signup was a button that promised a calendar
     // check and delivered a signup form. There is no date-availability
     // mechanism anywhere in the repo, and no contact route either until
-    // VITE_SUPPORT_WHATSAPP is set (checklist 16). Until then this points at
+    // VITE_SUPPORT_WHATSAPP is set (checklist 16 — since 4.10 the floating
+    // WhatsApp button is on, with the business phone). Until then this points at
     // the page that actually explains the evening, which ends in its own CTA.
     cta: "איך זה עובד בערב",
     ctaTo: "/services/event-day",
