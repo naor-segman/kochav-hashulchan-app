@@ -121,15 +121,36 @@ function list(lines) {
   }
   let h = "";
   const stack = [];
+  // "🔎 היסטוריה:" holds superseded states — kept, but folded: the owner reads
+  // what is true now first (4.10). Its nested list opens on a tap.
+  const isHistory = (t) => /^🔎\s*(\*\*)?היסטוריה/.test(t);
+  // A DONE step's details fold too — but only when nothing under it is still
+  // open, waiting, or unverified: a folded ✅ must never hide a ⬜.
+  const needsEyes = (t) => /^(⬜|❓|⚠️|🔨|⏸️)/u.test(t.trim());
+  const foldable = items.map((it, k) => {
+    if (statusOf(it.text) !== "done") return false;
+    for (let j = k + 1; j < items.length && items[j].ind > it.ind; j++) if (needsEyes(items[j].text)) return false;
+    return true;
+  });
+  let prev = null, prevK = -1;
+  const close = () => { const s = stack.pop(); h += `</li></${s.tag}>${s.fold ? "</details>" : ""}`; };
   for (const it of items) {
-    while (stack.length && it.ind < stack[stack.length - 1].ind) h += `</li></${stack.pop().tag}>`;
+    while (stack.length && it.ind < stack[stack.length - 1].ind) close();
     const top = stack[stack.length - 1];
-    if (!top || it.ind > top.ind) { const tag = it.ord ? "ol" : "ul"; stack.push({ ind: it.ind, tag }); h += `<${tag}>`; }
+    if (!top || it.ind > top.ind) {
+      const tag = it.ord ? "ol" : "ul";
+      const hist = !!(top && prev && isHistory(prev.text));
+      const done = !hist && !!(top && prevK >= 0 && foldable[prevK]);
+      const fold = hist || done;
+      stack.push({ ind: it.ind, tag, fold });
+      h += `${fold ? `<details class="histItem"><summary>${hist ? "להצגת ההיסטוריה" : "פירוט"}</summary>` : ""}<${tag}>`;
+    }
     else h += "</li>";
     const st = statusOf(it.text);
     h += `<li${st ? ` class="st-${st}"` : ""}>${inline(it.text)}`;
+    prev = it; prevK = items.indexOf(it);
   }
-  while (stack.length) h += `</li></${stack.pop().tag}>`;
+  while (stack.length) close();
   return h;
 }
 
@@ -270,6 +291,9 @@ tr[class^="st-"] td:first-child{border-inline-start:4px solid var(--c)}
 .item li{margin:5px 0}
 .item li ul{margin:2px 0}
 li.st-open,li.st-wait{font-weight:500}
+details.histItem{display:inline}
+details.histItem>summary{cursor:pointer;color:var(--accent);font-size:13.5px;min-height:32px;display:inline-flex;align-items:center;padding-inline-start:4px}
+details.histItem[open]>summary{color:var(--ink3)}
 details.hist{margin:48px 0 0;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
 details.hist>summary{cursor:pointer;font-weight:700;min-height:36px;display:flex;align-items:center}
 footer{margin-top:40px;color:var(--ink3);font-size:13px}
