@@ -16,11 +16,11 @@ import { COMPANY, DESCRIPTOR } from '../src/data/company.js';
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const { chromium } = createRequire(ROOT + '/')('playwright');
 const DIR = mkdtempSync(join(tmpdir(), 'og-'));
-for (const w of ['500', '900']) copyFileSync(join(ROOT, 'public/fonts', `frl-${w}.ttf`), join(DIR, `frl-${w}.ttf`));
+for (const w of ['500', '900']) copyFileSync(join(ROOT, 'public/fonts', `frl-${w}.woff2`), join(DIR, `frl-${w}.woff2`));
 
 const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><style>
-@font-face{font-family:F;src:url(frl-500.ttf);font-weight:500}
-@font-face{font-family:F;src:url(frl-900.ttf);font-weight:900}
+@font-face{font-family:F;src:url(frl-500.woff2);font-weight:500}
+@font-face{font-family:F;src:url(frl-900.woff2);font-weight:900}
 html,body{margin:0;width:1200px;height:630px}
 body{background:radial-gradient(ellipse 60% 70% at 50% 38%, rgba(232,67,123,.22), rgba(232,67,123,0) 70%), #14161A;
  display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:F;color:#fff}

@@ -5,25 +5,29 @@
 
 /* ── Self-hosted editorial serif (Frank Ruhl Libre) ──────────────────────────
    Served locally from /public/fonts so it renders without the Google CDN
-   (faster, privacy-friendly, and works in any preview environment). */
+   (faster, privacy-friendly, and works in any preview environment).
+   WOFF2 since audit 3.10 (H7): the same 567 glyphs, the same cmap and the
+   same advance widths as the TTFs they were converted from (fontTools,
+   verified glyph by glyph), at 25–27 KB a weight instead of 66–67 KB.
+   Every browser this app supports reads WOFF2, so there is no TTF fallback. */
 @font-face {
   font-family: "Frank Ruhl Libre";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url("/fonts/frl-500.ttf") format("truetype");
+  src: url("/fonts/frl-500.woff2") format("woff2");
 }
 @font-face {
   font-family: "Frank Ruhl Libre";
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url("/fonts/frl-700.ttf") format("truetype");
+  src: url("/fonts/frl-700.woff2") format("woff2");
 }
 @font-face {
   font-family: "Frank Ruhl Libre";
   font-style: normal;
   font-weight: 900;
   font-display: swap;
-  src: url("/fonts/frl-900.ttf") format("truetype");
+  src: url("/fonts/frl-900.woff2") format("woff2");
 }

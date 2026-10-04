@@ -477,6 +477,37 @@ try {
     }
   }
 
+  /* ── H7 · the self-hosted serif, loaded and rendering ───────────────────── */
+  if (want('fonts')) {
+    console.log('\n── fonts: Frank Ruhl Libre 500/700/900 load from /fonts and set the text');
+    const { ctx, p } = await open('/terms', { width: 1280, mobile: false });
+    const r = await p.evaluate(async () => {
+      const TEXT = 'תנאי השימוש ✦ Unica Plan 2027';
+      const width = (family, weight) => {
+        const s = document.createElement('span');
+        s.style.cssText = `font: ${weight} 40px ${family}; position: absolute; white-space: nowrap; visibility: hidden`;
+        s.textContent = TEXT; document.body.append(s);
+        const w = s.getBoundingClientRect().width; s.remove(); return Math.round(w * 100) / 100;
+      };
+      const out = {};
+      for (const wt of [500, 700, 900]) {
+        await document.fonts.load(`${wt} 40px "Frank Ruhl Libre"`, TEXT);
+        out[wt] = { loaded: document.fonts.check(`${wt} 40px "Frank Ruhl Libre"`, TEXT), serif: width('"Frank Ruhl Libre"', wt), fallback: width('Georgia', wt) };
+      }
+      out.files = performance.getEntriesByType('resource').map(e => new URL(e.name).pathname).filter(u => u.startsWith('/fonts/'));
+      const h1 = document.querySelector('h1');
+      out.h1 = getComputedStyle(h1).fontFamily.split(',')[0];
+      out.faces = [...document.fonts].filter(f => f.family.includes('Frank')).map(f => `${f.weight}:${f.status}`);
+      return out;
+    });
+    console.log('     ' + JSON.stringify(r));
+    for (const wt of [500, 700, 900]) {
+      ok(r[wt].loaded && r[wt].serif !== r[wt].fallback, `Frank Ruhl Libre ${wt} loaded and in use`, `width ${r[wt].serif} vs Georgia ${r[wt].fallback}`);
+    }
+    ok(r.files.length > 0 && r.files.every(f => f.endsWith('.woff2')), 'served as WOFF2', r.files.join(' '));
+    await ctx.close();
+  }
+
 } finally {
   await browser.close();
   server.stop();
