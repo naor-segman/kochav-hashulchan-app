@@ -93,6 +93,24 @@ export const LEGAL_DOCS = {
   updated: "3 באוקטובר 2026",
 };
 
+/**
+ * The accessibility statement's "last updated" date.
+ *
+ * Kept apart from LEGAL_DOCS on purpose: LEGAL_DOCS.version is what a signup
+ * consents to (terms_version), and the accessibility statement is not part of
+ * that consent — tying them would make an accessibility edit look like a new
+ * version of the terms.
+ *
+ * It was typed into AccessibilityScreen.jsx ("11 בספטמבר 2026") and stayed
+ * there while the statement changed under it: the operator's brand and its
+ * contact mailbox render from COMPANY/LEGAL, and both changed on 3.10
+ * (WORKPLAN 128). Audit 3.10, C19. Change it whenever the statement — or the
+ * identity and contact details it shows — changes in substance.
+ */
+export const ACCESSIBILITY_DOC = {
+  updated: "3 באוקטובר 2026",
+};
+
 /** "נאור סגמן, עוסק פטור 313614067" — the identity line, built once. */
 export function legalLine() {
   return `${LEGAL.name}, ${LEGAL.type} ${LEGAL.taxId}`;

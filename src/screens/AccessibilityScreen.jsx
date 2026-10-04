@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
-import { COMPANY, supportEmail, supportMailto, LEGAL, legalTel } from "../data/company.js";
+import { COMPANY, supportEmail, supportMailto, LEGAL, legalTel, ACCESSIBILITY_DOC } from "../data/company.js";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
 
@@ -19,7 +19,7 @@ export default function AccessibilityScreen() {
           <SectionMark name="accessibility" size={26} tile />
           <h1 className={styles.title}>הצהרת נגישות</h1>
         </div>
-        <p className={styles.updated}>עודכן לאחרונה: 11 בספטמבר 2026</p>
+        <p className={styles.updated}>עודכן לאחרונה: {ACCESSIBILITY_DOC.updated}</p>
 
         {/* Operator identity — checklist 19–20. `address` is empty until the
             owner supplies one, and an empty field prints NO ROW rather than a
