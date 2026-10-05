@@ -24,8 +24,8 @@
   font-size: 1.6rem; line-height: 1; font-weight: 700;
   cursor: pointer;
 }
-.stepBtn:hover:not(:disabled) { background: var(--text); color: var(--surface); }
-.stepBtn:disabled { opacity: .3; cursor: default; }
+.stepBtn:hover:not([aria-disabled="true"]) { background: var(--text); color: var(--surface); }
+.stepBtn[aria-disabled="true"] { opacity: .3; cursor: default; }
 .stepBtn:focus-visible, .preset:focus-visible, .countInput:focus-visible, .cta:focus-visible {
   outline: 3px solid var(--focus-ring); outline-offset: 2px;
 }
@@ -127,3 +127,16 @@
     height: 44px;
   }
 }
+
+/* Above the top step: no price, a quote (same as the event's own card). */
+.quote {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  padding: 28px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.quoteText { margin: 0; max-width: 46ch; color: var(--text2); font-size: var(--step-0); line-height: 1.6; }
+.quote .cta { width: 100%; max-width: 360px; }

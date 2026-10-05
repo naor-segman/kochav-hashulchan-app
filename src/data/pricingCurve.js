@@ -42,6 +42,18 @@ export function snapGuests(n) {
   return Math.min(GUESTS_MAX, Math.max(GUESTS_MIN, v));
 }
 
+/** How many PEOPLE a guest list prices at — the same count the seating gate
+    uses (featureGates canSeatMore): a row is `count` people, a bare row is one,
+    an empty row is nobody, and people who declined are not coming. The event
+    card counted the declined too, so a list of 90 coming and 40 declined was
+    priced at 150 while the gate said it was inside the free 100. */
+export function peopleIn(guests) {
+  return (Array.isArray(guests) ? guests : [])
+    .filter(Boolean)
+    .filter(g => g.rsvp !== "declined")
+    .reduce((n, g) => n + Math.max(1, Number(g.count) || 1), 0);
+}
+
 /** The step that covers `people` invited — rounded UP, never to the nearest:
     an event of 320 is the 350 step, or the price would cover fewer people than
     are coming. `null` above the stepper's top, where the price is a quote. */

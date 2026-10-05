@@ -73,6 +73,20 @@ describe("EventPlanCard — an unpaid event", () => {
     expect(document.body.textContent).toContain("עד 350 מוזמנים");
   });
 
+  it("people who declined are not priced — the same count as the seating gate", () => {
+    // 320 coming + 200 declined: still the 350 step, not 550.
+    renderCard(<EventPlanCard ev={{ ...WEDDING, guests: [...WEDDING.guests, { id: "g3", count: 200, rsvp: "declined" }, null] }} />);
+    expect(screen.getByRole("button").textContent).toContain("₪399");
+  });
+
+  it("signed out: the price line stays, and the reason comes with a way forward", () => {
+    authValue = { user: null, loading: false };
+    renderCard(<EventPlanCard ev={WEDDING} />);
+    expect(document.body.textContent).toContain("עד 350 מוזמנים");
+    expect(document.body.textContent).toContain("כדי לרכוש צריך להיות מחוברים לחשבון");
+    expect(screen.getByRole("link", { name: "פתיחת חשבון חינם" }).getAttribute("href")).toBe("/signup");
+  });
+
   it("above 1,000 people there is no price to press — a quote, on WhatsApp", () => {
     renderCard(<EventPlanCard ev={{ ...WEDDING, guests: [{ id: "g", count: 1001 }] }} />);
     expect(screen.queryByRole("button")).toBeNull();
