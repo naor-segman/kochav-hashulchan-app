@@ -130,7 +130,8 @@ export default function ImportReview({ rows, existingGuests, onChange, onConfirm
           onClick={onConfirm}
           disabled={disabled || summary.rows === 0}
         >
-          + הוסיפו {summary.rows} אורחים
+          {/* "+ הוסיפו 1 אורחים" — one guest is singular (stage D list). */}
+          {summary.rows === 1 ? "+ הוסיפו אורח אחד" : `+ הוסיפו ${summary.rows} אורחים`}
           {summary.seats > summary.rows ? ` · ${summary.seats} מקומות` : ""}
           {summary.withPhone > 0 ? ` · ${summary.withPhone} עם טלפון` : ""}
         </button>

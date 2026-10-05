@@ -213,6 +213,16 @@
   box-shadow: 0 0 0 3px var(--red-border);
 }
 
+/* The line under a field that says why it was refused (136 stage D). Right
+   where the eye already is — not a toast at the bottom of the screen. */
+.fieldError {
+  margin: 4px 0 0;
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-semibold);
+  color: var(--red);
+  line-height: 1.45;
+}
+
 /* Touch targets. 44px is the floor for anything a finger has to hit. */
 @media (pointer: coarse) {
   .input,

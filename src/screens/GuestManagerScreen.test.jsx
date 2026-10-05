@@ -197,7 +197,26 @@ describe("GuestManagerScreen — editing a guest must not blank what the form ne
     fireEvent.change(screen.getByDisplayValue("משפחת כהן"), { target: { value: "   " } });
     save();
 
-    expect(showToast).toHaveBeenCalledWith("יש להזין שם אורח", "err");
+    // Said next to the field, with the cursor in it (136 stage D: "שגיאה ליד
+    // השדה") — it was a toast at the bottom of the screen.
+    const name = screen.getByPlaceholderText("שם ושם משפחה");
+    expect(name.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(name.getAttribute("aria-describedby")).textContent).toMatch(/שם האורח/);
+    expect(document.activeElement).toBe(name);
+    expect(showToast).not.toHaveBeenCalledWith(expect.anything(), "err");
+    expect(patchEvent).not.toHaveBeenCalled();
+  });
+
+  it("a companion seat with no name is flagged at the seat, not in a toast", () => {
+    const { patchEvent, showToast } = renderGuests({ guests: [] });
+    fireEvent.change(screen.getByPlaceholderText("שם ושם משפחה"), { target: { value: "רון" } });
+    fireEvent.change(document.querySelector('input[type=number]'), { target: { value: "2" } });
+    fireEvent.click(screen.getByText("+ הוסיפו אורח"));
+    const seat = screen.getByLabelText("שם המצטרף 1");
+    expect(seat.getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(seat);
+    expect(screen.getByRole("alert").textContent).toMatch(/העיקר שיהיה שם לכל מקום/);
+    expect(showToast).not.toHaveBeenCalledWith(expect.anything(), "err");
     expect(patchEvent).not.toHaveBeenCalled();
   });
 
@@ -263,7 +282,7 @@ describe("GuestManagerScreen — adding guests", () => {
     const { applyLast } = renderGuests({ guests: [] });
     pasteAndReview("דנה כהן\nיוסי לוי");
     fireEvent.click(screen.getByLabelText("הסירו את דנה כהן מהייבוא"));
-    fireEvent.click(screen.getByText(/הוסיפו 1 אורחים/));
+    fireEvent.click(screen.getByText(/הוסיפו אורח אחד/));   // not "1 אורחים"
     expect(applyLast().guests.map(g => g.name)).toEqual(["יוסי לוי"]);
   });
 

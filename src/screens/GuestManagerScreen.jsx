@@ -152,7 +152,19 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   // One ref per companion box, so a refused save can put the cursor in the
   // empty one instead of leaving the host to hunt for it.
   const companionRefs             = useRef([]);
-  const setF = (k, v) => setForm(p => Object.assign({}, p, { [k]: v }));
+  const groupInputRef             = useRef(null);
+  /* Where a refused save says why (136 stage D: "שגיאה ליד השדה"). These were
+     toasts — at the bottom of the screen, gone in three seconds, while the
+     field that needed fixing was somewhere above. Keyed by field; cleared as
+     soon as the host edits that field. */
+  const [errors, setErrors]       = useState({});
+  // The seat count as TYPED: emptying the box snapped it straight back to 1,
+  // so selecting "1" and typing "3" made 13 (the RSVP form fixed the same).
+  const [countText, setCountText] = useState(null);
+  const setF = (k, v) => {
+    setForm(p => Object.assign({}, p, { [k]: v }));
+    setErrors(e => (e[k] ? Object.assign({}, e, { [k]: null }) : e));
+  };
 
   // All group options: standard + event-level custom + any already on guests (legacy compat).
   // "אחר" is always last and acts as the trigger to create a new custom group.
@@ -219,10 +231,16 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   };
 
   const saveGuest = () => {
-    if (!form.name.trim()) { showToast("יש להזין שם אורח", "err"); return; }
+    if (!form.name.trim()) {
+      setErrors({ name: "כתבו את שם האורח — זה השדה היחיד שחובה" });
+      nameRef.current?.focus();
+      return;
+    }
     const { group, newCustom } = resolveGroup();
     if (form.group === "אחר" && !customGroupInput.trim()) {
-      showToast("יש להזין שם לקבוצה החדשה", "err"); return;
+      setErrors({ group: "תנו שם לקבוצה החדשה" });
+      groupInputRef.current?.focus();
+      return;
     }
     // Every extra seat needs a name (12.8). This form has an explicit save, so
     // it is the ONE place where the rule can be a real block without risking
@@ -231,10 +249,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     // The message says what to type; it never says the host did something wrong.
     const unnamed = missingCompanionSeats(form.companions, form.count);
     if (unnamed.length) {
-      showToast(COMPANION_NAME_HINT, "err");
+      setErrors({ companions: `${COMPANION_NAME_HINT}.` });
       companionRefs.current[unnamed[0] - 1]?.focus();
       return;
     }
+    setErrors({});
     if (editId) {
       if (!ev.guests.some(g => g.id === editId)) {
         cancelEdit();
@@ -273,6 +292,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     }
     const nextGroup = group !== "אחר" ? group : defaultGroup;
     setForm(p => Object.assign({}, EF, { side: p.side, group: nextGroup }));
+    setCountText(null);
     setCustomGroupInput("");
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
@@ -280,6 +300,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
   const cancelEdit = () => {
     setEditId(null);
     setForm(EF);
+    setErrors({});
+    setCountText(null);
     setCustomGroupInput("");
     setTimeout(() => nameRef.current && nameRef.current.focus(), 50);
   };
@@ -555,7 +577,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         <span className={base.stepBadge}>
           {"שלב " + step.num + " מתוך " + BUILD_STEP_COUNT + " — " + step.label}
         </span>
-        <span className={base.stepText}>בחרו למטה איך להכניס את המוזמנים: להקליד אחד-אחד, להדביק רשימה שכבר יש לכם, או לשלוח קישור שהמשפחה תמלא במקומכם. אחר כך ממשיכים לשולחנות. הכל נשמר לבד.</span>
+        <span className={base.stepText}>בחרו איך להכניס את המוזמנים, ואחר כך ממשיכים לשולחנות. הכל נשמר לבד.</span>
       </div>
 
       {/* ── Guest limit upgrade tip ── */}
@@ -583,10 +605,6 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             >
               <span className={styles.wayIcon}><Icon name="edit" size={18} /></span>
               <span className={styles.wayTitle}>פשוט להקליד בעצמכם</span>
-              <span className={styles.wayText}>
-                אתם ממלאים שם, טלפון וכמה מקומות לשמור. הצד והקבוצה נשארים כפי שבחרתם,
-                כך שאפשר להזין משפחה שלמה ברצף.
-              </span>
             </button>
 
             <button
@@ -597,10 +615,6 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             >
               <span className={styles.wayIcon}><Icon name="clipboard" size={18} /></span>
               <span className={styles.wayTitle}>להדביק רשימה שכבר יש לכם</span>
-              <span className={styles.wayText}>
-                שמות בהודעת וואטסאפ, בפתק או בגיליון — מדביקים הכל בבת אחת, שם אחד בכל שורה.
-                טלפון שנמצא באותה שורה נקלט לבד. כולם נכנסים לאותו צד ולאותה קבוצה.
-              </span>
             </button>
 
             <button
@@ -610,12 +624,23 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             >
               <span className={styles.wayIcon}><Icon name="link" size={18} /></span>
               <span className={styles.wayTitle}>לשלוח קישור {collabWhoTo} — והם ממלאים</span>
-              <span className={styles.wayText}>
-                שולחים קישור אחד בוואטסאפ. כל מי שפותח אותו מוסיף את המוזמנים שלו לאותה טבלה,
-                בלי הרשמה ובלי סיסמה. כל שורה שהושלמה מופיעה כאן מיד — ולא צריך לאסוף אקסלים.
-              </span>
             </button>
           </div>
+          {/* The explanations fold away (136 stage D: "ההסברים מתקפלים"). As
+              three open cards they put the add form ~1,050px down at 390 and
+              the name field at ~1,380. The buttons say what each way IS; how it
+              works is one tap away. */}
+          <details className={styles.waysHelp}>
+            <summary>מה ההבדל בין שלוש הדרכים?</summary>
+            <dl>
+              <dt>להקליד</dt>
+              <dd>אתם ממלאים שם, טלפון וכמה מקומות לשמור. הצד והקבוצה נשארים כפי שבחרתם, כך שאפשר להזין משפחה שלמה ברצף.</dd>
+              <dt>להדביק רשימה</dt>
+              <dd>שמות בהודעת וואטסאפ, בפתק או בגיליון — מדביקים הכל בבת אחת, שם אחד בכל שורה. טלפון שנמצא באותה שורה נקלט לבד. כולם נכנסים לאותו צד ולאותה קבוצה.</dd>
+              <dt>לשלוח קישור</dt>
+              <dd>שולחים קישור אחד בוואטסאפ. כל מי שפותח אותו מוסיף את המוזמנים שלו לאותה טבלה, בלי הרשמה ובלי סיסמה. כל שורה שהושלמה מופיעה כאן מיד.</dd>
+            </dl>
+          </details>
         </div>
       )}
 
@@ -740,14 +765,18 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             {form.group === "אחר" && (
               <div className={styles.customGroupRow}>
                 <input
-                  className={base.input}
+                  ref={groupInputRef}
+                  className={[base.input, errors.group ? base.inputError : ""].filter(Boolean).join(" ")}
                   value={customGroupInput}
                   placeholder="שם הקבוצה החדשה..."
                   maxLength={GROUP_NAME_MAX}
                   autoFocus
-                  onChange={e => setCustomGroupInput(e.target.value)}
+                  aria-invalid={errors.group ? true : undefined}
+                  aria-describedby={errors.group ? "guest-err-group" : undefined}
+                  onChange={e => { setCustomGroupInput(e.target.value); setErrors(x => (x.group ? { ...x, group: null } : x)); }}
                   onKeyDown={e => { if (e.key === "Enter") saveGuest(); }}
                 />
+                {errors.group && <p id="guest-err-group" role="alert" className={base.fieldError}>{errors.group}</p>}
                 <span className={styles.customGroupHint}>
                   הקבוצה תישמר לאירוע הזה ותופיע בתפריט לכל אורח הבא.
                 </span>
@@ -762,20 +791,32 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
           <Field label="שם מלא" required>
             <input
               ref={nameRef}
-              className={base.input}
+              className={[base.input, errors.name ? base.inputError : ""].filter(Boolean).join(" ")}
               value={form.name}
               placeholder="שם ושם משפחה"
+              aria-invalid={errors.name ? true : undefined}
+              aria-describedby={errors.name ? "guest-err-name" : undefined}
               onChange={e => setF("name", e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") saveGuest(); }}
             />
+            {errors.name && <p id="guest-err-name" role="alert" className={base.fieldError}>{errors.name}</p>}
           </Field>
           <Field label="טלפון" hint="לשליחת ההזמנה ואישור ההגעה בוואטסאפ">
+            {/* As the RSVP form asks for it: a phone keyboard, written LTR. */}
             <input className={base.input} value={form.phone} placeholder="050-0000000"
+              type="tel" inputMode="tel" dir="ltr" autoComplete="off"
               onChange={e => setF("phone", e.target.value)} />
           </Field>
           <Field label="כמה כיסאות לשמור" hint="האורח עצמו + כל מי שמגיע איתו">
-            <input className={base.input} type="number" min="1" max="50" value={form.count || 1}
-              onChange={e => setF("count", Math.max(1, parseInt(e.target.value) || 1))} />
+            <input className={base.input} type="number" min="1" max="50"
+              value={countText ?? (form.count || 1)}
+              onChange={e => {
+                const t = e.target.value;
+                setCountText(t);
+                const n = parseInt(t, 10);
+                if (n >= 1) setF("count", Math.min(50, n));
+              }}
+              onBlur={() => setCountText(null)} />
           </Field>
         </div>
 
@@ -795,20 +836,28 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             hint={`${COMPANION_NAME_HINT}. שם על כל כיסא הוא מה שמאפשר לשבת אותם נכון, ולדיילת בכניסה לזהות אותם.`}
             required
           >
+            {/* One child for Field, always: it wraps several children in a
+                group, so the error line appearing as a second child remounted
+                the inputs and took the focus out of the empty seat. */}
+            <div>
             <div className={styles.companionsGrid}>
               {companionsForCount(form.companions, form.count).map((val, i) => (
                 <input
                   key={i}
                   ref={el => { companionRefs.current[i] = el; }}
-                  className={base.input}
+                  className={[base.input, errors.companions && !String(val || "").trim() ? base.inputError : ""].filter(Boolean).join(" ")}
                   value={val}
                   placeholder={`שם ${i + 1} — או ״בעל״ / ״חבר״`}
                   aria-label={`שם המצטרף ${i + 1}`}
+                  aria-invalid={errors.companions && !String(val || "").trim() ? true : undefined}
+                  aria-describedby={errors.companions ? "guest-err-companions" : undefined}
                   /* One name at a time: setCompanionAt keeps every other
                      position exactly as it was. */
                   onChange={e => setF("companions", setCompanionAt(form.companions, i, e.target.value))}
                 />
               ))}
+            </div>
+            {errors.companions && <p id="guest-err-companions" role="alert" className={base.fieldError}>{errors.companions}</p>}
             </div>
           </Field>
         )}

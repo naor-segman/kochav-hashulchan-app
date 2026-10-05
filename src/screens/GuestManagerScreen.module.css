@@ -16,7 +16,7 @@
   background: var(--warn-bg);
   border: 1px solid var(--warn-border);
   border-inline-start: 3px solid var(--warn);
-  border-radius: var(--radius);
+  border-radius: 0;
   line-height: 1.6;
 }
 
@@ -44,8 +44,15 @@
   margin-top: 8px;
 }
 
+/* Three across even on a phone (136 stage D): titles only now, so each is a
+   short button rather than a card of prose — the form comes up the page. */
 @media (max-width: 760px) {
-  .waysGrid { grid-template-columns: 1fr; }
+  /* .waysGrid-scoped: this block sits ABOVE the base .way rules in the file,
+     so plain selectors lost to them (measured: no change at first). */
+  .waysGrid { gap: 6px; }
+  .waysGrid .way { padding: 10px 8px; align-items: center; text-align: center; justify-content: center; }
+  .waysGrid .wayTitle { font-size: var(--step--1); }
+  .waysGrid .wayIcon { display: none; }
 }
 
 .way {
@@ -57,7 +64,7 @@
   text-align: start;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   cursor: pointer;
   font: inherit;
   color: var(--text);
@@ -69,10 +76,35 @@
   border-color: var(--blush-line);
 }
 
+/* The chosen way: the site's emphasis edge, not a tint alone. */
 .wayOn {
   background: var(--blush-soft);
-  border-color: var(--blush-line);
+  border-color: var(--text);
+  box-shadow: inset 0 -3px 0 var(--cta);
 }
+
+.waysHelp {
+  margin-top: 8px;
+  font-size: var(--step--1);
+  color: var(--text2);
+}
+
+.waysHelp summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.waysHelp summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.waysHelp dl { margin: 4px 0 0; display: grid; gap: 4px; }
+.waysHelp dt { font-weight: 800; color: var(--text); margin-top: 6px; }
+.waysHelp dd { margin: 0; line-height: 1.6; }
 
 .wayIcon {
   display: inline-flex;
@@ -80,7 +112,7 @@
   justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text2);
@@ -138,7 +170,7 @@
   margin-top: 16px;
   padding: 16px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: var(--bg);
   display: flex;
   flex-direction: column;
@@ -165,7 +197,7 @@
   display: inline-block;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   padding: 1px 6px;
   color: var(--text2);
 }
@@ -196,7 +228,7 @@
   padding: 8px 14px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   margin-bottom: 8px;
   flex-wrap: wrap;
 }
@@ -211,7 +243,7 @@
 
 .bulkRsvpBtn {
   padding: 4px 12px;
-  border-radius: var(--radius);
+  border-radius: 0;
   border: 1px solid currentColor;
   background: var(--surface);
   font-size: var(--step--1);
