@@ -54,3 +54,16 @@ describe("service pages say what the product does (audit 3.10)", () => {
     expect(gifts).toMatch(/תשלום בכרטיס אשראי בפיתוח/);
   });
 });
+
+describe("/services/rsvp says what /pricing says (owner, 5.10: ליישר לדף המחירים)", () => {
+  it("no 'בפיתוח' on the features /pricing sells untagged, and the package names are pricing's", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { PACKAGES } = await import("../../data/pricingCurve.js");
+    const rsvp = readFileSync(new URL("./RsvpServiceScreen.jsx", import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    expect(rsvp).not.toMatch(/בפיתוח|לא זמינים היום/);
+    expect(rsvp).toMatch(/PACKAGES\[0\]\.name/);
+    expect(rsvp).toMatch(/PACKAGES\[1\]\.name/);
+    expect(PACKAGES.map(p => p.key)).toEqual(["auto", "calls"]);
+  });
+});
