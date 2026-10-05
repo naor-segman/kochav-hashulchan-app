@@ -159,6 +159,10 @@ try {
       // past its last link closes it rather than leaving a panel hanging.
       await page.goto(BASE + "/home", { waitUntil: "networkidle" });
       await btn.focus(); await page.keyboard.press("Enter");
+      // Wait for the list to be open before tabbing: pressed in the same tick
+      // as the Enter, Tab sometimes ran before React rendered the list (1 run
+      // in 5 failed on 5.10 — the check racing the page, not a site bug).
+      await page.waitForFunction(() => document.querySelector('header button[aria-expanded="true"]'), null, { timeout: 2000 }).catch(() => {});
       await page.keyboard.press("Tab");
       check("services: Tab moves into the open list",
         await page.evaluate(id => document.getElementById(id)?.contains(document.activeElement), ctl));
