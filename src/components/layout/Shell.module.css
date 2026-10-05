@@ -382,6 +382,13 @@
 
 .areaBar::-webkit-scrollbar { display: none; }
 
+/* One sticky bar on a phone (136 stage D; the DIGINET review measured ~105px
+   of stacked bars at 390). The top bar stays; the area tabs scroll with the
+   page and are one flick up away. */
+@media (max-width: 767px) {
+  .areaBar { position: static; }
+}
+
 .areaInner {
   display: flex;
   align-items: stretch;
@@ -717,3 +724,10 @@
     justify-content: center;
   }
 }
+
+/* The account button is icon-only under 480px — about 33px wide on a phone
+   (stage D map). Same 44px rule as every other control on the bar. */
+@media (pointer: coarse) {
+  .accountBtn { min-width: 44px; min-height: 44px; justify-content: center; }
+}
+
