@@ -3,6 +3,7 @@ import SiteHeader from "../../components/layout/SiteHeader.jsx";
 import Footer from "../../components/layout/Footer.jsx";
 import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
+import { useHashScroll } from "../../hooks/useHashScroll.js";
 
 /**
  * Service page 4 of 6 — אישורי הגעה. Checklist 87.
@@ -112,6 +113,7 @@ const COMING = [
 ];
 
 export default function RsvpServiceScreen({ user = null }) {
+  useHashScroll();   // /pricing#human, /services/…#how — links shared from outside (review 5.10)
   return (
     <div className={styles.root}>
       <SiteHeader user={user} active={SERVICE.id} />

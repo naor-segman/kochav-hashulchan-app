@@ -4,6 +4,7 @@ import Footer from "../../components/layout/Footer.jsx";
 import { COMPANY } from "../../data/company.js";
 import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
+import { useHashScroll } from "../../hooks/useHashScroll.js";
 
 /**
  * Service page 1 of 6 — סידורי הושבה. Checklist 87.
@@ -127,6 +128,7 @@ const DEPTH = [
 ];
 
 export default function SeatingServiceScreen({ user = null }) {
+  useHashScroll();   // /pricing#human, /services/…#how — links shared from outside (review 5.10)
   return (
     <div className={styles.root}>
       <SiteHeader user={user} active={SERVICE.id} />

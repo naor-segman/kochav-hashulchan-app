@@ -4,6 +4,7 @@ import Footer from "../../components/layout/Footer.jsx";
 import { serviceById } from "../../data/services.js";
 import { PER_PAGE } from "../../data/nameTagSizes.js";
 import styles from "./ServicePage.module.css";
+import { useHashScroll } from "../../hooks/useHashScroll.js";
 
 /**
  * Service page 5 of 6 — יום האירוע. Checklist 87.
@@ -82,6 +83,7 @@ const PRINTS = [
 ];
 
 export default function EventDayServiceScreen({ user = null }) {
+  useHashScroll();   // /pricing#human, /services/…#how — links shared from outside (review 5.10)
   return (
     <div className={styles.root}>
       <SiteHeader user={user} active={SERVICE.id} />

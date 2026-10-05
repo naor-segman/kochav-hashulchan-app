@@ -8,6 +8,7 @@ import { FREE_PACKAGE, HUMAN_SERVICES, GUESTS_MAX } from "../data/pricingCurve.j
 import { PLAN_LIMITS } from "../admin/lib/planConfig.js";
 import { PLANS, PRICING_FOOTNOTE } from "../data/pricing.js";
 import styles from "./PricingScreen.module.css";
+import { useHashScroll } from "../hooks/useHashScroll.js";
 
 /**
  * The pricing page — 136/139, the model the owner approved on 5.10:
@@ -39,6 +40,7 @@ const FAQ = [
 ];
 
 export default function PricingScreen({ user }) {
+  useHashScroll();   // /pricing#human, /services/…#how — links shared from outside (review 5.10)
   return (
     <div className={styles.root}>
       <SiteHeader user={user} active="pricing" />
