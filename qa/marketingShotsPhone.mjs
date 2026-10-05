@@ -253,9 +253,12 @@ const EVENT = {
  * size on every <img>, and a declared aspect ratio that does not match the file
  * is a layout shift while it loads. */
 const H = 844;
+/* `noBrandBar` on all three: at 390px the app bar shows the mark and the event
+   name, and the brand WORD is not on screen — measured, not a stale image. The
+   STALE list still runs, so an old name anywhere in the frame still fails. */
 const FRAMES = [
-  { name: "seating", path: "/events/e1/seating", expect: ["סידור הושבה"] },
-  { name: "guests",  path: "/events/e1/guests", anchor: "סינון:" },
+  { name: "seating", path: "/events/e1/seating", expect: ["סידור הושבה"], noBrandBar: true },
+  { name: "guests",  path: "/events/e1/guests", anchor: "סינון:", noBrandBar: true },
   { name: "checkin", path: "/events/e1/checkin", typeGuest: true, noBrandBar: true },
 ];
 

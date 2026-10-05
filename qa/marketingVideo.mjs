@@ -270,6 +270,7 @@ const FRAMES = [
 let server = { stop: () => {} };
 
 
+const DESK = process.env.DESK === "1";
 try {
   server = await startPreview(PORT, ROOT);
   const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-proxy-server"] });
