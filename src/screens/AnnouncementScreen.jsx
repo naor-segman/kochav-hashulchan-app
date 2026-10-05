@@ -12,6 +12,7 @@ import { COMPANY } from "../data/company.js";
 import { guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB, NOT_PUBLISHED_TAB } from "../hooks/useGuestTitle.js";
 import { NOT_PUBLISHED_TEXT } from "../data/guestCopy.js";
+import HebrewDate from "../components/guest/HebrewDate.jsx";
 
 /**
  * Public Save-the-Date / designed invitation.
@@ -219,7 +220,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
           <h2 className={styles.headline}>{passed ? "האירוע התקיים" : ann.headline}</h2>
 
           {event.date && (
-            <p className={styles.date}>{fmtDate(event.date)}</p>
+            <p className={styles.date}>{fmtDate(event.date)}<HebrewDate date={event.date} /></p>
           )}
 
           {ann.showLocation && event.venue && (

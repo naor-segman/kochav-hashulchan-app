@@ -11,6 +11,7 @@ import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
+import HebrewDate from "../components/guest/HebrewDate.jsx";
 
 // Development fallback — displayed when Supabase is not configured locally
 const MOCK_EVENT = {
@@ -274,7 +275,7 @@ export default function InviteScreen() {
           {formattedDate && (
             <div className={styles.detailRow}>
               <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={17} /></span>
-              <span className={styles.detailText}>{formattedDate}</span>
+              <span className={styles.detailText}>{formattedDate}<HebrewDate date={event.date} /></span>
             </div>
           )}
 

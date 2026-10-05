@@ -10,6 +10,7 @@ import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { siteLocation } from "../utils/siteLocation.js";
+import HebrewDate from "../components/guest/HebrewDate.jsx";
 
 // Map a local (host-owned) event into the public-site shape, so the host can
 // preview drafts securely from inside the authenticated app.
@@ -268,7 +269,7 @@ export default function EventSiteScreen({ localEvent }) {
               ? <div className={styles.heroEn}>{site.heroEn}</div>
               : <div className={styles.heroEn} lang="en" dir="ltr">{site.heroEn}</div>)}
             <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
-            {dateStr && <div className={styles.heroDate}>{dateStr}</div>}
+            {dateStr && <div className={styles.heroDate}>{dateStr}<HebrewDate date={ev.date} /></div>}
             {ev.venue && <div className={styles.heroVenue}><Icon name="pin" size={15} /> {ev.venue}</div>}
             {showRsvp && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
           </div>
