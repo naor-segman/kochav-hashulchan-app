@@ -24,8 +24,14 @@ const ok = (c, what, detail = '') => {
 };
 
 // Dates relative to the machine's today, so the suite does not rot.
+// Israel's calendar day, not the machine's: the app counts by Israel's date on
+// purpose (photoRetention.js — the server decides deletion by it). Between
+// 21:00 and 24:00 UTC the two differ by a day, and this check failed twice
+// at 01:33 Israel time on 6.10 with the app right (bug class 2, in the check).
 const ymd = (offsetDays) => {
-  const d = new Date();
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(new Date()).filter(x => x.type !== 'literal').map(x => [x.type, Number(x.value)]));
+  const d = new Date(parts.year, parts.month - 1, parts.day);   // local calendar arithmetic, no ms math
   d.setDate(d.getDate() + offsetDays);
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
