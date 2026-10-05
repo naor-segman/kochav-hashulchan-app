@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AREAS, BUILD_STEPS } from "../data/eventAreas.js";
 import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import { useAuth } from "../hooks/useAuth.js";
@@ -37,6 +37,16 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   // the card strips the parameter as it reads it.
   const location = useLocation();
   const [fromCheckout] = useState(() => /[?&]checkout=/.test(location.search));
+  // Just created (App.jsx startEvent): the one-time moment below. Read once,
+  // then cleared from the history entry, so Back-then-Forward or a reload
+  // does not congratulate the host a second time.
+  const navigate = useNavigate();
+  const [justCreated] = useState(() => !!location.state?.created);
+  useEffect(() => {
+    if (location.state?.created) {
+      navigate(location.pathname + location.search, { replace: true, state: null });
+    }
+  }, [location, navigate]);
 
   const stats = useMemo(() => {
     const guests = ev.guests || [];
@@ -130,6 +140,9 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
         {/* The four numbers the host comes back for, at the size of an answer.
             People, not rows (a row is a family): the item lines below keep
             their row counts. */}
+        {/* Not on an empty event with no date: four zeros say nothing, and
+            they were the first thing a host saw on the day they started. */}
+        {(stats.guests > 0 || (daysUntil(ev.date) ?? -1) >= 0) && (
         <dl className={styles.numbers}>
           <HubCountdown date={ev.date} />
           <div className={styles.num}>
@@ -145,6 +158,7 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
             <dd className={styles.numBig}>{stats.pct}<span className={styles.numUnit}>%</span></dd>
           </div>
         </dl>
+        )}
       </header>
 
       {/* Above the fold on the screen the host actually lands on. A warning
@@ -153,6 +167,8 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
       <PhotoRetentionNotice ev={ev} patchEvent={patchEvent} showToast={showToast} />
 
       {fromCheckout && planCard}
+
+      {justCreated && <CreatedMoment ev={ev} done={done} />}
 
       {/* Through the gate, like every tile below it. This button called `go`
           directly, so on an unnamed event it opened the screen the tiles refuse
@@ -243,6 +259,48 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           the top instead (fromCheckout). */}
       {!fromCheckout && <div className={styles.planSlot}>{planCard}</div>}
     </div>
+  );
+}
+
+/* The moment the event exists (136 stage D, "רגעים"). It said nothing: the
+ * wizard closed onto a page of zeros. One block, once, between the numbers and
+ * "המשיכו מכאן": that this is a beginning, what the road is, and that nothing
+ * has to be done today. Not a modal — the hub's own tour opens on this visit
+ * too, and a dialog over a dialog is a wall. No confetti (owner: nothing that
+ * pops). "מזל טוב" only where it is said: not to a company event, and not to
+ * "אחר", which may be anything. */
+const COUNT_WORD = { 1: "צעד אחד", 2: "שני צעדים", 3: "שלושה צעדים", 4: "ארבעה צעדים", 5: "חמישה צעדים" };
+const NO_MAZAL_TOV = new Set(["אירוע עסקי", "אחר"]);
+
+function CreatedMoment({ ev, done }) {
+  const left = BUILD_STEPS.filter(s => !done(s.id)).length;
+  const celebrate = !NO_MAZAL_TOV.has(ev.type);
+  return (
+    <section className={styles.created} aria-labelledby="hub-created-title">
+      <h2 id="hub-created-title" className={styles.createdTitle}>
+        {celebrate ? "מזל טוב — האירוע נפתח" : "האירוע נפתח"}
+      </h2>
+      <p className={styles.createdText}>
+        {left
+          ? `מכאן זה עוד ${COUNT_WORD[left] || left + " צעדים"}, ובסופם כל אורח יודע איפה הוא יושב. `
+          : ""}
+        הכל נשמר תוך כדי — אפשר לעצור ולחזור מתי שרוצים.
+      </p>
+      <ol className={styles.createdPath}>
+        {BUILD_STEPS.map(s => {
+          const isDone = done(s.id);
+          return (
+            <li key={s.id} className={isDone ? styles.createdDone : undefined}>
+              <span className={styles.createdNum} aria-hidden="true">
+                {isDone ? <Icon name="check" size={12} /> : s.num}
+              </span>
+              {s.label}
+              {isDone && <span className="sr-only"> — בוצע</span>}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 

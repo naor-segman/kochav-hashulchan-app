@@ -158,3 +158,47 @@ describe("EventHubScreen — signing up from inside a draft (33d)", () => {
     expect(Number(sessionStorage.getItem("kochav_carry_drafts"))).toBeGreaterThan(0);
   });
 });
+
+/* 136 stage D — the one-time "the event is open" moment. App.jsx startEvent
+   navigates with { created: true }; anything else (a reload, the dashboard,
+   a link) opens the hub without it. */
+describe("EventHubScreen — the moment the event is created", () => {
+  const fresh = { guests: [], tables: [], seating: {} };
+  const renderAt = (entry, over = {}) =>
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={[entry]}>
+          <EventHubScreen activeEvent={{ ...EV, ...fresh, ...over }} go={vi.fn()} showToast={vi.fn()} />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+
+  it("says mazal tov, how many steps are left, and that nothing must be done today", () => {
+    renderAt({ pathname: "/events/e1", state: { created: true } });
+    expect(screen.getByRole("heading", { name: "מזל טוב — האירוע נפתח" })).toBeInTheDocument();
+    // Setup is done (the event has a name): four left.
+    expect(screen.getByText(/מכאן זה עוד ארבעה צעדים/)).toBeInTheDocument();
+    expect(screen.getByText(/אפשר לעצור ולחזור מתי שרוצים/)).toBeInTheDocument();
+  });
+
+  it("does not say mazal tov to a company event", () => {
+    renderAt({ pathname: "/events/e1", state: { created: true } }, { type: "אירוע עסקי" });
+    expect(screen.getByRole("heading", { name: "האירוע נפתח" })).toBeInTheDocument();
+    expect(screen.queryByText(/מזל טוב/)).toBeNull();
+  });
+
+  it("is not there when the hub is opened any other way", () => {
+    renderAt("/events/e1");
+    expect(screen.queryByText(/האירוע נפתח/)).toBeNull();
+  });
+});
+
+describe("EventHubScreen — no wall of zeros on an empty event", () => {
+  it("hides the numbers when there are no guests and no date, shows them otherwise", () => {
+    const { unmount } = renderHub({ guests: [], seating: {}, date: "" });
+    expect(screen.queryByText("מוזמנים")).toBeNull();
+    unmount();
+    renderHub();
+    expect(screen.getByText("מוזמנים")).toBeInTheDocument();
+  });
+});

@@ -313,7 +313,10 @@ function AppRoutes() {
     // `type` is the Hebrew string from EVENT_TYPES, which is what an event
     // actually stores — an English key here would match nothing.
     track(EVENTS.EVENT_CREATED, { type: ev.type, source: "new" });
-    navigate(`/events/${ev.id}`);
+    // `created` opens the hub on its one-time "the event is open" moment
+    // (136 stage D). Router state, not a query string: nothing to strip from
+    // a link someone copies, and a reload of the page does not replay it.
+    navigate(`/events/${ev.id}`, { state: { created: true } });
     window.scrollTo(0, 0);
   }, [addEvent, navigate, unpaidEvents, events, showToast]);
 

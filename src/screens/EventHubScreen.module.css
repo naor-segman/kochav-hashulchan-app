@@ -95,6 +95,9 @@
 /* Two by two on a phone: four across at 390 left each number ~80px. */
 @media (max-width: 600px) {
   .numbers { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Three cells (no date, so no countdown) left an empty grey quarter — the
+     grid's hairline ground — beside the last one. It takes the row. */
+  .num:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .num { padding: 14px; }
 }
 
@@ -336,4 +339,67 @@
 
 @media (pointer: coarse) {
   .item { min-height: 44px; }
+}
+
+/* ── The one-time "the event is open" moment (136 stage D) ───────────────── */
+.created {
+  margin-block: 0 18px;
+  padding: 20px 22px;
+  background: var(--blush-soft);
+  border-inline-start: 6px solid var(--cta);
+}
+
+.createdTitle {
+  font-family: var(--font-family-display);
+  font-size: var(--step-3);
+  font-weight: var(--font-weight-extrabold);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.createdText {
+  font-size: var(--step-1);
+  line-height: 1.55;
+  color: var(--text);
+  margin: 0 0 14px;
+  max-width: 56ch;
+}
+
+.createdPath {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--step-0);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+}
+
+.createdPath li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.createdNum {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  background: var(--surface);
+  border: 1px solid var(--blush-line);
+  font-size: var(--step--1);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--accent-text);
+}
+
+.createdDone { color: var(--text2); }
+.createdDone .createdNum {
+  background: var(--cta);
+  border-color: var(--cta);
+  color: var(--on-accent);
 }
