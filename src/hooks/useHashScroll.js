@@ -46,9 +46,22 @@ export function useHashScroll() {
     catch { id = hash.slice(1); }
     // Two frames, not zero: the section sits below the hero, whose height
     // settles after its media lays out. Scrolling immediately lands short.
-    const raf = requestAnimationFrame(() => requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }));
-    return () => cancelAnimationFrame(raf);
+    //
+    // And after the fonts. Since the site font became a self-hosted Open Sans
+    // (136, `font-display: swap`), the page first lays out in the fallback,
+    // the scroll lands, and THEN the font arrives and the text above the
+    // section re-wraps shorter: /privacy#device ended 64px above the top of
+    // the screen (qa/cookieConsent.mjs, failing from the font commit on).
+    // `document.fonts` is absent in jsdom and very old browsers — scroll anyway.
+    let raf = 0;
+    let cancelled = false;
+    const fontsReady = document.fonts?.ready ?? Promise.resolve();
+    fontsReady.catch(() => {}).then(() => {
+      if (cancelled) return;
+      raf = requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!cancelled) document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }));
+    });
+    return () => { cancelled = true; cancelAnimationFrame(raf); };
   }, [hash, key]);
 }
