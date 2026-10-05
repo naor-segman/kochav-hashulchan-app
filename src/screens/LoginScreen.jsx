@@ -170,7 +170,7 @@ export default function LoginScreen() {
               disabled={!isSupabaseConfigured || !email || !password}
               aria-disabled={busy || undefined}
             >
-              {busy ? "מתחבר…" : "כניסה"}
+              {busy ? "מתחברים…" : "כניסה"}
             </button>
           </form>
 
@@ -211,7 +211,7 @@ export default function LoginScreen() {
                 disabled={!forgotEmail}
                 aria-disabled={forgotBusy || undefined}
               >
-                {forgotBusy ? "שולח…" : "שלחו קישור איפוס"}
+                {forgotBusy ? "שולחים…" : "שלחו קישור איפוס"}
               </button>
               <button
                 type="button"

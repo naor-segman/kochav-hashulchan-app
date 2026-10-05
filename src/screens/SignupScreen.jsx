@@ -137,7 +137,7 @@ export default function SignupScreen() {
                   aria-disabled={resentBusy || undefined}
                   aria-describedby={resentError ? "resend-error" : undefined}
                 >
-                  {resentBusy ? "שולח…" : "שלחו שוב"}
+                  {resentBusy ? "שולחים…" : "שלחו שוב"}
                 </button>
               </div>
             )}
@@ -167,7 +167,7 @@ export default function SignupScreen() {
           </div>
 
           <h1 className={styles.title}>הרשמה</h1>
-          <p className={styles.lead}>חשבון חינם — והאירוע נשמר בענן, נפתח מכל מכשיר, ואפשר לשלוח אותו לאורחים.</p>
+          <p className={styles.lead}>חשבון חינם — והאירוע נשמר בענן, נפתח מכל מכשיר, ואפשר לשלוח לאורחים את הקישור.</p>
 
           {!isSupabaseConfigured && (
             <div className={styles.noticeWarn}>
@@ -268,7 +268,7 @@ export default function SignupScreen() {
               disabled={!isSupabaseConfigured || !email || !password || !confirm}
               aria-disabled={busy || undefined}
             >
-              {busy ? "יוצר חשבון…" : "הרשמה"}
+              {busy ? "יוצרים חשבון…" : "הרשמה"}
             </button>
           </form>
 

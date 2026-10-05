@@ -240,7 +240,7 @@ export default function ResetPasswordScreen() {
                 disabled={!pw || !pw2}
                 aria-disabled={busy || undefined}
               >
-                {busy ? "מעדכן…" : "עדכנו סיסמה"}
+                {busy ? "מעדכנים…" : "עדכנו סיסמה"}
               </button>
             </form>
           )}

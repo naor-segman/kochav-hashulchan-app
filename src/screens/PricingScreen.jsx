@@ -5,6 +5,7 @@ import SectionMark from "../components/ui/SectionMark.jsx";
 import PackagePicker from "../components/marketing/PackagePicker.jsx";
 import { COMPANY } from "../data/company.js";
 import { FREE_PACKAGE, HUMAN_SERVICES, GUESTS_MAX } from "../data/pricingCurve.js";
+import { PLAN_LIMITS } from "../admin/lib/planConfig.js";
 import { PLANS, PRICING_FOOTNOTE } from "../data/pricing.js";
 import styles from "./PricingScreen.module.css";
 
@@ -24,7 +25,7 @@ const FAQ = [
   { q: "זה מנוי?",
     a: "לא. תשלום אחד לאירוע, פעם אחת. אחרי האירוע הרשימה וההושבה נשארות אצלכם." },
   { q: "מה מקבלים בחינם?",
-    a: "הזמנה דיגיטלית, אתר לאירוע, אישורי הגעה בקישור, רשימת אורחים בלי הגבלה, והושבה אוטומטית עד 100 מוזמנים — כדי שתרגישו איך זה עובד לפני שמחליטים." },
+    a: `הזמנה דיגיטלית, אתר לאירוע, אישורי הגעה בקישור, רשימת אורחים בלי הגבלה, והושבה אוטומטית עד ${PLAN_LIMITS.free.maxSeatedSeats} מוזמנים — כדי שתרגישו איך זה עובד לפני שמחליטים.` },
   { q: "מי מתקשר לאורחים בחבילה המלאה?",
     a: "נציג אנושי שלנו מתקשר למי שלא ענה בוואטסאפ, והתשובה נכנסת לרשימה שלכם לבד. אתם לא מתקשרים לאף אחד." },
   /* The gift answer has to match /services/gifts — card payment is not live
@@ -48,7 +49,7 @@ export default function PricingScreen({ user }) {
             <p className={styles.eyebrow}>מחירים</p>
             <h1 className={styles.h1}>המחיר של האירוע שלכם. בדיוק.</h1>
             <p className={styles.lede}>
-              בוחרים כמה מוזמנים — ורואים כמה זה עולה. בלי מחירים כלליים, בלי הפתעות
+              בוחרים כמה מוזמנים — ורואים כמה זה עולה. בלי מחירים כלליים, בלי תוספות
               בהמשך ובלי לחשב לבד.
             </p>
           </div>

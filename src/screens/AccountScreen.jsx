@@ -39,10 +39,14 @@ function planFeatures(key) {
      ceiling, the sketch detection, and the person at the door. */
   const seats = l.maxSeatedSeats === Infinity
     ? "הושבה אוטומטית בלי תקרה"
-    : `הושבה אוטומטית עד ${l.maxSeatedSeats} אנשים`;
+    : `הושבה אוטומטית עד ${l.maxSeatedSeats} מוזמנים`;
   return [
     {
-      label:    l.maxEvents === Infinity ? "אירועים ללא הגבלה" : `${l.maxEvents === 1 ? "אירוע אחד" : `עד ${l.maxEvents} אירועים`}`,
+      // Not "אירועים ללא הגבלה": a paid package is bought for ONE event
+      // (Terms §3, per-event entitlement since 28.9) — maxEvents is Infinity
+      // because the account may hold many events, not because one payment
+      // covers them.
+      label:    l.maxEvents === Infinity ? "תשלום אחד — לאירוע אחד" : `${l.maxEvents === 1 ? "אירוע אחד" : `עד ${l.maxEvents} אירועים`}`,
       included: true,
     },
     { label: "רשימת אורחים ללא הגבלה", included: l.maxGuests === Infinity },
@@ -461,7 +465,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
             {/* Reachable two ways now, and neither is a scheduled cancellation:
                 a full refund (charge.refunded sets expires_at to now) or an admin
                 setting an end date by hand. */}
-            הגישה לחבילת {getPlanLabel(planKey)} פעילה עד{" "}
+            הגישה לחבילת ״{getPlanLabel(planKey)}״ פעילה עד{" "}
             {fmtShortDate(sub.expires_at)}.
           </div>
         )}

@@ -65,7 +65,7 @@ const FEELINGS = [
     eyebrow: "בערב עצמו",
     title: "אתם רוקדים. הכניסה מסתדרת",
     body: "בכניסה מחפשים אורח בשם, רואים את השולחן שלו ומסמנים שהגיע — גם מי שהגיע עם חצי מהמשפחה. הדיילת מקבלת קישור משלה, בלי גישה לשאר האירוע.",
-    points: ["מונה הגעה לפי מקומות, לא לפי שורות", "חיפוש לפי שם, מלווה או טלפון", "כרטיסי שם וסידור הושבה להדפסה"],
+    points: ["מונה הגעה לפי אנשים — גם כשמשפחה מגיעה בחלקים", "חיפוש לפי שם, מלווה או טלפון", "כרטיסי שם וסידור הושבה להדפסה"],
     visual: "door",
   },
 ];
@@ -118,7 +118,7 @@ export default function LandingScreen({ user = null }) {
               <Link to="/app" className={styles.btnPrimary}>התחילו חינם ←</Link>
               <a href="#how" className={styles.btnGhostDark}>ראו איך זה עובד</a>
             </div>
-            <p className={styles.heroFree}>חינם לגמרי · בלי כרטיס אשראי · בלי התחייבות</p>
+            <p className={styles.heroFree}>מתחילים בחינם · בלי כרטיס אשראי · בלי התחייבות</p>
             <ul className={styles.heroPoints}>
               {HERO_POINTS.map(p => (
                 <li key={p.t}><SectionMark name={p.mark} size={22} tone="ondark" className={styles.heroMark} />{p.t}</li>
@@ -184,7 +184,7 @@ export default function LandingScreen({ user = null }) {
               <h2 className={styles.title}>תראו את זה קורה</h2>
               <p className={styles.body}>
                 96 אורחים ו-14 שולחנות. לוחצים על הושבה אוטומטית — וכולם במקום,
-                עם מי שחייב לשבת יחד ובלי מי שאסור.
+                עם מי שחייב לשבת יחד, ורחוק ממי שאסור.
               </p>
               <Link to="/app" className={styles.btnPrimary}>נסו על האירוע שלכם ←</Link>
             </div>
@@ -203,7 +203,7 @@ export default function LandingScreen({ user = null }) {
           <div className={styles.inner}>
             <div className={styles.head}>
               <h2 className={styles.title}>אז מה אתם חוגגים?</h2>
-              <p className={styles.sub}>לכל אירוע יש רשימת משימות משלו — היא כבר מחכה לכם בפנים.</p>
+              <p className={styles.sub}>לכל סוג אירוע מחכה בפנים רשימת משימות מוכנה.</p>
             </div>
             <div className={styles.celebrateGrid}>
               {CELEBRATIONS.map(c => (
@@ -229,7 +229,7 @@ export default function LandingScreen({ user = null }) {
               <h2 className={styles.title}>רוצים שמישהו שלנו יעמוד בדלת?</h2>
               <p className={styles.body}>
                 כל השאר אתם עושים לבד, מהטלפון. אבל בערב עצמו — מנהל הושבה, דיילות או
-                ניהול האירוע כולו. אנשים שלנו, באירוע שלכם, במחיר לפי האולם והתאריך.
+                ניהול האירוע כולו. אנשים שלנו, באירוע שלכם, במחיר לפי האולם, התאריך וכמות האורחים.
               </p>
               <div className={styles.humanList}>
                 {HUMAN_SERVICES.map(h => (

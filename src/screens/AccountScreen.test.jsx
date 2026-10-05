@@ -105,7 +105,7 @@ describe("AccountScreen — the plan cards actually differ", () => {
 
   it("the seating ceiling is what separates free from paid", () => {
     const lists = cardTexts();
-    expect(lists.filter(t => /עד 100 אנשים/.test(t)).length).toBe(1);
+    expect(lists.filter(t => /עד 100 מוזמנים/.test(t)).length).toBe(1);
     expect(lists.filter(t => /בלי תקרה/.test(t)).length).toBe(2);
   });
 
@@ -117,6 +117,15 @@ describe("AccountScreen — the plan cards actually differ", () => {
     const human = lists.filter(t => /נציג אנושי/.test(t));
     expect(human.length).toBe(1);
     expect(human[0]).toMatch(/שירות אנושי/);
+  });
+});
+
+describe("AccountScreen — a paid card does not promise unlimited events (review 5.10)", () => {
+  it("one payment is for one event", () => {
+    renderScreen();
+    const text = document.body.textContent;
+    expect(text).not.toMatch(/אירועים ללא הגבלה/);
+    expect(text).toMatch(/תשלום אחד — לאירוע אחד/);
   });
 });
 
