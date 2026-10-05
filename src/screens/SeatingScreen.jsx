@@ -308,8 +308,27 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // "Everything seated ✓" over an "apart" pair still at one locked table
     // told the host the job was done (fourth review 30.9). Say what is left.
     const left = computeViolations(ev.guests, ev.tables, ev.constraints, newSeating).length;
-    if (missed > 0)
-      showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");
+    if (missed > 0) {
+      /* "הוסיפו מקומות נוספים" was said even with 67 seats free (review 5.10:
+         35 × 10 for 327 people, families of 4 — 11 rows waiting). When the
+         free seats would hold the waiting people, the problem is that a family
+         does not split across tables: say that, and what fixes it. */
+      const cap = ev.tables.reduce((n, t) => n + (Number(t.capacity) || 0), 0);
+      const used = Object.keys(newSeating).reduce((n, id) => {
+        const g = ev.guests.find(x => x.id === id);
+        return n + (g ? Math.max(1, Number(g.count) || 1) : 0);
+      }, 0);
+      const free = Math.max(0, cap - used);
+      const waitingSeats = activeGuests.filter(g => !newSeating[g.id])
+        .reduce((n, g) => n + Math.max(1, Number(g.count) || 1), 0);
+      showToast(
+        "שובצו " + placed + " רשומות. " + missed + " לא נכנסו — " +
+        (free >= waitingSeats
+          ? `נשארו ${free} מקומות פנויים, אבל מפוזרים בין השולחנות ומשפחה לא מתפצלת. הוסיפו שולחן אחד, או הגדילו כמה שולחנות.`
+          : `חסרים עוד ${waitingSeats - free} מקומות. הוסיפו שולחנות או מקומות.`),
+        "err"
+      );
+    }
     else if (left > 0)
       showToast("כל " + placed + " הרשומות שובצו, אבל " + (left === 1 ? "אילוץ אחד לא מתקיים" : left + " אילוצים לא מתקיימים") + " — פירוט למטה", "warn");
     else
@@ -318,6 +337,15 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // host most wants to look at what changed, and closing what they opened is
     // the behaviour they asked to have removed.
     setRunKey(k => k + 1);
+    // And take them TO it (136 stage D: "אחרי הושבה אוטומטית — לגלול
+    // לתוצאה"): the button sits above the fold and the result below it. The
+    // waiting list when someone did not fit — that is what needs them — else
+    // the tables. After the render, so the panel exists.
+    setTimeout(() => {
+      const target = missed > 0 ? waitingRef.current : tablesRef.current;
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      target?.scrollIntoView?.({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    }, 80);
   };
 
   const clearAll = async () => {

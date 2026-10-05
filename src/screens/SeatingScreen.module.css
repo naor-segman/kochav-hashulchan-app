@@ -1840,3 +1840,16 @@
     height: 44px;
   }
 }
+
+/* Where the page lands after an automatic run: below the sticky bar(s), not
+   under them (one 62px bar on a phone, two ~107px on a desktop). */
+.tableCards,
+.unassignedCard {
+  scroll-margin-top: 120px;
+}
+
+@media (max-width: 767px) {
+  .tableCards,
+  .unassignedCard { scroll-margin-top: 76px; }
+}
+
