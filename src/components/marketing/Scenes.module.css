@@ -103,6 +103,14 @@
 }
 .table { background: var(--blush); color: var(--text); font-weight: 800; font-size: var(--step--2); padding: 6px 10px; }
 .guest .arrived { grid-row: auto; grid-column: auto; }
+/* On a phone the counter (top) and the guest row (bottom) are as wide as
+   the card itself and sat on it: "שולחן" and the top of the 9 under the
+   counter, the names under the row (review 5.10, 320–390). Room above and
+   below the card for both. */
+@media (max-width: 600px) {
+  .doorWrap { padding-block: 92px 96px; }
+}
+
 @media (max-width: 360px) {
   .guest { inset-inline: 0; inline-size: auto; padding: 10px; grid-template-columns: minmax(0, 1fr) auto; }
   .guest .arrived { grid-column: 2; }

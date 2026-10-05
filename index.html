@@ -24,6 +24,15 @@
     <meta name="twitter:title" content="Unica Plan — סידור הושבה, אישורי הגעה וניהול אירועים" />
     <meta name="twitter:description" content="אורחים, אילוצים, הושבה אוטומטית ואישורי הגעה — הכל במקום אחד." />
     <meta name="twitter:image" content="/og-image.png" />
+    <!-- The site font, fetched with the HTML instead of after the CSS (review
+         5.10): it arrived late enough to re-wrap text that was already painted
+         in the fallback — layout shift 0.12–0.26 on /services/seating at 390.
+         Each file is ~8KB (Hebrew) / ~20KB (Latin). crossorigin is required
+         for a font preload to be reused. -->
+    <link rel="preload" href="/fonts/os-hebrew-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/os-hebrew-700.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/os-hebrew-800.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/os-latin-400.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Loaded WITHOUT blocking first render. As a plain rel="stylesheet" the

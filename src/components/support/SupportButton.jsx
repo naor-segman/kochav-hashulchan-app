@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import styles from "./SupportButton.module.css";
 import { isGuestRoute } from "../../utils/guestRoutes.js";
@@ -9,6 +10,26 @@ import { isAuthFormRoute } from "../../utils/authRoutes.js";
 
 export default function SupportButton() {
   const { pathname } = useLocation();
+  /* Out of the way while reading (review 5.10). Even on the end side it sat
+     on text on 67% of /terms' scroll positions at 390 — on a phone lines run
+     the full width. It slides away while the page is scrolled DOWN and comes
+     back on any scroll up, near the top, or at the end of the page. The
+     competitor weakness we wrote down: bubbles that cover content. */
+  const [away, setAway] = useState(false);
+  const lastY = useRef(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const dy = y - lastY.current;
+      if (Math.abs(dy) < 6) return;
+      lastY.current = y;
+      const nearTop = y < 120;
+      const atEnd = window.innerHeight + y >= document.documentElement.scrollHeight - 40;
+      setAway(dy > 0 && !nearTop && !atEnd);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   // This number is the product's support line, for hosts. On a guest page it sat
   // over the RSVP form and the gift page, inviting a wedding guest to message
   // the software company instead of the couple (106, 28.9).
@@ -17,7 +38,7 @@ export default function SupportButton() {
   const href = supportHref();
   return (
     <a
-      className={styles.fab}
+      className={away ? `${styles.fab} ${styles.away}` : styles.fab}
       href={href}
       target="_blank"
       rel="noopener noreferrer"

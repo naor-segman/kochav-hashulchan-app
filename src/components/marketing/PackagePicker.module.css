@@ -45,9 +45,11 @@
 .countInput:hover { border-bottom-color: var(--border2); }
 .unit { font-size: var(--step--1); color: var(--muted); font-weight: 600; }
 
-.presets { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+/* A row of four that shares the width — at 320 they wrapped 3 + 1 and left
+   "800" alone on a line (review 5.10). */
+.presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; max-width: 320px; margin-inline: auto; width: 100%; }
 .preset {
-  min-width: 56px; min-height: 44px;
+  min-width: 0; min-height: 44px;
   border: 1px solid var(--border2);
   background: var(--surface);
   color: var(--text2);

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import { render, screen } from "../../test/dom.js";
+import { render, screen, act } from "../../test/dom.js";
 import { COMPANY } from "../../data/company.js";
 
 /* 106 (28.9): Revaya's support line floated over every guest page, inviting a
@@ -56,4 +56,17 @@ describe("support button", () => {
     render(<SupportLine />);
     expect(screen.getByRole("link", { name: "כתבו לנו בוואטסאפ" }).getAttribute("href")).toBe(button);
   });
+
+  it("slides away while the page scrolls down, and comes back on scroll up (review 5.10)", () => {
+    at("/terms");
+    Object.defineProperty(document.documentElement, "scrollHeight", { value: 5000, configurable: true });
+    const link = () => screen.getByRole("link", { name: "תמיכה בוואטסאפ" });
+    const scrollTo = (y) => act(() => { window.scrollY = y; window.dispatchEvent(new Event("scroll")); });
+    const base = link().className;
+    scrollTo(600);
+    expect(link().className).not.toBe(base);        // away while reading down
+    scrollTo(400);
+    expect(link().className).toBe(base);            // back on the way up
+  });
 });
+

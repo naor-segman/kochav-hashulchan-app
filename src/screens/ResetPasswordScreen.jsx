@@ -136,6 +136,10 @@ export default function ResetPasswordScreen() {
   return (
     <main id="main" tabIndex={-1} className={styles.page}>
       <div className={styles.formSide}>
+        {/* The way back to the site, as on /login and /signup (review 5.10). */}
+        <div className={styles.homeRow}>
+          <Link to="/" className={styles.homeLink}>→ חזרה לדף הבית</Link>
+        </div>
         <div className={styles.card}>
           <div className={styles.brand}>
             <span className={styles.brandMark} aria-hidden="true">✦</span>
@@ -194,7 +198,7 @@ export default function ResetPasswordScreen() {
                     type={showPw ? "text" : "password"}
                     value={pw}
                     onChange={e => setPw(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="לפחות 6 תווים"
                     dir="ltr"
                     autoComplete="new-password"
                     readOnly={busy}
@@ -221,7 +225,7 @@ export default function ResetPasswordScreen() {
                   type={showPw ? "text" : "password"}
                   value={pw2}
                   onChange={e => setPw2(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="הזינו שוב את הסיסמה"
                   dir="ltr"
                   autoComplete="new-password"
                   readOnly={busy}

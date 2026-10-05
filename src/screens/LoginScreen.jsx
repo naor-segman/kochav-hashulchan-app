@@ -152,7 +152,6 @@ export default function LoginScreen() {
                   type={showPw ? "text" : "password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
                   dir="ltr"
                   autoComplete="current-password"
                   disabled={!isSupabaseConfigured}
