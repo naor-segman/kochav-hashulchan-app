@@ -19,10 +19,12 @@
   justify-content: space-between;
   padding: 18px 24px;
   border-radius: 0;
-  background: linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg2) 100%);
-  border: 1px solid var(--nav-border);
+  /* Light, with the site's emphasis edge (136 stage D; owner, 5.10: no
+     all-black grounds). It was a near-black gradient band. */
+  background: var(--surface);
+  border: 2px solid var(--text);
+  border-inline-start: 6px solid var(--cta);
   margin-bottom: 20px;
-  box-shadow: var(--shadow-md), inset 0 1px 0 var(--white-glass-dim);
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -33,24 +35,23 @@
   gap: 8px;
 }
 
-/* The one saturated glyph on the dark band. --accent-text was 2.64:1 here and
-   read as a smudge; --accent is 4.76:1 on --nav-bg and this is a decorative
-   shape, which is exactly what --accent is for. No glow: the mark carries. */
+/* On the light band now: --accent-text (a shape, but it is the same mark as
+   the header's), --text and --text2. */
 .logoMark {
   font-size: var(--step-2);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .logoName {
   font-size: var(--step-2);
-  font-weight: 900;
-  color: var(--nav-text);
+  font-weight: 800;
+  color: var(--text);
   letter-spacing: -0.02em;
 }
 
 .heroBarSub {
-  font-size: var(--step--2);
-  color: var(--nav-muted);
+  font-size: var(--step--1);
+  color: var(--text2);
 }
 
 /* THE action of the screen. A filled button is --cta, never --accent: white on
@@ -64,7 +65,6 @@
   border-radius: 0;
   font-size: var(--step-0);
   font-weight: 700;
-  box-shadow: var(--shadow-cta);
   display: inline-block;
   transition: background var(--transition), box-shadow var(--transition);
 }
@@ -128,7 +128,7 @@
 }
 
 .onboardingTitle {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: 42px;
   font-weight: 900;
   letter-spacing: -0.01em;
@@ -309,7 +309,7 @@
 }
 
 .featBig {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: clamp(3.25rem, 7vw, 4.5rem);
   font-weight: 700;
   line-height: 1;
@@ -456,7 +456,7 @@
 
 /* The one serif on this page. Scale is where the product's authority lives. */
 .eventCardFeatured .eventName {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: var(--step-3);
   font-weight: 700;
   letter-spacing: -0.01em;
