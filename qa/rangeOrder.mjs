@@ -42,6 +42,10 @@ try {
       for (let n; (n = walker.nextNode());) {
         for (const m of n.data.matchAll(/(\d+)%?\s?([-–]|עד)\s?(\d+)(?![\d/])/g)) {
           if (!n.parentElement?.getClientRects().length) continue;
+          // A phone number is not a range: "050-2296734" in the footer sits in
+          // an LTR <bdi> inside a tel: link, and paints 050 first (measured
+          // 5.10). Text whose own direction is LTR is not an RTL range.
+          if (getComputedStyle(n.parentElement).direction === 'ltr' || n.parentElement.closest('a[href^="tel:"]')) continue;
           const r = document.createRange();
           const a = m.index, b = m.index + m[0].length - m[3].length;
           r.setStart(n, a); r.setEnd(n, a + m[1].length); const ra = r.getBoundingClientRect();

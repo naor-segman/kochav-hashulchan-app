@@ -3,6 +3,8 @@ import SiteHeader from "../../components/layout/SiteHeader.jsx";
 import Footer from "../../components/layout/Footer.jsx";
 import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
+import { useHashScroll } from "../../hooks/useHashScroll.js";
+import { PACKAGES } from "../../data/pricingCurve.js";
 
 /**
  * Service page 4 of 6 — אישורי הגעה. Checklist 87.
@@ -13,7 +15,9 @@ import styles from "./ServicePage.module.css";
  * WhatsApp sending, the two-way bot, and three rounds of phone calls — on the
  * explicit basis that the site is not published until they are built. So they
  * are here, and they are quarantined: everything not yet built lives in the
- * single `COMING` array below and renders inside one clearly-marked section.
+ * single `PAID` array below and renders inside one clearly-marked section.
+ * (5.10: no longer labelled "בפיתוח" — aligned with /pricing, which sells
+ * them untagged by the owner's decision. Still unbuilt; still one array.)
  * Deleting that array and the section that renders it removes every
  * unbuilt claim from the page in one edit, with nothing left behind in the
  * prose above it. Grep for COMING_NOT_BUILT to find it.
@@ -86,8 +90,8 @@ const SEQUENCE = [
 ];
 
 /* ── COMING_NOT_BUILT ───────────────────────────────────────────────────────
- * Nothing in this array exists in the code. Delete the array and the section
- * that renders it to strip every unbuilt claim from the page.
+ * Nothing in the PAID array below exists in the code yet. Delete the array and
+ * the section that renders it to strip every unbuilt claim from the page.
  *
  * Blocked on, in order: automatic sending → checklist 47–51; the guest
  * answering inside WhatsApp → decision 29 (closed 10.9 as the two-way bot) and
@@ -96,22 +100,33 @@ const SEQUENCE = [
  * These were fields on the rows first, and nothing rendered them — a value
  * written and never read, which is the exact thing the other service pages
  * call out in the product. They belong in a comment, so here they are. */
-const COMING = [
+/* The paid packages, as /pricing sells them (owner, 5.10: "ליישר לדף
+   המחירים"). This was a "בפיתוח / לא זמינים היום" roadmap while /pricing sold
+   the same three without a tag (owner, 5.10: "בלי תגית") — the site answered
+   one question two ways. Only what /pricing claims is claimed here: the
+   in-WhatsApp reply card went (not a pricing line), and "שלושה" rounds went
+   (/pricing gives no number). Names come from pricingCurve so they cannot
+   drift. */
+const PAID = [
   {
-    title: "שליחה אוטומטית",
-    body: "הרצף יוצא לבד, בתאריכים שנקבעו מראש — בלי שתפתחו את הטלפון לכל אורח בנפרד.",
+    title: "ההזמנות יוצאות לבד",
+    body: "ההזמנה נשלחת אוטומטית בוואטסאפ, וסבב שני רק למי שלא ענה — בלי לפתוח את הטלפון לכל אורח בנפרד.",
+    pkg: PACKAGES[0].name,
   },
   {
-    title: "האורח עונה בתוך וואטסאפ",
-    body: "בלי לצאת לדפדפן: לוחץ \"מגיע\", עונה כמה, בוחר הסעה — והכל נוחת ברשימה.",
+    title: "תזכורת, תודה ומספר שולחן",
+    body: "תזכורת לפני האירוע, תודה אחריו, ומספר השולחן לכל אורח ביום האירוע — יוצאים לבד.",
+    pkg: PACKAGES[0].name,
   },
   {
-    title: "שלושה סבבי שיחות טלפון",
-    body: "למי שלא ענה גם אחרי התזכורות. שירות בתוספת תשלום, כי בסוף מישהו צריך להרים טלפון.",
+    title: "סבבי שיחות טלפון",
+    body: "למי שלא ענה גם בוואטסאפ — נציג אנושי מתקשר, והתשובה נכנסת לרשימה שלכם. אתם לא מתקשרים לאף אחד.",
+    pkg: PACKAGES[1].name,
   },
 ];
 
 export default function RsvpServiceScreen({ user = null }) {
+  useHashScroll();   // /pricing#human, /services/…#how — links shared from outside (review 5.10)
   return (
     <div className={styles.root}>
       <SiteHeader user={user} active={SERVICE.id} />
@@ -133,7 +148,7 @@ export default function RsvpServiceScreen({ user = null }) {
             בראש.
           </p>
           <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.cta}>התחילו לאסוף אישורים ←</Link>
+            <Link to="/app" className={styles.cta}>התחילו לאסוף אישורים ←</Link>
             <a href="#flow" className={styles.ghost}>מה האורח רואה</a>
           </div>
           <p className={styles.heroNote}>
@@ -258,25 +273,25 @@ export default function RsvpServiceScreen({ user = null }) {
 
           {/* The product discloses this in the UI; so does the page. */}
           <p className={styles.frictionKicker}>
-            שקוף מראש: כרגע שולחים אורח-אורח. לחיצה על “שלחו” פותחת את
-            וואטסאפ עם הטקסט מוכן ומסמנת את האורח — ועדיין צריך ללחוץ “שלח”
-            בוואטסאפ עצמו.
+            בחבילה החינמית שולחים מהוואטסאפ שלכם: לחיצה על “שלחו” פותחת את
+            וואטסאפ עם הטקסט מוכן ומסמנת את האורח, ואתם לוחצים “שלח”. בחבילות
+            בתשלום ההודעות יוצאות לבד — למטה.
           </p>
         </div>
       </section>
 
-      {/* ── Coming ── COMING_NOT_BUILT: this whole section is unbuilt. ── */}
+      {/* ── The paid packages, aligned with /pricing (owner, 5.10). ── */}
       <section className={styles.friction}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>ומה שנבנה עכשיו</h2>
+          <h2 className={styles.h2}>ובחבילות בתשלום — זה קורה לבד</h2>
           <p className={styles.howSub}>
-            שלושת אלה בפיתוח. הם לא זמינים היום, והם כתובים כאן כדי שתדעו לאן זה
-            הולך — לא כדי להיראות גדולים.
+            בלי לשבת על הטלפון ובלי לרדוף אחרי תשובות. המחיר לפי מספר המוזמנים,
+            ואפשר לראות אותו מראש <Link to="/pricing">בדף המחירים</Link>.
           </p>
           <div className={styles.depthGrid}>
-            {COMING.map(c => (
+            {PAID.map(c => (
               <div key={c.title} className={styles.depthCard}>
-                <span className={styles.stageWhen}>בפיתוח</span>
+                <span className={styles.stageWhen}>בחבילת ״{c.pkg}״</span>
                 <h3 className={styles.depthTitle}>{c.title}</h3>
                 <p className={styles.depthBody}>{c.body}</p>
               </div>
@@ -294,7 +309,7 @@ export default function RsvpServiceScreen({ user = null }) {
             פותחים אירוע, מעלים רשימה, שולחים קישור. המספר שהאולם מבקש יהיה
             מחכה לכם במסך אחד.
           </p>
-          <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
+          <Link to="/app" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
 

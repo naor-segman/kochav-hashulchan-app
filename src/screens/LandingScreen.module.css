@@ -1,1255 +1,233 @@
-.root {
-  background: var(--bg);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+/* The home page, 136. Square corners everywhere (owner 4.10), the existing
+   palette, one heavy sans for headings. Grounds rotate white → grey → ink so
+   the page reads as a sequence of rooms. Phones are the only rounded thing,
+   because phones are round. */
 
-/* <main> (38a) is unstyled, so the page lays out exactly as it did.
-   SiteHeader's skip link focuses it; the ring would outline the whole page. */
+.root { min-height: 100vh; display: flex; flex-direction: column; background: var(--surface); overflow-x: clip; }
+.main { flex: 1; }
 .main:focus { outline: none; }
+.inner { max-width: 1120px; margin-inline: auto; padding: 72px 20px; }
+.center { display: flex; justify-content: center; margin-top: 36px; }
 
-/* Sticky-nav offset so anchor jumps land below the bar, not under it. */
-.features,
-.howSection {
-  scroll-margin-top: 84px;
+/* ── type ─────────────────────────────────────────────────────────────── */
+.head { text-align: center; max-width: 680px; margin: 0 auto 40px; }
+.title, .titleDark {
+  margin: 0 0 14px;
+  font-size: clamp(1.9rem, 5.4vw, 3rem);
+  font-weight: 800; line-height: 1.08; letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: var(--text);
+}
+.titleDark { color: var(--nav-text); }
+.sub { margin: 0; color: var(--text2); font-size: var(--step-1); line-height: 1.6; }
+.eyebrow, .eyebrowDark {
+  margin: 0 0 12px;
+  font-size: var(--step--1); font-weight: 800; letter-spacing: .08em;
+  color: var(--accent-text);
+}
+.eyebrowDark { color: var(--accent-on-dark); }
+.body, .bodyDark { margin: 0 0 20px; font-size: var(--step-1); line-height: 1.7; color: var(--text2); max-width: 52ch; }
+.bodyDark { color: var(--nav-muted); }
+
+/* ── buttons: square, heavy ───────────────────────────────────────────── */
+.btnPrimary, .btnGhostDark, .btnLight, .btnPrimaryBlock, .btnOutlineBlock {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 54px; padding: 0 28px;
+  font-size: var(--step-1); font-weight: 800;
+  text-decoration: none;
+  border: 2px solid transparent;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.btnPrimary, .btnPrimaryBlock { background: var(--cta); color: var(--on-accent); border-color: var(--cta); }
+.btnPrimary:hover, .btnPrimaryBlock:hover { background: var(--cta-dark); border-color: var(--cta-dark); }
+.btnGhostDark { color: var(--nav-text); border-color: var(--accent-on-dark); }
+.btnGhostDark:hover { background: rgba(var(--nav-text-rgb), .08); }
+.btnLight { background: var(--nav-text); color: var(--text); border-color: var(--nav-text); }
+.btnLight:hover { background: var(--surface); }
+.btnPrimaryBlock, .btnOutlineBlock { width: 100%; margin-top: auto; padding-inline: 14px; text-align: center; min-width: 0; }
+.btnOutlineBlock { border-color: var(--cta); color: var(--accent-text); background: var(--surface); }
+.btnOutlineBlock:hover { background: var(--accent-bg); }
+.btnPrimary:focus-visible, .btnGhostDark:focus-visible, .btnLight:focus-visible,
+.btnPrimaryBlock:focus-visible, .btnOutlineBlock:focus-visible, .tile:focus-visible, .celebrateCard:focus-visible {
+  outline: 3px solid var(--focus-ring); outline-offset: 3px;
 }
 
-/* ── Hero ── */
-
-.hero {
-  background: var(--nav-bg);
-  position: relative;
-  overflow: hidden;
-  padding: 104px 24px 128px;
-  text-align: center;
+/* ── 1 · hero ─────────────────────────────────────────────────────────── */
+/* --focus-ring re-pointed for the dark ground: the global one is --accent-text,
+   1.3–2.1:1 over the hero video (review 5.10, WCAG 1.4.11). */
+.hero { position: relative; background: var(--nav-bg); color: var(--nav-text); overflow: hidden; --focus-ring: var(--accent-on-dark); }
+.heroMedia { position: absolute; inset: 0; }
+.heroPause {
+  position: absolute; z-index: 2;
+  inset-block-end: 12px; inset-inline-end: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  inline-size: 44px; block-size: 44px; padding: 0;
+  border: 1px solid var(--nav-border); background: var(--scrim-45); color: var(--nav-text);
+  font: inherit; font-size: var(--step--1); font-weight: 800; letter-spacing: -0.1em; cursor: pointer;
 }
-
-/* ── Cinematic hero ──
-   Applied only once HERO_MEDIA carries a file. Until then the hero above is
-   untouched, so the page never ships a black rectangle waiting for footage. */
-.heroCinematic {
-  /* A dark band: the ring --accent-text draws here is 2.64:1. */
-  --focus-ring: var(--accent-on-dark);
-  min-height: 88svh;
-  display: grid;
-  align-items: center;
-  padding-block: 88px 96px;
-}
-
-/* .heroLayout carries `margin: 0 auto`, and an auto inline margin cancels a
-   grid item's stretch — the row collapsed to its content width (398px of a
-   1232px frame) and re-centred itself, which is why the copy would not stay on
-   the start edge. Restoring an explicit width lets max-width do the centring. */
-.heroCinematic .heroLayout {
-  width: 100%;
-}
-
-.heroMedia {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-/* object-fit is what keeps a 16:9 clip from letterboxing on a tall phone. The
-   frame is anchored to the end (left in RTL) because the copy sits over the
-   start edge, and a face behind the headline reads as a mistake. */
-.heroMediaLayer {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 25% center;
-  display: block;
-}
-
-/* The scrim has to hold white text at AA over ANY frame, including a bright
-   one — a photo of a white-lit hall is exactly the picture someone will pick.
-   So there are three layers: a flat floor that never lets the frame through
-   fully, a directional wash that is heaviest under the copy on the start edge,
-   and a bottom lift for the note under the button. Measured over the brightest
-   placeholder available rather than judged by eye. */
+.heroPause:hover { background: var(--scrim-60); }
+.heroPause:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.heroLayer { width: 100%; height: 100%; object-fit: cover; object-position: 30% 50%; display: block; }
 .heroScrim {
-  position: absolute;
-  inset: 0;
+  position: absolute; inset: 0;
   background:
-    linear-gradient(rgba(var(--text-rgb), .34), rgba(var(--text-rgb), .34)),
-    linear-gradient(to left, rgba(var(--text-rgb), .82) 0%, rgba(var(--text-rgb), .62) 45%, rgba(var(--text-rgb), .28) 100%),
-    linear-gradient(to top,  rgba(var(--text-rgb), .5) 0%, transparent 40%);
+    /* On a phone the text runs from the TOP, over the white drapes: at .35
+       there the pink eyebrow measured 1.66:1 and "במקום הנכון" 2.03:1 (review
+       5.10, worst frame of 33). Dark enough at the top now. */
+    linear-gradient(to top, rgba(var(--text-rgb), .96) 0%, rgba(var(--text-rgb), .84) 45%, rgba(var(--text-rgb), .78) 100%);
 }
-
-/* On a phone the copy spans the full width, so a wash that fades toward one
-   side leaves the end of every line on the open part of the frame. Measured
-   over the brightest placeholder the headline came out at 3.63:1 there against
-   5.35:1 on desktop. Narrow screens get an even floor instead of a direction. */
-/* Re-measured against the real footage (qa/heroContrast.mjs), not the
-   placeholder this was first tuned on. A sunset beach is the brightest ground
-   a hero can carry — pale sky, white drapery, white chairs — and at .7 the
-   accent line came out 4.38:1 on a phone, just under the bar the rest of the
-   product holds. .78 puts every element over it on every sampled frame. */
-@media (max-width: 899px) {
-  .heroScrim {
-    background:
-      linear-gradient(rgba(var(--text-rgb), .78), rgba(var(--text-rgb), .78)),
-      linear-gradient(to top, rgba(var(--text-rgb), .45) 0%, transparent 55%);
-  }
-}
-
-/* The second route in, demoted from a button so the hero carries one. */
-.heroQuietLink {
-  color: var(--accent-on-dark);
-  font-size: 0.95rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  padding: 6px 2px;
-}
-
-.heroQuietLink:hover {
-  color: var(--nav-text);
-}
-
-.heroDecor {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.decorOrb1 {
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(var(--accent-rgb),0.12) 0%, transparent 70%);
-  top: -200px;
-  inset-inline-end: -200px;
-}
-
-.decorOrb2 {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(var(--accent-rgb),0.08) 0%, transparent 70%);
-  bottom: -100px;
-  inset-inline-start: -100px;
-}
-
-.decorStar1 {
-  position: absolute;
-  font-size: 140px;
-  color: var(--accent);
-  opacity: 0.06;
-  top: -20px;
-  inset-inline-end: 5%;
-  animation: landingSpin 25s linear infinite;
-  line-height: 1;
-}
-
-.decorStar2 {
-  position: absolute;
-  font-size: 70px;
-  color: var(--accent);
-  opacity: 0.08;
-  bottom: 10%;
-  inset-inline-start: 8%;
-  animation: landingSpin 18s linear infinite reverse;
-  line-height: 1;
-}
-
-@keyframes landingSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
 .heroInner {
   position: relative;
-  max-width: 760px;
-  margin: 0 auto;
+  max-width: 1120px; margin-inline: auto;
+  padding: 140px 20px 56px;
+  display: grid; gap: 0;
+}
+.heroEyebrow { margin: 0 0 16px; color: var(--accent-on-dark); font-weight: 800; font-size: var(--step--1); letter-spacing: .08em; }
+.heroTitle {
+  margin: 0 0 20px;
+  font-size: clamp(3rem, 12vw, 6.2rem);
+  font-weight: 800; line-height: .98; letter-spacing: -0.03em;
+}
+.heroTitle span { color: var(--accent-on-dark); }
+.heroSub { margin: 0 0 28px; max-width: 46ch; color: var(--nav-text); font-size: var(--step-1); line-height: 1.7; }
+.heroActions { display: flex; flex-wrap: wrap; gap: 12px; }
+/* --nav-text, not --nav-muted: 3.6–4.2:1 over the video at every width. */
+.heroFree { margin: 16px 0 0; color: var(--nav-text); font-size: var(--step--1); font-weight: 600; }
+.heroPoints {
+  list-style: none; margin: 36px 0 0; padding: 20px 0 0;
+  border-top: 1px solid var(--nav-border);
+  display: flex; flex-wrap: wrap; gap: 14px 28px;
+}
+.heroPoints li { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: var(--step-0); }
+.heroMark { flex-shrink: 0; }
+
+@media (min-width: 860px) {
+  .heroInner { padding-top: 200px; padding-bottom: 72px; }
+  .heroScrim { background: linear-gradient(to left, rgba(var(--text-rgb), .94) 0%, rgba(var(--text-rgb), .7) 48%, rgba(var(--text-rgb), .15) 100%); }
 }
 
-.heroBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  /* Was --accent-text on the near-black hero: 2.66:1, a line nobody could
-     read. Blush is a GROUND colour and reads 12.5:1 here, which lets the
-     eyebrow be quiet without being invisible. */
-  color: var(--blush);
-  font-size: var(--step--1);
-  font-weight: 600;
-  padding: 0;
-  margin-bottom: 28px;
-  letter-spacing: 0.03em;
-}
-
-.heroBadgeDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(0.8); }
-}
-
-.heroHeadline {
-  font-family: var(--font-family-serif);
-  font-size: clamp(3.25rem, 8.6vw, 6.25rem);
-  font-weight: 700;
-  color: var(--nav-text);
-  line-height: 1.08;
-  margin: 0 0 28px;
-  letter-spacing: -0.01em;
-}
-
-/* The one deliberate accent-as-type moment on the whole site. It survives the
-   "no accent on text" rule because that rule is written for light grounds: on
-   #14161A the saturated accent is 4.84:1, which clears AA even at body size,
-   and at ~100px it is the page's single loudest note. Everything else on this
-   hero is now white, blush or grey so that this line has nothing to compete
-   with. */
-.heroGold {
-  color: var(--accent);
-  display: block;
-  font-weight: 500;
-}
-
-.heroSub {
-  font-size: clamp(1rem, 2.2vw, 1.15rem);
-  color: var(--nav-muted);
-  line-height: 1.75;
-  max-width: 560px;
-  margin: 0 auto 40px;
-}
-
-.heroActions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
-}
-
-.heroCta {
-  display: inline-block;
-  background: var(--cta);
-  color: var(--on-accent);
-  text-decoration: none;
-  font-size: 1.05rem;
-  font-weight: 700;
-  padding: 14px 40px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-cta-lg);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
-}
-
-.heroCta:hover {
-  background: var(--cta-dark);
-  box-shadow: 0 8px 32px rgba(var(--cta-rgb),0.55);
-  transform: translateY(-2px);
-}
-
-.heroSecondary {
-  display: inline-block;
-  color: var(--nav-muted);
-  text-decoration: none;
-  font-size: 1rem;
-  font-weight: 500;
-  padding: 14px 28px;
-  border: 1px solid rgba(var(--nav-text-rgb),0.18);
-  border-radius: var(--radius);
-  transition: color var(--transition), border-color var(--transition), background var(--transition);
-}
-
-.heroSecondary:hover {
-  color: var(--nav-text);
-  border-color: rgba(var(--nav-text-rgb),0.4);
-  background: rgba(var(--nav-text-rgb),0.05);
-}
-
-.heroNote {
-  font-size: var(--step--1);
-  color: var(--nav-muted);
-  opacity: 0.65;
-  margin: 0;
-}
-
-/* ── Shared section scaffolding ── */
-
-.sectionInner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: 96px 24px;
-}
-
-/* The dark bands are the page's punctuation — they get more air than the light
-   ones so they read as deliberate rests rather than another block. */
-.howSection .sectionInner,
-.ctaBanner .ctaBannerInner {
-  padding-block: 120px;
-}
-
-.sectionHeader {
-  text-align: center;
-  /* One big statement, then a gap. The header is the section's whole voice, so
-     it stands clear of the grid instead of hovering just above it. */
-  margin-bottom: 64px;
-  max-width: 680px;
-  margin-inline: auto;
-}
-
-.sectionTag {
-  display: inline-block;
-  color: var(--accent-text);
-  font-size: var(--step--2);
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  margin-bottom: 16px;
-}
-
-/* Same eyebrow, dark ground. --accent-text was 2.66:1 here and read as a
-   smudge; blush is 12.5:1 on #14161A. */
-.sectionTagLight {
-  display: inline-block;
-  color: var(--blush);
-  font-size: var(--step--2);
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  margin-bottom: 16px;
-}
-
-.sectionTitle {
-  font-family: var(--font-family-serif);
-  font-size: clamp(2rem, 4.6vw, 3.2rem);
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.12;
-  margin: 0 0 18px;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-}
-
-.sectionTitleLight {
-  font-family: var(--font-family-serif);
-  font-size: clamp(2rem, 4.6vw, 3.2rem);
-  font-weight: 700;
-  color: var(--nav-text);
-  line-height: 1.12;
-  margin: 0 0 18px;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-}
-
-.sectionSub {
-  font-size: var(--step-1);
-  color: var(--muted);
-  max-width: 46ch;
-  margin: 0 auto;
-  line-height: 1.7;
-}
-
-/* ── Features ── */
-
-.features {
-  background: var(--bg);
-}
-
-.featuresGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-
-.featureCard {
+/* ── 2 · everything ───────────────────────────────────────────────────── */
+.everything { background: var(--bg); }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 860px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
+.tile {
+  display: grid; justify-items: center; align-content: start; gap: 8px;
+  padding: 24px 12px 22px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px 28px;
-  box-shadow: var(--shadow);
-  transition: border-color var(--transition-slow), box-shadow var(--transition-slow), transform var(--transition-slow);
-}
-
-.featureCard:hover {
-  border-color: var(--accent-border);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-4px);
-}
-
-/* .featureIconWrap / .featureIcon are defined once, in the GRAPHICS block at the
-   foot of this file — an earlier duplicate here was fully superseded by it and
-   only made the accent audit look worse than it was. */
-
-.featureTitle {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 10px;
-  line-height: 1.3;
-}
-
-.featureDesc {
-  font-size: 0.88rem;
-  color: var(--muted);
-  line-height: 1.7;
-  margin: 0;
-}
-
-/* The six cards became LINKS to the six service pages (checklist 87). An <a>
-   brings its own colour and underline, and it needs to be a block for the
-   padding above to apply — so the card styling stays in .featureCard and this
-   only undoes what the anchor adds. `min-height` lines the three columns up
-   when one blurb wraps to two lines and its neighbours do not. */
-.featureLink {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
+  text-align: center;
   text-decoration: none;
-  color: inherit;
+  transition: border-color var(--transition), transform var(--transition);
+}
+.tile:hover { border-color: var(--text); transform: translateY(-2px); }
+.tileMark { margin-bottom: 6px; }
+.tileTitle { margin: 0; font-size: var(--step-1); font-weight: 800; color: var(--text); }
+/* Two columns at 320 leave a tile ~120px of text: "הושבה אוטומטית" broke into
+   one word per line (guestPages orphans check). One step down below 390 —
+   at 360 "הודעות בוואטסאפ" still broke (review 5.10). */
+@media (max-width: 389px) {
+  .tile { padding-inline: 4px; }
+  .tileTitle { font-size: var(--step-0); }
+}
+.tileText { margin: 0; font-size: var(--step--1); line-height: 1.5; color: var(--text2); }
+
+/* ── 3 · feelings ─────────────────────────────────────────────────────── */
+.feeling { background: var(--surface); border-top: 1px solid var(--border); }
+.feelingAlt { background: var(--blush-soft); }
+.feelingGrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 44px; align-items: center; }
+.feelingText { text-align: center; display: grid; justify-items: center; }
+.points { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; justify-items: start; text-align: start; }
+.points li { display: flex; gap: 10px; font-weight: 600; color: var(--text); font-size: var(--step-0); }
+.points span { color: var(--accent-text); font-weight: 800; }
+.phone { --w: min(290px, 74vw); }
+@media (min-width: 860px) {
+  .feelingGrid { grid-template-columns: 1.1fr .9fr; gap: 64px; }
+  .feelingText { text-align: start; justify-items: start; }
+  .feelingAlt .feelingText { order: 2; }
 }
 
-.featureMore {
-  margin-top: auto;
-  padding-top: 14px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  /* --accent is a FILL token at 3.8:1 and is never text. On this surface the
-     text token is --accent-text. */
-  color: var(--accent-text);
+/* ── 4 · watch ────────────────────────────────────────────────────────── */
+.watch { background: var(--bg); border-top: 1px solid var(--border); }
+.watchGrid { display: grid; gap: 40px; align-items: center; text-align: center; justify-items: center; }
+.watchGrid > div:first-child { display: grid; justify-items: center; }
+.onlyWide { display: none; }
+@media (min-width: 860px) {
+  .watchGrid { grid-template-columns: .8fr 1.2fr; text-align: start; justify-items: stretch; }
+  .watchGrid > div:first-child { justify-items: start; }
+  .onlyWide { display: block; --w: min(520px, 42vw); }
+  .onlyNarrow { display: none; }
 }
 
-.featureLink:hover .featureMore { text-decoration: underline; }
-
-/* ── How it works ── */
-
-.howSection {
-  background: var(--nav-bg);
+/* the visual column of a feeling / the watch section */
+.visual { display: grid; justify-items: center; width: 100%; min-width: 0; }
+/* laptop with the phone leaning on its corner */
+.duo { position: relative; width: 100%; max-width: 620px; padding-bottom: 40px; }
+.duoLaptop { --w: min(480px, 80vw); }
+.duoPhone {
+  --w: min(150px, 30vw);
+  position: absolute; inset-inline-start: 0; inset-block-end: 0;
 }
+@media (min-width: 860px) { .duoPhone { --w: 170px; inset-inline-start: -10px; } }
 
-.howGrid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  position: relative;
-}
-
-.howStep {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  position: relative;
-  padding: 0 12px;
-}
-
-.howNum {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(var(--accent-rgb),0.14);
-  border: 2px solid rgba(var(--accent-rgb),0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--step-0);
-  font-weight: 800;
-  /* The step numbers were --accent-text inside a 14%-accent disc on near-black:
-     around 2.5:1, effectively unreadable. Blush on the same disc is ~10:1 and
-     the disc still carries the brand tint. */
-  color: var(--blush);
-  letter-spacing: 0.02em;
-  margin-bottom: 18px;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 1;
-  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
-}
-
-.howStep:hover .howNum {
-  background: rgba(var(--accent-rgb),0.25);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(var(--accent-rgb),0.12);
-}
-
-.howConnector {
-  position: absolute;
-  top: 27px;
-  inset-inline-end: -4px;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(to left, rgba(var(--accent-rgb),0.35) 0%, rgba(var(--accent-rgb),0.1) 100%);
-  z-index: 0;
-}
-
-.howTitle {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--nav-text);
-  margin: 0 0 8px;
-  line-height: 1.3;
-}
-
-.howDesc {
-  font-size: 0.82rem;
-  color: var(--nav-muted);
-  line-height: 1.65;
-  margin: 0;
-}
-
-/* ── Pricing ── */
-
-.pricingSection {
-  background: var(--bg);
-}
-
-/* Blush ground with near-black text — the primitive used everywhere something
-   needs to stand out without spending the accent on it. */
-.betaNote {
-  max-width: 620px;
-  margin: 0 auto 24px;
-  padding: 12px 16px;
-  background: var(--blush);
-  color: var(--text);
-  border-radius: var(--radius);
-  text-align: center;
-  font-weight: 700;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-/* `align-items: start` let three cards with different amounts of copy end at
-   three different heights, so the row read as ragged and the buttons — the one
-   thing the section exists for — sat on three different lines. They stretch,
-   and the CTA is pushed to the bottom of each. */
-.pricingGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  align-items: stretch;
-  margin-bottom: 32px;
-}
-
-.pricingCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px 28px;
-  box-shadow: var(--shadow);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.pricingCard .planCta {
-  margin-top: auto;
-}
-
-/* The recommended plan. Previously it stacked four signals — a near-black
-   ground, an accent border, an accent glow and accent type — and the type on
-   that ground was 2.66:1. Blush does the whole job with ONE move: it is a
-   ground, it carries near-black at 12.5:1, and against the grey section it is
-   unmistakable. The only saturated thing left on the card is its button. */
-.pricingCardPro {
-  background: var(--blush);
-  border-color: var(--blush-line);
-  box-shadow: var(--shadow-md);
-  transform: scale(1.04);
-}
-
-/* `.planBadge` stood here — the absolute "הכי פופולרי" pill. The badge went
-   with the unearned popularity claim and left the rule behind as dead CSS; this
-   is the label that replaced it, and unlike the badge it is earned: it marks a
-   line delivered by a person. Same shape as PricingScreen's, so the two
-   surfaces say the same thing in the same way. */
-.planHuman {
-  margin-inline-start: 8px;
-  padding: 2px 9px;
-  border-radius: var(--radius-pill);
+/* ── 5 · celebrate ────────────────────────────────────────────────────── */
+.celebrate { background: var(--surface); }
+.celebrateGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 860px) { .celebrateGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
+.celebrateCard {
+  display: grid; align-content: start; gap: 8px;
+  min-height: 168px;
+  padding: 18px 16px 20px;
+  text-decoration: none;
   background: var(--blush-soft);
-  color: var(--accent-text);
-  font-size: var(--step--2);
-  font-weight: 700;
-}
-
-.planName {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-
-/* The tier's one-line pitch. It was computed in pricing.js and rendered
-   nowhere — defined, carried through the teaser, and invisible. */
-.planDesc {
-  margin: 0 0 12px;
-  font-size: var(--step--1);
-  line-height: 1.5;
-  color: var(--muted);
-}
-
-/* Bug class 5, caught by qa/contrastReal.mjs on the first run after this line
-   was added: a TINT IS A GROUND. --muted is fine on the white cards and measures
-   3.6:1 on the highlighted card's --blush — below the 4.5 floor — because that
-   card has a pink background. --text2 is what the feature list already switches
-   to for the same reason, twenty lines down. */
-.pricingCardPro .planDesc {
-  color: var(--text2);
-}
-
-.pricingCardPro .planName {
-  color: var(--text);
-}
-
-.planPriceRow {
-  margin-bottom: 24px;
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.planNum {
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.025em;
-  line-height: 1;
-}
-
-/* 4.71:1 on blush — the one accent-coloured thing inside the card. */
-.pricingCardPro .planNum {
-  color: var(--accent-text);
-}
-
-.pricingCardPro .planPer {
-  color: var(--text2);
-}
-
-.planPer {
-  font-size: 0.875rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.planFeatures {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.planFeatures li {
-  font-size: 0.88rem;
-  color: var(--text2);
-  padding-inline-start: 20px;
-  position: relative;
-  line-height: 1.45;
-}
-
-/* --muted is only 3.60:1 on blush; --text2 is 5.60:1. */
-.pricingCardPro .planFeatures li {
-  color: var(--text2);
-}
-
-/* Green means "done" everywhere else in this product. These are list bullets
-   on a marketing page — nothing has been completed. Neutral. */
-.planFeatures li::before {
-  content: "✓";
-  position: absolute;
-  inset-inline-start: 0;
-  color: var(--text2);
-  font-weight: 700;
-  font-size: var(--step--1);
-}
-
-.pricingCardPro .planFeatures li::before {
-  color: var(--accent-text);
-}
-
-.planCta {
-  display: block;
-  text-align: center;
-  background: var(--bg);
-  color: var(--text2);
-  text-decoration: none;
-  font-size: var(--step-0);
-  font-weight: 700;
-  padding: 12px 20px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border2);
-  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
-}
-
-.planCta:hover {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
-  color: var(--accent-text);
-}
-
-.planCtaPro {
-  background: var(--cta);
-  color: var(--on-accent);
-  border-color: var(--cta);
-  box-shadow: var(--shadow-cta);
-}
-
-.planCtaPro:hover {
-  background: var(--cta-dark);
-  color: var(--on-accent);
-  border-color: var(--cta-dark);
-  box-shadow: var(--shadow-cta-lg);
-}
-
-.pricingFooter {
-  text-align: center;
-}
-
-.pricingMoreLink {
-  color: var(--accent-text);
-  text-decoration: none;
-  font-size: var(--step-0);
-  font-weight: 600;
-  transition: color var(--transition);
-}
-
-.pricingMoreLink:hover {
-  color: var(--accent-dark);
-  text-decoration: underline;
-}
-
-/* ── CTA Banner ── */
-
-.ctaBanner {
-  background: var(--nav-bg);
-  /* A dark band: the ring --accent-text draws here is 2.64:1. */
-  --focus-ring: var(--accent-on-dark);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.ctaBannerInner {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 100px 24px;
-  position: relative;
-  z-index: 1;
-}
-
-/* Ink ground → the dark case of the brand-mark rule. The opacity is gone with
-   the old colour: a translucent glyph composites to a fourth pink, which is
-   exactly the thing being fixed. */
-.ctaStar {
-  display: block;
-  font-size: 44px;
-  color: var(--accent-on-dark);
-  margin-bottom: 24px;
-  animation: landingSpin 20s linear infinite;
-  line-height: 1;
-}
-
-.ctaTitle {
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 800;
-  color: var(--nav-text);
-  margin: 0 0 16px;
-  letter-spacing: -0.025em;
-}
-
-.ctaSub {
-  font-size: 1rem;
-  color: var(--nav-muted);
-  line-height: 1.7;
-  margin: 0 0 32px;
-}
-
-.ctaBtn {
-  display: inline-block;
-  background: var(--cta);
-  color: var(--on-accent);
-  text-decoration: none;
-  font-size: 1.05rem;
-  font-weight: 700;
-  padding: 14px 40px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-cta-lg);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
-  margin-bottom: 20px;
-}
-
-.ctaBtn:hover {
-  background: var(--cta-dark);
-  box-shadow: 0 8px 32px rgba(var(--cta-rgb),0.55);
-  transform: translateY(-2px);
-}
-
-.ctaNote {
-  font-size: var(--step--1);
-  /* Was --nav-muted at opacity .65, which composites to 3.65:1 on the ink
-     banner. This is the line that removes the last objection before signing
-     up. Dim it by choosing a dimmer colour, not by fading a chosen one. */
-  color: var(--nav-muted);
-  margin: 0;
-}
-
-/* ── Hero split layout ── */
-
-.heroLayout {
-  position: relative;
-  max-width: var(--container-max);
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 48px;
-}
-
-@media (min-width: 900px) {
-  .hero {
-    padding: 100px 24px 128px;
-    text-align: start;
-  }
-  .heroLayout {
-    justify-content: space-between;
-  }
-  .heroInner {
-    max-width: 500px;
-    margin: 0;
-    flex: 1;
-  }
-  .heroBadge {
-    margin-inline-start: 0;
-  }
-  .heroActions {
-    justify-content: flex-start;
-  }
-  /* Anchored to the start edge, which is where the scrim is darkest. Centred
-     copy would drift onto the open part of the frame and lose its ground. */
-  .heroCinematic .heroLayout {
-    justify-content: flex-start;
-  }
-  .heroCinematic .heroInner {
-    max-width: 620px;
-  }
-}
-
-/* Over footage the headline carries the page, so it grows and the sub-line
-   tightens to keep the block from covering the frame. */
-.heroCinematic .heroHeadline {
-  font-size: clamp(2.6rem, 7vw, 4.6rem);
-  text-wrap: balance;
-  text-shadow: 0 2px 24px rgba(var(--text-rgb), .45);
-}
-
-/* The muted grey these two use was chosen against a flat ink panel, where it
-   has room to be quiet. Over a photograph it measured 2.24:1 — invisible. On
-   media they go near-white and let size, not colour, carry the hierarchy. */
-/* --accent is a fill, not a text colour. It survives on the flat ink panel at
-   4.69:1, but the scrim lifts the ground under it and the same pink measured
-   1.90:1 over media. --accent-on-dark is the token that exists for this. */
-.heroCinematic .heroGold {
-  color: var(--accent-on-dark);
-}
-
-.heroCinematic .heroSub {
-  max-width: 34ch;
-  color: var(--nav-text);
-  text-shadow: 0 1px 12px rgba(var(--text-rgb), .5);
-}
-
-.heroCinematic .heroNote {
-  color: rgba(var(--nav-text-rgb), .9);
-  text-shadow: 0 1px 10px rgba(var(--text-rgb), .5);
-}
-
-/* ── Responsive ── */
-
-@media (max-width: 960px) {
-  .featuresGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .howGrid {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-
-  /* The number beside the text, the title OVER its description. As a flex
-     row the title was a third column squeezed between the two, as narrow as
-     its longest word: all five step titles broke one word per line at 320
-     and four at 390 ("הוסיפו / אורחים") — 9 of the 15 orphaned headings
-     left on the public pages after text-wrap: balance (audit 3.10, P2-8). */
-  .howStep {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: start;
-    text-align: start;
-    column-gap: 20px;
-    padding: 0;
-  }
-
-  .howNum {
-    grid-row: span 2;
-    margin-bottom: 0;
-  }
-
-  .howConnector {
-    display: none;
-  }
-
-  .pricingGrid {
-    grid-template-columns: 1fr;
-    max-width: 440px;
-    margin-inline: auto;
-    margin-bottom: 32px;
-  }
-
-  .pricingCardPro {
-    transform: none;
-  }
-}
-
-@media (max-width: 600px) {
-
-  .hero {
-    padding: 64px 20px 88px;
-  }
-
-  .featuresGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .sectionInner {
-    padding: 64px 20px;
-  }
-}
-
-@media (max-width: 400px) {
-
-  .heroHeadline {
-    font-size: 2.4rem;
-  }
-
-  .heroCta,
-  .heroSecondary {
-    width: 100%;
-    text-align: center;
-  }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   GRAPHICS — the shape language.
-
-   Three primitives, used everywhere: a filled brand chip that carries an icon,
-   a flat geometric diamond, and a soft tint wash. Nothing here is a gradient
-   glow or a drop shadow pretending to be paper — flat blocks with real spacing
-   is what makes a page read as confident rather than decorated.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* The chip: a solid brand circle carrying a white icon. This is the single most
-   recognisable graphic element — it turns a plain list into a designed one. */
-/* The badge was a solid --accent disc with a line glyph on it. Six saturated
-   discs is a lot of brand on one page, and — worse — the glyph inside was from
-   a THIRD icon set, so the six things the home page promises were drawn one way
-   here and a different way once you were inside the product.
-   It is the same tile the in-app page heads use, holding the same mark. */
-.featureIconWrap {
-  width: 54px;
-  height: 54px;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--blush-line);
-  display: grid;
-  place-items: center;
-  margin-bottom: 18px;
-  box-shadow: 0 4px 14px rgba(var(--text-rgb), .06);
-  transition: transform var(--transition-slow) var(--ease-out),
-              box-shadow var(--transition-slow) var(--ease-out);
-}
-/* The mark brings its own colours — see SectionMark.module.css. */
-.featureIcon {
-  display: block;
-}
-
-.featureCard:hover .featureIconWrap {
-  transform: translateY(-3px) rotate(-6deg);
-  box-shadow: 0 10px 26px rgba(var(--text-rgb), .12);
-}
-
-/* Every other chip alternates to the deeper fill, so a grid of six reads as a
-   composition rather than six identical dots. */
-/* White → blush → ink, the same three grounds the page rotates through. The
-   mark's tone is switched in the JSX to match, since an ink hairline on the
-   ink badge would be invisible. */
-.featureCard:nth-child(3n+2) .featureIconWrap {
-  background: var(--blush);
-  border-color: var(--blush-deep);
-  box-shadow: none;
-}
-
-.featureCard:nth-child(3n) .featureIconWrap {
-  background: var(--text);
-  border-color: var(--text);
-  box-shadow: none;
-}
-
-/* The diamond — a 45°-rotated square, the reference's core decorative form.
-   Purely presentational, so it is aria-hidden at the call site. */
-.gfxDiamond {
-  position: absolute;
-  border-radius: 22%;
-  transform: rotate(45deg);
-  pointer-events: none;
-}
-
-/* A soft tint wash behind a section, to break the run of white without
-   introducing another colour. */
-.gfxWash {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-  opacity: .5;
-  pointer-events: none;
-}
-
-/* ── Product showcase — the real app, not an illustration of it ──────────── */
-.showcase {
-  position: relative;
-  overflow: hidden;
-  padding: 96px 0;
-  background: var(--surface);
-}
-
-/* .showcase and .trust both wrap .sectionInner, which already carries 96px of
-   block padding — so every one of these bands was rendering ~160px of dead air
-   top and bottom and the ground rhythm read as a series of empty rooms rather
-   than a composition. The wrappers own the vertical rhythm; the inner element
-   owns only the gutter. */
-.showcase .sectionInner,
-.trust .sectionInner {
-  padding-block: 0;
-}
-
-/* The rhythm: white → grey → blush. Three grounds, so scrolling feels composed
-   rather than like one long page with dividers. */
-.showcaseAlt   { background: var(--bg); }
-.showcaseBlush { background: var(--blush); }
-.showcaseBlush .showcaseBody,
-.showcaseBlush .showcaseList li { color: var(--text2); }
-.showcaseBlush .showcaseEyebrow { background: var(--surface); }
-.showcaseBlush .shotPlinth      { background: rgba(var(--text-rgb), .07); }
-.showcaseBlush .showcaseTick    { background: var(--surface); color: var(--accent-text); }
-
-.showcaseGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  align-items: center;
-}
-.showcaseGrid + .showcaseGrid { margin-top: 48px; }
-.showcaseGrid:nth-child(even) .showcaseText { order: 2; }
-
-.showcaseEyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--step--1);
-  font-weight: 800;
-  letter-spacing: .06em;
-  /* Blush ground with near-black text, the way the reference sets its pills —
-     not tinted text on a tinted ground, which reads washed out. */
-  color: var(--text);
-  background: var(--blush);
-  border-radius: var(--radius-pill);
-  padding: 6px 16px;
-  margin-bottom: 16px;
-}
-
-.showcaseTitle {
-  font-family: "Frank Ruhl Libre", Georgia, serif;
-  font-size: var(--step-3);
-  line-height: 1.2;
-  color: var(--text);
-  margin: 0 0 12px;
-  text-wrap: balance;
-}
-.showcaseBody { font-size: var(--step-1); color: var(--text2); margin: 0 0 20px; max-width: 46ch; }
-
-.showcaseList { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.showcaseList li {
-  display: flex; align-items: flex-start; gap: 10px;
-  font-size: var(--step-0); color: var(--text2);
-}
-.showcaseTick {
-  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
-  background: var(--accent-bg); color: var(--accent-text);
-  display: grid; place-items: center; font-size: var(--step--3); font-weight: 900;
-  margin-top: 2px;
-}
-
-/* The screenshot sits on a tinted plinth with a diamond behind it, so it reads
-   as a composed object rather than a pasted rectangle. */
-.shotFrame { position: relative; }
-.shotPlinth {
-  position: absolute; inset: 12% -6% -8% -6%;
-  background: var(--accent-bg);
-  border-radius: var(--radius-lg);
-}
-.shotImg {
-  position: relative;
-  width: 100%;
-  /* Without this the width/height attributes (there to reserve layout space and
-     avoid CLS) are applied as a LITERAL height, so a 1200x720 screenshot
-     rendered 542x720 and inflated every showcase section to 1064px. */
-  height: auto;
-  display: block;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg);
-}
-
-@media (max-width: 860px) {
-  .showcaseGrid { grid-template-columns: 1fr; gap: 28px; }
-  .showcaseGrid:nth-child(even) .showcaseText { order: 0; }
-  .showcase { padding: 64px 0; }
-  .showcaseGrid + .showcaseGrid { margin-top: 48px; }
-}
-
-/* ── Trust band — replaces the invented statistics ───────────────────────── */
-.trust {
-  background: var(--bg);
-  border-block: 1px solid var(--border);
-  padding: 40px 0;
-}
-/* Four claims. `auto-fit, minmax(220px, 1fr)` fitted three of them per row from
-   about 1000px down to 640px and orphaned the fourth alone in the right-hand
-   column — a 3 + 1 break reads as one claim being different from the others.
-   An explicit ladder: four, then two, then one. Never three. */
-.trustGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 28px;
-}
-@media (max-width: 1000px) {
-  .trustGrid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 520px) {
-  .trustGrid { grid-template-columns: 1fr; gap: 20px; }
-}
-.trustItem { display: flex; gap: 14px; align-items: flex-start; }
-/* The blush ground here is deliberate: it is the surface the system uses when
-   something needs to stand out without spending the accent. The mark sits on
-   it as a drawing, not as a coloured glyph. */
-.trustChip {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius);
-  background: var(--blush);
-  display: grid;
-  place-items: center;
-  padding: 8px;
-  box-sizing: border-box;
-}
-.trustTitle { font-size: var(--step-0); font-weight: 800; color: var(--text); margin: 0 0 2px; }
-.trustDesc  { font-size: var(--step--1); color: var(--muted); margin: 0; line-height: 1.5; }
-
-/* Touch target — see qa/mobile.mjs. The hero's second route in appears only
-   once the cinematic layout is on, which is why it showed up in the audit only
-   after the footage landed. */
-@media (pointer: coarse) {
-  .heroQuietLink {
-    position: relative;
-  }
-
-  .heroQuietLink::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    min-width: 44px;
-    height: 44px;
-  }
-
-  /* The one way from the pricing block to the full comparison, at 18px. */
-  .pricingMoreLink {
-    position: relative;
-  }
-
-  .pricingMoreLink::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    min-width: 44px;
-    height: 44px;
-  }
-}
-
-/* ── The problem, before the promise ─────────────────────────────────────────
-   AIDA's Interest step. Deliberately the quietest band on the page: it is the
-   reader's own situation being described back to them, and any decoration here
-   would read as a sales device rather than recognition. The turn at the end is
-   the only line that raises its voice. */
-.problem {
-  background: var(--surface);
-  padding: clamp(56px, 9vw, 96px) 0;
-  scroll-margin-top: 84px;
-}
-
-.problemGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  margin-top: 34px;
-}
-
-.problemItem {
-  background: var(--surface);
-  padding: 20px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.problemWhere {
-  margin: 0;
-  font-size: var(--step-0);
-  font-weight: 800;
-  color: var(--text);
-}
-
-.problemWhat {
-  margin: 0;
-  font-size: var(--step--1);
-  line-height: 1.55;
-  color: var(--muted);
-}
-
-/* The one line that turns the section. Left-bordered rather than centred, so it
-   reads as a consequence of the list above it and not as a pull quote. */
-.problemTurn {
-  margin: 26px 0 0;
-  padding-inline-start: 16px;
-  border-inline-start: 3px solid var(--accent);
-  font-size: var(--step-1);
-  font-weight: 700;
-  line-height: 1.5;
-  color: var(--text);
-  max-width: 40rem;
+  border: 1px solid var(--blush);
+  border-top: 4px solid var(--cta);
+  transition: background var(--transition);
+}
+.celebrateCard:hover { background: var(--blush); }
+.celebrateArt { display: block; width: 72px; height: 72px; margin-bottom: 4px; }
+@media (min-width: 860px) { .celebrateArt { width: 96px; height: 96px; } }
+.celebrateName { font-size: clamp(1.35rem, 4.6vw, 1.9rem); font-weight: 800; color: var(--text); line-height: 1.1; letter-spacing: -.01em; }
+.celebrateText { font-size: var(--step--1); line-height: 1.55; color: var(--text2); }
+.celebrateGo { margin-top: auto; font-weight: 800; font-size: var(--step--1); color: var(--accent-text); }
+
+/* ── 6 · human ────────────────────────────────────────────────────────── */
+.human { background: var(--surface); border-top: 1px solid var(--border); }
+.humanGrid { display: grid; gap: 32px; align-items: center; }
+@media (min-width: 860px) { .humanGrid { grid-template-columns: .8fr 1.2fr; gap: 56px; } }
+.humanPhoto { position: relative; isolation: isolate; }
+.humanPhoto img { display: block; width: 100%; aspect-ratio: 4 / 5; max-height: 520px; object-fit: cover; }
+.humanPhoto::after { content: ""; position: absolute; inset: 14px -14px -14px 14px; border: 2px solid var(--cta); z-index: -1; }
+.humanList { display: grid; gap: 0; width: 100%; margin: 4px 0 26px; border-top: 2px solid var(--text); }
+.humanItem { display: flex; gap: 14px; align-items: flex-start; padding: 16px 2px; border-bottom: 1px solid var(--border); }
+.humanItem h3 { margin: 0 0 4px; font-size: var(--step-1); font-weight: 800; color: var(--text); }
+.humanItem p { margin: 0; color: var(--text2); font-size: var(--step--1); line-height: 1.55; }
+.btnOutline {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 54px; padding: 0 26px; font-size: var(--step-1); font-weight: 800; text-decoration: none;
+  border: 2px solid var(--cta); color: var(--accent-text); background: var(--surface);
+}
+.btnOutline:hover { background: var(--accent-bg); }
+
+/* ── 7 · price ────────────────────────────────────────────────────────── */
+.price { background: var(--bg); }
+.priceGrid { display: grid; gap: 16px; max-width: 860px; margin-inline: auto; }
+@media (min-width: 760px) { .priceGrid { grid-template-columns: 1fr 1fr; } }
+.freeCard, .paidCard { display: flex; flex-direction: column; padding: 26px 22px; background: var(--surface); border: 1px solid var(--border); }
+.freeCard { border: 2px solid var(--text); }
+.freeAmount { margin: 0 0 6px; font-size: 3.4rem; font-weight: 800; line-height: 1; color: var(--text); }
+.freeLines { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 8px; }
+.freeLines li { display: flex; gap: 10px; font-size: var(--step-0); color: var(--text); }
+.freeLines span { color: var(--green); font-weight: 800; }
+.paidFrom { margin: 0 0 12px; font-size: var(--step-2); font-weight: 800; color: var(--text); }
+.paidFrom span { font-size: 2.4rem; font-variant-numeric: tabular-nums; }
+
+/* ── 9 · close ────────────────────────────────────────────────────────── */
+/* White ring on the pink band: the global ring measured 1.46:1 here. */
+.close { background: var(--cta); color: var(--on-accent); --focus-ring: var(--on-accent); }
+.closeText { margin: 0 0 24px; font-size: var(--step-1); line-height: 1.7; }
+.closeInner { display: grid; justify-items: center; text-align: center; }
+.closeTitle { margin: 0 0 12px; font-size: clamp(2.6rem, 10vw, 4.6rem); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tile, .tile:hover { transition: none; transform: none; }
 }

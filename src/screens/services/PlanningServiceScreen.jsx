@@ -3,6 +3,7 @@ import SiteHeader from "../../components/layout/SiteHeader.jsx";
 import Footer from "../../components/layout/Footer.jsx";
 import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
+import { useHashScroll } from "../../hooks/useHashScroll.js";
 
 /**
  * Service page 3 of 6 — תכנון האירוע. Checklist 87.
@@ -74,6 +75,7 @@ const VENDORS = [
 ];
 
 export default function PlanningServiceScreen({ user = null }) {
+  useHashScroll();   // /pricing#human, /services/…#how — links shared from outside (review 5.10)
   return (
     <div className={styles.root}>
       <SiteHeader user={user} active={SERVICE.id} />
@@ -95,7 +97,7 @@ export default function PlanningServiceScreen({ user = null }) {
             עם מה סוכם וכמה נשאר לשלם.
           </p>
           <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.cta}>התחילו לתכנן ←</Link>
+            <Link to="/app" className={styles.cta}>התחילו לתכנן ←</Link>
             <a href="#tasks" className={styles.ghost}>מה יש בפנים</a>
           </div>
           {/* "מסתנכרן בין המחשב לטלפון" alone was an over-claim: without an
@@ -251,7 +253,7 @@ export default function PlanningServiceScreen({ user = null }) {
             בוחרים סוג אירוע, מקבלים רשימת משימות עם תאריכים, וממלאים תקציב
             בזמן שאתם ממילא מתמחרים. משם זה רק להמשיך.
           </p>
-          <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
+          <Link to="/app" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
 

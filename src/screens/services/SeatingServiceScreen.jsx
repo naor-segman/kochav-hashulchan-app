@@ -4,6 +4,7 @@ import Footer from "../../components/layout/Footer.jsx";
 import { COMPANY } from "../../data/company.js";
 import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
+import { useHashScroll } from "../../hooks/useHashScroll.js";
 
 /**
  * Service page 1 of 6 — סידורי הושבה. Checklist 87.
@@ -127,6 +128,7 @@ const DEPTH = [
 ];
 
 export default function SeatingServiceScreen({ user = null }) {
+  useHashScroll();   // /pricing#human, /services/…#how — links shared from outside (review 5.10)
   return (
     <div className={styles.root}>
       <SiteHeader user={user} active={SERVICE.id} />
@@ -153,7 +155,7 @@ export default function SeatingServiceScreen({ user = null }) {
             ומסמנת לכם כל אילוץ שלא הסתדר.
           </p>
           <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.cta}>נסו בחינם ←</Link>
+            <Link to="/app" className={styles.cta}>נסו בחינם ←</Link>
             <a href="#how" className={styles.ghost}>איך זה עובד</a>
           </div>
           <p className={styles.heroNote}>
@@ -267,7 +269,7 @@ export default function SeatingServiceScreen({ user = null }) {
             פותחים אירוע, מדביקים רשימה, לוחצים. אם זה לא חוסך לכם את המפית —
             סגרתם ולא שילמתם.
           </p>
-          <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
+          <Link to="/app" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
 

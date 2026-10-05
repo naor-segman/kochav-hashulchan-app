@@ -1,557 +1,104 @@
-.root {
-  background: var(--bg);
-  min-height: 100vh;
-}
-
-/* <main> (38a) is unstyled, so the page lays out exactly as it did.
-   SiteHeader's skip link focuses it; the ring would outline the whole page. */
+/* Pricing, 136. Square, the existing palette, one heavy sans. */
+.root { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); overflow-x: clip; }
+.main { flex: 1; }
 .main:focus { outline: none; }
+.inner { max-width: 1120px; margin-inline: auto; padding: 56px 20px; }
+.center { text-align: center; }
 
-/* ── Page header ── */
+.eyebrow, .eyebrowDark { margin: 0 0 12px; font-size: var(--step--1); font-weight: 800; letter-spacing: .08em; color: var(--accent-text); }
+.eyebrowDark { color: var(--accent-on-dark); }
+.h1 { margin: 0 0 14px; font-size: clamp(2.2rem, 7vw, 3.6rem); font-weight: 800; line-height: 1.04; letter-spacing: -.03em; color: var(--nav-text); text-wrap: balance; }
+.h2, .h2Dark { margin: 0 0 14px; font-size: clamp(1.7rem, 5vw, 2.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; color: var(--text); text-wrap: balance; }
+.h2Dark { color: var(--nav-text); }
+.lede { margin: 0; max-width: 52ch; color: var(--nav-muted); font-size: var(--step-1); line-height: 1.7; }
+.text, .textDark { margin: 0 0 22px; color: var(--text2); font-size: var(--step-1); line-height: 1.7; max-width: 52ch; }
+.textDark { color: var(--nav-muted); }
 
-.pageHeader {
-  background: var(--nav-bg);
-  text-align: center;
-  padding: 80px 24px 88px;
-  position: relative;
-  overflow: hidden;
+.top { background: var(--nav-bg); --focus-ring: var(--accent-on-dark); }
+.top .inner { padding-top: 64px; padding-bottom: 64px; text-align: center; display: grid; justify-items: center; }
+.pick { background: var(--bg); }
+.pick .inner { padding-top: 0; transform: translateY(-36px); padding-bottom: 20px; }
+
+.btnPrimary, .btnLight {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 54px; padding: 0 28px;
+  font-size: var(--step-1); font-weight: 800; text-decoration: none;
+  border: 2px solid transparent;
 }
+.btnPrimary { background: var(--cta); border-color: var(--cta); color: var(--on-accent); }
+.btnPrimary:hover { background: var(--cta-dark); border-color: var(--cta-dark); }
+.btnLight { background: var(--nav-text); color: var(--text); border-color: var(--nav-text); }
+.btnPrimary:focus-visible, .btnLight:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
 
-.pageHeader::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(var(--accent-rgb),0.1) 0%, transparent 70%);
-  pointer-events: none;
+.free { background: var(--surface); border-top: 1px solid var(--border); }
+.freeGrid { display: grid; gap: 32px; align-items: center; }
+@media (min-width: 860px) { .freeGrid { grid-template-columns: 1fr 1fr; gap: 56px; } }
+.freeCard { border: 2px solid var(--text); background: var(--surface); padding: 22px 20px; }
+.freeHead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.freeHead h3 { margin: 0; font-size: var(--step-2); font-weight: 800; }
+.freeHead span { font-size: 2.6rem; font-weight: 800; line-height: 1; }
+.lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lines li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; font-size: var(--step-0); line-height: 1.5; }
+.yes { color: var(--text); } .yes > span:first-child { color: var(--green); font-weight: 800; }
+.no { color: var(--muted); } .no > span:first-child { font-weight: 800; }
+
+/* Light, like the same section on the home page (owner, 5.10: no all-black
+   grounds — the review measured this one 341px tall on a phone). */
+.human { background: var(--blush-soft); color: var(--text); border-top: 1px solid var(--border); }
+.humanGrid { display: grid; gap: 1px; margin: 8px 0 28px; background: var(--border); border: 1px solid var(--border); }
+@media (min-width: 860px) { .humanGrid { grid-template-columns: repeat(3, 1fr); } }
+.humanItem { padding: 20px 18px; background: var(--surface); display: grid; gap: 8px; align-content: start; }
+.humanItem h3 { margin: 0; font-size: var(--step-1); font-weight: 800; }
+.humanItem p { margin: 0; color: var(--text2); font-size: var(--step--1); line-height: 1.6; }
+
+.faq { background: var(--bg); }
+.faqList { max-width: 760px; margin: 8px auto 20px; border-top: 2px solid var(--text); }
+.faqItem { border-bottom: 1px solid var(--border2); }
+.faqItem summary {
+  cursor: pointer; list-style: none;
+  display: flex; justify-content: space-between; gap: 16px; align-items: center;
+  padding: 18px 2px; min-height: 56px;
+  font-size: var(--step-1); font-weight: 800; color: var(--text);
 }
+.faqItem summary::-webkit-details-marker { display: none; }
+.faqItem summary::after { content: "+"; font-size: 1.5rem; font-weight: 700; color: var(--accent-text); flex-shrink: 0; }
+.faqItem[open] summary::after { content: "−"; }
+.faqItem summary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.faqItem p { margin: 0 0 18px; color: var(--text2); font-size: var(--step-0); line-height: 1.7; }
+.small { text-align: center; color: var(--muted); font-size: var(--step--1); }
+.small a { color: var(--accent-text); }
 
-.pageHeaderInner {
-  position: relative;
-  max-width: 600px;
-  margin: 0 auto;
+/* ── what is inside each package ── */
+.detail { background: var(--surface); border-top: 1px solid var(--border); }
+.footnote { margin: -4px auto 24px; max-width: 60ch; }
+.detailPlan { max-width: 980px; margin-inline: auto; border-top: 2px solid var(--text); }
+.detailPlan:last-of-type { border-bottom: 1px solid var(--border2); }
+.detailPlan summary {
+  cursor: pointer; list-style: none; min-height: 60px;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 16px 2px; font-weight: 800;
 }
-
-/* Was --accent-text inside a 12%-accent pill on near-black: 2.66:1. Blush type
-   on the same tinted pill is ~10:1 and keeps the pill's brand tint. */
-.headerTag {
-  display: inline-block;
-  background: rgba(var(--accent-rgb),0.14);
-  color: var(--blush);
-  border: 1px solid rgba(var(--accent-rgb),0.30);
-  border-radius: var(--radius-pill);
-  font-size: var(--step--3);
-  font-weight: 700;
-  padding: 4px 18px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-}
-
-.headerTitle {
-  /* This page is one decision, so its title carries the same editorial serif
-     and the same authority-by-scale as the landing hero. */
-  font-family: var(--font-family-serif);
-  font-size: clamp(2.4rem, 5.6vw, 3.9rem);
-  font-weight: 700;
-  color: var(--nav-text);
-  line-height: 1.12;
-  margin: 0 0 18px;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-}
-
-.headerSub {
-  font-size: 1rem;
-  color: var(--nav-muted);
-  line-height: 1.75;
-  margin: 0;
-}
-
-/* ── Plans section ── */
-
-.plansSection {
-  background: var(--bg);
-  padding: 72px 0 88px;
-}
-
-.plansInner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-.plansGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  /* `start` let each card be exactly as tall as its own content, which is what
-     put the three CTAs at three different heights. */
-  align-items: stretch;
-}
-
-.planCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 40px 32px;
-  box-shadow: var(--shadow);
-  position: relative;
-  /* The three buttons sat at three different heights — 1114 / 1193 / 1206 —
-     and the two UNSCALED cards differed by 79px, which on a pricing table is
-     the single most-noticed misalignment there is. The cards stretch to the
-     tallest and the CTA is pushed to the bottom of each. */
-  display: flex;
-  flex-direction: column;
-}
-
-/* THE decision on this page. It used to shout with four separate signals at
-   once — near-black ground, accent border, accent glow, accent type — and the
-   type on that ground measured 2.66:1, so the loudest card was also the least
-   readable. Blush is a GROUND: it carries near-black at 12.3:1, it is
-   unmistakable against the grey section, and it leaves exactly one saturated
-   element on the card (the button). */
-.planCardPro {
-  background: var(--blush);
-  border-color: var(--blush-line);
-  box-shadow: var(--shadow-md);
-  transform: scale(1.045);
-}
-
-.planBadge {
-  position: absolute;
-  top: -13px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--cta);
-  color: var(--on-accent);
-  font-size: var(--step--3);
-  font-weight: 700;
-  padding: 4px 18px;
-  border-radius: var(--radius-pill);
-  letter-spacing: 0.03em;
-  white-space: nowrap;
-}
-
-.planHeader {
-  margin-bottom: 20px;
-}
-
-.planName {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-
-.planCardPro .planName {
-  color: var(--text);
-}
-
-.planDesc {
-  font-size: var(--step--1);
-  color: var(--muted);
-  line-height: 1.5;
-  margin: 0;
-}
-
-/* --muted is 3.60:1 on blush and fails; --text2 is 5.60:1. */
-.planCardPro .planDesc {
-  color: var(--text2);
-}
-
-.planPrice {
-  margin-bottom: 28px;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.planNum {
-  font-size: 2.6rem;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-
-/* 4.71:1 on blush. The single accent-coloured piece of type on the page. */
-.planCardPro .planNum {
-  color: var(--accent-text);
-}
-
-.planCardPro .planPer {
-  color: var(--text2);
-}
-
-.planPer {
-  font-size: 0.875rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.planFeatures {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.planCardPro .planFeatures {
-  border-color: var(--blush-line);
-}
-
-/* The comparison rows are what a visitor actually scans, so they get a row
-   rhythm: an even baseline gap and a hairline between lines, which is what
-   makes three columns readable ACROSS as well as down. */
-.planFeature {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 0.9rem;
-  color: var(--text2);
-  line-height: 1.5;
-  padding-block: 4px;
-}
-
-.planCardPro .planFeature {
-  color: var(--text2);
-}
-
-/* An unavailable feature reads as absent, not as a 40%-opacity ghost of the
-   available one — opacity dragged the label to ~2.5:1. */
-.planFeatureNo {
-  color: var(--muted);
-}
-
-.planFeatureIcon {
-  flex-shrink: 0;
-  font-size: var(--step--1);
-  font-weight: 700;
-  color: var(--green);
-  width: 16px;
-  text-align: center;
-}
-
-/* --border2 put the "—" at 1.65:1; --muted is 5.30:1 on white. The marker has
-   to be readable — it is the only thing distinguishing an excluded row. */
-.planFeatureNo .planFeatureIcon {
-  color: var(--muted);
-}
-
-/* --green is 3.97:1 on blush; --accent-text is 4.71:1. */
-.planCardPro .planFeatureIcon {
-  color: var(--accent-text);
-}
-
-.planCta {
-  display: block;
-  text-align: center;
-  /* Bottom of the card, so the row of buttons is a row. */
-  margin-top: auto;
-  background: var(--bg);
-  color: var(--text2);
-  text-decoration: none;
-  font-size: var(--step-0);
-  font-weight: 700;
-  padding: 12px 20px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border2);
-  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
-}
-
-.planCta:hover {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
-  color: var(--accent-text);
-}
-
-.planCtaPro {
-  background: var(--cta);
-  color: var(--on-accent);
-  border-color: var(--cta);
-  box-shadow: var(--shadow-cta);
-}
-
-.planCtaPro:hover {
-  background: var(--cta-dark);
-  color: var(--on-accent);
-  border-color: var(--cta-dark);
-  box-shadow: var(--shadow-cta-lg);
-}
-
-/* ── FAQ ── */
-
-.faqSection {
-  background: var(--surface);
-  padding: 88px 0;
-}
-
-.faqInner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-.faqHeader {
-  text-align: center;
-  margin-bottom: 48px;
-}
-
-/* Blush pill, near-black label — the same eyebrow primitive the landing page
-   uses, instead of a third pale-pink-on-pale-pink variant. */
-.faqTag {
-  display: inline-block;
-  background: var(--blush);
-  color: var(--text);
-  border-radius: var(--radius-pill);
-  font-size: var(--step--3);
-  font-weight: 800;
-  padding: 6px 18px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-bottom: 18px;
-}
-
-.faqTitle {
-  font-family: var(--font-family-serif);
-  font-size: clamp(1.75rem, 3.8vw, 2.6rem);
-  font-weight: 700;
-  color: var(--text);
-  margin: 0;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-}
-
-.faqGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-.faqCard {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 28px 24px;
-  box-shadow: var(--shadow);
-  transition: border-color var(--transition), box-shadow var(--transition);
-}
-
-.faqCard:hover {
-  border-color: var(--accent-border);
-  box-shadow: var(--shadow-md);
-}
-
-.faqQ {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 12px;
-  line-height: 1.35;
-}
-
-.faqA {
-  font-size: 0.9rem;
-  color: var(--text2);
-  line-height: 1.75;
-  margin: 0;
-  max-width: 58ch;
-}
-
-/* ── CTA banner ── */
-
-.ctaBanner {
-  background: var(--nav-bg);
-  /* A dark band: the ring --accent-text draws here is 2.64:1. */
-  --focus-ring: var(--accent-on-dark);
-  text-align: center;
-  padding: 96px 24px;
-}
-
-.ctaInner {
-  max-width: 560px;
-  margin: 0 auto;
-}
-
-.ctaStar {
-  display: block;
-  font-size: 40px;
-  color: var(--blush);
-  opacity: 0.42;
-  margin-bottom: 24px;
-  line-height: 1;
-}
-
-.ctaTitle {
-  font-family: var(--font-family-serif);
-  font-size: clamp(1.9rem, 4.4vw, 3rem);
-  font-weight: 700;
-  color: var(--nav-text);
-  margin: 0 0 16px;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-}
-
-.ctaSub {
-  font-size: 1rem;
-  color: var(--nav-muted);
-  line-height: 1.7;
-  margin: 0 0 32px;
-}
-
-.ctaBtn {
-  display: inline-block;
-  background: var(--cta);
-  color: var(--on-accent);
-  text-decoration: none;
-  font-size: 1.05rem;
-  font-weight: 700;
-  padding: 14px 40px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-cta-lg);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
-}
-
-.ctaBtn:hover {
-  background: var(--cta-dark);
-  box-shadow: 0 8px 32px rgba(var(--cta-rgb),0.55);
-  transform: translateY(-2px);
-}
-
-/* ── Responsive ── */
-
-@media (max-width: 900px) {
-  .plansGrid {
-    grid-template-columns: 1fr;
-    max-width: 440px;
-    margin: 0 auto;
-  }
-
-  .planCardPro {
-    transform: none;
-  }
-
-  .faqGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 600px) {
-
-  .pageHeader {
-    padding: 48px 20px 64px;
-  }
-
-  .plansSection {
-    padding: 48px 0 64px;
-  }
-
-  .plansInner {
-    padding: 0 20px;
-  }
-
-  .faqSection {
-    padding: 48px 0;
-  }
-
-  .faqInner {
-    padding: 0 20px;
-  }
-}
-
-/* Was an inline style object on the element. Blush ground with near-black text
-   is the primitive for "this needs to stand out" — it keeps the accent rare,
-   and --accent-text on --accent-bg was the brand colour doing a job a surface
-   already does. */
-.betaNote {
-  max-width: 620px;
-  /* The "הכי פופולרי" badge sits 13px above its card and overlapped this by
-     7px — and both are blush, so the pill was sandwiched between two identical
-     pink surfaces with a grey sliver between them. */
-  margin: 0 auto 34px;
-  padding: 12px 16px;
-  background: var(--blush);
-  color: var(--text);
-  border-radius: var(--radius);
-  text-align: center;
-  font-weight: 700;
-  font-size: var(--step--1);
-  line-height: 1.5;
-}
-
-
-/* ── Grouped feature lists, add-ons and the footnote (checklist 31) ──────────
-   The tiers stopped being "four bullets each" and became the full contents of
-   a package — around forty lines on the paid tier. Forty ungrouped bullets is
-   a wall nobody reads, so each tier is sectioned and each section is labelled.
-   Everything below serves that. */
-
-.planNote {
-  margin: 0 0 20px;
-  font-size: var(--step--2);
-  font-weight: 700;
-  color: var(--accent-text);
-}
-
-/* "כל מה שבחינם, ועוד:" — the line that makes the tiers cumulative instead of
-   three competing lists. It sits directly above the first group. */
-.planInherits {
-  margin: 28px 0 4px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
-  font-size: var(--step--1);
-  font-weight: 700;
-  color: var(--text);
-}
-
-.planGroup { margin-top: 22px; }
-
-.planGroupTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 12px;
-  font-size: var(--step--1);
-  font-weight: 800;
-  color: var(--text);
-}
-
-/* Marks the lines a PERSON delivers rather than the software. It is the one
-   label that has to travel with the claim, so it is never only a colour. */
-.planHuman {
-  padding: 2px 9px;
-  border-radius: var(--radius-pill);
-  background: var(--blush-soft);
-  color: var(--accent-text);
-  font-size: var(--step--2);
-  font-weight: 700;
-}
-
-.footnote {
-  margin: 36px auto 0;
-  max-width: 640px;
-  text-align: center;
-  font-size: var(--step-0);
-  line-height: 1.7;
-  font-weight: 600;
-  color: var(--text2);
-}
-
-/* "מדיניות הביטול וההחזרים" — the one link on the page that sells, to the
-   terms a buyer is entitled to read before paying, measured 23px on a phone
-   (WORKPLAN 129; audit 3.10, P2-5). Only the tappable area grows. */
+.detailPlan summary::-webkit-details-marker { display: none; }
+.detailPlan summary::after { content: "+"; font-size: 1.5rem; color: var(--accent-text); }
+.detailPlan[open] summary::after { content: "−"; }
+.detailPlan summary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.detailName { font-size: var(--step-2); color: var(--text); flex: 1; }
+.detailPrice { font-size: var(--step-1); color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.inherits { margin: 0 0 12px; color: var(--text2); font-weight: 700; }
+.detailGrid { display: grid; gap: 20px; padding-bottom: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.group { display: grid; gap: 8px; align-content: start; }
+.groupTitle { margin: 0; font-size: var(--step-0); font-weight: 800; color: var(--text); }
+.groupList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.groupList li { display: grid; grid-template-columns: 18px 1fr; gap: 6px; font-size: var(--step--1); line-height: 1.55; color: var(--text2); }
+.groupList span { color: var(--green); font-weight: 800; }
+
+/* Touch target for the refund-policy link. The old page had this rule (item
+   129, "מחירים — הקישור מדיניות הביטול") and the 5.10 rebuild dropped it.
+   nowrap for the same reason as before: an expansion on a link broken across
+   two lines lands between the fragments, not on them. */
 @media (pointer: coarse) {
-  .footnote a {
-    position: relative;
-    /* At 390px it broke across two lines, and an expansion on a broken
-       inline box lands between the fragments, not on them (measured 23px
-       with it in place). Three words, ~170px: it fits on a line. */
-    white-space: nowrap;
-  }
-
-  .footnote a::after {
+  .small a { position: relative; white-space: nowrap; }
+  .small a::after {
     content: "";
     position: absolute;
     top: 50%;
@@ -561,162 +108,4 @@
     min-width: 44px;
     height: 44px;
   }
-}
-
-/* ── Add-ons ── */
-
-.addons { margin-top: 56px; }
-
-.addonsTitle {
-  margin: 0 0 20px;
-  font-size: var(--step-1);
-  font-weight: 800;
-  color: var(--text);
-  text-align: center;
-}
-
-.addonsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  max-width: 760px;
-  margin: 0 auto;
-}
-
-.addonCard {
-  padding: 20px 22px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-.addonHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.addonTitle {
-  margin: 0;
-  font-size: var(--step-0);
-  font-weight: 800;
-  color: var(--text);
-}
-
-.addonPrice {
-  font-size: var(--step-0);
-  font-weight: 800;
-  /* --accent is a FILL token at 3.8:1 and is never text. */
-  color: var(--accent-text);
-}
-
-.addonNote {
-  margin: 2px 0 10px;
-  font-size: var(--step--2);
-  color: var(--muted);
-}
-
-.addonBody {
-  margin: 0;
-  font-size: var(--step--1);
-  line-height: 1.6;
-  color: var(--text2);
-}
-
-@media (max-width: 720px) {
-  .addonsGrid { grid-template-columns: 1fr; }
-}
-
-/* ── The detail section (checklist 31) ──────────────────────────────────────
-   The full contents of each package, below the cards. See the comment in the
-   JSX for why they are not inside them. */
-
-.planSummary {
-  list-style: none;
-  margin: 24px 0 28px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.detailSection {
-  background: var(--surface);   /* was var(--surface2), which is defined nowhere — transparent (סב25) */
-  border-top: 1px solid var(--border);
-}
-
-.detailInner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: 72px 24px;
-}
-
-.detailHeading {
-  margin: 0 0 40px;
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: 800;
-  color: var(--text);
-  text-align: center;
-}
-
-.detailPlan {
-  padding: 28px 30px;
-  margin-bottom: 20px;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-.detailPlanHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
-}
-
-.detailPlanName {
-  margin: 0;
-  font-size: var(--step-1);
-  font-weight: 800;
-  color: var(--text);
-}
-
-.detailPlanPrice {
-  font-size: var(--step-1);
-  font-weight: 800;
-  /* --accent is a FILL token at 3.8:1 and is never text. */
-  color: var(--accent-text);
-}
-
-.detailInherits {
-  margin: 14px 0 0;
-  font-size: var(--step--1);
-  font-weight: 700;
-  color: var(--text2);
-}
-
-/* Three columns of groups, so a 38-item tier reads as seven short lists rather
-   than one long one. Collapses on narrow screens. */
-.detailGrid {
-  margin-top: 8px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px 32px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .detailGrid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 600px) {
-  .detailGrid  { grid-template-columns: 1fr; }
-  .detailInner { padding: 56px 16px; }
-  .detailPlan  { padding: 22px 18px; }
 }

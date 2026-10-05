@@ -474,7 +474,11 @@
 /* ── Narrow ─────────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .step {
+  /* `.step:nth-child(even)` (two classes' worth) outranked `.step` here, so
+     every even step stayed two columns and its screenshot shrank to a 114px
+     thumbnail at 320 (review 5.10). Both selectors, same weight. */
+  .step,
+  .step:nth-child(even) {
     grid-template-columns: 1fr;
     gap: 20px;
   }
@@ -498,7 +502,9 @@
   .steps        { gap: 48px; }
   .depthGrid    { grid-template-columns: 1fr; }
   .stat         { flex-basis: calc(50% - 6px); max-width: none; }
-  .frictionItem { flex-direction: column; gap: 4px; }
+  /* flex-start, not the row's baseline: stacked, baseline left the shorter
+     line floating up to 150px off the card's text edge (review 5.10). */
+  .frictionItem { flex-direction: column; gap: 4px; align-items: flex-start; }
 }
 
 @media (pointer: coarse) {

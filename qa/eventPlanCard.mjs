@@ -41,7 +41,9 @@ for (const w of [390, 1280]) {
   const id = await p.evaluate(() => {
     const id = crypto.randomUUID();
     const ev = { id, name: "נאור ומיכל", type: "חתונה", date: "2027-05-20", venue: "אולמי X",
-                 guests: [], tables: [], seating: {}, constraints: [], version: 1, updatedAt: Date.now() };
+                 // 8 rows × 40 = 320 people. One row of 320 is not a real list:
+                 // normalizeEvent caps a row at 50, and read back as 50.
+                 guests: Array.from({ length: 8 }, (_, i) => ({ id: "g" + i, name: "משפחה " + i, count: 40 })), tables: [], seating: {}, constraints: [], version: 1, updatedAt: Date.now() };
     localStorage.setItem("kochav_hashulchan_v1", JSON.stringify({ events: [ev], activeEventId: id }));
     return id;
   });
@@ -78,7 +80,8 @@ for (const w of [390, 1280]) {
 
   check(`@${w} card renders on the event hub`, !!card, JSON.stringify(card));
   if (card) {
-    check(`@${w} names the price`, card.text.includes("₪690"), card.text.slice(0, 90));
+    // 320 people → the 350 step, rounded UP (136, 5.10). Nearest would be ₪349.
+    check(`@${w} names this event's price`, card.text.includes("₪399"), card.text.slice(0, 160));
     // Signed out + no Stripe key in this build: the honest state is a disabled
     // button that says why, not a button that fails when pressed.
     check(`@${w} buy button disabled with a reason`, card.btn && card.btn.disabled, JSON.stringify(card.btn));

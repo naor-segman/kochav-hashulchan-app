@@ -147,7 +147,7 @@ export default function SiteHeader({ user = null, active = null }) {
   ) : (
     <>
       <Link to="/login" className={styles.navLoginBtn}>כניסה</Link>
-      <Link to="/signup" className={styles.navCta}>התחילו חינם</Link>
+      <Link to="/app" className={styles.navCta}>התחילו חינם</Link>
     </>
   );
 
@@ -167,7 +167,10 @@ export default function SiteHeader({ user = null, active = null }) {
     <header className={styles.nav}>
       <a href="#main" className={styles.skipLink} onClick={skipToMain}>דלגו לתוכן</a>
       <div className={styles.navInner}>
-        <Link to="/" className={styles.navLogo}>
+        {/* closeMenu: "/" and "/home" render the same landing screen, so the
+            header does not remount and the phone menu stayed open over the page
+            after a tap on the logo (review 5.10). */}
+        <Link to="/" className={styles.navLogo} onClick={closeMenu}>
           <span className={styles.navLogoMark} aria-hidden="true">✦</span>
           <span className={styles.navLogoName}>{COMPANY.name}</span>
         </Link>
@@ -227,7 +230,9 @@ export default function SiteHeader({ user = null, active = null }) {
       </div>
 
       {menuOpen && (
-        <div className={styles.mobileMenu}>
+        // data-site-menu-open: the cookie sheet steps aside while this is open —
+        // it covered the menu's last items on a phone (review 5.10).
+        <div className={styles.mobileMenu} data-site-menu-open="">
           {live.map(s => (
             <Link key={s.id} to={s.path} className={styles.mobileLink} onClick={closeMenu}>{s.label}</Link>
           ))}
@@ -238,7 +243,7 @@ export default function SiteHeader({ user = null, active = null }) {
           ) : (
             <>
               <Link to="/login" className={styles.mobileLink} onClick={closeMenu}>כניסה</Link>
-              <Link to="/signup" className={styles.mobileMenuCta} onClick={closeMenu}>התחילו חינם ←</Link>
+              <Link to="/app" className={styles.mobileMenuCta} onClick={closeMenu}>התחילו חינם ←</Link>
             </>
           )}
         </div>

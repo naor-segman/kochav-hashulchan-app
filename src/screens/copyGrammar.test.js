@@ -82,3 +82,16 @@ describe("one name per thing (audit 3.10, C16)", () => {
     });
   }
 });
+
+/* 136 (5.10): "שובצו בהצלחה ל{n} שולחנות" painted as "ל14" → read as "147" —
+ * a one-letter Hebrew prefix glued to a number. In copy the prefix takes a
+ * maqaf: "ב-14", "ל-14" (the same rule company.js states for the brand name). */
+describe("a Hebrew prefix letter is never glued to a JSX number", () => {
+  // Numbers only: "ל{next.label}" is a prefix on a WORD and is correct Hebrew.
+  it("no ' ל{n}' / ' ב{n}' / ' מ{n}' around a count in .jsx copy", () => {
+    const hits = walk(SRC)
+      .filter(f => f.endsWith(".jsx") && !f.includes(".test."))
+      .flatMap(f => (stripComments(readFileSync(f, "utf8")).match(/ [בלמהוכש]\{[^}]*(length|[cC]ount|[tT]otal|size|num|[sS]eats)[^}]*\}/g) || []).map(m => `${relative(SRC, f)}: ${m}`));
+    expect(hits).toEqual([]);
+  });
+});

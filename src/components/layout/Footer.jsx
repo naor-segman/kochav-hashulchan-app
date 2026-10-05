@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import styles from "./Footer.module.css";
-import { COMPANY, legalLine, contactMailto } from "../../data/company.js";
+import { COMPANY, LEGAL, legalLine, contactMailto, contactEmail } from "../../data/company.js";
 import { openConsentSettings } from "../../utils/consent.js";
 import { analyticsConfigured } from "../../lib/analytics.js";
 
@@ -39,12 +39,20 @@ export default function Footer() {
             <Link to="/login" className={styles.colLink}>כניסה</Link>
             <Link to="/account" className={styles.colLink}>הגדרות</Link>
           </div>
+          {/* Contact, in the open (136): the payment provider asks for a phone
+              and an address on the site, and a buyer looks for them too. */}
+          <div className={styles.col}>
+            <div className={styles.colTitle}>דברו איתנו</div>
+            <a href={`https://wa.me/${COMPANY.whatsapp}`} className={styles.colLink} target="_blank" rel="noreferrer">וואטסאפ</a>
+            <a href={`tel:${LEGAL.phone.replace(/\D/g, "")}`} className={styles.colLink}><bdi dir="ltr">{LEGAL.phone}</bdi></a>
+            <a href={contactMailto()} className={styles.colLink} title={contactEmail()}>צרו קשר</a>
+            {LEGAL.address && <span className={styles.colLink}>{LEGAL.address}</span>}
+          </div>
           <div className={styles.col}>
             <div className={styles.colTitle}>תמיכה ומידע</div>
             <Link to="/help" className={styles.colLink}>מרכז עזרה</Link>
             {/* plan@, not plansupport@: "צרו קשר" is the main business address
                 (owner 3.10); questions and problems go to support from Help. */}
-            <a href={contactMailto()} className={styles.colLink}>צרו קשר</a>
             <Link to="/privacy" className={styles.colLink}>מדיניות פרטיות</Link>
             {/* Changing the answer is as easy as giving it (owner 3.10). */}
             {analyticsConfigured && (

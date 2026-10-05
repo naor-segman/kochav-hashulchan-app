@@ -26,6 +26,13 @@
   display: none;
 }
 
+/* The same for the site's phone menu: at 390 the sheet covered its last items
+   ("מחירים", "כניסה", "התחילו חינם") until answered (review 5.10). The question
+   comes back the moment the menu closes. */
+:global(body):has([data-site-menu-open]) .banner {
+  display: none;
+}
+
 .title {
   margin: 0 0 6px;
   font-size: var(--step-1);
@@ -89,6 +96,55 @@
 
 @media (min-width: 600px) {
   .manage { flex: 0 0 auto; }
+}
+
+/* ── The strip, on the sign-in forms (136 stage C) ────────────────────────
+   Edge to edge at the bottom, square like the screens it sits on, the title
+   kept for screen readers (it names the region) but not painted, and the three
+   controls on one row. Measured at 390: see the commit. */
+.compact {
+  inset-inline: 0;
+  inset-block-end: 0;
+  max-width: none;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-radius: 0;
+  border-inline: 0;
+  border-block-end: 0;
+}
+
+.compact .title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.compact .text {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.compact .actions {
+  flex-wrap: nowrap;
+  gap: 8px;
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+.compact .answer {
+  min-width: 0;
+  border-radius: 0;
+}
+
+.compact .inlineLink {
+  white-space: nowrap;
+}
+
+.compact .manage {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 /* ── The preferences ─────────────────────────────────────────────────────── */

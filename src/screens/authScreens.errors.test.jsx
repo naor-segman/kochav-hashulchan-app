@@ -195,3 +195,30 @@ describe("auth forms — accessible errors (AX6)", () => {
     expect(screen.getByRole("alert").textContent).toMatch(/חיבור/);
   });
 });
+
+describe("sign-in focus never falls to <body> (review 5.10)", () => {
+  it("forgot password: into the email field, and back to the link", () => {
+    inRouter(<LoginScreen />);
+    fireEvent.click(screen.getByRole("button", { name: "שכחתם סיסמה?" }));
+    expect(document.activeElement).toBe(screen.getByLabelText("אימייל לאיפוס סיסמה"));
+    fireEvent.click(screen.getByRole("button", { name: "→ חזרו לכניסה" }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "שכחתם סיסמה?" }));
+  });
+
+  it("show-password is reachable by keyboard", () => {
+    inRouter(<LoginScreen />);
+    expect(screen.getByRole("button", { name: "הציגו סיסמה" }).getAttribute("tabindex")).not.toBe("-1");
+  });
+
+  it("signup without the consent box: the box is focused, invalid, and tied to the message", async () => {
+    inRouter(<SignupScreen />);
+    fireEvent.change(screen.getByLabelText("אימייל"), { target: { value: "a@b.co" } });
+    fireEvent.change(screen.getByLabelText("סיסמה"), { target: { value: "secret1" } });
+    fireEvent.change(screen.getByLabelText("אימות סיסמה"), { target: { value: "secret1" } });
+    await act(async () => { fireEvent.submit(screen.getByLabelText("אימייל").closest("form")); });
+    const box = screen.getByRole("checkbox");
+    expect(document.activeElement).toBe(box);
+    expect(box.getAttribute("aria-invalid")).toBe("true");
+    expect(box.getAttribute("aria-describedby")).toBe("signup-error");
+  });
+});

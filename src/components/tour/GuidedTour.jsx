@@ -138,6 +138,18 @@ export default function GuidedTour({ steps, onClose }) {
     };
   }, [step]);
 
+  // Room to scroll while the tour is open (review 5.10). A part near the end of
+  // a short page cannot be scrolled up to where its card fits below it, so the
+  // card was laid over the part's lower end and the light trimmed above it —
+  // the collab link step at 390 after the font change made that part shorter
+  // than "too tall" but the page had nowhere left to scroll. Layout effect, so
+  // the room exists before the first align(). Read by <body> in global.css.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--tour-space", `${Math.round(window.innerHeight * 0.6)}px`);
+    return () => root.style.removeProperty("--tour-space");
+  }, []);
+
   // Everything but the tour is inert while it is open (see the note at the
   // top). Layout effect, so its cleanup runs before useRestoreFocus hands
   // focus back to a control on the page.

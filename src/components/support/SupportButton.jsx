@@ -1,30 +1,44 @@
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import styles from "./SupportButton.module.css";
 import { isGuestRoute } from "../../utils/guestRoutes.js";
-import { COMPANY } from "../../data/company.js";
+import { SUPPORT_PHONE, supportHref } from "./supportLink.js";
+import { isAuthFormRoute } from "../../utils/authRoutes.js";
 
-// Floating WhatsApp support button, for hosts. The number is the business
-// phone (COMPANY.whatsapp — owner, 4.10: one number for the business and for
-// support); VITE_SUPPORT_WHATSAPP, international format without "+", overrides
-// it. With neither, nothing renders.
-const RAW = import.meta.env.VITE_SUPPORT_WHATSAPP || COMPANY.whatsapp || "";
-const PHONE = RAW.replace(/[^\d]/g, "");
-
-// Neutral on purpose: this is the HOST's first message, typed for them, and
-// "אני צריך" made every host who is not a man send a sentence in the wrong
-// gender (audit 3.10, C17).
-const GREETING = encodeURIComponent(`היי, אשמח לעזרה עם ${COMPANY.name} 🙂`);
+// Floating WhatsApp support button, for hosts. Number and greeting live in
+// supportLink.js, shared with the help line on the sign-in forms.
 
 export default function SupportButton() {
   const { pathname } = useLocation();
+  /* Out of the way while reading (review 5.10). Even on the end side it sat
+     on text on 67% of /terms' scroll positions at 390 — on a phone lines run
+     the full width. It slides away while the page is scrolled DOWN and comes
+     back on any scroll up, near the top, or at the end of the page. The
+     competitor weakness we wrote down: bubbles that cover content. */
+  const [away, setAway] = useState(false);
+  const lastY = useRef(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const dy = y - lastY.current;
+      if (Math.abs(dy) < 6) return;
+      lastY.current = y;
+      const nearTop = y < 120;
+      const atEnd = window.innerHeight + y >= document.documentElement.scrollHeight - 40;
+      setAway(dy > 0 && !nearTop && !atEnd);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   // This number is the product's support line, for hosts. On a guest page it sat
   // over the RSVP form and the gift page, inviting a wedding guest to message
   // the software company instead of the couple (106, 28.9).
-  if (!PHONE || isGuestRoute(pathname)) return null;
-  const href = `https://wa.me/${PHONE}?text=${GREETING}`;
+  // And not over a sign-in form (136 stage C) — SupportLine is inside the card.
+  if (!SUPPORT_PHONE || isGuestRoute(pathname) || isAuthFormRoute(pathname)) return null;
+  const href = supportHref();
   return (
     <a
-      className={styles.fab}
+      className={away ? `${styles.fab} ${styles.away}` : styles.fab}
       href={href}
       target="_blank"
       rel="noopener noreferrer"

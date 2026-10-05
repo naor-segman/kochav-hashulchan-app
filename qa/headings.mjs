@@ -112,7 +112,13 @@ try {
     console.log(`\n── every event screen${label}`);
     for (const tab of TABS) {
       await p.goto(`${server.base}/events/${id}/${tab}`);
-      await p.waitForTimeout(500);
+      /* The screens are lazy chunks since 3.10, and a fixed 500ms raced them:
+         a different screen "had no h1" on every run (guests, costs, setup,
+         share, vendors…) — the outline was read while "טוען…" was showing.
+         Wait for the heading the check is about; a screen that genuinely has
+         none still times out and still fails below. */
+      await p.waitForSelector('main h1, h1', { timeout: 6000 }).catch(() => {});
+      await p.waitForTimeout(250);
       judge(tab + label, await outline(p));
     }
   }

@@ -117,6 +117,13 @@
   color: var(--nav-muted);
 }
 
+/* The last line of every page is the operator's legal identity; on a phone
+   the WhatsApp button covered a quarter of it with no way to scroll it clear
+   (review 5.10). Room for the button under it. */
+@media (max-width: 860px) {
+  .bottomInner { padding-block-end: 88px; }
+}
+
 @media (max-width: 640px) {
   .inner {
     grid-template-columns: 1fr;

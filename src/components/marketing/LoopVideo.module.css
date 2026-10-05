@@ -1,0 +1,29 @@
+/* Square, quiet, in the corner of the picture — present for whoever needs it,
+   not a second call to action. 44px for a thumb. */
+.toggle {
+  position: absolute;
+  inset-block-end: 8px;
+  inset-inline-end: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 1px solid var(--nav-border);
+  background: var(--scrim-60);
+  color: var(--nav-text);
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 800;
+  letter-spacing: -0.1em;
+  cursor: pointer;
+}
+
+.toggle:hover { background: var(--scrim-55); }
+
+.toggle:focus-visible {
+  outline: 3px solid var(--accent-on-dark);
+  outline-offset: 2px;
+}

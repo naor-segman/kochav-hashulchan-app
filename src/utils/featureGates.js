@@ -1,3 +1,4 @@
+import { peopleIn } from "../data/pricingCurve.js";
 import { getPlanLimits, getPlanLabel } from "../admin/lib/planConfig.js";
 
 // ── Feature gate helpers ──────────────────────────────────────────────────────
@@ -132,13 +133,9 @@ export function canSeatMore(plan, guests) {
     );
   }
   const { maxSeatedSeats } = getPlanLimits(plan);
-  const seats = guests
-    // `.filter(Boolean)` first: a null row survived `g?.rsvp !== "declined"` and
-    // then scored `Number(undefined) || 1` = 1, so [null, null] counted as two
-    // people who do not exist.
-    .filter(Boolean)
-    .filter(g => g.rsvp !== "declined")
-    .reduce((n, g) => n + Math.max(1, Number(g.count) || 1), 0);
+  // peopleIn: one rule for the gate and the price (pricingCurve.js). Null rows
+  // are nobody — [null, null] once counted as two people who do not exist.
+  const seats = peopleIn(guests);
 
   const withinPlan = seats <= maxSeatedSeats;
   const allowed    = !PLAN_GATES_ENFORCED || withinPlan;

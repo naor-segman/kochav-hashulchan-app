@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
+import SupportLine from "../components/support/SupportLine.jsx";
+import AuthAside from "../components/auth/AuthAside.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
@@ -132,115 +134,123 @@ export default function ResetPasswordScreen() {
   const showExpired = expired || link.spent || (!checking && !ready);
 
   return (
-    <main className={styles.page}>
-      <div className={styles.card}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">✦</span>
-          <span className={styles.brandName}>{COMPANY.name}</span>
+    <main id="main" tabIndex={-1} className={styles.page}>
+      <div className={styles.formSide}>
+        {/* The way back to the site, as on /login and /signup (review 5.10). */}
+        <div className={styles.homeRow}>
+          <Link to="/" className={styles.homeLink}>→ חזרה לדף הבית</Link>
         </div>
-        <h1 className={styles.title}>בחירת סיסמה חדשה</h1>
+        <div className={styles.card}>
+          <div className={styles.brand}>
+            <span className={styles.brandMark} aria-hidden="true">✦</span>
+            <span className={styles.brandName}>{COMPANY.name}</span>
+          </div>
+          <h1 className={styles.title}>בחירת סיסמה חדשה</h1>
+          <p className={styles.lead}>עוד רגע אתם בפנים — בוחרים סיסמה, וממשיכים מאיפה שהפסקתם.</p>
 
-        {done ? (
-          <p className={styles.forgotSuccess} role="status">הסיסמה עודכנה בהצלחה ✓ מעבירים אתכם…</p>
-        ) : checking ? (
-          <p className={styles.forgotSuccess}>מאמתים את הקישור…</p>
-        ) : showExpired ? (
-          sent ? (
-            <p className={styles.forgotSuccess} role="status">
-              שלחנו קישור חדש ל-<span dir="ltr">{email.trim()}</span>. פתחו את המייל האחרון שהגיע — הקודמים כבר לא פעילים.
-            </p>
+          {done ? (
+            <p className={styles.forgotSuccess} role="status">הסיסמה עודכנה בהצלחה ✓ מעבירים אתכם…</p>
+          ) : checking ? (
+            <p className={styles.forgotSuccess}>מאמתים את הקישור…</p>
+          ) : showExpired ? (
+            sent ? (
+              <p className={styles.forgotSuccess} role="status">
+                שלחנו קישור חדש ל-<span dir="ltr">{email.trim()}</span>. פתחו את המייל האחרון שהגיע — הקודמים כבר לא פעילים.
+              </p>
+            ) : (
+              <>
+                <div className={styles.noticeWarn} role="status">
+                  הקישור הזה כבר לא פעיל — כל בקשת איפוס חדשה מבטלת את הקודמת, וקישור תקף לשעה. שלחו לעצמכם קישור חדש:
+                </div>
+                <form onSubmit={sendNew} className={styles.form} noValidate>
+                  <div className={styles.field}>
+                    <label className={styles.label} htmlFor="rp-email">כתובת האימייל</label>
+                    <input
+                      id="rp-email"
+                      className={styles.input}
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      dir="ltr"
+                      autoComplete="email"
+                      readOnly={sendBusy}
+                      aria-describedby={sendError ? "rp-send-error" : undefined}
+                      required
+                    />
+                  </div>
+                  {sendError && <p id="rp-send-error" role="alert" className={styles.errorMsg}>{sendError}</p>}
+                  <button type="submit" className={styles.submitBtn} disabled={!email.trim()} aria-disabled={sendBusy || undefined}>
+                    {sendBusy ? "שולחים…" : "שלחו לי קישור חדש"}
+                  </button>
+                </form>
+                <Link to="/login" className={styles.switchLink} style={{ textAlign: "center" }}>חזרה לכניסה</Link>
+              </>
+            )
           ) : (
-            <>
-              <div className={styles.noticeWarn} role="status">
-                הקישור הזה כבר לא פעיל — כל בקשת איפוס חדשה מבטלת את הקודמת, וקישור תקף לשעה. שלחו לעצמכם קישור חדש:
-              </div>
-              <form onSubmit={sendNew} className={styles.form} noValidate>
-                <div className={styles.field}>
-                  <label className={styles.label} htmlFor="rp-email">כתובת האימייל</label>
+            <form onSubmit={submit} className={styles.form} noValidate>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="rp-pw">סיסמה חדשה</label>
+                <div className={styles.passwordWrap}>
                   <input
-                    id="rp-email"
+                    id="rp-pw"
                     className={styles.input}
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="name@example.com"
+                    type={showPw ? "text" : "password"}
+                    value={pw}
+                    onChange={e => setPw(e.target.value)}
+                    placeholder="לפחות 6 תווים"
                     dir="ltr"
-                    autoComplete="email"
-                    readOnly={sendBusy}
-                    aria-describedby={sendError ? "rp-send-error" : undefined}
+                    autoComplete="new-password"
+                    readOnly={busy}
+                    aria-invalid={invalid === "all" || invalid === "pw" || undefined}
+                    aria-describedby={error ? "rp-error" : undefined}
                     required
                   />
+                  <button
+                    type="button"
+                    className={styles.eyeBtn}
+                    onClick={() => setShowPw(v => !v)}
+                    aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
+                  >
+                    <Icon name={showPw ? "eyeOff" : "eye"} size={18} />
+                  </button>
                 </div>
-                {sendError && <p id="rp-send-error" role="alert" className={styles.errorMsg}>{sendError}</p>}
-                <button type="submit" className={styles.submitBtn} disabled={!email.trim()} aria-disabled={sendBusy || undefined}>
-                  {sendBusy ? "שולחים…" : "שלחו לי קישור חדש"}
-                </button>
-              </form>
-              <Link to="/login" className={styles.switchLink} style={{ textAlign: "center" }}>חזרה לכניסה</Link>
-            </>
-          )
-        ) : (
-          <form onSubmit={submit} className={styles.form} noValidate>
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="rp-pw">סיסמה חדשה</label>
-              <div className={styles.passwordWrap}>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="rp-pw2">אימות סיסמה</label>
                 <input
-                  id="rp-pw"
+                  id="rp-pw2"
                   className={styles.input}
                   type={showPw ? "text" : "password"}
-                  value={pw}
-                  onChange={e => setPw(e.target.value)}
-                  placeholder="••••••••"
+                  value={pw2}
+                  onChange={e => setPw2(e.target.value)}
+                  placeholder="הזינו שוב את הסיסמה"
                   dir="ltr"
                   autoComplete="new-password"
                   readOnly={busy}
-                  aria-invalid={invalid === "all" || invalid === "pw" || undefined}
+                  aria-invalid={invalid === "all" || invalid === "pw2" || undefined}
                   aria-describedby={error ? "rp-error" : undefined}
                   required
                 />
-                <button
-                  type="button"
-                  className={styles.eyeBtn}
-                  onClick={() => setShowPw(v => !v)}
-                  aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
-                  tabIndex={-1}
-                >
-                  <Icon name={showPw ? "eyeOff" : "eye"} size={18} />
-                </button>
               </div>
-            </div>
 
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="rp-pw2">אימות סיסמה</label>
-              <input
-                id="rp-pw2"
-                className={styles.input}
-                type={showPw ? "text" : "password"}
-                value={pw2}
-                onChange={e => setPw2(e.target.value)}
-                placeholder="••••••••"
-                dir="ltr"
-                autoComplete="new-password"
-                readOnly={busy}
-                aria-invalid={invalid === "all" || invalid === "pw2" || undefined}
-                aria-describedby={error ? "rp-error" : undefined}
-                required
-              />
-            </div>
+              {error && <p id="rp-error" role="alert" className={styles.errorMsg}>{error}</p>}
 
-            {error && <p id="rp-error" role="alert" className={styles.errorMsg}>{error}</p>}
-
-            <button
-              type="submit"
-              className={styles.submitBtn}
-              disabled={!pw || !pw2}
-              aria-disabled={busy || undefined}
-            >
-              {busy ? "מעדכן…" : "עדכנו סיסמה"}
-            </button>
-          </form>
-        )}
+              <button
+                type="submit"
+                className={styles.submitBtn}
+                disabled={!pw || !pw2}
+                aria-disabled={busy || undefined}
+              >
+                {busy ? "מעדכנים…" : "עדכנו סיסמה"}
+              </button>
+            </form>
+          )}
+          <SupportLine className={styles.help} />
+        </div>
       </div>
+      <AuthAside />
     </main>
   );
 }

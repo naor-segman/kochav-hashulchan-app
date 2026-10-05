@@ -53,7 +53,11 @@ export const PLAN_LIMITS = {
   free: {
     maxEvents:         1,
     maxGuests:         Infinity,
-    maxSeatedSeats:    200,
+    /* 100, was 200 — owner 5.10 (WORKPLAN 136/139, item 2 of the critique):
+       200 covered most britot and bar mitzvahs, so the events most likely to
+       start free would never have a reason to pay. 100 still lets a host see
+       the engine seat a real list. */
+    maxSeatedSeats:    100,
     advancedExports:   false,
     aiFeatures:        false,
     /* TRUE on the free tier, because the free tier SELLS it: "טבלה שיתופית:
@@ -114,8 +118,11 @@ export const PLAN_META = {
     borderColor: "var(--accent-border)",
   },
   enterprise: {
-    label:       "אנחנו שם איתכם",
-    labelEn:     "Enterprise",
+    /* "עד התשובה האחרונה" since 5.10 — the second self-serve package of the
+       per-guest model (src/data/pricingCurve.js). It was "אנחנו שם איתכם", a
+       person at the door; that service is now sold by quote and is not a plan. */
+    label:       "עד התשובה האחרונה",
+    labelEn:     "Calls",
     // Was the literal #E8437B — a hardcoded colour outside tokens.css, and
     // --accent measures 3.80:1 on white and 3.63:1 on the cream ground below,
     // i.e. below the text floor on both. --accent-text is the token for accent
@@ -125,18 +132,11 @@ export const PLAN_META = {
     color:       "var(--text)",
     bgColor:     "var(--blush-soft)",
     borderColor: "var(--blush-line)",
-    /* The ONE thing this package has that the ₪690 package does not: a person
-       from us standing at the door. It lives in PLAN_META and not in PLAN_LIMITS
-       on purpose — PLAN_LIMITS is read by the gate helpers, and a service
-       delivered by a human must never become something the software claims to
-       check. It is display metadata, and the only consumer is the plan card.
-
-       Without it the two paid cards were byte-identical: every limit in
-       PLAN_LIMITS is now the same for `pro` and `enterprise` (both unlimited,
-       both AI, both collaboration), which is CORRECT — the difference is not a
-       software capability — so a comparison table built only from limits could
-       not tell them apart on the screen where someone decides to pay. */
-    humanService: "מנהל הושבה שלנו בכניסה — שירות בשטח",
+    /* The ONE thing this package has that "בלי הפתעות" does not: phone call
+       rounds by a person, to whoever did not answer on WhatsApp. Display
+       metadata, not a limit — a service done by a human must never become
+       something the software claims to check. */
+    humanService: "סבבי שיחות טלפון של נציג אנושי — שירות אנושי",
   },
 };
 

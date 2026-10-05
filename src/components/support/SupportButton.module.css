@@ -1,7 +1,12 @@
 .fab {
   position: fixed;
   inset-block-end: 20px;
-  inset-inline-start: 20px;
+  /* The END side — left, in Hebrew. On the start side (right) it sat where
+     every RTL line begins: over text on 92% of /terms' scroll at 390, 68% of
+     /pricing, 36–51% of /home, and on the second-name field in /app (review
+     5.10, measured). Lines end raggedly on the left, so far less is under it.
+     WORKPLAN 136 stage B: "כפתור הוואטסאפ לא יושב על תוכן". */
+  inset-inline-end: 20px;
   z-index: 900;
   width: 54px;
   height: 54px;
@@ -13,7 +18,7 @@
   justify-content: center;
   box-shadow: 0 4px 14px var(--scrim-22);
   text-decoration: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.2s ease, box-shadow 0.15s ease, opacity 0.2s ease;
 }
 
 .fab:hover {
@@ -23,6 +28,26 @@
 
 .fab:active {
   transform: scale(0.96);
+}
+
+/* Visible on every ground it floats over — light pages and the dark footer
+   (the global ring measured ~2.6:1 there): a dark ring on a white halo. */
+.fab:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 7px var(--surface);
+}
+
+/* Scrolled away while the page moves down (SupportButton.jsx). Keyboard focus
+   brings it back — a focused control is never off the screen. */
+.away:not(:focus-visible) {
+  transform: translateY(calc(100% + 28px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab { transition: none; }
 }
 
 @media print {

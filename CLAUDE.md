@@ -1,7 +1,7 @@
 # CLAUDE.md – Unica Plan Production Rules
 
 ## ⚠️ Work plan — single source of truth
-**`WORKPLAN.md` (repo root) is the living work plan.** It is the source of truth for everything built, in-progress, deferred, every idea raised, and every key decision. At the START of a session read it; DURING the session ADD every new task/idea/decision the user raises (never drop anything); at the END update statuses and COMMIT it. Never reconstruct a fresh plan from the latest chat — always update the existing WORKPLAN.md. The page the owner reads is GENERATED from it — `node qa/planPage.mjs <out.html>`, published to https://claude.ai/artifact/TBS15K46nUyTwmFXvV6Ry2 — never written by hand (a hand-kept page drifted: item 23, 3.10). Each row's colour comes from its leading status mark, so the first mark in a row must be true.
+**`WORKPLAN.md` (repo root) is the living work plan.** It is the source of truth for everything built, in-progress, deferred, every idea raised, and every key decision. At the START of a session read it; DURING the session ADD every new task/idea/decision the user raises (never drop anything); at the END update statuses and COMMIT it. Never reconstruct a fresh plan from the latest chat — always update the existing WORKPLAN.md. The page the owner reads is GENERATED from it — `node qa/planPage.mjs <out.html>`, published to https://claude.ai/artifact/TBS15K46nUyTwmFXvV6Ry2 — never written by hand (a hand-kept page drifted: item 23, 3.10). Each row's colour comes from its leading status mark, so the first mark in a row must be true. **Items are written as blocks, not paragraphs (owner, 4.10):** `#### <status> <id> · <title>`, a `**מי:** … · **מצב:** …` line, then one bullet per fact, each starting with exactly one mark — ✅ done · ⬜ not done · ❓ waits for the owner · ⏸️ deferred · ⚠️ done-but-unverified/risk · 🔎 context · 💬 owner quote · 🔗 commits. Sub-steps are nested bullets. Never write a new item as one long paragraph.
 
 ## Project identity
 **Unica Plan** – Premium Hebrew RTL automatic seating arrangement SaaS for Israeli events (weddings, bar/bat mitzvahs, britot, henna, corporate), run under the owner's business Unica at https://plan.unica-events.co.il. **The name is English only, everywhere — never transliterated** (owner, 3.10). Formerly "כוכב השולחן", then "רוויה"; neither may appear in anything a user sees. Mail: `plan@unica-events.co.il` (main/contact), `plansupport@unica-events.co.il` (support).
@@ -128,16 +128,20 @@ selectors. Fix the check, not the code, when the check is what is wrong.
 ## Decisions already made — do not re-open without being asked
 
 - **Income before features (27.7).** Every feature is measured against "does
-  this bring a shekel closer?"
+  this bring a shekel closer?" — **superseded for now by the owner on 4.10:**
+  design the site first ("בסוף נחבר את כל שאר הדברים אחרי שהוא מעוצב פיקס
+  ומושלם"); payments (41) and the server caps (132) come after (WORKPLAN 136).
 - **The free/paid split is FROZEN** at the owner's explicit request. Do not
   propose or implement it until they raise it. (The prices and tiers were decided
-  and built 27.9; what is frozen is ENFORCING them — switching the gates on, 42 /
+  and built 27.9; on 4.10 the owner himself reopened the NUMBERS only — "less
+  round", WORKPLAN 139. What is frozen is ENFORCING them — switching the gates on, 42 /
   סב30 — and any change to what each tier contains.)
 - **The palette is magenta**, chosen by the owner from an Isracard reference,
   after analysis. The collisions it created were fixed rather than used as an
   argument against it. Do not re-litigate the hue. (On 3.10 the owner himself
-  opened 130 — moving toward Unica's colours, "not now". Until he starts it,
-  magenta stands.)
+  opened 130 — moving toward Unica's colours, "not now". On 4.10 he started
+  it as part of the design work (136 stage A): palettes are compared on real
+  components and HE picks. Until he picks, magenta stands.)
 - **A gold palette was proposed and rejected** — it measured ΔE 8.5 from the
   warning colour, i.e. indistinguishable from it.
 - **Do not copy evenzza.** Learn the level of craft, build our own language. A

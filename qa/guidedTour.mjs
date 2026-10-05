@@ -168,7 +168,7 @@ async function walk(p, label, w, shotAll) {
           && near('right', st.part.right > st.vw - 16 && st.spot.right <= st.vw - 8)
           && near('top', st.part.top < top0 + 10 && st.spot.top >= top0)
           && near('bottom', tooTall || st.part.bottom > st.vh - 10);
-        ok(ok4, `${tag}: the light is on its part`, JSON.stringify({ part: st.part, spot: st.spot }));
+        ok(ok4, `${tag}: the light is on its part`, JSON.stringify({ part: st.part, spot: st.spot, card: st.card, vh: st.vh, top0, tooTall }));
         ok(st.inBar || st.spot.top >= st.sticky, `${tag}: the light is not under the sticky bars`, `spot ${Math.round(st.spot.top)} < bars ${Math.round(st.sticky)}`);
         ok(st.spot.left >= 6 && st.spot.right <= st.vw - 6, `${tag}: the ring is on the screen`, `${Math.round(st.spot.left)}–${Math.round(st.spot.right)}`);
         // The card never sits on the light — a too-tall part's light now ends

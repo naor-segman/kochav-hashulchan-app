@@ -46,9 +46,37 @@ export function useHashScroll() {
     catch { id = hash.slice(1); }
     // Two frames, not zero: the section sits below the hero, whose height
     // settles after its media lays out. Scrolling immediately lands short.
-    const raf = requestAnimationFrame(() => requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }));
-    return () => cancelAnimationFrame(raf);
+    //
+    // Then corrected after the fonts. The site font is a self-hosted Open Sans
+    // with `font-display: swap`: the page first lays out in the fallback, and
+    // when the font arrives the text above the section re-wraps SHORTER —
+    // /privacy#device ended 64px above the top of the screen. Waiting for the
+    // fonts before scrolling at all (the first fix) left the page at the top
+    // for the whole font delay, and forever if a font request hung (review
+    // 5.10, measured). So: scroll now; correct at 1.5s and again when the fonts
+    // land (whichever order — a font arriving right at 1.5s re-wrapped after the
+    // first correction, measured 25px off); and stop correcting the moment the
+    // visitor moves the page themselves. `document.fonts` is absent in jsdom.
+    const go = (smooth) => document.getElementById(id)?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+    let raf = 0;
+    let cancelled = false;
+    let userMoved = false;
+    const stopOnUser = () => { userMoved = true; };
+    const USER_EVENTS = ["wheel", "touchstart", "keydown", "mousedown"];
+    USER_EVENTS.forEach(e => window.addEventListener(e, stopOnUser, { passive: true, once: true }));
+    const correct = () => {
+      if (cancelled || userMoved) return;
+      const el = document.getElementById(id);
+      if (el && Math.abs(el.getBoundingClientRect().top) > 8) go(false);
+    };
+    raf = requestAnimationFrame(() => requestAnimationFrame(() => { if (!cancelled) go(true); }));
+    const timer = setTimeout(correct, 1500);
+    document.fonts?.ready?.then(() => setTimeout(correct, 50)).catch(() => {});
+    const giveUp = setTimeout(() => { cancelled = true; }, 8000);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf); clearTimeout(timer); clearTimeout(giveUp);
+      USER_EVENTS.forEach(e => window.removeEventListener(e, stopOnUser));
+    };
   }, [hash, key]);
 }

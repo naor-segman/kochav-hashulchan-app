@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { isGuestRoute } from "../../utils/guestRoutes.js";
+import { isAuthFormRoute } from "../../utils/authRoutes.js";
 import { readConsent, saveConsent, CONSENT_KEY, CONSENT_OPEN } from "../../utils/consent.js";
 import { analyticsConfigured, applyConsent } from "../../lib/analytics.js";
 import { useRestoreFocus } from "../../hooks/useRestoreFocus.js";
@@ -53,6 +54,33 @@ export default function ConsentBanner() {
     };
   }, []);
 
+  // Stays under the preferences while they are open, so closing them puts
+  // focus back on "ניהול העדפות" rather than on a button that has gone.
+  const showBanner = analyticsConfigured && !answer && !isGuestRoute(pathname);
+
+  /* On a sign-in form the question is a STRIP (136 stage C, owner 5.10). The
+     full sheet is 244px at 390 and sat over the signup's consent box, its
+     submit and "המשיכו בלי חשבון" until answered — the competitor weakness we
+     wrote down as one not to repeat. Same answers, same equal buttons, the same
+     "ניהול העדפות" and privacy link; only the explanation is shorter, and the
+     full one is one tap away in the preferences. */
+  const compact = isAuthFormRoute(pathname);
+
+  /* And the page makes room for it: its height goes into --consent-space,
+     which the sign-in page pads its bottom with, so every control can be
+     scrolled clear of the strip. Removed the moment the question is answered. */
+  const bannerRef = useRef(null);
+  useEffect(() => {
+    const el = bannerRef.current;
+    if (!showBanner || !el) return undefined;
+    const root = document.documentElement;
+    const set = () => root.style.setProperty("--consent-space", `${Math.ceil(el.getBoundingClientRect().height) + 12}px`);
+    set();
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(set) : null;
+    ro?.observe(el);
+    return () => { ro?.disconnect(); root.style.removeProperty("--consent-space"); };
+  }, [showBanner, compact]);
+
   if (!analyticsConfigured) return null;
 
   const decide = (yes) => {
@@ -72,27 +100,32 @@ export default function ConsentBanner() {
     }
   };
 
-  // Stays under the preferences while they are open, so closing them puts
-  // focus back on "ניהול העדפות" rather than on a button that has gone.
-  const showBanner = !answer && !isGuestRoute(pathname);
 
   return (
     <>
       {showBanner && (
         <section
-          className={styles.banner}
+          ref={bannerRef}
+          className={compact ? `${styles.banner} ${styles.compact}` : styles.banner}
           aria-labelledby="consent-title"
           // useScreenTour waits while this is on screen: the tour would make
           // the banner inert and cover it, and the question comes first.
           data-consent-pending=""
         >
           <h2 id="consent-title" className={styles.title}>הסכמה לשימוש בעוגיות</h2>
-          <p className={styles.text}>
-            האתר שומר בדפדפן את מה שהוא צריך כדי לפעול — למשל החיבור לחשבון
-            והאירועים שלכם. באישורכם נפעיל גם מדידת שימוש, כדי לראות איפה האתר
-            לא ברור ולתקן — בלי פרסום, בלי הקלטות מסך ובלי שמות אורחים.{" "}
-            <Link to="/privacy#device" className={styles.inlineLink}>מדיניות הפרטיות</Link>
-          </p>
+          {compact ? (
+            <p className={styles.text}>
+              מדידת שימוש רק באישורכם — בלי פרסום ובלי שמות אורחים.{" "}
+              <Link to="/privacy#device" className={styles.inlineLink}>מדיניות הפרטיות</Link>
+            </p>
+          ) : (
+            <p className={styles.text}>
+              האתר שומר בדפדפן את מה שהוא צריך כדי לפעול — למשל החיבור לחשבון
+              והאירועים שלכם. באישורכם נפעיל גם מדידת שימוש, כדי לראות איפה האתר
+              לא ברור ולתקן — בלי פרסום, בלי הקלטות מסך ובלי שמות אורחים.{" "}
+              <Link to="/privacy#device" className={styles.inlineLink}>מדיניות הפרטיות</Link>
+            </p>
+          )}
           <div className={styles.actions}>
             <button type="button" className={`${base.btnSecondary} ${styles.answer}`} onClick={() => decide(true)}>אישור</button>
             <button type="button" className={`${base.btnSecondary} ${styles.answer}`} onClick={() => decide(false)}>סירוב</button>

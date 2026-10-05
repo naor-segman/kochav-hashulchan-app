@@ -18,7 +18,7 @@ import { useConfirm } from "../components/ui/useConfirm.jsx";
 import {
   userStorageKey, loadState, clearState, isCloudBacked, cloudHoldsEventData, holdsLocalOnlySketch,
 } from "../utils/storage.js";
-import { COMPANY, contactMailto, supportMailto } from "../data/company.js";
+import { COMPANY, supportMailto } from "../data/company.js";
 import { fmtShortDate } from "../utils/dateFormat.js";
 import { authErrorMessage } from "../utils/authErrors.js";
 import { openConsentSettings } from "../utils/consent.js";
@@ -39,10 +39,14 @@ function planFeatures(key) {
      ceiling, the sketch detection, and the person at the door. */
   const seats = l.maxSeatedSeats === Infinity
     ? "הושבה אוטומטית בלי תקרה"
-    : `הושבה אוטומטית עד ${l.maxSeatedSeats} אנשים`;
+    : `הושבה אוטומטית עד ${l.maxSeatedSeats} מוזמנים`;
   return [
     {
-      label:    l.maxEvents === Infinity ? "אירועים ללא הגבלה" : `${l.maxEvents === 1 ? "אירוע אחד" : `עד ${l.maxEvents} אירועים`}`,
+      // Not "אירועים ללא הגבלה": a paid package is bought for ONE event
+      // (Terms §3, per-event entitlement since 28.9) — maxEvents is Infinity
+      // because the account may hold many events, not because one payment
+      // covers them.
+      label:    l.maxEvents === Infinity ? "תשלום אחד — לאירוע אחד" : `${l.maxEvents === 1 ? "אירוע אחד" : `עד ${l.maxEvents} אירועים`}`,
       included: true,
     },
     { label: "רשימת אורחים ללא הגבלה", included: l.maxGuests === Infinity },
@@ -72,7 +76,9 @@ function cardBtnLabel(cardKey, currentPlanKey) {
      event at all, which under the new model would have written an account-wide
      entitlement: one payment, every event unlocked. That is the bug. */
   if (cardKey === "pro")          return "בחרו אירוע לרכישה";
-  if (cardKey === "enterprise")   return "צרו קשר";
+  // Self-serve since 5.10 (it was the person-at-the-door tier, by contact):
+  // bought inside an event, exactly like "pro".
+  if (cardKey === "enterprise")   return "בחרו אירוע לרכישה";
   return "—";
 }
 
@@ -459,7 +465,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
             {/* Reachable two ways now, and neither is a scheduled cancellation:
                 a full refund (charge.refunded sets expires_at to now) or an admin
                 setting an end date by hand. */}
-            הגישה לחבילת {getPlanLabel(planKey)} פעילה עד{" "}
+            הגישה לחבילת ״{getPlanLabel(planKey)}״ פעילה עד{" "}
             {fmtShortDate(sub.expires_at)}.
           </div>
         )}
@@ -502,9 +508,6 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                 // Whether this card's button is in a loading state
                 const isThisLoading = billing.checkoutTarget === key;
 
-                // Enterprise uses a contact link rather than Stripe Checkout
-                const isEnterprise = key === "enterprise";
-
                 /* Clickable whenever it is not the current plan. It no longer
                    depends on Stripe being configured, because it no longer
                    charges anything — it navigates to the event list. The "בקרוב"
@@ -514,12 +517,6 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
 
                 const handleCardAction = () => {
                   if (isCurrent || billing.checkoutTarget) return;
-                  if (isEnterprise) {
-                    // The sales mailbox, with a Hebrew subject (סב60c, ב10) — it
-                    // went to the support mailbox with an English subject.
-                    window.location.href = contactMailto("פנייה לגבי חבילת \"אנחנו שם איתכם\"");
-                    return;
-                  }
                   // To the event list, not to Stripe. See cardBtnLabel: there is
                   // no event in scope on this screen, and a purchase belongs to
                   // one. `billing.startCheckout` now requires the event object.
@@ -590,7 +587,6 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                         onClick={handleCardAction}
                         title={
                           isCurrent       ? "זוהי החבילה של רוב האירועים שלכם" :
-                          isEnterprise    ? `שלחו אימייל לגבי חבילת ${getPlanLabel("enterprise")}` :
                           `החבילה נרכשת מתוך האירוע — לכל אירוע בנפרד`
                         }
                       >

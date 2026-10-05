@@ -1,0 +1,64 @@
+/* Proportions of a 6.1" device: 71.5 × 147.6 mm, screen corner ≈ 55pt at 393pt
+   wide. Everything is a fraction of --w so the frame scales as one object. */
+.device {
+  --w: min(300px, 78vw);
+  position: relative;
+  width: var(--w);
+  aspect-ratio: 71.5 / 147.6;
+  padding: calc(var(--w) * .036);
+  border-radius: calc(var(--w) * .17);
+  background: var(--device-glass);
+  /* the titanium band: a hairline sheen outside a darker rim */
+  box-shadow:
+    0 0 0 calc(var(--w) * .008) var(--device-edge),
+    0 0 0 calc(var(--w) * .013) var(--device-sheen),
+    0 30px 60px -18px rgba(var(--text-rgb), .45),
+    0 12px 24px -12px rgba(var(--text-rgb), .3);
+  margin-inline: auto;
+}
+
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--w) * .135);
+  overflow: hidden;
+  /* A status-bar strip above the capture, so the Dynamic Island sits on its
+     own ground instead of on top of the app's header — the way a real phone
+     shows an app. Ink, because every captured screen opens on the ink bar. */
+  padding-top: calc(var(--w) * .15);
+  background: var(--nav-bg);
+}
+
+.island {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--w) * .035);
+  inset-inline: 0;
+  margin-inline: auto;
+  width: calc(var(--w) * .32);
+  height: calc(var(--w) * .094);
+  border-radius: 999px;
+  background: var(--device-glass);
+}
+
+.media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+/* Side buttons. Physical left/right, not logical: a phone does not mirror in
+   RTL, and the buttons belong to the device, not to the reading direction. */
+.btnAction, .btnUp, .btnDown, .btnPower {
+  position: absolute;
+  width: calc(var(--w) * .014);
+  background: var(--device-edge);
+  border-radius: 2px;
+}
+.btnAction { left: calc(var(--w) * -.022); top: 18%;   height: 5%; }
+.btnUp     { left: calc(var(--w) * -.022); top: 26%;   height: 9%; }
+.btnDown   { left: calc(var(--w) * -.022); top: 37%;   height: 9%; }
+.btnPower  { right: calc(var(--w) * -.022); top: 29%;  height: 13%; }

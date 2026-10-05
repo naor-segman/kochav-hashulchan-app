@@ -159,6 +159,10 @@ try {
       // past its last link closes it rather than leaving a panel hanging.
       await page.goto(BASE + "/home", { waitUntil: "networkidle" });
       await btn.focus(); await page.keyboard.press("Enter");
+      // Wait for the list to be open before tabbing: pressed in the same tick
+      // as the Enter, Tab sometimes ran before React rendered the list (1 run
+      // in 5 failed on 5.10 — the check racing the page, not a site bug).
+      await page.waitForFunction(() => document.querySelector('header button[aria-expanded="true"]'), null, { timeout: 2000 }).catch(() => {});
       await page.keyboard.press("Tab");
       check("services: Tab moves into the open list",
         await page.evaluate(id => document.getElementById(id)?.contains(document.activeElement), ctl));
@@ -239,7 +243,9 @@ try {
              .map(el => el.getAttribute("href")));
         check(`${label} ${route}: כניסה reachable`, hrefs.includes("/login"), hrefs.join(" · "));
         check(`${label} ${route}: מחירים reachable`, hrefs.includes("/pricing"), hrefs.join(" · "));
-        check(`${label} ${route}: הרשמה reachable`, hrefs.includes("/signup"), hrefs.join(" · "));
+        // "התחילו חינם" goes straight into the app since 136 stage C (owner,
+        // 5.10) — no signup first. Signup is one tap further, from /login.
+        check(`${label} ${route}: התחילו חינם reachable`, hrefs.includes("/app"), hrefs.join(" · "));
         if (burger) { await burger.click(); await page.waitForTimeout(100); }
 
         if (burger) {

@@ -3,9 +3,9 @@
   /* ─────────────────────────────────────────────────────────────
      Typography — font-family defined here, used by reset.css
      ───────────────────────────────────────────────────────────── */
-  --font-family-base:    "Heebo", system-ui, -apple-system, Arial, sans-serif;
+  --font-family-base:    "Open Sans", "Heebo", system-ui, -apple-system, Arial, sans-serif;
   /* Display / heading face — crisp modern Israeli voice */
-  --font-family-display: "Rubik", "Heebo", system-ui, -apple-system, Arial, sans-serif;
+  --font-family-display: "Open Sans", "Heebo", system-ui, -apple-system, Arial, sans-serif;
   /* Editorial serif — for headlines & section titles. Frank Ruhl Libre is an
      elegant Hebrew serif; falls back to a system serif so it always renders. */
   --font-family-serif:   "Frank Ruhl Libre", "Georgia", "Times New Roman", serif;
@@ -117,6 +117,15 @@
   --cta-bg:        #FDECF2;
 
   /* Navigation bar — near-black chrome, so the accent is the only colour on it */
+  /* A WhatsApp conversation, drawn on the home page (136): the chat ground and
+     the outgoing bubble, so the scene reads as the app people already know. */
+  --wa-ground:     #EFE7DE;
+  --wa-bubble-out: #D9FDD3;
+  --wa-meta:       #5A6A73;   /* WhatsApp's own #667781 was 4.19:1 on the sent bubble at 11px (review 5.10); 5.06 now */
+  --wa-link:       #027EB5;
+  --device-glass:  #0B0B0D;
+  --device-edge:   #3A3A3F;
+  --device-sheen:  #5C5C63;
   --nav-bg:        #14161A;
   --nav-bg2:       #21242A;
   --nav-text:      #F5F5F6;

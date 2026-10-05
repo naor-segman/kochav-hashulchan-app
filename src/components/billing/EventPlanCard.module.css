@@ -76,6 +76,9 @@
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  /* Also an <a> (the quote link above 1,000 people). */
+  text-align: center;
+  text-decoration: none;
 }
 
 .buy:hover:not(:disabled) { background: var(--cta-dark); }
@@ -118,4 +121,23 @@
   .card { align-items: stretch; }
   .side { flex: 1 1 100%; }
   .fine { max-width: none; }
+}
+
+.fineLink {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+@media (pointer: coarse) {
+  .fineLink { position: relative; white-space: nowrap; }
+  .fineLink::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
 }

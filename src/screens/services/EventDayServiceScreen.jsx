@@ -4,6 +4,7 @@ import Footer from "../../components/layout/Footer.jsx";
 import { serviceById } from "../../data/services.js";
 import { PER_PAGE } from "../../data/nameTagSizes.js";
 import styles from "./ServicePage.module.css";
+import { useHashScroll } from "../../hooks/useHashScroll.js";
 
 /**
  * Service page 5 of 6 — יום האירוע. Checklist 87.
@@ -82,6 +83,7 @@ const PRINTS = [
 ];
 
 export default function EventDayServiceScreen({ user = null }) {
+  useHashScroll();   // /pricing#human, /services/…#how — links shared from outside (review 5.10)
   return (
     <div className={styles.root}>
       <SiteHeader user={user} active={SERVICE.id} />
@@ -105,7 +107,7 @@ export default function EventDayServiceScreen({ user = null }) {
             כמה כבר בפנים, ואתם פותחים את המסך שלכם ורואים את אותו מספר.
           </p>
           <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.cta}>נסו בחינם ←</Link>
+            <Link to="/app" className={styles.cta}>נסו בחינם ←</Link>
             <a href="#door" className={styles.ghost}>איך זה עובד בכניסה</a>
           </div>
           <p className={styles.heroNote}>
@@ -240,7 +242,7 @@ export default function EventDayServiceScreen({ user = null }) {
             הכל כבר במערכת מהשלבים הקודמים. ביום האירוע נשאר רק לפתוח את הקישור
             ולתת אותו למי שעומד בדלת.
           </p>
-          <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
+          <Link to="/app" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
 
