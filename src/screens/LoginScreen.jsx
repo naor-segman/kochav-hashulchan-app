@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
 import SupportLine from "../components/support/SupportLine.jsx";
+import AuthAside from "../components/auth/AuthAside.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
@@ -84,152 +85,161 @@ export default function LoginScreen() {
   );
 
   return (
-    <main className={`${styles.page} ${styles.pageStack}`}>
-      {/* The only way back to the marketing site — the card itself has no nav
-          and no footer, and the wordmark inside it is not a link. */}
-      <div className={styles.homeRow}>
-        <Link to="/" className={styles.homeLink}>→ חזרה לדף הבית</Link>
-      </div>
-
-      <div className={styles.card}>
-
-        <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">✦</span>
-          <span className={styles.brandName}>{COMPANY.name}</span>
+    <main className={styles.page}>
+      <div className={styles.formSide}>
+        {/* The only way back to the marketing site — the card itself has no nav
+            and no footer, and the wordmark inside it is not a link. */}
+        <div className={styles.homeRow}>
+          <Link to="/" className={styles.homeLink}>→ חזרה לדף הבית</Link>
         </div>
 
-        <h1 className={styles.title}>כניסה לחשבון</h1>
+        <div className={styles.card}>
 
-        {!isSupabaseConfigured && (
-          <div className={styles.noticeWarn}>
-            כניסה לחשבון לא זמינה כרגע. ניתן להמשיך במצב אורח — הנתונים נשמרים בדפדפן זה.
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className={styles.form} noValidate>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="login-email">אימייל</label>
-            <input
-              id="login-email"
-              className={styles.input}
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              dir="ltr"
-              autoComplete="email"
-              disabled={!isSupabaseConfigured}
-              readOnly={busy}
-              aria-invalid={invalid || undefined}
-              aria-describedby={error ? "login-error" : undefined}
-              required
-            />
+          <div className={styles.brand}>
+            <span className={styles.brandMark} aria-hidden="true">✦</span>
+            <span className={styles.brandName}>{COMPANY.name}</span>
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="login-pw">סיסמה</label>
-            <div className={styles.passwordWrap}>
+          <h1 className={styles.title}>כניסה לחשבון</h1>
+          <p className={styles.lead}>האירוע שלכם מחכה בדיוק איפה שהשארתם אותו.</p>
+
+          {/* This mode was called "guest mode" here, and in a product about
+              guests that reads as the guest's own view. It is "בלי חשבון"
+              everywhere now (authEntry.test.js). */}
+          {!isSupabaseConfigured && (
+            <div className={styles.noticeWarn}>
+              כניסה לחשבון לא זמינה כרגע. אפשר להמשיך בלי חשבון — הכל נשמר בדפדפן הזה.
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className={styles.form} noValidate>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="login-email">אימייל</label>
               <input
-                id="login-pw"
+                id="login-email"
                 className={styles.input}
-                type={showPw ? "text" : "password"}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
                 dir="ltr"
-                autoComplete="current-password"
+                autoComplete="email"
                 disabled={!isSupabaseConfigured}
                 readOnly={busy}
                 aria-invalid={invalid || undefined}
                 aria-describedby={error ? "login-error" : undefined}
                 required
               />
-              <button
-                type="button"
-                className={styles.eyeBtn}
-                onClick={() => setShowPw(v => !v)}
-                aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
-                tabIndex={-1}
-              >
-                <Icon name={showPw ? "eyeOff" : "eye"} size={18} />
-              </button>
             </div>
-          </div>
 
-          {error && <p id="login-error" role="alert" className={styles.errorMsg}>{error}</p>}
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="login-pw">סיסמה</label>
+              <div className={styles.passwordWrap}>
+                <input
+                  id="login-pw"
+                  className={styles.input}
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  dir="ltr"
+                  autoComplete="current-password"
+                  disabled={!isSupabaseConfigured}
+                  readOnly={busy}
+                  aria-invalid={invalid || undefined}
+                  aria-describedby={error ? "login-error" : undefined}
+                  required
+                />
+                <button
+                  type="button"
+                  className={styles.eyeBtn}
+                  onClick={() => setShowPw(v => !v)}
+                  aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
+                  tabIndex={-1}
+                >
+                  <Icon name={showPw ? "eyeOff" : "eye"} size={18} />
+                </button>
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            className={styles.submitBtn}
-            disabled={!isSupabaseConfigured || !email || !password}
-            aria-disabled={busy || undefined}
-          >
-            {busy ? "מתחבר…" : "כניסה"}
-          </button>
-        </form>
+            {error && <p id="login-error" role="alert" className={styles.errorMsg}>{error}</p>}
 
-        {/* ── Forgot password ── */}
-        {!forgotMode ? (
-          <button
-            type="button"
-            className={styles.forgotLink}
-            onClick={() => { setForgotMode(true); setForgotEmail(email); }}
-            disabled={!isSupabaseConfigured}
-          >
-            שכחתם סיסמה?
-          </button>
-        ) : forgotDone ? (
-          <div className={styles.forgotSuccess} role="status" tabIndex={-1} ref={forgotDoneRef}>
-            ✓ קישור לאיפוס סיסמה נשלח לכתובת <strong>{forgotEmail}</strong>. בדקו את תיבת הדואר.
-          </div>
-        ) : (
-          <form onSubmit={handleForgot} className={styles.forgotForm} noValidate>
-            <p className={styles.forgotTitle}>איפוס סיסמה</p>
-            <input
-              className={styles.input}
-              type="email"
-              value={forgotEmail}
-              onChange={e => setForgotEmail(e.target.value)}
-              placeholder="your@email.com"
-              dir="ltr"
-              autoComplete="email"
-              aria-label="אימייל לאיפוס סיסמה"
-              readOnly={forgotBusy}
-              aria-describedby={forgotError ? "forgot-error" : undefined}
-              required
-            />
-            {forgotError && <p id="forgot-error" role="alert" className={styles.errorMsg}>{forgotError}</p>}
             <button
               type="submit"
               className={styles.submitBtn}
-              disabled={!forgotEmail}
-              aria-disabled={forgotBusy || undefined}
+              disabled={!isSupabaseConfigured || !email || !password}
+              aria-disabled={busy || undefined}
             >
-              {forgotBusy ? "שולח…" : "שלחו קישור איפוס"}
+              {busy ? "מתחבר…" : "כניסה"}
             </button>
+          </form>
+
+          {/* ── Forgot password ── */}
+          {!forgotMode ? (
             <button
               type="button"
               className={styles.forgotLink}
-              onClick={() => { setForgotMode(false); setForgotError(""); }}
+              onClick={() => { setForgotMode(true); setForgotEmail(email); }}
+              disabled={!isSupabaseConfigured}
             >
-              → חזרו לכניסה
+              שכחתם סיסמה?
             </button>
-          </form>
-        )}
+          ) : forgotDone ? (
+            <div className={styles.forgotSuccess} role="status" tabIndex={-1} ref={forgotDoneRef}>
+              ✓ קישור לאיפוס סיסמה נשלח לכתובת <strong>{forgotEmail}</strong>. בדקו את תיבת הדואר.
+            </div>
+          ) : (
+            <form onSubmit={handleForgot} className={styles.forgotForm} noValidate>
+              <p className={styles.forgotTitle}>איפוס סיסמה</p>
+              <input
+                className={styles.input}
+                type="email"
+                value={forgotEmail}
+                onChange={e => setForgotEmail(e.target.value)}
+                placeholder="your@email.com"
+                dir="ltr"
+                autoComplete="email"
+                aria-label="אימייל לאיפוס סיסמה"
+                readOnly={forgotBusy}
+                aria-describedby={forgotError ? "forgot-error" : undefined}
+                required
+              />
+              {forgotError && <p id="forgot-error" role="alert" className={styles.errorMsg}>{forgotError}</p>}
+              <button
+                type="submit"
+                className={styles.submitBtn}
+                disabled={!forgotEmail}
+                aria-disabled={forgotBusy || undefined}
+              >
+                {forgotBusy ? "שולח…" : "שלחו קישור איפוס"}
+              </button>
+              <button
+                type="button"
+                className={styles.forgotLink}
+                onClick={() => { setForgotMode(false); setForgotError(""); }}
+              >
+                → חזרו לכניסה
+              </button>
+            </form>
+          )}
 
-        <p className={styles.switchLine}>
-          אין לכם חשבון?{" "}
-          <Link to="/signup" className={styles.switchLink}>הרשמה חינמית</Link>
-        </p>
+          <p className={styles.or}>או</p>
 
-        <div className={styles.guestBlock}>
-          <Link to="/app" className={styles.backLink}>המשיכו ללא חשבון ←</Link>
-          <p className={styles.guestNote}>מצב אורח — נתונים נשמרים בדפדפן זה בלבד, ללא גיבוי ענן</p>
+          <div className={styles.guestBlock}>
+            <Link to="/app" className={styles.guestBtn}>המשיכו בלי חשבון ←</Link>
+            <p className={styles.guestNote}>הכל נשמר בדפדפן הזה. חשבון פותחים כשרוצים גיבוי בענן או לשלוח קישור לאורחים.</p>
+          </div>
+
+          <p className={styles.switchLine}>
+            אין לכם חשבון?{" "}
+            <Link to="/signup" className={styles.switchLink}>הרשמה חינמית</Link>
+          </p>
+
+          <SupportLine className={styles.help} />
+
         </div>
-
-        <SupportLine className={styles.help} />
-
       </div>
+      <AuthAside />
     </main>
   );
 }

@@ -7,6 +7,7 @@ import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import { COMPANY, LEGAL_DOCS } from "../data/company.js";
 import styles from "./LoginScreen.module.css"; // shares layout styles
 import SupportLine from "../components/support/SupportLine.jsx";
+import AuthAside from "../components/auth/AuthAside.jsx";
 import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
 
 export default function SignupScreen() {
@@ -111,174 +112,186 @@ export default function SignupScreen() {
   if (done) {
     return (
       <main className={styles.page}>
-        <div className={styles.card}>
-          <div className={styles.brand}>
-            <span className={styles.brandMark} aria-hidden="true">✦</span>
-            <span className={styles.brandName}>{COMPANY.name}</span>
-          </div>
-          <h1 className={styles.title} tabIndex={-1} ref={doneHeadingRef}>בדקו את האימייל שלכם</h1>
-          <p className={styles.confirmBody}>
-            שלחנו קישור אישור לכתובת <strong>{email}</strong>.
-            לחצו על הקישור לאישור החשבון.
-          </p>
-          {resentDone ? (
-            <p className={styles.confirmSuccess} role="status">✓ הקישור נשלח שוב — בדקו את תיבת הדואר</p>
-          ) : (
-            <div className={styles.resendWrap}>
-              <p className={styles.resendNote}>לא קיבלתם אימייל?</p>
-              {resentError && <p id="resend-error" role="alert" className={styles.resendError}>{resentError}</p>}
-              <button
-                type="button"
-                className={styles.resendBtn}
-                onClick={handleResend}
-                disabled={!isSupabaseConfigured}
-                aria-disabled={resentBusy || undefined}
-                aria-describedby={resentError ? "resend-error" : undefined}
-              >
-                {resentBusy ? "שולח…" : "שלחו שוב"}
-              </button>
+        <div className={styles.formSide}>
+          <div className={styles.card}>
+            <div className={styles.brand}>
+              <span className={styles.brandMark} aria-hidden="true">✦</span>
+              <span className={styles.brandName}>{COMPANY.name}</span>
             </div>
-          )}
-          <Link to="/login" className={styles.backLink}>→ חזרה לכניסה</Link>
-          <SupportLine className={styles.help} />
+            <h1 className={styles.title} tabIndex={-1} ref={doneHeadingRef}>בדקו את האימייל שלכם</h1>
+            <p className={styles.confirmBody}>
+              שלחנו קישור אישור לכתובת <strong>{email}</strong>.
+              לחצו על הקישור לאישור החשבון.
+            </p>
+            {resentDone ? (
+              <p className={styles.confirmSuccess} role="status">✓ הקישור נשלח שוב — בדקו את תיבת הדואר</p>
+            ) : (
+              <div className={styles.resendWrap}>
+                <p className={styles.resendNote}>לא קיבלתם אימייל?</p>
+                {resentError && <p id="resend-error" role="alert" className={styles.resendError}>{resentError}</p>}
+                <button
+                  type="button"
+                  className={styles.resendBtn}
+                  onClick={handleResend}
+                  disabled={!isSupabaseConfigured}
+                  aria-disabled={resentBusy || undefined}
+                  aria-describedby={resentError ? "resend-error" : undefined}
+                >
+                  {resentBusy ? "שולח…" : "שלחו שוב"}
+                </button>
+              </div>
+            )}
+            <Link to="/login" className={styles.backLink}>→ חזרה לכניסה</Link>
+            <SupportLine className={styles.help} />
+          </div>
         </div>
+        <AuthAside />
       </main>
     );
   }
 
   return (
-    <main className={`${styles.page} ${styles.pageStack}`}>
-      {/* The only way back to the marketing site — the card itself has no nav
-          and no footer, and the wordmark inside it is not a link. */}
-      <div className={styles.homeRow}>
-        <Link to="/" className={styles.homeLink}>→ חזרה לדף הבית</Link>
-      </div>
-
-      <div className={styles.card}>
-
-        <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">✦</span>
-          <span className={styles.brandName}>{COMPANY.name}</span>
+    <main className={styles.page}>
+      <div className={styles.formSide}>
+        {/* The only way back to the marketing site — the card itself has no nav
+            and no footer, and the wordmark inside it is not a link. */}
+        <div className={styles.homeRow}>
+          <Link to="/" className={styles.homeLink}>→ חזרה לדף הבית</Link>
         </div>
 
-        <h1 className={styles.title}>הרשמה</h1>
+        <div className={styles.card}>
 
-        {!isSupabaseConfigured && (
-          <div className={styles.noticeWarn}>
-            הרשמה לחשבון לא זמינה כרגע. ניתן להמשיך במצב אורח — הנתונים נשמרים בדפדפן זה.
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className={styles.form} noValidate>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="signup-email">אימייל</label>
-            <input
-              id="signup-email"
-              className={styles.input}
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              dir="ltr"
-              autoComplete="email"
-              disabled={!isSupabaseConfigured}
-              readOnly={busy}
-              aria-invalid={invalid === "all" || undefined}
-              aria-describedby={error ? "signup-error" : undefined}
-              required
-            />
+          <div className={styles.brand}>
+            <span className={styles.brandMark} aria-hidden="true">✦</span>
+            <span className={styles.brandName}>{COMPANY.name}</span>
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="signup-pw">סיסמה</label>
-            <div className={styles.passwordWrap}>
+          <h1 className={styles.title}>הרשמה</h1>
+          <p className={styles.lead}>חשבון חינם — והאירוע נשמר בענן, נפתח מכל מכשיר, ואפשר לשלוח אותו לאורחים.</p>
+
+          {!isSupabaseConfigured && (
+            <div className={styles.noticeWarn}>
+              הרשמה לחשבון לא זמינה כרגע. אפשר להמשיך בלי חשבון — הכל נשמר בדפדפן הזה.
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className={styles.form} noValidate>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="signup-email">אימייל</label>
               <input
-                id="signup-pw"
+                id="signup-email"
                 className={styles.input}
-                type={showPw ? "text" : "password"}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="לפחות 6 תווים"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                dir="ltr"
+                autoComplete="email"
+                disabled={!isSupabaseConfigured}
+                readOnly={busy}
+                aria-invalid={invalid === "all" || undefined}
+                aria-describedby={error ? "signup-error" : undefined}
+                required
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="signup-pw">סיסמה</label>
+              <div className={styles.passwordWrap}>
+                <input
+                  id="signup-pw"
+                  className={styles.input}
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="לפחות 6 תווים"
+                  dir="ltr"
+                  autoComplete="new-password"
+                  disabled={!isSupabaseConfigured}
+                  readOnly={busy}
+                  aria-invalid={invalid === "all" || invalid === "password" || undefined}
+                  aria-describedby={error ? "signup-error" : undefined}
+                  required
+                />
+                <button
+                  type="button"
+                  className={styles.eyeBtn}
+                  onClick={() => setShowPw(v => !v)}
+                  aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
+                  tabIndex={-1}
+                >
+                  {showPw ? <Icon name="eyeOff" size={18} /> : <Icon name="eye" size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="signup-confirm">אימות סיסמה</label>
+              <input
+                id="signup-confirm"
+                className={styles.input}
+                type="password"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                placeholder="הזינו שוב את הסיסמה"
                 dir="ltr"
                 autoComplete="new-password"
                 disabled={!isSupabaseConfigured}
                 readOnly={busy}
-                aria-invalid={invalid === "all" || invalid === "password" || undefined}
+                aria-invalid={invalid === "all" || invalid === "confirm" || undefined}
                 aria-describedby={error ? "signup-error" : undefined}
                 required
               />
-              <button
-                type="button"
-                className={styles.eyeBtn}
-                onClick={() => setShowPw(v => !v)}
-                aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
-                tabIndex={-1}
-              >
-                {showPw ? <Icon name="eyeOff" size={18} /> : <Icon name="eye" size={18} />}
-              </button>
             </div>
+
+            <label className={styles.consent}>
+              <input
+                type="checkbox"
+                className={styles.consentBox}
+                checked={agree}
+                onChange={e => setAgree(e.target.checked)}
+                disabled={!isSupabaseConfigured || busy}
+              />
+              <span>
+                אני מעל גיל 18, וקראתי ואני מסכים/ה ל
+                <Link to="/terms" target="_blank" rel="noopener" className={styles.consentLink}>תנאי השימוש</Link>
+                {" "}ול
+                <Link to="/privacy" target="_blank" rel="noopener" className={styles.consentLink}>מדיניות הפרטיות</Link>
+              </span>
+            </label>
+
+            {error && <p id="signup-error" role="alert" className={styles.errorMsg}>{error}</p>}
+
+            <button
+              type="submit"
+              className={styles.submitBtn}
+              disabled={!isSupabaseConfigured || !email || !password || !confirm}
+              aria-disabled={busy || undefined}
+            >
+              {busy ? "יוצר חשבון…" : "הרשמה"}
+            </button>
+          </form>
+
+          <p className={styles.or}>או</p>
+
+          {/* "והכל יסונכרן לענן" was not what happens from here: a draft made
+              without an account joins it on "צרפו לחשבון" (decision 33d), not by
+              itself. "עובר איתכם" is true either way. */}
+          <div className={styles.guestBlock}>
+            <Link to="/app" className={styles.guestBtn}>המשיכו בלי חשבון ←</Link>
+            <p className={styles.guestNote}>רק רוצים לנסות? פותחים חשבון כשתרצו — ומה שבניתם עובר איתכם.</p>
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="signup-confirm">אימות סיסמה</label>
-            <input
-              id="signup-confirm"
-              className={styles.input}
-              type="password"
-              value={confirm}
-              onChange={e => setConfirm(e.target.value)}
-              placeholder="הזינו שוב את הסיסמה"
-              dir="ltr"
-              autoComplete="new-password"
-              disabled={!isSupabaseConfigured}
-              readOnly={busy}
-              aria-invalid={invalid === "all" || invalid === "confirm" || undefined}
-              aria-describedby={error ? "signup-error" : undefined}
-              required
-            />
-          </div>
+          <p className={styles.switchLine}>
+            כבר יש לכם חשבון?{" "}
+            <Link to="/login" className={styles.switchLink}>כניסה</Link>
+          </p>
 
-          <label className={styles.consent}>
-            <input
-              type="checkbox"
-              className={styles.consentBox}
-              checked={agree}
-              onChange={e => setAgree(e.target.checked)}
-              disabled={!isSupabaseConfigured || busy}
-            />
-            <span>
-              אני מעל גיל 18, וקראתי ואני מסכים/ה ל
-              <Link to="/terms" target="_blank" rel="noopener" className={styles.consentLink}>תנאי השימוש</Link>
-              {" "}ול
-              <Link to="/privacy" target="_blank" rel="noopener" className={styles.consentLink}>מדיניות הפרטיות</Link>
-            </span>
-          </label>
+          <SupportLine className={styles.help} />
 
-          {error && <p id="signup-error" role="alert" className={styles.errorMsg}>{error}</p>}
-
-          <button
-            type="submit"
-            className={styles.submitBtn}
-            disabled={!isSupabaseConfigured || !email || !password || !confirm}
-            aria-disabled={busy || undefined}
-          >
-            {busy ? "יוצר חשבון…" : "הרשמה"}
-          </button>
-        </form>
-
-        <p className={styles.switchLine}>
-          כבר יש לכם חשבון?{" "}
-          <Link to="/login" className={styles.switchLink}>כניסה</Link>
-        </p>
-
-        <div className={styles.guestBlock}>
-          <Link to="/app" className={styles.backLink}>רק להתנסות? המשיכו ללא חשבון ←</Link>
-          <p className={styles.guestNote}>תמיד אפשר ליצור חשבון אחר כך והכל יסונכרן לענן.</p>
         </div>
-
-        <SupportLine className={styles.help} />
-
       </div>
+      <AuthAside />
     </main>
   );
 }

@@ -1,0 +1,92 @@
+/* Hidden on a phone: there the form IS the page, and a photo above it would
+   push the fields below the fold on the screen whose only job is to be quick. */
+.aside {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .aside {
+    display: flex;
+    align-items: flex-end;
+    position: sticky;
+    inset-block-start: 0;
+    block-size: 100vh;
+    min-block-size: 560px;
+    /* The same photo as the home page's "אנחנו שם איתכם" — one visual language
+       from the first page to the sign-in. Desktop only, so a phone never
+       downloads it. */
+    background: var(--nav-bg) url("/hero/hero-portrait.jpg") center 30% / cover no-repeat;
+    color: var(--nav-text);
+    padding: 56px;
+    isolation: isolate;
+  }
+
+  /* The bottom of the photo is white chairs: without a scrim the white text
+     would sit on white. Dark only where the words are. */
+  .aside::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(to top, var(--scrim-60) 0%, var(--scrim-60) 55%, var(--scrim-45) 78%, var(--scrim-12) 100%);
+  }
+}
+
+.content {
+  max-inline-size: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* White, not pink: it sits highest on the photo, where the scrim is thinnest
+   (pink measured 2.12:1 there at 1024 wide). */
+.kicker {
+  margin: 0;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--nav-text);
+}
+
+.headline {
+  margin: 0;
+  font-size: var(--step-4);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--nav-text);
+}
+
+.accent {
+  display: block;
+  color: var(--accent-on-dark);
+}
+
+.lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: var(--step-0);
+  font-weight: 600;
+}
+
+.lines li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lines svg {
+  flex-shrink: 0;
+  color: var(--accent-on-dark);
+}
+
+.close {
+  margin: 4px 0 0;
+  font-size: var(--step-1);
+  font-weight: 700;
+  color: var(--nav-text);
+}

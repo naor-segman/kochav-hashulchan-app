@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase.js";
 import { COMPANY } from "../data/company.js";
 import styles from "./LoginScreen.module.css";
 import SupportLine from "../components/support/SupportLine.jsx";
+import AuthAside from "../components/auth/AuthAside.jsx";
 
 /* Where the signup-confirmation email lands (131, owner 3.10).
  *
@@ -65,35 +66,38 @@ export default function AuthCallbackScreen() {
 
   return (
     <main className={styles.page}>
-      <div className={styles.card}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">✦</span>
-          <span className={styles.brandName}>{COMPANY.name}</span>
-        </div>
-        <h1 className={styles.title}>אישור כתובת האימייל</h1>
+      <div className={styles.formSide}>
+        <div className={styles.card}>
+          <div className={styles.brand}>
+            <span className={styles.brandMark} aria-hidden="true">✦</span>
+            <span className={styles.brandName}>{COMPANY.name}</span>
+          </div>
+          <h1 className={styles.title}>אישור כתובת האימייל</h1>
 
-        {state === "confirm" && (
-          <>
-            <p className={styles.confirmBody}>עוד לחיצה אחת, והחשבון שלכם מוכן.</p>
-            <button type="button" className={styles.submitBtn} onClick={confirm} aria-disabled={busy || undefined}>
-              {busy ? "מאשרים…" : "אישור והמשך"}
-            </button>
-          </>
-        )}
-        {state === "checking" && <p className={styles.confirmBody} role="status">מאמתים…</p>}
-        {state === "ok" && <p className={styles.forgotSuccess} role="status">האימייל אושר ✓ מעבירים אתכם…</p>}
-        {state === "failed" && (
-          <>
-            <div className={styles.noticeWarn} role="status">
-              הקישור הזה כבר לא פעיל. אם כבר אישרתם את האימייל — פשוט היכנסו לחשבון.
-            </div>
-            <Link to="/login" className={styles.submitBtn} style={{ textAlign: "center", textDecoration: "none" }}>
-              לכניסה לחשבון
-            </Link>
-          </>
-        )}
-        <SupportLine className={styles.help} />
+          {state === "confirm" && (
+            <>
+              <p className={styles.confirmBody}>עוד לחיצה אחת, והחשבון שלכם מוכן.</p>
+              <button type="button" className={styles.submitBtn} onClick={confirm} aria-disabled={busy || undefined}>
+                {busy ? "מאשרים…" : "אישור והמשך"}
+              </button>
+            </>
+          )}
+          {state === "checking" && <p className={styles.confirmBody} role="status">מאמתים…</p>}
+          {state === "ok" && <p className={styles.forgotSuccess} role="status">האימייל אושר ✓ מעבירים אתכם…</p>}
+          {state === "failed" && (
+            <>
+              <div className={styles.noticeWarn} role="status">
+                הקישור הזה כבר לא פעיל. אם כבר אישרתם את האימייל — פשוט היכנסו לחשבון.
+              </div>
+              <Link to="/login" className={styles.submitBtn} style={{ textAlign: "center", textDecoration: "none" }}>
+                לכניסה לחשבון
+              </Link>
+            </>
+          )}
+          <SupportLine className={styles.help} />
+        </div>
       </div>
+      <AuthAside />
     </main>
   );
 }
