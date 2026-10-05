@@ -756,7 +756,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               <div className={styles.successText}>
                 <div className={styles.successTitle}>הושבה מלאה וללא הפרות</div>
                 <div className={styles.successSub}>
-                  כל {activeGuests.length} הרשומות שובצו בהצלחה ל{ev.tables.length} שולחנות.
+                  כל {activeGuests.length} הרשומות שובצו בהצלחה ב-{ev.tables.length} שולחנות.
                   {declinedGuests.length > 0 && ` (${declinedGuests.length} סירבו ולא שובצו)`}
                 </div>
               </div>
