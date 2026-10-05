@@ -153,3 +153,13 @@ describe("the email templates point at our pages, not at the one-time link", () 
     for (const f of ["reset-password.html", "confirm-signup.html"]) expect(read(f), f).not.toMatch(/העתיקו את הקישור/);
   });
 });
+
+describe("the confirmation page never hangs (review 5.10)", () => {
+  it("a failed session check says the link is not active, instead of 'מאמתים…' forever", async () => {
+    auth.getSession.mockRejectedValueOnce(new Error("network"));
+    at("/auth/callback", <AuthCallbackScreen />);
+    await flush();
+    expect(document.body.textContent).toMatch(/הקישור הזה כבר לא פעיל/);
+    expect(document.body.textContent).not.toMatch(/מאמתים…/);
+  });
+});

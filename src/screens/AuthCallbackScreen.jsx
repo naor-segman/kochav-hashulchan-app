@@ -35,22 +35,31 @@ export default function AuthCallbackScreen() {
   const [busy, setBusy] = useState(false);
 
   // The old link: Supabase verified it on the way here; read the session.
+  // No client, or a request that fails, is "failed" — it was neither, and the
+  // page said "מאמתים…" forever (review 5.10, measured 10s and a reload).
   useEffect(() => {
     if (link.tokenHash) return undefined;
     let tid;
-    supabase?.auth.getSession().then(({ data }) => {
+    let live = true;
+    const check = supabase
+      ? supabase.auth.getSession()
+      : Promise.reject(new Error("auth is not configured"));
+    check.then(({ data }) => {
+      if (!live) return;
       if (data?.session) {
         setState("ok");
         tid = setTimeout(() => navigate("/app", { replace: true }), 1200);
       } else {
         setState("failed");
       }
-    });
-    return () => clearTimeout(tid);
+    }).catch(() => { if (live) setState("failed"); });
+    return () => { live = false; clearTimeout(tid); };
   }, [link, navigate]);
 
   const confirm = async () => {
-    if (busy || !supabase) return;
+    if (busy) return;
+    // The button did nothing at all without a client (review 5.10).
+    if (!supabase) { setState("failed"); return; }
     setBusy(true);
     try {
       const { error } = await supabase.auth.verifyOtp({ token_hash: link.tokenHash, type: link.type });

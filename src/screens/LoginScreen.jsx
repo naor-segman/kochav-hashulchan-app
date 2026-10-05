@@ -112,7 +112,14 @@ export default function LoginScreen() {
           </div>
 
           <h1 className={styles.title}>כניסה לחשבון</h1>
-          <p className={styles.lead}>האירוע שלכם מחכה בדיוק איפה שהשארתם אותו.</p>
+          {/* Sent here from a page that needs an account (the footer's
+              "הגדרות" → /account): say why, and that they go straight back —
+              it arrived with no explanation (review 5.10). */}
+          <p className={styles.lead}>
+            {from !== "/app"
+              ? "כדי להמשיך לשם צריך להיכנס לחשבון — ומיד אחרי זה נחזיר אתכם בדיוק לאותו מקום."
+              : "האירוע שלכם מחכה בדיוק איפה שהשארתם אותו."}
+          </p>
 
           {/* This mode was called "guest mode" here, and in a product about
               guests that reads as the guest's own view. It is "בלי חשבון"
