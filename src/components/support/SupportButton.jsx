@@ -1,7 +1,8 @@
 import { useLocation } from "react-router-dom";
 import styles from "./SupportButton.module.css";
 import { isGuestRoute } from "../../utils/guestRoutes.js";
-import { SUPPORT_PHONE, supportHref, isAuthFormRoute } from "./supportLink.js";
+import { SUPPORT_PHONE, supportHref } from "./supportLink.js";
+import { isAuthFormRoute } from "../../utils/authRoutes.js";
 
 // Floating WhatsApp support button, for hosts. Number and greeting live in
 // supportLink.js, shared with the help line on the sign-in forms.

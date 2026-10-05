@@ -152,3 +152,41 @@ describe("the preferences", () => {
     expect(applyConsent).toHaveBeenCalledWith(false);
   });
 });
+
+describe("on a sign-in form: a strip, not a sheet (136 stage C)", () => {
+  /* The sheet covered the signup's consent box, its submit and "המשיכו בלי
+     חשבון" on a phone until answered. The strip keeps every rule above — only
+     the explanation is shorter, and the full one is in the preferences. */
+  it("keeps the same question, the equal answers, the preferences and the link", () => {
+    at("/signup");
+    expect(banner()).toBeInTheDocument();
+    const yes = screen.getByRole("button", { name: "אישור" });
+    const no = screen.getByRole("button", { name: "סירוב" });
+    expect(yes.className).toBe(no.className);
+    expect(screen.getByRole("button", { name: "ניהול העדפות" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "מדיניות הפרטיות" }).getAttribute("href")).toBe("/privacy#device");
+    expect(banner().textContent).toMatch(/רק באישורכם/);
+    expect(banner().textContent).not.toMatch(/האתר שומר בדפדפן/);
+  });
+
+  it("everywhere else it is still the full sheet", () => {
+    at("/app");
+    expect(banner().textContent).toMatch(/האתר שומר בדפדפן/);
+  });
+
+  it("the strip and the sheet are told apart by class", () => {
+    const { unmount } = at("/login");
+    const strip = banner().className;
+    unmount();
+    at("/home");
+    expect(banner().className).not.toBe(strip);
+  });
+
+  it("the page is told how much room to leave, until the question is answered", () => {
+    at("/login");
+    expect(document.documentElement.style.getPropertyValue("--consent-space")).toMatch(/^\d+px$/);
+    fireEvent.click(screen.getByRole("button", { name: "סירוב" }));
+    expect(document.documentElement.style.getPropertyValue("--consent-space")).toBe("");
+  });
+});
+

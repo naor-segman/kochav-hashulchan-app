@@ -25,6 +25,9 @@
   background: var(--bg);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  /* Room for the cookie strip while it is asking (ConsentBanner sets the
+     variable, and removes it on an answer) — so no control stays under it. */
+  padding-block-end: var(--consent-space, 0px);
 }
 
 @media (min-width: 960px) {
