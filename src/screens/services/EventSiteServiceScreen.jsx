@@ -120,7 +120,7 @@ export default function EventSiteServiceScreen({ user = null }) {
             שמאחורי הקישור עד הערב, בלי לשלוח שוב ובלי שאף אחד יישאר עם גרסה ישנה.
           </p>
           <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.cta}>בנו אתר בחינם ←</Link>
+            <Link to="/app" className={styles.cta}>בנו אתר בחינם ←</Link>
             <a href="#onsite" className={styles.ghost}>מה יש באתר</a>
           </div>
           <p className={styles.heroNote}>
@@ -294,7 +294,7 @@ export default function EventSiteServiceScreen({ user = null }) {
             פותחים אירוע, בוחרים עיצוב, ממלאים כתובת ושעה. הקישור מוכן — ואפשר
             לשלוח אותו עוד היום.
           </p>
-          <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
+          <Link to="/app" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
 

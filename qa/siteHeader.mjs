@@ -239,7 +239,9 @@ try {
              .map(el => el.getAttribute("href")));
         check(`${label} ${route}: כניסה reachable`, hrefs.includes("/login"), hrefs.join(" · "));
         check(`${label} ${route}: מחירים reachable`, hrefs.includes("/pricing"), hrefs.join(" · "));
-        check(`${label} ${route}: הרשמה reachable`, hrefs.includes("/signup"), hrefs.join(" · "));
+        // "התחילו חינם" goes straight into the app since 136 stage C (owner,
+        // 5.10) — no signup first. Signup is one tap further, from /login.
+        check(`${label} ${route}: התחילו חינם reachable`, hrefs.includes("/app"), hrefs.join(" · "));
         if (burger) { await burger.click(); await page.waitForTimeout(100); }
 
         if (burger) {

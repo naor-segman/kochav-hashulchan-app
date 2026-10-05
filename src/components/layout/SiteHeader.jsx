@@ -147,7 +147,7 @@ export default function SiteHeader({ user = null, active = null }) {
   ) : (
     <>
       <Link to="/login" className={styles.navLoginBtn}>כניסה</Link>
-      <Link to="/signup" className={styles.navCta}>התחילו חינם</Link>
+      <Link to="/app" className={styles.navCta}>התחילו חינם</Link>
     </>
   );
 
@@ -238,7 +238,7 @@ export default function SiteHeader({ user = null, active = null }) {
           ) : (
             <>
               <Link to="/login" className={styles.mobileLink} onClick={closeMenu}>כניסה</Link>
-              <Link to="/signup" className={styles.mobileMenuCta} onClick={closeMenu}>התחילו חינם ←</Link>
+              <Link to="/app" className={styles.mobileMenuCta} onClick={closeMenu}>התחילו חינם ←</Link>
             </>
           )}
         </div>

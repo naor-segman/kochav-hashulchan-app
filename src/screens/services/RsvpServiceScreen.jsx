@@ -133,7 +133,7 @@ export default function RsvpServiceScreen({ user = null }) {
             בראש.
           </p>
           <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.cta}>התחילו לאסוף אישורים ←</Link>
+            <Link to="/app" className={styles.cta}>התחילו לאסוף אישורים ←</Link>
             <a href="#flow" className={styles.ghost}>מה האורח רואה</a>
           </div>
           <p className={styles.heroNote}>
@@ -294,7 +294,7 @@ export default function RsvpServiceScreen({ user = null }) {
             פותחים אירוע, מעלים רשימה, שולחים קישור. המספר שהאולם מבקש יהיה
             מחכה לכם במסך אחד.
           </p>
-          <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
+          <Link to="/app" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
 

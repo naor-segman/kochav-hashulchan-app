@@ -153,7 +153,7 @@ export default function SeatingServiceScreen({ user = null }) {
             ומסמנת לכם כל אילוץ שלא הסתדר.
           </p>
           <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.cta}>נסו בחינם ←</Link>
+            <Link to="/app" className={styles.cta}>נסו בחינם ←</Link>
             <a href="#how" className={styles.ghost}>איך זה עובד</a>
           </div>
           <p className={styles.heroNote}>
@@ -267,7 +267,7 @@ export default function SeatingServiceScreen({ user = null }) {
             פותחים אירוע, מדביקים רשימה, לוחצים. אם זה לא חוסך לכם את המפית —
             סגרתם ולא שילמתם.
           </p>
-          <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
+          <Link to="/app" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
 

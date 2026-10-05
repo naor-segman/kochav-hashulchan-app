@@ -160,7 +160,7 @@ export default function GiftsServiceScreen({ user = null }) {
             הצהיר על מה.
           </p>
           <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.cta}>פתחו דף מתנה ←</Link>
+            <Link to="/app" className={styles.cta}>פתחו דף מתנה ←</Link>
             <a href="#wall" className={styles.ghost}>איך הקיר נראה</a>
           </div>
           <p className={styles.heroNote}>
@@ -332,7 +332,7 @@ export default function GiftsServiceScreen({ user = null }) {
             פותחים אירוע, מקבלים את שני הקישורים — אחד לאורחים, אחד למסך באולם.
             הקישורים נפתחים אחרי פתיחת חשבון, והיא חינם.
           </p>
-          <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
+          <Link to="/app" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
 

@@ -105,7 +105,7 @@ export default function EventDayServiceScreen({ user = null }) {
             כמה כבר בפנים, ואתם פותחים את המסך שלכם ורואים את אותו מספר.
           </p>
           <div className={styles.heroActions}>
-            <Link to="/signup" className={styles.cta}>נסו בחינם ←</Link>
+            <Link to="/app" className={styles.cta}>נסו בחינם ←</Link>
             <a href="#door" className={styles.ghost}>איך זה עובד בכניסה</a>
           </div>
           <p className={styles.heroNote}>
@@ -240,7 +240,7 @@ export default function EventDayServiceScreen({ user = null }) {
             הכל כבר במערכת מהשלבים הקודמים. ביום האירוע נשאר רק לפתוח את הקישור
             ולתת אותו למי שעומד בדלת.
           </p>
-          <Link to="/signup" className={styles.closeCta}>התחילו חינם ←</Link>
+          <Link to="/app" className={styles.closeCta}>התחילו חינם ←</Link>
         </div>
       </section>
 
