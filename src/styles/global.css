@@ -110,6 +110,8 @@ html {
 }
 
 body {
-  padding-block-end: var(--consent-space, 0px);
+  /* + the guided tour's room to scroll while it is open (GuidedTour.jsx). The
+     tour waits for the cookie answer, so the two never stack in practice. */
+  padding-block-end: calc(var(--consent-space, 0px) + var(--tour-space, 0px));
 }
 
