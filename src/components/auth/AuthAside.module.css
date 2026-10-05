@@ -10,8 +10,10 @@
     align-items: flex-end;
     position: sticky;
     inset-block-start: 0;
-    block-size: 100vh;
-    min-block-size: 560px;
+    /* min, not a fixed height: with larger text spacing the content outgrew a
+       100vh box at 1024×500 and ran 121px above its top, unreachable (review
+       5.10, WCAG 1.4.12). It grows instead. */
+    min-block-size: max(100vh, 560px);
     /* The same photo as the home page's "אנחנו שם איתכם" — one visual language
        from the first page to the sign-in. Desktop only, so a phone never
        downloads it. */

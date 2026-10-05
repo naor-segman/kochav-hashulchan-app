@@ -238,6 +238,13 @@
   accent-color: var(--accent);
 }
 
+/* reset.css removes the input outline and the box had only a faint halo —
+   1.52:1 between focused and not (review 5.10). */
+.consentBox:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .consentLink {
   color: var(--accent-text);
   font-weight: 700;

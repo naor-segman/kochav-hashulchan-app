@@ -1,4 +1,5 @@
 import styles from "./PhoneFrame.module.css";
+import LoopVideo from "./LoopVideo.jsx";
 
 /**
  * A current-generation phone around a real screenshot or screen recording
@@ -20,8 +21,7 @@ export default function PhoneFrame({ src, video, poster, alt = "", className = "
       <div className={styles.screen}>
         <span className={styles.island} aria-hidden="true" />
         {video ? (
-          <video className={styles.media} src={video} poster={poster} autoPlay muted loop playsInline
-                 preload="metadata" aria-label={alt || undefined} />
+          <LoopVideo className={styles.media} src={video} poster={poster} label={alt} />
         ) : (
           <img className={styles.media} src={src} alt={alt} loading={lazy ? "lazy" : "eager"} />
         )}

@@ -207,7 +207,6 @@ export default function ResetPasswordScreen() {
                     className={styles.eyeBtn}
                     onClick={() => setShowPw(v => !v)}
                     aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
-                    tabIndex={-1}
                   >
                     <Icon name={showPw ? "eyeOff" : "eye"} size={18} />
                   </button>

@@ -32,6 +32,17 @@ export default function LoginScreen() {
   const forgotDoneRef = useRef(null);
   useEffect(() => { if (forgotDone) forgotDoneRef.current?.focus(); }, [forgotDone]);
 
+  // Opening "שכחתם סיסמה?" replaced the focused button with the panel, and
+  // "→ חזרו לכניסה" replaced the focused back button with the link: both times
+  // focus fell to <body> (review 5.10). Into the email field, and back.
+  const forgotInputRef = useRef(null);
+  const forgotLinkRef = useRef(null);
+  const forgotOpened = useRef(false);
+  useEffect(() => {
+    if (forgotMode && !forgotDone) { forgotInputRef.current?.focus(); forgotOpened.current = true; }
+    else if (!forgotMode && forgotOpened.current) forgotLinkRef.current?.focus();
+  }, [forgotMode, forgotDone]);
+
   // Already logged in → redirect
   useEffect(() => {
     if (!loading && user) navigate(from, { replace: true });
@@ -155,7 +166,6 @@ export default function LoginScreen() {
                   className={styles.eyeBtn}
                   onClick={() => setShowPw(v => !v)}
                   aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
-                  tabIndex={-1}
                 >
                   <Icon name={showPw ? "eyeOff" : "eye"} size={18} />
                 </button>
@@ -177,6 +187,7 @@ export default function LoginScreen() {
           {/* ── Forgot password ── */}
           {!forgotMode ? (
             <button
+              ref={forgotLinkRef}
               type="button"
               className={styles.forgotLink}
               onClick={() => { setForgotMode(true); setForgotEmail(email); }}
@@ -192,6 +203,7 @@ export default function LoginScreen() {
             <form onSubmit={handleForgot} className={styles.forgotForm} noValidate>
               <p className={styles.forgotTitle}>איפוס סיסמה</p>
               <input
+                ref={forgotInputRef}
                 className={styles.input}
                 type="email"
                 value={forgotEmail}

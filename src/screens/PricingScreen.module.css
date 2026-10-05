@@ -14,7 +14,7 @@
 .text, .textDark { margin: 0 0 22px; color: var(--text2); font-size: var(--step-1); line-height: 1.7; max-width: 52ch; }
 .textDark { color: var(--nav-muted); }
 
-.top { background: var(--nav-bg); }
+.top { background: var(--nav-bg); --focus-ring: var(--accent-on-dark); }
 .top .inner { padding-top: 64px; padding-bottom: 64px; text-align: center; display: grid; justify-items: center; }
 .pick { background: var(--bg); }
 .pick .inner { padding-top: 0; transform: translateY(-36px); padding-bottom: 20px; }
@@ -42,12 +42,14 @@
 .yes { color: var(--text); } .yes > span:first-child { color: var(--green); font-weight: 800; }
 .no { color: var(--muted); } .no > span:first-child { font-weight: 800; }
 
-.human { background: var(--nav-bg); color: var(--nav-text); }
-.humanGrid { display: grid; gap: 1px; margin: 8px 0 28px; background: var(--nav-border); border: 1px solid var(--nav-border); }
+/* Light, like the same section on the home page (owner, 5.10: no all-black
+   grounds — the review measured this one 341px tall on a phone). */
+.human { background: var(--blush-soft); color: var(--text); border-top: 1px solid var(--border); }
+.humanGrid { display: grid; gap: 1px; margin: 8px 0 28px; background: var(--border); border: 1px solid var(--border); }
 @media (min-width: 860px) { .humanGrid { grid-template-columns: repeat(3, 1fr); } }
-.humanItem { padding: 20px 18px; background: var(--nav-bg); display: grid; gap: 8px; align-content: start; }
+.humanItem { padding: 20px 18px; background: var(--surface); display: grid; gap: 8px; align-content: start; }
 .humanItem h3 { margin: 0; font-size: var(--step-1); font-weight: 800; }
-.humanItem p { margin: 0; color: var(--nav-muted); font-size: var(--step--1); line-height: 1.6; }
+.humanItem p { margin: 0; color: var(--text2); font-size: var(--step--1); line-height: 1.6; }
 
 .faq { background: var(--bg); }
 .faqList { max-width: 760px; margin: 8px auto 20px; border-top: 2px solid var(--text); }

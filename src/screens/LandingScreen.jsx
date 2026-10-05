@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import SiteHeader from "../components/layout/SiteHeader.jsx";
 import Footer from "../components/layout/Footer.jsx";
@@ -8,6 +8,7 @@ import LaptopFrame from "../components/marketing/LaptopFrame.jsx";
 import CelebrationArt from "../components/marketing/CelebrationArt.jsx";
 import { ChatScene, DoorScene } from "../components/marketing/Scenes.jsx";
 import { useHashScroll } from "../hooks/useHashScroll.js";
+import { useMediaQuery, useStillOnly } from "../hooks/useMediaQuery.js";
 import { COMPANY } from "../data/company.js";
 import {
   FREE_PACKAGE, HUMAN_SERVICES, PAID_FROM, formatShekel, PRICING_RULES,
@@ -85,12 +86,18 @@ const quoteHref = () => `https://wa.me/${COMPANY.whatsapp}?text=${encodeURICompo
 
 export default function LandingScreen({ user = null }) {
   useHashScroll();
-  const [stillOnly] = useState(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return false;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
-    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    return Boolean(c && (c.saveData || /^(slow-)?2g$/.test(c.effectiveType || "")));
-  });
+  const stillOnly = useStillOnly();
+  // One product video, not two: both downloaded and played at every width and
+  // CSS hid one (~2MB each — review 5.10). 860 is .onlyWide's breakpoint.
+  const wide = useMediaQuery("(min-width: 860px)", true);
+  const heroRef = useRef(null);
+  const [heroPaused, setHeroPaused] = useState(false);
+  const toggleHero = () => {
+    const v = heroRef.current;
+    if (!v) return;
+    if (v.paused) { v.play()?.catch?.(() => {}); setHeroPaused(false); }
+    else { v.pause(); setHeroPaused(true); }
+  };
 
   return (
     <div className={styles.root}>
@@ -101,12 +108,19 @@ export default function LandingScreen({ user = null }) {
         <section className={styles.hero}>
           <div className={styles.heroMedia} aria-hidden="true">
             {HERO_MEDIA.video && !stillOnly ? (
-              <video className={styles.heroLayer} src={HERO_MEDIA.video} poster={HERO_MEDIA.poster} autoPlay muted loop playsInline preload="metadata" />
+              <video ref={heroRef} className={styles.heroLayer} src={HERO_MEDIA.video} poster={HERO_MEDIA.poster} autoPlay muted loop playsInline preload="metadata" />
             ) : (
               <img className={styles.heroLayer} src={HERO_MEDIA.posterMobile} alt="" />
             )}
             <span className={styles.heroScrim} />
           </div>
+          {/* A 16s loop behind the title needs a way to stop it (WCAG 2.2.2). */}
+          {HERO_MEDIA.video && !stillOnly && (
+            <button type="button" className={styles.heroPause} onClick={toggleHero}
+                    aria-label={heroPaused ? "הפעלת סרטון הרקע" : "עצירת סרטון הרקע"}>
+              <span aria-hidden="true">{heroPaused ? "▶" : "❚❚"}</span>
+            </button>
+          )}
           <div className={styles.heroInner}>
             <p className={styles.heroEyebrow}>הושבה ואישורי הגעה לאירועים</p>
             <h1 className={styles.heroTitle}>כל האורחים<br /><span>במקום הנכון</span></h1>
@@ -190,10 +204,13 @@ export default function LandingScreen({ user = null }) {
             </div>
             <div className={styles.visual}>
               {/* A laptop where there is room for one, the phone where there is not. */}
-              <LaptopFrame video="/shots-phone/product-desk.webm" poster="/shots/seating.jpg"
-                           alt="סרטון: הושבה אוטומטית של 96 אורחים, ואחריה רשימת האורחים" className={styles.onlyWide} />
-              <PhoneFrame video="/shots-phone/product.webm" poster="/shots-phone/seating.jpg"
-                          alt="סרטון: הושבה אוטומטית של 96 אורחים, ואחריה רשימת האורחים" className={[styles.phone, styles.onlyNarrow].join(" ")} />
+              {wide ? (
+                <LaptopFrame video="/shots-phone/product-desk.webm" poster="/shots/seating.jpg"
+                             alt="סרטון: הושבה אוטומטית של 96 אורחים, ואחריה רשימת האורחים" className={styles.onlyWide} />
+              ) : (
+                <PhoneFrame video="/shots-phone/product.webm" poster="/shots-phone/seating.jpg"
+                            alt="סרטון: הושבה אוטומטית של 96 אורחים, ואחריה רשימת האורחים" className={[styles.phone, styles.onlyNarrow].join(" ")} />
+              )}
             </div>
           </div>
         </section>

@@ -29,6 +29,7 @@ export default function SignupScreen() {
   const [invalid,  setInvalid]  = useState("");
   const [showPw,   setShowPw]   = useState(false);
   const [agree,    setAgree]    = useState(false);
+  const consentRef = useRef(null);
   const [busy,        setBusy]        = useState(false);
   const [done,        setDone]        = useState(false); // email confirmation sent
   const [resentDone,  setResentDone]  = useState(false);
@@ -66,6 +67,10 @@ export default function SignupScreen() {
     // pressing "הרשמה" — and the version agreed to is recorded with the user.
     if (!agree) {
       setError("כדי להירשם צריך לאשר את תנאי השימוש ומדיניות הפרטיות.");
+      // The box itself is the thing to fix: marked invalid, tied to the
+      // message, and focused (it stayed on the confirm field — review 5.10).
+      setInvalid("consent");
+      consentRef.current?.focus();
       return;
     }
 
@@ -218,7 +223,6 @@ export default function SignupScreen() {
                   className={styles.eyeBtn}
                   onClick={() => setShowPw(v => !v)}
                   aria-label={showPw ? "הסתירו סיסמה" : "הציגו סיסמה"}
-                  tabIndex={-1}
                 >
                   {showPw ? <Icon name="eyeOff" size={18} /> : <Icon name="eye" size={18} />}
                 </button>
@@ -247,7 +251,10 @@ export default function SignupScreen() {
             <label className={styles.consent}>
               <input
                 type="checkbox"
+                ref={consentRef}
                 className={styles.consentBox}
+                aria-invalid={invalid === "consent" || undefined}
+                aria-describedby={invalid === "consent" ? "signup-error" : undefined}
                 checked={agree}
                 onChange={e => setAgree(e.target.checked)}
                 disabled={!isSupabaseConfigured || busy}

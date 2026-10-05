@@ -48,7 +48,8 @@ export default function PricingScreen({ user }) {
 
         <section className={styles.top}>
           <div className={styles.inner}>
-            <p className={styles.eyebrow}>מחירים</p>
+            {/* eyebrowDark: --accent-text on this dark band was 2.64:1 (bug class 4). */}
+            <p className={styles.eyebrowDark}>מחירים</p>
             <h1 className={styles.h1}>המחיר של האירוע שלכם. בדיוק.</h1>
             <p className={styles.lede}>
               בוחרים כמה מוזמנים — ורואים כמה זה עולה. בלי מחירים כלליים, בלי תוספות
@@ -115,22 +116,22 @@ export default function PricingScreen({ user }) {
 
         <section className={styles.human} id="human">
           <div className={styles.inner}>
-            <p className={styles.eyebrowDark}>אנשים באירוע</p>
-            <h2 className={styles.h2Dark}>מה שדורש מישהו בדלת — בהצעת מחיר</h2>
-            <p className={styles.textDark}>
+            <p className={styles.eyebrow}>אנשים באירוע</p>
+            <h2 className={styles.h2}>מה שדורש מישהו בדלת — בהצעת מחיר</h2>
+            <p className={styles.text}>
               את כל השאר עושים לבד, מהטלפון. שירות שבו מישהו שלנו מגיע לאירוע מתומחר
               לפי האולם, התאריך וכמות האורחים. גם אירוע של יותר מ-{GUESTS_MAX.toLocaleString("en-US")} מוזמנים — דברו איתנו.
             </p>
             <div className={styles.humanGrid}>
               {HUMAN_SERVICES.map(h => (
                 <div key={h.title} className={styles.humanItem}>
-                  <SectionMark name={h.mark} size={28} tone="ondark" />
+                  <SectionMark name={h.mark} size={28} />
                   <h3>{h.title}</h3>
                   <p>{h.body}</p>
                 </div>
               ))}
             </div>
-            <a href={quoteHref()} className={styles.btnLight} target="_blank" rel="noreferrer">בקשת הצעת מחיר בוואטסאפ ←</a>
+            <a href={quoteHref()} className={styles.btnPrimary} target="_blank" rel="noreferrer">בקשת הצעת מחיר בוואטסאפ ←</a>
           </div>
         </section>
 

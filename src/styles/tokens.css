@@ -121,7 +121,7 @@
      the outgoing bubble, so the scene reads as the app people already know. */
   --wa-ground:     #EFE7DE;
   --wa-bubble-out: #D9FDD3;
-  --wa-meta:       #667781;
+  --wa-meta:       #5A6A73;   /* WhatsApp's own #667781 was 4.19:1 on the sent bubble at 11px (review 5.10); 5.06 now */
   --wa-link:       #027EB5;
   --device-glass:  #0B0B0D;
   --device-edge:   #3A3A3F;

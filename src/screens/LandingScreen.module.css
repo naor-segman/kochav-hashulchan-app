@@ -53,13 +53,28 @@
 }
 
 /* ── 1 · hero ─────────────────────────────────────────────────────────── */
-.hero { position: relative; background: var(--nav-bg); color: var(--nav-text); overflow: hidden; }
+/* --focus-ring re-pointed for the dark ground: the global one is --accent-text,
+   1.3–2.1:1 over the hero video (review 5.10, WCAG 1.4.11). */
+.hero { position: relative; background: var(--nav-bg); color: var(--nav-text); overflow: hidden; --focus-ring: var(--accent-on-dark); }
 .heroMedia { position: absolute; inset: 0; }
+.heroPause {
+  position: absolute; z-index: 2;
+  inset-block-end: 12px; inset-inline-end: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  inline-size: 44px; block-size: 44px; padding: 0;
+  border: 1px solid var(--nav-border); background: var(--scrim-45); color: var(--nav-text);
+  font: inherit; font-size: var(--step--1); font-weight: 800; letter-spacing: -0.1em; cursor: pointer;
+}
+.heroPause:hover { background: var(--scrim-60); }
+.heroPause:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 .heroLayer { width: 100%; height: 100%; object-fit: cover; object-position: 30% 50%; display: block; }
 .heroScrim {
   position: absolute; inset: 0;
   background:
-    linear-gradient(to top, rgba(var(--text-rgb), .96) 0%, rgba(var(--text-rgb), .72) 45%, rgba(var(--text-rgb), .35) 100%);
+    /* On a phone the text runs from the TOP, over the white drapes: at .35
+       there the pink eyebrow measured 1.66:1 and "במקום הנכון" 2.03:1 (review
+       5.10, worst frame of 33). Dark enough at the top now. */
+    linear-gradient(to top, rgba(var(--text-rgb), .96) 0%, rgba(var(--text-rgb), .84) 45%, rgba(var(--text-rgb), .78) 100%);
 }
 .heroInner {
   position: relative;
@@ -74,9 +89,10 @@
   font-weight: 800; line-height: .98; letter-spacing: -0.03em;
 }
 .heroTitle span { color: var(--accent-on-dark); }
-.heroSub { margin: 0 0 28px; max-width: 46ch; color: var(--nav-text); opacity: .86; font-size: var(--step-1); line-height: 1.7; }
+.heroSub { margin: 0 0 28px; max-width: 46ch; color: var(--nav-text); font-size: var(--step-1); line-height: 1.7; }
 .heroActions { display: flex; flex-wrap: wrap; gap: 12px; }
-.heroFree { margin: 16px 0 0; color: var(--nav-muted); font-size: var(--step--1); font-weight: 600; }
+/* --nav-text, not --nav-muted: 3.6–4.2:1 over the video at every width. */
+.heroFree { margin: 16px 0 0; color: var(--nav-text); font-size: var(--step--1); font-weight: 600; }
 .heroPoints {
   list-style: none; margin: 36px 0 0; padding: 20px 0 0;
   border-top: 1px solid var(--nav-border);
@@ -205,7 +221,8 @@
 .paidFrom span { font-size: 2.4rem; font-variant-numeric: tabular-nums; }
 
 /* ── 9 · close ────────────────────────────────────────────────────────── */
-.close { background: var(--cta); color: var(--on-accent); }
+/* White ring on the pink band: the global ring measured 1.46:1 here. */
+.close { background: var(--cta); color: var(--on-accent); --focus-ring: var(--on-accent); }
 .closeText { margin: 0 0 24px; font-size: var(--step-1); line-height: 1.7; }
 .closeInner { display: grid; justify-items: center; text-align: center; }
 .closeTitle { margin: 0 0 12px; font-size: clamp(2.6rem, 10vw, 4.6rem); font-weight: 800; letter-spacing: -.03em; line-height: 1; }

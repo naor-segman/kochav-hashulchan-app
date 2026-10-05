@@ -11,7 +11,7 @@
   width: calc(var(--w) * .008); height: calc(var(--w) * .008); border-radius: 50%;
   background: var(--device-edge);
 }
-.screen { aspect-ratio: 1200 / 760; overflow: hidden; background: var(--surface); border-radius: 3px; }
+.screen { position: relative; aspect-ratio: 1200 / 760; overflow: hidden; background: var(--surface); border-radius: 3px; }
 .media { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .base {
   position: relative;
