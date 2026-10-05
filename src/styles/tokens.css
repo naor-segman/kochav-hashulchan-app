@@ -117,6 +117,15 @@
   --cta-bg:        #FDECF2;
 
   /* Navigation bar — near-black chrome, so the accent is the only colour on it */
+  /* A WhatsApp conversation, drawn on the home page (136): the chat ground and
+     the outgoing bubble, so the scene reads as the app people already know. */
+  --wa-ground:     #EFE7DE;
+  --wa-bubble-out: #D9FDD3;
+  --wa-meta:       #667781;
+  --wa-link:       #027EB5;
+  --device-glass:  #0B0B0D;
+  --device-edge:   #3A3A3F;
+  --device-sheen:  #5C5C63;
   --nav-bg:        #14161A;
   --nav-bg2:       #21242A;
   --nav-text:      #F5F5F6;

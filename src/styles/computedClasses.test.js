@@ -53,8 +53,6 @@ const OPAQUE = [
     expr: "PLAN_BADGE[plan]", values: objectValues("src/admin/screens/AdminSubscriptionsScreen.jsx", "PLAN_BADGE") },
   { file: "src/admin/screens/AdminSubscriptionsScreen.jsx", css: "src/admin/screens/AdminSubscriptionsScreen.module.css",
     expr: "STATUS_BADGE[status]", values: objectValues("src/admin/screens/AdminSubscriptionsScreen.jsx", "STATUS_BADGE") },
-  { file: "src/screens/LandingScreen.jsx", css: "src/screens/LandingScreen.module.css",
-    expr: "GROUND_KEYS[i % GROUND_KEYS.length]", values: objectValues("src/screens/LandingScreen.jsx", "GROUND_KEYS") },
 ];
 
 describe("computed CSS-module class names all exist", () => {

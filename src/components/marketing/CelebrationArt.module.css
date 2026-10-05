@@ -1,0 +1,11 @@
+.art { width: 100%; height: 100%; display: block; overflow: visible; }
+.plate { fill: var(--blush); stroke: var(--text); stroke-width: 3.5; stroke-linejoin: round; }
+.paper { fill: var(--surface); stroke: var(--text); stroke-width: 3.5; stroke-linejoin: round; }
+.line { fill: none; stroke: var(--text); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.lineLive { fill: none; stroke: var(--cta); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.ringInk { fill: none; stroke: var(--text); stroke-width: 6; }
+.ringLive { fill: none; stroke: var(--cta); stroke-width: 6; }
+.live { fill: var(--cta); }
+.dot { fill: var(--text); }
+.flame { fill: var(--accent); }
+.spark { fill: var(--cta); }

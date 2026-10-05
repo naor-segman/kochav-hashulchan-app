@@ -1,514 +1,291 @@
 import { useState } from "react";
-import SiteHeader from "../components/layout/SiteHeader.jsx";
 import { Link } from "react-router-dom";
-import { useHashScroll } from "../hooks/useHashScroll.js";
+import SiteHeader from "../components/layout/SiteHeader.jsx";
 import Footer from "../components/layout/Footer.jsx";
-import styles from "./LandingScreen.module.css";
 import SectionMark from "../components/ui/SectionMark.jsx";
-import { liveServices } from "../data/services.js";
-import { PLANS, teaserFor, PRICING_FOOTNOTE } from "../data/pricing.js";
-
-// Four claims a visitor can check for themselves inside the product. They
-// replaced four invented statistics — a new product does not have real numbers
-// yet, and unverifiable ones cost more trust than they buy.
-const TRUST = [
-  /* "לייצא הכל לאקסל" was not true. There are exactly three xlsx exports —
-     the guest list, תוכנית ההושבה and the shared table — and none of them is
-     everything: משימות, תקציב, ספקים, הודעות, כרטיסי שם, אישורי הגעה, מתנות
-     and the album do not export at all. The claim is now the three that do. */
-  { icon: "cloud",   title: "הנתונים שלכם, שלכם",
-    desc: "נשמר אצלכם בדפדפן ומסונכרן לענן. רשימת האורחים, תוכנית ההושבה והטבלה השיתופית יורדות לאקסל בכל רגע." },
-  /* ⚠️ THE CLAIM THAT WAS FALSE, AND THE ICON THAT PROVED IT.
-     This card used to read "עובד גם בלי רשת · באולם עם קליטה גרועה האפליקציה
-     ממשיכה לעבוד" and it was illustrated with the `checkin` glyph — i.e. with
-     the ONE screen for which it is false. The host's own device is genuinely
-     offline-capable (localStorage). The GREETER's link is not: hostess_data_by_token
-     and hostess_mark_arrival_by_token are bare RPCs, read and write, and
-     retryQueue.js has exactly one consumer and it is useCollabSync. Without a
-     connection the greeter gets a connection error and a failed tick is
-     DISCARDED. The sentence was worded around the exact scenario where the
-     relevant half does not work. WORKPLAN row א2. */
-  { icon: "cloud",   title: "המכשיר שלכם עובד גם בלי רשת",
-    desc: "האירוע נשמר בדפדפן שלכם, אז עריכה בלי קליטה ממשיכה לעבוד ומסתנכרנת אחר כך. הקישור של הדיילת צריך רשת." },
-  /* "מקישור אחד" was false: shareLinks.js defines eight guest links over three
-     different tokens. RSVP and gift are simply different URLs. */
-  { icon: "site",   title: "האורחים לא צריכים חשבון",
-    desc: "אישור הגעה, הזמנה ומתנה נפתחים מקישור בוואטסאפ — בלי הרשמה ובלי אפליקציה." },
-  { icon: "guests",  title: "בלי כרטיס אשראי",
-    desc: "פותחים אירוע ובודקים אם זה מתאים לכם. אין תקופת ניסיון שנגמרת." },
-];
-
-// White → grey → blush. Three grounds in rotation, so scrolling reads as a
-// composition rather than one long white page with rules between the parts.
-const GROUND_KEYS = ["", "showcaseAlt", "showcaseBlush"];
-
-const SHOWCASE = [
-  {
-    eyebrow: "הלב של המוצר",
-    title:   "ההושבה נעשית לבד",
-    body:    "מגדירים מי חייב לשבת יחד ומי בשום אופן לא — והאלגוריתם מסדר את כל האורחים תוך שניות, תוך כיבוד הקבוצות, הצדדים והקיבולת של כל שולחן.",
-    /* "נשמרים תמיד" was overstated and the engine says so itself: seating.js
-       builds a violations[] array with together/apart/capacity entries, and
-       deliberately takes a MINIMAL violation when a cluster cannot fit. What is
-       true — and better — is that it tells you. "ולמה" was removed outright:
-       the unassigned list names WHO, and the only reason it ever gives is the
-       generic "הוסיפו מקומות נוספים". */
-    points:  ["אילוץ שלא הסתדר מסומן לכם, ולא נבלע",
-              "שולחן נעול נשאר בדיוק כפי שסידרתם",
-              "אם מישהו לא נכנס — רואים בדיוק מי"],
-    img: "/shots/seating.jpg",
-    /* 117 was the seed's TOTAL seats; what the picture actually renders is
-       96/96 over 14 tables with 0 violations. Read off the pixels, 11.9. */
-    alt: "מסך סידור ההושבה אחרי הרצה — 96 מתוך 96 מקומות שובצו ב-14 שולחנות, אפס הפרות",
-  },
-  {
-    eyebrow: "רשימת האורחים",
-    title:   "מדביקים רשימה, מקבלים אירוע",
-    /* "כפילויות מתמזגות" was false. importReview.js flags a duplicate with a
-       warn chip reading "כבר ברשימה" and says outright that a duplicate has
-       never been a block; the only removal is the host clicking the row away.
-       Nothing merges — and flagging before the import is the better behaviour
-       anyway, so the sentence now describes it. */
-    body:    "הדביקו רשימה מוואטסאפ או מגיליון — השמות והטלפונים נקראים לבד, כפילויות מסומנות לפני שהן נכנסות, ואישורי ההגעה נכנסים לרשימה אוטומטית.",
-    points:  ["צד, קבוצה, כמות מקומות ומנה לכל שורה",
-              "טבלה שיתופית שההורים ממלאים בעצמם",
-              "מעקב אחרי מי אישר, מי סירב ומי עוד שותק"],
-    img: "/shots/guests.jpg",
-    /* Not "מסוננת" — all three filters in the shot read "כל ה…". */
-    alt: "מסך ניהול האורחים — 58 רשומות עם צד, קבוצה, מספר מקומות ואישור הגעה",
-  },
-  {
-    eyebrow: "ביום האירוע",
-    title:   "בכניסה, בלי דפים",
-    /* Two removals here.
-       "אפשר גם לסרוק את הקוד שעל ההזמנה" — at the time the button did not
-       exist on an iPhone. Scanning works on iPhones since 28.9 (jsQR
-       fallback); the line stays out until the owner decides the copy (104),
-       and because a scan still marks the WHOLE row, not the person.
-       "רישום מתנות תוך כדי" — that field was DELETED from this screen on
-       purpose (a greeter cannot know what is in an envelope), and nothing in
-       src/ writes giftAmount. It advertised a feature the product removed. */
-    body:    "מחפשים אורח בשם, רואים את השולחן שלו ומסמנים הגעה. גם מי שהגיע עם חצי מהמשפחה.",
-    /* "חי" was false: the greeter's phone re-reads every 25 seconds and the
-       owner's screen does not poll or subscribe at all. Per SEAT is the true
-       half and it is the one that matters — arrivedSeats is per person. */
-    points:  ["מונה הגעה לפי מקומות, לא לפי שורות",
-              "קישור נפרד לדיילת — בלי גישה לשאר האירוע",
-              // "מפת אולם להדפסה" was false: the floor plan has no print
-              // view. What prints is name cards and the seating list (28.9).
-              "כרטיסי שם וסידור הושבה להדפסה"],
-    img: "/shots/checkin.jpg",
-    /* Re-shot 11.9 — the previous file showed an empty search box and
-       "0 מתוך 96". This alt is read off the new pixels. */
-    alt: "עמדת הכניסה באמצע האירוע — חיפוש שם מחזיר שלושה אורחים, לכל אחד מספר השולחן שלו וכפתור סימון הגעה, מעליהם מונה 58 מתוך 96",
-  },
-];
+import PhoneFrame from "../components/marketing/PhoneFrame.jsx";
+import LaptopFrame from "../components/marketing/LaptopFrame.jsx";
+import CelebrationArt from "../components/marketing/CelebrationArt.jsx";
+import { ChatScene, DoorScene } from "../components/marketing/Scenes.jsx";
+import { useHashScroll } from "../hooks/useHashScroll.js";
+import { COMPANY } from "../data/company.js";
+import {
+  FREE_PACKAGE, HUMAN_SERVICES, PAID_FROM, formatShekel, PRICING_RULES,
+} from "../data/pricingCurve.js";
+import styles from "./LandingScreen.module.css";
 
 /**
- * Full-bleed hero media.
+ * The home page, rebuilt for 136 (owner 5.10) in the order he approved after
+ * walking through DIGINET's home page section by section:
+ *   hero → everything we do → three feelings (on a phone) → the product moving
+ *   → what are you celebrating → people at the door → price → once more.
  *
- * Both fields are null until there is real footage, and while they are null
- * the hero renders exactly as it did before — a flat ink panel. Name a file
- * here and the hero switches to the cinematic layout on its own: media behind,
- * scrim over it, headline and one button on top.
- *
- * The poster is not optional once there is a video. It is what a phone, a slow
- * connection, and anyone who asked their system for reduced motion actually
- * see, and it is the first frame everyone else sees while the video loads.
- *
- * Keep the subject off-centre-right: the text sits over the start (right) edge
- * in RTL, and a face directly behind the headline reads as a mistake.
- */
-const HERO_MEDIA = {
-  video:        "/hero/hero.mp4",
-  poster:       "/hero/hero.jpg",
-  // A phone's hero is TALL. Covering it from the landscape frame crops to a
-  // narrow vertical slice of the middle, which throws away the chuppah and the
-  // horizon — the two things that make the shot. The portrait crop of the same
-  // moment is a separate file for that reason.
-  posterMobile: "/hero/hero-portrait.jpg",
-};
-
-// The five places a guest list actually lives today. Written as a list of
-// PLACES, not of problems, because the recognition has to be instant — anyone
-// who has produced an event has all five open at once.
-const PROBLEM = [
-  { where: "גיליון אקסל",        what: "שמישהו אחר ערך, ואף אחד לא זוכר מתי" },
-  { where: "קבוצת וואטסאפ",      what: "עם מאתיים הודעות ושלושה אישורים שאבדו בהן" },
-  { where: "רשימה על נייר",      what: "שנמצאת בכניסה, ורק אצל מי שמחזיק אותה" },
-  { where: "שיחות טלפון",        what: "לכל מי שלא ענה, פעמיים" },
-  { where: "סידור על מפית",      what: "בשתיים בלילה, שבוע לפני" },
-];
-
-/* This WAS a hand-written array of six features, and it was the page's oldest
- * problem rather than one of its claims.
- *
- * It derived from nothing, so the product walked away from it: sixteen screens
- * exist and that array named six, with משימות, תקציב, ספקים, הודעות and
- * כרטיסי שם appearing nowhere on the home page at all. WORKPLAN 87 opens on
- * exactly this — "במוצר 16 מסכים, דף הבית מפרסם 6, וההדר 0". It also carried
- * two claims that were not true: "תצוגה חזותית מושלמת" is puffery, and the
- * section's own subtitle promised "רשימה שיודעת כמה שולחנות צריך", which
- * nothing computes — the venue sizes the tables and the app never recommends a
- * number.
- *
- * It is now `liveServices()`: the same six headings the header, the dropdown
- * and the six landing pages use, from src/data/services.js. A seventh service
- * is one entry there and appears here on its own.
- *
- * And the cards are LINKS. Six landing pages were built to be found in search,
- * and the page most visitors actually land on linked to none of them — the
- * footer's whole "מוצר" column pointed back into two anchors of this same page.
+ * The rule over all of it, in his words: speak to the emotion, the need and
+ * the experience — "מאד מאד מאד חשוב". Square corners, our colours, nothing
+ * that pops or floats. No numbers we have not earned, no press we do not have.
+ * Reviews come in when there are real ones (WORKPLAN 141).
  */
 
-/* Read once at module scope — liveServices() filters a frozen array. */
-const SERVICE_CARDS = liveServices();
+const HERO_MEDIA = { video: "/hero/hero.mp4", poster: "/hero/hero.jpg", posterMobile: "/hero/hero-portrait.jpg" };
 
-const HOW_IT_WORKS = [
-  { num: "01", title: "צרו אירוע", desc: "בחרו סוג אירוע, הזינו תאריך ומקום" },
-  { num: "02", title: "הוסיפו אורחים", desc: "שלחו קישור למשפחה שתמלא יחד, הדביקו רשימה, או הוסיפו ידנית" },
-  { num: "03", title: "בנו שולחנות", desc: "הגדירו מספר מקומות וצורת ישיבה לכל שולחן" },
-  { num: "04", title: "הגדירו אילוצים", desc: "מי ישב יחד, מי חייב להיות בנפרד" },
-  { num: "05", title: "סדרו בלחיצה", desc: "המערכת משבצת את כולם, ואומרת לכם אם משהו לא הסתדר" },
+const HERO_POINTS = [
+  { mark: "seating", t: "הושבה שמסתדרת לבד" },
+  { mark: "rsvp",    t: "אישורי הגעה בוואטסאפ" },
+  { mark: "checkin", t: "עמדת כניסה ביום האירוע" },
 ];
 
-/* The pricing teaser reads src/data/pricing.js — the same source the pricing
- * page reads. It used to be a second hand-written array here, and the two had
- * already drifted: this page promised "תמיכה מועדפת" and "SLA ותמיכה ייעודית",
- * and NEITHER appeared on the pricing page a buyer would actually open, because
- * neither exists in the product. Bug class 6, on the surface where being wrong
- * costs money. */
-const PRICING_PLANS = PLANS.map(teaserFor);
+/* Every card is something that exists in the product today. */
+const EVERYTHING = [
+  { mark: "seating", t: "הושבה אוטומטית",   d: "כל האולם מסודר בשניות", to: "/services/seating" },
+  { mark: "constraints", t: "מי ליד מי",     d: "מי חייב יחד, ומי בשום אופן לא", to: "/services/seating" },
+  { mark: "rsvp",    t: "אישורי הגעה",       d: "האורחים עונים בלי להירשם", to: "/services/rsvp" },
+  { mark: "messages", t: "הודעות בוואטסאפ",  d: "הזמנה, תזכורת ותודה — מוכנות", to: "/services/rsvp" },
+  { mark: "site",    t: "אתר והזמנה",        d: "הזמנה דיגיטלית, Waze והסעות", to: "/services/event-site" },
+  { mark: "guests",  t: "רשימת אורחים",      d: "מדביקים מוואטסאפ או מאקסל", to: "/services/rsvp" },
+  { mark: "checkin", t: "יום האירוע",        d: "עמדת כניסה וכרטיסי שם", to: "/services/event-day" },
+  { mark: "budget",  t: "תקציב וספקים",      d: "כמה יצא, וכמה עוד נשאר", to: "/services/planning" },
+];
+
+const FEELINGS = [
+  {
+    eyebrow: "הלב של המוצר",
+    title: "לא עוד סידור על מפית בשתיים בלילה",
+    body: "מגדירים מי חייב לשבת יחד ומי בשום אופן לא — וכל האורחים מוצאים מקום תוך שניות, לפי הקבוצות, הצדדים והקיבולת של כל שולחן. מישהו ביטל שלושה ימים לפני? לוחצים שוב.",
+    points: ["אילוץ שלא הסתדר מסומן לכם, ולא נבלע", "שולחן נעול נשאר בדיוק כפי שסידרתם", "אם מישהו לא נכנס — רואים בדיוק מי"],
+    visual: "duo",
+  },
+  {
+    eyebrow: "אישורי הגעה",
+    title: "יודעים מי מגיע, בלי לרדוף אחרי אף אחד",
+    body: "שולחים קישור אחד בוואטסאפ. האורחים עונים בלי הרשמה ובלי אפליקציה, והתשובה נכנסת לרשימה שלכם לבד — כמה מגיעים, איזו מנה ומי צריך הסעה.",
+    points: ["מי אישר, מי סירב ומי עוד שותק — במבט אחד", "ההורים ממלאים את הצד שלהם בטבלה השיתופית", "הרשימה יורדת לאקסל בכל רגע"],
+    visual: "chat",
+  },
+  {
+    eyebrow: "בערב עצמו",
+    title: "אתם רוקדים. הכניסה מסתדרת",
+    body: "בכניסה מחפשים אורח בשם, רואים את השולחן שלו ומסמנים שהגיע — גם מי שהגיע עם חצי מהמשפחה. הדיילת מקבלת קישור משלה, בלי גישה לשאר האירוע.",
+    points: ["מונה הגעה לפי מקומות, לא לפי שורות", "חיפוש לפי שם, מלווה או טלפון", "כרטיסי שם וסידור הושבה להדפסה"],
+    visual: "door",
+  },
+];
+
+/* "Is it for me?" — the owner on DIGINET's event-type pages: it speaks to a
+   need. Each type already has its own task checklist inside (taskTemplates). */
+const CELEBRATIONS = [
+  { k: "wedding",  t: "חתונה",        d: "התארסתם? מזל טוב. מכאן לוקחים את הרשימה, האישורים והשולחנות." },
+  { k: "mitzvah",  t: "בר ובת מצווה", d: "חברים מהכיתה, דודים מכל הארץ — כולם במקום הנכון." },
+  { k: "brit",     t: "ברית ובריתה",  d: "הכל קורה בתוך שבוע. מקימים אירוע בכמה דקות." },
+  { k: "henna",    t: "חינה",         d: "רשימה משותפת לשתי המשפחות, ואישורים בוואטסאפ." },
+  { k: "business", t: "אירוע עסקי",   d: "מאה עובדים או אלף — רשימה, אישורים וכניסה מסודרת." },
+  { k: "birthday", t: "יום הולדת",    d: "גם מסיבה קטנה מגיעה לה רשימה שלא הולכת לאיבוד." },
+];
+
+const quoteHref = () => `https://wa.me/${COMPANY.whatsapp}?text=${encodeURIComponent("היי, אשמח להצעת מחיר לשירות באירוע")}`;
 
 export default function LandingScreen({ user = null }) {
-  // Arriving with a #hash — the browser's own hash scroll never works on a
-  // page React renders after the shell is parsed. See useHashScroll.
   useHashScroll();
-
-  const hasHeroMedia = Boolean(HERO_MEDIA.video || HERO_MEDIA.poster);
-  // Decided once, in the initializer, rather than in an effect — an effect would
-  // paint the video first and swap it out, which is the opposite of what someone
-  // who asked for reduced motion wants. Phones get the still too: the hero is
-  // the first thing on the page and a video is a slow way to say hello on 4G.
   const [stillOnly] = useState(() => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
-    // Was "any screen under 700px", which meant every phone in the world got
-    // the still — including the owner's, who then could not find the video he
-    // had just supplied. A phone is not a slow connection; most of them are on
-    // wifi, and the clip is 2MB. Ask about the CONNECTION instead, which is the
-    // thing that actually made the rule worth having.
     const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (c && (c.saveData || /^(slow-)?2g$/.test(c.effectiveType || ""))) return true;
-    return false;
+    return Boolean(c && (c.saveData || /^(slow-)?2g$/.test(c.effectiveType || "")));
   });
 
   return (
     <div className={styles.root}>
-      {/* `user` was not passed, and /home IS reachable while signed in (the
-          topbar links to it) — so a signed-in visitor was shown "כניסה" and
-          "התחילו חינם", the exact pair SiteHeader branches on `user` to avoid.
-          PricingScreen has always passed it. */}
       <SiteHeader user={user} />
-
-      {/* The page's one landmark (38a). SiteHeader's skip link focuses it. */}
       <main id="main" tabIndex={-1} className={styles.main}>
 
-      {/* ── Hero ── */}
-      <section className={[styles.hero, hasHeroMedia ? styles.heroCinematic : ""].filter(Boolean).join(" ")}>
-        {hasHeroMedia ? (
+        {/* 1 · Hero — who we are, what we do, and two free ways in. */}
+        <section className={styles.hero}>
           <div className={styles.heroMedia} aria-hidden="true">
             {HERO_MEDIA.video && !stillOnly ? (
-              <video
-                className={styles.heroMediaLayer}
-                src={HERO_MEDIA.video}
-                poster={HERO_MEDIA.poster || undefined}
-                autoPlay muted loop playsInline preload="metadata"
-              />
+              <video className={styles.heroLayer} src={HERO_MEDIA.video} poster={HERO_MEDIA.poster} autoPlay muted loop playsInline preload="metadata" />
             ) : (
-              <img
-                className={styles.heroMediaLayer}
-                src={stillOnly && HERO_MEDIA.posterMobile
-                  ? HERO_MEDIA.posterMobile
-                  : HERO_MEDIA.poster}
-                alt=""
-              />
+              <img className={styles.heroLayer} src={HERO_MEDIA.posterMobile} alt="" />
             )}
-            <div className={styles.heroScrim} />
+            <span className={styles.heroScrim} />
           </div>
-        ) : (
-          <div className={styles.heroDecor} aria-hidden="true">
-            <span className={styles.decorOrb1} />
-            <span className={styles.decorOrb2} />
-            <span className={styles.decorStar1}>✦</span>
-            <span className={styles.decorStar2}>✦</span>
-          </div>
-        )}
-        <div className={styles.heroLayout}>
           <div className={styles.heroInner}>
-            <div className={styles.heroBadge}>
-              <span className={styles.heroBadgeDot} />
-              כל ההפקה של האירוע במקום אחד
-            </div>
-            <h1 className={styles.heroHeadline}>
-              כל האורחים<br />
-              <span className={styles.heroGold}>במקום הנכון</span>
-            </h1>
-            {/* AIDA — Attention. The old line was a feature list, and a feature
-                list is something the reader has to work through before they know
-                whether it is for them. This says the thesis: one place instead of
-                five, and the hard part solves itself. */}
+            <p className={styles.heroEyebrow}>הושבה ואישורי הגעה לאירועים</p>
+            <h1 className={styles.heroTitle}>כל האורחים<br /><span>במקום הנכון</span></h1>
             <p className={styles.heroSub}>
-              אירוע אחד — לא חמישה ערוצים. רשימת האורחים, אישורי ההגעה
-              וסידור השולחנות במקום אחד, וההושבה מסתדרת לבד.
+              {COMPANY.name} מרכזת את רשימת האורחים, אישורי ההגעה וסידור השולחנות
+              במקום אחד — וההושבה מסתדרת לבד. אתם רק נהנים מהדרך.
             </p>
             <div className={styles.heroActions}>
-              <Link to="/signup" className={styles.heroCta}>התחילו חינם ←</Link>
-              {/* Over footage the page carries one button. The second route in
-                  stays available as a quiet link rather than competing. */}
-              <a href="#how" className={hasHeroMedia ? styles.heroQuietLink : styles.heroSecondary}>
-                ראו איך זה עובד
-              </a>
+              <Link to="/app" className={styles.btnPrimary}>התחילו חינם ←</Link>
+              <a href="#how" className={styles.btnGhostDark}>ראו איך זה עובד</a>
             </div>
-            <p className={styles.heroNote}>ללא כרטיס אשראי · המסלול החינמי נשאר חינמי</p>
+            <p className={styles.heroFree}>חינם לגמרי · בלי כרטיס אשראי · בלי התחייבות</p>
+            <ul className={styles.heroPoints}>
+              {HERO_POINTS.map(p => (
+                <li key={p.t}><SectionMark name={p.mark} size={22} tone="ondark" className={styles.heroMark} />{p.t}</li>
+              ))}
+            </ul>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Trust band ──
-          This replaced four invented statistics ("10,000+ אירועים", "4.9 ★").
-          Numbers nobody can verify are the fastest way to lose the trust they
-          are meant to buy — and a product this new does not have them yet.
-          These four claims are all checkable inside the app. */}
-      <div className={styles.trust}>
-        <div className={styles.sectionInner}>
-          <div className={styles.trustGrid}>
-            {TRUST.map(t => (
-              <div key={t.title} className={styles.trustItem}>
-                <SectionMark name={t.icon} size={22} className={styles.trustChip} />
-                <div>
-                  <p className={styles.trustTitle}>{t.title}</p>
-                  <p className={styles.trustDesc}>{t.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* AIDA — Interest. The page went straight from the promise to the
-          features, which asks the reader to recognise their own problem in a
-          list of solutions. This names the problem first, in the words anyone
-          who has produced an event would use, and it is the owner's own
-          description of why he built this: everything in one place instead of
-          working across several channels at once. */}
-      <section className={styles.problem} id="problem">
-        <div className={styles.sectionInner}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>למי שכבר הפיק אירוע</span>
-            <h2 className={styles.sectionTitle}>הרשימה נמצאת בחמישה מקומות שונים</h2>
-            <p className={styles.sectionSub}>
-              וכל אחד מהם מעודכן ליום אחר
-            </p>
-          </div>
-          <div className={styles.problemGrid}>
-            {PROBLEM.map(p => (
-              <div key={p.where} className={styles.problemItem}>
-                <p className={styles.problemWhere}>{p.where}</p>
-                <p className={styles.problemWhat}>{p.what}</p>
-              </div>
-            ))}
-          </div>
-          <p className={styles.problemTurn}>
-            ואז מישהו מבטל שלושה ימים לפני, ומתחילים את סידור השולחנות מהתחלה.
-          </p>
-        </div>
-      </section>
-
-      {/* ── Product showcase — real screenshots of the running app ── */}
-      {SHOWCASE.map((sc, i) => (
-        <section key={sc.title}
-                 className={[styles.showcase, styles[GROUND_KEYS[i % GROUND_KEYS.length]]]
-                   .filter(Boolean).join(" ")}>
-          {/* Decorative only — a flat diamond and a soft wash, alternating side
-              so consecutive sections don't mirror each other. */}
-          <span className={styles.gfxWash} aria-hidden="true"
-                style={{ width: 380, height: 380, top: -110,
-                         [i % 2 ? "insetInlineStart" : "insetInlineEnd"]: -130,
-                         background: i % 2 ? "var(--blush)" : "var(--accent-bg)" }} />
-          <span className={styles.gfxDiamond} aria-hidden="true"
-                style={{ width: 116, height: 116, bottom: 60,
-                         [i % 2 ? "insetInlineEnd" : "insetInlineStart"]: -40,
-                         background: "rgba(var(--text-rgb), .05)" }} />
-          <div className={styles.sectionInner}>
-            <div className={styles.showcaseGrid}>
-              <div className={styles.showcaseText}>
-                <span className={styles.showcaseEyebrow}>{sc.eyebrow}</span>
-                <h2 className={styles.showcaseTitle}>{sc.title}</h2>
-                <p className={styles.showcaseBody}>{sc.body}</p>
-                <ul className={styles.showcaseList}>
-                  {sc.points.map(pt => (
-                    <li key={pt}>
-                      <span className={styles.showcaseTick} aria-hidden="true">✓</span>
-                      <span>{pt}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className={styles.shotFrame}>
-                <span className={styles.shotPlinth} aria-hidden="true" />
-                {/* The files are 2400×1520. Declaring 1200×720 reserved a box of
-                    the WRONG SHAPE while they load, which is the layout shift
-                    these attributes exist to prevent — `height: auto` in the
-                    stylesheet kept it from distorting and hid the mistake. */}
-                <img className={styles.shotImg} src={sc.img} alt={sc.alt}
-                     loading="lazy" width="2400" height="1520" />
-              </div>
+        {/* 2 · Everything, before any single service (owner: one service right
+            after the hero pins the visitor to it). */}
+        <section className={styles.everything} id="features">
+          <div className={styles.inner}>
+            <div className={styles.head}>
+              <h2 className={styles.title}>כל מה שהאירוע צריך. במקום אחד.</h2>
+              <p className={styles.sub}>וזה רק חלק ממה שמחכה לכם בפנים.</p>
+            </div>
+            <div className={styles.grid}>
+              {EVERYTHING.map(e => (
+                <Link key={e.t} to={e.to} className={styles.tile}>
+                  <SectionMark name={e.mark} size={34} className={styles.tileMark} />
+                  <h3 className={styles.tileTitle}>{e.t}</h3>
+                  <p className={styles.tileText}>{e.d}</p>
+                </Link>
+              ))}
+            </div>
+            <div className={styles.center}>
+              <Link to="/app" className={styles.btnPrimary}>התחילו חינם ←</Link>
             </div>
           </div>
         </section>
-      ))}
 
-      {/* ── Features ── */}
-      <section className={styles.features} id="features">
-        <div className={styles.sectionInner}>
-          <div className={styles.sectionHeader}>
-            {/* AIDA — Desire. "כל מה שצריך לאירוע מושלם" could sit on any
-                product in this category. This says what the reader stops doing.
-                The old subtitle promised "רשימה שיודעת כמה שולחנות צריך" —
-                nothing derives a table count from a headcount, and the venue is
-                the one who decides it. */}
-            <span className={styles.sectionTag}>מה נכנס למקום אחד</span>
-            <h2 className={styles.sectionTitle}>הכל מדבר עם הכל</h2>
-            <p className={styles.sectionSub}>
-              אישור הגעה שנכנס לרשימה לבד, רשימה שיודעת מי באמת מגיע,
-              והושבה שמחושבת לפיה
-            </p>
-          </div>
-          <div className={styles.featuresGrid}>
-            {SERVICE_CARDS.map((sv, i) => (
-              <Link key={sv.id} to={sv.path}
-                    className={[styles.featureCard, styles.featureLink].join(" ")}>
-                <div className={styles.featureIconWrap}>
-                  {/* Every third badge sits on the ink ground, where an ink hairline is
-                      invisible — the same "measured against the wrong ground" trap the
-                      hostess chips hit. Those get the mark's onDark tone. */}
-                  <SectionMark
-                    name={sv.mark}
-                    size={28}
-                    tone={i % 3 === 2 ? "ondark" : "brand"}
-                    className={styles.featureIcon}
-                  />
-                </div>
-                <h3 className={styles.featureTitle}>{sv.label}</h3>
-                <p className={styles.featureDesc}>{sv.blurb}</p>
-                <span className={styles.featureMore}>לפרטים ←</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ── */}
-      <section className={styles.howSection} id="how">
-        <div className={styles.sectionInner}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.sectionTagLight}>תהליך פשוט</span>
-            <h2 className={styles.sectionTitleLight}>
-              מרשימה מפוזרת לתוכנית ישיבה<br />ב-5 צעדים
-            </h2>
-          </div>
-          <div className={styles.howGrid}>
-            {HOW_IT_WORKS.map((step, i) => (
-              <div key={step.num} className={styles.howStep}>
-                <div className={styles.howNum}>{step.num}</div>
-                {i < HOW_IT_WORKS.length - 1 && (
-                  <div className={styles.howConnector} aria-hidden="true" />
-                )}
-                <h3 className={styles.howTitle}>{step.title}</h3>
-                <p className={styles.howDesc}>{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing teaser ── */}
-      <section className={styles.pricingSection}>
-        <div className={styles.sectionInner}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>מחירים</span>
-            <h2 className={styles.sectionTitle}>תוכנית לכל צורך</h2>
-            <p className={styles.sectionSub}>מתחילים חינם, משלמים כשמגיעים לשולחנות</p>
-          </div>
-
-          {/* The beta note that stood here — "בתקופת הבטא כל התוכניות פתוחות
-              ללא תשלום" — was correct and load-bearing while nothing could be
-              bought. It cannot sit above a real ₪690 price: a page that quotes
-              a price and then says everything is free is not a pricing page.
-              It comes back only if the prices come down again. */}
-
-          <div className={styles.pricingGrid}>
-            {PRICING_PLANS.map(plan => (
-              <div
-                key={plan.key}
-                className={[styles.pricingCard, plan.highlight && styles.pricingCardPro].filter(Boolean).join(" ")}
-              >
-                <div className={styles.planName}>
-                  {plan.name}
-                  {/* The "בשטח" label travels with the teaser now. It was
-                      computed in pricing.js and dropped here, so the on-site
-                      tier presented a person standing at a door as if it were a
-                      software feature — on the page more people see. Never
-                      colour alone: the badge carries the word. */}
-                  {plan.human && <span className={styles.planHuman}>בשטח</span>}
-                </div>
-                {plan.desc && <p className={styles.planDesc}>{plan.desc}</p>}
-                <div className={styles.planPriceRow}>
-                  <span className={styles.planNum}>{plan.price}</span>
-                  {plan.per && <span className={styles.planPer}>{plan.per}</span>}
-                </div>
-                <ul className={styles.planFeatures}>
-                  {plan.lines.map(f => <li key={f}>{f}</li>)}
+        {/* 3 · Three feelings, each on a phone. */}
+        {FEELINGS.map((f, i) => (
+          <section key={f.title} className={[styles.feeling, i % 2 ? styles.feelingAlt : ""].join(" ")}>
+            <div className={[styles.inner, styles.feelingGrid].join(" ")}>
+              <div className={styles.feelingText}>
+                <p className={styles.eyebrow}>{f.eyebrow}</p>
+                <h2 className={styles.title}>{f.title}</h2>
+                <p className={styles.body}>{f.body}</p>
+                <ul className={styles.points}>
+                  {f.points.map(pt => <li key={pt}><span aria-hidden="true">✓</span>{pt}</li>)}
                 </ul>
-                {/* Every tier is an internal route now. The Enterprise card's
-                    mailto is gone with the tier it belonged to. */}
-                <Link to={plan.ctaTo} className={[styles.planCta, plan.highlight && styles.planCtaPro].filter(Boolean).join(" ")}>
-                  {plan.cta}
-                </Link>
               </div>
-            ))}
+              <div className={styles.visual}>
+                {f.visual === "duo" && (
+                  <div className={styles.duo}>
+                    <LaptopFrame src="/shots/seating.jpg" alt="מסך סידור ההושבה במחשב — 56 רשומות שובצו ב-14 שולחנות, אפס הפרות" className={styles.duoLaptop} />
+                    <PhoneFrame src="/shots-phone/seating.jpg" alt="אותו אירוע בטלפון" className={styles.duoPhone} />
+                  </div>
+                )}
+                {f.visual === "chat" && <ChatScene />}
+                {f.visual === "door" && <DoorScene />}
+              </div>
+            </div>
+          </section>
+        ))}
+
+        {/* 4 · The product moving — the owner's iPhone-video idea, mid-page. */}
+        <section className={styles.watch} id="how">
+          <div className={[styles.inner, styles.watchGrid].join(" ")}>
+            <div>
+              <p className={styles.eyebrow}>לחיצה אחת</p>
+              <h2 className={styles.title}>תראו את זה קורה</h2>
+              <p className={styles.body}>
+                96 אורחים ו-14 שולחנות. לוחצים על הושבה אוטומטית — וכולם במקום,
+                עם מי שחייב לשבת יחד ובלי מי שאסור.
+              </p>
+              <Link to="/app" className={styles.btnPrimary}>נסו על האירוע שלכם ←</Link>
+            </div>
+            <div className={styles.visual}>
+              {/* A laptop where there is room for one, the phone where there is not. */}
+              <LaptopFrame video="/shots-phone/product-desk.webm" poster="/shots/seating.jpg"
+                           alt="סרטון: הושבה אוטומטית של 96 אורחים, ואחריה רשימת האורחים" className={styles.onlyWide} />
+              <PhoneFrame video="/shots-phone/product.webm" poster="/shots-phone/seating.jpg"
+                          alt="סרטון: הושבה אוטומטית של 96 אורחים, ואחריה רשימת האורחים" className={[styles.phone, styles.onlyNarrow].join(" ")} />
+            </div>
           </div>
+        </section>
 
-          <p className={styles.betaNote}>{PRICING_FOOTNOTE}</p>
-
-          <div className={styles.pricingFooter}>
-            <Link to="/pricing" className={styles.pricingMoreLink}>
-              מה בדיוק נכנס בכל חבילה ←
-            </Link>
+        {/* 5 · What are you celebrating? */}
+        <section className={styles.celebrate}>
+          <div className={styles.inner}>
+            <div className={styles.head}>
+              <h2 className={styles.title}>אז מה אתם חוגגים?</h2>
+              <p className={styles.sub}>לכל אירוע יש רשימת משימות משלו — היא כבר מחכה לכם בפנים.</p>
+            </div>
+            <div className={styles.celebrateGrid}>
+              {CELEBRATIONS.map(c => (
+                <Link key={c.t} to="/app" className={styles.celebrateCard}>
+                  <span className={styles.celebrateArt}><CelebrationArt kind={c.k} /></span>
+                  <span className={styles.celebrateName}>{c.t}</span>
+                  <span className={styles.celebrateText}>{c.d}</span>
+                  <span className={styles.celebrateGo}>מתחילים ←</span>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── CTA banner ── */}
-      <section className={styles.ctaBanner}>
-        <div className={styles.ctaBannerInner}>
-          <div className={styles.ctaStar} aria-hidden="true">✦</div>
-          <h2 className={styles.ctaTitle}>האירוע הבא שלכם, בלי חמישה מקומות</h2>
-          <p className={styles.ctaSub}>
-            בלי התקנה ובלי כרטיס אשראי — נכנסים, מזינים אורחים, ומקבלים סידור.
-          </p>
-          <Link to="/signup" className={styles.ctaBtn}>הצטרפו חינם עכשיו ←</Link>
-          {/* "ביטול בכל עת" described a subscription that cannot be entered —
-              stripe.js throws without a key and the account screen says
-              "ניהול חיוב יהיה זמין בקרוב". Nothing to cancel, so nothing to
-              promise about cancelling. */}
-          <p className={styles.ctaNote}>ללא כרטיס אשראי · האירוע נשאר שלכם</p>
-        </div>
-      </section>
+        {/* 6 · People at the event — by quote, never a fixed price. */}
+        <section className={styles.human} id="human">
+          <div className={[styles.inner, styles.humanGrid].join(" ")}>
+            <div className={styles.humanPhoto}>
+              <img src="/hero/hero-portrait.jpg" alt="חופה מוכנה על חוף הים, כיסאות לבנים ופנסים לאורך המעבר" loading="lazy" />
+            </div>
+            <div>
+              <p className={styles.eyebrow}>אנחנו שם איתכם</p>
+              <h2 className={styles.title}>רוצים שמישהו שלנו יעמוד בדלת?</h2>
+              <p className={styles.body}>
+                כל השאר אתם עושים לבד, מהטלפון. אבל בערב עצמו — מנהל הושבה, דיילות או
+                ניהול האירוע כולו. אנשים שלנו, באירוע שלכם, במחיר לפי האולם והתאריך.
+              </p>
+              <div className={styles.humanList}>
+                {HUMAN_SERVICES.map(h => (
+                  <div key={h.title} className={styles.humanItem}>
+                    <SectionMark name={h.mark} size={26} />
+                    <div><h3>{h.title}</h3><p>{h.body}</p></div>
+                  </div>
+                ))}
+              </div>
+              <a href={quoteHref()} className={styles.btnOutline} target="_blank" rel="noreferrer">בקשת הצעת מחיר בוואטסאפ ←</a>
+            </div>
+          </div>
+        </section>
 
+        {/* 7 · Price — free first, then "from". The full price lives on the
+            pricing page, at the visitor's own guest count. */}
+        <section className={styles.price}>
+          <div className={styles.inner}>
+            <div className={styles.head}>
+              <h2 className={styles.title}>מתחילים בחינם. משדרגים כשרוצים.</h2>
+              <p className={styles.sub}>{PRICING_RULES.join(" · ")}</p>
+            </div>
+            <div className={styles.priceGrid}>
+              <article className={styles.freeCard}>
+                <p className={styles.eyebrow}>{FREE_PACKAGE.name}</p>
+                <p className={styles.freeAmount}>{FREE_PACKAGE.price}</p>
+                <p className={styles.body}>{FREE_PACKAGE.lead}</p>
+                <ul className={styles.freeLines}>
+                  {FREE_PACKAGE.lines.filter(l => l.ok).map(l => <li key={l.t}><span aria-hidden="true">✓</span>{l.t}</li>)}
+                </ul>
+                <Link to="/app" className={styles.btnPrimaryBlock}>{FREE_PACKAGE.cta} ←</Link>
+              </article>
+              <article className={styles.paidCard}>
+                <p className={styles.eyebrow}>כשתרצו שהכל יקרה לבד</p>
+                <p className={styles.paidFrom}>חבילות החל מ-<span>{formatShekel(PAID_FROM)}</span></p>
+                <p className={styles.body}>
+                  וואטסאפ אוטומטי, הושבה בלי תקרה, מפת האולם ועמדת הכניסה —
+                  ובחבילה המלאה גם שיחות טלפון למי שלא ענה. המחיר לפי מספר המוזמנים שלכם.
+                </p>
+                <Link to="/pricing" className={styles.btnOutlineBlock}>חשבו את המחיר שלכם ←</Link>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        {/* 8 · Reviews — WORKPLAN 141: only real ones, and only from three. */}
+
+        {/* 9 · Once more. */}
+        <section className={styles.close}>
+          <div className={[styles.inner, styles.closeInner].join(" ")}>
+            <h2 className={styles.closeTitle}>רוצים גם?</h2>
+            <p className={styles.closeText}>האירוע הבא שלכם מתחיל כאן — בלי הרשמה, בלי כרטיס אשראי.</p>
+            <Link to="/app" className={styles.btnLight}>התחילו חינם ←</Link>
+          </div>
+        </section>
       </main>
-
       <Footer />
     </div>
   );
