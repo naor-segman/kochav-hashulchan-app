@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
+import SupportLine from "../components/support/SupportLine.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
@@ -225,6 +226,8 @@ export default function LoginScreen() {
           <Link to="/app" className={styles.backLink}>המשיכו ללא חשבון ←</Link>
           <p className={styles.guestNote}>מצב אורח — נתונים נשמרים בדפדפן זה בלבד, ללא גיבוי ענן</p>
         </div>
+
+        <SupportLine className={styles.help} />
 
       </div>
     </main>

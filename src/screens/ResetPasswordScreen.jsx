@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
+import SupportLine from "../components/support/SupportLine.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
@@ -240,6 +241,7 @@ export default function ResetPasswordScreen() {
             </button>
           </form>
         )}
+        <SupportLine className={styles.help} />
       </div>
     </main>
   );

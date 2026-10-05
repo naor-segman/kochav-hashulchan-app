@@ -557,3 +557,23 @@
     height: 44px;
   }
 }
+
+/* Help, inside the card — the floating WhatsApp button is not shown over these
+   forms (136 stage C), and a visitor who cannot get in is the one most likely
+   to need it. */
+.help {
+  font-size: var(--step--2);
+  color: var(--muted);
+  text-align: center;
+  margin: 0;
+}
+
+.help a {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.help a:focus-visible {
+  outline: 2px solid var(--cta);
+  outline-offset: 2px;
+}

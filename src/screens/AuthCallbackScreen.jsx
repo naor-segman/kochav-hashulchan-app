@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { COMPANY } from "../data/company.js";
 import styles from "./LoginScreen.module.css";
+import SupportLine from "../components/support/SupportLine.jsx";
 
 /* Where the signup-confirmation email lands (131, owner 3.10).
  *
@@ -91,6 +92,7 @@ export default function AuthCallbackScreen() {
             </Link>
           </>
         )}
+        <SupportLine className={styles.help} />
       </div>
     </main>
   );

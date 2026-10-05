@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import { COMPANY, LEGAL_DOCS } from "../data/company.js";
 import styles from "./LoginScreen.module.css"; // shares layout styles
+import SupportLine from "../components/support/SupportLine.jsx";
 import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
 
 export default function SignupScreen() {
@@ -139,6 +140,7 @@ export default function SignupScreen() {
             </div>
           )}
           <Link to="/login" className={styles.backLink}>→ חזרה לכניסה</Link>
+          <SupportLine className={styles.help} />
         </div>
       </main>
     );
@@ -273,6 +275,8 @@ export default function SignupScreen() {
           <Link to="/app" className={styles.backLink}>רק להתנסות? המשיכו ללא חשבון ←</Link>
           <p className={styles.guestNote}>תמיד אפשר ליצור חשבון אחר כך והכל יסונכרן לענן.</p>
         </div>
+
+        <SupportLine className={styles.help} />
 
       </div>
     </main>

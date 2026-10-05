@@ -9,6 +9,7 @@ import { COMPANY } from "../../data/company.js";
 
 vi.stubEnv("VITE_SUPPORT_WHATSAPP", "972501234567");
 const { default: SupportButton } = await import("./SupportButton.jsx");
+const { default: SupportLine } = await import("./SupportLine.jsx");
 
 const at = (path) => render(<MemoryRouter initialEntries={[path]}><SupportButton /></MemoryRouter>);
 
@@ -32,5 +33,27 @@ describe("support button", () => {
       expect(screen.queryByRole("link", { name: "תמיכה בוואטסאפ" }), p).toBeNull();
       unmount();
     }
+  });
+
+  it("is not over a sign-in form (136 stage C) — the card carries the help instead", () => {
+    for (const p of ["/login", "/signup", "/reset-password", "/auth/callback", "/login/"]) {
+      const { unmount } = at(p);
+      expect(screen.queryByRole("link", { name: "תמיכה בוואטסאפ" }), p).toBeNull();
+      unmount();
+    }
+    // Everything else a host opens still has it.
+    for (const p of ["/home", "/pricing", "/account", "/events/e1"]) {
+      const { unmount } = at(p);
+      expect(screen.getByRole("link", { name: "תמיכה בוואטסאפ" }), p).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("the line in the card opens the same chat as the button", () => {
+    const { unmount } = at("/app");
+    const button = screen.getByRole("link", { name: "תמיכה בוואטסאפ" }).getAttribute("href");
+    unmount();
+    render(<SupportLine />);
+    expect(screen.getByRole("link", { name: "כתבו לנו בוואטסאפ" }).getAttribute("href")).toBe(button);
   });
 });

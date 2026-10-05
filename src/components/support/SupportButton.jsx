@@ -1,27 +1,19 @@
 import { useLocation } from "react-router-dom";
 import styles from "./SupportButton.module.css";
 import { isGuestRoute } from "../../utils/guestRoutes.js";
-import { COMPANY } from "../../data/company.js";
+import { SUPPORT_PHONE, supportHref, isAuthFormRoute } from "./supportLink.js";
 
-// Floating WhatsApp support button, for hosts. The number is the business
-// phone (COMPANY.whatsapp — owner, 4.10: one number for the business and for
-// support); VITE_SUPPORT_WHATSAPP, international format without "+", overrides
-// it. With neither, nothing renders.
-const RAW = import.meta.env.VITE_SUPPORT_WHATSAPP || COMPANY.whatsapp || "";
-const PHONE = RAW.replace(/[^\d]/g, "");
-
-// Neutral on purpose: this is the HOST's first message, typed for them, and
-// "אני צריך" made every host who is not a man send a sentence in the wrong
-// gender (audit 3.10, C17).
-const GREETING = encodeURIComponent(`היי, אשמח לעזרה עם ${COMPANY.name} 🙂`);
+// Floating WhatsApp support button, for hosts. Number and greeting live in
+// supportLink.js, shared with the help line on the sign-in forms.
 
 export default function SupportButton() {
   const { pathname } = useLocation();
   // This number is the product's support line, for hosts. On a guest page it sat
   // over the RSVP form and the gift page, inviting a wedding guest to message
   // the software company instead of the couple (106, 28.9).
-  if (!PHONE || isGuestRoute(pathname)) return null;
-  const href = `https://wa.me/${PHONE}?text=${GREETING}`;
+  // And not over a sign-in form (136 stage C) — SupportLine is inside the card.
+  if (!SUPPORT_PHONE || isGuestRoute(pathname) || isAuthFormRoute(pathname)) return null;
+  const href = supportHref();
   return (
     <a
       className={styles.fab}
