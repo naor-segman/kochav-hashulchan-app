@@ -44,7 +44,7 @@ export default function Footer() {
           <div className={styles.col}>
             <div className={styles.colTitle}>דברו איתנו</div>
             <a href={`https://wa.me/${COMPANY.whatsapp}`} className={styles.colLink} target="_blank" rel="noreferrer">וואטסאפ</a>
-            <a href={`tel:${LEGAL.phone.replace(/\D/g, "")}`} className={styles.colLink}>{LEGAL.phone}</a>
+            <a href={`tel:${LEGAL.phone.replace(/\D/g, "")}`} className={styles.colLink}><bdi dir="ltr">{LEGAL.phone}</bdi></a>
             <a href={contactMailto()} className={styles.colLink} title={contactEmail()}>צרו קשר</a>
             {LEGAL.address && <span className={styles.colLink}>{LEGAL.address}</span>}
           </div>

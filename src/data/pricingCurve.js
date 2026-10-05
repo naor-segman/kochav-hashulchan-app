@@ -21,6 +21,8 @@
  * every point on the curve.
  */
 
+import { PLAN_LIMITS } from "../admin/lib/planConfig.js";
+
 export const GUESTS_MIN  = 100;
 export const GUESTS_MAX  = 1000;
 export const GUESTS_STEP = 50;
@@ -38,6 +40,15 @@ export function snapGuests(n) {
   const v = Math.round(Number(n) / GUESTS_STEP) * GUESTS_STEP;
   if (!Number.isFinite(v)) return GUESTS_MIN;
   return Math.min(GUESTS_MAX, Math.max(GUESTS_MIN, v));
+}
+
+/** The step that covers `people` invited — rounded UP, never to the nearest:
+    an event of 320 is the 350 step, or the price would cover fewer people than
+    are coming. `null` above the stepper's top, where the price is a quote. */
+export function stepFor(people) {
+  const n = Math.max(0, Number(people) || 0);
+  if (n > GUESTS_MAX) return null;
+  return Math.max(GUESTS_MIN, Math.ceil(n / GUESTS_STEP) * GUESTS_STEP);
 }
 
 const endIn9 = (v) => Math.max(9, Math.round((v + 1) / 10) * 10 - 1);
@@ -69,7 +80,8 @@ export const FREE_PACKAGE = {
     { ok: true,  t: "אישורי הגעה בקישור — האורחים לא נרשמים" },
     { ok: true,  t: "שליחה מהוואטסאפ שלכם, בלי הגבלה" },
     { ok: true,  t: "רשימת אורחים בלי הגבלה" },
-    { ok: true,  t: "הושבה אוטומטית עד 100 מוזמנים" },
+    // From the gate itself, so the card and the limit cannot disagree.
+    { ok: true,  t: `הושבה אוטומטית עד ${PLAN_LIMITS.free.maxSeatedSeats} מוזמנים` },
     { ok: false, t: "שליחה אוטומטית בוואטסאפ" },
     { ok: false, t: "אילוצי ישיבה ומפת האולם" },
   ],

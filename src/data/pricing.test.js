@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { PLANS, ADDONS, PRICING_FOOTNOTE, teaserFor, PLAN_DB_KEY } from "./pricing.js";
+import { PLANS, PRICING_FOOTNOTE, PLAN_DB_KEY } from "./pricing.js";
 import { canSeatMore, canAddGuest, canUseAI, canUseCollaboration } from "../utils/featureGates.js";
 import { PLAN_LIMITS, PLAN_META } from "../admin/lib/planConfig.js";
 
@@ -21,7 +21,7 @@ import { PLAN_LIMITS, PLAN_META } from "../admin/lib/planConfig.js";
 
 describe("pricing: the table", () => {
   it("has exactly three tiers, free first", () => {
-    expect(PLANS.map(p => p.key)).toEqual(["free", "event", "onsite"]);
+    expect(PLANS.map(p => p.key)).toEqual(["free", "event", "calls"]);
     expect(PLANS[0].price).toBe("₪0");
   });
 
@@ -45,7 +45,7 @@ describe("pricing: the table", () => {
     // No tax invoice, no VAT to add or exclude: the number shown is final. And
     // Israeli consumer law requires a consumer price to be displayed gross
     // anyway, so "+ מע״מ" would be wrong twice.
-    const all = JSON.stringify(PLANS) + JSON.stringify(ADDONS) + PRICING_FOOTNOTE;
+    const all = JSON.stringify(PLANS) + PRICING_FOOTNOTE;
     expect(all).not.toMatch(/מע"?״?מ/);
   });
 
@@ -63,14 +63,17 @@ describe("pricing: the table", () => {
     }
   });
 
-  it("only the on-site tier claims work done by a person", () => {
+  it("only the calls tier claims work done by a person", () => {
     // `human: true` is what puts the "בשטח" label on a group. It must never
     // appear on a tier that is only software, because that label is the one
     // honest signal that a line is delivered by someone rather than by the app.
     const humanTiers = PLANS
       .filter(p => p.groups.some(g => g.human))
       .map(p => p.key);
-    expect(humanTiers).toEqual(["onsite"]);
+    expect(humanTiers).toEqual(["calls"]);
+    // Since 5.10 a person AT the event is by quote, never a package line.
+    const all = PLANS.flatMap(p => p.groups.flatMap(g => g.items)).join(" · ");
+    expect(all).not.toMatch(/מנהל הושבה|דיילת בכניסה|דיילות/);
   });
 
   it("every tier has a CTA that goes somewhere real", () => {
@@ -78,37 +81,6 @@ describe("pricing: the table", () => {
       expect(p.cta, p.key).toBeTruthy();
       expect(p.ctaTo, p.key).toMatch(/^\//);
     }
-  });
-
-  it("the teaser the landing page renders is derived, not retyped", () => {
-    const t = teaserFor(PLANS[1]);
-    expect(t.price).toBe(PLANS[1].price);
-    expect(t.name).toBe(PLANS[1].name);
-    expect(t.lines.length).toBeGreaterThan(0);
-    // Each teaser line must be a real line from the full list.
-    const all = PLANS[1].groups.flatMap(g => g.items);
-    for (const line of t.lines) expect(all).toContain(line);
-  });
-
-  it("every teaser card gets the same number of lines", () => {
-    /* It was `groups.slice(0, 4).map(g => g.items[0])` — the first item of the
-       first four GROUPS. The on-site tier has one group, so it rendered ONE
-       bullet beside two cards with four, and the paid-upgrade card came out
-       visibly stunted: measured 283 px against 436 at a 390-wide viewport. */
-    const counts = PLANS.map(p => teaserFor(p).lines.length);
-    expect(counts).toEqual([4, 4, 4]);
-    // And nothing undefined can reach a React key.
-    for (const p of PLANS) {
-      for (const line of teaserFor(p).lines) expect(typeof line).toBe("string");
-    }
-  });
-
-  it("carries `human` into the teaser, on the higher-traffic surface", () => {
-    // The badge existed only on /pricing. The landing page showed "מנהל הושבה
-    // שלנו בכניסה" with no label, i.e. a person presented as a feature.
-    expect(teaserFor(PLANS[0]).human).toBe(false);
-    expect(teaserFor(PLANS[1]).human).toBe(false);
-    expect(teaserFor(PLANS[2]).human).toBe(true);
   });
 
   it("no package line claims the app takes a credit card", () => {
@@ -165,7 +137,6 @@ describe("pricing: the table", () => {
     const all = [
       ...PLANS.flatMap(p => [p.price, p.per, p.desc, p.note ?? "",
         ...p.groups.flatMap(g => g.items)]),
-      ...ADDONS.flatMap(a => [a.title, a.price, a.note, a.body]),
       PRICING_FOOTNOTE,
     ];
     for (const line of all) {
@@ -348,10 +319,10 @@ describe("pricing: the gate counts SEATS, not rows", () => {
   // One row, four people. This is the shape the whole bug lives in.
   const family = (n) => ({ count: n });
 
-  it("a cap of 200 people is not a cap of 200 rows", () => {
-    const rows = Array.from({ length: 60 }, () => family(4));   // 60 rows, 240 people
+  it("a cap of 100 people is not a cap of 100 rows", () => {
+    const rows = Array.from({ length: 30 }, () => family(4));   // 30 rows, 120 people
     const gate = canSeatMore("free", rows);
-    expect(gate.seats).toBe(240);
+    expect(gate.seats).toBe(120);
     expect(gate.withinPlan).toBe(false);
     // The row count would have passed comfortably — that is the failure this
     // test exists to make impossible.
@@ -383,9 +354,11 @@ describe("pricing: the gate counts SEATS, not rows", () => {
     expect(canSeatMore("free", rows).seats).toBe(6);
   });
 
-  it("the free tier seats 200 and not one more", () => {
-    expect(canSeatMore("free", [{ count: 200 }]).withinPlan).toBe(true);
-    expect(canSeatMore("free", [{ count: 201 }]).withinPlan).toBe(false);
+  it("the free tier seats 100 and not one more", () => {
+    // 200 until 5.10; the owner set the free package to 100 with the per-guest
+    // model, so the free cap and the first paid step are the same number.
+    expect(canSeatMore("free", [{ count: 100 }]).withinPlan).toBe(true);
+    expect(canSeatMore("free", [{ count: 101 }]).withinPlan).toBe(false);
   });
 
   it("the paid tiers have no seating cap at all", () => {
@@ -396,7 +369,7 @@ describe("pricing: the gate counts SEATS, not rows", () => {
 
   it("names both numbers with Hebrew around them", () => {
     const reason = canSeatMore("free", [{ count: 340 }]).reason;
-    expect(reason).toContain("200");
+    expect(reason).toContain("100");
     expect(reason).toContain("340");
     expect(reason).not.toMatch(/\d[/\-:]\d/);
   });
@@ -421,7 +394,7 @@ describe("pricing: the free tier is usable", () => {
   });
 
   it("still gives automatic seating something to show", () => {
-    expect(PLAN_LIMITS.free.maxSeatedSeats).toBe(200);
+    expect(PLAN_LIMITS.free.maxSeatedSeats).toBe(100);
   });
 });
 

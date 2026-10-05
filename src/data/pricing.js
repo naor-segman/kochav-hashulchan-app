@@ -64,11 +64,26 @@
  *    "₪690 לאירוע של 400 מוזמנים".
  */
 
+import { getPlanLimits } from "../admin/lib/planConfig.js";
+import { PACKAGES, FREE_PACKAGE, GUESTS_MIN, priceFor, formatShekel } from "./pricingCurve.js";
+
+/* ── 5.10: the per-guest model (WORKPLAN 136/139) ────────────────────────────
+ * Free · "בלי הפתעות" · "עד התשובה האחרונה", the two paid ones priced by the
+ * number of invited people (src/data/pricingCurve.js holds the curve). What
+ * needs a person AT the event — the tier that was "אנחנו שם איתכם" ₪1,290 and
+ * the ₪790 hostess — is by quote now (HUMAN_SERVICES in pricingCurve.js), and
+ * the ₪6-per-invitee call add-on became the difference between the two
+ * packages. Names come from pricingCurve so the stepper cards and this list
+ * cannot drift. The header above records the reasoning of the flat model it
+ * replaced; its rules 1–4 still hold. */
+const from = (key) => `החל מ-${formatShekel(priceFor(key, GUESTS_MIN))}`;
+const FREE_SEATS = getPlanLimits("free").maxSeatedSeats;
+
 /** Sections inside a tier's list, so the page can group instead of dumping 40 bullets. */
 export const PLANS = [
   {
     key: "free",
-    name: "הרשימה בידיים",
+    name: FREE_PACKAGE.name,
     price: "₪0",
     per: "אירוע אחד",
     desc: "כל מה שצריך כדי לדעת מי מגיע",
@@ -174,7 +189,7 @@ export const PLANS = [
           // the loser forfeits the venue, the map and the locks. Sequential
           // access from any device is true; simultaneous editing is the hazard.
           "סנכרון ענן, גישה מכל מכשיר ואפליקציה להתקנה",
-          "הושבה אוטומטית עד 200 איש",
+          `הושבה אוטומטית עד ${FREE_SEATS} איש`,
         ],
       },
     ],
@@ -182,9 +197,9 @@ export const PLANS = [
 
   {
     key: "event",
-    name: "בלי הפתעות",
-    price: "₪690",
-    per: "לאירוע",
+    name: PACKAGES[0].name,
+    price: from("auto"),
+    per: "לפי מספר המוזמנים",
     // "במחיר של שתי מנות באולם" put a hall meal at ₪345. Nothing in the repo
     // sources that number, and rule 3 above bans an unearned one.
     desc: "כל הערב מסודר — מההושבה ועד הדלת",
@@ -194,6 +209,14 @@ export const PLANS = [
     note: "תשלום אחד לאירוע. לא מנוי.",
     inherits: "כל מה שבחינם, ועוד:",
     groups: [
+      {
+        title: "וואטסאפ שיוצא לבד",
+        items: [
+          "ההזמנה נשלחת אוטומטית, וסבב שני רק למי שלא ענה",
+          "תזכורת לפני האירוע ותודה אחריו",
+          "מספר השולחן נשלח לכל אורח ביום האירוע",
+        ],
+      },
       {
         title: "ההושבה — בלי תקרה",
         items: [
@@ -289,30 +312,23 @@ export const PLANS = [
   },
 
   {
-    key: "onsite",
-    name: "אנחנו שם איתכם",
-    price: "₪1,290",
-    per: "לאירוע",
-    desc: "מישהו שלנו עומד בדלת ומקבל את האורחים",
-    // "בדקו אם התאריך פנוי" → /signup was a button that promised a calendar
-    // check and delivered a signup form. There is no date-availability
-    // mechanism anywhere in the repo, and no contact route either until
-    // VITE_SUPPORT_WHATSAPP is set (checklist 16 — since 4.10 the floating
-    // WhatsApp button is on, with the business phone). Until then this points at
-    // the page that actually explains the evening, which ends in its own CTA.
-    cta: "איך זה עובד בערב",
-    ctaTo: "/services/event-day",
+    key: "calls",
+    name: PACKAGES[1].name,
+    price: from("calls"),
+    per: "לפי מספר המוזמנים",
+    desc: PACKAGES[1].lead,
+    cta: "מחשבים את המחיר",
+    ctaTo: "/pricing",
+    note: "תשלום אחד לאירוע. לא מנוי.",
     inherits: "כל מה שב״בלי הפתעות״, ועוד:",
     groups: [
       {
-        title: "בערב האירוע",
+        title: "סבבי שיחות",
         human: true,
         items: [
-          "מנהל הושבה שלנו בכניסה, לאורך כל קבלת הפנים",
-          "מקבל את המגיעים, מצמיד לשולחן ומטפל בשינויים במקום",
-          "ההושבה נבנית איתו לפני האירוע — לא נמסרת לכם כקובץ",
-          "תרשים האולם וכרטיסי השם מגיעים מודפסים",
-          "ליווי אישי מההקמה ועד הערב",
+          "נציג אנושי מתקשר לכל מי שלא ענה בוואטסאפ",
+          "כל תשובה נכנסת לרשימה שלכם לבד",
+          "אתם לא מתקשרים לאף אחד",
         ],
       },
     ],
@@ -323,7 +339,7 @@ export const PLANS = [
  * This file's keys → the keys the database and planConfig.js use.
  *
  * The two sets of names are not a mistake and cannot be merged: `free` / `event`
- * / `onsite` describe the packages as a buyer meets them, while `free` / `pro` /
+ * / `calls` describe the packages as a buyer meets them, while `free` / `pro` /
  * `enterprise` are the values already written into `subscriptions.plan`, which
  * carries a CHECK constraint — renaming them is a migration plus a Stripe
  * metadata change, not an edit.
@@ -333,52 +349,8 @@ export const PLANS = [
  * both files, pinned by tests on both sides, and nothing tied them together. The
  * tests in pricing.test.js use this to compare them.
  */
-export const PLAN_DB_KEY = { free: "free", event: "pro", onsite: "enterprise" };
-
-/**
- * Sold by the hour, not bundled. These are the lines whose cost scales with
- * people rather than with software, and burying them in a tier is how a
- * package ends up priced below what it costs to deliver.
- */
-export const ADDONS = [
-  {
-    title: "סבב שיחות למי שלא ענה",
-    price: "₪6 למוזמן",
-    note: "מינימום ₪300",
-    body: "מתקשרים לכל מי שלא ענה בוואטסאפ, ומעדכנים את הרשימה.",
-  },
-  {
-    title: "דיילת נוספת בכניסה",
-    price: "₪790",
-    note: "לערב",
-    body: "לאירועים גדולים, או כשיש שתי כניסות.",
-  },
-];
+export const PLAN_DB_KEY = { free: "free", event: "pro", calls: "enterprise" };
 
 /** The line under the table. It answers the three fears at once. */
 export const PRICING_FOOTNOTE =
-  "תשלום אחד לאירוע — לא מנוי, לא לפי מספר אורחים, והמחיר שאתם רואים הוא המחיר הסופי.";
-
-/** The three tiers as the landing page teases them: name, price, four lines. */
-export const teaserFor = (plan) => ({
-  key: plan.key,
-  name: plan.name,
-  price: plan.price,
-  per: plan.per,
-  desc: plan.desc,
-  cta: plan.cta,
-  ctaTo: plan.ctaTo,
-  highlight: !!plan.highlight,
-  /* `human` has to travel with the teaser. It is the one honest signal that a
-     line is delivered by a person rather than by the app, and the landing page
-     is the HIGHER-traffic surface: dropping it there showed "מנהל הושבה שלנו
-     בכניסה" with no "בשטח" label, indistinguishable from a software feature. */
-  human: plan.groups.some(g => g.human),
-  /* Four ITEMS, flattened across groups — not the first item of each of the
-     first four groups, which is what this was. The on-site tier has ONE group,
-     so it rendered a single bullet beside two cards with four: measured 436 px
-     against 453 at 1280, and 283 against 436 at 390, i.e. the paid-upgrade card
-     came out visibly stunted. `filter(Boolean)` because an empty `items` array
-     would otherwise emit `undefined` as both content and React key. */
-  lines: plan.groups.flatMap(g => g.items).filter(Boolean).slice(0, 4),
-});
+  "תשלום אחד לאירוע — לא מנוי. המחיר לפי מספר המוזמנים, ואתם רואים אותו לפני שמשלמים.";

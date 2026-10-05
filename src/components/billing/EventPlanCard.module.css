@@ -76,6 +76,9 @@
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  /* Also an <a> (the quote link above 1,000 people). */
+  text-align: center;
+  text-decoration: none;
 }
 
 .buy:hover:not(:disabled) { background: var(--cta-dark); }

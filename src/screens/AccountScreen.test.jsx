@@ -105,17 +105,18 @@ describe("AccountScreen — the plan cards actually differ", () => {
 
   it("the seating ceiling is what separates free from paid", () => {
     const lists = cardTexts();
-    expect(lists.filter(t => /עד 200 אנשים/.test(t)).length).toBe(1);
+    expect(lists.filter(t => /עד 100 אנשים/.test(t)).length).toBe(1);
     expect(lists.filter(t => /בלי תקרה/.test(t)).length).toBe(2);
   });
 
-  it("only the top package names the person at the door, and says it is a service", () => {
-    // The equivalent of the pricing page's "בשטח" badge. A human standing at a
-    // door must never read as something the software does.
+  it("only the top package names the person on the phone, and says it is a service", () => {
+    // The equivalent of the pricing page's "בשטח" badge. A person making calls
+    // must never read as something the software does. (Until 5.10 the person
+    // was the seating manager at the door; that is by quote now.)
     const lists = cardTexts();
-    const human = lists.filter(t => /מנהל הושבה/.test(t));
+    const human = lists.filter(t => /נציג אנושי/.test(t));
     expect(human.length).toBe(1);
-    expect(human[0]).toMatch(/בשטח/);
+    expect(human[0]).toMatch(/שירות אנושי/);
   });
 });
 

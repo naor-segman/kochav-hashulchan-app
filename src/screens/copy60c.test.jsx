@@ -57,9 +57,13 @@ describe("claims the product contradicts (סב60c)", () => {
     expect(s).toMatch(/נסו להתחבר|היכנסו לחשבון/);
   });
 
-  it("the enterprise card writes to the sales mailbox with a Hebrew subject", () => {
+  it("the enterprise card never writes an English subject to anyone", () => {
+    // It went to the support mailbox as "Enterprise Plan Inquiry" (סב60c, ב10).
+    // Since 5.10 the top package is self-serve, bought inside an event like the
+    // other one, so the card has no mailbox at all — a "צרו קשר" on it would
+    // contradict the pricing page, which sells it with a price.
     const s = src("./AccountScreen.jsx");
     expect(s).not.toMatch(/Enterprise Plan Inquiry/);
-    expect(s).toMatch(/contactMailto\("[^"A-Za-z]*/);
+    expect(s).not.toMatch(/contactMailto\(/);
   });
 });

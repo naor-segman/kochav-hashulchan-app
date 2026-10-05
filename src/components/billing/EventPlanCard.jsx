@@ -6,6 +6,8 @@ import { useAuth } from "../../hooks/useAuth.js";
 import { getPlanLabel } from "../../admin/lib/planConfig.js";
 import { isStripeConfigured } from "../../admin/lib/stripeConfig.js";
 import { PLANS, PLAN_DB_KEY } from "../../data/pricing.js";
+import { priceFor, stepFor, formatShekel, GUESTS_MAX } from "../../data/pricingCurve.js";
+import { COMPANY } from "../../data/company.js";
 import { planForEvent } from "../../utils/entitlement.js";
 import Icon from "../ui/Icon.jsx";
 import styles from "./EventPlanCard.module.css";
@@ -83,8 +85,17 @@ export default function EventPlanCard({ ev }) {
   // Prices and names come from the pricing data, never retyped: this card and
   // the pricing page have to agree, and they are the two surfaces a buyer
   // compares.
-  const paidTier = PLANS[1];                       // "בלי הפתעות" · ₪690
+  const paidTier = PLANS[1];                       // "בלי הפתעות"
   const paidKey  = PLAN_DB_KEY[paidTier.key];      // → "pro"
+  /* The price of THIS event (136, owner 5.10): the package is priced by the
+     number of invited people, and this card knows the list — so it shows the
+     host's own number instead of a "from" price. People, not rows: a row
+     carries `count`. Rounded UP to the pricing page's 50-person steps, 100 at
+     least, so the two surfaces quote the same figure for the same list. Above
+     the stepper's top the price is a quote, as on the pricing page. */
+  const people   = (ev?.guests || []).reduce((n, g) => n + Math.max(1, Number(g?.count) || 1), 0);
+  const step     = stepFor(people);
+  const price    = step && formatShekel(priceFor("auto", step));
 
   if (loading && !confirm) return null;
 
@@ -131,7 +142,21 @@ export default function EventPlanCard({ ev }) {
         </p>
       </div>
 
-      {!isPaid && !waiting && (
+      {!isPaid && !waiting && !step && (
+        <div className={styles.side}>
+          <a
+            className={styles.buy}
+            href={`https://wa.me/${COMPANY.whatsapp}?text=${encodeURIComponent(`היי, אשמח להצעת מחיר לאירוע של ${people} מוזמנים`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            הצעת מחיר בוואטסאפ
+          </a>
+          <p className={styles.fine}>{`מעל ${GUESTS_MAX.toLocaleString("en-US")} מוזמנים המחיר בהצעה — כתבו לנו ונחזור אליכם.`}</p>
+        </div>
+      )}
+
+      {!isPaid && !waiting && step && (
         <div className={styles.side}>
           <button
             type="button"
@@ -142,12 +167,12 @@ export default function EventPlanCard({ ev }) {
           >
             {billing.checkoutTarget === paidKey
               ? "פותח…"
-              : `רכשו את האירוע — ${paidTier.price}`}
+              : `רכשו את האירוע — ${price}`}
           </button>
           {/* The price is per event and says so, right under the number: it is
               the single most-asked question on a pricing page and the one this
               product answers differently from a subscription. */}
-          <p className={styles.fine}>{blocked || paidTier.note}</p>
+          <p className={styles.fine}>{blocked || `המחיר לאירוע של עד ${step} מוזמנים. ${paidTier.note} משדרגים בכל רגע ומשלמים רק את ההפרש.`}</p>
           {billing.error && <p className={styles.err}>{billing.error}</p>}
         </div>
       )}

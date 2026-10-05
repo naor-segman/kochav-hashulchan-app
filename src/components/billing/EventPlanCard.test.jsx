@@ -52,7 +52,10 @@ function Spy() { lastSearch = useLocation().search; return null; }
 const renderCard = (el, url = "/events/local-wedding") => render(
   <MemoryRouter initialEntries={[url]}><Routes><Route path="/events/:id" element={<>{el}<Spy /></>} /></Routes></MemoryRouter>);
 
-const WEDDING = { id: "local-wedding", cloudId: "cloud-wedding", name: "נאור ומיכל" };
+// 320 people in two rows — the price is per PERSON and rounds UP to the 350
+// step (₪399); to the nearest it would be the 300 step, ₪349.
+const WEDDING = { id: "local-wedding", cloudId: "cloud-wedding", name: "נאור ומיכל",
+  guests: [{ id: "g1", count: 200 }, { id: "g2", count: 120 }] };
 
 beforeEach(() => {
   authValue = { user: { id: "u1" }, loading: false };
@@ -63,10 +66,20 @@ beforeEach(() => {
 });
 
 describe("EventPlanCard — an unpaid event", () => {
-  it("offers the ₪690 package, with the price on the button", () => {
+  it("offers the package at THIS event's price, on the button", () => {
     renderCard(<EventPlanCard ev={WEDDING} />);
     const btn = screen.getByRole("button");
-    expect(btn.textContent).toContain("₪690");
+    expect(btn.textContent).toContain("₪399");
+    expect(document.body.textContent).toContain("עד 350 מוזמנים");
+  });
+
+  it("above 1,000 people there is no price to press — a quote, on WhatsApp", () => {
+    renderCard(<EventPlanCard ev={{ ...WEDDING, guests: [{ id: "g", count: 1001 }] }} />);
+    expect(screen.queryByRole("button")).toBeNull();
+    const link = screen.getByRole("link");
+    expect(link.getAttribute("href")).toMatch(/^https:\/\/wa\.me\/\d+\?text=/);
+    expect(decodeURIComponent(link.getAttribute("href"))).toContain("1001 מוזמנים");
+    expect(document.body.textContent).not.toMatch(/₪/);
   });
 
   it("says the payment is per event and not a subscription", () => {
@@ -142,8 +155,9 @@ describe("EventPlanCard — a paid event", () => {
     // The point of the whole change: the wedding is paid for, the bar mitzvah
     // is not, and the same host sees both answers.
     purchases = bought;
+    // No guests yet: the smallest step, 100 people.
     renderCard(<EventPlanCard ev={{ id: "local-bar", cloudId: "cloud-bar", name: "בר מצווה" }} />);
-    expect(screen.getByRole("button").textContent).toContain("₪690");
+    expect(screen.getByRole("button").textContent).toContain("₪149");
   });
 });
 
@@ -187,7 +201,7 @@ describe("EventPlanCard — back from checkout (29.9 review)", () => {
     renderCard(<EventPlanCard ev={WEDDING} />, "/events/local-wedding?checkout=cancelled");
     await flush();
     expect(document.body.textContent).toContain("לא חויבתם");
-    expect(screen.getByRole("button").textContent).toContain("₪690");
+    expect(screen.getByRole("button").textContent).toContain("₪399");
     expect(refreshes).toBe(0);
   });
 });

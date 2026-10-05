@@ -18,7 +18,7 @@ import { useConfirm } from "../components/ui/useConfirm.jsx";
 import {
   userStorageKey, loadState, clearState, isCloudBacked, cloudHoldsEventData, holdsLocalOnlySketch,
 } from "../utils/storage.js";
-import { COMPANY, contactMailto, supportMailto } from "../data/company.js";
+import { COMPANY, supportMailto } from "../data/company.js";
 import { fmtShortDate } from "../utils/dateFormat.js";
 import { authErrorMessage } from "../utils/authErrors.js";
 import { openConsentSettings } from "../utils/consent.js";
@@ -72,7 +72,9 @@ function cardBtnLabel(cardKey, currentPlanKey) {
      event at all, which under the new model would have written an account-wide
      entitlement: one payment, every event unlocked. That is the bug. */
   if (cardKey === "pro")          return "בחרו אירוע לרכישה";
-  if (cardKey === "enterprise")   return "צרו קשר";
+  // Self-serve since 5.10 (it was the person-at-the-door tier, by contact):
+  // bought inside an event, exactly like "pro".
+  if (cardKey === "enterprise")   return "בחרו אירוע לרכישה";
   return "—";
 }
 
@@ -502,9 +504,6 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                 // Whether this card's button is in a loading state
                 const isThisLoading = billing.checkoutTarget === key;
 
-                // Enterprise uses a contact link rather than Stripe Checkout
-                const isEnterprise = key === "enterprise";
-
                 /* Clickable whenever it is not the current plan. It no longer
                    depends on Stripe being configured, because it no longer
                    charges anything — it navigates to the event list. The "בקרוב"
@@ -514,12 +513,6 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
 
                 const handleCardAction = () => {
                   if (isCurrent || billing.checkoutTarget) return;
-                  if (isEnterprise) {
-                    // The sales mailbox, with a Hebrew subject (סב60c, ב10) — it
-                    // went to the support mailbox with an English subject.
-                    window.location.href = contactMailto("פנייה לגבי חבילת \"אנחנו שם איתכם\"");
-                    return;
-                  }
                   // To the event list, not to Stripe. See cardBtnLabel: there is
                   // no event in scope on this screen, and a purchase belongs to
                   // one. `billing.startCheckout` now requires the event object.
@@ -590,7 +583,6 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
                         onClick={handleCardAction}
                         title={
                           isCurrent       ? "זוהי החבילה של רוב האירועים שלכם" :
-                          isEnterprise    ? `שלחו אימייל לגבי חבילת ${getPlanLabel("enterprise")}` :
                           `החבילה נרכשת מתוך האירוע — לכל אירוע בנפרד`
                         }
                       >

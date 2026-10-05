@@ -36,7 +36,7 @@ describe("planConfig — the plan limits featureGates actually checks", () => {
        `maxSeatedSeats`, counted in PEOPLE rather than rows. */
     expect(PLAN_LIMITS.free.maxEvents).toBe(1);
     expect(PLAN_LIMITS.free.maxGuests).toBe(Infinity);
-    expect(PLAN_LIMITS.free.maxSeatedSeats).toBe(200);
+    expect(PLAN_LIMITS.free.maxSeatedSeats).toBe(100);
     expect(PLAN_LIMITS.free.advancedExports).toBe(false);
     expect(PLAN_LIMITS.free.aiFeatures).toBe(false);
     /* TRUE, and it was false. The free package sells "טבלה שיתופית: המשפחה
@@ -146,7 +146,7 @@ describe("planConfig — Hebrew labels, and the raw DB key never reaching a scre
     // what appear in the account screen, so they must match the pricing page.
     expect(getPlanLabel("free")).toBe("הרשימה בידיים");
     expect(getPlanLabel("pro")).toBe("בלי הפתעות");
-    expect(getPlanLabel("enterprise")).toBe("אנחנו שם איתכם");
+    expect(getPlanLabel("enterprise")).toBe("עד התשובה האחרונה");
   });
 
   it("never falls through to the raw key for an unknown plan", () => {
