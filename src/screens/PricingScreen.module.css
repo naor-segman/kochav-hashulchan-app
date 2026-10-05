@@ -89,3 +89,21 @@
 .groupList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .groupList li { display: grid; grid-template-columns: 18px 1fr; gap: 6px; font-size: var(--step--1); line-height: 1.55; color: var(--text2); }
 .groupList span { color: var(--green); font-weight: 800; }
+
+/* Touch target for the refund-policy link. The old page had this rule (item
+   129, "מחירים — הקישור מדיניות הביטול") and the 5.10 rebuild dropped it.
+   nowrap for the same reason as before: an expansion on a link broken across
+   two lines lands between the fragments, not on them. */
+@media (pointer: coarse) {
+  .small a { position: relative; white-space: nowrap; }
+  .small a::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}

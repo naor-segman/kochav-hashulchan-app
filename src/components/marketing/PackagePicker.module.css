@@ -81,6 +81,8 @@
 }
 .cardHi { border: 2px solid var(--text); }
 .name { margin: 0; font-size: var(--step-3); font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+/* "עד התשובה האחרונה" left "האחרונה" alone on a line at 320 (guestPages). */
+@media (max-width: 359px) { .name { font-size: var(--step-2); } }
 .lead { margin: 0; color: var(--text2); font-size: var(--step-0); min-height: 2.8em; }
 .price { margin: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .amount { font-size: 2.6rem; font-weight: 800; color: var(--text); line-height: 1; font-variant-numeric: tabular-nums; }
@@ -109,3 +111,19 @@
 
 .over { margin: 0; text-align: center; color: var(--text2); font-size: var(--step-0); }
 .over a { color: var(--accent-text); font-weight: 700; }
+
+/* Touch target — see qa/guestPages.mjs (inline links ≥24, 44 here since it is
+   the only thing on its line). Only the tappable area grows. */
+@media (pointer: coarse) {
+  .over a { position: relative; white-space: nowrap; }
+  .over a::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    min-width: 44px;
+    height: 44px;
+  }
+}
