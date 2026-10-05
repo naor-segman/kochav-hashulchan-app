@@ -78,14 +78,14 @@ export default function LoginScreen() {
   };
 
   if (loading) return (
-    <main className={styles.page}>
+    <main id="main" tabIndex={-1} className={styles.page}>
       <span className={styles.loadingMark} aria-hidden="true">✦</span>
       <span className="sr-only" role="status">טוען…</span>
     </main>
   );
 
   return (
-    <main className={styles.page}>
+    <main id="main" tabIndex={-1} className={styles.page}>
       <div className={styles.formSide}>
         {/* The only way back to the marketing site — the card itself has no nav
             and no footer, and the wordmark inside it is not a link. */}

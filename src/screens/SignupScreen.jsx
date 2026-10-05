@@ -111,7 +111,7 @@ export default function SignupScreen() {
 
   if (done) {
     return (
-      <main className={styles.page}>
+      <main id="main" tabIndex={-1} className={styles.page}>
         <div className={styles.formSide}>
           <div className={styles.card}>
             <div className={styles.brand}>
@@ -151,7 +151,7 @@ export default function SignupScreen() {
   }
 
   return (
-    <main className={styles.page}>
+    <main id="main" tabIndex={-1} className={styles.page}>
       <div className={styles.formSide}>
         {/* The only way back to the marketing site — the card itself has no nav
             and no footer, and the wordmark inside it is not a link. */}

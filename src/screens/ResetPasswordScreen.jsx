@@ -134,7 +134,7 @@ export default function ResetPasswordScreen() {
   const showExpired = expired || link.spent || (!checking && !ready);
 
   return (
-    <main className={styles.page}>
+    <main id="main" tabIndex={-1} className={styles.page}>
       <div className={styles.formSide}>
         <div className={styles.card}>
           <div className={styles.brand}>

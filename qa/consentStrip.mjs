@@ -56,6 +56,41 @@ try {
   // Outside the sign-in forms: still the sheet.
   const p = await b.newPage({ viewport: { width: 390, height: 700 } });
   await p.goto(base + "/home", { waitUntil: "networkidle" }); await p.waitForTimeout(500);
-  console.log("/home sheet height", await p.evaluate(() => Math.round(document.querySelector("[data-consent-pending]").getBoundingClientRect().height)));
+  const sheetH = await p.evaluate(() => Math.round(document.querySelector("[data-consent-pending]")?.getBoundingClientRect().height ?? 0));
+  // Asserted, not printed (review 5.10): outside the forms it is still the full sheet.
+  const sheetOk = sheetH > 180;
+  if (!sheetOk) fails++;
+  console.log(sheetOk ? "ok  " : "FAIL", "/home is still the full sheet", sheetH);
+  // And every page leaves room for it now, not only the sign-in forms: after
+  // scrolling to the bottom of /home and /terms no footer link is under it.
+  for (const r of ["/home", "/terms"]) {
+    await p.goto(base + r, { waitUntil: "networkidle" }); await p.waitForTimeout(500);
+    await p.evaluate(() => window.scrollTo({ top: 1e6, behavior: "instant" })); await p.waitForTimeout(200);
+    const under = await p.evaluate(() => {
+      const br = document.querySelector("[data-consent-pending]").getBoundingClientRect();
+      return [...document.querySelectorAll("footer a, footer button")].filter(el => {
+        const r = el.getBoundingClientRect(); return r.width && r.bottom > br.top + 1;
+      }).map(el => el.textContent.trim().slice(0, 18));
+    });
+    if (under.length) fails++;
+    console.log(under.length ? "FAIL" : "ok  ", r, "footer clear of the sheet", JSON.stringify(under));
+  }
+
+  // The phone menu: the sheet steps aside while it is open, and comes back.
+  await p.goto(base + "/home", { waitUntil: "networkidle" }); await p.waitForTimeout(400);
+  await p.getByRole("button", { name: "פתיחת תפריט" }).click(); await p.waitForTimeout(200);
+  const hiddenWhileOpen = await p.evaluate(() => getComputedStyle(document.querySelector("[data-consent-pending]")).display === "none");
+  await p.getByRole("button", { name: "סגירת תפריט" }).click(); await p.waitForTimeout(200);
+  const backAfter = await p.evaluate(() => getComputedStyle(document.querySelector("[data-consent-pending]")).display !== "none");
+  if (!(hiddenWhileOpen && backAfter)) fails++;
+  console.log(hiddenWhileOpen && backAfter ? "ok  " : "FAIL", "the sheet steps aside for the phone menu", JSON.stringify({ hiddenWhileOpen, backAfter }));
+
+  // Answered by keyboard on a sign-in form: focus goes to the page, not <body>.
+  await p.goto(base + "/login", { waitUntil: "networkidle" }); await p.waitForTimeout(400);
+  await p.getByRole("button", { name: "סירוב" }).focus();
+  await p.keyboard.press("Enter"); await p.waitForTimeout(200);
+  const focused = await p.evaluate(() => document.activeElement?.tagName);
+  if (focused !== "MAIN") fails++;
+  console.log(focused === "MAIN" ? "ok  " : "FAIL", "answered on /login, focus on the page", focused);
 } finally { await b.close(); await stop(); }
 process.exit(fails ? 1 : 0);

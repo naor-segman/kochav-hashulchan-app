@@ -65,7 +65,7 @@ export default function AuthCallbackScreen() {
   };
 
   return (
-    <main className={styles.page}>
+    <main id="main" tabIndex={-1} className={styles.page}>
       <div className={styles.formSide}>
         <div className={styles.card}>
           <div className={styles.brand}>

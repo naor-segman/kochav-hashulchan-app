@@ -26,6 +26,13 @@
   display: none;
 }
 
+/* The same for the site's phone menu: at 390 the sheet covered its last items
+   ("מחירים", "כניסה", "התחילו חינם") until answered (review 5.10). The question
+   comes back the moment the menu closes. */
+:global(body):has([data-site-menu-open]) .banner {
+  display: none;
+}
+
 .title {
   margin: 0 0 6px;
   font-size: var(--step-1);

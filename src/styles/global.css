@@ -98,3 +98,18 @@
   font-display: swap;
   src: url("/fonts/frl-900.woff2") format("woff2");
 }
+
+/* Room for the cookie question while it is asking (review 5.10). ConsentBanner
+   writes its own height to --consent-space and removes it on an answer. Before,
+   only the sign-in pages read it: on every other page the sheet hid the
+   footer's last links and the WhatsApp button until answered. The scroll
+   padding is the keyboard half — Tab scrolls a focused control clear of the
+   sheet instead of leaving it underneath (WCAG 2.4.11). */
+html {
+  scroll-padding-block-end: var(--consent-space, 0px);
+}
+
+body {
+  padding-block-end: var(--consent-space, 0px);
+}
+
