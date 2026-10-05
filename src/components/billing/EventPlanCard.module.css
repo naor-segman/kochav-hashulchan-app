@@ -12,7 +12,7 @@
   padding: 16px 18px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
 }
 
 .main { min-width: 0; flex: 1 1 260px; }
@@ -40,7 +40,7 @@
   align-items: center;
   gap: 4px;
   padding: 2px 9px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: var(--blush-soft);
   color: var(--accent-text);
   font-size: var(--step--2);
@@ -68,7 +68,7 @@
 .buy {
   padding: 11px 20px;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--cta);
   color: var(--on-accent);
   font-family: inherit;

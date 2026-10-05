@@ -12,7 +12,7 @@
   margin-bottom: 14px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
 }
 
 .linkSwitchText {
@@ -45,7 +45,7 @@
   height: 26px;
   padding: 0;
   border: none;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: var(--border2);
   cursor: pointer;
   transition: background var(--transition);

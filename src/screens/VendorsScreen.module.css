@@ -13,7 +13,7 @@
   padding: 12px 14px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
 }
 
 .totalNum {
@@ -44,7 +44,7 @@
   font-size: var(--step--1);
   font-weight: 700;
   padding: 6px 12px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   border: 1px solid var(--border2);
   background: var(--surface);
   color: var(--text2);
@@ -67,7 +67,7 @@
 .formCard {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 14px 16px;
   margin-bottom: 16px;
 }
@@ -83,7 +83,7 @@
   padding: 12px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   flex-wrap: wrap;
 }
 /* Passed-on vendors stay visible (you may change your mind) but recede.
@@ -112,7 +112,7 @@
 .tag {
   font-size: var(--step--1);
   font-weight: 700;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   padding: 2px 8px;
   white-space: nowrap;
 }
@@ -169,7 +169,7 @@
   font-size: var(--step--1);
   font-weight: 700;
   padding: 4px 12px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   border: 1px solid var(--border2);
   background: var(--bg);
   color: var(--text2);

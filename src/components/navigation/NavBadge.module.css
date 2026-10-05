@@ -8,7 +8,7 @@
   color: var(--accent-text);
   font-size: var(--step--3);
   font-weight: 700;
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   min-width: 18px;
   height: 18px;
   padding: 0 4px;

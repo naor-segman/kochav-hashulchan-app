@@ -24,7 +24,7 @@
   padding: 10px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   font-size: var(--step--1);
   line-height: 1.55;
   color: var(--text2);
@@ -45,7 +45,7 @@
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   overflow: hidden;
   min-width: 0;
 }
@@ -74,7 +74,7 @@
   inset-block-start: 8px;
   inset-inline-start: 8px;
   padding: 2px 9px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: var(--text);
   color: var(--surface);
   font-size: var(--step--2);

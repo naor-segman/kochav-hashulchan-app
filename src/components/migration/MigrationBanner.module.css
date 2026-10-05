@@ -2,7 +2,7 @@
   margin: 16px 20px 0;
   background: var(--accent-bg);
   border: 1px solid var(--warn-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -85,7 +85,7 @@
 .skipBtn {
   background: none;
   border: 1px solid var(--border2);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 6px 12px;
   font-size: var(--step--2);
   font-weight: 600;
@@ -108,7 +108,7 @@
      migration — so it was found by grep, not by measurement. */
   background: var(--cta);
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 6px 14px;
   font-size: var(--step--2);
   font-weight: 700;
@@ -135,7 +135,7 @@
   font-size: var(--step--1);
   color: var(--muted);
   padding: 4px;
-  border-radius: var(--radius);
+  border-radius: 0;
   flex-shrink: 0;
   line-height: 1;
   transition: color 0.12s;
@@ -149,14 +149,14 @@
 .progressTrack {
   height: 4px;
   background: var(--border);
-  border-radius: var(--radius-xs);
+  border-radius: 0;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
   background: var(--accent);
-  border-radius: var(--radius-xs);
+  border-radius: 0;
   transition: width 0.3s ease;
 }
 

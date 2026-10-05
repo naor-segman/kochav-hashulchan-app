@@ -27,7 +27,7 @@
    what makes it read as "this one", on any background the part sits on. */
 .spot {
   position: fixed;
-  border-radius: var(--radius);
+  border-radius: 0;
   box-shadow:
     0 0 0 3px var(--surface),
     0 0 0 6px var(--accent),
@@ -68,7 +68,7 @@
   width: min(360px, calc(100vw - 32px));
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   box-shadow: var(--shadow-lg);
   padding: 16px 18px 16px;
   text-align: start;
@@ -153,7 +153,7 @@
 .dots i {
   width: 6px;
   height: 6px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: var(--border);
   transition: width 0.2s var(--ease-out), background 0.2s;
 }

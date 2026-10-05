@@ -3,7 +3,7 @@
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   margin-bottom: 14px;
   overflow: hidden;
 }
@@ -51,7 +51,7 @@
 
 .toggleBadge {
   display: inline-block;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   padding: 2px 8px;
   font-size: var(--step--3);
   font-weight: 700;
@@ -70,7 +70,7 @@
 
 .scoreChip {
   display: inline-block;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   padding: 2px 8px;
   font-size: var(--step--3);
   font-weight: 700;
@@ -206,7 +206,7 @@
   flex-shrink: 0;
   align-self: center;
   padding: 4px 10px;
-  border-radius: var(--radius);
+  border-radius: 0;
   border: 1px solid var(--border2);
   background: var(--surface);
   color: var(--text2);
@@ -251,7 +251,7 @@
 .scoreImpactChip {
   display: inline-block;
   padding: 1px 6px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   font-size: var(--step--3);
   font-weight: 700;
   background: var(--green-bg);
@@ -263,7 +263,7 @@
 .violDeltaChip {
   display: inline-block;
   padding: 1px 6px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   font-size: var(--step--3);
   font-weight: 700;
   background: var(--green-bg);
@@ -278,7 +278,7 @@
 .confidenceChip {
   display: inline-block;
   padding: 1px 6px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   font-size: var(--step--3);
   font-weight: 600;
   background: var(--bg);

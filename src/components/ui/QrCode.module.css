@@ -11,7 +11,7 @@
   justify-content: center;
   padding: 8px 10px;
   border: 1px solid var(--border2);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -46,14 +46,14 @@
   width: 208px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   box-shadow: var(--shadow-lg);
 }
 
 .img {
   width: 168px;
   height: 168px;
-  border-radius: var(--radius-xs);
+  border-radius: 0;
 }
 
 .msg {
@@ -82,7 +82,7 @@
   justify-content: center;
   text-align: center;
   padding: 8px;
-  border-radius: var(--radius);
+  border-radius: 0;
   font-size: var(--step--1);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;

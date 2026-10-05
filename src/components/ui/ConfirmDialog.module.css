@@ -20,7 +20,7 @@
   max-width: 420px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   box-shadow: var(--shadow-lg);
   padding: 24px 24px 20px;
   text-align: start;
@@ -53,7 +53,7 @@
   height: 30px;
   background: none;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   color: var(--muted);
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
@@ -89,7 +89,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--blush-soft);
   border: 1px solid var(--blush-line);
   color: var(--text);
@@ -150,7 +150,7 @@
 @media (max-width: 480px) {
   .card {
     padding: 20px 16px 16px;
-    border-radius: var(--radius);
+    border-radius: 0;
   }
   .actions > * {
     flex: 1 1 auto;

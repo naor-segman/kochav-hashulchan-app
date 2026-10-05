@@ -26,7 +26,7 @@
 .themeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 6px; }
 .themeSwatch {
   display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-  background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: 0;
   cursor: pointer; transition: border-color var(--transition), box-shadow var(--transition);
   font-family: inherit;
 }
@@ -41,14 +41,14 @@
   background: var(--accent-bg);
   color: var(--accent-text);
 }
-.themeColors { display: inline-flex; border-radius: var(--radius-md); overflow: hidden; flex-shrink: 0; border: 1px solid var(--border); }
+.themeColors { display: inline-flex; border-radius: 0; overflow: hidden; flex-shrink: 0; border: 1px solid var(--border); }
 .themeColors span { width: 16px; height: 26px; }
 .themeName { font-size: var(--step--1); font-weight: 600; color: var(--text); }
 
 /* Cover */
 .coverRow { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
 .coverPreview {
-  width: 120px; height: 80px; border-radius: var(--radius-md); background: var(--bg) center/cover no-repeat;
+  width: 120px; height: 80px; border-radius: 0; background: var(--bg) center/cover no-repeat;
   border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
   color: var(--muted); font-size: var(--step--3); flex-shrink: 0;
 }
@@ -68,7 +68,7 @@
 .dirSelect { width: 90px; flex-shrink: 0; }
 
 /* FAQ edit */
-.faqEdit { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; background: var(--bg); }
+.faqEdit { border: 1px solid var(--border); border-radius: 0; padding: 12px; margin-bottom: 10px; background: var(--bg); }
 .faqEditTop { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .faqEditTop input { flex: 1; }
 
@@ -76,7 +76,7 @@
 .toggleList { display: flex; flex-direction: column; gap: 12px; }
 .toggleRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: var(--step-0); color: var(--text); }
 .toggle {
-  width: 44px; height: 26px; border-radius: var(--radius-pill); background: var(--border2); border: none;
+  width: 44px; height: 26px; border-radius: 0; background: var(--border2); border: none;
   cursor: pointer; position: relative; flex-shrink: 0; transition: background var(--transition); padding: 0;
 }
 .toggleOn { background: var(--green); }
@@ -94,7 +94,7 @@
 .galleryEdit { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 6px; }
 .galleryEditItem {
   position: relative; aspect-ratio: 1; background-size: cover; background-position: center;
-  border-radius: var(--radius-md); border: 1px solid var(--border);
+  border-radius: 0; border: 1px solid var(--border);
 }
 .galleryDel {
   position: absolute; top: 4px; inset-inline-end: 4px; width: 24px; height: 24px;
@@ -124,7 +124,7 @@
   padding: 10px 14px;
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   cursor: pointer;
   font-family: inherit;
   transition: border-color var(--transition), background var(--transition);
@@ -165,7 +165,7 @@
   font-size: var(--step--2);
   font-weight: 700;
   padding: 4px 14px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   border: 1px solid var(--border2);
   background: var(--surface);
   color: var(--text2);
@@ -194,7 +194,7 @@
   margin-inline: auto;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   overflow: hidden;
   box-shadow: var(--shadow-md);
   transition: max-width var(--transition);

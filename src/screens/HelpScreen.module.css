@@ -9,7 +9,7 @@
 .item {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   overflow: hidden;
   transition: border-color var(--transition);
 }

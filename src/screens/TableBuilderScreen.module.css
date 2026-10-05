@@ -29,7 +29,7 @@
    "בוצע". (`.capStatOk`, the green in-card version of the same sentence, is
    gone for the same reason — that line now uses `.capStat`.) */
 .capNote {
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 12px 16px;
   margin-bottom: 14px;
   background: var(--bg);
@@ -48,7 +48,7 @@
   margin-bottom: 14px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 4px;
 }
 

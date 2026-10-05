@@ -63,7 +63,7 @@
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 12px 14px;
 }
 
@@ -90,7 +90,7 @@
   padding: 8px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
 }
 .guestDone { opacity: .6; }
 
@@ -111,7 +111,7 @@
   font-size: var(--step--2);
   font-weight: 700;
   padding: 4px 12px;
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: var(--bg);
   border: 1px solid var(--border2);
   color: var(--text);
@@ -129,7 +129,7 @@
   font-size: var(--step--2);
   font-weight: 700;
   padding: 4px 12px;
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   border: 1px solid var(--border2);
   background: var(--bg);
   color: var(--text);
@@ -145,7 +145,7 @@
   line-height: 1.6;
   color: var(--muted);
   background: var(--bg);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 10px 12px;
 }
 

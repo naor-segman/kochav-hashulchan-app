@@ -11,7 +11,7 @@
   color: var(--text2);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   padding: 2px 8px;
   white-space: nowrap;
 }
