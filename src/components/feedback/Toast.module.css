@@ -10,13 +10,16 @@
   background: var(--text);
   color: var(--on-accent);
   padding: 12px 20px;
-  border-radius: var(--radius);
   font-size: var(--step-0);
   font-weight: var(--font-weight-semibold);
   box-shadow: var(--shadow-lg);
   z-index: 9999;
   animation: toastIn 0.22s var(--ease-out);
   white-space: normal;
+  /* max-content, then capped. A fixed box at left:50% shrink-fits to the
+     HALF of the viewport it starts in: at 320 the toast was 160px wide and the
+     seating run's message wrapped to six lines (review 6.10). */
+  width: max-content;
   max-width: min(380px, calc(100vw - 32px));
   text-align: center;
   line-height: 1.45;
@@ -25,6 +28,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .toast { animation: none; }
+}
+
+/* Above the WhatsApp button, not on it (136 stage D: "הודעות מעל הכפתור
+   הצף"). At 390 a toast spans almost the full width at the bottom, and the
+   button sits at bottom 20px, 54px tall — so the toast starts above it. */
+@media (max-width: 600px) {
+  .toast { bottom: 88px; }
 }
 
 .err {

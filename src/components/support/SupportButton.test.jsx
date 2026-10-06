@@ -35,6 +35,16 @@ describe("support button", () => {
     }
   });
 
+  it("is not at the host's door screen (6.10) — it covered the rows and the sheet's ביטול", () => {
+    for (const p of ["/events/e1/entrance", "/events/e1/checkin", "/events/e1/entrance/"]) {
+      const { unmount } = at(p);
+      expect(screen.queryByRole("link", { name: "תמיכה בוואטסאפ" }), p).toBeNull();
+      unmount();
+    }
+    at("/events/e1/seating");
+    expect(screen.getByRole("link", { name: "תמיכה בוואטסאפ" })).toBeInTheDocument();
+  });
+
   it("is not over a sign-in form (136 stage C) — the card carries the help instead", () => {
     for (const p of ["/login", "/signup", "/reset-password", "/auth/callback", "/login/"]) {
       const { unmount } = at(p);

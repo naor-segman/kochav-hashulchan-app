@@ -1,20 +1,19 @@
 /* עמדת כניסה — the door screen.
  *
- * Every decision here answers the same brief: ONE HAND, A PHONE, A DARK ROOM,
- * A QUEUE AT THE DOOR.
+ * Every decision here answers the same brief: ONE HAND, A PHONE, A QUEUE AT
+ * THE DOOR.
  *
- * GROUND. Dark (--nav-bg). The old check-in screen was white, which is a torch
- * in a dark hall and is why the hostess link was already dark. One screen now,
- * so one ground — the darker one, because a white phone at a wedding entrance
- * ruins the greeter's night vision and everyone else's photographs.
+ * GROUND. Light, like the rest of the site — owner, 6.10, of the dark one:
+ * "לא נוח לקריאה". It was dark (--nav-bg) on the theory that a white phone in
+ * a dark hall blinds the greeter; the owner, who stands at those doors, found
+ * the dark screen the harder one to read. The rules below were written against
+ * the --nav-* tokens, so .root re-points those tokens at the light system
+ * instead of rewriting forty rules: --nav-text is ink, --nav-muted is --text2,
+ * --accent-on-dark is --accent-text, the success green is --green. Measured
+ * with qa/contrastReal.mjs on the real ground after the change.
  *
- * COLOUR. Only arrival carries hue. Measured against the real ground:
- *   --nav-text      #F5F5F6 on #14161A  17.7:1   text
- *   --nav-muted     #9BA1A9 on #21242A   5.97:1  meta (DESIGN.md)
- *   --accent-on-dark #FA9FC0 on #21242A  7.99:1  the one accent, on the number
- *   --green-light   #2AA274 on #14161A   5.6:1   the only green legible here
- *   --red-border    #F0C0AC on #21242A   9.51:1  failure
- * --accent itself is 3.8:1 and never carries text; a filled button is --cta.
+ * COLOUR. Only arrival carries hue. --accent itself is 3.8:1 and never carries
+ * text; a filled button is --cta.
  *
  * TAP TARGETS. The primary mark button is 60px tall and full width — it is the
  * only thing on a row you can hit without looking. Everything that is not
@@ -22,6 +21,15 @@
  */
 
 .root {
+  --nav-bg: var(--bg);
+  --nav-bg2: var(--surface);
+  --nav-text: var(--text);
+  --nav-text-rgb: var(--text-rgb);
+  --nav-muted: var(--text2);
+  --nav-border: var(--border);
+  --accent-on-dark: var(--accent-text);
+  --green-light: var(--green);
+  --red-border: var(--red);
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
@@ -82,7 +90,7 @@
   min-height: 44px;
   padding: 8px 12px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-size: var(--step--2);
@@ -146,6 +154,7 @@
 .counterNums { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
 
 .counterBig {
+  font-family: var(--font-family-display);
   font-size: var(--step-4);
   font-weight: 800;
   line-height: 1;
@@ -164,7 +173,7 @@
 .progress {
   height: 6px;
   margin: 0 16px 12px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: rgba(var(--nav-text-rgb), .12);
   overflow: hidden;
 }
@@ -172,7 +181,7 @@
 .progressFill {
   height: 100%;
   background: var(--accent);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   transition: width var(--transition-slow);
 }
 
@@ -184,13 +193,14 @@
   gap: 6px;
   margin: 0 16px 12px;
   padding: 10px 12px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   font-size: var(--step--2);
   font-weight: 600;
 }
 
 .readOnly { background: rgba(var(--nav-text-rgb), .07); color: var(--nav-muted); }
-.saveError { background: rgba(var(--red-rgb), .22); color: var(--red-border); }
+/* --red on --red-bg: the .22-alpha tint measured 3.82:1 on the light ground. */
+.saveError { background: var(--red-bg); color: var(--red); }
 
 /* ── Tabs ── */
 .tabs {
@@ -207,7 +217,7 @@
   gap: 6px;
   min-height: 48px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-muted);
   font-family: inherit;
@@ -244,7 +254,7 @@
   min-height: 56px;
   padding: 12px 44px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--nav-bg2);
   color: var(--nav-text);
   font-family: inherit;
@@ -283,7 +293,7 @@
   width: 44px;
   height: 44px;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-muted);
   cursor: pointer;
@@ -299,7 +309,7 @@
   margin: 0 16px 12px;
   min-height: 48px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -313,7 +323,7 @@
 .scanMsg {
   margin: 0 16px 12px;
   padding: 10px 12px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: rgba(var(--nav-text-rgb), .08);
   color: var(--nav-text);
   font-size: var(--step--1);
@@ -328,14 +338,16 @@
   gap: 8px;
   margin: 0 16px 12px;
   padding: 10px 12px;
-  border: 1px solid var(--green-light);
-  border-radius: var(--radius);
-  background: rgba(var(--green-rgb), .18);
+  border: 1px solid var(--green-border);
+  border-radius: 0;
+  /* The light system's own pair (6.10): the .18-alpha tint of the dark ground
+     put the green count at 4.27:1. --green-dark on --green-bg. */
+  background: var(--green-bg);
 }
 
 .lastIcon { display: flex; color: var(--green-light); }
 .lastName { font-size: var(--step--1); font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lastCount { font-size: var(--step--2); font-weight: 700; color: var(--green-light); font-variant-numeric: tabular-nums; }
+.lastCount { font-size: var(--step--2); font-weight: 700; color: var(--green-dark); font-variant-numeric: tabular-nums; }
 .lastTable { font-size: var(--step--2); font-weight: 700; color: var(--nav-text); }
 
 .lastClose {
@@ -345,7 +357,7 @@
   width: 44px;
   height: 44px;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-muted);
   cursor: pointer;
@@ -373,7 +385,7 @@
   min-height: 48px;
   padding: 12px 20px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--cta);
   color: var(--on-accent);
   font-family: inherit;
@@ -390,7 +402,7 @@
 
 .row {
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: var(--nav-bg2);
   padding: 14px;
 }
@@ -425,7 +437,7 @@
 .rowTable {
   flex-shrink: 0;
   padding: 6px 10px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--blush);
   color: var(--text);
   font-size: var(--step--1);
@@ -436,7 +448,7 @@
 .rowNoTable {
   flex-shrink: 0;
   padding: 6px 10px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   border: 1px dashed var(--nav-muted);
   color: var(--nav-muted);
   font-size: var(--step--2);
@@ -455,9 +467,11 @@
   gap: 8px;
   min-height: 60px;
   border: none;
-  border-radius: var(--radius);
-  background: var(--nav-text);
-  color: var(--nav-bg);
+  border-radius: 0;
+  /* The one filled button on a row: the site's CTA (it was the light ink of
+     the dark ground — on a light ground that read as a black slab). */
+  background: var(--cta);
+  color: var(--on-accent);
   font-family: inherit;
   font-size: var(--step-1);
   font-weight: 800;
@@ -465,7 +479,7 @@
   transition: background var(--transition), color var(--transition);
 }
 
-.markBtn:hover { background: var(--white); }
+.markBtn:hover { background: var(--cta-dark); }
 .markBtn:disabled { opacity: .45; cursor: not-allowed; }
 
 .markBtnDone { background: var(--green); color: var(--on-accent); }
@@ -484,7 +498,7 @@
   min-height: 60px;
   padding: 8px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -515,7 +529,7 @@
   width: 48px;
   height: 48px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -545,7 +559,7 @@
   min-height: 44px;
   padding: 8px 14px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -567,7 +581,7 @@
   margin: 0 16px 12px;
   padding: 12px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--nav-bg2);
 }
 
@@ -584,7 +598,7 @@
 
 .freePill {
   padding: 6px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: rgba(var(--nav-text-rgb), .1);
   font-size: var(--step--2);
   font-weight: 600;
@@ -598,7 +612,7 @@
 
 .tableBlock {
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: rgba(var(--nav-text-rgb), .04);
   overflow: hidden;
 }
@@ -625,7 +639,7 @@
   min-height: 44px;
   padding: 8px 14px;
   border: 1px solid var(--nav-text);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -634,9 +648,13 @@
   cursor: pointer;
 }
 
-.tableAll:hover { background: var(--nav-text); color: var(--nav-bg); }
+/* A light tint on hover, and only where hover is real: on a phone :hover sticks
+   after a tap, and the inverted fill of the dark theme left a solid slab. */
 .tableAllUndo { border-color: var(--nav-muted); color: var(--nav-muted); }
-.tableAllUndo:hover { background: var(--nav-muted); color: var(--nav-bg); }
+@media (hover: hover) {
+  .tableAll:hover,
+  .tableAllUndo:hover { background: rgba(var(--nav-text-rgb), .06); }
+}
 
 .tableGuests { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
 .tableEmpty { font-size: var(--step--1); color: var(--nav-muted); padding: 4px; }
@@ -645,7 +663,7 @@
 .linkCard {
   margin: 24px 16px 0;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: var(--nav-bg2);
   overflow: hidden;
 }
@@ -669,12 +687,12 @@
 
 .linkState {
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  background: rgba(var(--green-rgb), .22);
-  /* Was --green-light on a .22-alpha green tint: 3.84:1 measured against the
-     COMPOSITED ground, not against white. The tint is the ground. White on the
-     solid green is the form already used by markBtnDone at 5.85:1. */
-  color: var(--on-accent);
+  border-radius: 0;
+  /* On the light ground (6.10) the white-on-tint form measured 1.34:1 —
+     the tint is the ground, and it is pale now. The light system's own pair:
+     --green-dark on --green-bg. */
+  background: var(--green-bg);
+  color: var(--green-dark);
   font-size: var(--step--3);
   font-weight: 700;
   white-space: nowrap;
@@ -694,7 +712,7 @@
 .linkUrl {
   display: block;
   padding: 10px 12px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--nav-bg);
   color: var(--nav-text);
   font-size: var(--step--2);
@@ -715,7 +733,7 @@
   min-height: 48px;
   padding: 10px 14px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -748,7 +766,7 @@
   max-height: 92dvh;
   overflow-y: auto;
   padding: 20px 16px 28px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: 0;
   background: var(--nav-bg2);
   color: var(--nav-text);
   display: flex;
@@ -763,7 +781,7 @@
   min-height: 56px;
   padding: 12px 14px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--nav-bg);
   color: var(--nav-text);
   font-family: inherit;
@@ -784,7 +802,7 @@
   min-height: 48px;
   padding: 10px 18px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -805,7 +823,7 @@
   min-height: 60px;
   padding: 10px 14px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -822,7 +840,7 @@
 .sheetSave {
   min-height: 56px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--cta);
   color: var(--on-accent);
   font-family: inherit;
@@ -837,7 +855,7 @@
 .sheetCancel {
   min-height: 48px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-muted);
   font-family: inherit;

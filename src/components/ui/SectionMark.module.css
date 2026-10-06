@@ -200,7 +200,9 @@
   flex-shrink: 0;
   width: calc(var(--mark-size) * 1.9);
   height: calc(var(--mark-size) * 1.9);
-  border-radius: calc(var(--mark-size) * 0.5);
+  /* Square, like every other surface since 136 (review 6.10: this tile heads
+     every host screen and the square pass missed it). */
+  border-radius: 0;
   background: var(--surface);
   border: 1px solid var(--blush-line);
   box-shadow: 0 1px 2px rgba(var(--text-rgb), .05);

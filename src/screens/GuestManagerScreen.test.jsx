@@ -197,7 +197,26 @@ describe("GuestManagerScreen — editing a guest must not blank what the form ne
     fireEvent.change(screen.getByDisplayValue("משפחת כהן"), { target: { value: "   " } });
     save();
 
-    expect(showToast).toHaveBeenCalledWith("יש להזין שם אורח", "err");
+    // Said next to the field, with the cursor in it (136 stage D: "שגיאה ליד
+    // השדה") — it was a toast at the bottom of the screen.
+    const name = screen.getByPlaceholderText("שם ושם משפחה");
+    expect(name.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(name.getAttribute("aria-describedby")).textContent).toMatch(/שם האורח/);
+    expect(document.activeElement).toBe(name);
+    expect(showToast).not.toHaveBeenCalledWith(expect.anything(), "err");
+    expect(patchEvent).not.toHaveBeenCalled();
+  });
+
+  it("a companion seat with no name is flagged at the seat, not in a toast", () => {
+    const { patchEvent, showToast } = renderGuests({ guests: [] });
+    fireEvent.change(screen.getByPlaceholderText("שם ושם משפחה"), { target: { value: "רון" } });
+    fireEvent.change(document.querySelector('input[type=number]'), { target: { value: "2" } });
+    fireEvent.click(screen.getByText("+ הוסיפו אורח"));
+    const seat = screen.getByLabelText("שם המצטרף 1");
+    expect(seat.getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(seat);
+    expect(screen.getByRole("alert").textContent).toMatch(/העיקר שיהיה שם לכל מקום/);
+    expect(showToast).not.toHaveBeenCalledWith(expect.anything(), "err");
     expect(patchEvent).not.toHaveBeenCalled();
   });
 
@@ -263,7 +282,7 @@ describe("GuestManagerScreen — adding guests", () => {
     const { applyLast } = renderGuests({ guests: [] });
     pasteAndReview("דנה כהן\nיוסי לוי");
     fireEvent.click(screen.getByLabelText("הסירו את דנה כהן מהייבוא"));
-    fireEvent.click(screen.getByText(/הוסיפו 1 אורחים/));
+    fireEvent.click(screen.getByText(/הוסיפו אורח אחד/));   // not "1 אורחים"
     expect(applyLast().guests.map(g => g.name)).toEqual(["יוסי לוי"]);
   });
 
@@ -327,5 +346,27 @@ describe("GuestManagerScreen — meal chips count meals (107)", () => {
     render(<AuthProvider><GuestManagerScreen activeEvent={EV} patchEvent={vi.fn()} go={vi.fn()} showToast={vi.fn()} /></AuthProvider>);
     expect(screen.getByText(/מי באמת הגיע נרשם ביום האירוע, בעמדת הכניסה\./)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/ומה הוא נתן/);
+  });
+});
+
+describe("GuestManagerScreen — an error does not follow the host into an edit (review 6.10)", () => {
+  it("opening a guest for editing clears the empty-name error and its aria-invalid", () => {
+    renderGuests();
+    fireEvent.click(screen.getByText("+ הוסיפו אורח"));
+    expect(screen.getByRole("alert").textContent).toMatch(/בלי שם אי אפשר לשמור/);
+    startEditing();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByDisplayValue("משפחת כהן").getAttribute("aria-invalid")).not.toBe("true");
+  });
+});
+
+describe("GuestManagerScreen — the seat count shows what will be saved (review 6.10)", () => {
+  it("99 shows 50, 0 shows 1", () => {
+    renderGuests();
+    const input = document.querySelector("input[type=number][max=\"50\"]");
+    fireEvent.change(input, { target: { value: "99" } });
+    expect(input.value).toBe("50");
+    fireEvent.change(input, { target: { value: "0" } });
+    expect(input.value).toBe("1");
   });
 });

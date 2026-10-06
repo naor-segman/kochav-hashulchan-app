@@ -168,7 +168,7 @@
 .text a:focus-visible {
   outline: 2px solid var(--cta);
   outline-offset: 3px;
-  border-radius: var(--radius-xs);
+  border-radius: 0;
 }
 
 
@@ -239,7 +239,7 @@
   margin: 0 0 32px;
   padding: 20px 22px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: var(--surface);   /* was var(--surface2), which is defined nowhere — transparent (סב25) */
 }
 

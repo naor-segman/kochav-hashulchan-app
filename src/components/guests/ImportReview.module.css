@@ -57,7 +57,7 @@
   padding: 10px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
 }
 
 /* The marker bar sits on the INLINE start, so it stays on the reading edge in
@@ -100,7 +100,7 @@
   justify-content: center;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   color: var(--muted);
   cursor: pointer;
   transition: color var(--transition), border-color var(--transition), background var(--transition);
@@ -168,7 +168,7 @@
   color: var(--warn);
   background: var(--surface);
   border: 1px solid var(--warn-border);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   padding: 2px 8px;
 }
 

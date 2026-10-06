@@ -389,8 +389,13 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
           )}
 
           {ev.tables.length === 0 && (
-            <EmptyState mark="tables" title="טרם הוגדרו שולחנות"
-              text='השתמשו בטופס למעלה כדי להוסיף שולחנות. לדוגמה: 15 שולחנות עגולים עם 10 מקומות כל אחד — הכניסו 15 בשדה "כמות" ו-10 בשדה "מקומות".' />
+            <EmptyState mark="tables" title="האולם עוד ריק"
+              art={<>
+                <TableGlyph shape="round" capacity={10} taken={0} size={52} />
+                <TableGlyph shape="rect" capacity={12} taken={0} size={52} />
+                <TableGlyph shape="round" capacity={8} taken={0} size={52} />
+              </>}
+              text='כמה שולחנות יש ומה הקיבולת — בטופס למעלה. למשל 15 עגולים של 10 מקומות: 15 ב"כמות שולחנות" ו-10 ב"מקומות לשולחן".' />
           )}
         </>
       )}

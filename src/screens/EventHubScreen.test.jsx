@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { render, screen, fireEvent } from "../test/dom.js";
 import { AuthProvider } from "../hooks/useAuth.js";
 import EventHubScreen from "./EventHubScreen.jsx";
@@ -156,5 +156,114 @@ describe("EventHubScreen — signing up from inside a draft (33d)", () => {
     renderHub();
     fireEvent.click(screen.getByText("פתחו חשבון חינם"));
     expect(Number(sessionStorage.getItem("kochav_carry_drafts"))).toBeGreaterThan(0);
+  });
+});
+
+/* 136 stage D — the one-time "the event is open" moment. App.jsx startEvent
+   navigates with { created: true }; anything else (a reload, the dashboard,
+   a link) opens the hub without it. */
+describe("EventHubScreen — the moment the event is created", () => {
+  const fresh = { guests: [], tables: [], seating: {} };
+  const renderAt = (entry, over = {}) =>
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={[entry]}>
+          <EventHubScreen activeEvent={{ ...EV, ...fresh, ...over }} go={vi.fn()} showToast={vi.fn()} />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+
+  it("says mazal tov, how many steps are left, and that nothing must be done today", () => {
+    renderAt({ pathname: "/events/e1", state: { created: true } });
+    expect(screen.getByRole("heading", { name: "מזל טוב — האירוע נפתח" })).toBeInTheDocument();
+    // Setup is done (the event has a name): four left.
+    expect(screen.getByText(/נשארו עוד ארבעה צעדים, ובסופם לכל אורח יש מקום/)).toBeInTheDocument();
+    expect(screen.getByText(/אפשר לעצור ולחזור מתי שרוצים/)).toBeInTheDocument();
+  });
+
+  it("does not say mazal tov to a company event", () => {
+    renderAt({ pathname: "/events/e1", state: { created: true } }, { type: "אירוע עסקי" });
+    expect(screen.getByRole("heading", { name: "האירוע נפתח" })).toBeInTheDocument();
+    expect(screen.queryByText(/מזל טוב/)).toBeNull();
+  });
+
+  it("is not there when the hub is opened any other way", () => {
+    renderAt("/events/e1");
+    expect(screen.queryByText(/האירוע נפתח/)).toBeNull();
+  });
+});
+
+describe("EventHubScreen — no wall of zeros on an empty event", () => {
+  it("hides the numbers when there are no guests and no date, shows them otherwise", () => {
+    const { unmount } = renderHub({ guests: [], seating: {}, date: "" });
+    expect(screen.queryByText("מוזמנים")).toBeNull();
+    unmount();
+    renderHub();
+    expect(screen.getByText("מוזמנים")).toBeInTheDocument();
+  });
+});
+
+describe("EventHubScreen — review 6.10", () => {
+  it("'מוזמנים' counts everyone invited, the declined included", () => {
+    // 4 + 6 + 1 + 2 = 13 people, plus a declined family of 3 → 16 invited.
+    const { container } = renderHub({ guests: [...EV.guests, { id: "d", name: "ד", count: 3, rsvp: "declined" }] });
+    const cell = [...container.querySelectorAll("dt")].find(dt => dt.textContent === "מוזמנים").parentElement;
+    expect(cell.querySelector("dd").textContent).toBe("16");
+  });
+
+  it("on the day says 'היום', not a 0", () => {
+    const d = new Date();
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const { container } = renderHub({ date: iso });
+    const cell = [...container.querySelectorAll("dt")].find(dt => dt.textContent === "האירוע").parentElement;
+    expect(cell.querySelector("dd").textContent).toBe("היום");
+  });
+
+  it("no mazal tov for a free-text type it does not know", () => {
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={[{ pathname: "/events/e1", state: { created: true } }]}>
+          <EventHubScreen activeEvent={{ ...EV, type: "אזכרה", guests: [], seating: {} }} go={vi.fn()} showToast={vi.fn()} />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+    expect(screen.getByRole("heading", { name: "האירוע נפתח" })).toBeInTheDocument();
+  });
+});
+
+describe("EventHubScreen — the created moment's contract (review 6.10, test gaps)", () => {
+  it("holds the hub tour for that visit (data-tour-hold on the moment)", () => {
+    const { container } = render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={[{ pathname: "/events/e1", state: { created: true } }]}>
+          <EventHubScreen activeEvent={{ ...EV, guests: [], seating: {} }} go={vi.fn()} showToast={vi.fn()} />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+    expect(container.querySelector("[data-tour-hold]")).not.toBeNull();
+  });
+
+  it("clears the flag from the history entry after the first view", () => {
+    let seen;
+    const Probe = () => { seen = useLocation().state; return null; };
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={[{ pathname: "/events/e1", state: { created: true } }]}>
+          <EventHubScreen activeEvent={{ ...EV, guests: [], seating: {} }} go={vi.fn()} showToast={vi.fn()} />
+          <Probe />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+    expect(seen?.created).toBeFalsy();
+    // …and the moment stays on screen for this view.
+    expect(screen.getByRole("heading", { name: "מזל טוב — האירוע נפתח" })).toBeInTheDocument();
+  });
+
+  it("a future date with no guests still shows the countdown and the numbers", () => {
+    const d = new Date(); d.setDate(d.getDate() + 30);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    renderHub({ guests: [], seating: {}, date: iso });
+    expect(screen.getByText("ימים לאירוע")).toBeInTheDocument();
+    expect(screen.getByText("מוזמנים")).toBeInTheDocument();
   });
 });

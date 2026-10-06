@@ -2,7 +2,7 @@
 .wrap {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 14px 16px 16px;
   margin-bottom: 12px;
 }
@@ -30,7 +30,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border2);
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--surface);
   color: var(--text2);
   font-size: var(--step--1);
@@ -60,7 +60,7 @@
   max-width: 420px;
   margin-inline: auto;
   aspect-ratio: 4 / 3;
-  border-radius: var(--radius);
+  border-radius: 0;
   overflow: hidden;
   background: var(--text);
 }
@@ -78,7 +78,7 @@
   position: absolute;
   inset: 18% 22%;
   border: 2px solid rgba(var(--nav-text-rgb), 0.85);
-  border-radius: var(--radius);
+  border-radius: 0;
   box-shadow: 0 0 0 100vmax rgba(var(--text-rgb), 0.4);
 }
 
@@ -97,6 +97,6 @@
   background: var(--warn-bg);
   border: 1px solid var(--warn-border);
   border-inline-start: 3px solid var(--warn);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 12px 14px;
 }

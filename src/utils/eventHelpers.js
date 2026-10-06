@@ -181,6 +181,9 @@ export function normalizeEvent(ev) {
     type:        ev.type        ?? "חתונה",
     date:        str(ev.date),
     venue:       str(ev.venue),
+    // "שעת קבלת פנים", "HH:MM" Israel time, or "" (137, owner 6.10): after
+    // sunset the event's Hebrew date is the next day's. Anything else is "".
+    receptionTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(str(ev.receptionTime)) ? str(ev.receptionTime) : "",
     brideName:        str(ev.brideName),
     groomName:        str(ev.groomName),
     // Couple composition for weddings/engagements/henna — drives the default

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AREAS, BUILD_STEPS } from "../data/eventAreas.js";
 import { fmtDate, daysUntil } from "../utils/dateFormat.js";
 import { useAuth } from "../hooks/useAuth.js";
@@ -32,6 +32,24 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   // which is how this got written twice in the first place.
   const openItem = makeOpenScreen(ev, { go, showToast });
   const { user } = useAuth();
+  // Back from checkout (?checkout=success|cancelled): the package card goes to
+  // the top, where its "התשלום התקבל" / "לא חויבתם" line is seen. Read once —
+  // the card strips the parameter as it reads it.
+  const location = useLocation();
+  const [fromCheckout] = useState(() => /[?&]checkout=/.test(location.search));
+  // Just created (App.jsx startEvent): the one-time moment below. Read once,
+  // then cleared from the history entry, so Back-then-Forward or a reload
+  // does not congratulate the host a second time.
+  const navigate = useNavigate();
+  const [justCreated] = useState(() => !!location.state?.created);
+  useEffect(() => {
+    if (location.state?.created) {
+      // The LIVE search, not this render's: EventPlanCard (a child, so its
+      // effect runs first) may just have stripped ?checkout=, and this
+      // render's copy would put it back (review 6.10).
+      navigate(location.pathname + window.location.search, { replace: true, state: null });
+    }
+  }, [location, navigate]);
 
   const stats = useMemo(() => {
     const guests = ev.guests || [];
@@ -46,13 +64,22 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
     const declined = guests.length - totals.totalRecords;
     const cap    = tables.reduce((s, t) => s + (t.capacity || 0), 0);
     const confirmed = guests.filter(g => g.rsvp === "confirmed").length;
+    // PEOPLE who confirmed, for the big number — `confirmed` above counts rows
+    // and stays for the item line ("N אישרו מתוך N" is pinned in rows).
+    const confirmedPeople = guests
+      .filter(g => g?.rsvp === "confirmed")
+      .reduce((n, g) => n + Math.max(1, Number(g.count) || 1), 0);
+    // EVERYONE invited, the declined included — that is what "מוזמנים" means.
+    // The big number showed `seats` (the declined left out) under that word,
+    // so 300 invited with 50 declined read "250 מוזמנים" (review 6.10).
+    const invitedPeople = guests.reduce((n, g) => n + Math.max(1, Number(g?.count) || 1), 0);
     const answered  = guests.filter(g => g.rsvp && g.rsvp !== "pending").length;
     const tasks     = ev.tasks || [];
     const tasksDone = tasks.filter(t => t.status === "done").length;
     return {
       guests: guests.length, active: totals.totalRecords, declined, seats, tables: tables.length, cap, seated,
       pct: seats > 0 ? Math.round((seated / seats) * 100) : 0,
-      confirmed, answered,
+      confirmed, answered, confirmedPeople, invitedPeople,
       constraints: (ev.constraints || []).length,
       tasks: tasks.length, tasksDone,
       vendors: (ev.vendors || []).length,
@@ -99,23 +126,46 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   // one click away, because some venues fix the table count in the contract.
   const nextStep = BUILD_STEPS.find(s => !done(s.id)) || null;
 
+  /* 136 stage D (owner, 5.10): "המשיכו מכאן" first, not a disabled purchase
+     card; the names, the countdown and big numbers on the first screen. It
+     opened (measured at 390) on the package card — a disabled ₪ button — with
+     "המשיכו מכאן" at the fold and the areas below it. */
+  const planCard = <EventPlanCard ev={ev} />;
+
   return (
     <div className={base.pageWide}>
       <header className={styles.head} data-tour="hub.head">
-        <div className={styles.headMain}>
-          <p className={styles.eyebrow}>{ev.type || "אירוע"}</p>
-          <h1 className={styles.title}>{ev.name || "אירוע חדש"}</h1>
-          <p className={styles.meta}>
-            {ev.date && <span><Icon name="calendar" size={13} /> {fmtDate(ev.date)}</span>}
-            {ev.date && ev.venue && <span className={styles.metaSep}>·</span>}
-            {ev.venue && <span><Icon name="pin" size={13} /> {ev.venue}</span>}
-            {!ev.date && !ev.venue && <span>עוד אין תאריך ואולם — אפשר להשלים בפרטי האירוע</span>}
-          </p>
-        </div>
+        <p className={styles.eyebrow}>{ev.type || "אירוע"}</p>
+        <h1 className={styles.title}>{ev.name || "אירוע חדש"}</h1>
+        <p className={styles.meta}>
+          {ev.date && <span><Icon name="calendar" size={14} /> {fmtDate(ev.date)}</span>}
+          {ev.date && ev.venue && <span className={styles.metaSep}>·</span>}
+          {ev.venue && <span><Icon name="pin" size={14} /> {ev.venue}</span>}
+          {!ev.date && !ev.venue && <span>עוד אין תאריך ואולם — אפשר להשלים בפרטי האירוע</span>}
+        </p>
 
-        <div className={styles.headSide}>
+        {/* The four numbers the host comes back for, at the size of an answer.
+            People, not rows (a row is a family): the item lines below keep
+            their row counts. */}
+        {/* Not on an empty event with no date: four zeros say nothing, and
+            they were the first thing a host saw on the day they started. */}
+        {(stats.guests > 0 || (daysUntil(ev.date) ?? -1) >= 0) && (
+        <dl className={styles.numbers}>
           <HubCountdown date={ev.date} />
-        </div>
+          <div className={styles.num}>
+            <dt className={styles.numLabel}>מוזמנים</dt>
+            <dd className={styles.numBig}>{stats.invitedPeople}</dd>
+          </div>
+          <div className={styles.num}>
+            <dt className={styles.numLabel}>אישרו הגעה</dt>
+            <dd className={styles.numBig}>{stats.confirmedPeople}</dd>
+          </div>
+          <div className={styles.num}>
+            <dt className={styles.numLabel}>שובצו</dt>
+            <dd className={styles.numBig}>{stats.pct}<span className={styles.numUnit}>%</span></dd>
+          </div>
+        </dl>
+        )}
       </header>
 
       {/* Above the fold on the screen the host actually lands on. A warning
@@ -123,11 +173,36 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           and the event site editor is a place they may not open for weeks. */}
       <PhotoRetentionNotice ev={ev} patchEvent={patchEvent} showToast={showToast} />
 
-      {/* The event's package, and the only place it can be bought — a purchase
-          unlocks ONE event, so the checkout has to be opened from inside one.
-          It cannot hang off a gate: PLAN_GATES_ENFORCED is false, so nothing
-          refuses anyone today and a CTA shown on refusal would never show. */}
-      <EventPlanCard ev={ev} />
+      {fromCheckout && planCard}
+
+      {justCreated && <CreatedMoment ev={ev} done={done} />}
+
+      {/* Through the gate, like every tile below it. This button called `go`
+          directly, so on an unnamed event it opened the screen the tiles refuse
+          to open — the exact nav-vs-hub divergence eventNameGate.js exists to
+          prevent, on the same screen, two hundred lines apart. Latent rather
+          than live (both name inputs trim), which is why nothing caught it. */}
+      {nextStep && (
+        <button className={styles.resume} onClick={() => openItem(nextStep.id)} data-tour="hub.resume">
+          <span className={styles.resumeText}>
+            <span className={styles.resumeLabel}>המשיכו מכאן</span>
+            <span className={styles.resumeStep}>
+              שלב {nextStep.num} — {nextStep.label}
+            </span>
+            <span className={styles.resumeHint}>{nextStep.hint}</span>
+          </span>
+          <span className={styles.resumeGo}>פתחו <Icon name="arrowLeft" size={16} /></span>
+        </button>
+      )}
+
+      {!user && (
+        <p data-tour="hub.account" className={styles.guestNote}>
+          <Icon name="cloud" size={14} />{" "}
+          האירוע הזה שמור רק בדפדפן הזה. פתיחת חשבון מגבה אותו, מסנכרנת לטלפון ומאפשרת לשתף קישורים עם האורחים.{" "}
+          {/* Inside the draft, so signing up carries it (33d, draftCarry.js). */}
+          <Link to="/signup" className={styles.guestLink} onClick={() => markDraftCarry()}>פתחו חשבון חינם</Link>
+        </p>
+      )}
 
       {/* The tables as they stand, drawn. A row of numbers says how many; this
           says the SHAPE of the problem before a single label is read. */}
@@ -144,33 +219,6 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           ))}
           {stats.tables > 16 && <span className={styles.glyphMore}>+{stats.tables - 16}</span>}
         </div>
-      )}
-
-      {/* Through the gate, like every tile below it. This button called `go`
-          directly, so on an unnamed event it opened the screen the tiles refuse
-          to open — the exact nav-vs-hub divergence eventNameGate.js exists to
-          prevent, on the same screen, two hundred lines apart. Latent rather
-          than live (both name inputs trim), which is why nothing caught it. */}
-      {nextStep && (
-        <button className={styles.resume} onClick={() => openItem(nextStep.id)} data-tour="hub.resume">
-          <span className={styles.resumeText}>
-            <span className={styles.resumeLabel}>המשיכו מכאן</span>
-            <span className={styles.resumeStep}>
-              שלב {nextStep.num} — {nextStep.label}
-            </span>
-            <span className={styles.resumeHint}>{nextStep.hint}</span>
-          </span>
-          <span className={styles.resumeGo}>פתחו <Icon name="arrowLeft" size={15} /></span>
-        </button>
-      )}
-
-      {!user && (
-        <p data-tour="hub.account" className={styles.guestNote}>
-          <Icon name="cloud" size={14} />{" "}
-          האירוע הזה שמור רק בדפדפן הזה. פתיחת חשבון מגבה אותו, מסנכרנת לטלפון ומאפשרת לשתף קישורים עם האורחים.{" "}
-          {/* Inside the draft, so signing up carries it (33d, draftCarry.js). */}
-          <Link to="/signup" className={styles.guestLink} onClick={() => markDraftCarry()}>פתחו חשבון חינם</Link>
-        </p>
       )}
 
       <div className={styles.areaGrid} data-tour="hub.areas">
@@ -210,7 +258,63 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           </section>
         ))}
       </div>
+
+      {/* The event's package, and the only place it can be bought — a purchase
+          unlocks ONE event, so the checkout has to be opened from inside one.
+          Last on the page now (136 stage D): it led the page, as a disabled
+          button, above what the host came to do. Back from checkout it is at
+          the top instead (fromCheckout). */}
+      {!fromCheckout && <div className={styles.planSlot}>{planCard}</div>}
     </div>
+  );
+}
+
+/* The moment the event exists (136 stage D, "רגעים"). It said nothing: the
+ * wizard closed onto a page of zeros. One block, once, between the numbers and
+ * "המשיכו מכאן": that this is a beginning, what the road is, and that nothing
+ * has to be done today. Not a modal — the hub's own tour opens on this visit
+ * too, and a dialog over a dialog is a wall. No confetti (owner: nothing that
+ * pops). "מזל טוב" only where it is said: not to a company event, and not to
+ * "אחר", which may be anything. */
+const COUNT_WORD = { 2: "שני צעדים", 3: "שלושה צעדים", 4: "ארבעה צעדים", 5: "חמישה צעדים" };
+/* An allowlist, not a denylist: an admin template can carry any free-text
+   type ("אזכרה"), and a default of "מזל טוב" is wrong for some of them. */
+const MAZAL_TOV = new Set(["חתונה", "בר מצווה", "בת מצווה", "ברית", "בריתה", "חינה", "אירוס", "אירוע משפחתי", "יום הולדת"]);
+/* The one step that is not required — said where the road is listed. */
+const OPTIONAL_STEP = "constraints";
+
+function CreatedMoment({ ev, done }) {
+  const left = BUILD_STEPS.filter(s => !done(s.id)).length;
+  const celebrate = MAZAL_TOV.has(ev.type);
+  return (
+    <section className={styles.created} aria-labelledby="hub-created-title" data-tour-hold>
+      <h2 id="hub-created-title" className={styles.createdTitle}>
+        {celebrate ? "מזל טוב — האירוע נפתח" : "האירוע נפתח"}
+      </h2>
+      <p className={styles.createdText}>
+        {left === 1
+          ? "נשאר עוד צעד אחד, ובסופו לכל אורח יש מקום. "
+          : left
+          ? `נשארו עוד ${COUNT_WORD[left] || left + " צעדים"}, ובסופם לכל אורח יש מקום. `
+          : ""}
+        הכל נשמר תוך כדי — אפשר לעצור ולחזור מתי שרוצים.
+      </p>
+      <ol className={styles.createdPath}>
+        {BUILD_STEPS.map(s => {
+          const isDone = done(s.id);
+          return (
+            <li key={s.id} className={isDone ? styles.createdDone : undefined}>
+              <span className={styles.createdNum} aria-hidden="true">
+                {isDone ? <Icon name="check" size={12} /> : s.num}
+              </span>
+              {s.label}
+              {s.id === OPTIONAL_STEP && <span className={styles.createdOptional}>(לא חובה)</span>}
+              {isDone && <span className="sr-only"> — בוצע</span>}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -228,11 +332,12 @@ function HubCountdown({ date }) {
   const days = daysUntil(date);
   if (days == null || days < 0) return null;
   return (
-    <div className={styles.countdown}>
-      <span className={styles.countBig}>{days}</span>
-      <span className={styles.countCaption}>
-        {days === 0 ? "האירוע היום" : days === 1 ? "יום לאירוע" : "ימים לאירוע"}
-      </span>
+    <div className={[styles.num, styles.numDays].join(" ")}>
+      {/* On the day: "האירוע" over a big "היום", not "האירוע היום" over a 0. */}
+      <dt className={styles.numLabel}>
+        {days === 0 ? "האירוע" : days === 1 ? "יום לאירוע" : "ימים לאירוע"}
+      </dt>
+      <dd className={styles.numBig}>{days === 0 ? "היום" : days}</dd>
     </div>
   );
 }

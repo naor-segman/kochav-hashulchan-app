@@ -23,7 +23,7 @@
 .hero {
   background: var(--blush-soft);
   border: 1px solid var(--blush-line);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 40px 32px 30px;
   text-align: center;
   margin-bottom: 20px;
@@ -72,7 +72,7 @@
   display: inline-block;
   background: var(--surface);
   border: 1px solid var(--blush-line);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 16px 22px;
   margin-bottom: 12px;
   max-width: 100%;
@@ -97,7 +97,7 @@
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 26px 28px;
   margin-bottom: 20px;
 }
@@ -161,7 +161,7 @@
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 12px 14px;
   font-family: inherit;
   font-size: var(--step-0);
@@ -192,7 +192,7 @@
   padding: 12px 14px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   margin-bottom: 14px;
 }
 
@@ -205,7 +205,7 @@
 .typeSelect {
   background: var(--surface);
   border: 1px solid var(--border2);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   padding: 7px 10px;
   font-family: inherit;
   font-size: var(--step--1);
@@ -245,7 +245,7 @@
   background: var(--cta);
   border: 1px solid var(--cta);
   color: var(--on-accent);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   padding: 13px 30px;
   font-family: inherit;
   font-size: var(--step-1);
@@ -326,7 +326,7 @@
   gap: 10px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 14px;
 }
 
@@ -346,8 +346,8 @@
 
 @media (max-width: 480px) {
   .page { padding: 18px 14px 32px; }
-  .hero { padding: 28px 18px 22px; border-radius: var(--radius); }
-  .card { padding: 20px 16px; border-radius: var(--radius); }
+  .hero { padding: 28px 18px 22px; border-radius: 0; }
+  .card { padding: 20px 16px; border-radius: 0; }
   .glyphPlate { padding: 12px 10px; }
   .glyphRow { gap: 8px; }
   .actions > .cta { flex: 1 1 auto; justify-content: center; }

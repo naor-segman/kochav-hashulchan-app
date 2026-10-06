@@ -10,6 +10,7 @@ import styles from "./EventSiteScreen.module.css";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { siteLocation } from "../utils/siteLocation.js";
+import HebrewDate from "../components/guest/HebrewDate.jsx";
 
 // Map a local (host-owned) event into the public-site shape, so the host can
 // preview drafts securely from inside the authenticated app.
@@ -18,6 +19,7 @@ function fromLocalEvent(le) {
     name: le.name, type: le.type, date: le.date, venue: le.venue,
     brideName: le.brideName, groomName: le.groomName, celebrantName: le.celebrantName,
     organizationName: le.organizationName, ownerName: le.ownerName,
+    receptionTime: le.receptionTime,
     site: le.eventSite,
     rsvpToken: le.tokens?.rsvp ?? null, giftToken: le.tokens?.gift ?? null,
     albumToken: le.tokens?.album ?? null,
@@ -268,7 +270,7 @@ export default function EventSiteScreen({ localEvent }) {
               ? <div className={styles.heroEn}>{site.heroEn}</div>
               : <div className={styles.heroEn} lang="en" dir="ltr">{site.heroEn}</div>)}
             <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
-            {dateStr && <div className={styles.heroDate}>{dateStr}</div>}
+            {dateStr && <div className={styles.heroDate}>{dateStr}<HebrewDate date={ev.date} event={ev} /></div>}
             {ev.venue && <div className={styles.heroVenue}><Icon name="pin" size={15} /> {ev.venue}</div>}
             {showRsvp && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
           </div>
@@ -289,7 +291,7 @@ export default function EventSiteScreen({ localEvent }) {
 
       {/* ── Countdown ── */}
       {visible && site?.countdown !== false && ev.date && (
-        <Countdown date={ev.date} time={eventStartTime(site?.schedule)} styles={styles} />
+        <Countdown date={ev.date} time={ev.receptionTime || eventStartTime(site?.schedule)} styles={styles} />
       )}
 
       {/* ── Story ── */}
@@ -357,7 +359,7 @@ export default function EventSiteScreen({ localEvent }) {
                     name:      ev.name,
                     date:      ev.date,
                     venue:     siteLocation(site, ev),
-                    startTime: knownStartTime(site.schedule),
+                    startTime: ev.receptionTime || knownStartTime(site.schedule),
                     url:       window.location.href,
                   });
                   if (ics) downloadIcs(ics, icsFileName(ev.name));

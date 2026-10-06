@@ -62,6 +62,8 @@ export function mapLocalEventToCloudPayload(localEvent, userId) {
       organizationName: localEvent.organizationName ?? "",
       contactName:      localEvent.contactName      ?? "",
       ownerName:        localEvent.ownerName        ?? "",
+      // Read by public_event_by_token for the guest pages' Hebrew date (137).
+      receptionTime:    localEvent.receptionTime    ?? "",
       customGroups:     Array.isArray(localEvent.customGroups) ? localEvent.customGroups : [],
       customTableTypes: Array.isArray(localEvent.customTableTypes) ? localEvent.customTableTypes : [],
       createdAt:        localEvent.createdAt        ?? Date.now(),
@@ -130,6 +132,7 @@ export function mapCloudEventToLocalEvent(cloudRow) {
     organizationName: p.organizationName ?? "",
     contactName:      p.contactName      ?? "",
     ownerName:        p.ownerName        ?? "",
+    receptionTime:    p.receptionTime    ?? "",
     customGroups:     Array.isArray(p.customGroups) ? p.customGroups : [],
     customTableTypes: Array.isArray(p.customTableTypes) ? p.customTableTypes : [],
     tables:           Array.isArray(p.tables)        ? p.tables       : [],

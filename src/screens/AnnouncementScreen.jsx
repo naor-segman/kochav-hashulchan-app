@@ -12,6 +12,7 @@ import { COMPANY } from "../data/company.js";
 import { guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB, NOT_PUBLISHED_TAB } from "../hooks/useGuestTitle.js";
 import { NOT_PUBLISHED_TEXT } from "../data/guestCopy.js";
+import HebrewDate from "../components/guest/HebrewDate.jsx";
 
 /**
  * Public Save-the-Date / designed invitation.
@@ -91,6 +92,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
         celebrantName: localEvent.celebrantName,
         organizationName: localEvent.organizationName,
         ownerName: localEvent.ownerName,
+        receptionTime: localEvent.receptionTime,
         rsvpToken: localEvent.tokens?.rsvp, inviteToken: localEvent.tokens?.invite,
         announcements: localEvent.announcements,
         site: localEvent.eventSite ?? null,
@@ -197,7 +199,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     // give, and the file is an all-day entry rather than an invented 19:00.
     const ics = buildEventIcs({
       name: event.name, date: event.date, venue: event.venue,
-      startTime: knownStartTime(event.site?.schedule),
+      startTime: event.receptionTime || knownStartTime(event.site?.schedule),
       url: window.location.href,
     });
     if (ics) downloadIcs(ics, icsFileName(event.name));
@@ -219,7 +221,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
           <h2 className={styles.headline}>{passed ? "האירוע התקיים" : ann.headline}</h2>
 
           {event.date && (
-            <p className={styles.date}>{fmtDate(event.date)}</p>
+            <p className={styles.date}>{fmtDate(event.date)}<HebrewDate date={event.date} event={event} /></p>
           )}
 
           {ann.showLocation && event.venue && (

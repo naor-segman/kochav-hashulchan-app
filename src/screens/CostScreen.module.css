@@ -14,7 +14,7 @@
 .stat {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 16px 14px;
   display: flex;
   flex-direction: column;
@@ -65,7 +65,7 @@
   background: var(--warn-bg);
   border: 1px solid var(--warn-border);
   border-inline-start: 3px solid var(--warn);
-  border-radius: var(--radius);
+  border-radius: 0;
   font-size: var(--step--1);
   font-weight: 600;
   color: var(--warn);
@@ -87,7 +87,7 @@
 
 .table {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   overflow: hidden;
   min-width: 560px;
 }
@@ -222,7 +222,7 @@
   direction: rtl;
   font-family: inherit;
   padding: 2px 4px;
-  border-radius: var(--radius-xs);
+  border-radius: 0;
   transition: background var(--transition-fast);
 }
 
@@ -240,7 +240,7 @@
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 6px 10px;
   font-size: var(--step-0);
   color: var(--text);
@@ -267,7 +267,7 @@
   font-size: var(--step--2);
   font-weight: 700;
   padding: 2px 8px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   white-space: nowrap;
 }
 
@@ -299,7 +299,7 @@
   font-size: var(--step--1);
   cursor: pointer;
   padding: 4px 6px;
-  border-radius: var(--radius-xs);
+  border-radius: 0;
   line-height: 1;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
@@ -387,15 +387,15 @@
    over     = --red, the only semantic here that has an opinion.
    Fourteen saturated magenta bars used to fill this card, which is precisely
    how a colour stops meaning anything. */
-.barTrack { height: 9px; background: var(--bg); border-radius: var(--radius-pill); overflow: hidden; }
-.barPlanned { height: 100%; background: var(--blush); border-radius: var(--radius-pill); transition: width var(--transition); }
-.barActual { height: 100%; background: var(--text); border-radius: var(--radius-pill); transition: width var(--transition); }
+.barTrack { height: 9px; background: var(--bg); border-radius: 0; overflow: hidden; }
+.barPlanned { height: 100%; background: var(--blush); border-radius: 0; transition: width var(--transition); }
+.barActual { height: 100%; background: var(--text); border-radius: 0; transition: width var(--transition); }
 .barOver { background: var(--red); }
 .chartVal { font-size: var(--step--2); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .chartValOver { color: var(--red); }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: var(--step--2); color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 4px; }
-.legend i { width: 12px; height: 12px; border-radius: var(--radius-xs); display: inline-block; }
+.legend i { width: 12px; height: 12px; border-radius: 0; display: inline-block; }
 .swPlanned { background: var(--blush); }
 .swActual { background: var(--text); }
 .swOver { background: var(--red); }
@@ -405,8 +405,8 @@
 .bigLabel { font-size: var(--step--1); font-weight: 600; color: var(--text2); white-space: nowrap; }
 /* Money in vs money out. Green already carries "in" semantically; "out" is the
    neutral ink bar, not a second brand colour — the pair reads as one scale. */
-.bigTrack { height: 14px; background: var(--bg); border-radius: var(--radius-pill); overflow: hidden; }
-.bigFill { height: 100%; border-radius: var(--radius-pill); transition: width var(--transition); }
+.bigTrack { height: 14px; background: var(--bg); border-radius: 0; overflow: hidden; }
+.bigFill { height: 100%; border-radius: 0; transition: width var(--transition); }
 .barIncome { background: var(--green); }
 .barExpense { background: var(--text); }
 .bigVal { font-size: var(--step--1); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -475,7 +475,7 @@
   margin: 4px 0 0;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -517,7 +517,7 @@
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   background: var(--surface);
   color: var(--accent-text);
   font-size: var(--step--2);

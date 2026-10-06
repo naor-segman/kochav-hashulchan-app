@@ -44,6 +44,11 @@ export function useScreenTour(key) {
       // and giving up while a first-time visitor reads it would cost them the
       // tour of the very screen they arrived on.
       if (document.querySelector("[data-consent-pending]")) { timer = setTimeout(open, 750); return; }
+      // A screen showing a one-time moment of its own (the hub right after
+      // the event is created) holds the tour for this visit: the card sat
+      // exactly over "מזל טוב — האירוע נפתח" and a host who followed the tour
+      // never read it (review 6.10). Not marked seen — it opens next visit.
+      if (document.querySelector("[data-tour-hold]")) return;
       if (document.querySelector('[aria-modal="true"], [aria-busy="true"]') || Date.now() - lastInput < 1500) {
         // Still blocked after ~30s: give up for this visit rather than open
         // over a dialog the host is in the middle of, or over a screen whose

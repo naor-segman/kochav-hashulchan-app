@@ -104,7 +104,9 @@ console.log('\n── /hostess/:token — the greeter alias');
   // No Supabase here, so the token cannot resolve. What matters is that it
   // reaches EntranceScreen's own token branch and says so, rather than
   // bouncing to the dashboard or blanking.
-  ok(/הקישור אינו תקין|טוען|כניסה/.test(r.text),
+  // "אינו פעיל" since one dead-link sentence on every guest page (884c920); the
+  // check still asked for the old "אינו תקין" and failed on a correct screen.
+  ok(/הקישור אינו (תקין|פעיל)|טוען|כניסה/.test(r.text),
      'reached EntranceScreen in token mode', r.text.slice(0, 70));
   ok(!/^\s*$/.test(r.text), 'not a blank page');
   ok(r.errs.length === 0, 'no page error', r.errs[0] || '');

@@ -12,6 +12,7 @@ import {
 } from "@dnd-kit/core";
 import { RowMouseSensor, RowTouchSensor } from "../components/seating/rowSensors.js";
 import { pointerThenOverlap } from "../components/seating/collision.js";
+import { autoRunMessage } from "../logic/autoRunMessage.js";
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { canSeatMore } from "../utils/featureGates.js";
 import { usePlan } from "../hooks/usePlan.js";
@@ -308,16 +309,25 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // "Everything seated ✓" over an "apart" pair still at one locked table
     // told the host the job was done (fourth review 30.9). Say what is left.
     const left = computeViolations(ev.guests, ev.tables, ev.constraints, newSeating).length;
-    if (missed > 0)
-      showToast("שובצו " + placed + " רשומות. " + missed + " לא נכנסו — הוסיפו מקומות נוספים", "err");
-    else if (left > 0)
-      showToast("כל " + placed + " הרשומות שובצו, אבל " + (left === 1 ? "אילוץ אחד לא מתקיים" : left + " אילוצים לא מתקיימים") + " — פירוט למטה", "warn");
-    else
-      showToast("כל " + placed + " הרשומות שובצו ✓");
+    // The reason someone is left standing, and its fix (autoRunMessage.js).
+    const msg = autoRunMessage({
+      active: activeGuests, allGuests: ev.guests, tables: ev.tables, seating: newSeating,
+      lockedTables: ev.lockedTables || [], constraints: ev.constraints, violations: left,
+    });
+    showToast(msg.text, msg.variant === "ok" ? undefined : msg.variant);
     // Deliberately NOT collapsing the open cards. A recompute is the moment the
     // host most wants to look at what changed, and closing what they opened is
     // the behaviour they asked to have removed.
     setRunKey(k => k + 1);
+    // And take them TO it (136 stage D: "אחרי הושבה אוטומטית — לגלול
+    // לתוצאה"): the button sits above the fold and the result below it. The
+    // waiting list when someone did not fit — that is what needs them — else
+    // the tables. After the render, so the panel exists.
+    setTimeout(() => {
+      const target = missed > 0 ? waitingRef.current : tablesRef.current;
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      target?.scrollIntoView?.({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    }, 80);
   };
 
   const clearAll = async () => {
@@ -613,7 +623,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             sub="חשבו הושבה אוטומטית ואז ערכו ידנית לפי הצורך."
             aside={
               <div className={base.pills} data-tour="seating.counts" data-tour-fit>
-                <StatPill n={nActiveAssigned}     label="שובצו"   primary color={allSeated ? "var(--green)" : undefined} />
+                {/* --green-dark: the primary pill is BLUSH, and --green on it is 3.98:1 (review 6.10). */}
+                <StatPill n={nActiveAssigned}     label="שובצו"   primary color={allSeated ? "var(--green-dark)" : undefined} />
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
                 {arrival.arrivedSeats > 0 && <StatPill n={arrival.arrivedSeats} label="הגיעו" color="var(--green)" />}
@@ -850,8 +861,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               (`arrivedSeats`), and neither panel could express "the aunt is
               here, her four are not" — both wrote the row-level boolean, which
               silently means everyone. עמדת הכניסה does that, plus walk-ins,
-              by-table search and companion search, on a dark ground that does
-              not blind a greeter in a dark hall. One door, one screen. */}
+              by-table search and companion search. One door, one screen. */}
 
           {(unassigned.length > 0 || !!activeId) && (
             <DroppableWrapper id="unassigned">

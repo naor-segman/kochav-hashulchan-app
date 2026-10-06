@@ -14,6 +14,7 @@ import styles from "./RSVPScreen.module.css";
 import { COMPANY } from "../data/company.js";
 import { track, EVENTS } from "../lib/analytics.js";
 import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
+import HebrewDate from "../components/guest/HebrewDate.jsx";
 
 // DEV-only preview fallback — used only when import.meta.env.DEV and Supabase
 // returns no event, so the page can be designed without a live token.
@@ -283,7 +284,7 @@ export default function RSVPScreen() {
               {formattedDate && (
                 <p className={styles.eventDetail}>
                   <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={18} /></span>
-                  {formattedDate}
+                  <span>{formattedDate}<HebrewDate date={event.date} event={event} /></span>
                 </p>
               )}
             </div>
@@ -320,7 +321,7 @@ export default function RSVPScreen() {
               {formattedDate && (
                 <p className={styles.eventDetail}>
                   <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={18} /></span>
-                  {formattedDate}
+                  <span>{formattedDate}<HebrewDate date={event.date} event={event} /></span>
                 </p>
               )}
               {event.venue && (
@@ -390,7 +391,7 @@ export default function RSVPScreen() {
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
               <h1 className={styles.eventBannerName} ref={stepHeading} tabIndex={-1}>{event.name}</h1>
               {formattedDate && (
-                <span className={styles.eventBannerDate}>{formattedDate}</span>
+                <span className={styles.eventBannerDate}>{formattedDate}<HebrewDate date={event.date} event={event} /></span>
               )}
             </div>
 
@@ -695,7 +696,7 @@ export default function RSVPScreen() {
                     name:  event.name,
                     date:  event.date,
                     venue: event.venue,
-                    startTime: knownStartTime(site?.schedule),
+                    startTime: event.receptionTime || knownStartTime(site?.schedule),
                     // The site only when it is published — the same rule as
                     // the button below. It linked the site regardless, and a
                     // calendar keeps "not published yet" for good (29.9 review).

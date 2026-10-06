@@ -18,11 +18,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 18px 24px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--nav-bg) 0%, var(--nav-bg2) 100%);
-  border: 1px solid var(--nav-border);
+  border-radius: 0;
+  /* Light, with the site's emphasis edge (136 stage D; owner, 5.10: no
+     all-black grounds). It was a near-black gradient band. */
+  background: var(--surface);
+  border: 2px solid var(--text);
+  border-inline-start: 6px solid var(--cta);
   margin-bottom: 20px;
-  box-shadow: var(--shadow-md), inset 0 1px 0 var(--white-glass-dim);
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -33,24 +35,23 @@
   gap: 8px;
 }
 
-/* The one saturated glyph on the dark band. --accent-text was 2.64:1 here and
-   read as a smudge; --accent is 4.76:1 on --nav-bg and this is a decorative
-   shape, which is exactly what --accent is for. No glow: the mark carries. */
+/* On the light band now: --accent-text (a shape, but it is the same mark as
+   the header's), --text and --text2. */
 .logoMark {
   font-size: var(--step-2);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .logoName {
   font-size: var(--step-2);
-  font-weight: 900;
-  color: var(--nav-text);
+  font-weight: 800;
+  color: var(--text);
   letter-spacing: -0.02em;
 }
 
 .heroBarSub {
-  font-size: var(--step--2);
-  color: var(--nav-muted);
+  font-size: var(--step--1);
+  color: var(--text2);
 }
 
 /* THE action of the screen. A filled button is --cta, never --accent: white on
@@ -61,10 +62,9 @@
   border: none;
   cursor: pointer;
   padding: 10px 24px;
-  border-radius: var(--radius);
+  border-radius: 0;
   font-size: var(--step-0);
   font-weight: 700;
-  box-shadow: var(--shadow-cta);
   display: inline-block;
   transition: background var(--transition), box-shadow var(--transition);
 }
@@ -84,7 +84,7 @@
   color: var(--text2);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   line-height: 1.5;
 }
 
@@ -98,7 +98,7 @@
 .onboarding {
   text-align: center;
   padding: 48px 28px 48px;
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   /* The first-run hero is the one place a whole panel earns a tinted ground —
      but it is a GROUND (blush), not the accent, so the near-black headline on
      it stays at 12.30:1 and the accent is still free to mean something. */
@@ -128,7 +128,7 @@
 }
 
 .onboardingTitle {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: 42px;
   font-weight: 900;
   letter-spacing: -0.01em;
@@ -163,7 +163,7 @@
   gap: 4px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 14px 12px;
   box-shadow: var(--shadow);
   text-align: center;
@@ -218,7 +218,7 @@
   gap: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 6px 12px;
   box-shadow: var(--shadow);
 }
@@ -309,7 +309,7 @@
 }
 
 .featBig {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: clamp(3.25rem, 7vw, 4.5rem);
   font-weight: 700;
   line-height: 1;
@@ -376,7 +376,7 @@
   align-self: start;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 20px 20px 16px;
   box-shadow: var(--shadow);
   display: flex;
@@ -433,7 +433,7 @@
   cursor: pointer;
   color: var(--muted);
   font-size: var(--step--2);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   width: 24px;
   height: 24px;
   display: flex;
@@ -456,7 +456,7 @@
 
 /* The one serif on this page. Scale is where the product's authority lives. */
 .eventCardFeatured .eventName {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: var(--step-3);
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -523,13 +523,13 @@
 .eventProgress {
   height: 4px;
   background: var(--border);
-  border-radius: var(--radius-xs);
+  border-radius: 0;
   overflow: hidden;
 }
 
 .eventProgressFill {
   height: 100%;
-  border-radius: var(--radius-xs);
+  border-radius: 0;
   transition: width 0.5s;
 }
 
@@ -567,7 +567,7 @@
   background: var(--blush);
   color: var(--text);
   border: 1px solid var(--blush-line);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 10px 16px;
   font-size: var(--step--1);
   font-weight: 700;
@@ -586,7 +586,7 @@
   background: transparent;
   color: var(--text2);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 8px 16px;
   font-size: var(--step--2);
   font-weight: 600;
@@ -617,7 +617,7 @@
 
 .tmplPanel {
   background: var(--surface);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 480px;
@@ -650,7 +650,7 @@
   font-size: var(--step-0);
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -682,7 +682,7 @@
   gap: 4px;
   background: var(--bg);
   border: 1.5px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 14px 14px 12px;
   cursor: pointer;
   text-align: start;
@@ -726,7 +726,7 @@
   gap: 8px;
   background: none;
   border: 1px dashed var(--border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 10px 14px;
   cursor: pointer;
   font-size: var(--step--1);
@@ -758,7 +758,7 @@
 .statTile {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 16px 14px;
   display: flex;
   flex-direction: column;
@@ -820,7 +820,7 @@
   gap: 4px;
   font-size: var(--step--2);
   font-weight: 700;
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 4px 12px;
   line-height: 1;
 }
@@ -894,7 +894,7 @@
 .healthPill {
   font-size: var(--step--3);
   font-weight: 700;
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 2px 8px;
   line-height: 1.3;
 }
@@ -980,7 +980,7 @@
 /* ── Demo / user-testing checklist ── */
 .demoCard {
   border: 1px dashed var(--border2);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   margin-top: 28px;
   overflow: hidden;
 }
@@ -1028,7 +1028,7 @@
   background: var(--blush);
   color: var(--text);
   border: 1px solid var(--blush-line);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 1px 8px;
   line-height: 1.6;
 }
@@ -1039,7 +1039,7 @@
   background: var(--green-bg);
   color: var(--green);
   border: 1px solid var(--green-border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 1px 8px;
   line-height: 1.6;
 }
@@ -1081,7 +1081,7 @@
   border: none;
   cursor: pointer;
   padding: 8px 12px;
-  border-radius: var(--radius);
+  border-radius: 0;
   text-align: start;
   transition: var(--transition-fast);
 }
@@ -1148,7 +1148,7 @@
   color: var(--green);
   background: var(--green-bg);
   border: 1px solid var(--green-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: 10px 14px;
   text-align: center;
 }
