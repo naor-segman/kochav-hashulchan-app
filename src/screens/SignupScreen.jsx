@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import { COMPANY, LEGAL_DOCS } from "../data/company.js";
 import styles from "./LoginScreen.module.css"; // shares layout styles
+import Logo from "../components/brand/Logo.jsx";
 import SupportLine from "../components/support/SupportLine.jsx";
 import AuthAside from "../components/auth/AuthAside.jsx";
 import { authErrorMessage, isAuthInputError } from "../utils/authErrors.js";
@@ -120,8 +121,7 @@ export default function SignupScreen() {
         <div className={styles.formSide}>
           <div className={styles.card}>
             <div className={styles.brand}>
-              <span className={styles.brandMark} aria-hidden="true">✦</span>
-              <span className={styles.brandName}>{COMPANY.name}</span>
+              <Logo className={styles.brandLogo} title={COMPANY.name} />
             </div>
             <h1 className={styles.title} tabIndex={-1} ref={doneHeadingRef}>בדקו את האימייל שלכם</h1>
             <p className={styles.confirmBody}>
@@ -167,8 +167,7 @@ export default function SignupScreen() {
         <div className={styles.card}>
 
           <div className={styles.brand}>
-            <span className={styles.brandMark} aria-hidden="true">✦</span>
-            <span className={styles.brandName}>{COMPANY.name}</span>
+            <Logo className={styles.brandLogo} title={COMPANY.name} />
           </div>
 
           <h1 className={styles.title}>הרשמה</h1>

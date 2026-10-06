@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
+import Logo from "../components/brand/Logo.jsx";
 import SupportLine from "../components/support/SupportLine.jsx";
 import AuthAside from "../components/auth/AuthAside.jsx";
 import Icon from "../components/ui/Icon.jsx";
@@ -142,8 +143,7 @@ export default function ResetPasswordScreen() {
         </div>
         <div className={styles.card}>
           <div className={styles.brand}>
-            <span className={styles.brandMark} aria-hidden="true">✦</span>
-            <span className={styles.brandName}>{COMPANY.name}</span>
+            <Logo className={styles.brandLogo} title={COMPANY.name} />
           </div>
           <h1 className={styles.title}>בחירת סיסמה חדשה</h1>
           <p className={styles.lead}>עוד רגע אתם בפנים — בוחרים סיסמה, וממשיכים מאיפה שהפסקתם.</p>

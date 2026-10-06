@@ -36,21 +36,7 @@
   text-decoration: none;
 }
 
-.logoMark {
-  /* The brand-mark rule: --accent-on-dark on a dark ground (9.52:1).
-     --accent-text is 2.66:1 here and --accent is a fill token, not a glyph
-     colour — see CLAUDE.md bug class 4. */
-  color: var(--accent-on-dark);
-  font-size: var(--step-2);
-  line-height: 1;
-}
 
-.logoName {
-  color: var(--nav-text);
-  font-size: var(--step-1);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
 
 .main {
   max-width: 720px;
@@ -284,3 +270,6 @@
 @media (pointer: coarse) and (min-width: 521px) {
   .identityList { row-gap: 24px; }
 }
+
+/* The logo (owner, 6.10) on the dark header. */
+.logoArt { display: block; height: 48px; width: auto; }

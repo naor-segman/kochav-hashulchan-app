@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./LoginScreen.module.css";
+import Logo from "../components/brand/Logo.jsx";
 import SupportLine from "../components/support/SupportLine.jsx";
 import AuthAside from "../components/auth/AuthAside.jsx";
 import Icon from "../components/ui/Icon.jsx";
@@ -107,8 +108,7 @@ export default function LoginScreen() {
         <div className={styles.card}>
 
           <div className={styles.brand}>
-            <span className={styles.brandMark} aria-hidden="true">✦</span>
-            <span className={styles.brandName}>{COMPANY.name}</span>
+            <Logo className={styles.brandLogo} title={COMPANY.name} />
           </div>
 
           <h1 className={styles.title}>כניסה לחשבון</h1>

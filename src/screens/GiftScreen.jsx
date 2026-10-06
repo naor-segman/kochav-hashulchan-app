@@ -4,6 +4,7 @@ import { fetchEventByToken, submitGift, guestWriteError, UNREACHABLE_TEXT, INVAL
 import { uid } from "../utils/uid.js";
 import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
+import Logo from "../components/brand/Logo.jsx";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
 import { guestHosts, guestEventType } from "../utils/guestRoutes.js";
@@ -167,8 +168,7 @@ export default function GiftScreen() {
       <div className={styles.root}>
         <header className={styles.header}>
           <Link to="/" className={styles.logo}>
-            <span className={styles.logoMark} aria-hidden="true">✦</span>
-            <span className={styles.logoName}>{COMPANY.name}</span>
+            <Logo tone="dark" className={styles.logoArt} title={COMPANY.name} />
           </Link>
         </header>
         <main className={styles.successWrap}>
@@ -235,8 +235,7 @@ export default function GiftScreen() {
       {/* Small dark header */}
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
-          <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>{COMPANY.name}</span>
+          <Logo tone="dark" className={styles.logoArt} title={COMPANY.name} />
         </Link>
       </header>
 

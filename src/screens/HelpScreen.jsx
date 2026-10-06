@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import styles from "./LegalScreen.module.css";
+import Logo from "../components/brand/Logo.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Footer from "../components/layout/Footer.jsx";
 import help from "./HelpScreen.module.css";
@@ -56,8 +57,7 @@ export default function HelpScreen() {
     <div className={styles.root}>
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
-          <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>{COMPANY.name}</span>
+          <Logo tone="dark" className={styles.logoArt} title={COMPANY.name} />
         </Link>
       </header>
 

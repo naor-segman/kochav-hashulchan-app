@@ -87,17 +87,7 @@
 
 /* --accent-text is 2.6:1 on the near-black bar; --accent-on-dark is the
    same job calibrated for this ground, at 9.3:1. */
-.logoMark {
-  color: var(--accent-on-dark);
-  font-size: var(--step-0);
-}
 
-.logoName {
-  color: var(--nav-muted);
-  font-size: var(--step--2);
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
 
 /* ── Main — vertically centers card below header ─────────────────────────── */
 
@@ -691,3 +681,6 @@
 
 /* A way out of a dead link (WORKPLAN 108) — the one shared rule (ב9). */
 .homeLink { composes: homeLink from "../styles/homeLink.module.css"; }
+
+/* The logo (owner, 6.10). */
+.logoArt { display: block; height: 40px; width: auto; }

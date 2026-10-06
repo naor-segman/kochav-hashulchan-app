@@ -11,6 +11,7 @@ import { useBilling } from "../hooks/useBilling.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { useSubscription } from "../hooks/useSubscription.js";
 import styles from "./AccountScreen.module.css";
+import Logo from "../components/brand/Logo.jsx";
 import Loading from "../components/feedback/Loading.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
@@ -260,8 +261,7 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
 
         {/* Brand */}
         <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">✦</span>
-          <span className={styles.brandName}>{COMPANY.name}</span>
+          <Logo className={styles.brandLogo} title={COMPANY.name} />
         </div>
 
         <div className={styles.titleRow}>

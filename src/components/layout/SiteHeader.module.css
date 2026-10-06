@@ -57,23 +57,12 @@
   flex-shrink: 0;
 }
 
-.navLogoMark {
-  /* The brand glyph appeared in FOUR different pinks on this page, three of
-     them on the same ink ground. One rule, the documented one: --accent-text on
-     a light ground, --accent-on-dark on a dark one. --accent is a FILL token
-     (CLAUDE.md bug class 4) and was never the right answer for a glyph.
-     Here — the near-black nav — that is --accent-on-dark at 9.52:1, against
-     4.87:1 for the --accent that was here and 2.66:1 for --accent-text. */
-  color: var(--accent-on-dark);
-  font-size: var(--step-2);
-  line-height: 1;
-}
-
-.navLogoName {
-  color: var(--nav-text);
-  font-size: var(--step-1);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+/* The logo (owner, 6.10): table, "unica", "plan" — stacked, as Unica's own
+   logo is. 62px in a 69px bar; it is narrower than the name it replaced. */
+.navLogoArt {
+  display: block;
+  height: 62px;
+  width: auto;
 }
 
 .navLinks {

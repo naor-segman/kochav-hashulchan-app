@@ -7,6 +7,7 @@ import { readGuestCardParams, guestScanPayload } from "../utils/guestCard.js";
 import { tableLabel } from "../components/seating/tableLabel.js";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import styles from "./InviteScreen.module.css";
+import Logo from "../components/brand/Logo.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { COMPANY } from "../data/company.js";
 import { guestHosts } from "../utils/guestRoutes.js";
@@ -229,8 +230,7 @@ export default function InviteScreen() {
       {/* Small logo */}
       <header className={styles.header}>
         <Link to="/" className={styles.logo}>
-          <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>{COMPANY.name}</span>
+          <Logo tone="dark" className={styles.logoArt} title={COMPANY.name} />
         </Link>
       </header>
 

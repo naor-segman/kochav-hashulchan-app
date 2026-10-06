@@ -28,16 +28,7 @@
   margin-bottom: 14px;
 }
 
-.logoMark {
-  color: var(--accent-text);
-  font-size: var(--step-1);
-}
-
-.logoName {
-  color: var(--text);
-  font-size: var(--step-1);
-  font-weight: 800;
-}
+.logoArt { display: block; height: 72px; width: auto; }
 
 .tagline {
   font-size: var(--step--1);

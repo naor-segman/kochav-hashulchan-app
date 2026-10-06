@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { COMPANY } from "../../data/company.js";
 import { liveServices, flagService, menuServices } from "../../data/services.js";
 import styles from "./SiteHeader.module.css";
+import Logo from "../brand/Logo.jsx";
 
 /**
  * The public marketing header. One component, every marketing page.
@@ -161,8 +162,7 @@ export default function SiteHeader({ user = null, active = null }) {
             header does not remount and the phone menu stayed open over the page
             after a tap on the logo (review 5.10). */}
         <Link to="/" className={styles.navLogo} onClick={closeMenu}>
-          <span className={styles.navLogoMark} aria-hidden="true">✦</span>
-          <span className={styles.navLogoName}>{COMPANY.name}</span>
+          <Logo tone="dark" className={styles.navLogoArt} title={COMPANY.name} />
         </Link>
 
         <div className={styles.navLinks}>
