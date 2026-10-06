@@ -44,6 +44,21 @@ describe("useScreenTour", () => {
     expect(result.current.open).toBe(true);
   });
 
+  it("holds for the whole visit while a one-time moment is shown, and is not marked seen", async () => {
+    // Review 6.10: the hub tour's card covered "מזל טוב — האירוע נפתח".
+    block("data-tour-hold");
+    const first = renderHook(() => useScreenTour("hub"));
+    await after(5000);
+    expect(first.result.current.open).toBe(false);
+    blocker.remove();
+    await after(3000);
+    expect(first.result.current.open).toBe(false);   // not later in this visit either
+    first.unmount();
+    const next = renderHook(() => useScreenTour("hub"));
+    await after(700);
+    expect(next.result.current.open).toBe(true);     // next visit it opens
+  });
+
   it("waits for another dialog to close", async () => {
     block("aria-modal");
     const { result } = renderHook(() => useScreenTour("guests"));

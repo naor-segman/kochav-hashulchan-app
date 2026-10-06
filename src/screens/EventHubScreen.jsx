@@ -287,7 +287,7 @@ function CreatedMoment({ ev, done }) {
   const left = BUILD_STEPS.filter(s => !done(s.id)).length;
   const celebrate = MAZAL_TOV.has(ev.type);
   return (
-    <section className={styles.created} aria-labelledby="hub-created-title">
+    <section className={styles.created} aria-labelledby="hub-created-title" data-tour-hold>
       <h2 id="hub-created-title" className={styles.createdTitle}>
         {celebrate ? "מזל טוב — האירוע נפתח" : "האירוע נפתח"}
       </h2>

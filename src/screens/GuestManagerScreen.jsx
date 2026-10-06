@@ -230,16 +230,28 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     return { group: name, newCustom: name };
   };
 
+  /* Focus the field the error is about AND bring it, with its error line,
+     to the middle of the screen. focus() alone does not scroll a field that
+     counts as visible — and one sitting under the sticky bar counts: at 1280
+     the field and its error were both behind the 107px header, at 390 half
+     behind the 62px bar (review 6.10). */
+  const focusField = (el) => {
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView?.({ block: "center", behavior: reduce ? "auto" : "smooth" });
+  };
+
   const saveGuest = () => {
     if (!form.name.trim()) {
       setErrors({ name: "כתבו את שם האורח — בלי שם אי אפשר לשמור" });
-      nameRef.current?.focus();
+      focusField(nameRef.current);
       return;
     }
     const { group, newCustom } = resolveGroup();
     if (form.group === "אחר" && !customGroupInput.trim()) {
       setErrors({ group: "תנו שם לקבוצה החדשה" });
-      groupInputRef.current?.focus();
+      focusField(groupInputRef.current);
       return;
     }
     // Every extra seat needs a name (12.8). This form has an explicit save, so
@@ -250,7 +262,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     const unnamed = missingCompanionSeats(form.companions, form.count);
     if (unnamed.length) {
       setErrors({ companions: `חסר שם לאחד המקומות — ${COMPANION_NAME_HINT}.` });
-      companionRefs.current[unnamed[0] - 1]?.focus();
+      focusField(companionRefs.current[unnamed[0] - 1]);
       return;
     }
     setErrors({});
