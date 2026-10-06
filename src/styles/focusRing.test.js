@@ -22,6 +22,8 @@ const tokenValue = (name) => {
   return ref ? tokenValue(ref[1]) : v;
 };
 const lum = (hex) => {
+  // "#fff" → "#ffffff": --on-accent is written short.
+  if (/^#[0-9a-f]{3}$/i.test(hex)) hex = "#" + [...hex.slice(1)].map(c => c + c).join("");
   const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
     .map(x => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -44,13 +46,19 @@ describe("focus ring token", () => {
 
   it.each([
     ["../components/layout/SiteHeader.module.css", ".nav", "text"],
-    ["../components/layout/Footer.module.css", ".footer", "nav-bg"],
     ["../components/layout/Shell.module.css", ".topbar", "nav-bg"],
-    ["../screens/services/ServicePage.module.css", ".close", "text"],
+    // The brand band since 136 (6.10) — near-black before.
+    ["../screens/services/ServicePage.module.css", ".close", "cta"],
   ])("%s %s re-points it to a colour ≥3:1 on its own ground", (file, selector, groundToken) => {
     const ring = ringIn(file, selector);
     expect(ring, `${selector} sets no --focus-ring`).not.toBeNull();
     expect(ratio(ring, tokenValue(groundToken))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("the footer is light since 136 (6.10): no override, and the default ring holds on its ground", () => {
+    expect(ringIn("../components/layout/Footer.module.css", ".footer")).toBeNull();
+    expect(read("../components/layout/Footer.module.css")).toMatch(/\.footer\s*\{[^}]*background:\s*var\(--bg\)/);
+    expect(ratio(tokenValue("accent-text"), tokenValue("bg"))).toBeGreaterThanOrEqual(3);
   });
 
   it("and the default would NOT have been enough there — the reason this exists", () => {
