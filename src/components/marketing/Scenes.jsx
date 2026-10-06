@@ -56,12 +56,12 @@ export function ChatScene() {
 /* The evening itself (owner, 6.10: the drawing "נראה על הפנים… אפילו
  * להשתמש בתמונה"): the hall as a guest walks in, and the door screen as the
  * greeter holds it — the real screen, captured from the product. The photo is
- * a stand-in until the owner's own event photographs arrive. */
+ * the owner's own (6.10): the dance floor at its height. */
 export function DoorScene() {
   return (
     <div className={styles.doorStage}>
-      <img className={styles.doorPhoto} src="/hero/hero.jpg"
-        alt="אולם ערוך לאירוע — כיסאות לבנים ופנסים לאורך המעבר" loading="lazy" />
+      <img className={styles.doorPhoto} src="/celebrate/event-day.jpg"
+        alt="רחבת הריקודים בשיא האירוע — האורחים רוקדים מול הבמה והאורות" loading="lazy" />
       <PhoneFrame src="/shots-phone/checkin.jpg" className={styles.doorPhone}
         alt="עמדת הכניסה בטלפון של הדיילת: חיפוש אורח, מספר השולחן וסימון שהגיע" />
     </div>

@@ -85,8 +85,10 @@ try {
       /* Inside a role="img" whose aria-label already says the whole picture
          (the home page's WhatsApp mock, 6.10), the children are presentational
          and alt="" is the correct value — a second description would be read
-         twice. */
-      described: (el.closest('[role="img"]')?.getAttribute("aria-label") || "").trim().length > 10,
+         twice. Likewise inside aria-hidden (the home page's event-type photos,
+         whose card text already names them): no one is told about it at all. */
+      described: (el.closest('[role="img"]')?.getAttribute("aria-label") || "").trim().length > 10
+        || !!el.closest('[aria-hidden="true"]'),
     })));
     /* Only where a page is BUILT out of screenshots. The check exists because a
        404 on a landing page is a grey box where the proof was — but /pricing is

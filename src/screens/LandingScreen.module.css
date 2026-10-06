@@ -176,21 +176,41 @@
 
 /* ── 5 · celebrate ────────────────────────────────────────────────────── */
 .celebrate { background: var(--surface); }
+/* Five cards: on a phone the wedding runs full width and the rest pair up;
+   on a desktop three over two, the second row wider. */
 .celebrateGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-@media (min-width: 860px) { .celebrateGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
+.celebrateGrid > :first-child { grid-column: 1 / -1; }
+@media (min-width: 860px) {
+  .celebrateGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+  .celebrateGrid > *, .celebrateGrid > :first-child { grid-column: span 2; }
+  .celebrateGrid > :nth-child(n + 4) { grid-column: span 3; }
+  .celebrateGrid > :nth-child(n + 4) .celebratePhoto { aspect-ratio: 16 / 9; }
+}
 .celebrateCard {
   display: grid; align-content: start; gap: 8px;
-  min-height: 168px;
-  padding: 18px 16px 20px;
+  padding-block-end: 20px;
   text-decoration: none;
   background: var(--blush-soft);
   border: 1px solid var(--blush);
-  border-top: 4px solid var(--cta);
   transition: background var(--transition);
 }
 .celebrateCard:hover { background: var(--blush); }
-.celebrateArt { display: block; width: 72px; height: 72px; margin-bottom: 4px; }
-@media (min-width: 860px) { .celebrateArt { width: 96px; height: 96px; } }
+.celebrateCard > :not(.celebratePhoto) { padding-inline: 16px; }
+/* The photo, washed toward the brand at its foot and sealed with the accent
+   line (owner, 6.10: "מסגרת/שילוב ורוד"). */
+.celebratePhoto {
+  position: relative; display: block;
+  aspect-ratio: 4 / 3;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border-bottom: 4px solid var(--cta);
+}
+@media (max-width: 859px) { .celebrateGrid > :first-child .celebratePhoto { aspect-ratio: 16 / 9; } }
+.celebratePhoto img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.celebratePhoto::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to top, color-mix(in srgb, var(--accent) 38%, transparent), transparent 55%);
+}
 .celebrateName { font-size: clamp(1.35rem, 4.6vw, 1.9rem); font-weight: 800; color: var(--text); line-height: 1.1; letter-spacing: -.01em; }
 .celebrateText { font-size: var(--step--1); line-height: 1.55; color: var(--text2); }
 .celebrateGo { margin-top: auto; font-weight: 800; font-size: var(--step--1); color: var(--accent-text); }
