@@ -359,3 +359,14 @@ describe("GuestManagerScreen — an error does not follow the host into an edit 
     expect(screen.getByDisplayValue("משפחת כהן").getAttribute("aria-invalid")).not.toBe("true");
   });
 });
+
+describe("GuestManagerScreen — the seat count shows what will be saved (review 6.10)", () => {
+  it("99 shows 50, 0 shows 1", () => {
+    renderGuests();
+    const input = document.querySelector("input[type=number][max=\"50\"]");
+    fireEvent.change(input, { target: { value: "99" } });
+    expect(input.value).toBe("50");
+    fireEvent.change(input, { target: { value: "0" } });
+    expect(input.value).toBe("1");
+  });
+});

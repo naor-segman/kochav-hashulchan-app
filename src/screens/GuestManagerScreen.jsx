@@ -828,10 +828,16 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
             <input className={base.input} type="number" min="1" max="50"
               value={countText ?? (form.count || 1)}
               onChange={e => {
+                // What is shown is what will be saved (review 6.10: "99" and
+                // "0" stayed on screen while the form held 50 / the old count).
+                // Empty is allowed while retyping and keeps the count (a
+                // snap to 1 there collapsed the companion fields mid-edit).
                 const t = e.target.value;
-                setCountText(t);
                 const n = parseInt(t, 10);
-                if (n >= 1) setF("count", Math.min(50, n));
+                if (t === "") { setCountText(""); return; }
+                const c = n >= 1 ? Math.min(50, n) : 1;
+                setCountText(String(c));
+                setF("count", c);
               }}
               onBlur={() => setCountText(null)} />
           </Field>

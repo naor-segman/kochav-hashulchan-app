@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { render, screen, fireEvent } from "../test/dom.js";
 import { AuthProvider } from "../hooks/useAuth.js";
 import EventHubScreen from "./EventHubScreen.jsx";
@@ -228,5 +228,42 @@ describe("EventHubScreen — review 6.10", () => {
       </AuthProvider>
     );
     expect(screen.getByRole("heading", { name: "האירוע נפתח" })).toBeInTheDocument();
+  });
+});
+
+describe("EventHubScreen — the created moment's contract (review 6.10, test gaps)", () => {
+  it("holds the hub tour for that visit (data-tour-hold on the moment)", () => {
+    const { container } = render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={[{ pathname: "/events/e1", state: { created: true } }]}>
+          <EventHubScreen activeEvent={{ ...EV, guests: [], seating: {} }} go={vi.fn()} showToast={vi.fn()} />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+    expect(container.querySelector("[data-tour-hold]")).not.toBeNull();
+  });
+
+  it("clears the flag from the history entry after the first view", () => {
+    let seen;
+    const Probe = () => { seen = useLocation().state; return null; };
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={[{ pathname: "/events/e1", state: { created: true } }]}>
+          <EventHubScreen activeEvent={{ ...EV, guests: [], seating: {} }} go={vi.fn()} showToast={vi.fn()} />
+          <Probe />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+    expect(seen?.created).toBeFalsy();
+    // …and the moment stays on screen for this view.
+    expect(screen.getByRole("heading", { name: "מזל טוב — האירוע נפתח" })).toBeInTheDocument();
+  });
+
+  it("a future date with no guests still shows the countdown and the numbers", () => {
+    const d = new Date(); d.setDate(d.getDate() + 30);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    renderHub({ guests: [], seating: {}, date: iso });
+    expect(screen.getByText("ימים לאירוע")).toBeInTheDocument();
+    expect(screen.getByText("מוזמנים")).toBeInTheDocument();
   });
 });
