@@ -31,3 +31,5 @@
   font-size: var(--step--1);
   color: var(--text2);
 }
+
+.nowrap { white-space: nowrap; }

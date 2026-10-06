@@ -199,7 +199,8 @@
 }
 
 .readOnly { background: rgba(var(--nav-text-rgb), .07); color: var(--nav-muted); }
-.saveError { background: rgba(var(--red-rgb), .22); color: var(--red-border); }
+/* --red on --red-bg: the .22-alpha tint measured 3.82:1 on the light ground. */
+.saveError { background: var(--red-bg); color: var(--red); }
 
 /* ── Tabs ── */
 .tabs {
@@ -337,14 +338,16 @@
   gap: 8px;
   margin: 0 16px 12px;
   padding: 10px 12px;
-  border: 1px solid var(--green-light);
+  border: 1px solid var(--green-border);
   border-radius: 0;
-  background: rgba(var(--green-rgb), .18);
+  /* The light system's own pair (6.10): the .18-alpha tint of the dark ground
+     put the green count at 4.27:1. --green-dark on --green-bg. */
+  background: var(--green-bg);
 }
 
 .lastIcon { display: flex; color: var(--green-light); }
 .lastName { font-size: var(--step--1); font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lastCount { font-size: var(--step--2); font-weight: 700; color: var(--green-light); font-variant-numeric: tabular-nums; }
+.lastCount { font-size: var(--step--2); font-weight: 700; color: var(--green-dark); font-variant-numeric: tabular-nums; }
 .lastTable { font-size: var(--step--2); font-weight: 700; color: var(--nav-text); }
 
 .lastClose {
@@ -645,9 +648,13 @@
   cursor: pointer;
 }
 
-.tableAll:hover { background: var(--nav-text); color: var(--nav-bg); }
+/* A light tint on hover, and only where hover is real: on a phone :hover sticks
+   after a tap, and the inverted fill of the dark theme left a solid slab. */
 .tableAllUndo { border-color: var(--nav-muted); color: var(--nav-muted); }
-.tableAllUndo:hover { background: var(--nav-muted); color: var(--nav-bg); }
+@media (hover: hover) {
+  .tableAll:hover,
+  .tableAllUndo:hover { background: rgba(var(--nav-text-rgb), .06); }
+}
 
 .tableGuests { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
 .tableEmpty { font-size: var(--step--1); color: var(--nav-muted); padding: 4px; }

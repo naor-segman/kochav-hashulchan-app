@@ -46,11 +46,12 @@ import { useScreenTour } from "../hooks/useScreenTour.js";
  *   mode="token"  /entrance/:token           — a hired greeter's phone, no
  *                 account. Arrival only, enforced in SQL, not here.
  *
- * Everything below is judged against one situation: ONE HAND, A PHONE, A DARK
- * ROOM, A QUEUE AT THE DOOR. That is why the ground is dark rather than the
- * white the old check-in screen used, why the primary action on every row is a
- * single full-width tap that means "everyone in this row is here", and why
- * partial arrival — the exception — is one level down and never in the way.
+ * Everything below is judged against one situation: ONE HAND, A PHONE, A
+ * QUEUE AT THE DOOR. That is why the primary action on every row is a single
+ * full-width tap that means "everyone in this row is here", and why partial
+ * arrival — the exception — is one level down and never in the way. The
+ * ground is the site's light one since 6.10 (owner: the dark one was "לא נוח
+ * לקריאה").
  */
 // ── One guest row ──────────────────────────────────────────────────────────
 //
@@ -1042,7 +1043,7 @@ export default function EntranceScreen({
               return (
                 <div key={table.id} className={[styles.tableBlock, allIn ? styles.tableBlockDone : ""].filter(Boolean).join(" ")}>
                   <div className={styles.tableHead}>
-                    <TableGlyph shape={table.shape} capacity={capacity || seats} taken={taken} size={24} onDark />
+                    <TableGlyph shape={table.shape} capacity={capacity || seats} taken={taken} size={24} />
                     <span className={styles.tableName}>{tableLabel(table)}</span>
                     <span className={styles.tableCount}>{here}/{seats}</span>
                     {free > 0 && <span className={styles.tableFree}>{free} פנויים</span>}

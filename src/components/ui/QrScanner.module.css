@@ -30,7 +30,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border2);
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--surface);
   color: var(--text2);
   font-size: var(--step--1);
