@@ -48,8 +48,7 @@ export default function PricingScreen({ user }) {
 
         <section className={styles.top}>
           <div className={styles.inner}>
-            {/* eyebrowDark: --accent-text on this dark band was 2.64:1 (bug class 4). */}
-            <p className={styles.eyebrowDark}>מחירים</p>
+            <p className={styles.eyebrow}>מחירים</p>
             <h1 className={styles.h1}>המחיר של האירוע שלכם. בדיוק.</h1>
             <p className={styles.lede}>
               בוחרים כמה מוזמנים — ורואים כמה זה עולה. בלי מחירים כלליים, בלי תוספות

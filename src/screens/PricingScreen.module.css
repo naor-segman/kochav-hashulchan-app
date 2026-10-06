@@ -5,21 +5,20 @@
 .inner { max-width: 1120px; margin-inline: auto; padding: 56px 20px; }
 .center { text-align: center; }
 
-.eyebrow, .eyebrowDark { margin: 0 0 12px; font-size: var(--step--1); font-weight: 800; letter-spacing: .08em; color: var(--accent-text); }
-.eyebrowDark { color: var(--accent-on-dark); }
-.h1 { margin: 0 0 14px; font-size: clamp(2.2rem, 7vw, 3.6rem); font-weight: 800; line-height: 1.04; letter-spacing: -.03em; color: var(--nav-text); text-wrap: balance; }
-.h2, .h2Dark { margin: 0 0 14px; font-size: clamp(1.7rem, 5vw, 2.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; color: var(--text); text-wrap: balance; }
-.h2Dark { color: var(--nav-text); }
-.lede { margin: 0; max-width: 52ch; color: var(--nav-muted); font-size: var(--step-1); line-height: 1.7; }
-.text, .textDark { margin: 0 0 22px; color: var(--text2); font-size: var(--step-1); line-height: 1.7; max-width: 52ch; }
-.textDark { color: var(--nav-muted); }
+.eyebrow { margin: 0 0 12px; font-size: var(--step--1); font-weight: 800; letter-spacing: .08em; color: var(--accent-text); }
+.h1 { margin: 0 0 14px; font-size: clamp(2.2rem, 7vw, 3.6rem); font-weight: 800; line-height: 1.04; letter-spacing: -.03em; color: var(--text); text-wrap: balance; }
+.h2 { margin: 0 0 14px; font-size: clamp(1.7rem, 5vw, 2.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -.02em; color: var(--text); text-wrap: balance; }
+.lede { margin: 0; max-width: 52ch; color: var(--text2); font-size: var(--step-1); line-height: 1.7; }
+.text { margin: 0 0 22px; color: var(--text2); font-size: var(--step-1); line-height: 1.7; max-width: 52ch; }
 
-.top { background: var(--nav-bg); --focus-ring: var(--accent-on-dark); }
+/* The service pages' blush hero (136, 6.10): it was the near-black band the
+   owner asked to lose (5.10). The picker card still rides up into it. */
+.top { background: var(--blush-soft); border-bottom: 1px solid var(--blush-line); }
 .top .inner { padding-top: 64px; padding-bottom: 64px; text-align: center; display: grid; justify-items: center; }
 .pick { background: var(--bg); }
 .pick .inner { padding-top: 0; transform: translateY(-36px); padding-bottom: 20px; }
 
-.btnPrimary, .btnLight {
+.btnPrimary {
   display: inline-flex; align-items: center; justify-content: center;
   min-height: 54px; padding: 0 28px;
   font-size: var(--step-1); font-weight: 800; text-decoration: none;
@@ -27,8 +26,7 @@
 }
 .btnPrimary { background: var(--cta); border-color: var(--cta); color: var(--on-accent); }
 .btnPrimary:hover { background: var(--cta-dark); border-color: var(--cta-dark); }
-.btnLight { background: var(--nav-text); color: var(--text); border-color: var(--nav-text); }
-.btnPrimary:focus-visible, .btnLight:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.btnPrimary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
 
 .free { background: var(--surface); border-top: 1px solid var(--border); }
 .freeGrid { display: grid; gap: 32px; align-items: center; }
