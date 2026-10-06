@@ -82,6 +82,11 @@ try {
       naturalW: el.naturalWidth,
       naturalH: el.naturalHeight,
       complete: el.complete,
+      /* Inside a role="img" whose aria-label already says the whole picture
+         (the home page's WhatsApp mock, 6.10), the children are presentational
+         and alt="" is the correct value — a second description would be read
+         twice. */
+      described: (el.closest('[role="img"]')?.getAttribute("aria-label") || "").trim().length > 10,
     })));
     /* Only where a page is BUILT out of screenshots. The check exists because a
        404 on a landing page is a grey box where the proof was — but /pricing is
@@ -94,7 +99,7 @@ try {
     for (const im of imgs) {
       check(`${route}: loaded ${im.src}`,
         im.complete && im.naturalW > 0, `natural ${im.naturalW}x${im.naturalH}`);
-      check(`${route}: alt on ${im.src}`, im.alt.trim().length > 10, im.alt);
+      if (!im.described) check(`${route}: alt on ${im.src}`, im.alt.trim().length > 10, im.alt);
       if (im.declaredW && im.declaredH) {
         check(`${route}: declared size matches ${im.src}`,
           im.declaredW === im.naturalW && im.declaredH === im.naturalH,

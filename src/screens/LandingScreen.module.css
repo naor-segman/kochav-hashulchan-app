@@ -236,3 +236,24 @@
 @media (prefers-reduced-motion: reduce) {
   .tile, .tile:hover { transition: none; transform: none; }
 }
+
+/* ── 4 · three steps (6.10) ───────────────────────────────────────────── */
+.steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 28px;
+  counter-reset: none;
+}
+@media (min-width: 860px) { .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; } }
+.step {
+  display: grid; align-content: start; gap: 8px;
+  padding-top: 16px; border-top: 2px solid var(--text);
+}
+.stepNum {
+  display: inline-grid; place-items: center;
+  width: 40px; height: 40px;
+  background: var(--cta); color: var(--on-accent);
+  font-size: var(--step-1); font-weight: 800;
+}
+.stepTitle { margin: 6px 0 0; font-size: var(--step-2); font-weight: 800; line-height: 1.2; color: var(--text); }
+.stepText { margin: 0 0 8px; font-size: var(--step-0); line-height: 1.6; color: var(--text2); }
+.stepShot { display: block; width: 100%; height: auto; border: 1px solid var(--border); background: var(--surface); }

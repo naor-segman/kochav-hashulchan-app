@@ -1,4 +1,5 @@
 import styles from "./Scenes.module.css";
+import PhoneFrame from "./PhoneFrame.jsx";
 
 /**
  * Two drawn scenes for the home page (136). The owner, 5.10: too many phones —
@@ -8,54 +9,61 @@ import styles from "./Scenes.module.css";
  * The invitation text is the product's real default template (messageSequence).
  */
 
+/* The RSVP moment, in an iPhone (owner, 6.10: "במקום סתם ריבוע לעשות פה את
+ * האייפון… ההודעה חייבת להיות אמיתית ומדויקת, בדיוק כמו שהם ייראו אותה").
+ * The text is the product's invitation template (messageSequence.js) filled
+ * for a sample guest, and the link shows as WhatsApp shows it: a preview card
+ * with the event's picture and name (the invite-og edge function makes it). */
 export function ChatScene() {
   return (
-    <div className={styles.chatWrap} aria-label="דוגמה: אורח מקבל הזמנה בוואטסאפ ומאשר הגעה, והתשובה נכנסת לרשימה" role="img">
-      <div className={styles.chat}>
-        <div className={styles.chatHead}><span className={styles.avatar}>ד״י</span><span>דנה ויוסי</span></div>
-        <div className={styles.bubbleIn}>
-          היי משפחת כהן 👋{"\n\n"}אתם מוזמנים לחתונה של דנה ויוסי!{"\n"}📅 חמישי, 12.11{"\n"}📍 אולמי הגן{"\n\n"}נשמח שתאשרו הגעה:{"\n"}
-          <span className={styles.link}>plan.unica-events.co.il/r/…</span>
-          <span className={styles.meta}>19:02</span>
+    <div className={styles.chatStage}>
+      <PhoneFrame className={styles.chatPhone}>
+        <div className={styles.waHead}>
+          <span className={styles.waBack} aria-hidden="true">›</span>
+          <span className={styles.avatar}>נ״ט</span>
+          <span className={styles.waName}>נועה וטל<small>מקוון</small></span>
         </div>
-        <div className={styles.bubbleOut}>
-          מגיעים, שניים 🎉 מזל טוב!
-          <span className={styles.meta}>19:05 ✓✓</span>
+        <div className={styles.waBody} role="img"
+          aria-label="דוגמה: הזמנה בוואטסאפ — היי משפחת כהן, שמחים להזמין אתכם לחתונה של נועה וטל, עם תאריך, מקום וקישור לאישור הגעה; והתשובה: מגיעים, שניים">
+          <div className={styles.bubbleIn}>
+            <span className={styles.preview}>
+              <img src="/hero/hero.jpg" alt="" loading="lazy" />
+              <span className={styles.previewText}>
+                <b>החתונה של נועה וטל 💍</b>
+                <span>plan.unica-events.co.il</span>
+              </span>
+            </span>
+            {"היי משפחת כהן 👋\n\nשמחים להזמין אתכם לחתונה של נועה וטל! 🎉💛\n📅 חמישי, 12.11\n📍 בית על הים, תל אביב\n\nנשמח שתאשרו הגעה כאן 👇\n"}
+            <span className={styles.link}>plan.unica-events.co.il/rsvp/…</span>
+            <span className={styles.meta}>19:02</span>
+          </div>
+          <div className={styles.bubbleOut}>
+            מגיעים, שניים 🎉 מזל טוב!!
+            <span className={styles.meta}>19:05 ✓✓</span>
+          </div>
         </div>
-      </div>
-      <div className={styles.rowCard}>
+      </PhoneFrame>
+      {/* What happens on the host's side, the same second. */}
+      <div className={styles.rowCard} aria-hidden="true">
         <div className={styles.rowName}>משפחת כהן</div>
-        <div className={styles.rowMeta}>2 מקומות · צד הכלה · צמחוני</div>
+        <div className={styles.rowMeta}>2 מקומות · צד הכלה</div>
         <span className={styles.chipOk}>אישרו ✓</span>
-      </div>
-      <div className={styles.tally}>
-        <div><strong>132</strong><span>אישרו</span></div>
-        <div><strong>48</strong><span>ממתינים</span></div>
       </div>
     </div>
   );
 }
 
+/* The evening itself (owner, 6.10: the drawing "נראה על הפנים… אפילו
+ * להשתמש בתמונה"): the hall as a guest walks in, and the door screen as the
+ * greeter holds it — the real screen, captured from the product. The photo is
+ * a stand-in until the owner's own event photographs arrive. */
 export function DoorScene() {
   return (
-    <div className={styles.doorWrap} aria-label="דוגמה: בכניסה לאולם — מונה הגעה, אורח שנמצא בחיפוש עם מספר השולחן, וכרטיס שולחן מודפס" role="img">
-      <div className={styles.tent}>
-        <span className={styles.tentLabel}>שולחן</span>
-        <span className={styles.tentNum}>9</span>
-        <span className={styles.tentNames}>עדי אוחיון · נועה לוי · רון הררי · מיכל דהן</span>
-      </div>
-      <div className={styles.counter}>
-        <div className={styles.counterTop}><strong>58</strong><span>מתוך 96 אורחים הגיעו</span></div>
-        <div className={styles.bar}><span style={{ inlineSize: "60%" }} /></div>
-      </div>
-      <div className={styles.guest}>
-        <div>
-          <div className={styles.rowName}>עדי אוחיון</div>
-          <div className={styles.rowMeta}>מקום אחד · צד דנה</div>
-        </div>
-        <span className={styles.table}>שולחן 9</span>
-        <span className={styles.arrived}>הגיע/ה ✓</span>
-      </div>
+    <div className={styles.doorStage}>
+      <img className={styles.doorPhoto} src="/hero/hero.jpg"
+        alt="אולם ערוך לאירוע — כיסאות לבנים ופנסים לאורך המעבר" loading="lazy" />
+      <PhoneFrame src="/shots-phone/checkin.jpg" className={styles.doorPhone}
+        alt="עמדת הכניסה בטלפון של הדיילת: חיפוש אורח, מספר השולחן וסימון שהגיע" />
     </div>
   );
 }

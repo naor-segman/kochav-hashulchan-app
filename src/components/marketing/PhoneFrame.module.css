@@ -42,6 +42,14 @@
   background: var(--device-glass);
 }
 
+.live {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .media {
   display: block;
   width: 100%;
