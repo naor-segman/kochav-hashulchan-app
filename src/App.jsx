@@ -61,6 +61,7 @@ const LandingScreen      = lazy(() => import("./screens/LandingScreen.jsx"));
 
 const AdminApp       = lazy(() => import("./admin/AdminApp.jsx"));
 const PricingScreen  = lazy(() => import("./screens/PricingScreen.jsx"));
+const SampleInvitationScreen = lazy(() => import("./screens/SampleInvitationScreen.jsx"));
 /* Marketing service pages (checklist 87). One chunk each and lazy like the rest
    of the marketing site: a visitor who lands on /services/seating from a search
    result should download that page, not the other five. */
@@ -425,6 +426,15 @@ function AppRoutes() {
             />
             <Toast msg={toast?.msg} variant={toast?.variant} />
           </Shell>
+          </Suspense>
+        }
+      />
+      {/* The sample invitation (136, owner 6.10): a real guest page on demo data. */}
+      <Route
+        path="/sample-invitation"
+        element={
+          <Suspense fallback={<Loading />}>
+            <SampleInvitationScreen user={user} />
           </Suspense>
         }
       />

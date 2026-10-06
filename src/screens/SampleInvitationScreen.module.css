@@ -1,0 +1,87 @@
+/* The sample invitation page (136, owner 6.10). The home page's language:
+   square, heavy buttons, the blush ground of the service heroes. */
+.root { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); overflow-x: clip; }
+.main { flex: 1; }
+.main:focus { outline: none; }
+
+.hero { background: var(--blush-soft); border-bottom: 1px solid var(--blush-line); }
+.inner {
+  max-width: 1120px; margin-inline: auto;
+  padding: 48px 20px 64px;
+  display: grid; gap: 40px; align-items: center;
+}
+@media (min-width: 900px) {
+  .inner { grid-template-columns: minmax(0, 1fr) auto; gap: 64px; padding-block: 72px 88px; }
+}
+
+.text { min-width: 0; }
+.eyebrow { margin: 0 0 12px; font-size: var(--step--1); font-weight: 800; letter-spacing: .08em; color: var(--accent-text); }
+.title {
+  margin: 0 0 16px;
+  font-size: clamp(2rem, 5.6vw, 3.2rem); font-weight: 800; line-height: 1.08; letter-spacing: -0.02em;
+  color: var(--text); text-wrap: balance;
+}
+.lead { margin: 0 0 14px; font-size: var(--step-1); line-height: 1.65; color: var(--text2); max-width: 46ch; }
+
+.tryList { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 10px; border-top: 2px solid var(--text); }
+.tryList li {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 12px 2px; border-bottom: 1px solid var(--blush-line);
+  font-size: var(--step-0); font-weight: 700; color: var(--text);
+}
+.tryList span { color: var(--green); font-weight: 800; }
+
+.note { margin: 0 0 24px; font-size: var(--step--1); color: var(--text2); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.btnPrimary, .btnOutline {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 54px; padding: 0 24px;
+  font-size: var(--step-1); font-weight: 800; text-decoration: none;
+  border: 2px solid transparent;
+  transition: background var(--transition), border-color var(--transition);
+}
+.btnPrimary { background: var(--cta); border-color: var(--cta); color: var(--on-accent); }
+.btnPrimary:hover { background: var(--cta-dark); border-color: var(--cta-dark); }
+.btnOutline { background: var(--surface); border-color: var(--cta); color: var(--accent-text); }
+.btnOutline:hover { background: var(--accent-bg); }
+.btnPrimary:focus-visible, .btnOutline:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 3px; }
+
+/* The phone. Same proportions and materials as PhoneFrame (marketing), drawn
+   here because it holds a live page, not a picture. */
+.device {
+  --w: min(340px, 84vw);
+  position: relative;
+  width: var(--w);
+  aspect-ratio: 71.5 / 147.6;
+  padding: calc(var(--w) * .036);
+  border-radius: calc(var(--w) * .17);
+  background: var(--device-glass);
+  box-shadow:
+    0 0 0 calc(var(--w) * .008) var(--device-edge),
+    0 0 0 calc(var(--w) * .013) var(--device-sheen),
+    0 30px 60px -18px rgba(var(--text-rgb), .45);
+  margin-inline: auto;
+}
+.island {
+  position: absolute; z-index: 2;
+  top: calc(var(--w) * .07);
+  inset-inline: 0; margin-inline: auto;
+  width: calc(var(--w) * .3); height: calc(var(--w) * .085);
+  border-radius: 999px; background: var(--device-glass);
+}
+.screen {
+  position: relative;
+  width: 100%; height: 100%;
+  border-radius: calc(var(--w) * .135);
+  overflow: hidden;
+  background: var(--surface);
+}
+/* Physical left: the frame is scaled from its top-left corner, and the
+   390px page is placed at the left edge of the screen it is scaled into. */
+.frame {
+  position: absolute; top: 0; left: 0;
+  border: 0;
+  transform-origin: top left;
+  background: var(--surface);
+}

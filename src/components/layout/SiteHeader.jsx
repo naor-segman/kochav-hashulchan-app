@@ -199,6 +199,10 @@ export default function SiteHeader({ user = null, active = null }) {
               </ul>
             </div>
           )}
+          <Link to="/sample-invitation"
+            className={[styles.navLink, active === "sample" && styles.navLinkActive].filter(Boolean).join(" ")}>
+            הזמנה לדוגמה
+          </Link>
           <Link to="/pricing" className={pricingClass}>{PRICING_LABEL}</Link>
         </div>
 
@@ -225,6 +229,7 @@ export default function SiteHeader({ user = null, active = null }) {
           {live.map(s => (
             <Link key={s.id} to={s.path} className={styles.mobileLink} onClick={closeMenu}>{s.label}</Link>
           ))}
+          <Link to="/sample-invitation" className={styles.mobileLink} onClick={closeMenu}>הזמנה לדוגמה</Link>
           <Link to="/pricing" className={styles.mobileLink} onClick={closeMenu}>{PRICING_LABEL}</Link>
           {user ? (
             <Link to="/app" className={styles.mobileMenuCta} onClick={closeMenu}>לאירועים שלי ←</Link>
