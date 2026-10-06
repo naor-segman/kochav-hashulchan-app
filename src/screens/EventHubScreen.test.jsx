@@ -177,7 +177,7 @@ describe("EventHubScreen — the moment the event is created", () => {
     renderAt({ pathname: "/events/e1", state: { created: true } });
     expect(screen.getByRole("heading", { name: "מזל טוב — האירוע נפתח" })).toBeInTheDocument();
     // Setup is done (the event has a name): four left.
-    expect(screen.getByText(/מכאן זה עוד ארבעה צעדים/)).toBeInTheDocument();
+    expect(screen.getByText(/נשארו עוד ארבעה צעדים, ובסופם לכל אורח יש מקום/)).toBeInTheDocument();
     expect(screen.getByText(/אפשר לעצור ולחזור מתי שרוצים/)).toBeInTheDocument();
   });
 
@@ -200,5 +200,33 @@ describe("EventHubScreen — no wall of zeros on an empty event", () => {
     unmount();
     renderHub();
     expect(screen.getByText("מוזמנים")).toBeInTheDocument();
+  });
+});
+
+describe("EventHubScreen — review 6.10", () => {
+  it("'מוזמנים' counts everyone invited, the declined included", () => {
+    // 4 + 6 + 1 + 2 = 13 people, plus a declined family of 3 → 16 invited.
+    const { container } = renderHub({ guests: [...EV.guests, { id: "d", name: "ד", count: 3, rsvp: "declined" }] });
+    const cell = [...container.querySelectorAll("dt")].find(dt => dt.textContent === "מוזמנים").parentElement;
+    expect(cell.querySelector("dd").textContent).toBe("16");
+  });
+
+  it("on the day says 'היום', not a 0", () => {
+    const d = new Date();
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const { container } = renderHub({ date: iso });
+    const cell = [...container.querySelectorAll("dt")].find(dt => dt.textContent === "האירוע").parentElement;
+    expect(cell.querySelector("dd").textContent).toBe("היום");
+  });
+
+  it("no mazal tov for a free-text type it does not know", () => {
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={[{ pathname: "/events/e1", state: { created: true } }]}>
+          <EventHubScreen activeEvent={{ ...EV, type: "אזכרה", guests: [], seating: {} }} go={vi.fn()} showToast={vi.fn()} />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+    expect(screen.getByRole("heading", { name: "האירוע נפתח" })).toBeInTheDocument();
   });
 });

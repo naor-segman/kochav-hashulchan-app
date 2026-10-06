@@ -232,7 +232,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
   const saveGuest = () => {
     if (!form.name.trim()) {
-      setErrors({ name: "כתבו את שם האורח — זה השדה היחיד שחובה" });
+      setErrors({ name: "כתבו את שם האורח — בלי שם אי אפשר לשמור" });
       nameRef.current?.focus();
       return;
     }
@@ -249,7 +249,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
     // The message says what to type; it never says the host did something wrong.
     const unnamed = missingCompanionSeats(form.companions, form.count);
     if (unnamed.length) {
-      setErrors({ companions: `${COMPANION_NAME_HINT}.` });
+      setErrors({ companions: `חסר שם לאחד המקומות — ${COMPANION_NAME_HINT}.` });
       companionRefs.current[unnamed[0] - 1]?.focus();
       return;
     }
@@ -1012,7 +1012,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
 
       {ev.guests.length === 0 && (
         <EmptyState mark="guests" title="כל אירוע מתחיל ברשימה"
-          text={`מי שאתם רוצים לראות שם. בחרו למעלה איך להתחיל: להקליד שורה-שורה, להדביק רשימה שכבר יש לכם, או לשלוח קישור ${collabWhoTo} שימלאו במקומכם.`} />
+          text={`כל מי שאתם רוצים לראות באירוע. בחרו למעלה איך להתחיל: להקליד שורה-שורה, להדביק רשימה שכבר יש לכם, או לשלוח קישור ${collabWhoTo} שימלאו במקומכם.`} />
       )}
       {visible.length === 0 && ev.guests.length > 0 && (
         <EmptyState icon={<Icon name="search" />} title="אין תוצאות לסינון הנוכחי"

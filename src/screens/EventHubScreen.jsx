@@ -66,13 +66,17 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
     const confirmedPeople = guests
       .filter(g => g?.rsvp === "confirmed")
       .reduce((n, g) => n + Math.max(1, Number(g.count) || 1), 0);
+    // EVERYONE invited, the declined included — that is what "מוזמנים" means.
+    // The big number showed `seats` (the declined left out) under that word,
+    // so 300 invited with 50 declined read "250 מוזמנים" (review 6.10).
+    const invitedPeople = guests.reduce((n, g) => n + Math.max(1, Number(g?.count) || 1), 0);
     const answered  = guests.filter(g => g.rsvp && g.rsvp !== "pending").length;
     const tasks     = ev.tasks || [];
     const tasksDone = tasks.filter(t => t.status === "done").length;
     return {
       guests: guests.length, active: totals.totalRecords, declined, seats, tables: tables.length, cap, seated,
       pct: seats > 0 ? Math.round((seated / seats) * 100) : 0,
-      confirmed, answered, confirmedPeople,
+      confirmed, answered, confirmedPeople, invitedPeople,
       constraints: (ev.constraints || []).length,
       tasks: tasks.length, tasksDone,
       vendors: (ev.vendors || []).length,
@@ -147,7 +151,7 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
           <HubCountdown date={ev.date} />
           <div className={styles.num}>
             <dt className={styles.numLabel}>מוזמנים</dt>
-            <dd className={styles.numBig}>{stats.seats}</dd>
+            <dd className={styles.numBig}>{stats.invitedPeople}</dd>
           </div>
           <div className={styles.num}>
             <dt className={styles.numLabel}>אישרו הגעה</dt>
@@ -269,20 +273,26 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
  * too, and a dialog over a dialog is a wall. No confetti (owner: nothing that
  * pops). "מזל טוב" only where it is said: not to a company event, and not to
  * "אחר", which may be anything. */
-const COUNT_WORD = { 1: "צעד אחד", 2: "שני צעדים", 3: "שלושה צעדים", 4: "ארבעה צעדים", 5: "חמישה צעדים" };
-const NO_MAZAL_TOV = new Set(["אירוע עסקי", "אחר"]);
+const COUNT_WORD = { 2: "שני צעדים", 3: "שלושה צעדים", 4: "ארבעה צעדים", 5: "חמישה צעדים" };
+/* An allowlist, not a denylist: an admin template can carry any free-text
+   type ("אזכרה"), and a default of "מזל טוב" is wrong for some of them. */
+const MAZAL_TOV = new Set(["חתונה", "בר מצווה", "בת מצווה", "ברית", "בריתה", "חינה", "אירוס", "אירוע משפחתי", "יום הולדת"]);
+/* The one step that is not required — said where the road is listed. */
+const OPTIONAL_STEP = "constraints";
 
 function CreatedMoment({ ev, done }) {
   const left = BUILD_STEPS.filter(s => !done(s.id)).length;
-  const celebrate = !NO_MAZAL_TOV.has(ev.type);
+  const celebrate = MAZAL_TOV.has(ev.type);
   return (
     <section className={styles.created} aria-labelledby="hub-created-title">
       <h2 id="hub-created-title" className={styles.createdTitle}>
         {celebrate ? "מזל טוב — האירוע נפתח" : "האירוע נפתח"}
       </h2>
       <p className={styles.createdText}>
-        {left
-          ? `מכאן זה עוד ${COUNT_WORD[left] || left + " צעדים"}, ובסופם כל אורח יודע איפה הוא יושב. `
+        {left === 1
+          ? "נשאר עוד צעד אחד, ובסופו לכל אורח יש מקום. "
+          : left
+          ? `נשארו עוד ${COUNT_WORD[left] || left + " צעדים"}, ובסופם לכל אורח יש מקום. `
           : ""}
         הכל נשמר תוך כדי — אפשר לעצור ולחזור מתי שרוצים.
       </p>
@@ -295,6 +305,7 @@ function CreatedMoment({ ev, done }) {
                 {isDone ? <Icon name="check" size={12} /> : s.num}
               </span>
               {s.label}
+              {s.id === OPTIONAL_STEP && <span className={styles.createdOptional}>(לא חובה)</span>}
               {isDone && <span className="sr-only"> — בוצע</span>}
             </li>
           );
@@ -319,10 +330,11 @@ function HubCountdown({ date }) {
   if (days == null || days < 0) return null;
   return (
     <div className={[styles.num, styles.numDays].join(" ")}>
+      {/* On the day: "האירוע" over a big "היום", not "האירוע היום" over a 0. */}
       <dt className={styles.numLabel}>
-        {days === 0 ? "האירוע היום" : days === 1 ? "יום לאירוע" : "ימים לאירוע"}
+        {days === 0 ? "האירוע" : days === 1 ? "יום לאירוע" : "ימים לאירוע"}
       </dt>
-      <dd className={styles.numBig}>{days}</dd>
+      <dd className={styles.numBig}>{days === 0 ? "היום" : days}</dd>
     </div>
   );
 }

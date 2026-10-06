@@ -39,7 +39,7 @@ describe("SeatingScreen — what the automatic run says when families are left",
     // free in twos, 12 families (48 people) waiting.
     const msg = run(event(35, 10, 82, 4));
     expect(msg).toMatch(/12 לא נכנסו/);
-    expect(msg).toMatch(/נשארו 70 מקומות פנויים, אבל מפוזרים/);
+    expect(msg).toMatch(/יש 70 מקומות פנויים, אבל מפוזרים/);
     expect(msg).not.toMatch(/חסרים/);
   });
 
