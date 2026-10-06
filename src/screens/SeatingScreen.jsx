@@ -12,6 +12,7 @@ import {
 } from "@dnd-kit/core";
 import { RowMouseSensor, RowTouchSensor } from "../components/seating/rowSensors.js";
 import { pointerThenOverlap } from "../components/seating/collision.js";
+import { autoRunMessage } from "../logic/autoRunMessage.js";
 import { autoAssign, computeViolations } from "../logic/seating.js";
 import { canSeatMore } from "../utils/featureGates.js";
 import { usePlan } from "../hooks/usePlan.js";
@@ -308,31 +309,12 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
     // "Everything seated ✓" over an "apart" pair still at one locked table
     // told the host the job was done (fourth review 30.9). Say what is left.
     const left = computeViolations(ev.guests, ev.tables, ev.constraints, newSeating).length;
-    if (missed > 0) {
-      /* "הוסיפו מקומות נוספים" was said even with 67 seats free (review 5.10:
-         35 × 10 for 327 people, families of 4 — 11 rows waiting). When the
-         free seats would hold the waiting people, the problem is that a family
-         does not split across tables: say that, and what fixes it. */
-      const cap = ev.tables.reduce((n, t) => n + (Number(t.capacity) || 0), 0);
-      const used = Object.keys(newSeating).reduce((n, id) => {
-        const g = ev.guests.find(x => x.id === id);
-        return n + (g ? Math.max(1, Number(g.count) || 1) : 0);
-      }, 0);
-      const free = Math.max(0, cap - used);
-      const waitingSeats = activeGuests.filter(g => !newSeating[g.id])
-        .reduce((n, g) => n + Math.max(1, Number(g.count) || 1), 0);
-      showToast(
-        "שובצו " + placed + " רשומות. " + missed + " לא נכנסו — " +
-        (free >= waitingSeats
-          ? `יש ${free} מקומות פנויים, אבל מפוזרים, ומשפחה לא מתפצלת בין שולחנות. הוסיפו שולחנות או הגדילו כמה מהם.`
-          : `חסרים עוד ${waitingSeats - free} מקומות. הוסיפו שולחנות, או הגדילו את מספר המקומות בשולחנות.`),
-        "err"
-      );
-    }
-    else if (left > 0)
-      showToast("כל " + placed + " הרשומות שובצו, אבל " + (left === 1 ? "אילוץ אחד לא מתקיים" : left + " אילוצים לא מתקיימים") + " — פירוט למטה", "warn");
-    else
-      showToast("כל " + placed + " הרשומות שובצו ✓");
+    // The reason someone is left standing, and its fix (autoRunMessage.js).
+    const msg = autoRunMessage({
+      active: activeGuests, allGuests: ev.guests, tables: ev.tables, seating: newSeating,
+      lockedTables: ev.lockedTables || [], constraints: ev.constraints, violations: left,
+    });
+    showToast(msg.text, msg.variant === "ok" ? undefined : msg.variant);
     // Deliberately NOT collapsing the open cards. A recompute is the moment the
     // host most wants to look at what changed, and closing what they opened is
     // the behaviour they asked to have removed.
@@ -641,7 +623,8 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
             sub="חשבו הושבה אוטומטית ואז ערכו ידנית לפי הצורך."
             aside={
               <div className={base.pills} data-tour="seating.counts" data-tour-fit>
-                <StatPill n={nActiveAssigned}     label="שובצו"   primary color={allSeated ? "var(--green)" : undefined} />
+                {/* --green-dark: the primary pill is BLUSH, and --green on it is 3.98:1 (review 6.10). */}
+                <StatPill n={nActiveAssigned}     label="שובצו"   primary color={allSeated ? "var(--green-dark)" : undefined} />
                 <StatPill n={unassigned.length}   label="ממתינים" color={unassigned.length > 0 ? "var(--warn)" : undefined} />
                 {declinedGuests.length > 0 && <StatPill n={declinedGuests.length} label="סירבו" color="var(--muted)" />}
                 {arrival.arrivedSeats > 0 && <StatPill n={arrival.arrivedSeats} label="הגיעו" color="var(--green)" />}
