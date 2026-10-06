@@ -13,7 +13,7 @@
  * NEXT day's Hebrew date — the exact date for that moment (owner, 6.10). With
  * no time known it is the daytime date, as most invitations print it.
  */
-import { israelInstant, knownStartTime } from "./calendarFile.js";
+import { israelInstant } from "./calendarFile.js";
 import { israelSunsetMs } from "./sunset.js";
 
 /** "HH:MM" or "H:MM" → "HH:MM", else null. */
@@ -73,12 +73,12 @@ export function hebrewCalendarDate(iso, time) {
   }
 }
 
-/** The start time a guest page uses for the Hebrew date: the host's
- *  "שעת קבלת פנים", else the first time in the event site's schedule, else
- *  none (the daytime date). Works on the guest-page shape (`site`) and on the
- *  host's own event (`eventSite`). */
+/** The start time the Hebrew date follows: the host's "שעת קבלת פנים" only.
+ *  It fell back to the event site's schedule, and that made the pages
+ *  disagree (review 6.10): the RSVP link always receives the schedule, the
+ *  invitation only once the site is published, and the host's preview in
+ *  event details never — three Hebrew dates for one event. One field, one
+ *  answer, the one the host sees under the field. */
 export function hebrewDateTime(event) {
-  return event?.receptionTime
-    || knownStartTime(event?.site?.schedule || event?.eventSite?.schedule)
-    || "";
+  return typeof event?.receptionTime === "string" ? event.receptionTime : "";
 }

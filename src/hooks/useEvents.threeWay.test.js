@@ -50,6 +50,20 @@ describe("three-way merge of single-value fields (סב55)", () => {
     expect(m.version).toBe(7);
   });
 
+  it("the reception time is merged the same way, both directions (137, review 6.10)", () => {
+    const synced2 = normalizeEvent({ ...synced, receptionTime: "17:00" });
+    const base2 = syncBaseOf(synced2);
+    // The phone moved it to 19:30; the stale laptop edited a note later.
+    const cloud = { ...synced2, receptionTime: "19:30", version: 6, syncedVersion: 6, updatedAt: T + 10 };
+    const local = { ...synced2, syncBase: base2, version: 6, syncedVersion: 5, updatedAt: T + 20,
+      guests: [{ ...synced2.guests[0], notes: "צמחוני" }] };
+    expect(mergeCloudWithLocal([local], [cloud])[0].receptionTime).toBe("19:30");
+    // This device set it; a newer cloud copy changed only the date.
+    const local2 = { ...synced2, syncBase: base2, receptionTime: "19:30", version: 6, syncedVersion: 5, updatedAt: T + 10 };
+    const cloud2 = { ...synced2, date: "2027-05-27", version: 6, syncedVersion: 6, updatedAt: T + 20 };
+    expect(mergeCloudWithLocal([local2], [cloud2])[0].receptionTime).toBe("19:30");
+  });
+
   it("the event site is merged the same way", () => {
     const cloud = { ...synced, eventSite: { ...synced.eventSite, story: "איך הכרנו" }, version: 6, syncedVersion: 6, updatedAt: T + 10 };
     const local = { ...synced, syncBase: base, name: "נוי ועידו", version: 6, syncedVersion: 5, updatedAt: T + 20 };

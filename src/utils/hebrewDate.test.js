@@ -70,10 +70,11 @@ describe("the start time decides it (137, owner 6.10)", () => {
     expect(hebrewCalendarDate("2026-10-06", "evening")).toBe("כ״ה בתשרי תשפ״ז");
     expect(hebrewCalendarDate("2026-10-06", "25:00")).toBe("כ״ה בתשרי תשפ״ז");
   });
-  it("a guest page takes the host's reception time, else the site's first scheduled time", () => {
+  it("every page takes the host's reception time, and only that (one answer, review 6.10)", () => {
     expect(hebrewDateTime({ receptionTime: "19:30", site: { schedule: [{ time: "18:00" }] } })).toBe("19:30");
-    expect(hebrewDateTime({ site: { schedule: [{ title: "x" }, { time: "20:15" }] } })).toBe("20:15");
-    expect(hebrewDateTime({ eventSite: { schedule: [{ time: "9:30" }] } })).toBe("09:30");
+    // The schedule is NOT a fallback: the RSVP link gets it, the invitation
+    // only once the site is published — the two pages disagreed.
+    expect(hebrewDateTime({ site: { schedule: [{ time: "20:15" }] } })).toBe("");
     expect(hebrewDateTime({})).toBe("");
   });
 });

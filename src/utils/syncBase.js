@@ -30,6 +30,9 @@ export const SCALAR_FIELDS = [
   "name", "type", "date", "venue",
   "brideName", "groomName", "coupleType", "parentsType", "sideLabels",
   "celebrantName", "organizationName", "contactName", "ownerName",
+  // 137 (6.10): without it the time followed "newer updatedAt wins whole" —
+  // a stale laptop's unrelated edit put 17:00 back over the phone's 19:30.
+  "receptionTime",
   "collabActive", "hostessWriteActive", "giftBitPhone", "giftPayboxLink",
   "eventSite", "announcements", "noShowPct", "costs",
   // Lists and maps the merge UNIONS but that keep no record of deletions. A

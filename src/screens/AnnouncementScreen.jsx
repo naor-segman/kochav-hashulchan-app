@@ -92,6 +92,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
         celebrantName: localEvent.celebrantName,
         organizationName: localEvent.organizationName,
         ownerName: localEvent.ownerName,
+        receptionTime: localEvent.receptionTime,
         rsvpToken: localEvent.tokens?.rsvp, inviteToken: localEvent.tokens?.invite,
         announcements: localEvent.announcements,
         site: localEvent.eventSite ?? null,
@@ -198,7 +199,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
     // give, and the file is an all-day entry rather than an invented 19:00.
     const ics = buildEventIcs({
       name: event.name, date: event.date, venue: event.venue,
-      startTime: knownStartTime(event.site?.schedule),
+      startTime: event.receptionTime || knownStartTime(event.site?.schedule),
       url: window.location.href,
     });
     if (ics) downloadIcs(ics, icsFileName(event.name));
