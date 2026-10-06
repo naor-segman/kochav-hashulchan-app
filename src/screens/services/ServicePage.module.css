@@ -56,7 +56,8 @@
 
 .h1 {
   margin: 0 0 20px;
-  font-size: clamp(2.1rem, 6vw, 3.6rem);
+  /* 1.9rem floor: at 2.1 "הברכה נשארת לתמיד." left "לתמיד." alone at 320. */
+  font-size: clamp(1.9rem, 6vw, 3.6rem);
   line-height: 1.08;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -119,7 +120,9 @@
 
 .h2 {
   margin: 0 0 16px;
-  font-size: clamp(1.9rem, 5.4vw, 3rem);
+  /* The floor stays the old 1.6rem: at 1.9 "ואחרי הערב — האלבום" left
+     "— האלבום" alone at 320 (guestPages orphans, after 73dc2f5). */
+  font-size: clamp(1.6rem, 5.4vw, 3rem);
   line-height: 1.08;
   font-weight: 800;
   letter-spacing: -0.02em;
