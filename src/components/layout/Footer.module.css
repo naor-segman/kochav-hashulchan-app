@@ -1,8 +1,11 @@
+/* Light, like the rest of the site (136, owner 6.10: "דפי השירותים והפוטר";
+   5.10: no all-black grounds). The home page's heavy rule on top separates it
+   from the page — and from the brand band that closes the home and service
+   pages — without a dark slab. The global focus ring (--accent-text) works on
+   this ground, so the dark-band override is gone. */
 .footer {
-  background: var(--nav-bg);
-  border-top: 1px solid var(--nav-border);
-  /* A dark band: the ring --accent-text draws here is 2.64:1. */
-  --focus-ring: var(--accent-on-dark);
+  background: var(--bg);
+  border-top: 2px solid var(--text);
 }
 
 .inner {
@@ -26,20 +29,19 @@
 }
 
 .logoMark {
-  /* Dark ground: --accent-text is tuned for white and measures 2.64:1 here. */
-  color: var(--accent-on-dark);
+  color: var(--accent-text);
   font-size: var(--step-1);
 }
 
 .logoName {
-  color: var(--nav-text);
+  color: var(--text);
   font-size: var(--step-1);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .tagline {
   font-size: var(--step--1);
-  color: var(--nav-muted);
+  color: var(--text2);
   line-height: 1.6;
   max-width: 280px;
   margin: 0;
@@ -57,23 +59,25 @@
 }
 
 .colTitle {
-  font-size: var(--step--3);
-  font-weight: 700;
-  color: var(--nav-muted);
-  letter-spacing: 0.08em;
+  font-size: var(--step--1);
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   margin-bottom: 4px;
 }
 
 .colLink {
   font-size: var(--step--1);
-  color: var(--nav-muted);
+  color: var(--text2);
   text-decoration: none;
   transition: color var(--transition);
 }
 
 .colLink:hover {
-  color: var(--nav-text);
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* "הגדרות עוגיות" opens a dialog rather than a page, so it is a button —
@@ -89,12 +93,12 @@
 }
 
 .colButton:focus-visible {
-  outline: 2px solid var(--nav-text);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
 
 .bottom {
-  border-top: 1px solid var(--nav-border);
+  border-top: 1px solid var(--border);
 }
 
 .bottomInner {
@@ -113,8 +117,8 @@
 .copy,
 .legal {
   font-size: var(--step--2);
-  /* opacity: .6 on --nav-muted composited to 3.30:1. */
-  color: var(--nav-muted);
+  /* --text2, not --muted: 12px on the grey ground. */
+  color: var(--text2);
 }
 
 /* The last line of every page is the operator's legal identity; on a phone
