@@ -16,6 +16,10 @@
  *   --red-border    #F0C0AC on #21242A   9.51:1  failure
  * --accent itself is 3.8:1 and never carries text; a filled button is --cta.
  *
+ * SHAPE (136 stage D, 6.10). Square corners and the site's display face, as
+ * on every other screen. The ground stays dark — the one screen where the
+ * site's light ground would be wrong, for the reason above.
+ *
  * TAP TARGETS. The primary mark button is 60px tall and full width — it is the
  * only thing on a row you can hit without looking. Everything that is not
  * "this whole party is here" is deliberately smaller and one level down.
@@ -82,7 +86,7 @@
   min-height: 44px;
   padding: 8px 12px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-size: var(--step--2);
@@ -146,6 +150,7 @@
 .counterNums { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
 
 .counterBig {
+  font-family: var(--font-family-display);
   font-size: var(--step-4);
   font-weight: 800;
   line-height: 1;
@@ -164,7 +169,7 @@
 .progress {
   height: 6px;
   margin: 0 16px 12px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: rgba(var(--nav-text-rgb), .12);
   overflow: hidden;
 }
@@ -172,7 +177,7 @@
 .progressFill {
   height: 100%;
   background: var(--accent);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   transition: width var(--transition-slow);
 }
 
@@ -184,7 +189,7 @@
   gap: 6px;
   margin: 0 16px 12px;
   padding: 10px 12px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   font-size: var(--step--2);
   font-weight: 600;
 }
@@ -207,7 +212,7 @@
   gap: 6px;
   min-height: 48px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-muted);
   font-family: inherit;
@@ -244,7 +249,7 @@
   min-height: 56px;
   padding: 12px 44px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--nav-bg2);
   color: var(--nav-text);
   font-family: inherit;
@@ -283,7 +288,7 @@
   width: 44px;
   height: 44px;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-muted);
   cursor: pointer;
@@ -299,7 +304,7 @@
   margin: 0 16px 12px;
   min-height: 48px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -313,7 +318,7 @@
 .scanMsg {
   margin: 0 16px 12px;
   padding: 10px 12px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: rgba(var(--nav-text-rgb), .08);
   color: var(--nav-text);
   font-size: var(--step--1);
@@ -329,7 +334,7 @@
   margin: 0 16px 12px;
   padding: 10px 12px;
   border: 1px solid var(--green-light);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: rgba(var(--green-rgb), .18);
 }
 
@@ -345,7 +350,7 @@
   width: 44px;
   height: 44px;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-muted);
   cursor: pointer;
@@ -373,7 +378,7 @@
   min-height: 48px;
   padding: 12px 20px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--cta);
   color: var(--on-accent);
   font-family: inherit;
@@ -390,7 +395,7 @@
 
 .row {
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: var(--nav-bg2);
   padding: 14px;
 }
@@ -425,7 +430,7 @@
 .rowTable {
   flex-shrink: 0;
   padding: 6px 10px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--blush);
   color: var(--text);
   font-size: var(--step--1);
@@ -436,7 +441,7 @@
 .rowNoTable {
   flex-shrink: 0;
   padding: 6px 10px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   border: 1px dashed var(--nav-muted);
   color: var(--nav-muted);
   font-size: var(--step--2);
@@ -455,7 +460,7 @@
   gap: 8px;
   min-height: 60px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--nav-text);
   color: var(--nav-bg);
   font-family: inherit;
@@ -484,7 +489,7 @@
   min-height: 60px;
   padding: 8px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -515,7 +520,7 @@
   width: 48px;
   height: 48px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -545,7 +550,7 @@
   min-height: 44px;
   padding: 8px 14px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -567,7 +572,7 @@
   margin: 0 16px 12px;
   padding: 12px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--nav-bg2);
 }
 
@@ -584,7 +589,7 @@
 
 .freePill {
   padding: 6px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: rgba(var(--nav-text-rgb), .1);
   font-size: var(--step--2);
   font-weight: 600;
@@ -598,7 +603,7 @@
 
 .tableBlock {
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: rgba(var(--nav-text-rgb), .04);
   overflow: hidden;
 }
@@ -625,7 +630,7 @@
   min-height: 44px;
   padding: 8px 14px;
   border: 1px solid var(--nav-text);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -645,7 +650,7 @@
 .linkCard {
   margin: 24px 16px 0;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   background: var(--nav-bg2);
   overflow: hidden;
 }
@@ -669,7 +674,7 @@
 
 .linkState {
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   background: rgba(var(--green-rgb), .22);
   /* Was --green-light on a .22-alpha green tint: 3.84:1 measured against the
      COMPOSITED ground, not against white. The tint is the ground. White on the
@@ -694,7 +699,7 @@
 .linkUrl {
   display: block;
   padding: 10px 12px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--nav-bg);
   color: var(--nav-text);
   font-size: var(--step--2);
@@ -715,7 +720,7 @@
   min-height: 48px;
   padding: 10px 14px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -748,7 +753,7 @@
   max-height: 92dvh;
   overflow-y: auto;
   padding: 20px 16px 28px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: 0;
   background: var(--nav-bg2);
   color: var(--nav-text);
   display: flex;
@@ -763,7 +768,7 @@
   min-height: 56px;
   padding: 12px 14px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--nav-bg);
   color: var(--nav-text);
   font-family: inherit;
@@ -784,7 +789,7 @@
   min-height: 48px;
   padding: 10px 18px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -805,7 +810,7 @@
   min-height: 60px;
   padding: 10px 14px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-text);
   font-family: inherit;
@@ -822,7 +827,7 @@
 .sheetSave {
   min-height: 56px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 0;
   background: var(--cta);
   color: var(--on-accent);
   font-family: inherit;
@@ -837,7 +842,7 @@
 .sheetCancel {
   min-height: 48px;
   border: 1px solid var(--nav-border);
-  border-radius: var(--radius);
+  border-radius: 0;
   background: transparent;
   color: var(--nav-muted);
   font-family: inherit;
