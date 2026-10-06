@@ -82,7 +82,7 @@
   width: 88%;
   aspect-ratio: 4 / 5;
   object-fit: cover;
-  object-position: 70% 60%;
+  object-position: 100% 50%;
   margin-inline-start: auto;
 }
 /* The phone stands in front of the photo's lower corner, at the reading end.

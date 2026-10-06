@@ -4,7 +4,6 @@ import SiteHeader from "../components/layout/SiteHeader.jsx";
 import Footer from "../components/layout/Footer.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import LaptopFrame from "../components/marketing/LaptopFrame.jsx";
-import CelebrationArt from "../components/marketing/CelebrationArt.jsx";
 import { ChatScene, DoorScene } from "../components/marketing/Scenes.jsx";
 import { useHashScroll } from "../hooks/useHashScroll.js";
 import { useStillOnly } from "../hooks/useMediaQuery.js";
@@ -90,13 +89,15 @@ const STEPS = [
 
 /* "Is it for me?" — the owner on DIGINET's event-type pages: it speaks to a
    need. Each type already has its own task checklist inside (taskTemplates). */
+/* Owner, 6.10: a photo per event type — "זה החלק שגרם לי כנאור להיכנס… כי
+   זה חיבר אותי לאירוע שלי". His photos; `pos` keeps the faces in the crop.
+   Birthday left the home page by his choice (6.10) — the type stays in the app. */
 const CELEBRATIONS = [
-  { k: "wedding",  t: "חתונה",        d: "התארסתם? מזל טוב. מכאן לוקחים את הרשימה, האישורים והשולחנות." },
-  { k: "mitzvah",  t: "בר ובת מצווה", d: "חברים מהכיתה, דודים מכל הארץ — כולם במקום הנכון." },
-  { k: "brit",     t: "ברית ובריתה",  d: "הכל קורה בתוך שבוע. מקימים אירוע בכמה דקות." },
-  { k: "henna",    t: "חינה",         d: "רשימה משותפת לשתי המשפחות, ואישורים בוואטסאפ." },
-  { k: "business", t: "אירוע עסקי",   d: "מאה עובדים או אלף — רשימה, אישורים וכניסה מסודרת." },
-  { k: "birthday", t: "יום הולדת",    d: "גם מסיבה קטנה מגיעה לה רשימה שלא הולכת לאיבוד." },
+  { k: "wedding",  t: "חתונה",        d: "התארסתם? מזל טוב. מכאן לוקחים את הרשימה, האישורים והשולחנות.", img: "/celebrate/wedding.jpg", pos: "50% 22%" },
+  { k: "mitzvah",  t: "בר ובת מצווה", d: "חברים מהכיתה, דודים מכל הארץ — כולם במקום הנכון.", img: "/celebrate/mitzvah.jpg", pos: "50% 25%" },
+  { k: "brit",     t: "ברית ובריתה",  d: "הכל קורה בתוך שבוע. מקימים אירוע בכמה דקות.", img: "/celebrate/brit.jpg", pos: "50% 50%" },
+  { k: "henna",    t: "חינה",         d: "רשימה משותפת לשתי המשפחות, ואישורים בוואטסאפ.", img: "/celebrate/henna.jpg", pos: "50% 30%" },
+  { k: "business", t: "אירוע עסקי",   d: "מאה עובדים או אלף — רשימה, אישורים וכניסה מסודרת.", img: "/celebrate/business.jpg", pos: "50% 60%" },
 ];
 
 const quoteHref = () => `https://wa.me/${COMPANY.whatsapp}?text=${encodeURIComponent("היי, אשמח להצעת מחיר לשירות באירוע")}`;
@@ -242,7 +243,10 @@ export default function LandingScreen({ user = null }) {
             <div className={styles.celebrateGrid}>
               {CELEBRATIONS.map(c => (
                 <Link key={c.t} to="/app" className={styles.celebrateCard}>
-                  <span className={styles.celebrateArt}><CelebrationArt kind={c.k} /></span>
+                  {/* The card's words name it; the photo is the feeling, not information. */}
+                  <span className={styles.celebratePhoto} aria-hidden="true">
+                    <img src={c.img} alt="" loading="lazy" style={{ objectPosition: c.pos }} />
+                  </span>
                   <span className={styles.celebrateName}>{c.t}</span>
                   <span className={styles.celebrateText}>{c.d}</span>
                   <span className={styles.celebrateGo}>מתחילים ←</span>
