@@ -7,6 +7,7 @@ import Icon from "../components/ui/Icon.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
 import TableGlyph from "../components/ui/TableGlyph.jsx";
 import styles from "./StartScreen.module.css";
+import Logo from "../components/brand/Logo.jsx";
 import { COMPANY } from "../data/company.js";
 
 /* ── The first screen ─────────────────────────────────────────────────────────
@@ -124,8 +125,7 @@ export default function StartScreen({ onStart, hasEvents = false, onCancel, sign
       {/* ── The promise ── */}
       <section className={styles.hero}>
         <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">✦</span>
-          <span className={styles.brandName}>{COMPANY.name}</span>
+          <Logo className={styles.brandLogo} title={COMPANY.name} />
         </div>
 
         <h1 className={styles.headline}>ההושבה מסתדרת לבד.</h1>

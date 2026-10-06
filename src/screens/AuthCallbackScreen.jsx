@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase.js";
 import { COMPANY } from "../data/company.js";
 import styles from "./LoginScreen.module.css";
+import Logo from "../components/brand/Logo.jsx";
 import SupportLine from "../components/support/SupportLine.jsx";
 import AuthAside from "../components/auth/AuthAside.jsx";
 
@@ -82,8 +83,7 @@ export default function AuthCallbackScreen() {
         </div>
         <div className={styles.card}>
           <div className={styles.brand}>
-            <span className={styles.brandMark} aria-hidden="true">✦</span>
-            <span className={styles.brandName}>{COMPANY.name}</span>
+            <Logo className={styles.brandLogo} title={COMPANY.name} />
           </div>
           <h1 className={styles.title}>אישור כתובת האימייל</h1>
 

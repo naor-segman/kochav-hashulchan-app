@@ -40,16 +40,18 @@ describe("Shell skip link (AX9)", () => {
     expect(main.id).toBe("main");
   });
 
-  it("the logo button's name does not include the ✦", () => {
+  // Since 6.10 the logo is an SVG (the owner's pick) instead of "✦ name": the
+  // button must still be named by the brand, once, with no glyph in it.
+  it("the logo button is named by the brand, with no ✦ in the name", () => {
     render(
       <MemoryRouter>
         <Shell screen="dashboard" activeEvent={null} go={vi.fn()} showToast={vi.fn()}><p /></Shell>
       </MemoryRouter>,
     );
-    const logo = screen.getAllByRole("button").find(b => b.textContent.includes("✦"));
+    // jsdom's accessible-name computation honours aria-hidden and display:none
+    // only through styles it can see; the phone-only mark is a second <svg>.
+    const logo = screen.getAllByRole("button", { name: new RegExp("^" + COMPANY.name) })[0];
     expect(logo).toBeTruthy();
-    // jsdom's accessible-name computation honours aria-hidden.
-    expect(screen.getByRole("button", { name: new RegExp("^" + COMPANY.name) })).toBe(logo);
     expect(screen.queryByRole("button", { name: /✦/ })).toBeNull();
   });
 });
@@ -59,8 +61,9 @@ describe("decorative ✦ is hidden from assistive tech (AX9)", () => {
     render(<MemoryRouter><SiteHeader /><Footer /></MemoryRouter>);
     const stars = [...document.querySelectorAll("*")].filter(el =>
       [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.includes("✦")));
-    expect(stars.length).toBeGreaterThan(0);
     for (const s of stars) expect(s.closest('[aria-hidden="true"]')).not.toBeNull();
+    // The logo replaced "✦ name" (6.10): each one is a single image named by the brand.
+    expect(screen.getAllByRole("img", { name: COMPANY.name }).length).toBeGreaterThanOrEqual(2);
   });
 
   it("in the auth and account screens' source", () => {

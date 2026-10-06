@@ -92,15 +92,6 @@
   gap: 8px;
 }
 
-.brandMark {
-  font-size: var(--step-1);
-  color: var(--accent-text);
-}
-.brandName {
-  font-size: var(--step-0);
-  font-weight: 800;
-  color: var(--text);
-}
 
 .title {
   font-size: var(--step-3);
@@ -636,3 +627,6 @@
   outline: 2px solid var(--cta);
   outline-offset: 2px;
 }
+
+/* The logo (owner, 6.10). */
+.brandLogo { display: block; height: 64px; width: auto; }

@@ -50,18 +50,8 @@
 
 .logo:hover { opacity: 0.8; }
 
-/* The one accent moment on the bar — a mark, not text. */
-.logoMark {
-  font-size: var(--step-2);
-  color: var(--accent);
-}
-
-.logoName {
-  font-size: var(--step-1);
-  font-weight: var(--font-weight-extrabold);
-  color: var(--nav-text);
-  letter-spacing: -0.02em;
-}
+.logoArt { display: block; height: 56px; width: auto; }
+.logoMarkArt { display: none; height: 36px; width: auto; }
 
 @media (max-width: 480px) {
   /* The back link keeps its arrow and gives up its words. It is flex-shrink:0
@@ -617,7 +607,8 @@
 
 /* ── Mobile overrides ── */
 @media (max-width: 480px) {
-  .logoName { display: none; }
+  .logoArt { display: none; }
+  .logoMarkArt { display: block; }
   .autoSave { display: none; }
   .subnavBtn { padding: 10px 8px; font-size: var(--step--2); }
   .topbar { padding: 0 14px; }

@@ -9,6 +9,7 @@ import StartScreen from "./StartScreen.jsx";
 import base from "../styles/screenBase.module.css";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import styles from "./DashboardScreen.module.css";
+import Logo from "../components/brand/Logo.jsx";
 import { COMPANY } from "../data/company.js";
 
 /* `unpaidCount`, not `plan`. This screen used to be the only place a plan was
@@ -74,8 +75,7 @@ export default function DashboardScreen({ events, signedIn = false, cloudCapped 
       {/* ── Compact header ── */}
       <div className={styles.heroBar}>
         <div className={styles.heroBarBrand}>
-          <span className={styles.logoMark}>✦</span>
-          <span className={styles.logoName}>{COMPANY.name}</span>
+          <Logo className={styles.logoArt} title={COMPANY.name} />
           <span className={styles.heroBarSub}>סידור הושבה לאירועים</span>
         </div>
         <div className={styles.heroBarActions}>

@@ -37,17 +37,7 @@
 
 /* On the light band now: --accent-text (a shape, but it is the same mark as
    the header's), --text and --text2. */
-.logoMark {
-  font-size: var(--step-2);
-  color: var(--accent-text);
-}
 
-.logoName {
-  font-size: var(--step-2);
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.02em;
-}
 
 .heroBarSub {
   font-size: var(--step--1);
@@ -1237,3 +1227,5 @@
   flex-wrap: wrap;
 }
 
+/* The logo (owner, 6.10). */
+.logoArt { display: block; height: 56px; width: auto; }

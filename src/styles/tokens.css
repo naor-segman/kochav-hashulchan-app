@@ -93,6 +93,11 @@
      drawing --accent-text on #14161A at 2.64:1 — under the 3:1 a focus
      indicator needs — on every link they hold (AX, measured 1.10). */
   --focus-ring: var(--accent-text);
+  /* The logo's chairs (owner, 6.10) — Unica's camera colours, so the two
+     brands read as one family. LOGO ONLY: not for UI, text or fills. */
+  --logo-teal:     #2BB3C0;
+  --logo-yellow:   #F6B523;
+  --logo-orange:   #F07D2E;
   --accent-bg:     #FDECF2;
   --accent-light:  #FEF6F9;
   --accent-border: #F7BED2;

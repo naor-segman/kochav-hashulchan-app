@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import styles from "./Footer.module.css";
+import Logo from "../brand/Logo.jsx";
 import { COMPANY, LEGAL, legalLine, contactMailto, contactEmail } from "../../data/company.js";
 import { openConsentSettings } from "../../utils/consent.js";
 import { analyticsConfigured } from "../../lib/analytics.js";
@@ -11,8 +12,7 @@ export default function Footer() {
       <div className={styles.inner}>
         <div className={styles.brand}>
           <Link to="/" className={styles.logo}>
-            <span className={styles.logoMark} aria-hidden="true">✦</span>
-            <span className={styles.logoName}>{COMPANY.name}</span>
+            <Logo className={styles.logoArt} title={COMPANY.name} />
           </Link>
           {/* Factual, not superlative. "המובילה" is the same unearned claim as
               the invented statistics that were removed from the landing page —

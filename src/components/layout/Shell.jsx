@@ -7,6 +7,7 @@ import { AREAS, areaOfScreen, areaLanding } from "../../data/eventAreas.js";
 import NavBadge from "../navigation/NavBadge.jsx";
 import SectionMark from "../ui/SectionMark.jsx";
 import styles from "./Shell.module.css";
+import Logo from "../brand/Logo.jsx";
 import Icon from "../ui/Icon.jsx";
 import { makeOpenScreen } from "../../utils/eventNameGate.js";
 import { COMPANY } from "../../data/company.js";
@@ -133,8 +134,10 @@ export default function Shell({ screen, tourKey = screen, activeEvent, go, child
       <a href="#main" className={styles.skipLink} onClick={skipToMain}>דלגו לתוכן</a>
       <header className={styles.topbar}>
         <button className={styles.logo} onClick={() => go("dashboard")}>
-          <span className={styles.logoMark} aria-hidden="true">✦</span>
-          <span className={styles.logoName}>{COMPANY.name}</span>
+          {/* The full logo on a wide bar; the table alone on a phone, where
+              the bar is full of tabs (it showed only ✦ there before too). */}
+          <Logo tone="dark" className={styles.logoArt} title={COMPANY.name} />
+          <Logo tone="dark" variant="mark" className={styles.logoMarkArt} title={COMPANY.name} />
         </button>
 
         {inEvent && (

@@ -203,8 +203,11 @@ try {
       // 1 — there is exactly ONE header, and it carries the brand.
       const headers = await page.$$("header");
       check(`${label} ${route}: one header`, headers.length === 1, `found ${headers.length}`);
-      const brand = await visibleText(page, "header a[href='/']");
-      check(`${label} ${route}: brand in the bar`, brand.some(t => t.includes("Unica Plan")), brand.join("|"));
+      // Since 6.10 the brand is the logo — an SVG named "Unica Plan", not text.
+      const brand = await page.evaluate(() => [...document.querySelectorAll("header a[href='/'] svg[role='img']")]
+        .filter(s => { const r = s.getBoundingClientRect(); return r.width > 20 && r.height > 20; })
+        .map(s => s.getAttribute("aria-label")));
+      check(`${label} ${route}: brand in the bar`, brand.includes("Unica Plan"), brand.join("|"));
 
       if (label === "desktop") {
         // 2 — the bar of 6.10 (owner): the services button, the pricing
