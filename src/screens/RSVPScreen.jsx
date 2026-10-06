@@ -284,7 +284,7 @@ export default function RSVPScreen() {
               {formattedDate && (
                 <p className={styles.eventDetail}>
                   <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={18} /></span>
-                  <span>{formattedDate}<HebrewDate date={event.date} /></span>
+                  <span>{formattedDate}<HebrewDate date={event.date} event={event} /></span>
                 </p>
               )}
             </div>
@@ -321,7 +321,7 @@ export default function RSVPScreen() {
               {formattedDate && (
                 <p className={styles.eventDetail}>
                   <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={18} /></span>
-                  <span>{formattedDate}<HebrewDate date={event.date} /></span>
+                  <span>{formattedDate}<HebrewDate date={event.date} event={event} /></span>
                 </p>
               )}
               {event.venue && (
@@ -391,7 +391,7 @@ export default function RSVPScreen() {
               <span className={styles.eventBannerMark} aria-hidden="true">✦</span>
               <h1 className={styles.eventBannerName} ref={stepHeading} tabIndex={-1}>{event.name}</h1>
               {formattedDate && (
-                <span className={styles.eventBannerDate}>{formattedDate}<HebrewDate date={event.date} /></span>
+                <span className={styles.eventBannerDate}>{formattedDate}<HebrewDate date={event.date} event={event} /></span>
               )}
             </div>
 

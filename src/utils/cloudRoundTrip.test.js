@@ -37,6 +37,7 @@ const MAXIMAL = {
   date: "2027-06-01",
   venue: "אולמי הגן",
   startTime: "19:00",
+  receptionTime: "19:30",
   brideName: "דנה",
   groomName: "יוסי",
   coupleType: "bride-bride",
@@ -272,7 +273,8 @@ describe("full cloud round-trip", () => {
     // breaks a guest-facing page with no client-side error at all.
     const { row } = pipeline(MAXIMAL);
     for (const k of ["localId", "coupleType", "parentsType", "celebrantName",
-                     "organizationName", "contactName", "ownerName", "albumToken"]) {
+                     "organizationName", "contactName", "ownerName", "albumToken",
+                     "receptionTime"]) {
       expect(row.payload[k], k).toBeTruthy();
     }
   });
@@ -285,6 +287,7 @@ describe("full cloud round-trip", () => {
     const { n2 } = pipeline(MAXIMAL);
     expect(n2.eventSite.gallery).toEqual(MAXIMAL.eventSite.gallery);
     expect(n2.eventSite.story).toBe("אחרי שבע שנים");
+    expect(n2.receptionTime).toBe("19:30");   // 137: the Hebrew date reads it
     expect(n2.eventSite.coverPhoto).toBe("data:image/png;base64,COVER");
     expect(n2.eventSite.shuttles).toEqual(MAXIMAL.eventSite.shuttles);
     expect(n2.eventSite.schedule).toEqual(MAXIMAL.eventSite.schedule);

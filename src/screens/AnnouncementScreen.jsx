@@ -220,7 +220,7 @@ export default function AnnouncementScreen({ kind, localEvent }) {
           <h2 className={styles.headline}>{passed ? "האירוע התקיים" : ann.headline}</h2>
 
           {event.date && (
-            <p className={styles.date}>{fmtDate(event.date)}<HebrewDate date={event.date} /></p>
+            <p className={styles.date}>{fmtDate(event.date)}<HebrewDate date={event.date} event={event} /></p>
           )}
 
           {ann.showLocation && event.venue && (

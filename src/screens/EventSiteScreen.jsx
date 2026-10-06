@@ -269,7 +269,7 @@ export default function EventSiteScreen({ localEvent }) {
               ? <div className={styles.heroEn}>{site.heroEn}</div>
               : <div className={styles.heroEn} lang="en" dir="ltr">{site.heroEn}</div>)}
             <div className={styles.heroDivider}><span /><span className={styles.heroStar}>✦</span><span /></div>
-            {dateStr && <div className={styles.heroDate}>{dateStr}<HebrewDate date={ev.date} /></div>}
+            {dateStr && <div className={styles.heroDate}>{dateStr}<HebrewDate date={ev.date} event={ev} /></div>}
             {ev.venue && <div className={styles.heroVenue}><Icon name="pin" size={15} /> {ev.venue}</div>}
             {showRsvp && <Link to={rsvpUrl} className={styles.heroCta}>אישור הגעה ←</Link>}
           </div>

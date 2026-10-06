@@ -275,7 +275,7 @@ export default function InviteScreen() {
           {formattedDate && (
             <div className={styles.detailRow}>
               <span className={styles.detailIcon} aria-hidden="true"><Icon name="calendar" size={17} /></span>
-              <span className={styles.detailText}>{formattedDate}<HebrewDate date={event.date} /></span>
+              <span className={styles.detailText}>{formattedDate}<HebrewDate date={event.date} event={event} /></span>
             </div>
           )}
 

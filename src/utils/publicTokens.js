@@ -25,6 +25,9 @@ function mapPublicEvent(data) {
     organizationName: data.organization_name ?? "",
     contactName:      data.contact_name      ?? "",
     ownerName:        data.owner_name        ?? "",
+    // The host's "שעת קבלת פנים" (migration 20261006000000), for the Hebrew
+    // date of an evening event. "" until that migration runs.
+    receptionTime:    typeof data.reception_time === "string" ? data.reception_time : "",
     // giftBitPhone / giftPayboxLink used to be mapped here. The RPC no longer
     // serves them (20260818000200) and no screen ever rendered them: GiftScreen
     // deliberately has no Bit/PayBox route, by the 11.8 decision that a

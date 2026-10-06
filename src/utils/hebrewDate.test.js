@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { gematria, hebrewCalendarDate } from "./hebrewDate.js";
+import { gematria, hebrewCalendarDate, startsAfterSunset, hebrewDateTime } from "./hebrewDate.js";
 
 describe("gematria", () => {
   it("writes numbers the way a date is written", () => {
@@ -47,7 +47,33 @@ describe("every page a guest opens shows it (137)", () => {
     const { readFileSync } = await import("node:fs");
     for (const f of ["AnnouncementScreen", "InviteScreen", "RSVPScreen", "EventSiteScreen"]) {
       const src = readFileSync(new URL(`../screens/${f}.jsx`, import.meta.url), "utf8");
-      expect(src, f).toMatch(/<HebrewDate date=\{(event|ev)\.date\} \/>/);
+      expect(src, f).toMatch(/<HebrewDate date=\{(event|ev)\.date\} event=\{(event|ev)\} \/>/);
     }
+  });
+});
+
+describe("the start time decides it (137, owner 6.10)", () => {
+  // Sunset in Tel Aviv on 6.10.2026 is ~18:20 IDT.
+  it("before sunset: that day's Hebrew date; after: the next day's", () => {
+    expect(hebrewCalendarDate("2026-10-06", "12:00")).toBe("כ״ה בתשרי תשפ״ז");
+    expect(hebrewCalendarDate("2026-10-06", "19:30")).toBe("כ״ו בתשרי תשפ״ז");
+    expect(startsAfterSunset("2026-10-06", "19:30")).toBe(true);
+    expect(startsAfterSunset("2026-10-06", "17:00")).toBe(false);
+  });
+  it("crosses a month and a year correctly", () => {
+    // 2026-09-11 evening is Rosh Hashana 5787.
+    expect(hebrewCalendarDate("2026-09-11", "20:00")).toBe("א׳ בתשרי תשפ״ז");
+    expect(hebrewCalendarDate("2026-09-11", "10:00")).toBe("כ״ט באלול תשפ״ו");
+  });
+  it("no time, or not a time: the daytime date", () => {
+    expect(hebrewCalendarDate("2026-10-06", "")).toBe("כ״ה בתשרי תשפ״ז");
+    expect(hebrewCalendarDate("2026-10-06", "evening")).toBe("כ״ה בתשרי תשפ״ז");
+    expect(hebrewCalendarDate("2026-10-06", "25:00")).toBe("כ״ה בתשרי תשפ״ז");
+  });
+  it("a guest page takes the host's reception time, else the site's first scheduled time", () => {
+    expect(hebrewDateTime({ receptionTime: "19:30", site: { schedule: [{ time: "18:00" }] } })).toBe("19:30");
+    expect(hebrewDateTime({ site: { schedule: [{ title: "x" }, { time: "20:15" }] } })).toBe("20:15");
+    expect(hebrewDateTime({ eventSite: { schedule: [{ time: "9:30" }] } })).toBe("09:30");
+    expect(hebrewDateTime({})).toBe("");
   });
 });

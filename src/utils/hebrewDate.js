@@ -8,9 +8,28 @@
  * never `new Date("YYYY-MM-DD")`, which is UTC midnight and lands on the day
  * before east of Greenwich (bug class 2).
  *
- * The Hebrew day begins at sunset, so an evening event is, strictly, on the
- * next Hebrew date. Invitations commonly print the daytime date; this does too.
+ * The Hebrew day begins at sunset. Given the event's start time (the host's
+ * "שעת קבלת פנים"), an event that starts at or after sunset in Israel gets the
+ * NEXT day's Hebrew date — the exact date for that moment (owner, 6.10). With
+ * no time known it is the daytime date, as most invitations print it.
  */
+import { israelInstant, knownStartTime } from "./calendarFile.js";
+import { israelSunsetMs } from "./sunset.js";
+
+/** "HH:MM" or "H:MM" → "HH:MM", else null. */
+const normTime = (t) => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(t ?? "").trim());
+  return m && +m[1] <= 23 && +m[2] <= 59 ? `${m[1].padStart(2, "0")}:${m[2]}` : null;
+};
+
+/** True when the event's start in Israel is at or after that day's sunset. */
+export function startsAfterSunset(iso, time) {
+  const t = normTime(time);
+  if (!t) return false;
+  const start = israelInstant(iso, t);
+  const sunset = israelSunsetMs(iso);
+  return Number.isFinite(start) && Number.isFinite(sunset) && start >= sunset;
+}
 
 const ONES = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"];
 const TENS = ["", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"];
@@ -30,12 +49,16 @@ export function gematria(n) {
   return out.length === 1 ? `${out}׳` : `${out.slice(0, -1)}״${out.slice(-1)}`;
 }
 
-/** "YYYY-MM-DD" → "כ״ה בתשרי תשפ״ז", or "" for anything that is not a date. */
-export function hebrewCalendarDate(iso) {
+/** "YYYY-MM-DD" (+ optional "HH:MM" start, Israel time) → "כ״ה בתשרי תשפ״ז",
+ *  or "" for anything that is not a date. */
+export function hebrewCalendarDate(iso, time) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
   if (!m) return "";
   const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   if (date.getMonth() !== Number(m[2]) - 1) return "";   // 2026-02-31 and the like
+  // After sunset: the next CIVIL day, by calendar arithmetic on local parts
+  // (setDate, never +86400000 — bug class 2).
+  if (startsAfterSunset(iso, time)) date.setDate(date.getDate() + 1);
   try {
     const parts = new Intl.DateTimeFormat("he-IL-u-ca-hebrew", { day: "numeric", month: "long", year: "numeric" })
       .formatToParts(date);
@@ -48,4 +71,14 @@ export function hebrewCalendarDate(iso) {
   } catch {
     return "";
   }
+}
+
+/** The start time a guest page uses for the Hebrew date: the host's
+ *  "שעת קבלת פנים", else the first time in the event site's schedule, else
+ *  none (the daytime date). Works on the guest-page shape (`site`) and on the
+ *  host's own event (`eventSite`). */
+export function hebrewDateTime(event) {
+  return event?.receptionTime
+    || knownStartTime(event?.site?.schedule || event?.eventSite?.schedule)
+    || "";
 }

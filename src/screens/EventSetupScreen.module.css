@@ -24,3 +24,10 @@
 
 /* The sharing-link rules that used to live here moved with the links
    themselves, to ShareLinksScreen.module.css. */
+
+/* The Hebrew date the guests will see, under the reception time (137). */
+.hebrewDate {
+  margin: 6px 0 0;
+  font-size: var(--step--1);
+  color: var(--text2);
+}

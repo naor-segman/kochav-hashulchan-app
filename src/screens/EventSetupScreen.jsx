@@ -14,12 +14,14 @@ import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
 import styles from "./EventSetupScreen.module.css";
 import { setUnsavedWork } from "../utils/unsavedWork.js";
+import { hebrewCalendarDate, startsAfterSunset } from "../utils/hebrewDate.js";
 
 export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, showToast }) {
   const [form, setForm] = useState({
     name:             ev.name             || "",
     type:             ev.type             || "חתונה",
     date:             ev.date             || "",
+    receptionTime:    ev.receptionTime    || "",
     venue:            ev.venue            || "",
     brideName:        ev.brideName        || "",
     groomName:        ev.groomName        || "",
@@ -177,6 +179,21 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           </Field>
           <Field label="תאריך האירוע">
             <input className={base.input} type="date" value={form.date} onChange={e => set("date", e.target.value)} />
+          </Field>
+          {/* 137 (owner, 6.10): the Hebrew date the guests see is the date of
+              the moment the event starts — after sunset it is the next day's.
+              The time decides it; the line under it says what it decided. */}
+          <Field label="שעת קבלת פנים" hint="לפיה נקבע התאריך העברי בהזמנה — אחרי השקיעה הוא כבר של היום הבא">
+            <div>
+              <input className={base.input} type="time" value={form.receptionTime}
+                onChange={e => set("receptionTime", e.target.value)} />
+              {form.date && hebrewCalendarDate(form.date, form.receptionTime) && (
+                <p className={styles.hebrewDate} aria-live="polite">
+                  התאריך העברי: <strong>{hebrewCalendarDate(form.date, form.receptionTime)}</strong>
+                  {startsAfterSunset(form.date, form.receptionTime) && " (אחרי השקיעה)"}
+                </p>
+              )}
+            </div>
           </Field>
           {/* Not every event is in a hall — a brit is in a shul, a birthday is
               often at home, a corporate evening is at an office. The label

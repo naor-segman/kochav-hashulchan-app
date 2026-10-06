@@ -17,4 +17,10 @@ describe("hebrewCalendarDate west of Greenwich", () => {
     expect(hebrewCalendarDate("2026-09-12")).toBe("א׳ בתשרי תשפ״ז");   // Rosh Hashana, not the eve
     expect(hebrewCalendarDate("2027-03-10")).toBe("א׳ באדר ב׳ תשפ״ז");
   });
+  it("the sunset rule is Israel's clock, not this device's", () => {
+    // 19:30 in Israel is after sunset there; in New York it is 12:30 — the
+    // device's own clock must not decide.
+    expect(hebrewCalendarDate("2026-10-06", "19:30")).toBe("כ״ו בתשרי תשפ״ז");
+    expect(hebrewCalendarDate("2026-10-06", "17:00")).toBe("כ״ה בתשרי תשפ״ז");
+  });
 });
