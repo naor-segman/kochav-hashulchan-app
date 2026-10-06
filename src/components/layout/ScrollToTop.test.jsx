@@ -6,11 +6,12 @@ import ScrollToTop from "./ScrollToTop.jsx";
 
 // Owner, 6.10: a service page opened in the middle — the window kept the home
 // page's scroll across the route change.
-// A holder object, not a reassigned outer `let` (react-hooks lint).
+// The navigate function handed out through a callback prop: a component may
+// not write to anything outside itself (react-hooks lint).
+const Grab = ({ onNav }) => { onNav(useNavigate()); return null; };
 const ref = { nav: null };
-const Grab = () => { ref.nav = useNavigate(); return null; };
 const setup = () => render(
-  <MemoryRouter initialEntries={["/home"]}><ScrollToTop /><Grab /></MemoryRouter>
+  <MemoryRouter initialEntries={["/home"]}><ScrollToTop /><Grab onNav={n => { ref.nav = n; }} /></MemoryRouter>
 );
 
 beforeEach(() => { window.scrollTo = vi.fn(); });
