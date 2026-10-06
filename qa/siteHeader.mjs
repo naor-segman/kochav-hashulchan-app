@@ -207,11 +207,16 @@ try {
       check(`${label} ${route}: brand in the bar`, brand.some(t => t.includes("Unica Plan")), brand.join("|"));
 
       if (label === "desktop") {
-        // 2 — the three links are there, and the burger is not.
+        // 2 — the bar of 6.10 (owner): the services button, the pricing
+        // question, and the two doors — כניסה and הרשמה חינם. The section
+        // links "תכונות" / "איך זה עובד" are gone.
         const links = await visibleText(page, "header a");
-        for (const want of ["תכונות", "איך זה עובד", "מחירים", "כניסה", "התחילו חינם"]) {
+        for (const want of ["כמה זה עולה?", "כניסה", "הרשמה חינם"]) {
           check(`${label} ${route}: "${want}"`, links.some(t => t === want), links.join(" · "));
         }
+        check(`${label} ${route}: no section links`, !links.some(t => /תכונות|איך זה עובד|אפליקציה/.test(t)), links.join(" · "));
+        const servicesBtn = await visibleText(page, "header button[aria-expanded]:not([aria-label])");
+        check(`${label} ${route}: "השירותים" button`, servicesBtn.some(t => t.includes("השירותים")), servicesBtn.join("|"));
         // The burger by its label: "השירותים ▾" is a visible header button on
         // desktop now (P2-1), and "no visible button" would count it.
         const burger = await page.$$eval("header button[aria-label]", els =>
@@ -220,7 +225,7 @@ try {
       } else {
         // 3 — on a phone the links are hidden and a burger takes their place.
         const links = await visibleText(page, "header a");
-        check(`${label} ${route}: links hidden`, !links.includes("תכונות"), links.join(" · "));
+        check(`${label} ${route}: links hidden`, !links.includes("כמה זה עולה?"), links.join(" · "));
 
         // [aria-label]: the services disclosure is also a header button with
         // aria-expanded, first in the DOM, and hidden at this width.
@@ -243,9 +248,9 @@ try {
              .map(el => el.getAttribute("href")));
         check(`${label} ${route}: כניסה reachable`, hrefs.includes("/login"), hrefs.join(" · "));
         check(`${label} ${route}: מחירים reachable`, hrefs.includes("/pricing"), hrefs.join(" · "));
-        // "התחילו חינם" goes straight into the app since 136 stage C (owner,
-        // 5.10) — no signup first. Signup is one tap further, from /login.
-        check(`${label} ${route}: התחילו חינם reachable`, hrefs.includes("/app"), hrefs.join(" · "));
+        // The header's second door is signup by name since 6.10 (owner). The
+        // pages' own "התחילו חינם" still go straight into the app (startFree.test).
+        check(`${label} ${route}: הרשמה חינם reachable`, hrefs.includes("/signup"), hrefs.join(" · "));
         if (burger) { await burger.click(); await page.waitForTimeout(100); }
 
         if (burger) {
@@ -283,23 +288,16 @@ try {
       check(`${label} ${route}: no h-overflow`, scrolled === 0, `scrollX=${scrolled}`);
     }
 
-    // 6 — the section anchors still scroll, which is the one behaviour that
-    // depends on the link being an <a href="#…"> rather than a <Link>.
+    // 6 — the services, behind one button, in the order of the host's journey
+    // (owner, 6.10: "בסדר כרונולוגי"). The section anchors this used to test
+    // left the bar the same day.
     if (label === "desktop") {
       await page.goto(BASE + "/home", { waitUntil: "networkidle" });
-      const before = await page.evaluate(() => window.scrollY);
-      await page.click("header a[href='#features']");
-      await page.waitForTimeout(1200);
-      const after = await page.evaluate(() => window.scrollY);
-      check("desktop /home: #features scrolls", after > before + 200, `${before} → ${after}`);
-
-      // ...and from another page it is a navigation that lands scrolled.
-      await page.goto(BASE + "/pricing", { waitUntil: "networkidle" });
-      await page.click("header a[href='/home#features']");
-      await page.waitForTimeout(1600);
-      const cross = await page.evaluate(() => ({ y: window.scrollY, p: location.pathname }));
-      check("cross-page: /pricing → /home#features",
-        cross.p === "/home" && cross.y > 200, JSON.stringify(cross));
+      await page.click("header button[aria-expanded]:not([aria-label])");
+      await page.waitForTimeout(150);
+      const order = await page.$$eval("header ul a", els => els.filter(el => el.getBoundingClientRect().width > 0).map(el => el.getAttribute("href")));
+      check("desktop /home: services in journey order", JSON.stringify(order) === JSON.stringify([
+        "/services/planning", "/services/event-site", "/services/rsvp", "/services/seating", "/services/event-day", "/services/gifts"]), order.join(" · "));
     }
 
     check(`${label}: no console errors`, errors.length === 0, errors.slice(0, 2).join(" | "));

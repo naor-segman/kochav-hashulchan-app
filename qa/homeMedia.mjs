@@ -1,6 +1,8 @@
 /**
- * The home page's moving pictures (review 5.10):
- *   - one product video per width, not both (each ~2MB, CSS used to hide one);
+ * The home page's moving pictures (review 5.10; updated 6.10):
+ *   - the "לחיצה אחת" product video is gone — the owner found it unclear
+ *     (6.10) and #how is three still steps now, so neither product webm
+ *     (~2MB each) may be requested at any width;
  *   - every looping video has a pause control that pauses it (WCAG 2.2.2);
  *   - under prefers-reduced-motion nothing moves — no <video> at all.
  * Run: npm run build && node qa/homeMedia.mjs
@@ -21,18 +23,17 @@ try {
     p.on("request", r => { if (/\.webm|\.mp4/.test(r.url())) requested.push(r.url().split("/").pop()); });
     await p.goto(base + "/home", { waitUntil: "networkidle" });
     await p.locator("#how").scrollIntoViewIfNeeded(); await p.waitForTimeout(800);
-    const vids = await p.evaluate(() => [...document.querySelectorAll("#how video")].map(v => v.getAttribute("src").split("/").pop()));
-    ok(vids.length === 1, `@${w} one product video in the page`, vids.join(", "));
-    ok(vids[0] === (w >= 860 ? "product-desk.webm" : "product.webm"), `@${w} the right one for the width`, vids[0]);
-    ok(!requested.includes(w >= 860 ? "product.webm" : "product-desk.webm"), `@${w} the other one is never requested`, requested.join(", "));
-    for (const [label, scope] of [["עצירת הסרטון", "#how"], ["עצירת סרטון הרקע", "main"]]) {
+    ok(await p.locator("#how ol li").count() === 3, `@${w} #how is three steps`);
+    ok(await p.locator("#how video").count() === 0, `@${w} no video in #how`);
+    ok(!requested.some(f => /^product/.test(f)), `@${w} no product video is requested`, requested.join(", "));
+    for (const [label, scope] of [["עצירת סרטון הרקע", "main"]]) {
       const btn = p.locator(`${scope} button[aria-label="${label}"]`).first();
       const has = await btn.count();
       ok(has === 1, `@${w} pause control "${label}"`);
       if (!has) continue;
       await btn.click(); await p.waitForTimeout(150);
       const paused = await p.evaluate((s) => {
-        const v = s === "#how" ? document.querySelector("#how video") : document.querySelector("main section video");
+        const v = document.querySelector(`${s} section video`);
         return v ? v.paused : null;
       }, scope);
       ok(paused === true, `@${w} "${label}" pauses it`, String(paused));

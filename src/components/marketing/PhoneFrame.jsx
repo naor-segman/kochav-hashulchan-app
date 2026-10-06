@@ -11,7 +11,7 @@ import LoopVideo from "./LoopVideo.jsx";
  * from the top: these are captures of a scrolling app, so the top is the part
  * that has to be in the picture.
  */
-export default function PhoneFrame({ src, video, poster, alt = "", className = "", lazy = true }) {
+export default function PhoneFrame({ src, video, poster, alt = "", className = "", lazy = true, children }) {
   return (
     <div className={[styles.device, className].filter(Boolean).join(" ")}>
       <span className={styles.btnAction} aria-hidden="true" />
@@ -20,7 +20,10 @@ export default function PhoneFrame({ src, video, poster, alt = "", className = "
       <span className={styles.btnPower} aria-hidden="true" />
       <div className={styles.screen}>
         <span className={styles.island} aria-hidden="true" />
-        {video ? (
+        {children ? (
+          // A live scene drawn in HTML (the WhatsApp chat, 6.10) instead of a capture.
+          <div className={styles.live}>{children}</div>
+        ) : video ? (
           <LoopVideo className={styles.media} src={video} poster={poster} label={alt} />
         ) : (
           <img className={styles.media} src={src} alt={alt} loading={lazy ? "lazy" : "eager"} />

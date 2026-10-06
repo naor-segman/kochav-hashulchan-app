@@ -196,18 +196,26 @@
   margin-inline-start: auto;
 }
 
+/* A button, not a grey word (owner, 6.10: the door has to be obvious).
+   Outlined in the light ink of the bar; the filled one beside it is signup. */
 .navLoginBtn {
-  color: var(--nav-muted);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--nav-text);
   text-decoration: none;
   font-size: var(--step-0);
-  font-weight: 500;
-  padding: 6px 16px;
+  font-weight: 700;
+  padding: 0 18px;
+  border: 2px solid rgba(var(--nav-text-rgb), .55);
   border-radius: 0;
-  transition: color var(--transition);
+  white-space: nowrap;
+  transition: border-color var(--transition), background var(--transition);
 }
 
 .navLoginBtn:hover {
-  color: var(--nav-text);
+  border-color: var(--nav-text);
+  background: rgba(var(--nav-text-rgb), .08);
 }
 
 .navCta {
@@ -225,15 +233,14 @@
   align-items: center;
   min-height: 44px;
   border-radius: 0;
-  box-shadow: var(--shadow-accent);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  border: 2px solid var(--cta);
+  transition: background var(--transition), border-color var(--transition);
   white-space: nowrap;
 }
 
 .navCta:hover {
   background: var(--cta-dark);
-  box-shadow: var(--shadow-cta-lg);
-  transform: translateY(-1px);
+  border-color: var(--cta-dark);
 }
 
 /* ── Mobile menu (hamburger) — hidden on desktop, shown ≤1023px ── */

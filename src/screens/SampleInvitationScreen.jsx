@@ -1,0 +1,81 @@
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import SiteHeader from "../components/layout/SiteHeader.jsx";
+import Footer from "../components/layout/Footer.jsx";
+import { SAMPLE_TOKEN } from "../data/sampleEvent.js";
+import styles from "./SampleInvitationScreen.module.css";
+
+/* "צפו בהזמנה לדוגמה" — its own page, not a jump down the home page (owner,
+ * 6.10: "אהבתי בדיגינט… עמוד נחיתה נפרד… ממש הראה לי איך ההזמנה נראית וממש
+ * מאפשר לעבוד איתה").
+ *
+ * The phone holds the REAL guest page — /invitation/sample, the same screen a
+ * guest opens from WhatsApp — answered from data/sampleEvent.js instead of the
+ * database. The visitor can confirm attendance, open the event site, the
+ * schedule and the blessings; nothing they send is stored.
+ *
+ * The page inside is laid out for a phone (390px). The phone on this page is
+ * narrower, so the frame is drawn at 390 and scaled down to the screen — the
+ * page is seen as a guest sees it, not squeezed into a column it was never
+ * designed for. */
+const GUEST_W = 390;
+
+const TRY = [
+  "לאשר הגעה — כמה אתם ואיזו מנה",
+  "לפתוח את אתר האירוע: לו״ז, ניווט ב-Waze והסעות",
+  "לכתוב ברכה לזוג",
+];
+
+export default function SampleInvitationScreen({ user = null }) {
+  const screenRef = useRef(null);
+  const [scale, setScale] = useState(0.7);
+  useEffect(() => {
+    const el = screenRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver(([e]) => setScale(e.contentRect.width / GUEST_W));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const src = `/invitation/${SAMPLE_TOKEN}`;
+
+  return (
+    <div className={styles.root}>
+      <SiteHeader user={user} active="sample" />
+      <main id="main" tabIndex={-1} className={styles.main}>
+        <section className={styles.hero}>
+          <div className={styles.inner}>
+            <div className={styles.text}>
+              <p className={styles.eyebrow}>הזמנה לדוגמה</p>
+              <h1 className={styles.title}>ככה האורחים שלכם יקבלו את ההזמנה</h1>
+              <p className={styles.lead}>
+                זו הזמנה אמיתית, בדיוק כמו זו שהאורחים יפתחו מהוואטסאפ. נסו בעצמכם:
+              </p>
+              <ul className={styles.tryList}>
+                {TRY.map(t => <li key={t}><span aria-hidden="true">✓</span>{t}</li>)}
+              </ul>
+              <p className={styles.note}>זו דוגמה — שום דבר שתשלחו כאן לא נשמר.</p>
+              <div className={styles.actions}>
+                <Link to="/app" className={styles.btnPrimary}>צרו הזמנה לאירוע שלכם ←</Link>
+                <a href={src} className={styles.btnOutline} target="_blank" rel="noopener">פתחו במסך מלא</a>
+              </div>
+            </div>
+
+            <div className={styles.device} aria-label="ההזמנה לדוגמה, בתוך טלפון">
+              <span className={styles.island} aria-hidden="true" />
+              <div className={styles.screen} ref={screenRef}>
+                <iframe
+                  className={styles.frame}
+                  src={src}
+                  title="הזמנה לדוגמה — החתונה של נועה וטל"
+                  style={{ width: GUEST_W, height: `${100 / scale}%`, transform: `scale(${scale})` }}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </div>
+  );
+}

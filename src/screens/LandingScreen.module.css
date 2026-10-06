@@ -55,7 +55,14 @@
 /* ── 1 · hero ─────────────────────────────────────────────────────────── */
 /* --focus-ring re-pointed for the dark ground: the global one is --accent-text,
    1.3–2.1:1 over the hero video (review 5.10, WCAG 1.4.11). */
-.hero { position: relative; background: var(--nav-bg); color: var(--nav-text); overflow: hidden; --focus-ring: var(--accent-on-dark); }
+/* The whole hero in one view, no scrolling (owner, 6.10): the section fills the
+   screen under the 69px bar and centres its content; the type is sized so the
+   content fits inside that at 320×568 as well as 1280×720. */
+.hero {
+  position: relative; background: var(--nav-bg); color: var(--nav-text); overflow: hidden; --focus-ring: var(--accent-on-dark);
+  display: grid; align-content: center;
+  min-height: calc(100svh - 69px);
+}
 .heroMedia { position: absolute; inset: 0; }
 .heroPause {
   position: absolute; z-index: 2;
@@ -78,14 +85,15 @@
 }
 .heroInner {
   position: relative;
+  width: 100%; box-sizing: border-box;
   max-width: 1120px; margin-inline: auto;
-  padding: 140px 20px 56px;
+  padding: 32px 20px 40px;
   display: grid; gap: 0;
 }
 .heroEyebrow { margin: 0 0 16px; color: var(--accent-on-dark); font-weight: 800; font-size: var(--step--1); letter-spacing: .08em; }
 .heroTitle {
-  margin: 0 0 20px;
-  font-size: clamp(3rem, 12vw, 6.2rem);
+  margin: 0 0 18px;
+  font-size: clamp(2.5rem, min(10.5vw, 9.5svh), 5.4rem);
   font-weight: 800; line-height: .98; letter-spacing: -0.03em;
 }
 .heroTitle span { color: var(--accent-on-dark); }
@@ -93,16 +101,13 @@
 .heroActions { display: flex; flex-wrap: wrap; gap: 12px; }
 /* --nav-text, not --nav-muted: 3.6–4.2:1 over the video at every width. */
 .heroFree { margin: 16px 0 0; color: var(--nav-text); font-size: var(--step--1); font-weight: 600; }
-.heroPoints {
-  list-style: none; margin: 36px 0 0; padding: 20px 0 0;
-  border-top: 1px solid var(--nav-border);
-  display: flex; flex-wrap: wrap; gap: 14px 28px;
-}
-.heroPoints li { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: var(--step-0); }
-.heroMark { flex-shrink: 0; }
 
 @media (min-width: 860px) {
-  .heroInner { padding-top: 200px; padding-bottom: 72px; }
+  .heroInner { padding-top: 48px; padding-bottom: 56px; }
+}
+/* A short phone (320×568): less air, so the whole hero still fits. */
+@media (max-height: 620px) {
+  .heroInner { padding-top: 20px; padding-bottom: 24px; }
   .heroScrim { background: linear-gradient(to left, rgba(var(--text-rgb), .94) 0%, rgba(var(--text-rgb), .7) 48%, rgba(var(--text-rgb), .15) 100%); }
 }
 
@@ -196,7 +201,7 @@
 @media (min-width: 860px) { .humanGrid { grid-template-columns: .8fr 1.2fr; gap: 56px; } }
 .humanPhoto { position: relative; isolation: isolate; }
 .humanPhoto img { display: block; width: 100%; aspect-ratio: 4 / 5; max-height: 520px; object-fit: cover; }
-.humanPhoto::after { content: ""; position: absolute; inset: 14px -14px -14px 14px; border: 2px solid var(--cta); z-index: -1; }
+/* No offset frame (owner, 6.10: "מסגרת ורודה שיוצאת ממנה זה מוזר"). */
 .humanList { display: grid; gap: 0; width: 100%; margin: 4px 0 26px; border-top: 2px solid var(--text); }
 .humanItem { display: flex; gap: 14px; align-items: flex-start; padding: 16px 2px; border-bottom: 1px solid var(--border); }
 .humanItem h3 { margin: 0 0 4px; font-size: var(--step-1); font-weight: 800; color: var(--text); }
@@ -231,3 +236,24 @@
 @media (prefers-reduced-motion: reduce) {
   .tile, .tile:hover { transition: none; transform: none; }
 }
+
+/* ── 4 · three steps (6.10) ───────────────────────────────────────────── */
+.steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 28px;
+  counter-reset: none;
+}
+@media (min-width: 860px) { .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; } }
+.step {
+  display: grid; align-content: start; gap: 8px;
+  padding-top: 16px; border-top: 2px solid var(--text);
+}
+.stepNum {
+  display: inline-grid; place-items: center;
+  width: 40px; height: 40px;
+  background: var(--cta); color: var(--on-accent);
+  font-size: var(--step-1); font-weight: 800;
+}
+.stepTitle { margin: 6px 0 0; font-size: var(--step-2); font-weight: 800; line-height: 1.2; color: var(--text); }
+.stepText { margin: 0 0 8px; font-size: var(--step-0); line-height: 1.6; color: var(--text2); }
+.stepShot { display: block; width: 100%; height: auto; border: 1px solid var(--border); background: var(--surface); }

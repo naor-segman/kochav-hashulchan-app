@@ -66,6 +66,11 @@
   status = 200
 
 [[redirects]]
+  from   = "/sample-invitation"
+  to     = "/sample-invitation/index.html"
+  status = 200
+
+[[redirects]]
   from   = "/help"
   to     = "/help/index.html"
   status = 200

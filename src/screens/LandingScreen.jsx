@@ -3,12 +3,11 @@ import { Link } from "react-router-dom";
 import SiteHeader from "../components/layout/SiteHeader.jsx";
 import Footer from "../components/layout/Footer.jsx";
 import SectionMark from "../components/ui/SectionMark.jsx";
-import PhoneFrame from "../components/marketing/PhoneFrame.jsx";
 import LaptopFrame from "../components/marketing/LaptopFrame.jsx";
 import CelebrationArt from "../components/marketing/CelebrationArt.jsx";
 import { ChatScene, DoorScene } from "../components/marketing/Scenes.jsx";
 import { useHashScroll } from "../hooks/useHashScroll.js";
-import { useMediaQuery, useStillOnly } from "../hooks/useMediaQuery.js";
+import { useStillOnly } from "../hooks/useMediaQuery.js";
 import { COMPANY } from "../data/company.js";
 import {
   FREE_PACKAGE, HUMAN_SERVICES, PAID_FROM, formatShekel, PRICING_RULES,
@@ -29,31 +28,33 @@ import styles from "./LandingScreen.module.css";
 
 const HERO_MEDIA = { video: "/hero/hero.mp4", poster: "/hero/hero.jpg", posterMobile: "/hero/hero-portrait.jpg" };
 
-const HERO_POINTS = [
-  { mark: "seating", t: "הושבה שמסתדרת לבד" },
-  { mark: "rsvp",    t: "אישורי הגעה בוואטסאפ" },
-  { mark: "checkin", t: "עמדת כניסה ביום האירוע" },
-];
-
-/* Every card is something that exists in the product today. */
+/* Every card is something that exists in the product today, in the order of
+   the host's journey (owner, 6.10: "כרונולוגי ולא מעורבב"). */
 const EVERYTHING = [
-  { mark: "seating", t: "הושבה אוטומטית",   d: "כל האולם מסודר בשניות", to: "/services/seating" },
-  { mark: "constraints", t: "מי ליד מי",     d: "מי חייב יחד, ומי בשום אופן לא", to: "/services/seating" },
-  { mark: "rsvp",    t: "אישורי הגעה",       d: "האורחים עונים בלי להירשם", to: "/services/rsvp" },
-  { mark: "messages", t: "הודעות בוואטסאפ",  d: "הזמנה, תזכורת ותודה — מוכנות", to: "/services/rsvp" },
-  { mark: "site",    t: "אתר והזמנה",        d: "הזמנה דיגיטלית, Waze והסעות", to: "/services/event-site" },
-  { mark: "guests",  t: "רשימת אורחים",      d: "מדביקים מוואטסאפ או מאקסל", to: "/services/rsvp" },
-  { mark: "checkin", t: "יום האירוע",        d: "עמדת כניסה וכרטיסי שם", to: "/services/event-day" },
   { mark: "budget",  t: "תקציב וספקים",      d: "כמה יצא, וכמה עוד נשאר", to: "/services/planning" },
+  { mark: "guests",  t: "רשימת אורחים",      d: "מדביקים מוואטסאפ או מאקסל", to: "/services/rsvp" },
+  { mark: "site",    t: "הזמנה ואתר",        d: "הזמנה דיגיטלית, Waze והסעות", to: "/services/event-site" },
+  { mark: "messages", t: "הודעות בוואטסאפ",  d: "הזמנה, תזכורת ותודה — מוכנות", to: "/services/rsvp" },
+  { mark: "rsvp",    t: "אישורי הגעה",       d: "האורחים עונים בלי להירשם", to: "/services/rsvp" },
+  { mark: "constraints", t: "מי ליד מי",     d: "מי חייב יחד, ומי בשום אופן לא", to: "/services/seating" },
+  { mark: "seating", t: "הושבה אוטומטית",   d: "כל האולם מסודר בלחיצה", to: "/services/seating" },
+  { mark: "checkin", t: "יום האירוע",        d: "עמדת כניסה וכרטיסי שם", to: "/services/event-day" },
 ];
 
 const FEELINGS = [
   {
-    eyebrow: "הלב של המוצר",
-    title: "לא עוד סידור על מפית בשתיים בלילה",
-    body: "מגדירים מי חייב לשבת יחד ומי בשום אופן לא — וכל האורחים מוצאים מקום תוך שניות, לפי הקבוצות, הצדדים והקיבולת של כל שולחן. מישהו ביטל שלושה ימים לפני? לוחצים שוב.",
-    points: ["אילוץ שלא הסתדר מסומן לכם, ולא נבלע", "שולחן נעול נשאר בדיוק כפי שסידרתם", "אם מישהו לא נכנס — רואים בדיוק מי"],
-    visual: "duo",
+    // Owner, 6.10: "הלב של המוצר" was odd; the title was weak; the points had
+    // to show how remarkable it is that the seating is fully automatic.
+    eyebrow: "סידורי הושבה",
+    title: "ההושבה מסתדרת לבד.",
+    body: "מכניסים את המוזמנים, מסמנים מי חייב לשבת יחד ומי לא — ולוחצים. תוך שניות כל האורחים יושבים: לפי הצדדים, הקבוצות והקיבולת של כל שולחן, ושום משפחה לא מתפצלת.",
+    points: [
+      "לחיצה אחת — וכל האולם מסודר, גם במאות אורחים",
+      "מי שחייבים יחד יושבים יחד. מי שאסור — רחוק",
+      "ביטול ברגע האחרון? לוחצים שוב, והכל מסתדר מחדש",
+      "מפת אולם אמיתית: רואים מי יושב איפה, ומדפיסים לאולם",
+    ],
+    visual: "laptop",
   },
   {
     eyebrow: "אישורי הגעה",
@@ -63,12 +64,28 @@ const FEELINGS = [
     visual: "chat",
   },
   {
-    eyebrow: "בערב עצמו",
-    title: "אתם רוקדים. הכניסה מסתדרת",
-    body: "בכניסה מחפשים אורח בשם, רואים את השולחן שלו ומסמנים שהגיע — גם מי שהגיע עם חצי מהמשפחה. הדיילת מקבלת קישור משלה, בלי גישה לשאר האירוע.",
-    points: ["מונה הגעה לפי אנשים — גם כשמשפחה מגיעה בחלקים", "חיפוש לפי שם, מלווה או טלפון", "כרטיסי שם וסידור הושבה להדפסה"],
+    // Owner, 6.10: the wording here was unclear and sold nothing. Rewritten
+    // around what the host feels on the night, not around the screen.
+    eyebrow: "ביום האירוע",
+    title: "האורחים נכנסים. אתם חוגגים.",
+    body: "בכניסה מקלידים שם ורואים מיד את מספר השולחן — וכל אורח הולך ישר למקום שלו. אתם לא עומדים בדלת ולא מחפשים רשימות מודפסות, ויודעים בכל רגע כמה כבר הגיעו.",
+    points: [
+      "כל אורח מגיע ישר לשולחן שלו",
+      "רואים בזמן אמת כמה כבר כאן",
+      "כרטיסי שולחן ושם מודפסים, מוכנים לכניסה",
+    ],
     visual: "door",
   },
+];
+
+/* The three steps (section 4). Screens from the product, as captured. */
+const STEPS = [
+  { t: "מכניסים את המוזמנים", d: "מקלידים, מדביקים רשימה מוואטסאפ או מאקסל, או שולחים לבני המשפחה קישור למלא בעצמם.",
+    img: "/shots/guests.jpg", alt: "רשימת המוזמנים במחשב — שמות, צדדים, קבוצות ומספר מקומות" },
+  { t: "שולחים הזמנה בוואטסאפ", d: "ההזמנה יוצאת לכל אורח עם קישור אישי, והתשובות נכנסות לרשימה לבד.",
+    img: "/shots/messages.jpg", alt: "מסך ההודעות — הזמנה, תזכורת ותודה, מוכנות לשליחה בוואטסאפ" },
+  { t: "לוחצים — וההושבה מוכנה", d: "כל האורחים משובצים לפי האילוצים שלכם. מזיזים מה שרוצים, ומדפיסים לאולם.",
+    img: "/shots/seating.jpg", alt: "סידור ההושבה במחשב — כל האורחים משובצים בשולחנות" },
 ];
 
 /* "Is it for me?" — the owner on DIGINET's event-type pages: it speaks to a
@@ -87,15 +104,15 @@ const quoteHref = () => `https://wa.me/${COMPANY.whatsapp}?text=${encodeURICompo
 export default function LandingScreen({ user = null }) {
   useHashScroll();
   const stillOnly = useStillOnly();
-  // One product video, not two: both downloaded and played at every width and
-  // CSS hid one (~2MB each — review 5.10). 860 is .onlyWide's breakpoint.
-  const wide = useMediaQuery("(min-width: 860px)", true);
   const heroRef = useRef(null);
   const [heroPaused, setHeroPaused] = useState(false);
   const toggleHero = () => {
     const v = heroRef.current;
     if (!v) return;
-    if (v.paused) { v.play()?.catch?.(() => {}); setHeroPaused(false); }
+    /* Follow the button's own state, not v.paused: a browser that has not
+       started the loop yet (or cannot decode it) reports paused, and the
+       button would then "play" on the press that was meant to stop it. */
+    if (heroPaused) { v.play()?.catch?.(() => {}); setHeroPaused(false); }
     else { v.pause(); setHeroPaused(true); }
   };
 
@@ -122,22 +139,22 @@ export default function LandingScreen({ user = null }) {
             </button>
           )}
           <div className={styles.heroInner}>
-            <p className={styles.heroEyebrow}>הושבה ואישורי הגעה לאירועים</p>
-            <h1 className={styles.heroTitle}>כל האורחים<br /><span>במקום הנכון</span></h1>
+            {/* Owner, 6.10: the site does planning and management end to end, not
+                "הושבה ואישורי הגעה"; the title has to be exact — it is the
+                first thing anyone reads; and the hero is seen whole, with no
+                scrolling. The second button opens a page of its own (the
+                sample invitation), not a jump down this one. */}
+            <p className={styles.heroEyebrow}>תכנון וניהול אירועים</p>
+            <h1 className={styles.heroTitle}>מתכננים אירוע?<br /><span>מכאן הכל פשוט.</span></h1>
             <p className={styles.heroSub}>
-              {COMPANY.name} מרכזת את רשימת האורחים, אישורי ההגעה וסידור השולחנות
-              במקום אחד — וההושבה מסתדרת לבד. אתם רק נהנים מהדרך.
+              מערכת אחת לתכנון וניהול האירוע: הזמנה דיגיטלית, אישורי הגעה בוואטסאפ,
+              הושבה אוטומטית ועמדת כניסה. הכל מתעדכן לבד, ואתם נהנים מהדרך.
             </p>
             <div className={styles.heroActions}>
               <Link to="/app" className={styles.btnPrimary}>התחילו חינם ←</Link>
-              <a href="#how" className={styles.btnGhostDark}>ראו איך זה עובד</a>
+              <Link to="/sample-invitation" className={styles.btnGhostDark}>צפו בהזמנה לדוגמה</Link>
             </div>
             <p className={styles.heroFree}>מתחילים בחינם · בלי כרטיס אשראי · בלי התחייבות</p>
-            <ul className={styles.heroPoints}>
-              {HERO_POINTS.map(p => (
-                <li key={p.t}><SectionMark name={p.mark} size={22} tone="ondark" className={styles.heroMark} />{p.t}</li>
-              ))}
-            </ul>
           </div>
         </section>
 
@@ -146,7 +163,8 @@ export default function LandingScreen({ user = null }) {
         <section className={styles.everything} id="features">
           <div className={styles.inner}>
             <div className={styles.head}>
-              <h2 className={styles.title}>כל מה שהאירוע צריך. במקום אחד.</h2>
+              {/* Owner, 6.10: about the person, not the event. His wording. */}
+              <h2 className={styles.title}>כל מה שתצטרכו בדרך לאירוע.</h2>
               <p className={styles.sub}>וזה רק חלק ממה שמחכה לכם בפנים.</p>
             </div>
             <div className={styles.grid}>
@@ -177,11 +195,10 @@ export default function LandingScreen({ user = null }) {
                 </ul>
               </div>
               <div className={styles.visual}>
-                {f.visual === "duo" && (
-                  <div className={styles.duo}>
-                    <LaptopFrame src="/shots/seating.jpg" alt="מסך סידור ההושבה במחשב — 56 רשומות שובצו ב-14 שולחנות, אפס הפרות" className={styles.duoLaptop} />
-                    <PhoneFrame src="/shots-phone/seating.jpg" alt="אותו אירוע בטלפון" className={styles.duoPhone} />
-                  </div>
+                {/* The computer alone here; the phone belongs to the RSVP part
+                    below, where the guest holds it (owner, 6.10). */}
+                {f.visual === "laptop" && (
+                  <LaptopFrame src="/shots/seating.jpg" alt="מסך סידור ההושבה במחשב — 56 רשומות שובצו ב-14 שולחנות, אפס הפרות" className={styles.duoLaptop} />
                 )}
                 {f.visual === "chat" && <ChatScene />}
                 {f.visual === "door" && <DoorScene />}
@@ -190,27 +207,27 @@ export default function LandingScreen({ user = null }) {
           </section>
         ))}
 
-        {/* 4 · The product moving — the owner's iPhone-video idea, mid-page. */}
+        {/* 4 · How it goes, in three steps (owner, 6.10: the "לחיצה אחת" video
+            did not say what was happening or why). One picture per step, from
+            the product, and one plain sentence under it. */}
         <section className={styles.watch} id="how">
-          <div className={[styles.inner, styles.watchGrid].join(" ")}>
-            <div>
-              <p className={styles.eyebrow}>לחיצה אחת</p>
-              <h2 className={styles.title}>תראו את זה קורה</h2>
-              <p className={styles.body}>
-                96 אורחים ו-14 שולחנות. לוחצים על הושבה אוטומטית — וכולם במקום,
-                עם מי שחייב לשבת יחד, ורחוק ממי שאסור.
-              </p>
-              <Link to="/app" className={styles.btnPrimary}>נסו על האירוע שלכם ←</Link>
+          <div className={styles.inner}>
+            <div className={styles.head}>
+              <p className={styles.eyebrow}>איך זה עובד</p>
+              <h2 className={styles.title}>מהרשימה ועד השולחן, בשלושה צעדים</h2>
             </div>
-            <div className={styles.visual}>
-              {/* A laptop where there is room for one, the phone where there is not. */}
-              {wide ? (
-                <LaptopFrame video="/shots-phone/product-desk.webm" poster="/shots/seating.jpg"
-                             alt="סרטון: הושבה אוטומטית של 96 אורחים, ואחריה רשימת האורחים" className={styles.onlyWide} />
-              ) : (
-                <PhoneFrame video="/shots-phone/product.webm" poster="/shots-phone/seating.jpg"
-                            alt="סרטון: הושבה אוטומטית של 96 אורחים, ואחריה רשימת האורחים" className={[styles.phone, styles.onlyNarrow].join(" ")} />
-              )}
+            <ol className={styles.steps}>
+              {STEPS.map((st, i) => (
+                <li key={st.t} className={styles.step}>
+                  <span className={styles.stepNum} aria-hidden="true">{i + 1}</span>
+                  <h3 className={styles.stepTitle}>{st.t}</h3>
+                  <p className={styles.stepText}>{st.d}</p>
+                  <img className={styles.stepShot} src={st.img} alt={st.alt} loading="lazy" width="2400" height="1520" />
+                </li>
+              ))}
+            </ol>
+            <div className={styles.center}>
+              <Link to="/app" className={styles.btnPrimary}>התחילו חינם ←</Link>
             </div>
           </div>
         </section>

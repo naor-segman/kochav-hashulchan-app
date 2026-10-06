@@ -33,6 +33,7 @@ const imp = async (p) => (await import(p)).default;
 const MARKETING = {
   "/":                    await imp("./LandingScreen.jsx"),
   "/pricing":             await imp("./PricingScreen.jsx"),
+  "/sample-invitation":   await imp("./SampleInvitationScreen.jsx"),
   "/services/seating":    await imp("./services/SeatingServiceScreen.jsx"),
   "/services/event-site": await imp("./services/EventSiteServiceScreen.jsx"),
   "/services/planning":   await imp("./services/PlanningServiceScreen.jsx"),
@@ -130,6 +131,7 @@ const OWN_MAIN = {
   EntranceScreen: "src/screens/EntranceScreen.jsx",
   LandingScreen: "src/screens/LandingScreen.jsx",
   PricingScreen: "src/screens/PricingScreen.jsx",
+  SampleInvitationScreen: "src/screens/SampleInvitationScreen.jsx",
   SeatingServiceScreen:   "src/screens/services/SeatingServiceScreen.jsx",
   EventSiteServiceScreen: "src/screens/services/EventSiteServiceScreen.jsx",
   PlanningServiceScreen:  "src/screens/services/PlanningServiceScreen.jsx",

@@ -3,6 +3,7 @@ import styles from "./Footer.module.css";
 import { COMPANY, LEGAL, legalLine, contactMailto, contactEmail } from "../../data/company.js";
 import { openConsentSettings } from "../../utils/consent.js";
 import { analyticsConfigured } from "../../lib/analytics.js";
+import { liveServices } from "../../data/services.js";
 
 export default function Footer() {
   return (
@@ -22,16 +23,15 @@ export default function Footer() {
         </div>
 
         <div className={styles.cols}>
+          {/* The services in the order of the host's journey, as in the bar —
+              not "תכונות" / "איך זה עובד", section headings that sent the
+              reader down the home page (owner, 6.10). */}
           <div className={styles.col}>
-            <div className={styles.colTitle}>מוצר</div>
-            {/* /home, not / — App.jsx sends a signed-in user from / straight to
-                /app, so these two dropped every logged-in visitor on the
-                dashboard. /home renders the landing page unconditionally.
-                Kept as <Link> so it is a client-side navigation: a full reload
-                would re-download the app to scroll to a section. */}
-            <Link to="/home#features" className={styles.colLink}>תכונות</Link>
-            <Link to="/home#how" className={styles.colLink}>איך זה עובד</Link>
-            <Link to="/pricing" className={styles.colLink}>מחירים</Link>
+            <div className={styles.colTitle}>השירותים</div>
+            {liveServices().map(s => (
+              <Link key={s.id} to={s.path} className={styles.colLink}>{s.label}</Link>
+            ))}
+            <Link to="/pricing" className={styles.colLink}>כמה זה עולה?</Link>
           </div>
           <div className={styles.col}>
             <div className={styles.colTitle}>חשבון</div>

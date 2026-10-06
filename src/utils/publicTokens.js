@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase.js";
+import { isSampleToken, sampleEvent, SAMPLE_WISHES } from "../data/sampleEvent.js";
 import { toSeatIndex } from "./arrival.js";
 import { getEventPersonalConfig } from "./eventHelpers.js";
 import { albumExtForType } from "./albumPhoto.js";
@@ -107,6 +108,9 @@ export { INVALID_LINK_TEXT, UNREACHABLE_TEXT } from "../data/guestCopy.js";
  * @returns {object|null} — local-shaped event object, or null if not found
  */
 export async function fetchEventByToken(tokenType, token) {
+  // The sample invitation (data/sampleEvent.js): answered here, before the
+  // network — and before the "no Supabase" bail-out, so it works on any build.
+  if (isSampleToken(token)) return sampleEvent();
   if (!isSupabaseConfigured || !supabase || !token) return null;
   const { data, error } = await supabase.rpc("public_event_by_token", {
     token_type:  tokenType,
@@ -224,6 +228,9 @@ export async function fetchRSVPResponses(eventCloudId) {
  * @param {string} token the rsvp token from the URL — the actual authorisation
  */
 export async function submitRSVP(token, response) {
+  // The sample invitation: the answer goes nowhere — a visitor trying the
+  // page is not a guest of anyone. A beat of delay so it feels like a send.
+  if (isSampleToken(token)) { await new Promise(r => setTimeout(r, 400)); return; }
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   // status: "yes" | "no" | "maybe" — `attending` stays for backward compat.
   const status = response.status || (response.attending ? "yes" : "no");
@@ -263,6 +270,7 @@ export async function submitRSVP(token, response) {
  * @param {string} token the gift token from the URL — the actual authorisation
  */
 export async function submitGift(token, gift) {
+  if (isSampleToken(token)) { await new Promise(r => setTimeout(r, 400)); return; }
   if (!isSupabaseConfigured || !supabase) throw new Error("Supabase not configured");
   const donor  = String(gift.donorName || "").slice(0, 200);
   const amount = Math.round(gift.amountILS * 100);
@@ -352,6 +360,7 @@ export async function fetchEventGifts(eventCloudId) {
  * @returns {object[]} [{ id, donor_name, message, created_at }], newest first
  */
 export async function fetchGiftWall(token) {
+  if (isSampleToken(token)) return SAMPLE_WISHES;
   if (!isSupabaseConfigured || !supabase || !token) return [];
   const { data, error } = await supabase.rpc("gift_wall_by_token", {
     token_value: token,

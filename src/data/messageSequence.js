@@ -46,7 +46,9 @@ export const MESSAGE_STAGES = [
     icon: "mail",
     when: "4-6 שבועות לפני",
     audience: "all",
-    body: "היי {{שם}} 👋\n\nאתם מוזמנים ל{{אירוע}}!\n📅 {{תאריך}}\n📍 {{מקום}}\n\nנשמח שתאשרו הגעה:\n{{קישור}}",
+    // Warmer since 6.10 (owner: the sample on the home page — this exact text —
+    // read "יבשה בלי סמיילים או קצת שמחה"). The home page shows THIS body.
+    body: "היי {{שם}} 👋\n\nשמחים להזמין אתכם ל{{אירוע}}! 🎉💛\n📅 {{תאריך}}\n📍 {{מקום}}\n\nנשמח שתאשרו הגעה כאן 👇\n{{קישור}}",
   },
   {
     key: "reminder1",
