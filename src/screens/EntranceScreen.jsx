@@ -977,7 +977,7 @@ export default function EntranceScreen({
 
           {!search && (
             <div className={styles.empty}>
-              <span className={styles.emptyIcon}><SectionMark name="checkin" tone="ondark" size={48} /></span>
+              <span className={styles.emptyIcon}><SectionMark name="checkin" size={48} /></span>
               <p className={styles.emptyTitle}>הקלידו שם</p>
               <p className={styles.emptyHint}>
                 {totals.arrivedSeats > 0
@@ -1030,7 +1030,7 @@ export default function EntranceScreen({
           <div className={styles.tableList}>
             {tableRows.length === 0 && (
               <div className={styles.empty}>
-                <span className={styles.emptyIcon}><SectionMark name="tables" tone="ondark" size={44} /></span>
+                <span className={styles.emptyIcon}><SectionMark name="tables" size={44} /></span>
                 <p className={styles.emptyTitle}>{ev.tables.length === 0 ? "לא הוגדרו שולחנות" : "אין שולחן תואם"}</p>
               </div>
             )}
@@ -1086,7 +1086,7 @@ export default function EntranceScreen({
       {canManage && (
         <div data-tour="entrance.link" className={styles.linkCard}>
           <button className={styles.linkToggle} onClick={() => setLinkOpen(o => !o)} aria-expanded={linkOpen}>
-            <SectionMark name="hostess" tone="ondark" size={22} />
+            <SectionMark name="hostess" size={22} />
             <span className={styles.linkTitle}>קישור לדיילת</span>
             <span className={[styles.linkState, ev.hostessWriteActive === false ? styles.linkStateOff : ""].filter(Boolean).join(" ")}>
               {ev.hostessWriteActive === false ? "סימון סגור" : "סימון פתוח"}

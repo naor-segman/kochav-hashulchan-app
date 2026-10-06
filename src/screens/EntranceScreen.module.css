@@ -1,24 +1,19 @@
 /* עמדת כניסה — the door screen.
  *
- * Every decision here answers the same brief: ONE HAND, A PHONE, A DARK ROOM,
- * A QUEUE AT THE DOOR.
+ * Every decision here answers the same brief: ONE HAND, A PHONE, A QUEUE AT
+ * THE DOOR.
  *
- * GROUND. Dark (--nav-bg). The old check-in screen was white, which is a torch
- * in a dark hall and is why the hostess link was already dark. One screen now,
- * so one ground — the darker one, because a white phone at a wedding entrance
- * ruins the greeter's night vision and everyone else's photographs.
+ * GROUND. Light, like the rest of the site — owner, 6.10, of the dark one:
+ * "לא נוח לקריאה". It was dark (--nav-bg) on the theory that a white phone in
+ * a dark hall blinds the greeter; the owner, who stands at those doors, found
+ * the dark screen the harder one to read. The rules below were written against
+ * the --nav-* tokens, so .root re-points those tokens at the light system
+ * instead of rewriting forty rules: --nav-text is ink, --nav-muted is --text2,
+ * --accent-on-dark is --accent-text, the success green is --green. Measured
+ * with qa/contrastReal.mjs on the real ground after the change.
  *
- * COLOUR. Only arrival carries hue. Measured against the real ground:
- *   --nav-text      #F5F5F6 on #14161A  17.7:1   text
- *   --nav-muted     #9BA1A9 on #21242A   5.97:1  meta (DESIGN.md)
- *   --accent-on-dark #FA9FC0 on #21242A  7.99:1  the one accent, on the number
- *   --green-light   #2AA274 on #14161A   5.6:1   the only green legible here
- *   --red-border    #F0C0AC on #21242A   9.51:1  failure
- * --accent itself is 3.8:1 and never carries text; a filled button is --cta.
- *
- * SHAPE (136 stage D, 6.10). Square corners and the site's display face, as
- * on every other screen. The ground stays dark — the one screen where the
- * site's light ground would be wrong, for the reason above.
+ * COLOUR. Only arrival carries hue. --accent itself is 3.8:1 and never carries
+ * text; a filled button is --cta.
  *
  * TAP TARGETS. The primary mark button is 60px tall and full width — it is the
  * only thing on a row you can hit without looking. Everything that is not
@@ -26,6 +21,15 @@
  */
 
 .root {
+  --nav-bg: var(--bg);
+  --nav-bg2: var(--surface);
+  --nav-text: var(--text);
+  --nav-text-rgb: var(--text-rgb);
+  --nav-muted: var(--text2);
+  --nav-border: var(--border);
+  --accent-on-dark: var(--accent-text);
+  --green-light: var(--green);
+  --red-border: var(--red);
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
@@ -461,8 +465,10 @@
   min-height: 60px;
   border: none;
   border-radius: 0;
-  background: var(--nav-text);
-  color: var(--nav-bg);
+  /* The one filled button on a row: the site's CTA (it was the light ink of
+     the dark ground — on a light ground that read as a black slab). */
+  background: var(--cta);
+  color: var(--on-accent);
   font-family: inherit;
   font-size: var(--step-1);
   font-weight: 800;
@@ -470,7 +476,7 @@
   transition: background var(--transition), color var(--transition);
 }
 
-.markBtn:hover { background: var(--white); }
+.markBtn:hover { background: var(--cta-dark); }
 .markBtn:disabled { opacity: .45; cursor: not-allowed; }
 
 .markBtnDone { background: var(--green); color: var(--on-accent); }
@@ -675,11 +681,11 @@
 .linkState {
   padding: 4px 10px;
   border-radius: 0;
-  background: rgba(var(--green-rgb), .22);
-  /* Was --green-light on a .22-alpha green tint: 3.84:1 measured against the
-     COMPOSITED ground, not against white. The tint is the ground. White on the
-     solid green is the form already used by markBtnDone at 5.85:1. */
-  color: var(--on-accent);
+  /* On the light ground (6.10) the white-on-tint form measured 1.34:1 —
+     the tint is the ground, and it is pale now. The light system's own pair:
+     --green-dark on --green-bg. */
+  background: var(--green-bg);
+  color: var(--green-dark);
   font-size: var(--step--3);
   font-weight: 700;
   white-space: nowrap;

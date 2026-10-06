@@ -861,8 +861,7 @@ export default function SeatingScreen({ activeEvent: ev, patchEvent, go, showToa
               (`arrivedSeats`), and neither panel could express "the aunt is
               here, her four are not" — both wrote the row-level boolean, which
               silently means everyone. עמדת הכניסה does that, plus walk-ins,
-              by-table search and companion search, on a dark ground that does
-              not blind a greeter in a dark hall. One door, one screen. */}
+              by-table search and companion search. One door, one screen. */}
 
           {(unassigned.length > 0 || !!activeId) && (
             <DroppableWrapper id="unassigned">

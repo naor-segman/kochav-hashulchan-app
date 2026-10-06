@@ -34,7 +34,11 @@ export default function SupportButton() {
   // over the RSVP form and the gift page, inviting a wedding guest to message
   // the software company instead of the couple (106, 28.9).
   // And not over a sign-in form (136 stage C) — SupportLine is inside the card.
-  if (!SUPPORT_PHONE || isGuestRoute(pathname) || isAuthFormRoute(pathname)) return null;
+  // Nor at the door (6.10): the host's own entrance screen is tapped row after
+  // row with one hand, and the button sat over the rows and over "ביטול" in
+  // the walk-in sheet. The greeter's token door is already a guest route.
+  const atDoor = /^\/events\/[^/]+\/(entrance|checkin)\/?$/i.test(pathname);
+  if (!SUPPORT_PHONE || isGuestRoute(pathname) || isAuthFormRoute(pathname) || atDoor) return null;
   const href = supportHref();
   return (
     <a
