@@ -518,6 +518,11 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
         // is being invited to blank out by accident.
         setForm(guestToForm(g, defaultGroup));
         setEditId(g.id);
+        // A previous attempt's error (and its aria-invalid) stayed on the
+        // field with this guest's name in it (review 6.10). Same reset as
+        // cancelEdit.
+        setErrors({});
+        setCountText(null);
         window.scrollTo(0, 0);
       },
     };

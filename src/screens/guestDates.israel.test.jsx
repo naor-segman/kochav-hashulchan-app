@@ -58,7 +58,9 @@ describe("the hub countdown ticks", () => {
       patchEvent={() => {}} go={() => {}} showToast={() => {}} /></MemoryRouter></AuthProvider>);
     expect(screen.getByText("יום לאירוע")).toBeTruthy();
     await act(async () => { await vi.advanceTimersByTimeAsync(61_000); });
-    expect(screen.getByText("האירוע היום")).toBeTruthy();
+    // "האירוע" over a big "היום" since review 6.10 (it was "האירוע היום" over a 0).
+    expect(screen.getByText("האירוע")).toBeTruthy();
+    expect(screen.getByText("היום")).toBeTruthy();
   });
 });
 

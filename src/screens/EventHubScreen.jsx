@@ -44,7 +44,10 @@ export default function EventHubScreen({ activeEvent: ev, patchEvent, go, showTo
   const [justCreated] = useState(() => !!location.state?.created);
   useEffect(() => {
     if (location.state?.created) {
-      navigate(location.pathname + location.search, { replace: true, state: null });
+      // The LIVE search, not this render's: EventPlanCard (a child, so its
+      // effect runs first) may just have stripped ?checkout=, and this
+      // render's copy would put it back (review 6.10).
+      navigate(location.pathname + window.location.search, { replace: true, state: null });
     }
   }, [location, navigate]);
 

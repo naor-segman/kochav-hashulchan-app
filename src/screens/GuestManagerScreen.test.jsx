@@ -348,3 +348,14 @@ describe("GuestManagerScreen — meal chips count meals (107)", () => {
     expect(document.body.textContent).not.toMatch(/ומה הוא נתן/);
   });
 });
+
+describe("GuestManagerScreen — an error does not follow the host into an edit (review 6.10)", () => {
+  it("opening a guest for editing clears the empty-name error and its aria-invalid", () => {
+    renderGuests();
+    fireEvent.click(screen.getByText("+ הוסיפו אורח"));
+    expect(screen.getByRole("alert").textContent).toMatch(/בלי שם אי אפשר לשמור/);
+    startEditing();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByDisplayValue("משפחת כהן").getAttribute("aria-invalid")).not.toBe("true");
+  });
+});
