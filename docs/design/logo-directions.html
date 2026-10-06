@@ -11,54 +11,58 @@ body{margin:0;font-family:sans-serif;background:#fff;color:#14161A}
 </style>
 <body dir="rtl">
 <script>
-const MAG="#E8437B", INK="#14161A", W=18;
-// monoline glyphs on a 100-unit x-height (top y=10, baseline y=100), stroke W, round caps
-const arc=(cx,cy,r,a0,a1)=>{const p=a=>[cx+r*Math.cos(a*Math.PI/180),cy+r*Math.sin(a*Math.PI/180)];const [x0,y0]=p(a0),[x1,y1]=p(a1);const large=Math.abs(a1-a0)>180?1:0;const sweep=a1>a0?1:0;return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${large} ${sweep} ${x1.toFixed(1)} ${y1.toFixed(1)}`};
+const MAG="#E8437B", INK="#14161A";
+// Unica's own letters, rebuilt from the original logo (measured on a grid):
+// cap height 100 (outer), stroke 17.6, round ends. The I is shorter than the
+// rest, the A has no crossbar, the font is unicase (u, n). "plan" is set in the
+// same letters: p (stem + the n's bowl), l (full-height stem), the same A, n.
+const W=17.6, YT=8.8, YB=91.2;
+const arc=(cx,cy,r,a0,a1)=>{const p=a=>[cx+r*Math.cos(a*Math.PI/180),cy+r*Math.sin(a*Math.PI/180)];const [x0,y0]=p(a0),[x1,y1]=p(a1);const large=Math.abs(a1-a0)>180?1:0;const sweep=a1>a0?1:0;return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${large} ${sweep} ${x1.toFixed(2)} ${y1.toFixed(2)}`};
 const G={
-  u:{w:80,d:"M9 10 V62 A31 31 0 0 0 71 62 V10 M71 62 V100"},
-  n:{w:80,d:"M9 100 V48 A31 31 0 0 1 71 48 V100"},
-  I:{w:18,d:"M9 10 V100"},
-  i:{w:18,d:"M9 10 V100"},
-  C:{w:84,d:arc(48,55,39,-48,-312+0)},
-  A:{w:88,d:"M9 100 L44 12 L79 100",drop:true},
-  p:{w:80,d:"M9 10 V138 M9 55 "+arc(40,55,31,180,180+359.9).slice(1).replace(/^[^A]*/,"")},
-  l:{w:18,d:"M9 -22 V100"},
-  a:{w:80,d:arc(40,55,31,0,359.9)+" M71 10 V100"},
+  u:{w:91.8,gap:13.7,d:`M8.8 ${YT} V54.1 A37.1 37.1 0 0 0 83 54.1 V${YT}`},
+  n:{w:90.5,gap:16.4,d:`M8.8 ${YB} V45.3 A36.45 36.45 0 0 1 81.7 45.3 V${YB}`},
+  I:{w:17.8,gap:15,d:`M8.9 17 V${YB}`},
+  C:{w:87.7,gap:9.6,d:arc(50.5,50.5,41.7,43,317)},
+  A:{w:105.5,gap:14,d:`M8.8 ${YB} L55.3 14 L96.8 ${YB}`,drop:true},
+  p:{w:90.5,gap:14,d:`M8.8 ${YT} V128 `+arc(45.3,50,36.45,180,539.99)},
+  l:{w:17.8,gap:14,d:`M8.9 -16 V${YB}`},
 };
-G.p.d="M9 10 V138 "+arc(40,55,31,180,539.9);
-G.C.d=arc(48,55,40,40,320);
-function word(str,color,x0,opts={}){let x=x0,out="";for(const ch of str){if(ch===" "){x+=34;continue}const g=G[ch];
-  if(opts.tableIn===ch){ // the bowl becomes a round table with chairs
-    out+=`<path d="M${x+9} 10 V138" stroke="${color}" stroke-width="${W}" stroke-linecap="round" fill="none"/>`+table(x+40,55,31,color,opts.chairColor||color,8,18,null,[[100,260]],W); x+=30;
-  } else out+=`<path d="${g.d}" transform="translate(${x} 0)" stroke="${color}" stroke-width="${W}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
-  if(g.drop&&opts.drop!==false) out+=`<path d="M0 0 C 10 -14 30 -14 34 0 C 30 9 12 12 0 0 Z" transform="translate(${x+42} 66) rotate(18)" fill="${MAG}"/>`;
-  x+=g.w+14}return {svg:out,w:x-x0-14}}
+G.p.d=`M8.8 ${YT} V128 M8.8 50 `+arc(45.3,50,36.45,180,539.99).replace(/^M[^A]*/,"").replace(/^/,"")
+G.p.d=`M8.8 ${YT} V128 `+`M8.8 50 A36.45 36.45 0 1 1 81.7 50 A36.45 36.45 0 1 1 8.8 50`;
+const DROP=(x,ink)=>`<g transform="translate(${x} 0)"><path d="M37.5 62 C 40 54, 50 53.5, 55 59 L 82.5 82.3 L 47 82.6 C 38 82.6, 34.5 70, 37.5 62 Z" fill="${MAG}" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round"/><path d="M47 61 C 51 58, 55 60, 59 64 C 55 63, 51 63, 47 61 Z" fill="#fff"/></g>`;
+const DROPF=(x,fill)=>`<g transform="translate(${x} 0)"><path d="M37.5 62 C 40 54, 50 53.5, 55 59 L 82.5 82.3 L 47 82.6 C 38 82.6, 34.5 70, 37.5 62 Z" fill="${fill}"/></g>`;
+function word(str,color,x0,opts={}){let x=x0,out="";const map={u:"u",n:"n",i:"I",c:"C",a:"A",p:"p",l:"l"};for(const ch0 of str){const ch=map[ch0];const g=G[ch];
+  if(opts.tableIn===ch0){ out+=`<path d="M${x+8.8} ${YT} V128" stroke="${color}" stroke-width="${W}" stroke-linecap="round" fill="none"/>`+table(x+45.3,50,36.45,color,opts.chairColor||color,8,18,null,[[100,260]],W); x+=g.w+g.gap+26; continue;}
+  out+=`<path d="${g.d}" transform="translate(${x.toFixed(2)} 0)" stroke="${color}" stroke-width="${W}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
+  if(g.drop) out+= opts.dropFill ? DROPF(x,opts.dropFill) : DROP(x,opts.dropInk||color);
+  x+=g.w+g.gap}return {svg:out,w:x-x0-14}}
 // round table seen from above: table disc + n chairs (rounded rects) around it
 function table(cx,cy,r,fill,chair,n=6,cs=14,chairColors,skip=[] ,ring=0){let s="";for(let k=0;k<n;k++){const a=k*360/n-90; if(skip.some(([a0,a1])=>{const t=((a%360)+360)%360;return t>=a0&&t<=a1}))continue; const rr=r+(ring/2)+cs*0.85;
   const x=cx+rr*Math.cos(a*Math.PI/180), y=cy+rr*Math.sin(a*Math.PI/180); const c=chairColors?chairColors[k%chairColors.length]:chair;
-  const T=`rotate(${a+90} ${x.toFixed(1)} ${y.toFixed(1)})`;
-  s+=`<g transform="${T}"><rect x="${(x-cs/2).toFixed(1)}" y="${(y-cs*0.32).toFixed(1)}" width="${cs}" height="${(cs*0.7).toFixed(1)}" rx="${cs*0.22}" fill="${c}"/><rect x="${(x-cs*0.55).toFixed(1)}" y="${(y-cs*0.72).toFixed(1)}" width="${(cs*1.1).toFixed(1)}" height="${(cs*0.26).toFixed(1)}" rx="${cs*0.13}" fill="${c}"/></g>`}
+  const ROT=`rotate(${a+90} ${x.toFixed(1)} ${y.toFixed(1)})`;
+  s+=`<rect x="${(x-cs/2).toFixed(1)}" y="${(y-cs*0.42).toFixed(1)}" width="${cs}" height="${(cs*0.84).toFixed(1)}" rx="${cs*0.3}" transform="${ROT}" fill="${c}"/>`}
   return s+(ring?`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${fill}" stroke-width="${ring}"/>`:`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/>`)}
 const svg=(w,h,body,vb)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb||`0 0 ${w} ${h}`}" height="${h}">${body}</svg>`;
 
 // A — table beside the name, one line
-function A(ink,h=64){const t=table(62,55,32,MAG,ink,6,26);const u=word("uniCA",ink,150),p=word("plan",MAG,140+u.w+40,{drop:false});
+function A(ink,h=64){const t=table(62,55,32,MAG,ink,6,26);const u=word("unica",ink,150),p=word("plan",MAG,150+u.w+40,{dropFill:ink});
   const W2=150+u.w+40+p.w+10;return svg(W2,h,t+u.svg+p.svg,`-14 -44 ${W2+20} 198`)}
 // B — Unica's own structure: icon above, UNICA, then PLAN where the tripod stood
-function B(ink,h=150){const u=word("uniCA",ink,0);const cx=u.w/2;
+function B(ink,h=150){const u=word("unica",ink,0);const cx=u.w/2;
   const t=`<g transform="translate(0 -160)">${table(cx,55,34,ink,ink,6,26,["#E8437B","#2BB3C0","#F6B523","#F07D2E","#2BB3C0","#F6B523"],[],12)}</g>`;
-  const p=word("plan",MAG,0,{drop:false});const px=(u.w-p.w*0.62)/2;
+  const p=word("plan",MAG,0,{dropFill:ink});const px=(u.w-p.w*0.62)/2;
   const ps=`<g transform="translate(${px} 128) scale(.62)">${p.svg}</g>`;
   return svg(u.w,h,t+u.svg+ps,`-10 -190 ${u.w+20} 412`)}
 // C — the table lives inside the name: the bowl of the p is a table with its chairs
-function C(ink,h=64){const u=word("uniCA",ink,0),p=word("plan",MAG,u.w+40,{drop:false,tableIn:"p"});
+function C(ink,h=64){const u=word("unica",ink,0),p=word("plan",MAG,u.w+40,{dropFill:ink,tableIn:"p"});
   return svg(u.w+40+p.w,h,u.svg+p.svg,`-12 -40 ${u.w+40+p.w+24} 190`)}
 // favicons
 const favA=(bg)=>svg(64,64,`<rect width="120" height="120" fill="${bg}"/>`+table(60,60,24,MAG,"#fff",6,24),"0 0 120 120");
 const favB=()=>svg(64,64,`<rect width="120" height="120" fill="#fff"/>`+table(60,60,22,INK,INK,6,24,["#E8437B","#2BB3C0","#F6B523","#F07D2E","#2BB3C0","#F6B523"],[],10),"0 0 120 120");
 const favC=()=>svg(64,64,`<rect width="120" height="120" fill="${MAG}"/><path d="M34 24 V104" stroke="#fff" stroke-width="13" stroke-linecap="round"/>`+table(60,50,20,"#fff","#fff",8,14,null,[[100,260]],13),"0 0 120 120");
 const V=[["א · השולחן ליד השם",A,favA(INK)],["ב · כמו הלוגו של Unica: אייקון למעלה, השם, ו־plan במקום החצובה",B,favB()],["ג · השולחן בתוך השם: העיגול של ה־p הוא שולחן עם כיסאות",C,favC()]];
-document.body.innerHTML=V.map(([t,f,fav])=>`<div class="v"><h2>${t}</h2><div class="row">
+const cmp=`<div class="v"><h2>בדיקה: המקור מול השחזור</h2><div class="row"><div><div class="tile light"><img src="unica.png" style="height:150px"></div><div class="lbl">המקור</div></div><div><div class="tile light">${(()=>{const u=word("unica",INK,0);return svg(u.w,64,u.svg,`-12 -12 ${u.w+24} 116`)})()}</div><div class="lbl">השחזור</div></div><div><div class="tile light">${(()=>{const u=word("unica",INK,0),p=word("plan",MAG,u.w+44,{dropFill:INK});return svg(u.w+44+p.w,64,u.svg+p.svg,`-12 -12 ${u.w+44+p.w+24} 152`)})()}</div><div class="lbl">Unica Plan באותן אותיות</div></div></div></div>`;
+document.body.innerHTML=cmp+V.map(([t,f,fav])=>`<div class="v"><h2>${t}</h2><div class="row">
 <div><div class="tile light">${f(INK)}</div><div class="lbl">על לבן</div></div>
 <div><div class="tile dark">${f("#F5F5F6")}</div><div class="lbl">על התפריט הכהה</div></div>
 <div><div class="small">${fav.replace('height="64"','height="64"')}${fav.replace('height="64"','height="32"')}${fav.replace('height="64"','height="16"')}</div><div class="lbl">אייקון לדפדפן</div></div>
