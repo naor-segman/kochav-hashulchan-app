@@ -1011,8 +1011,8 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {ev.guests.length === 0 && (
-        <EmptyState mark="guests" title="עוד לא נוסף אף מוזמן"
-          text={`בחרו למעלה איך להתחיל: להקליד שורה-שורה, להדביק רשימה שכבר יש לכם, או לשלוח קישור ${collabWhoTo} שימלאו במקומכם.`} />
+        <EmptyState mark="guests" title="כל אירוע מתחיל ברשימה"
+          text={`מי שאתם רוצים לראות שם. בחרו למעלה איך להתחיל: להקליד שורה-שורה, להדביק רשימה שכבר יש לכם, או לשלוח קישור ${collabWhoTo} שימלאו במקומכם.`} />
       )}
       {visible.length === 0 && ev.guests.length > 0 && (
         <EmptyState icon={<Icon name="search" />} title="אין תוצאות לסינון הנוכחי"

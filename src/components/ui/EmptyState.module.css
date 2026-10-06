@@ -34,8 +34,21 @@
   margin-bottom: 16px;
 }
 
+/* A row of what will be here, drawn in the product's own glyphs. */
+.emptyArt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+/* The site's display face and a size that reads as a sentence to the host,
+   not a system label (136 stage D). */
 .emptyTitle {
-  font-size: var(--step-1);
+  font-family: var(--font-family-display);
+  font-size: var(--step-2);
+  line-height: 1.25;
   font-weight: var(--font-weight-extrabold);
   color: var(--text);
   margin-bottom: 6px;

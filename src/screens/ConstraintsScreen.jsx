@@ -474,8 +474,8 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       )}
 
       {ev.constraints.length === 0 && (
-        <EmptyState mark="constraints" title="טרם הוגדרו אילוצים"
-          text="שלב זה אופציונלי לחלוטין. אם יש אורחים שחייבים לשבת יחד (כמו הורים עם ילדים קטנים) או שאסור שיישבו יחד — הגדירו זאת כאן לפני הרצת הסידור." />
+        <EmptyState mark="constraints" title="אין אילוצים — וזה בסדר גמור"
+          text="השלב הזה לא חובה. אם יש מי שחייבים לשבת יחד (כמו הורים עם ילדים קטנים), או מי שעדיף שלא יישבו ליד אותו שולחן — כאן אומרים את זה, לפני ההושבה." />
       )}
 
       <NextStep label={"המשיכו ל" + nextBuildStep("constraints").label} hint="שבצו את כל האורחים לשולחנות" onClick={() => go("seating")} />

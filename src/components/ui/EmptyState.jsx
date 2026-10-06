@@ -13,11 +13,17 @@ import styles from "./EmptyState.module.css";
  * @param {string} title  — short heading
  * @param {string} text   — guiding sentence
  * @param {{label:string,onClick:Function}} [action] — optional primary CTA
+ * @param {import("react").ReactNode} [art] — a drawing of what will be here
+ *                          (136 stage D, "מצבים ריקים עם אופי"): the tables
+ *                          screen draws empty tables. Decorative; replaces the
+ *                          mark when given.
  */
-export default function EmptyState({ mark, icon, title, text, action }) {
+export default function EmptyState({ mark, icon, title, text, action, art }) {
   return (
     <div className={styles.empty}>
-      {mark
+      {art
+        ? <div className={styles.emptyArt} aria-hidden="true">{art}</div>
+        : mark
         ? <SectionMark name={mark} size={34} tile className={styles.emptyMark} />
         : <div className={styles.emptyIcon} aria-hidden="true">{icon}</div>}
       {title && <h2 className={styles.emptyTitle}>{title}</h2>}
