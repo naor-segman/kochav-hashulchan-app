@@ -29,12 +29,6 @@ import styles from "./LandingScreen.module.css";
 
 const HERO_MEDIA = { video: "/hero/hero.mp4", poster: "/hero/hero.jpg", posterMobile: "/hero/hero-portrait.jpg" };
 
-const HERO_POINTS = [
-  { mark: "seating", t: "הושבה שמסתדרת לבד" },
-  { mark: "rsvp",    t: "אישורי הגעה בוואטסאפ" },
-  { mark: "checkin", t: "עמדת כניסה ביום האירוע" },
-];
-
 /* Every card is something that exists in the product today. */
 const EVERYTHING = [
   { mark: "seating", t: "הושבה אוטומטית",   d: "כל האולם מסודר בשניות", to: "/services/seating" },
@@ -122,22 +116,22 @@ export default function LandingScreen({ user = null }) {
             </button>
           )}
           <div className={styles.heroInner}>
-            <p className={styles.heroEyebrow}>הושבה ואישורי הגעה לאירועים</p>
-            <h1 className={styles.heroTitle}>כל האורחים<br /><span>במקום הנכון</span></h1>
+            {/* Owner, 6.10: the site does planning and management end to end, not
+                "הושבה ואישורי הגעה"; the title has to be exact — it is the
+                first thing anyone reads; and the hero is seen whole, with no
+                scrolling. The second button opens a page of its own (the
+                sample invitation), not a jump down this one. */}
+            <p className={styles.heroEyebrow}>תכנון וניהול אירועים</p>
+            <h1 className={styles.heroTitle}>מתכננים אירוע?<br /><span>מכאן הכל פשוט.</span></h1>
             <p className={styles.heroSub}>
-              {COMPANY.name} מרכזת את רשימת האורחים, אישורי ההגעה וסידור השולחנות
-              במקום אחד — וההושבה מסתדרת לבד. אתם רק נהנים מהדרך.
+              מערכת אחת לתכנון וניהול האירוע: הזמנה דיגיטלית, אישורי הגעה בוואטסאפ,
+              הושבה אוטומטית ועמדת כניסה. הכל מתעדכן לבד, ואתם נהנים מהדרך.
             </p>
             <div className={styles.heroActions}>
               <Link to="/app" className={styles.btnPrimary}>התחילו חינם ←</Link>
-              <a href="#how" className={styles.btnGhostDark}>ראו איך זה עובד</a>
+              <Link to="/sample-invitation" className={styles.btnGhostDark}>צפו בהזמנה לדוגמה</Link>
             </div>
             <p className={styles.heroFree}>מתחילים בחינם · בלי כרטיס אשראי · בלי התחייבות</p>
-            <ul className={styles.heroPoints}>
-              {HERO_POINTS.map(p => (
-                <li key={p.t}><SectionMark name={p.mark} size={22} tone="ondark" className={styles.heroMark} />{p.t}</li>
-              ))}
-            </ul>
           </div>
         </section>
 
