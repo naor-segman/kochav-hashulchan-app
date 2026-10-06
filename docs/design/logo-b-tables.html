@@ -76,6 +76,14 @@ function tableTop(ink,paper){const o=`stroke="${ink}" stroke-width="5" stroke-li
   for(let k=0;k<6;k++){const a=k*60-90;s+=`<g transform="rotate(${a+90})"><rect x="-15" y="-66" width="30" height="24" rx="6" fill="${cols[k]}" ${o}/><rect x="-17" y="-72" width="34" height="9" rx="4.5" fill="${cols[k]}" ${o}/></g>`}
   s+=`<circle r="40" fill="${paper}" ${o}/>`;for(let k=0;k<6;k++){const a=(k*60-90)*Math.PI/180;s+=`<circle cx="${(27*Math.cos(a)).toFixed(1)}" cy="${(27*Math.sin(a)).toFixed(1)}" r="7" fill="none" stroke="${ink}" stroke-width="3.5"/>`}
   s+=`<circle r="9" fill="${PINK}" ${o}/>`;return `<g>${s}</g>`}
+// 4 · the plan itself: a clipboard with the seating map on it — round tables, each with its chairs
+function tablePlan(ink,paper){const o=`stroke="${ink}" stroke-width="5" stroke-linejoin="round"`, oi=`stroke="${INK}" stroke-width="4" stroke-linejoin="round"`;
+  const t=(cx,cy,fill)=>{let s="";for(let k=0;k<6;k++){const a=(k*60)*Math.PI/180;s+=`<circle cx="${(cx+15.5*Math.cos(a)).toFixed(1)}" cy="${(cy+15.5*Math.sin(a)).toFixed(1)}" r="4" fill="${INK}"/>`}return s+`<circle cx="${cx}" cy="${cy}" r="10" fill="${fill}" ${oi}/>`};
+  return `<g transform="translate(0 -6)">
+  <rect x="-44" y="-50" width="88" height="104" rx="10" fill="${paper}" ${o}/>
+  <rect x="-20" y="-60" width="40" height="20" rx="6" fill="${ORA}" ${o}/>
+  ${t(-20,-12,TEAL)}${t(20,-12,YEL)}${t(-20,28,YEL)}${t(20,28,PINK)}
+  </g>`}
 function Bwith(icon,ink,paper,iconScale=0.85,h=150){const u=word("unica",ink,0);const cx=u.w/2;
   const t=`<g transform="translate(${cx} -82) scale(${iconScale})">${icon(ink,paper)}</g>`;
   const p=word("plan",MAG,0,{dropFill:ink});const px=(u.w-p.w*0.62)/2;
@@ -87,6 +95,7 @@ const favA=(bg)=>svg(64,64,`<rect width="120" height="120" fill="${bg}"/>`+table
 const favB=()=>svg(64,64,`<rect width="120" height="120" fill="#fff"/>`+table(60,60,22,INK,INK,6,24,["#E8437B","#2BB3C0","#F6B523","#F07D2E","#2BB3C0","#F6B523"],[],10),"0 0 120 120");
 const favC=()=>svg(64,64,`<rect width="120" height="120" fill="${MAG}"/><path d="M34 24 V104" stroke="#fff" stroke-width="13" stroke-linecap="round"/>`+table(60,50,20,"#fff","#fff",8,14,null,[[100,260]],13),"0 0 120 120");
 const V=[
+ ["ב4 · התוכנית עצמה: לוח הושבה עם שולחנות עגולים — באותו סגנון",(ink)=>Bwith(tablePlan,ink,"#fff",1.05),favIcon(tablePlan,"#fff",INK,"#fff",1.15)],
  ["ב1 · שולחן עגול עם מפה, פרחים וכיסאות — באותו סגנון של המצלמה",(ink)=>Bwith(tablePersp,ink,"#fff",1.2),favIcon(tablePersp,"#fff",INK,"#fff",1.08)],
  ["ב2 · השולחן מלמעלה, עם צלחות וכיסאות עם משענת — באותו סגנון",(ink)=>Bwith(tableTop,ink,"#fff",0.85),favIcon(tableTop,"#fff",INK,"#fff",0.95)],
  ["ב3 · השולחן מהגרסה הקודמת",B,favB()]];
