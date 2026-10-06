@@ -29,10 +29,10 @@
  * card is checklist 90, which is blocked on a clearing agreement (46) before it
  * is blocked on code.
  *
- * `flag: true` means the link stays visible in the bar rather than moving into
- * the dropdown when the others arrive. There is exactly one, deliberately: the
- * automatic seating is what makes this product different from the competitors,
- * and hiding it behind a click to tidy the bar would be tidying away the point.
+ * `flag: true` would keep a link visible in the bar instead of the dropdown.
+ * Seating had it until 6.10, when the owner found "סידורי הושבה" beside
+ * "השירותים ▾" confusing — it read as if it were not one of the services. No
+ * service carries it now; the seating story is told on the home page.
  */
 
 /* `mark` is a SectionMark glyph name (components/ui/SectionMark.jsx). It lives
@@ -40,24 +40,28 @@
  * the home-page grid, and anything else that lists services, read it from one
  * place. Every value below resolves; `planning` maps to `tasks` and `day` to
  * `checkin`, which are the screens behind those headings. */
+/* The order is the host's JOURNEY (owner, 6.10: "בסדר כרונולוגי… מסע של תכנון
+ * האירוע, תהליך האירוע והאירוע עצמו"): plan, invite, hear back, seat, the
+ * day, the gifts. Every list reads this order. The blurbs speak to the person,
+ * not about the feature (6.10: "לא מושך, או לא מעביר באמת את מה שיש שם"). */
 export const SERVICES = [
   {
-    id: "seating",
-    mark: "seating",
-    path: "/services/seating",
-    label: "סידורי הושבה",
+    id: "planning",
+    mark: "tasks",
+    path: "/services/planning",
+    label: "תכנון האירוע",
     // Shown under the label in the dropdown. One line, no full stop.
-    blurb: "האלגוריתם מסדר את כל האולם בשניות",
+    // Not "ראש שקט" — that is the competitor's line (owner, 6.10).
+    blurb: "כל ההכנות במקום אחד, בלי לשכוח כלום",
     when: "לקראת האירוע",
-    flag: true,
     live: true,
   },
   {
     id: "site",
     mark: "site",
     path: "/services/event-site",
-    label: "אתר לאירוע והזמנה",
-    blurb: "הזמנה דיגיטלית, אתר, Waze והסעות",
+    label: "הזמנה ואתר האירוע",
+    blurb: "הזמנה שכיף לפתוח",
     when: "לקראת האירוע",
     live: true,
   },
@@ -66,16 +70,16 @@ export const SERVICES = [
     mark: "rsvp",
     path: "/services/rsvp",
     label: "אישורי הגעה",
-    blurb: "וואטסאפ, תזכורות וסבבי שיחות",
+    blurb: "יודעים מי מגיע, בלי לרדוף אחרי אף אחד",
     when: "לקראת האירוע",
     live: true,
   },
   {
-    id: "planning",
-    mark: "tasks",
-    path: "/services/planning",
-    label: "תכנון האירוע",
-    blurb: "משימות, תקציב וספקים",
+    id: "seating",
+    mark: "seating",
+    path: "/services/seating",
+    label: "סידורי הושבה",
+    blurb: "כל האולם מסודר בלחיצה אחת",
     when: "לקראת האירוע",
     live: true,
   },
@@ -84,7 +88,7 @@ export const SERVICES = [
     mark: "checkin",
     path: "/services/event-day",
     label: "יום האירוע",
-    blurb: "עמדת כניסה, דיילות וכרטיסי שם",
+    blurb: "קבלת פנים חלקה מהרגע הראשון",
     when: "ביום האירוע",
     live: true,
   },
@@ -92,8 +96,10 @@ export const SERVICES = [
     id: "gifts",
     mark: "gifts",
     path: "/services/gifts",
-    label: "מתנות באשראי",
-    blurb: "מתנה, ברכה וקיר ברכות",
+    // Owner, 6.10: the card payment stays in the name — it is built when the
+    // clearing is (90), not cut now and re-added later. "וברכות" is his.
+    label: "מתנות באשראי וברכות",
+    blurb: "כל ברכה נשמרת לתמיד",
     when: "ביום האירוע",
     live: true,
   },
@@ -102,10 +108,12 @@ export const SERVICES = [
 /** The services with a page behind them. Navigation reads only this. */
 export const liveServices = () => SERVICES.filter(s => s.live);
 
-/** The flag, if it is live — it gets its own slot in the bar. */
+/** No service has its own slot in the bar any more (owner, 6.10: "סידורי
+ *  הושבה" beside "השירותים ▾" read as if it were not one of them). Kept as a
+ *  function so a future flag is one field, not a header rewrite. */
 export const flagService = () => SERVICES.find(s => s.flag && s.live) || null;
 
-/** Everything else that is live, for the dropdown. */
+/** Every live service that is not the flag, for the dropdown, in journey order. */
 export const menuServices = () => SERVICES.filter(s => s.live && !s.flag);
 
 export const serviceById = id => SERVICES.find(s => s.id === id) || null;

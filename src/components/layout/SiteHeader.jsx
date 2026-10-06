@@ -46,14 +46,12 @@ import styles from "./SiteHeader.module.css";
  * reason Footer.jsx gives.
  */
 
-/* Landing-page sections, still linked while the six service pages are being
- * built. They go as the pages replace them — "תכונות" and "איך זה עובד" are
- * headings of a document rather than things a host searches for, which is the
- * whole reason 87 exists. The last one leaves with service page 6. */
-const SECTIONS = [
-  { id: "features", label: "תכונות" },
-  { id: "how",      label: "איך זה עובד" },
-];
+/* The bar (owner, 6.10): logo · השירותים ▾ · הזמנה לדוגמה · כמה זה עולה?
+ * and, apart at the inline end, כניסה + הרשמה חינם. "תכונות" and "איך זה
+ * עובד" left — headings of a document, not places a visitor looks for, and
+ * they jumped the reader down the home page ("לא אוהב… ששולחים אותי מתחילת
+ * האתר להמשך העמוד"). "מחירים" became the question the visitor is asking. */
+const PRICING_LABEL = "כמה זה עולה?";
 
 export default function SiteHeader({ user = null, active = null }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -74,7 +72,6 @@ export default function SiteHeader({ user = null, active = null }) {
   }, [menuOpen]);
 
   const { pathname } = useLocation();
-  const onLanding = pathname === "/" || pathname === "/home";
 
   /* Only services whose page exists. The `השירותים ▾` dropdown was meant to
      arrive with the third; it arrived with none, and with all six flat in the
@@ -128,26 +125,19 @@ export default function SiteHeader({ user = null, active = null }) {
     if (!servicesWrapRef.current?.contains(e.relatedTarget)) setServicesOpen(false);
   };
 
-  /** A section link, in whichever of its two forms this page needs. */
-  const section = ({ id, label }, className, onClick) =>
-    onLanding ? (
-      <a key={id} href={`#${id}`} className={className} onClick={onClick}>{label}</a>
-    ) : (
-      <Link key={id} to={`/home#${id}`} className={className} onClick={onClick}>{label}</Link>
-    );
-
   const pricingClass = [styles.navLink, active === "pricing" && styles.navLinkActive]
     .filter(Boolean).join(" ");
 
-  /* Signed in, the pair of guest actions is wrong — "התחילו חינם" to someone who
-     already started. /home is reachable while signed in (the topbar links to
-     it), and it used to show exactly that. */
+  /* Two clear doors, apart from the links (owner, 6.10: "כפתור של כניסה,
+     כפתור של הרשמה בחינם"): an outlined כניסה and the filled הרשמה חינם.
+     Signed in, one door back to their events — it said "כניסה לאפליקציה",
+     and this is not an app (owner, 6.10). */
   const actions = user ? (
-    <Link to="/app" className={styles.navCta}>כניסה לאפליקציה</Link>
+    <Link to="/app" className={styles.navCta}>לאירועים שלי</Link>
   ) : (
     <>
       <Link to="/login" className={styles.navLoginBtn}>כניסה</Link>
-      <Link to="/app" className={styles.navCta}>התחילו חינם</Link>
+      <Link to="/signup" className={styles.navCta}>הרשמה חינם</Link>
     </>
   );
 
@@ -209,8 +199,7 @@ export default function SiteHeader({ user = null, active = null }) {
               </ul>
             </div>
           )}
-          {SECTIONS.map(s => section(s, styles.navLink))}
-          <Link to="/pricing" className={pricingClass}>מחירים</Link>
+          <Link to="/pricing" className={pricingClass}>{PRICING_LABEL}</Link>
         </div>
 
         <div className={styles.navActions}>{actions}</div>
@@ -236,14 +225,13 @@ export default function SiteHeader({ user = null, active = null }) {
           {live.map(s => (
             <Link key={s.id} to={s.path} className={styles.mobileLink} onClick={closeMenu}>{s.label}</Link>
           ))}
-          {SECTIONS.map(s => section(s, styles.mobileLink, closeMenu))}
-          <Link to="/pricing" className={styles.mobileLink} onClick={closeMenu}>מחירים</Link>
+          <Link to="/pricing" className={styles.mobileLink} onClick={closeMenu}>{PRICING_LABEL}</Link>
           {user ? (
-            <Link to="/app" className={styles.mobileMenuCta} onClick={closeMenu}>כניסה לאפליקציה ←</Link>
+            <Link to="/app" className={styles.mobileMenuCta} onClick={closeMenu}>לאירועים שלי ←</Link>
           ) : (
             <>
               <Link to="/login" className={styles.mobileLink} onClick={closeMenu}>כניסה</Link>
-              <Link to="/app" className={styles.mobileMenuCta} onClick={closeMenu}>התחילו חינם ←</Link>
+              <Link to="/signup" className={styles.mobileMenuCta} onClick={closeMenu}>הרשמה חינם ←</Link>
             </>
           )}
         </div>

@@ -60,34 +60,10 @@ console.log('── a fresh load with a hash (the case the browser gives up on)'
 await landsOn('/home#features', p => p.goto(BASE + '/home#features', { waitUntil: 'load' }));
 await landsOn('/home#how',      p => p.goto(BASE + '/home#how',      { waitUntil: 'load' }));
 
-console.log('\n── clicking through from another route');
-await landsOn('pricing nav → תכונות', async p => {
-  await p.goto(BASE + '/pricing', { waitUntil: 'domcontentloaded' });
-  await p.waitForTimeout(900);
-  await p.getByRole('link', { name: 'תכונות' }).first().click();
-});
-await landsOn('footer → איך זה עובד', async p => {
-  await p.goto(BASE + '/pricing', { waitUntil: 'domcontentloaded' });
-  await p.waitForTimeout(900);
-  // Returns false rather than throwing when the link is absent: a missing link
-  // is a FAILURE to report, not a crash that takes the rest of the run with it.
-  // Found by mutating the links back to /# — the harness died on
-  // `.pop().click()` of an empty list instead of saying which check failed.
-  const clicked = await p.evaluate(() => {
-    const a = [...document.querySelectorAll('a')].filter(x => x.getAttribute('href') === '/home#how').pop();
-    if (!a) return false;
-    a.click();
-    return true;
-  });
-  if (!clicked) console.log('  (no footer link to /home#how — the click was skipped)');
-});
-
-console.log('\n── the landing page\'s own nav, which was never broken');
-await landsOn('landing nav → תכונות', async p => {
-  await p.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
-  await p.waitForTimeout(1200);
-  await p.evaluate(() => document.querySelector('a[href="#features"]').click());
-});
+/* The header and footer links to "תכונות" / "איך זה עובד" left on 6.10 (the
+   owner: section headings that send the reader down the page). The sections
+   and their anchors stay — a shared /home#how link still has to land — so the
+   fresh-load checks above stay, and the click-through ones went with the links. */
 
 console.log('\n── no link points at / any more');
 {

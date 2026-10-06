@@ -6,14 +6,15 @@ import { readFileSync, readdirSync } from "node:fs";
    cloud or a link for the guests. The free try is what sells the paid one, so
    a form in its way costs exactly the visitors the free tier exists for.
 
-   Every marketing surface whose CTAs START something. Two are left out on
-   purpose: the footer's "הרשמה חינם" says signup in its own words, and the
-   pricing stepper's "בחירת חבילה" is a purchase, which needs an account. */
+   Every marketing surface whose CTAs START something. Three are left out on
+   purpose: the footer's "הרשמה חינם" and — since 6.10 — the header's, which
+   say signup in their own words (owner, 6.10: "כפתור של כניסה, כפתור של
+   הרשמה בחינם"), and the pricing stepper's "בחירת חבילה", a purchase, which
+   needs an account. */
 const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
 const SERVICES = readdirSync(new URL("./services/", import.meta.url))
   .filter(f => /ServiceScreen\.jsx$/.test(f)).map(f => `./services/${f}`);
-const SURFACES = ["./LandingScreen.jsx", "./PricingScreen.jsx",
-  "../components/layout/SiteHeader.jsx", ...SERVICES];
+const SURFACES = ["./LandingScreen.jsx", "./PricingScreen.jsx", ...SERVICES];
 
 describe("start free means start (136 stage C)", () => {
   it("covers every service page", () => {
@@ -26,8 +27,10 @@ describe("start free means start (136 stage C)", () => {
     });
   }
 
-  it("the header's start-free button opens the app", () => {
-    expect(read("../components/layout/SiteHeader.jsx"))
-      .toMatch(/<Link to="\/app" className=\{styles\.navCta\}>התחילו חינם<\/Link>/);
+  it("the header's signup button says signup and goes there (6.10); it starts nothing else", () => {
+    const src = read("../components/layout/SiteHeader.jsx");
+    expect(src).toMatch(/<Link to="\/signup" className=\{styles\.navCta\}>הרשמה חינם<\/Link>/);
+    // No "התחילו חינם" in the header that would land on a form.
+    expect(src).not.toMatch(/to=["'{`]+\/signup["'`}]+[^>]*>[^<]*התחילו/);
   });
 });

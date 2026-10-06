@@ -22,15 +22,23 @@ const servicesButton = () => screen.getByRole("button", { name: /השירותי�
 const panel = () => document.getElementById(servicesButton().getAttribute("aria-controls"));
 
 describe("site header — the services disclosure", () => {
-  it("every live service is reachable from the bar: the flag in it, the rest behind the button", () => {
+  it("every live service is behind the button, in the order of the host's journey (owner, 6.10)", () => {
+    renderAt();
+    // No service sits beside the button any more: "סידורי הושבה" there read
+    // as if it were not one of the services.
+    expect(flagService()).toBeNull();
+    const inPanel = [...panel().querySelectorAll("a")].map(a => a.getAttribute("href"));
+    expect(inPanel).toEqual(liveServices().map(s => s.path));
+    expect(menuServices().map(s => s.id)).toEqual(["planning", "site", "rsvp", "seating", "day", "gifts"]);
+  });
+
+  it("two clear doors apart from the links: כניסה and הרשמה חינם; signed in, לאירועים שלי", () => {
     renderAt();
     const bar = document.querySelector("header");
-    const flag = flagService();
-    expect(bar.querySelector(`a[href="${flag.path}"]`)).not.toBeNull();
-    const inPanel = [...panel().querySelectorAll("a")].map(a => a.getAttribute("href"));
-    expect(inPanel).toEqual(menuServices().map(s => s.path));
-    const reachable = new Set([flag.path, ...inPanel]);
-    for (const s of liveServices()) expect(reachable.has(s.path), s.path).toBe(true);
+    expect(bar.querySelector('a[href="/login"]').textContent).toBe("כניסה");
+    expect(bar.querySelector('a[href="/signup"]').textContent).toBe("הרשמה חינם");
+    expect(bar.textContent).not.toMatch(/אפליקציה|תכונות|איך זה עובד/);
+    expect(bar.querySelector('a[href="/pricing"]').textContent).toBe("כמה זה עולה?");
   });
 
   it("is closed at rest, and aria-controls names the list it opens", () => {
