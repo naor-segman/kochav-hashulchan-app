@@ -65,7 +65,7 @@
   font-size: var(--step--1);
   font-weight: 600;
   color: var(--text2);
-  border-radius: calc(var(--radius-lg) - 4px);
+  border-radius: 0;
   font-family: inherit;
   transition: background var(--transition), color var(--transition), box-shadow var(--transition);
 }

@@ -16,6 +16,10 @@
   z-index: 9999;
   animation: toastIn 0.22s var(--ease-out);
   white-space: normal;
+  /* max-content, then capped. A fixed box at left:50% shrink-fits to the
+     HALF of the viewport it starts in: at 320 the toast was 160px wide and the
+     seating run's message wrapped to six lines (review 6.10). */
+  width: max-content;
   max-width: min(380px, calc(100vw - 32px));
   text-align: center;
   line-height: 1.45;
