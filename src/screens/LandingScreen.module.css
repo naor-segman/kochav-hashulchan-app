@@ -196,7 +196,7 @@
 @media (min-width: 860px) { .humanGrid { grid-template-columns: .8fr 1.2fr; gap: 56px; } }
 .humanPhoto { position: relative; isolation: isolate; }
 .humanPhoto img { display: block; width: 100%; aspect-ratio: 4 / 5; max-height: 520px; object-fit: cover; }
-.humanPhoto::after { content: ""; position: absolute; inset: 14px -14px -14px 14px; border: 2px solid var(--cta); z-index: -1; }
+/* No offset frame (owner, 6.10: "מסגרת ורודה שיוצאת ממנה זה מוזר"). */
 .humanList { display: grid; gap: 0; width: 100%; margin: 4px 0 26px; border-top: 2px solid var(--text); }
 .humanItem { display: flex; gap: 14px; align-items: flex-start; padding: 16px 2px; border-bottom: 1px solid var(--border); }
 .humanItem h3 { margin: 0 0 4px; font-size: var(--step-1); font-weight: 800; color: var(--text); }
