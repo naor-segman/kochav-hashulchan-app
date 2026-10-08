@@ -6,6 +6,7 @@ import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import SupportButton from './components/support/SupportButton.jsx'
 import ScrollToTop from './components/layout/ScrollToTop.jsx'
+import { SampleLinkGuard } from './components/guest/SampleDemo.jsx'
 import ConsentBanner from './components/consent/ConsentBanner.jsx'
 import { installGlobalErrorReporting } from "./utils/errorReport.js";
 import { initAnalytics } from "./lib/analytics.js";
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ErrorBoundary>
         <ScrollToTop />
+        <SampleLinkGuard />
         <App />
         <SupportButton />
         <ConsentBanner />

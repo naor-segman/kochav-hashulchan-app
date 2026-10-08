@@ -11,6 +11,8 @@ import { COMPANION_NAME_HINT, missingCompanionSeats } from "../utils/guestForm.j
 import { buildEventIcs, icsFileName, downloadIcs, knownStartTime } from "../utils/calendarFile.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./RSVPScreen.module.css";
+import { DemoOnly } from "../components/guest/SampleDemo.jsx";
+import { isSampleToken } from "../data/sampleEvent.js";
 import { COMPANY } from "../data/company.js";
 import { track, EVENTS } from "../lib/analytics.js";
 import GuestPrivacyNote from "../components/guest/GuestPrivacyNote.jsx";
@@ -66,6 +68,7 @@ function PageHeader() {
 
 export default function RSVPScreen() {
   const { token } = useParams();
+  const demo = isSampleToken(token);
 
   const [event, setEvent] = useState(null);
   const [loadState, setLoadState] = useState("loading"); // "loading" | "error" | "unreachable" | "ready"
@@ -342,6 +345,7 @@ export default function RSVPScreen() {
                   were told by a green fill that "yes" was ALREADY selected
                   before anything was clicked. All three now rest identically
                   and only the chosen one takes the colour. */}
+              <DemoOnly demo={demo} what="מאשרים הגעה">
               <div className={styles.choiceButtons}>
                 <button
                   type="button"
@@ -371,6 +375,7 @@ export default function RSVPScreen() {
                   לא אוכל להגיע
                 </button>
               </div>
+              </DemoOnly>
             </div>
 
           </div>

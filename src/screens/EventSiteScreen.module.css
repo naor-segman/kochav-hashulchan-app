@@ -244,7 +244,9 @@
 @media (max-width: 480px){ .gallery { grid-template-columns: repeat(2, 1fr); } }
 
 /* ── Countdown ── */
-.countdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 420px; margin: 0 auto; }
+/* Read like a clock, left to right — days, hours, minutes, seconds — the way
+   numbers read in Hebrew too (owner, 8.10: it ran right to left). */
+.countdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 420px; margin: 0 auto; direction: ltr; }
 .cdUnit {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: var(--s-surface); border: 1px solid var(--s-line);

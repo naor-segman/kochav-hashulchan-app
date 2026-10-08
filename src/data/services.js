@@ -42,8 +42,10 @@
  * `checkin`, which are the screens behind those headings. */
 /* The order is the host's JOURNEY (owner, 6.10: "בסדר כרונולוגי… מסע של תכנון
  * האירוע, תהליך האירוע והאירוע עצמו"): plan, invite, hear back, seat, the
- * day, the gifts. Every list reads this order. The blurbs speak to the person,
- * not about the feature (6.10: "לא מושך, או לא מעביר באמת את מה שיש שם"). */
+ * day, the gifts. Every list reads this order. The blurbs say what the service
+ * GIVES, in words that still sell (owner, 8.10: the 6.10 lines were "חמודים
+ * אבל לא באמת מסבירים… צריך משהו באמצע" — e.g. "הזמנה דיגיטלית ואתר במיוחד
+ * לאירוע שלכם"). */
 export const SERVICES = [
   {
     id: "planning",
@@ -52,7 +54,7 @@ export const SERVICES = [
     label: "תכנון האירוע",
     // Shown under the label in the dropdown. One line, no full stop.
     // Not "ראש שקט" — that is the competitor's line (owner, 6.10).
-    blurb: "כל ההכנות במקום אחד, בלי לשכוח כלום",
+    blurb: "משימות, תקציב וספקים — הכל מסודר במקום אחד",
     when: "לקראת האירוע",
     live: true,
   },
@@ -61,7 +63,7 @@ export const SERVICES = [
     mark: "site",
     path: "/services/event-site",
     label: "הזמנה ואתר האירוע",
-    blurb: "הזמנה שכיף לפתוח",
+    blurb: "הזמנה דיגיטלית ואתר במיוחד לאירוע שלכם",
     when: "לקראת האירוע",
     live: true,
   },
@@ -70,7 +72,7 @@ export const SERVICES = [
     mark: "rsvp",
     path: "/services/rsvp",
     label: "אישורי הגעה",
-    blurb: "יודעים מי מגיע, בלי לרדוף אחרי אף אחד",
+    blurb: "אישורי הגעה בוואטסאפ, שנכנסים לבד לרשימה",
     when: "לקראת האירוע",
     live: true,
   },
@@ -79,7 +81,7 @@ export const SERVICES = [
     mark: "seating",
     path: "/services/seating",
     label: "סידורי הושבה",
-    blurb: "כל האולם מסודר בלחיצה אחת",
+    blurb: "סידור הושבה אוטומטי לכל האולם, בלחיצה אחת",
     when: "לקראת האירוע",
     live: true,
   },
@@ -88,7 +90,7 @@ export const SERVICES = [
     mark: "checkin",
     path: "/services/event-day",
     label: "יום האירוע",
-    blurb: "קבלת פנים חלקה מהרגע הראשון",
+    blurb: "עמדת כניסה בטלפון וכרטיסי שם להדפסה",
     when: "ביום האירוע",
     live: true,
   },
@@ -99,7 +101,7 @@ export const SERVICES = [
     // Owner, 6.10: the card payment stays in the name — it is built when the
     // clearing is (90), not cut now and re-added later. "וברכות" is his.
     label: "מתנות באשראי וברכות",
-    blurb: "כל ברכה נשמרת לתמיד",
+    blurb: "מתנות באשראי וברכות שעולות על המסך באולם",
     when: "ביום האירוע",
     live: true,
   },

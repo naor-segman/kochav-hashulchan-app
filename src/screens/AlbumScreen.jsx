@@ -3,6 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { fetchEventByToken, fetchAlbumPhotos, uploadAlbumPhoto, guestWriteError, UNREACHABLE_TEXT, INVALID_LINK_TEXT } from "../utils/publicTokens.js";
 import { isSupabaseConfigured } from "../lib/supabase.js";
 import styles from "./AlbumScreen.module.css";
+import { DemoOnly } from "../components/guest/SampleDemo.jsx";
+import { isSampleToken } from "../data/sampleEvent.js";
 import Icon from "../components/ui/Icon.jsx";
 import { guestHosts } from "../utils/guestRoutes.js";
 import { useGuestTitle, DEAD_LINK_TAB, OFFLINE_TAB } from "../hooks/useGuestTitle.js";
@@ -41,6 +43,7 @@ function writeName(v) {
 
 export default function AlbumScreen() {
   const { token } = useParams();
+  const demo = isSampleToken(token);
   const [event, setEvent]   = useState(null);
   const [state, setState]   = useState("loading");
   const [photos, setPhotos] = useState([]);
@@ -188,6 +191,7 @@ export default function AlbumScreen() {
         </p>
       </header>
 
+      <DemoOnly demo={demo} what="מעלים תמונות מהאירוע">
       <div className={styles.uploadCard}>
         <label className={styles.nameLabel}>
           השם שלכם <span className={styles.optional}>(אופציונלי)</span>
@@ -219,6 +223,7 @@ export default function AlbumScreen() {
         {error && <p className={styles.error} role="alert">{error}</p>}
         <GuestPrivacyNote text="התמונות והשם שתכתבו גלויים לכל מי שיש לו את הקישור לאלבום." />
       </div>
+      </DemoOnly>
 
       {listError && (
         <div className={styles.listError} role="alert">
