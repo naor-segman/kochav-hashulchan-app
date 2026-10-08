@@ -174,7 +174,7 @@ export default function GiftsServiceScreen({ user = null }) {
       {/* ── Recognition ── */}
       <section className={styles.friction}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>מה קורה למעטפות</h2>
+          <h2 className={styles.h2}>מעטפות נקרעות, ברכות הולכות לאיבוד</h2>
           <ul className={styles.frictionList}>
             {FRICTION.map(f => (
               <li key={f.line} className={styles.frictionItem}>
@@ -193,7 +193,7 @@ export default function GiftsServiceScreen({ user = null }) {
       {/* ── The guest's side ── */}
       <section className={styles.proof} id="flow">
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>מה האורח עושה — חצי דקה</h2>
+          <h2 className={styles.h2}>לאורחים זה לוקח חצי דקה</h2>
           <p className={styles.proofSub}>
             שלושה שדות, בעברית, בלי חשבון ובלי הורדה. זה המסך שהוא רואה.
           </p>
@@ -232,7 +232,7 @@ export default function GiftsServiceScreen({ user = null }) {
       {/* ── The wall ── */}
       <section className={styles.how} id="wall">
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>וזה עולה על מסך באולם</h2>
+          <h2 className={styles.h2}>והברכות עולות על המסך, מול כולם</h2>
           <p className={styles.howSub}>
             קישור שני, שנפתח על כל מסך שיש באולם — טלוויזיה, מקרן, לפטופ. הברכות
             נכנסות אליו לבד לאורך הערב.
@@ -260,7 +260,7 @@ export default function GiftsServiceScreen({ user = null }) {
       {/* ── The host's side ── */}
       <section className={styles.depth}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>ומה קורה אצלכם</h2>
+          <h2 className={styles.h2}>ואצלכם, מה שהאורחים לא רואים</h2>
           <p className={styles.howSub}>
             שני דברים שהאורחים לא רואים: הסכומים, וכפתור אחד שמוריד ברכה מהמסך.
           </p>
