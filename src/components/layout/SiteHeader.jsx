@@ -183,7 +183,7 @@ export default function SiteHeader({ user = null, active = null }) {
                 aria-controls={servicesId}
                 onClick={() => setServicesOpen(o => !o)}
               >
-                השירותים <span className={styles.servicesCaret} aria-hidden="true">▾</span>
+                השירותים שלנו <span className={styles.servicesCaret} aria-hidden="true">▾</span>
               </button>
               <ul id={servicesId} className={styles.servicesMenu} hidden={!servicesOpen}>
                 {inMenu.map(s => (
