@@ -88,8 +88,8 @@ export default function PlanningServiceScreen({ user = null }) {
         <div className={styles.heroInner}>
           <p className={styles.eyebrow}>תכנון האירוע</p>
           <h1 className={styles.h1}>
-            מה נשאר לעשות, כמה זה עולה,<br />
-            <span className={styles.h1Soft}>ומי כבר סגור.</span>
+            חודשים של הכנות.<br />
+            <span className={styles.h1Soft}>רשימה אחת שזוכרת הכל.</span>
           </h1>
           <p className={styles.lead}>
             שלושה מסכים לכל מה שקורה בחודשים שלפני: לוח משימות שמגיע עם רשימה
@@ -112,7 +112,7 @@ export default function PlanningServiceScreen({ user = null }) {
       {/* ── Recognition ── */}
       <section className={styles.friction}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>איפה נמצא התכנון שלכם היום</h2>
+          <h2 className={styles.h2}>פתקים, צ׳אטים, ואקסל שאף אחד לא מעדכן</h2>
           <ul className={styles.frictionList}>
             {CHAOS.map(c => (
               <li key={c.line} className={styles.frictionItem}>
@@ -131,7 +131,7 @@ export default function PlanningServiceScreen({ user = null }) {
       {/* ── Tasks ── */}
       <section className={styles.how} id="tasks">
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>לוח משימות שכבר יודע מה צריך</h2>
+          <h2 className={styles.h2}>לא מתחילים מדף ריק</h2>
           <p className={styles.howSub}>
             אתם לא פותחים דף ריק. בוחרים סוג אירוע ומקבלים רשימה מלאה, עם
             תאריכים שנספרים אחורה מהתאריך שלכם.
@@ -248,7 +248,7 @@ export default function PlanningServiceScreen({ user = null }) {
       <section className={styles.close}>
         <div className={styles.closeInner}>
           <span className={styles.closeMark} aria-hidden="true">✦</span>
-          <h2 className={styles.closeTitle}>תפתחו את זה פעם אחת</h2>
+          <h2 className={styles.closeTitle}>מתחילים לתכנן, עוד הערב.</h2>
           <p className={styles.closeSub}>
             בוחרים סוג אירוע, מקבלים רשימת משימות עם תאריכים, וממלאים תקציב
             בזמן שאתם ממילא מתמחרים. משם זה רק להמשיך.

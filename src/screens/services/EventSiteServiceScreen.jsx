@@ -108,8 +108,8 @@ export default function EventSiteServiceScreen({ user = null }) {
         <div className={styles.heroInner}>
           <p className={styles.eyebrow}>אתר לאירוע והזמנה דיגיטלית</p>
           <h1 className={styles.h1}>
-            שולחים פעם אחת.<br />
-            <span className={styles.h1Soft}>מעדכנים עד הערב עצמו.</span>
+            הזמנה שכיף לפתוח.<br />
+            <span className={styles.h1Soft}>אתר שעונה במקומכם.</span>
           </h1>
           {/* NOT "קישור אחד", which is what this said first and is not true:
               /save-the-date/, /invitation/ and /invite/ are three different
@@ -163,7 +163,7 @@ export default function EventSiteServiceScreen({ user = null }) {
       {/* ── One link, three stages ── */}
       <section className={styles.proof}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>שלושה דפים, שלוש נקודות זמן</h2>
+          <h2 className={styles.h2}>מהרגע שיש תאריך, ועד הערב עצמו</h2>
           <p className={styles.proofSub}>
             כולם נבנים מאותם פרטי אירוע — השמות, התאריך והמקום מוזנים פעם אחת
             ומופיעים בשלושתם. ולכל אחד מתג פרסום נפרד, כך שאתם מחליטים מתי כל
@@ -186,7 +186,7 @@ export default function EventSiteServiceScreen({ user = null }) {
       {/* ── What is on the site ── */}
       <section className={styles.how} id="onsite">
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>מה יושב על העמוד</h2>
+          <h2 className={styles.h2}>כל מה שהאורחים שלכם רוצים לדעת</h2>
           <p className={styles.howSub}>
             כל חלק הוא מתג. מה שלא רלוונטי לאירוע שלכם — פשוט לא מופיע.
           </p>
@@ -262,7 +262,7 @@ export default function EventSiteServiceScreen({ user = null }) {
       {/* ── Album ── */}
       <section className={styles.friction}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>ואחרי הערב — האלבום</h2>
+          <h2 className={styles.h2}>ואחרי הערב, כל התמונות במקום אחד</h2>
           <p className={styles.howSub}>
             קישור נפרד שהאורחים מעלים אליו את מה שצילמו, במקום שזה יסתובב בעשרים
             צ׳אטים ויאבד.
@@ -291,7 +291,7 @@ export default function EventSiteServiceScreen({ user = null }) {
       <section className={styles.close}>
         <div className={styles.closeInner}>
           <span className={styles.closeMark} aria-hidden="true">✦</span>
-          <h2 className={styles.closeTitle}>תפסיקו לענות על אותה שאלה</h2>
+          <h2 className={styles.closeTitle}>ההזמנה שלכם יכולה לצאת עוד היום.</h2>
           <p className={styles.closeSub}>
             פותחים אירוע, בוחרים עיצוב, ממלאים כתובת ושעה. הקישור מוכן — ואפשר
             לשלוח אותו עוד היום.

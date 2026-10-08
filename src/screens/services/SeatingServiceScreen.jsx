@@ -167,7 +167,7 @@ export default function SeatingServiceScreen({ user = null }) {
       {/* ── Recognition ── */}
       <section className={styles.friction}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>למה זה לוקח שלושה ערבים</h2>
+          <h2 className={styles.h2}>שלושה ערבים, מפית אחת, ועוד ויכוח</h2>
           <ul className={styles.frictionList}>
             {FRICTION.map(f => (
               <li key={f.line} className={styles.frictionItem}>
@@ -248,7 +248,7 @@ export default function SeatingServiceScreen({ user = null }) {
       {/* ── Depth ── */}
       <section className={styles.depth}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>ומה שלא כתוב על הכפתור</h2>
+          <h2 className={styles.h2}>ומה ששומר עליכם מטעויות</h2>
           <div className={styles.depthGrid}>
             {DEPTH.map(d => (
               <div key={d.title} className={styles.depthCard}>
@@ -264,7 +264,7 @@ export default function SeatingServiceScreen({ user = null }) {
       <section className={styles.close}>
         <div className={styles.closeInner}>
           <span className={styles.closeMark} aria-hidden="true">✦</span>
-          <h2 className={styles.closeTitle}>תנו לזה ערב אחד פחות</h2>
+          <h2 className={styles.closeTitle}>את הערבים האלה תבלו במשהו אחר.</h2>
           <p className={styles.closeSub}>
             פותחים אירוע, מדביקים רשימה, לוחצים. אם זה לא חוסך לכם את המפית —
             סגרתם ולא שילמתם.

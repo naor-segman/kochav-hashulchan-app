@@ -139,8 +139,8 @@ export default function RsvpServiceScreen({ user = null }) {
         <div className={styles.heroInner}>
           <p className={styles.eyebrow}>אישורי הגעה</p>
           <h1 className={styles.h1}>
-            הם עונים בטלפון שלהם.<br />
-            <span className={styles.h1Soft}>הרשימה מתעדכנת אצלכם.</span>
+            שולחים הזמנה אחת.<br />
+            <span className={styles.h1Soft}>התשובות מגיעות לבד.</span>
           </h1>
           <p className={styles.lead}>
             קישור אחד שנשלח בוואטסאפ, ונפתח אצל האורח בלי הרשמה ובלי אפליקציה.
@@ -160,7 +160,7 @@ export default function RsvpServiceScreen({ user = null }) {
       {/* ── Recognition ── */}
       <section className={styles.friction}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>איך זה נראה בלי זה</h2>
+          <h2 className={styles.h2}>שבועיים של טלפונים, ועדיין אין מספר לאולם</h2>
           <ul className={styles.frictionList}>
             {CHASE.map(c => (
               <li key={c.line} className={styles.frictionItem}>
@@ -180,7 +180,7 @@ export default function RsvpServiceScreen({ user = null }) {
       {/* ── The guest's side ── */}
       <section className={styles.proof} id="flow">
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>מה האורח עושה — פחות מדקה</h2>
+          <h2 className={styles.h2}>לאורחים זה לוקח פחות מדקה</h2>
           <p className={styles.proofSub}>
             האורח לא פותח חשבון ולא מוריד כלום. הוא לוחץ על קישור, ורואה את שם
             האירוע, התאריך והמקום — ואז שלושה כפתורים.
@@ -200,7 +200,7 @@ export default function RsvpServiceScreen({ user = null }) {
       {/* ── The host's side ── */}
       <section className={styles.how}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>ומה קורה אצלכם</h2>
+          <h2 className={styles.h2}>ואצלכם, הרשימה מתמלאת לבד</h2>
 
           <article className={styles.step}>
             <div className={styles.stepText}>
@@ -283,7 +283,7 @@ export default function RsvpServiceScreen({ user = null }) {
       {/* ── The paid packages, aligned with /pricing (owner, 5.10). ── */}
       <section className={styles.friction}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>ובחבילות בתשלום — זה קורה לבד</h2>
+          <h2 className={styles.h2}>אין לכם זמן לשלוח? אנחנו שולחים.</h2>
           <p className={styles.howSub}>
             בלי לשבת על הטלפון ובלי לרדוף אחרי תשובות. המחיר לפי מספר המוזמנים,
             ואפשר לראות אותו מראש <Link to="/pricing">בדף המחירים</Link>.
@@ -304,7 +304,7 @@ export default function RsvpServiceScreen({ user = null }) {
       <section className={styles.close}>
         <div className={styles.closeInner}>
           <span className={styles.closeMark} aria-hidden="true">✦</span>
-          <h2 className={styles.closeTitle}>תפסיקו לספור בראש</h2>
+          <h2 className={styles.closeTitle}>תנו לרשימה לעבוד בשבילכם.</h2>
           <p className={styles.closeSub}>
             פותחים אירוע, מעלים רשימה, שולחים קישור. המספר שהאולם מבקש יהיה
             מחכה לכם במסך אחד.

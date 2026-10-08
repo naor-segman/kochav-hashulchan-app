@@ -96,8 +96,8 @@ export default function EventDayServiceScreen({ user = null }) {
         <div className={styles.heroInner}>
           <p className={styles.eyebrow}>יום האירוע</p>
           <h1 className={styles.h1}>
-            בדלת אין זמן לחפש.<br />
-            <span className={styles.h1Soft}>שם, שולחן, הלאה.</span>
+            האורחים מוצאים את השולחן.<br />
+            <span className={styles.h1Soft}>אתם כבר על הרחבה.</span>
           </h1>
           <p className={styles.lead}>
             {/* Not "you see it live": the greeter's phone re-reads every 25s,
@@ -139,7 +139,7 @@ export default function EventDayServiceScreen({ user = null }) {
       {/* ── The door ── */}
       <section className={styles.proof} id="door">
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>עמדת כניסה בטלפון</h2>
+          <h2 className={styles.h2}>כל מה שצריך בדלת, בטלפון אחד</h2>
           <p className={styles.proofSub}>
             מסך כהה, שדה חיפוש אחד, וכפתור אחד גדול לכל אורח. בנוי לאולם חשוך
             וליד אחת.
@@ -202,7 +202,7 @@ export default function EventDayServiceScreen({ user = null }) {
       {/* ── Prints ── */}
       <section className={styles.depth}>
         <div className={styles.sectionInner}>
-          <h2 className={styles.h2}>ומה שיושב על השולחנות</h2>
+          <h2 className={styles.h2}>כרטיסים שנראים כמו שהאירוע מגיע לו</h2>
 
           <article className={[styles.step, styles.stepFlip].join(" ")}>
             <div className={styles.stepText}>
@@ -237,7 +237,7 @@ export default function EventDayServiceScreen({ user = null }) {
       <section className={styles.close}>
         <div className={styles.closeInner}>
           <span className={styles.closeMark} aria-hidden="true">✦</span>
-          <h2 className={styles.closeTitle}>שהערב יתחיל בזמן</h2>
+          <h2 className={styles.closeTitle}>שהערב יתחיל בזמן, ואתם כבר בפנים.</h2>
           <p className={styles.closeSub}>
             הכל כבר במערכת מהשלבים הקודמים. ביום האירוע נשאר רק לפתוח את הקישור
             ולתת אותו למי שעומד בדלת.

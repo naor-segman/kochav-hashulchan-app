@@ -148,7 +148,7 @@ export default function LandingScreen({ user = null }) {
             <p className={styles.heroEyebrow}>תכנון וניהול אירועים</p>
             <h1 className={styles.heroTitle}>מתכננים אירוע?<br /><span>מכאן הכל פשוט.</span></h1>
             <p className={styles.heroSub}>
-              מערכת אחת לתכנון וניהול האירוע: הזמנה דיגיטלית, אישורי הגעה בוואטסאפ,
+              מערכת אחת לתכנון וניהול האירוע: ניהול רשימת מוזמנים, הזמנה דיגיטלית, אישורי הגעה בוואטסאפ,
               הושבה אוטומטית ועמדת כניסה. הכל מתעדכן לבד, ואתם נהנים מהדרך.
             </p>
             <div className={styles.heroActions}>
@@ -264,7 +264,7 @@ export default function LandingScreen({ user = null }) {
             </div>
             <div>
               <p className={styles.eyebrow}>אנחנו שם איתכם</p>
-              <h2 className={styles.title}>רוצים שמישהו שלנו יעמוד בדלת?</h2>
+              <h2 className={styles.title}>בערב עצמו, תנו לנו לעמוד בדלת.</h2>
               <p className={styles.body}>
                 כל השאר אתם עושים לבד, מהטלפון. אבל בערב עצמו — מנהל הושבה, דיילות או
                 ניהול האירוע כולו. אנשים שלנו, באירוע שלכם, במחיר לפי האולם, התאריך וכמות האורחים.
@@ -318,8 +318,8 @@ export default function LandingScreen({ user = null }) {
         {/* 9 · Once more. */}
         <section className={styles.close}>
           <div className={[styles.inner, styles.closeInner].join(" ")}>
-            <h2 className={styles.closeTitle}>רוצים גם?</h2>
-            <p className={styles.closeText}>האירוע הבא שלכם מתחיל כאן — בלי הרשמה, בלי כרטיס אשראי.</p>
+            <h2 className={styles.closeTitle}>האירוע שלכם מתחיל כאן.</h2>
+            <p className={styles.closeText}>מתחילים בחינם — בלי הרשמה, בלי כרטיס אשראי.</p>
             <Link to="/app" className={styles.btnLight}>התחילו חינם ←</Link>
           </div>
         </section>

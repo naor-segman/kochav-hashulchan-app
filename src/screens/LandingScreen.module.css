@@ -108,6 +108,9 @@
 /* A short phone (320×568): less air, so the whole hero still fits. */
 @media (max-height: 620px) {
   .heroInner { padding-top: 20px; padding-bottom: 24px; }
+  /* One more item in the sentence (owner, 8.10: ניהול רשימת מוזמנים) — at
+     320×568 the hero ran 5px past the screen. */
+  .heroSub { margin-bottom: 20px; line-height: 1.6; }
   .heroScrim { background: linear-gradient(to left, rgba(var(--text-rgb), .94) 0%, rgba(var(--text-rgb), .7) 48%, rgba(var(--text-rgb), .15) 100%); }
 }
 
