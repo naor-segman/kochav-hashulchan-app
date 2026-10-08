@@ -1,0 +1,21 @@
+/* One line, on our own tokens — it is our note about the example, not part of
+   the host's design. */
+.notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--text);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.frozen {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  opacity: 0.6;
+  cursor: not-allowed;
+}

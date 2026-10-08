@@ -4,6 +4,8 @@ import { fetchEventByToken, submitGift, guestWriteError, UNREACHABLE_TEXT, INVAL
 import { uid } from "../utils/uid.js";
 import { track, EVENTS, amountBand } from "../lib/analytics.js";
 import styles from "./GiftScreen.module.css";
+import { DemoOnly } from "../components/guest/SampleDemo.jsx";
+import { isSampleToken } from "../data/sampleEvent.js";
 import Logo from "../components/brand/Logo.jsx";
 import { prefixed } from "../utils/hebrewPrefix.js";
 import { COMPANY } from "../data/company.js";
@@ -37,6 +39,7 @@ const GIFT_MAX_ILS = 100000;   // = the SQL range, 10,000,000 agorot
 
 export default function GiftScreen() {
   const { token } = useParams();
+  const demo = isSampleToken(token);
   const [event, setEvent]         = useState(null);
   const [loading, setLoading]     = useState(true);
   const [unreachable, setUnreachable] = useState(false);
@@ -264,6 +267,7 @@ export default function GiftScreen() {
             <span className={styles.ornLine} />
           </div>
 
+          <DemoOnly demo={demo} what="שולחים מתנה וברכה">
           {/* Amount selector */}
           <div className={styles.section}>
             <label className={styles.sectionLabel} htmlFor="gift-amount">סכום המתנה</label>
@@ -382,6 +386,7 @@ export default function GiftScreen() {
             {btnLabel}
           </button>
           <GuestPrivacyNote text="השם, הברכה והסכום נשמרים אצל בעלי האירוע. הסכום לא מוצג לאף אחד אחר." />
+          </DemoOnly>
 
           {/* The "what happens now" card above already says where the blessing
               goes; repeating it here was the same sentence twice on one card. */}
