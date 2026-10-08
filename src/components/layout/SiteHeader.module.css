@@ -121,7 +121,9 @@
   top: calc(100% + 22px);   /* clears the bottom of the 68px bar */
   inset-inline-start: -16px;
   z-index: 1;
-  min-width: 280px;
+  /* 8.10: the lines say what each service gives now, and at 280px three of
+     them left one word alone on a second line. */
+  min-width: 360px;
   margin: 0;
   padding: 8px;
   list-style: none;
