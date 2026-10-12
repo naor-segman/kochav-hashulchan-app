@@ -24,8 +24,8 @@
 .waBody {
   flex: 1;
   background: var(--wa-ground);
-  padding: 12px 0;
-  display: grid; align-content: start; gap: 8px;
+  padding: 10px 0;
+  display: grid; align-content: start; gap: 6px;
 }
 .avatar {
   width: 30px; height: 30px; border-radius: 50%;
@@ -33,16 +33,6 @@
   background: var(--blush); color: var(--accent-text);
   font-size: var(--step--3); font-weight: 800;
 }
-/* WhatsApp's link preview: the picture and the event's name above the text. */
-.preview {
-  display: grid; margin: -4px -8px 8px;
-  background: rgba(var(--text-rgb), .05);
-  border-radius: 6px; overflow: hidden;
-}
-.preview img { display: block; width: 100%; aspect-ratio: 1.91 / 1; object-fit: cover; }
-.previewText { display: grid; padding: 6px 8px; line-height: 1.35; }
-.previewText b { font-size: var(--step--1); color: var(--text); }
-.previewText span { font-size: var(--step--3); color: var(--wa-meta); direction: ltr; text-align: end; }
 .bubbleIn, .bubbleOut {
   position: relative;
   max-width: 84%;
@@ -52,9 +42,22 @@
   font-size: var(--step--2); line-height: 1.5; color: var(--text);
   box-shadow: 0 1px 1px rgba(var(--text-rgb), .1);
 }
+.bubbleIn, .bubbleOut { min-inline-size: 76px; }
 .bubbleIn { justify-self: start; margin-inline-start: 12px; background: var(--surface); border-start-start-radius: 0; }
 .bubbleOut { justify-self: end; margin-inline-end: 12px; background: var(--wa-bubble-out); border-start-end-radius: 0; }
-.link { color: var(--wa-link); direction: ltr; unicode-bidi: isolate; display: inline-block; }
+/* A WhatsApp template with reply buttons (12.10): the picture as the message
+   header, the text, and under the bubble the buttons — each its own white
+   row, the label in WhatsApp's link blue, as the app draws them. */
+.template { justify-self: start; display: grid; gap: 2px; max-width: 84%; margin-inline-start: 12px; }
+.template .templateBubble { max-width: none; margin: 0; padding-top: 4px; border-end-start-radius: 4px; border-end-end-radius: 4px; }
+.templateImg { display: block; width: calc(100% + 16px); margin: 0 -8px 6px; aspect-ratio: 2.8 / 1; object-fit: cover; border-radius: 7px; }
+.qr {
+  display: block; padding: 5px 8px;
+  background: var(--surface); border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(var(--text-rgb), .1);
+  color: var(--wa-link); font-size: var(--step--2); font-weight: 700; text-align: center;
+}
+.qr:last-child { border-end-start-radius: 10px; border-end-end-radius: 10px; }
 .meta { position: absolute; inset-block-end: 4px; inset-inline-end: 10px; font-size: var(--step--3); color: var(--wa-meta); }
 
 .rowCard {
@@ -99,3 +102,7 @@
   inset-inline-start: 12px;
   margin: 0;
 }
+
+@media (max-width: 389px) { .chatExtra { display: none; } }
+/* At 320 the guest's reply still met the card by 9px: the card sits lower. */
+@media (max-width: 359px) { .chatStage { padding-block-end: 64px; } }

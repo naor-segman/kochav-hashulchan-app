@@ -213,6 +213,9 @@ export const PLANS = [
         title: "וואטסאפ שיוצא לבד",
         items: [
           "ההזמנה נשלחת אוטומטית, וסבב שני רק למי שלא ענה",
+          // Owner, 12.10: the decided two-way WhatsApp (WORKPLAN 29) is sold
+          // here — built-ahead, like the rest of this group.
+          "האורחים עונים בכפתורים, בתוך הוואטסאפ — בלי קישור ובלי הרשמה",
           "תזכורת לפני האירוע ותודה אחריו",
           "מספר השולחן נשלח לכל אורח ביום האירוע",
         ],
