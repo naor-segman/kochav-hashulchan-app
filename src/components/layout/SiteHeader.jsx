@@ -226,8 +226,14 @@ export default function SiteHeader({ user = null, active = null }) {
         // data-site-menu-open: the cookie sheet steps aside while this is open —
         // it covered the menu's last items on a phone (review 5.10).
         <div className={styles.mobileMenu} data-site-menu-open="">
+          {/* The same line under each service as in the desktop menu (owner,
+              12.10: "תוסיף את השורות גם בתפריט בטלפון"). */}
+          <p className={styles.mobileGroup}>השירותים שלנו</p>
           {live.map(s => (
-            <Link key={s.id} to={s.path} className={styles.mobileLink} onClick={closeMenu}>{s.label}</Link>
+            <Link key={s.id} to={s.path} className={styles.mobileService} onClick={closeMenu}>
+              <span className={styles.mobileServiceLabel}>{s.label}</span>
+              <span className={styles.mobileServiceBlurb}>{s.blurb}</span>
+            </Link>
           ))}
           <Link to="/sample-invitation" className={styles.mobileLink} onClick={closeMenu}>הזמנה לדוגמה</Link>
           <Link to="/pricing" className={styles.mobileLink} onClick={closeMenu}>{PRICING_LABEL}</Link>

@@ -271,6 +271,171 @@ let server = { stop: () => {} };
 
 
 const DESK = process.env.DESK === "1";
+/* FILM=seating — the home page's laptop film (owner, 12.10: "סרטון המחשה…
+ * רשימת האורחים, החישוב האוטומטי ואז זה מוצג בשולחנות… הגדלת מסך בחלק
+ * מהשוטים… ברמה גבוהה"). Not Playwright's recorder (soft, ~1 Mbps): every frame
+ * is a screenshot of the real app at 1200×760, the "camera" (zoom and pan) and
+ * the captions are set per frame, so the motion is exact and the picture
+ * sharp. The frames are piped as JPEG into Playwright's own ffmpeg (mjpeg in,
+ * VP8 out). Output: public/shots/seating-film.webm + seating-film.jpg. */
+const FILM = process.env.FILM === "seating";
+if (FILM) {
+  const { spawn } = await import("node:child_process");
+  const FPS = 25, VW = 1200, VH = 760;
+  const FF = "/opt/pw-browsers/ffmpeg-1011/ffmpeg-linux";
+  const SHOTS = `${ROOT}/public/shots`;
+  server = await startPreview(PORT, ROOT);
+  try {
+    const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-proxy-server"] });
+    const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1 });
+    await ctx.addInitScript(e => { try { if (!localStorage.getItem("kochav_hashulchan_v1")) localStorage.setItem("kochav_hashulchan_v1", JSON.stringify({ events: [e], activeEventId: "e1" })); } catch {} }, EVENT);
+    await ctx.route("**/*", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.origin === ORIGIN) {
+        const res = await ctx.request.fetch(BASE + url.pathname + url.search, { method: route.request().method(), headers: route.request().headers(), data: route.request().postDataBuffer() ?? undefined });
+        return route.fulfill({ response: res });
+      }
+      return route.fallback();
+    });
+    const page = await ctx.newPage();
+    const ff = spawn(FF, ["-y", "-hide_banner", "-loglevel", "error", "-f", "image2pipe", "-c:v", "mjpeg", "-framerate", String(FPS), "-i", "pipe:0",
+      "-c:v", "libvpx", "-b:v", "1800k", "-crf", "8", "-qmin", "2", "-qmax", "30", "-auto-alt-ref", "0", "-an", `${SHOTS}/seating-film.webm`], { stdio: ["pipe", "inherit", "inherit"] });
+    let frames = 0;
+    const shoot = async () => { const buf = await page.screenshot({ type: "jpeg", quality: 92 }); ff.stdin.write(buf); frames++; return buf; };
+
+    /* The stage: no tour, no support bubble, no cookie sheet, no smooth scroll;
+       a caption card and a pointer that live OUTSIDE #root, so the camera
+       (a transform on #root) never moves them. */
+    const stage = () => page.evaluate(() => {
+      const st = document.createElement("style");
+      // overflow hidden: a scaled #root widens the page, and an RTL page then
+      // scrolls sideways — the first zoom landed on the empty left and pushed
+      // the caption off-centre.
+      st.textContent = `html,body{overflow:hidden!important} html{scroll-behavior:auto!important} [aria-label*="וואטסאפ"],[data-consent],[class*="tour"],[class*="Tour"]{display:none!important}
+        #root{transform-origin:0 0;will-change:transform}
+        #film-cap{position:fixed;z-index:2147483646;inset-inline:0;bottom:28px;display:flex;justify-content:center;pointer-events:none;font-family:"Open Sans",sans-serif;direction:rtl}
+        #film-cap>div{display:flex;align-items:center;gap:14px;padding:14px 22px;background:#fff;border:1px solid #e6e6e8;box-shadow:0 18px 40px rgba(20,22,26,.18);color:#14161A;font-size:22px;font-weight:800}
+        #film-cap b{display:grid;place-items:center;width:34px;height:34px;background:#E8437B;color:#fff;font-size:18px}
+        #film-dot{position:fixed;z-index:2147483647;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:rgba(232,67,123,.9);box-shadow:0 0 0 6px rgba(232,67,123,.25);pointer-events:none;opacity:0}
+        #film-fade{position:fixed;inset:0;z-index:2147483645;background:#fff;pointer-events:none;opacity:0}`;
+      document.head.appendChild(st);
+      for (const id of ["film-cap", "film-dot", "film-fade"]) if (!document.getElementById(id)) { const d = document.createElement("div"); d.id = id; document.documentElement.appendChild(d); }
+    });
+    const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    /* The camera never scrolls: the window stays at the top and #root is
+       moved and scaled over the whole page. Scrolling under a transform put
+       the sticky bar in the middle of the frame and aimed the zoom at the
+       wrong place (the first render). Rects are therefore in page coordinates
+       taken at scrollY 0. */
+    const rectOf = (loc) => loc.evaluate(el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top + window.scrollY, w: r.width, h: r.height }; });
+    const docH = () => page.evaluate(() => document.getElementById("root").scrollHeight);
+    let DH = VH;
+    const cam = (rect, s) => {
+      const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2;
+      const tx = Math.min(0, Math.max(VW - s * VW, VW / 2 - s * cx));
+      const ty = Math.min(0, Math.max(VH - s * DH, VH / 2 - s * cy));
+      return { s, tx, ty };
+    };
+    const set = (c, cap, dot, fade) => page.evaluate(({ c, cap, dot, fade }) => {
+      window.scrollTo(0, 0); document.documentElement.scrollLeft = 0; document.body.scrollLeft = 0;
+      const r = document.getElementById("root");
+      r.style.transform = `translate(${c.tx}px, ${c.ty}px) scale(${c.s})`;
+      const k = document.getElementById("film-cap");
+      if (cap) { k.innerHTML = `<div><b>${cap.n}</b><span>${cap.t}</span></div>`; k.style.opacity = cap.o; } else k.style.opacity = 0;
+      const d = document.getElementById("film-dot");
+      if (dot) { d.style.left = dot.x + "px"; d.style.top = dot.y + "px"; d.style.opacity = dot.o; d.style.transform = `scale(${dot.k || 1})`; } else d.style.opacity = 0;
+      document.getElementById("film-fade").style.opacity = fade || 0;
+    }, { c, cap, dot, fade });
+    const lerp = (a, b, t) => ({ s: a.s + (b.s - a.s) * t, tx: a.tx + (b.tx - a.tx) * t, ty: a.ty + (b.ty - a.ty) * t });
+    const shot = async (sec, a, b, cap, extra = () => ({})) => {
+      const n = Math.round(sec * FPS);
+      for (let i = 0; i < n; i++) {
+        const t = n > 1 ? i / (n - 1) : 1;
+        const x = extra(t, i, n);
+        await set(lerp(a, b, ease(t)), cap && { ...cap, o: x.cap ?? 1 }, x.dot, x.fade);
+        await shoot();
+      }
+    };
+    const unroot = () => page.evaluate(() => { document.getElementById("root").style.transform = ""; window.scrollTo(0, 0); });
+    const CAP1 = { n: 1, t: "רשימת האורחים — עם צדדים וקבוצות" };
+    const CAP2 = { n: 2, t: "לחיצה אחת — והמערכת מחשבת" };
+    const CAP3 = { n: 3, t: "כל האורחים בשולחנות — לפי מי שחייב לשבת יחד" };
+    const fadeIn = t => Math.min(1, t * 4);
+
+    // 1 · The guest list: the list in view, then closer on the first rows.
+    console.log("film: guests");
+    await page.goto(ORIGIN + "/events/e1/guests", { waitUntil: "networkidle" });
+    await stage(); await unroot(); await page.waitForTimeout(600);
+    DH = await docH();
+    const anchor = await rectOf(page.getByText("סינון:").first());
+    // Closer on the first rows, anchored on the NAMES (the reading end, at
+    // the right): the first try centred the row and cut every name in half.
+    // The VISIBLE name — getByText().first() matched a hidden copy at x≈0 and
+    // aimed the zoom at the empty left of the page.
+    const nm = await page.evaluate(name => {
+      const hits = [...document.querySelectorAll("main *")].filter(el => el.children.length === 0 && el.textContent.trim() === name)
+        .map(el => el.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0);
+      const r = hits.sort((a, b) => a.top - b.top)[0];
+      return { x: r.left, y: r.top + window.scrollY, w: r.width, h: r.height };
+    }, "ניר ביטון");
+    const G0 = cam({ x: 0, y: anchor.y - 30, w: VW, h: VH }, 1);
+    const G1 = cam({ x: nm.x + nm.w - 620, y: nm.y - 40, w: 660, h: 330 }, 1.6);
+    await shot(1.2, G0, G0, CAP1, t => ({ cap: fadeIn(t) }));
+    await shot(2.4, G0, G1, CAP1);
+    await shot(1.4, G1, G1, CAP1, t => ({ fade: Math.max(0, (t - .55) / .45) }));
+
+    // 2 · The seating screen: the counters, the button, one click.
+    console.log("film: seating", frames);
+    await page.goto(ORIGIN + "/events/e1/seating", { waitUntil: "networkidle" });
+    await stage(); await unroot(); await page.waitForTimeout(700);
+    DH = await docH();
+    const S0 = { s: 1, tx: 0, ty: 0 };
+    const btn = page.getByRole("button", { name: /להושבה אוטומטית|חשבו מחדש/ }).first();
+    const br = await rectOf(btn);
+    const S1 = cam({ x: br.x - 300, y: br.y - 150, w: br.w + 600, h: br.h + 300 }, 1.6);
+    const at = (c) => ({ x: c.tx + c.s * (br.x + br.w / 2), y: c.ty + c.s * (br.y + br.h / 2) });
+    await shot(1.0, S0, S0, CAP2, t => ({ fade: 1 - t, cap: fadeIn(t) }));
+    await shot(1.6, S0, S1, CAP2);
+    const p2 = at(S1);
+    await shot(1.2, S1, S1, CAP2, t => { const k = ease(Math.min(1, t * 1.35)); return { dot: { x: VW * .8 + (p2.x - VW * .8) * k, y: VH * .85 + (p2.y - VH * .85) * k, o: 1, k: t > .85 ? .8 : 1 } }; });
+    await btn.evaluate(el => el.click());
+    await page.waitForTimeout(200);
+    await unroot(); DH = await docH();
+    await shot(0.7, S1, S1, CAP2, t => ({ dot: { ...p2, o: 1 - t, k: 1 + t * 1.6 } }));
+
+    // 3 · The result: the counters now read seated, then a table up close.
+    console.log("film: result", frames);
+    const stats = await rectOf(page.getByText("שובצו").first());
+    const R0 = cam({ x: stats.x - 520, y: stats.y - 60, w: 640, h: 170 }, 1.5);
+    const card = page.locator('[class*="_tCard_"]').first();
+    const cr = await rectOf(card);
+    const R1 = cam({ x: 0, y: cr.y - 40, w: VW, h: VH }, 1);
+    await shot(1.4, S1, R0, CAP3);
+    await shot(1.0, R0, R0, CAP3);
+    await shot(1.6, R0, R1, CAP3);
+    await shot(0.8, R1, R1, CAP3);
+    // Open the tables so the close-up shows people, not only counts.
+    const openAll = page.getByRole("button", { name: /פתחו הכל/ }).first();
+    if (await openAll.count()) { await openAll.evaluate(el => el.click()); await page.waitForTimeout(400); }
+    await unroot(); DH = await docH();
+    const cr2 = await rectOf(card);
+    const R1b = cam({ x: 0, y: cr2.y - 40, w: VW, h: VH }, 1);
+    const sc = Math.min(1.8, (VW * .78) / (cr2.w + 32));
+    const R2 = cam({ x: cr2.x - 16, y: cr2.y - 16, w: cr2.w + 32, h: Math.min(cr2.h + 32, VH / sc) }, sc);
+    await shot(0.6, R1b, R1b, CAP3);
+    await shot(2.0, R1b, R2, CAP3);
+    await shot(1.6, R2, R2, CAP3, t => ({ fade: Math.max(0, (t - .55) / .45) }));
+
+    // Poster: the tables, full frame, no caption.
+    await set(R1b, null, null, 0);
+    await page.screenshot({ path: `${SHOTS}/seating-film.jpg`, type: "jpeg", quality: 88 });
+    ff.stdin.end();
+    await new Promise((res, rej) => ff.on("close", code => code === 0 ? res() : rej(new Error("ffmpeg exited " + code))));
+    console.log(`seating-film.webm — ${frames} frames, ${(frames / FPS).toFixed(1)}s`);
+    await browser.close();
+  } finally { server.stop(); }
+  process.exit(0);
+}
 try {
   server = await startPreview(PORT, ROOT);
   const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-proxy-server"] });

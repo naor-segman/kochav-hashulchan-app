@@ -103,14 +103,19 @@ const SEQUENCE = [
 /* The paid packages, as /pricing sells them (owner, 5.10: "ליישר לדף
    המחירים"). This was a "בפיתוח / לא זמינים היום" roadmap while /pricing sold
    the same three without a tag (owner, 5.10: "בלי תגית") — the site answered
-   one question two ways. Only what /pricing claims is claimed here: the
-   in-WhatsApp reply card went (not a pricing line), and "שלושה" rounds went
-   (/pricing gives no number). Names come from pricingCurve so they cannot
-   drift. */
+   one question two ways. Only what /pricing claims is claimed here; "שלושה"
+   rounds went (/pricing gives no number). The in-WhatsApp reply card went on
+   5.10 because /pricing did not sell it, and came back on 12.10 when the owner
+   put it on /pricing. Names come from pricingCurve so they cannot drift. */
 const PAID = [
   {
     title: "ההזמנות יוצאות לבד",
     body: "ההזמנה נשלחת אוטומטית בוואטסאפ, וסבב שני רק למי שלא ענה — בלי לפתוח את הטלפון לכל אורח בנפרד.",
+    pkg: PACKAGES[0].name,
+  },
+  {
+    title: "עונים בלחיצה, בתוך הוואטסאפ",
+    body: "ההזמנה מגיעה עם כפתורים — מגיע/ה, לא אוכל להגיע, עוד לא יודע/ת. האורח לוחץ, נשאל כמה יגיעו, והתשובה נכנסת לרשימה שלכם — בלי קישור ובלי לצאת מהוואטסאפ.",
     pkg: PACKAGES[0].name,
   },
   {

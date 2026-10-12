@@ -11,9 +11,13 @@ import PhoneFrame from "./PhoneFrame.jsx";
 
 /* The RSVP moment, in an iPhone (owner, 6.10: "במקום סתם ריבוע לעשות פה את
  * האייפון… ההודעה חייבת להיות אמיתית ומדויקת, בדיוק כמו שהם ייראו אותה").
- * The text is the product's invitation template (messageSequence.js) filled
- * for a sample guest, and the link shows as WhatsApp shows it: a preview card
- * with the event's picture and name (the invite-og edge function makes it). */
+ * 12.10, the owner: show how RSVPs really work — the decided two-way WhatsApp
+ * (WORKPLAN 29, sold in the packages on /pricing): the invitation arrives as a
+ * WhatsApp template with the event's picture and three reply buttons (WhatsApp
+ * allows three), the guest taps one, is asked how many, answers, and the row
+ * on the host's side updates. The text is the product's invitation template
+ * (messageSequence.js) filled for a sample guest, without the link — the
+ * buttons replace it. */
 export function ChatScene() {
   return (
     <div className={styles.chatStage}>
@@ -21,25 +25,33 @@ export function ChatScene() {
         <div className={styles.waHead}>
           <span className={styles.waBack} aria-hidden="true">›</span>
           <span className={styles.avatar}>נ״ט</span>
-          <span className={styles.waName}>נועה וטל<small>מקוון</small></span>
+          <span className={styles.waName}>נועה וטל<small>חשבון עסקי</small></span>
         </div>
         <div className={styles.waBody} role="img"
-          aria-label="דוגמה: הזמנה בוואטסאפ — היי משפחת כהן, שמחים להזמין אתכם לחתונה של נועה וטל, עם תאריך, מקום וקישור לאישור הגעה; והתשובה: מגיעים, שניים">
-          <div className={styles.bubbleIn}>
-            <span className={styles.preview}>
-              <img src="/hero/hero.jpg" alt="" loading="lazy" />
-              <span className={styles.previewText}>
-                <b>החתונה של נועה וטל 💍</b>
-                <span>plan.unica-events.co.il</span>
-              </span>
-            </span>
-            {"היי משפחת כהן 👋\n\nשמחים להזמין אתכם לחתונה של נועה וטל! 🎉💛\n📅 חמישי, 12.11\n📍 בית על הים, תל אביב\n\nנשמח שתאשרו הגעה כאן 👇\n"}
-            <span className={styles.link}>plan.unica-events.co.il/rsvp/…</span>
-            <span className={styles.meta}>19:02</span>
+          aria-label="דוגמה: הזמנה בוואטסאפ עם תמונה ושלושה כפתורים — מגיעים, לא נוכל להגיע, עוד לא יודעים. האורח לוחץ מגיעים, נשאל כמה יגיעו, עונה שניים; אצלכם השורה מתעדכנת לאישרו, 2 מקומות">
+          <div className={styles.template}>
+            <div className={[styles.bubbleIn, styles.templateBubble].join(" ")}>
+              <img className={styles.templateImg} src="/hero/hero.jpg" alt="" loading="lazy" />
+              {"היי משפחת כהן 👋 שמחים להזמין אתכם לחתונה של נועה וטל! 🎉💛\n📅 12.11 · 📍 בית על הים, תל אביב\nתגיעו? 👇"}
+              <span className={styles.meta}>19:02</span>
+            </div>
+            <span className={styles.qr}>↩ מגיעים 🎉</span>
+            <span className={styles.qr}>↩ לא נוכל להגיע</span>
+            <span className={styles.qr}>↩ עוד לא יודעים</span>
           </div>
           <div className={styles.bubbleOut}>
-            מגיעים, שניים 🎉 מזל טוב!!
+            מגיעים 🎉
             <span className={styles.meta}>19:05 ✓✓</span>
+          </div>
+          {/* The phone is 237px wide at 320: these two would run under the
+              row card, so the smallest screens stop at the tap. */}
+          <div className={[styles.bubbleIn, styles.chatExtra].join(" ")}>
+            איזה כיף! 🥳 כמה תהיו?
+            <span className={styles.meta}>19:05</span>
+          </div>
+          <div className={[styles.bubbleOut, styles.chatExtra].join(" ")}>
+            שניים
+            <span className={styles.meta}>19:06 ✓✓</span>
           </div>
         </div>
       </PhoneFrame>
