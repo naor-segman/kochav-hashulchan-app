@@ -11,7 +11,10 @@
 .chatStage .chatPhone { --w: min(290px, 74vw); }
 .waHead {
   display: flex; align-items: center; gap: 8px;
-  padding: 6px 10px 8px; background: var(--surface);
+  /* Clear of the Dynamic Island, as a real phone's status bar is: the chat's
+     name and "מקוון" sat under it and were cut (owner, 12.10). --w is the
+     phone's width, inherited from PhoneFrame. */
+  padding: calc(var(--w) * .135) 10px 8px; background: var(--surface);
   border-bottom: 1px solid var(--border);
   font-size: var(--step--1); color: var(--text);
 }
@@ -70,27 +73,29 @@
   background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border);
   font-weight: 800; font-size: var(--step--2); padding: 6px 10px;
 }
-/* ── the evening: a photograph of the hall, the door screen in front (6.10) ── */
+/* ── the evening: a photograph of the hall, the door screen in front (6.10) ──
+   12.10: the phone covered most of the photo ("תמונה יפה של אווירה"). Now the
+   photo is shown landscape, as taken, and the phone only overlaps its lower
+   corner — the rest of it hangs below, into the stage's own padding. */
 .doorStage {
+  --pw: min(170px, 40vw);
   position: relative;
   width: min(100%, 520px);
   margin-inline: auto;
-  padding-block-end: 48px;
+  padding-block-end: calc(var(--pw) * 1.25);
 }
 .doorPhoto {
   display: block;
-  width: 88%;
-  aspect-ratio: 4 / 5;
+  width: 100%;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
-  object-position: 100% 50%;
-  margin-inline-start: auto;
+  object-position: 60% 50%;
 }
-/* The phone stands in front of the photo's lower corner, at the reading end.
-   Two classes: PhoneFrame's own .device sets --w too, and wins a tie. */
+/* Two classes: PhoneFrame's own .device sets --w too, and wins a tie. */
 .doorStage .doorPhone {
-  --w: min(210px, 46vw);
+  --w: var(--pw);
   position: absolute;
   inset-block-end: 0;
-  inset-inline-start: 0;
+  inset-inline-start: 12px;
   margin: 0;
 }

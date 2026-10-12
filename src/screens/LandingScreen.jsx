@@ -28,10 +28,11 @@ import styles from "./LandingScreen.module.css";
 const HERO_MEDIA = { video: "/hero/hero.mp4", poster: "/hero/hero.jpg", posterMobile: "/hero/hero-portrait.jpg" };
 
 /* Every card is something that exists in the product today, in the order of
-   the host's journey (owner, 6.10: "כרונולוגי ולא מעורבב"). */
+   the host's journey (owner, 6.10: "כרונולוגי ולא מעורבב"; 12.10: the guest
+   list before the budget, numbered, with arrows from one step to the next). */
 const EVERYTHING = [
-  { mark: "budget",  t: "תקציב וספקים",      d: "כמה יצא, וכמה עוד נשאר", to: "/services/planning" },
   { mark: "guests",  t: "רשימת אורחים",      d: "מדביקים מוואטסאפ או מאקסל", to: "/services/rsvp" },
+  { mark: "budget",  t: "תקציב וספקים",      d: "כמה יצא, וכמה עוד נשאר", to: "/services/planning" },
   { mark: "site",    t: "הזמנה ואתר",        d: "הזמנה דיגיטלית, Waze והסעות", to: "/services/event-site" },
   { mark: "messages", t: "הודעות בוואטסאפ",  d: "הזמנה, תזכורת ותודה — מוכנות", to: "/services/rsvp" },
   { mark: "rsvp",    t: "אישורי הגעה",       d: "האורחים עונים בלי להירשם", to: "/services/rsvp" },
@@ -63,15 +64,19 @@ const FEELINGS = [
     visual: "chat",
   },
   {
-    // Owner, 6.10: the wording here was unclear and sold nothing. Rewritten
-    // around what the host feels on the night, not around the screen.
+    // Owner, 6.10: the wording here was unclear and sold nothing. 12.10: still
+    // not clear WHO uses it, whether guests type anything, what is automatic.
+    // So the body says it plainly: someone at the door, with a link on their
+    // phone; the guest only says a name; and in the packages each guest gets
+    // the table number on WhatsApp before arriving (pricing.js — paid tiers).
     eyebrow: "ביום האירוע",
     title: "האורחים נכנסים. אתם חוגגים.",
-    body: "בכניסה מקלידים שם ורואים מיד את מספר השולחן — וכל אורח הולך ישר למקום שלו. אתם לא עומדים בדלת ולא מחפשים רשימות מודפסות, ויודעים בכל רגע כמה כבר הגיעו.",
+    body: "בכניסה עומד מישהו מטעמכם — דיילת, בן משפחה, או אנשים שלנו — עם קישור בטלפון. האורח אומר את שמו, ובשנייה רואים את מספר השולחן שלו ומסמנים שהגיע. אתם לא עומדים בדלת, ורואים מכל מקום כמה כבר הגיעו.",
     points: [
-      "כל אורח מגיע ישר לשולחן שלו",
-      "רואים בזמן אמת כמה כבר כאן",
-      "כרטיסי שולחן ושם מודפסים, מוכנים לכניסה",
+      "מי שבכניסה מקבל קישור — בלי חשבון ובלי סיסמה",
+      "האורח רק אומר שם, ומקבל מספר שולחן",
+      "בחבילות: כל אורח מקבל בוואטסאפ את מספר השולחן שלו עוד לפני שהגיע",
+      "כרטיסי שולחן וכרטיסי שם, מודפסים מהמערכת",
     ],
     visual: "door",
   },
@@ -79,9 +84,9 @@ const FEELINGS = [
 
 /* The three steps (section 4). Screens from the product, as captured. */
 const STEPS = [
-  { t: "מכניסים את המוזמנים", d: "מקלידים, מדביקים רשימה מוואטסאפ או מאקסל, או שולחים לבני המשפחה קישור למלא בעצמם.",
+  { t: "מכניסים את המוזמנים", d: "מדביקים רשימה מוואטסאפ או מאקסל — או שולחים לבני המשפחה קישור, והם ממלאים בעצמם.",
     img: "/shots/guests.jpg", alt: "רשימת המוזמנים במחשב — שמות, צדדים, קבוצות ומספר מקומות" },
-  { t: "שולחים הזמנה בוואטסאפ", d: "ההזמנה יוצאת לכל אורח עם קישור אישי, והתשובות נכנסות לרשימה לבד.",
+  { t: "ההזמנות יוצאות, התשובות נכנסות", d: "קישור אחד בוואטסאפ, והתשובות נכנסות לרשימה לבד. בחבילות, גם השליחה עצמה אוטומטית.",
     img: "/shots/messages.jpg", alt: "מסך ההודעות — הזמנה, תזכורת ותודה, מוכנות לשליחה בוואטסאפ" },
   { t: "לוחצים — וההושבה מוכנה", d: "כל האורחים משובצים לפי האילוצים שלכם. מזיזים מה שרוצים, ומדפיסים לאולם.",
     img: "/shots/seating.jpg", alt: "סידור ההושבה במחשב — כל האורחים משובצים בשולחנות" },
@@ -166,17 +171,20 @@ export default function LandingScreen({ user = null }) {
             <div className={styles.head}>
               {/* Owner, 6.10: about the person, not the event. His wording. */}
               <h2 className={styles.title}>כל מה שתצטרכו בדרך לאירוע.</h2>
-              <p className={styles.sub}>וזה רק חלק ממה שמחכה לכם בפנים.</p>
+              <p className={styles.sub}>צעד אחרי צעד, לפי הסדר שבו אירוע נבנה.</p>
             </div>
-            <div className={styles.grid}>
-              {EVERYTHING.map(e => (
-                <Link key={e.t} to={e.to} className={styles.tile}>
-                  <SectionMark name={e.mark} size={34} className={styles.tileMark} />
-                  <h3 className={styles.tileTitle}>{e.t}</h3>
-                  <p className={styles.tileText}>{e.d}</p>
-                </Link>
+            <ol className={styles.journey}>
+              {EVERYTHING.map((e, i) => (
+                <li key={e.t} className={styles.journeyStep}>
+                  <Link to={e.to} className={styles.tile}>
+                    <span className={styles.stepNo} aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+                    <SectionMark name={e.mark} size={34} className={styles.tileMark} />
+                    <h3 className={styles.tileTitle}>{e.t}</h3>
+                    <p className={styles.tileText}>{e.d}</p>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ol>
             <div className={styles.center}>
               <Link to="/app" className={styles.btnPrimary}>התחילו חינם ←</Link>
             </div>
@@ -199,7 +207,9 @@ export default function LandingScreen({ user = null }) {
                 {/* The computer alone here; the phone belongs to the RSVP part
                     below, where the guest holds it (owner, 6.10). */}
                 {f.visual === "laptop" && (
-                  <LaptopFrame src="/shots/seating.jpg" alt="מסך סידור ההושבה במחשב — 56 רשומות שובצו ב-14 שולחנות, אפס הפרות" className={styles.duoLaptop} />
+                  <LaptopFrame video="/shots/seating-film.webm" poster="/shots/seating-film.jpg"
+                    alt="סרטון: רשימת האורחים, לחיצה על הושבה אוטומטית, וכל האורחים משובצים בשולחנות"
+                    className={styles.duoLaptop} />
                 )}
                 {f.visual === "chat" && <ChatScene />}
                 {f.visual === "door" && <DoorScene />}
@@ -215,7 +225,11 @@ export default function LandingScreen({ user = null }) {
           <div className={styles.inner}>
             <div className={styles.head}>
               <p className={styles.eyebrow}>איך זה עובד</p>
-              <h2 className={styles.title}>מהרשימה ועד השולחן, בשלושה צעדים</h2>
+              {/* Owner, 12.10: say that it is automatic — one of the strongest
+                  things we have. Step 1 still needs the list, so the claim is
+                  about the work, not about every click. */}
+              <h2 className={styles.title}>מהרשימה ועד השולחן — אוטומטית.</h2>
+              <p className={styles.sub}>בלי לרדוף אחרי תשובות ובלי ערבים על מפית: התשובות נכנסות לרשימה לבד, וההושבה נבנית בלחיצה.</p>
             </div>
             <ol className={styles.steps}>
               {STEPS.map((st, i) => (
