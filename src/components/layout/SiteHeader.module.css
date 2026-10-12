@@ -278,6 +278,28 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
+/* Twelve rows now, with the service lines: on a short phone the menu is taller
+   than the screen, and it hangs from a sticky bar — so it scrolls itself. */
+.mobileMenu { max-height: calc(100svh - 69px); overflow-y: auto; overscroll-behavior: contain; }
+
+.mobileGroup {
+  margin: 8px 8px 2px;
+  color: var(--nav-muted);
+  font-size: var(--step--1);
+  font-weight: 700;
+}
+
+.mobileService {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px;
+  text-decoration: none;
+}
+.mobileServiceLabel { color: var(--nav-text); font-size: var(--step-1); font-weight: 600; }
+.mobileServiceBlurb { color: var(--nav-muted); font-size: var(--step--1); line-height: 1.45; }
+.mobileService:hover .mobileServiceLabel { text-decoration: underline; }
+
 .mobileLink {
   color: var(--nav-muted);
   text-decoration: none;
