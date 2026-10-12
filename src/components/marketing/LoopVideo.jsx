@@ -19,7 +19,10 @@ export default function LoopVideo({ src, poster, label, className = "", buttonCl
   const toggle = () => {
     const v = ref.current;
     if (!v) return;
-    if (v.paused) { v.play()?.catch?.(() => {}); setPaused(false); }
+    // Follow the button's own state, not v.paused — a loop that has not
+    // started yet reports paused, and the first press would "play" (as the
+    // hero's button did, 8.10).
+    if (paused) { v.play()?.catch?.(() => {}); setPaused(false); }
     else { v.pause(); setPaused(true); }
   };
   return (

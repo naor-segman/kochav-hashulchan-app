@@ -3,7 +3,8 @@
  *   - the "לחיצה אחת" product video is gone — the owner found it unclear
  *     (6.10) and #how is three still steps now, so neither product webm
  *     (~2MB each) may be requested at any width;
- *   - every looping video has a pause control that pauses it (WCAG 2.2.2);
+ *   - every looping video has a pause control that pauses it (WCAG 2.2.2) —
+ *     the hero's loop and the seating film in the laptop (12.10);
  *   - under prefers-reduced-motion nothing moves — no <video> at all.
  * Run: npm run build && node qa/homeMedia.mjs
  */
@@ -26,18 +27,26 @@ try {
     ok(await p.locator("#how ol li").count() === 3, `@${w} #how is three steps`);
     ok(await p.locator("#how video").count() === 0, `@${w} no video in #how`);
     ok(!requested.some(f => /^product/.test(f)), `@${w} no product video is requested`, requested.join(", "));
-    for (const [label, scope] of [["עצירת סרטון הרקע", "main"]]) {
-      const btn = p.locator(`${scope} button[aria-label="${label}"]`).first();
+    /* Each looping video and its own pause button: the hero's background
+       loop, and since 12.10 the seating film in the laptop (owner: "סרטון
+       המחשה במקום תמונה"). Each button must pause ITS video. */
+    ok(requested.filter(f => f === "seating-film.webm").length <= 1, `@${w} the seating film is fetched once at most`, requested.join(", "));
+    for (const [label, video, hasButton] of [
+      ["עצירת סרטון הרקע", "main section:first-of-type video", "main section:first-of-type"],
+      ["עצירת הסרטון", 'video[src$="seating-film.webm"]', 'main [class*="laptop"]'],
+    ]) {
+      await p.locator(video).first().scrollIntoViewIfNeeded().catch(() => {}); await p.waitForTimeout(300);
+      const btn = p.locator(`${hasButton} button[aria-label="${label}"]`).first();
       const has = await btn.count();
       ok(has === 1, `@${w} pause control "${label}"`);
       if (!has) continue;
       await btn.click(); await p.waitForTimeout(150);
-      const paused = await p.evaluate((s) => {
-        const v = document.querySelector(`${s} section video`);
+      const paused = await p.evaluate((sel) => {
+        const v = document.querySelector(sel);
         return v ? v.paused : null;
-      }, scope);
+      }, video);
       ok(paused === true, `@${w} "${label}" pauses it`, String(paused));
-      ok(await p.locator(`${scope} button[aria-label^="הפעלת"]`).count() >= 1, `@${w} and offers to play it again`);
+      ok(await p.locator(`${hasButton} button[aria-label^="הפעלת"]`).count() >= 1, `@${w} and offers to play it again`);
     }
     await ctx.close();
   }
