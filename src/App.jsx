@@ -9,6 +9,7 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { uid } from "./utils/uid.js";
 import { duplicateEvent } from "./utils/eventHelpers.js";
 import { AuthProvider, useAuth } from "./hooks/useAuth.js";
+import RootGate from "./components/layout/RootGate.jsx";
 import { useEvents }        from "./hooks/useEvents.js";
 import { track, EVENTS } from "./lib/analytics.js";
 import { usePageAnalytics } from "./hooks/usePageAnalytics.js";
@@ -366,7 +367,7 @@ function AppRoutes() {
       {/* Landing page — unauthenticated visitors */}
       <Route
         path="/"
-        element={authLoading ? <div /> : user ? <Navigate to="/app" replace /> : <Suspense fallback={<Loading />}><LandingScreen /></Suspense>}
+        element={<RootGate user={user} loading={authLoading}><Suspense fallback={<Loading />}><LandingScreen /></Suspense></RootGate>}
       />
       {/* The marketing site, reachable while logged in.
           "/" bounces an authenticated visitor into the app — which is right —
