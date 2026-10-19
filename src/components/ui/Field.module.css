@@ -21,7 +21,7 @@
 }
 
 .required {
-  color: var(--red);
+  color: var(--accent-text);   /* shown before anything is wrong — not an error */
   margin-inline-start: 2px;
 }
 

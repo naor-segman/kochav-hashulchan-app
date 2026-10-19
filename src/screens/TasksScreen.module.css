@@ -134,8 +134,8 @@
   flex-shrink: 0;
   margin-top: 4px;
 }
-.prio_high   { background: var(--red); }
-.prio_normal { background: var(--warn); }
+.prio_high   { background: var(--warn); }
+.prio_normal { background: var(--muted); }
 .prio_low    { background: var(--border2); }
 
 .taskNote {

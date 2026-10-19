@@ -123,7 +123,7 @@ export default function DashboardScreen({ events, signedIn = false, cloudCapped 
             <span className={styles.statLabel}>שובצו</span>
           </div>
           <div className={styles.statTile}>
-            <span className={[styles.statValue, stats.totalViols > 0 ? styles.statValueWarn : ""].filter(Boolean).join(" ")}>
+            <span className={[styles.statValue, stats.totalViols > 0 ? styles.statValueViol : ""].filter(Boolean).join(" ")}>
               {stats.totalViols}
             </span>
             <span className={styles.statLabel}>{stats.totalViols === 1 ? "הפרה" : "הפרות"}</span>

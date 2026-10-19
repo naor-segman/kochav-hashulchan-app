@@ -550,15 +550,6 @@
   color: var(--accent-text);
 }
 
-.segTog {
-  background: var(--green-bg);
-  color: var(--green);
-}
-
-.segApart {
-  background: var(--red-bg);
-  color: var(--red);
-}
 
 /* Filter bar */
 .filterBar {

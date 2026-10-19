@@ -784,8 +784,8 @@
   color: var(--green);
 }
 
-.statValueWarn {
-  color: var(--warn);
+.statValueViol {
+  color: var(--red-text);   /* broken rules — red, as on the seating screen */
 }
 
 .statLabel {

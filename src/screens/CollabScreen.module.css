@@ -152,10 +152,10 @@
   align-self: flex-start;
   font-size: var(--step-0);
   font-weight: 700;
-  color: var(--warn);
-  background: var(--warn-bg);
+  color: var(--red-text);       /* a save that failed — red, not amber */
+  background: var(--red-bg);
   padding: 6px 12px;
-  border-radius: var(--radius);
+  border-radius: 0;
 }
 
 /* On a narrow phone three native selects on one line leave each of them about

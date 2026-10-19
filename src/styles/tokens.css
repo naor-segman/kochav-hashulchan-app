@@ -61,6 +61,24 @@
      Do not rename or remove.
      ───────────────────────────────────────────────────────────── */
 
+  /* THE COLOUR RULE — one meaning per colour (136 stage A, 19.10).
+     A colour that means two things means neither; the app's whole job is
+     telling states apart at a glance.
+       magenta (--accent / --cta / --blush*)  the brand and "do this": the one
+                                              primary action, the current place,
+                                              selection. Never a state.
+       green   (--green*)                     done / working / confirmed. Never
+                                              an action — a button is not green.
+       red     (--red*)                       danger, error, over a limit,
+                                              delete. Never decoration.
+       amber   (--warn*)                      needs attention, not broken yet.
+       violet / blue (--bride / --groom)      the two sides of a wedding. Never
+                                              anything else.
+       neutrals (--text* / --muted / --border* / --bg / --surface)
+                                              everything that carries no meaning.
+     Third-party marks (--whatsapp, --wa-*, --logo-*) stay inside their own
+     drawings. Guest pages wear the host's theme and are outside this rule. */
+
   /* Surfaces — white workspace on a neutral ground. Deliberately UNTINTED:
      the old surfaces carried a teal bias, so every grey quietly whispered the
      brand colour and left the accent no room to speak. */
@@ -205,7 +223,7 @@
   --cta-rgb:      214, 46, 107;
   --text-rgb:     20, 22, 26;
   --nav-text-rgb: 245, 245, 246;
-  --green-rgb:    18, 133, 92;
+  --green-rgb:    15, 115, 80;   /* = --green. Was 18,133,92 — an older green, left behind when --green darkened */
   --red-rgb:      188, 47, 42;
   --warn-rgb:     150, 96, 10;
   /* Label colour on filled accent / cta / green / red backgrounds */

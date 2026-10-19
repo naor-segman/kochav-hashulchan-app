@@ -412,7 +412,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       {ev.constraints.length > 0 && (
         <div data-tour="constraints.list">
           {together.length > 0 && (
-            <div className={[base.card, styles.cardTogether].join(" ")}>
+            <div className={base.card}>
               <SectionLabel><Icon name="together" /> חייבים לשבת יחד — {together.length}</SectionLabel>
               <div className={styles.cList}>
                 {together.map(c => {
@@ -442,7 +442,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
           )}
 
           {apart.length > 0 && (
-            <div className={[base.card, styles.cardApart].join(" ")}>
+            <div className={base.card}>
               <SectionLabel><Icon name="apart" /> לא יכולים לשבת יחד — {apart.length}</SectionLabel>
               <div className={styles.cList}>
                 {apart.map(c => {
