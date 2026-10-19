@@ -47,7 +47,7 @@
 /* These are the quietest pages in the product: one column, one type ramp, no
    colour except the links. The whole job is comfortable reading. */
 .title {
-  font-family: var(--font-family-serif);
+  font-family: var(--font-family-display);
   font-size: clamp(1.9rem, 4.4vw, 2.4rem);
   font-weight: 700;
   line-height: 1.15;

@@ -27,9 +27,11 @@
 }
 
 .pageTitle {
-  font-family: var(--font-family-serif);
+  /* Font rule (136 stage A): Open Sans for the product; the serif only on
+     guest pages, where the host's theme chooses it. */
+  font-family: var(--font-family-display);
   font-size: var(--step-3);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-extrabold);
   letter-spacing: -0.005em;
   line-height: 1.15;
   margin-bottom: 4px;

@@ -1118,7 +1118,7 @@
 
   .printView {
     display: block !important;
-    font-family: 'Heebo', Arial, sans-serif;
+    font-family: var(--font-family-base);
     font-size: 13px;
     color: var(--text);
     direction: rtl;
@@ -1604,7 +1604,7 @@
   break-inside: avoid;
   background: var(--surface);
   text-align: center;
-  font-family: 'Heebo', Arial, sans-serif;
+  font-family: var(--font-family-base);
   direction: rtl;
 }
 
