@@ -13,8 +13,11 @@ const eager = [...APP.matchAll(/^import\s+(\w+)\s+from\s+"(\.\/(?:screens|compon
   .map(([, name, from]) => `${name} ← ${from}`);
 
 describe("App.jsx imports no host screen eagerly (audit 3.10, H6)", () => {
-  it("only the 404 and the host-preview gate are static", () => {
+  it("only the 404, the host-preview gate and the root gate are static", () => {
     expect(eager).toEqual([
+      // 19.10: decides "/" (visitor → home page, signed in → /app). It imports
+      // Navigate and nothing else, so it costs the entry nothing.
+      "RootGate ← ./components/layout/RootGate.jsx",
       "NotFoundScreen ← ./screens/NotFoundScreen.jsx",
       "HostPreviewGate ← ./components/layout/HostPreviewGate.jsx",
     ]);
