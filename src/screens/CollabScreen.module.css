@@ -30,7 +30,7 @@
   border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: 20px 20px; margin-bottom: 16px;
 }
 .title {
-  font-family: var(--font-family-serif); font-size: var(--step-3); font-weight: 700; color: var(--text);
+  font-family: var(--font-family-display); font-size: var(--step-3); font-weight: 800; color: var(--text);
   margin: 0 0 8px; line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -152,10 +152,10 @@
   align-self: flex-start;
   font-size: var(--step-0);
   font-weight: 700;
-  color: var(--warn);
-  background: var(--warn-bg);
+  color: var(--red-text);       /* a save that failed — red, not amber */
+  background: var(--red-bg);
   padding: 6px 12px;
-  border-radius: var(--radius);
+  border-radius: 0;
 }
 
 /* On a narrow phone three native selects on one line leave each of them about

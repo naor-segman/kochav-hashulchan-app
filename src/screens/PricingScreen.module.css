@@ -37,7 +37,7 @@
 .freeHead span { font-size: 2.6rem; font-weight: 800; line-height: 1; }
 .lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .lines li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; font-size: var(--step-0); line-height: 1.5; }
-.yes { color: var(--text); } .yes > span:first-child { color: var(--green); font-weight: 800; }
+.yes { color: var(--text); } .yes > span:first-child { color: var(--accent-text); font-weight: 800; }
 .no { color: var(--muted); } .no > span:first-child { font-weight: 800; }
 
 /* Light, like the same section on the home page (owner, 5.10: no all-black
@@ -88,7 +88,7 @@
 .groupTitle { margin: 0; font-size: var(--step-0); font-weight: 800; color: var(--text); }
 .groupList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .groupList li { display: grid; grid-template-columns: 18px 1fr; gap: 6px; font-size: var(--step--1); line-height: 1.55; color: var(--text2); }
-.groupList span { color: var(--green); font-weight: 800; }
+.groupList span { color: var(--accent-text); font-weight: 800; }
 
 /* Touch target for the refund-policy link. The old page had this rule (item
    129, "מחירים — הקישור מדיניות הביטול") and the 5.10 rebuild dropped it.

@@ -29,7 +29,7 @@
   padding: 12px 2px; border-bottom: 1px solid var(--blush-line);
   font-size: var(--step-0); font-weight: 700; color: var(--text);
 }
-.tryList span { color: var(--green); font-weight: 800; }
+.tryList span { color: var(--accent-text); font-weight: 800; }
 
 .note { margin: 0 0 24px; font-size: var(--step--1); color: var(--text2); }
 

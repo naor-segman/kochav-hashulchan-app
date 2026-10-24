@@ -177,7 +177,7 @@
   white-space: nowrap;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
-.actBtn:hover { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+.actBtn:hover { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border); }
 
 .iconBtn {
   font-family: inherit;

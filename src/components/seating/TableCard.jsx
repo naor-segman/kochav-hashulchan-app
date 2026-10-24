@@ -260,7 +260,7 @@ function TableCard({
               {table.type !== "regular" && <TypeTag type={table.type} />}
               {locked                 && <span className={styles.tCardBadgeLock}><Icon name="lock" size={13} /></span>}
               {isCapOver              && <span className={styles.tCardBadgeRed}>חריגה!</span>}
-              {hasViolation && !isCapOver && <span className={styles.tCardBadgeWarn}>הפרה</span>}
+              {hasViolation && !isCapOver && <span className={styles.tCardBadgeViol}>הפרה</span>}
             </div>
             {guests.length === 0 && (
               <div className={styles.tCardEmpty}>{table.capacity} מקומות פנויים</div>

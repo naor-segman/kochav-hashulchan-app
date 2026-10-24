@@ -161,7 +161,7 @@ const OWN_MAIN = {
 };
 /** Rendered inside Shell, whose <main id="main"> is the page's — or plumbing. */
 const NO_OWN_MAIN = new Set([
-  "Suspense", "Loading", "Navigate", "Toast", "MigrationBanner",
+  "Suspense", "Loading", "Navigate", "Toast", "MigrationBanner", "RootGate",
   "Shell", "DashboardScreen", "StartScreen", "EventRoutes",
   // Thin wrappers around EventSiteScreen / AnnouncementScreen (above).
   "EventSitePreview", "AnnouncementPreview",

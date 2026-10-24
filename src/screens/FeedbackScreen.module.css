@@ -136,7 +136,7 @@
 }
 
 .ok  { background: var(--green-bg); color: var(--green); }
-.bad { background: var(--warn-bg); color: var(--warn);  }
+.bad { background: var(--red-bg); color: var(--red-text); }
 
 .ok a,
 .bad a { color: inherit; }

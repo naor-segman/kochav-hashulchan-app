@@ -104,7 +104,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--red);
+  color: var(--text2);   /* leaves placement mode, deletes nothing */
   font-size: var(--step--1);
   font-weight: 700;
   padding: 0 4px;

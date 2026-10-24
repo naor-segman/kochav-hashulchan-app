@@ -107,7 +107,7 @@
 .lines li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; align-items: start; font-size: var(--step-0); line-height: 1.5; }
 .mark { font-weight: 800; }
 .yes { color: var(--text); }
-.yes .mark { color: var(--green); }
+.yes .mark { color: var(--accent-text); }
 .no { color: var(--muted); }
 .no .mark { color: var(--muted); }
 

@@ -261,7 +261,7 @@
 }
 
 .planCardFeature:not(.planCardFeatureMissing) .planCardMark {
-  color: var(--green);
+  color: var(--accent-text);   /* "in the plan" is not "done" — the colour rule, tokens.css */
 }
 
 .planCardFeatureMissing .planCardMark {

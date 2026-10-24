@@ -71,15 +71,8 @@
 }
 
 .cstVerbApart {
-  color: var(--red);
-}
-
-.cardTogether {
-  border-color: var(--green-border);
-}
-
-.cardApart {
-  border-color: var(--red-border);
+  color: var(--text);
+  font-weight: 700;
 }
 
 /* Preview inner elements */
@@ -133,16 +126,13 @@
   line-height: 1.5;
 }
 
-.constraintPreviewTog {
-  background: var(--green-bg);
-  color: var(--green);
-  border: 1px solid var(--green-border);
-}
-
+/* "Together" and "apart" are kinds of rule, not success and danger — they
+   were green and red. The drawn icon and the verb carry the kind. */
+.constraintPreviewTog,
 .constraintPreviewApart {
-  background: var(--red-bg);
-  color: var(--red);
-  border: 1px solid var(--red-border);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border2);
 }
 
 /* ── Guest autocomplete ── */
@@ -197,7 +187,7 @@
   transition: color 0.12s;
 }
 
-.acClear:hover { color: var(--red); }
+.acClear:hover { color: var(--text); }
 
 .acDropdown {
   position: absolute;
