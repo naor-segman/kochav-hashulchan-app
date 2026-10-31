@@ -64,6 +64,11 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
             האירוע הזה שמור רק בדפדפן הזה, ולכן קישור שתשלחו לא ייפתח אצל האורחים.
             פתיחת חשבון היא חינם, לוקחת חצי דקה, וכל מה שבניתם עובר איתכם.
           </p>
+          {/* One way on, here — each of the nine rows used to carry its own
+              "למה?" button that opened this same explanation (136 stage D). */}
+          <button className={base.btnPrimary} type="button" onClick={() => guard("הקישורים לאורחים")}>
+            לפתיחת חשבון חינם
+          </button>
         </div>
       ) : (
         <p data-tour="share.intro" className={styles.intro}>
@@ -100,13 +105,6 @@ export default function ShareLinksScreen({ activeEvent: ev, go, showToast }) {
                         <span className={styles.locked}>
                           <Icon name="lock" size={13} /> הקישור נפתח אחרי פתיחת חשבון
                         </span>
-                        <button
-                          className={[base.btnSm, styles.copyBtn].join(" ")}
-                          onClick={() => guard(sl.label)}
-                          type="button"
-                        >
-                          למה?
-                        </button>
                       </div>
                     ) : (
                       <div className={styles.linkRow}>
