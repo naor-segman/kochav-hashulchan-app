@@ -33,3 +33,18 @@
 }
 
 .nowrap { white-space: nowrap; }
+
+/* An optional part of the form, folded (136 stage D) — the same summary the
+   guests screen uses for "מה ההבדל בין שלוש הדרכים?". */
+.more { margin-top: 18px; padding-top: 4px; border-top: 1px solid var(--border); }
+.more summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.more summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

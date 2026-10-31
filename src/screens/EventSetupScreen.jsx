@@ -8,7 +8,6 @@ import Banner from "../components/feedback/Banner.jsx";
 import Divider from "../components/ui/Divider.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import Field from "../components/ui/Field.jsx";
-import NextStep from "../components/ui/NextStep.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
 import SectionLabel from "../components/ui/SectionLabel.jsx";
 import base from "../styles/screenBase.module.css";
@@ -90,10 +89,9 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
     const errs = {};
     if (!form.name.trim()) errs.name = "יש להזין שם לאירוע";
     setErrors(errs);
-    if (errs.name) {
-      showToast("יש להזין שם לאירוע", "err");
-      nameRef.current?.focus();
-    }
+    // Said once, under the field — it was also toasted (audit 31.10), so the
+    // same sentence appeared twice, one of them gone in three seconds.
+    if (errs.name) nameRef.current?.focus();
     return Object.keys(errs).length === 0;
   };
 
@@ -111,13 +109,6 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
   // and every hardcoded "go('tables')" in the product was a place it could
   // silently disagree with the numbers on screen.
   const next = nextBuildStep("setup");
-
-  const goNext = () => {
-    if (!validate()) return;
-    if (dirty) patchEvent(form);
-    pending.current.dirty = false;
-    go(next.id);
-  };
 
   const saveAndNext = () => {
     if (!validate()) return;
@@ -169,8 +160,10 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
               autoFocus={isNew}
               onChange={e => set("name", e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") save(); }}
+              aria-invalid={errors.name ? true : undefined}
+              aria-describedby={errors.name ? "setup-err-name" : undefined}
             />
-            {errors.name && <span className={styles.fieldError}>{errors.name}</span>}
+            {errors.name && <span id="setup-err-name" role="alert" className={styles.fieldError}>{errors.name}</span>}
           </Field>
           <Field label="סוג האירוע">
             <select className={base.select} value={form.type} onChange={e => set("type", e.target.value)}>
@@ -367,8 +360,12 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         </div>
 
         {/* ── Custom side names — available for every event type ── */}
-        <div data-tour="setup.sides">
-          <Divider label="שמות הצדדים (אופציונלי)" />
+        {/* Folded (136 stage D, 31.10): optional, rarely changed, and it pushed
+            the save button to 1,527px on a phone. Open when the host already
+            named a side, so nothing they set is hidden. */}
+        <details data-tour="setup.sides" className={styles.more}
+                 open={!!(ev.sideLabels?.bride || ev.sideLabels?.groom) || undefined}>
+          <summary>שמות הצדדים (לא חובה)</summary>
           {/* The example pair here carried the same bidi hazard as the wedding
               hint above — "צד הכלה" / "צד החתן" — and is now joined by "או". */}
           <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>
@@ -393,7 +390,7 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
               />
             </Field>
           </div>
-        </div>
+        </details>
 
         <div className={base.formActions} data-tour="setup.save">
           <button className={base.btnPrimary} onClick={saveAndNext}>
@@ -423,11 +420,8 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
         </button>
       </div>
 
-      <NextStep
-        label={"המשיכו ל" + next.label}
-        hint={ev.guests.length > 0 ? (ev.guests.length + " רשומות ברשימה") : "הרשימה היא הדבר שמשתנה הכי הרבה — ממנה נגזר כמה שולחנות צריך"}
-        onClick={goNext}
-      />
+      {/* No NextStep card here: "שמרו והמשיכו" in the form already goes on, and
+          the second button to the same place sat 600px under it (audit 31.10). */}
     </div>
   );
 }
