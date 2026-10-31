@@ -3,7 +3,6 @@ import { uid } from "../utils/uid.js";
 import { uploadSitePhoto, deleteSitePhoto } from "../utils/sitePhotos.js";
 import { compressImage, blobToDataUrl } from "../utils/imageCompress.js";
 import { SITE_THEME_LIST, SITE_FONTS, DEFAULT_SITE_FONT } from "../data/eventSiteTemplates.js";
-import Banner from "../components/feedback/Banner.jsx";
 import PhotoRetentionNotice from "../components/feedback/PhotoRetentionNotice.jsx";
 import Field from "../components/ui/Field.jsx";
 import PageHeader from "../components/ui/PageHeader.jsx";
@@ -121,8 +120,15 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
   const editFaq = (id, patch) => set({ faq: site.faq.map(f => f.id === id ? { ...f, ...patch } : f) });
   const delFaq = (id) => set({ faq: site.faq.filter(f => f.id !== id) });
 
+  /* Upload problems are said under the button that started them (136 stage
+     D) — they were toasts, and "saved on this device only" is the one thing a
+     host must not miss. Success stays a toast. */
+  const [coverErr, setCoverErr]     = useState(null);
+  const [galleryErr, setGalleryErr] = useState(null);
+
   const onCover = async (file) => {
-    if (!file || !file.type.startsWith("image/")) { showToast("יש לבחור קובץ תמונה", "err"); return; }
+    setCoverErr(null);
+    if (!file || !file.type.startsWith("image/")) { setCoverErr("יש לבחור קובץ תמונה"); return; }
     try {
       const prev = site.coverPhoto;
       const r = await storeOrEmbed(await compressImage(file));
@@ -132,19 +138,16 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       // effort: a host who swaps a cover is not made to care that the old file
       // could not be reached.
       deleteSitePhoto(prev);
-      showToast(
-        r.failed
-          ? `תמונת הרקע נשמרה על המכשיר הזה בלבד — ההעלאה לענן נכשלה: ${r.reason}`
-          : "תמונת הרקע הועלתה ✓",
-        r.failed ? "err" : undefined
-      );
+      if (r.failed) setCoverErr(`תמונת הרקע נשמרה על המכשיר הזה בלבד — ההעלאה לענן נכשלה: ${r.reason}`);
+      else showToast("תמונת הרקע הועלתה ✓");
     }
-    catch { showToast("שגיאה בעיבוד התמונה", "err"); }
+    catch { setCoverErr("שגיאה בעיבוד התמונה"); }
   };
 
   const onGallery = async (files) => {
     const picked = [...files].filter(f => f.type.startsWith("image/"));
-    if (!picked.length) { showToast("יש לבחור קובצי תמונה", "err"); return; }
+    setGalleryErr(null);
+    if (!picked.length) { setGalleryErr("יש לבחור קובצי תמונה"); return; }
 
     // Decide how many fit BEFORE uploading anything.
     //
@@ -170,7 +173,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
     // cap, leaving paid-for objects in the bucket that nothing would ever
     // reference or clean.
     const room = Math.max(0, GALLERY_MAX - (site.gallery?.length ?? 0));
-    if (room === 0) { showToast(`הגלריה מלאה — אפשר עד ${GALLERY_MAX} תמונות`, "err"); return; }
+    if (room === 0) { setGalleryErr(`הגלריה מלאה — אפשר עד ${GALLERY_MAX} תמונות`); return; }
 
     const imgs    = picked.slice(0, room);
     const dropped = picked.length - imgs.length;
@@ -199,10 +202,9 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
       // photo living only on this device is the thing the host has to know.
       const n = stored.length;
       if (failed.length) {
-        showToast(
+        setGalleryErr(
           `${failed.length === n ? "התמונה נשמרה" : `${failed.length} מתוך ${n} נשמרו`} ` +
-          `על המכשיר הזה בלבד — ההעלאה לענן נכשלה: ${failed[0].reason}`,
-          "err"
+          `על המכשיר הזה בלבד — ההעלאה לענן נכשלה: ${failed[0].reason}`
         );
       } else {
         showToast(
@@ -210,7 +212,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           (dropped ? ` (${dropped} לא נכנסו — הגלריה מוגבלת ל-${GALLERY_MAX})` : "")
         );
       }
-    } catch { showToast("שגיאה בעיבוד התמונות", "err"); }
+    } catch { setGalleryErr("שגיאה בעיבוד התמונות"); }
   };
   const delGalleryPhoto = (i) => {
     deleteSitePhoto((site.gallery || [])[i]);
@@ -405,6 +407,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
             )}
           </div>
         </div>
+        {coverErr && <p role="alert" className={base.fieldError}>{coverErr}</p>}
         <div className={base.grid2}>
           <Field label="כותרת באנגלית" hint="מופיע מתחת לשמות (למשל OUR WEDDING DAY)">
             <input className={base.input} value={site.heroEn} dir="ltr"
@@ -424,6 +427,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <SectionLabel>גלריית תמונות</SectionLabel>
           <Toggle label="גלריית תמונות" on={site.sections.gallery !== false} onChange={v => setSection("gallery", v)} />
         </div>
+        <Fold label={`התמונות (${(site.gallery || []).length})`}>
         <p className={base.fieldHint}>עד {GALLERY_MAX} תמונות. הראשונה תוצג גדולה יותר.</p>
         {(site.gallery || []).length > 0 && (
           <div className={styles.galleryEdit}>
@@ -439,6 +443,8 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <input type="file" accept="image/*" multiple style={{ display: "none" }}
             onChange={e => { onGallery(e.target.files); e.target.value = ""; }} />
         </label>
+        {galleryErr && <p role="alert" className={base.fieldError}>{galleryErr}</p>}
+        </Fold>
       </div>
 
       {/* ── Countdown + Dress code ── */}
@@ -452,11 +458,13 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <SectionLabel>קוד לבוש</SectionLabel>
           <Toggle label="קוד לבוש" on={site.sections.dressCode === true} onChange={v => setSection("dressCode", v)} />
         </div>
+        <Fold label="ההנחיה לאורחים">
         <Field label="הנחיית לבוש לאורחים (אופציונלי)">
           <textarea className={base.textarea} rows={2} value={site.dressCode}
             placeholder="למשל: לבוש חגיגי · צבעים בהירים מומלצים"
             onChange={e => set({ dressCode: e.target.value })} />
         </Field>
+        </Fold>
       </div>
 
       {/* ── Schedule ── */}
@@ -465,6 +473,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <SectionLabel>לוז האירוע</SectionLabel>
           <Toggle label="לוז האירוע" on={site.sections.schedule} onChange={v => setSection("schedule", v)} />
         </div>
+        <Fold label={`שלבי הלו״ז (${site.schedule.length})`}>
         {site.schedule.map(item => (
           <div key={item.id} className={styles.scheduleRow}>
             {/* A time input can't carry a placeholder, so without aria-label a
@@ -481,6 +490,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           </div>
         ))}
         <button className={base.btnSecondary} onClick={addSchedule}>+ הוסיפו שלב</button>
+        </Fold>
       </div>
 
       {/* ── Location ── */}
@@ -489,6 +499,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <SectionLabel>מיקום והגעה</SectionLabel>
           <Toggle label="מיקום והגעה" on={site.sections.location} onChange={v => setSection("location", v)} />
         </div>
+        <Fold label="הכתובת, Waze וחניה">
         {/* Empty means "the venue from the event's details" (owner, 3.10) —
             shown as the placeholder and said in the hint, so the host sees
             what guests will get and can type an exact address over it. */}
@@ -508,6 +519,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
               onChange={e => set({ parkingNote: e.target.value })} />
           </Field>
         </div>
+        </Fold>
       </div>
 
       {/* ── Shuttles ── */}
@@ -516,6 +528,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <SectionLabel>הסעות</SectionLabel>
           <Toggle label="הסעות" on={site.sections.shuttles} onChange={v => setSection("shuttles", v)} />
         </div>
+        <Fold label={`ההסעות (${(site.shuttles || []).length})`}>
         <p className={[base.fieldHint, base.fieldHintSep].join(" ")}>הוסיפו מסלולי הסעה הלוך וחזור עם שעות ונקודות איסוף.</p>
         {(site.shuttles || []).map(s => (
           <div key={s.id} className={styles.scheduleRow}>
@@ -541,6 +554,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           </div>
         ))}
         <button className={base.btnSecondary} onClick={addShuttle}>+ הוסיפו הסעה</button>
+        </Fold>
       </div>
 
       {/* ── Blessings + gift toggles ── */}
@@ -564,6 +578,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <SectionLabel>שאלות נפוצות</SectionLabel>
           <Toggle label="שאלות נפוצות" on={site.sections.faq} onChange={v => setSection("faq", v)} />
         </div>
+        <Fold label={`השאלות (${site.faq.length})`}>
         {site.faq.map(f => (
           <div key={f.id} className={styles.faqEdit}>
             <div className={styles.faqEditTop}>
@@ -577,11 +592,13 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           </div>
         ))}
         <button className={base.btnSecondary} onClick={addFaq}>+ הוסיפו שאלה</button>
+        </Fold>
       </div>
 
       {/* ── Personal message + contact ── */}
       <div className={base.card}>
         <SectionLabel>הודעה אישית ויצירת קשר</SectionLabel>
+        <Fold label="ההודעה והטלפון">
         <Field label="הודעה אישית מכם (אופציונלי)" hint='תוצג לאורח אחרי אישור ההגעה. למשל: "היי, כאן נאור וירדן — כיף שאתם באים לחגוג איתנו!"'>
           <textarea className={base.textarea} rows={2} value={site.rsvpMessage}
             placeholder="כמה מילים חמות מכם לאורחים…"
@@ -591,15 +608,26 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
           <input className={base.input} value={site.contactPhone} placeholder="050-1234567" inputMode="tel"
             onChange={e => set({ contactPhone: e.target.value })} />
         </Field>
+        </Fold>
       </div>
 
-      {!site.enabled && (
-        <Banner variant="warn">
-          האתר עדיין לא מפורסם — האורחים לא יראו אותו עד שתלחצו "פרסמו אתר" למעלה.
-        </Banner>
-      )}
+      {/* The "not published" warning used to be repeated here; the publish
+          card at the top already says it, in the warning colour (31.10). */}
       {gate}
     </div>
+  );
+}
+
+/* A section's details, folded under one line (136 stage D, 31.10). The editor
+ * was eleven cards, all open — five screens on a phone. The heads and their
+ * switches stay in view, so the page still reads as the list of what the site
+ * shows; the details open where the host wants to edit. */
+function Fold({ label, children }) {
+  return (
+    <details className={styles.fold}>
+      <summary>{label}</summary>
+      <div className={styles.foldBody}>{children}</div>
+    </details>
   );
 }
 
