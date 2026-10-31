@@ -34,7 +34,7 @@ function HighlightMatch({ name, query }) {
 // ── Searchable guest picker ───────────────────────────────────────────────────
 // value: guest ID (string) | ""
 // onChange: called with guest ID string when a guest is selected, or "" to clear
-function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label }) {
+function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label, inputRef, errorId }) {
   const selectedGuest = guests.find(g => g.id === value) ?? null;
   const [query, setQuery]   = useState(selectedGuest?.name ?? "");
   const [open, setOpen]     = useState(false);
@@ -156,6 +156,9 @@ function GuestAutocomplete({ guests, value, onChange, exclude, sideLabel, label 
           aria-expanded={open && results.length > 0}
           aria-controls={listId}
           aria-activedescendant={open && hi >= 0 && results[hi] ? optionId(hi) : undefined}
+          ref={inputRef}
+          aria-invalid={errorId ? true : undefined}
+          aria-describedby={errorId}
         />
         {query && (
           <button
@@ -222,26 +225,41 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
   const [formA, setFormA]       = useState("");
   const [formB, setFormB]       = useState("");
   const [formType, setFormType] = useState("together");
+  /* Why the last add was refused, and which picker it is about (136 stage D,
+     as on the guests screen). These were four toasts — gone in three seconds,
+     at the bottom of the screen, with neither picker marked. The line sits
+     under the form row and goes as soon as either guest changes. */
+  const [formErr, setFormErr]   = useState(null); // { field: "a"|"b"|"both", text }
+  const refA = useRef(null);
+  const refB = useRef(null);
+  const pickA = v => { setFormA(v); setFormErr(null); };
+  const pickB = v => { setFormB(v); setFormErr(null); };
+  const refuse = (field, text) => {
+    setFormErr({ field, text });
+    (field === "b" ? refB : refA).current?.focus();
+  };
 
   const sorted    = ev.guests.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
   const sideLabel = s => getSideLabel(ev, s);
   const gMap = Object.fromEntries(ev.guests.map(g => [g.id, g]));
 
   const addConstraint = () => {
-    if (!formA || !formB) { showToast("יש לבחור שני אורחים", "err"); return; }
-    if (formA === formB)  { showToast("לא ניתן לבחור את אותו אורח פעמיים", "err"); return; }
+    if (!formA)           { refuse("a", "בחרו את האורח הראשון"); return; }
+    if (!formB)           { refuse("b", "בחרו את האורח השני"); return; }
+    if (formA === formB)  { refuse("b", "בחרו אורח אחר — זה אותו אורח פעמיים"); return; }
     const dup = ev.constraints.some(c =>
       c.type === formType &&
       ((c.guestA === formA && c.guestB === formB) || (c.guestA === formB && c.guestB === formA))
     );
-    if (dup) { showToast("אילוץ זה כבר קיים ברשימה", "err"); return; }
+    if (dup) { refuse("both", "האילוץ הזה כבר ברשימה"); return; }
     const contra = ev.constraints.some(c =>
       c.type !== formType &&
       ((c.guestA === formA && c.guestB === formB) || (c.guestA === formB && c.guestB === formA))
     );
     // Block contradictions (יחד + בנפרד for the same pair) instead of allowing a
     // guaranteed seating violation — the host must remove the opposite first.
-    if (contra) { showToast("כבר קיים אילוץ הפוך לאותו זוג. הסירו אותו קודם כדי להוסיף את ההפוך.", "err"); return; }
+    if (contra) { refuse("both", "לזוג הזה כבר יש אילוץ הפוך. הסירו אותו מהרשימה קודם, ואז הוסיפו את זה."); return; }
+    setFormErr(null);
     patchEvent(e => Object.assign({}, e, {
       constraints: e.constraints.concat([{ id: uid(), type: formType, guestA: formA, guestB: formB }])
     }));
@@ -346,10 +364,12 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
               <GuestAutocomplete
                 guests={sorted}
                 value={formA}
-                onChange={setFormA}
+                onChange={pickA}
                 exclude={formB}
                 sideLabel={sideLabel}
                 label="אורח א׳"
+                inputRef={refA}
+                errorId={formErr && formErr.field !== "b" ? "cst-form-err" : undefined}
               />
             </Field>
           </div>
@@ -361,10 +381,12 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
               <GuestAutocomplete
                 guests={sorted}
                 value={formB}
-                onChange={setFormB}
+                onChange={pickB}
                 exclude={formA}
                 sideLabel={sideLabel}
                 label="אורח ב׳"
+                inputRef={refB}
+                errorId={formErr && formErr.field !== "a" ? "cst-form-err" : undefined}
               />
             </Field>
           </div>
@@ -375,6 +397,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
             הוסיפו
           </button>
         </div>
+        {formErr && <p id="cst-form-err" role="alert" className={base.fieldError}>{formErr.text}</p>}
 
         {previewReady && (
           <div className={[
