@@ -73,6 +73,12 @@ for (const [route, label] of ROUTES) {
 
   const r = await p.evaluate((vw) => {
     const out = { wide: [], tiny: [], small: [] };
+    // Open every fold first (136 stage D, 31.10). A control inside a CLOSED
+    // <details> is not rendered, so elementFromPoint never finds it and it
+    // measured "1px" — on event details and the site editor, once their
+    // optional parts were folded. Opening them measures those controls for
+    // real instead of skipping them.
+    document.querySelectorAll('details:not([open])').forEach(d => { d.open = true; });
     const seen = (el) => {
       const cls = (el.className && typeof el.className === 'string')
         ? el.className.split(' ')[0].replace(/_[\w-]+$/, '') : '';
