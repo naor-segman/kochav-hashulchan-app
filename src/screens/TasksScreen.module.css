@@ -288,3 +288,11 @@
     gap: 22px;
   }
 }
+
+/* On a phone the three columns stack, and an empty one was a box with
+   "אין משימות" in it — 90px each (136 stage D, audit 31.10). Its head already
+   says 0; the empty column is just that head. */
+@media (max-width: 599px) {
+  .column { min-height: 0; }
+  .colEmpty { display: none; }
+}
