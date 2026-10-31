@@ -339,7 +339,7 @@
   direction: rtl;
   font-family: inherit;
   transition: background var(--transition-fast);
-  border-radius: 0 0 var(--radius) var(--radius);
+  border-radius: 0;
 }
 
 .addBtn:hover {

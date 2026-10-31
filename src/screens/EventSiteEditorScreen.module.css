@@ -98,7 +98,7 @@
 }
 .galleryDel {
   position: absolute; top: 4px; inset-inline-end: 4px; width: 24px; height: 24px;
-  border-radius: 50%; border: none; background: var(--scrim-55); color: var(--white);
+  border-radius: 0; border: none; background: var(--scrim-55); color: var(--white);
   font-size: var(--step--2); cursor: pointer; line-height: 1;
 }
 @media (max-width: 480px){ .galleryEdit { grid-template-columns: repeat(3, 1fr); } }
