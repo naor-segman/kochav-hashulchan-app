@@ -311,3 +311,42 @@
 .stepTitle { margin: 6px 0 0; font-size: var(--step-2); font-weight: 800; line-height: 1.2; color: var(--text); }
 .stepText { margin: 0 0 8px; font-size: var(--step-0); line-height: 1.6; color: var(--text2); }
 .stepShot { display: block; width: 100%; height: auto; border: 1px solid var(--border); background: var(--surface); }
+
+/* ── The phone version, shortened (owner 31.10: "תקצר"; 136 stage B: one idea
+   and one picture per section). Measured at 390×844 before: 11,546px, 13.7
+   screens. Desktop is untouched — everything below is under 600px only.
+   - the journey tiles keep number, mark and name; the line under the name goes
+   - the three feelings keep heading, paragraph and picture; the ✓ points go
+   - the three steps keep their sentence; the product shots go — they are
+     desktop screens, unreadable at this width (Digginet analysis, 4.10)
+   - the celebrations become one row you swipe, photo and name each
+   - the "with you" photo is a band, not a portrait */
+@media (max-width: 599px) {
+  .inner { padding-block: 52px; }   /* 72px a side × 10 sections was ~1,440px of air */
+  .tileText { display: none; }
+  .tile { padding-block: 18px 16px; gap: 4px; }
+  .tileMark { margin-bottom: 2px; }
+
+  .points { display: none; }
+
+  .stepShot { display: none; }
+  .steps { gap: 18px; }
+  .stepText { margin-bottom: 0; }
+
+  .celebrateGrid {
+    display: flex; gap: 12px;
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    margin-inline: -20px;    /* out to the edge of .inner's 20px gutter */
+    padding-inline: 20px;
+    padding-block-end: 6px;
+    scrollbar-width: none;
+  }
+  .celebrateGrid::-webkit-scrollbar { display: none; }
+  .celebrateGrid > * { flex: 0 0 78%; scroll-snap-align: start; }
+  .celebrateGrid > * .celebratePhoto,
+  .celebrateGrid > :first-child .celebratePhoto { aspect-ratio: 4 / 3; }
+  .celebrateText { display: none; }
+
+  .humanPhoto img { aspect-ratio: 16 / 9; max-height: 240px; }
+}
