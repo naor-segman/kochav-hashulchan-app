@@ -28,7 +28,7 @@ execFileSync("node", ["node_modules/vite/bin/vite.js", "build", "--outDir", OUT,
 });
 const { base, stop } = await startPreview(5198, ROOT, ["--outDir", OUT]);
 // No banner at all means the build has no analytics id — that is a FAIL, not a pass.
-const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-proxy-server"] });
+const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args: ["--no-proxy-server"] });
 let fails = 0;
 try {
   for (const w of [320, 390, 1280]) for (const r of ["/login", "/signup", "/reset-password", "/auth/callback"]) {

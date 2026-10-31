@@ -15,7 +15,7 @@ const DIR = process.env.QA_OUT_DIR ? outDir('shots') : new URL('./shots/', impor
 mkdirSync(DIR, { recursive: true });
 console.log(`shots: ${DIR}`);
 const routes = [['home','/'],['pricing','/pricing'],['login','/login'],['signup','/signup'],['help','/help'],['terms','/terms'],['privacy','/privacy'],['accessibility','/accessibility']];
-const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args:['--no-proxy-server'] });
+const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium', args:['--no-proxy-server'] });
 const results = [];
 for (const [w,h] of [[1280,900],[390,844]]) {
   const ctx = await browser.newContext({ viewport:{width:w,height:h}, deviceScaleFactor:1 });

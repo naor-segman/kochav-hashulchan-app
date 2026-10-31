@@ -18,7 +18,7 @@ const require = createRequire("/home/user/kochav-hashulchan-app/");
 const { chromium } = require("playwright");
 
 const { base, stop } = await startPreview(4396);
-const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-proxy-server"] });
+const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args: ["--no-proxy-server"] });
 const results = [];
 const check = (n, pass, d = "") => results.push({ n, pass: !!pass, d: String(d) });
 

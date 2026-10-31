@@ -420,7 +420,7 @@ if (!base) {
   server = await startDev(PORT, { VITE_SUPABASE_URL: 'https://stub.supabase.co', VITE_SUPABASE_ANON_KEY: 'stub-anon-key' }, ROOT);
   base = server.base;
 }
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 try {
   for (const n of names) {
     console.log(`\n${n}`);

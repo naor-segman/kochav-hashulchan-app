@@ -49,7 +49,7 @@ const ev = {
 };
 
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

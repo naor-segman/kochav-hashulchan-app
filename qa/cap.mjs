@@ -22,7 +22,7 @@ const SEED = () => {
     createdAt:Date.now(), updatedAt:Date.now() };
   localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({events:[ev],activeEventId:'e1'}));
 };
-const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args:['--no-proxy-server'] });
+const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium', args:['--no-proxy-server'] });
 const p = await b.newPage({ viewport:{width:1340,height:900}, deviceScaleFactor:2 });
 await p.goto(BASE+'/app',{waitUntil:'domcontentloaded'}); await p.evaluate(SEED);
 require('fs').mkdirSync('caps',{recursive:true});

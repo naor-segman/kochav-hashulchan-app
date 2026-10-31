@@ -19,7 +19,7 @@ const bad = (m, extra = '') => { fail++; console.log(`  ✗ ${m}${extra ? '  —
 const is  = (m, got, want) => (got === want ? ok(m, JSON.stringify(got)) : bad(m, `got ${JSON.stringify(got)}, wanted ${JSON.stringify(want)}`));
 
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });

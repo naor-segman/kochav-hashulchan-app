@@ -75,7 +75,7 @@ execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT,
 });
 const server = await startPreview(+process.env.PREVIEW_PORT || 4741, ROOT, ['--outDir', OUT]);
 const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server', '--disable-blink-features=AutomationControlled'],
 });
 
@@ -352,7 +352,7 @@ try {
   // must stay shut, or its overlay takes the clicks those harnesses make.
   console.log('\n── an ordinary automated browser (how every other harness runs)');
   const plain = await chromium.launch({
-    executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    executablePath: '/opt/pw-browsers/chromium',
     args: ['--no-proxy-server'],
   });
   try {

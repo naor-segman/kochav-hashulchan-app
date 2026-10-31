@@ -30,7 +30,7 @@ node qa/palette.mjs     # renders the same screens under several palettes, side 
 ## Two things that will bite you
 
 **Chromium and the proxy.** The sandbox has Chromium at
-`/opt/pw-browsers/chromium-1194/chrome-linux/chrome` and every script launches
+`/opt/pw-browsers/chromium` and every script launches
 it with `args:['--no-proxy-server']` — without that flag localhost is routed
 through the agent proxy and every request fails. Playwright itself is resolved
 via `createRequire('/home/user/kochav-hashulchan-app/')` because these scripts

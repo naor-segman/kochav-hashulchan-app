@@ -64,7 +64,7 @@ const srv = http.createServer((req, res) => {
 });
 await new Promise(r => srv.listen(4798, '127.0.0.1', r));
 const BASE = 'http://127.0.0.1:4798';
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function session(path, next = B) {

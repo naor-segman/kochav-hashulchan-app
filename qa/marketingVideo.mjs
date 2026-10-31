@@ -286,7 +286,7 @@ if (FILM) {
   const SHOTS = `${ROOT}/public/shots`;
   server = await startPreview(PORT, ROOT);
   try {
-    const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-proxy-server"] });
+    const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args: ["--no-proxy-server"] });
     const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1 });
     await ctx.addInitScript(e => { try { if (!localStorage.getItem("kochav_hashulchan_v1")) localStorage.setItem("kochav_hashulchan_v1", JSON.stringify({ events: [e], activeEventId: "e1" })); } catch {} }, EVENT);
     await ctx.route("**/*", async (route) => {
@@ -438,7 +438,7 @@ if (FILM) {
 }
 try {
   server = await startPreview(PORT, ROOT);
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-proxy-server"] });
+  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args: ["--no-proxy-server"] });
   const ctx = await browser.newContext({
     ...(DESK ? { viewport: { width: 1200, height: 760 } } : { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }),
     deviceScaleFactor: 1,

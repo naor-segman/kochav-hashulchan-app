@@ -37,7 +37,7 @@ const EVENT = {
 const VPS = [{ w: 320, h: 568 }, { w: 390, h: 844 }];
 
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 

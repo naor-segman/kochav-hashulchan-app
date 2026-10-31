@@ -222,7 +222,9 @@ Check for these first — each has bitten more than once:
   stripe/supabase-js from npm (on a copy with the esm.sh strings rewritten —
   NOT via an import map, through which Stripe resolves as `any`). Its first
   run found `locale: "he"`, which Stripe Checkout does not accept.
-- **Chromium** is at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` and
+- **Chromium** is at `/opt/pw-browsers/chromium` (a symlink — use it, not a
+  versioned path: on 31.10 the container's build moved from 1194 to 1243 and
+  80 harnesses that named the versioned path all failed to launch) and
   must be launched with `args:['--no-proxy-server']`, or localhost is routed
   through the agent proxy and every request fails. Resolve Playwright with
   `createRequire('/home/user/kochav-hashulchan-app/')`.

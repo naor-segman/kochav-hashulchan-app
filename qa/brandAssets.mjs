@@ -38,7 +38,7 @@ writeFileSync(join(ROOT, 'public/favicon.svg'), tile(0.92, { rounded: true }) + 
 console.log('public/favicon.svg written');
 
 const { chromium } = createRequire(ROOT + '/')('playwright');
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 try {
   const p = await b.newPage();
   for (const [file, size, inner] of [

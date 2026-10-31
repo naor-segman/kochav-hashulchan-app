@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
 const BASE = 'http://127.0.0.1:5188';
 
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 

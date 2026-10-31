@@ -26,7 +26,7 @@ execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT,
   cwd: ROOT, stdio: 'inherit', env: { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' },
 });
 const server = await startPreview(4804, ROOT, ['--outDir', OUT]);
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 
 const TYPES = [['ברית', 'איתי'], ['בריתה', 'נועה'], ['יום הולדת', 'דניאל'], ['אירוע משפחתי', 'משפחת כהן'], ['אחר', 'רותם']];
 const EVENTS = TYPES.map(([type, owner], i) => ({

@@ -62,7 +62,7 @@ const SEED = () => {
   localStorage.setItem('kochav_hashulchan_v1', JSON.stringify({events:[ev],activeEventId:'e1'}));
 };
 
-const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args:['--no-proxy-server'] });
+const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium', args:['--no-proxy-server'] });
 // See the note in shot.mjs — same dead session path.
 const dir = new URL('./shots/palette/', import.meta.url).pathname;
 mkdirSync(dir, { recursive: true });
