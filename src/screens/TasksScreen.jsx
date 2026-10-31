@@ -168,6 +168,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
         {tasks.length === 0 && !adding && (
           <EmptyState
             mark="tasks"
+            illustration="tasks"
             title="מה צריך לסגור עד האירוע?"
             text="הוסיפו משימה ראשונה, או טענו רשימת התחלה מותאמת לסוג האירוע וערכו אותה — וכל מה שצריך לזכור יהיה במקום אחד."
           />

@@ -1,4 +1,5 @@
 import SectionMark from "./SectionMark.jsx";
+import Illustration from "../brand/Illustration.jsx";
 import styles from "./EmptyState.module.css";
 
 /**
@@ -17,11 +18,16 @@ import styles from "./EmptyState.module.css";
  *                          (136 stage D, "מצבים ריקים עם אופי"): the tables
  *                          screen draws empty tables. Decorative; replaces the
  *                          mark when given.
+ * @param {string} [illustration] — a drawing from the illustration set
+ *                          (components/brand/Illustration.jsx; owner 31.10).
+ *                          Decorative; wins over art and mark.
  */
-export default function EmptyState({ mark, icon, title, text, action, art }) {
+export default function EmptyState({ mark, icon, title, text, action, art, illustration }) {
   return (
     <div className={styles.empty}>
-      {art
+      {illustration
+        ? <Illustration name={illustration} size={112} className={styles.emptyIllustration} />
+        : art
         ? <div className={styles.emptyArt} aria-hidden="true">{art}</div>
         : mark
         ? <SectionMark name={mark} size={34} tile className={styles.emptyMark} />

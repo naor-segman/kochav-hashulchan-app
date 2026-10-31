@@ -343,10 +343,19 @@
 
 /* ── The one-time "the event is open" moment (136 stage D) ───────────────── */
 .created {
+  display: flow-root;   /* contains the floated drawing */
   margin-block: 0 18px;
   padding: 20px 22px;
   background: var(--blush-soft);
   border-inline-start: 6px solid var(--cta);
+}
+
+/* Two glasses raised (the illustration set, owner 31.10) — only for the event
+   types that get the "מזל טוב". Floated so the title and line wrap beside it. */
+.createdArt {
+  float: inline-end;
+  margin-inline-start: 12px;
+  margin-block-end: 6px;
 }
 
 .createdTitle {

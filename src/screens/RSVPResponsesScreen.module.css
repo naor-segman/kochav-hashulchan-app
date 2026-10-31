@@ -248,3 +248,8 @@
 @media (max-width: 560px) {
   .applyCol { max-width: 100%; }
 }
+
+/* The empty state's drawing (the illustration set, owner 31.10). */
+.emptyArt {
+  margin: 4px 0 12px;
+}

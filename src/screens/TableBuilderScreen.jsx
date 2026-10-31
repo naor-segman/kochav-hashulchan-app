@@ -389,12 +389,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
           )}
 
           {ev.tables.length === 0 && (
-            <EmptyState mark="tables" title="האולם עוד ריק"
-              art={<>
-                <TableGlyph shape="round" capacity={10} taken={0} size={52} />
-                <TableGlyph shape="rect" capacity={12} taken={0} size={52} />
-                <TableGlyph shape="round" capacity={8} taken={0} size={52} />
-              </>}
+            <EmptyState mark="tables" illustration="table" title="האולם עוד ריק"
               text='כמה שולחנות יש ומה הקיבולת — בטופס למעלה. למשל 15 עגולים של 10 מקומות: 15 ב"כמות שולחנות" ו-10 ב"מקומות לשולחן".' />
           )}
         </>

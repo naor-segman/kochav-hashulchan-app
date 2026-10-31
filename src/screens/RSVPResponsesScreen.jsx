@@ -12,6 +12,7 @@ import base from "../styles/screenBase.module.css";
 import Loading from "../components/feedback/Loading.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import styles from "./RSVPResponsesScreen.module.css";
+import Illustration from "../components/brand/Illustration.jsx";
 
 // Map an RSVP answer to a guest-list rsvp value.
 const GUEST_RSVP = { yes: "confirmed", maybe: "maybe", no: "declined" };
@@ -428,6 +429,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       {/* ── Empty state with share link ── */}
       {loadState === "ready" && responses.length === 0 && (
         <div data-tour="rsvps.share" className={base.card}>
+          <Illustration name="phone" size={88} className={styles.emptyArt} />
           <SectionLabel>עדיין אין תשובות</SectionLabel>
           <p className={base.fieldHint}>
             שתפו את קישור אישור ההגעה עם האורחים — כל תשובה תופיע כאן אוטומטית.

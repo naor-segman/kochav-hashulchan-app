@@ -474,7 +474,7 @@ export default function ConstraintsScreen({ activeEvent: ev, patchEvent, go, sho
       )}
 
       {ev.constraints.length === 0 && (
-        <EmptyState mark="constraints" title="אין אילוצים — וזה בסדר גמור"
+        <EmptyState mark="constraints" illustration="chair" title="אין אילוצים — וזה בסדר גמור"
           text="השלב הזה לא חובה. אם יש מי שחייבים לשבת יחד (כמו הורים עם ילדים קטנים), או מי שאסור שיישבו באותו שולחן — כאן אומרים את זה, לפני ההושבה." />
       )}
 
