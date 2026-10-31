@@ -63,8 +63,12 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
     }
   };
 
+  /* A failed upload is said under the photo button (136 stage D, as on the
+     event-site editor) — "saved on this device only" must not vanish in 3s. */
+  const [photoErr, setPhotoErr] = useState(null);
   const pickPhoto = async (file) => {
     if (!file) return;
+    setPhotoErr(null);
     try {
       const { blob, ext } = await compressImage(file, 1400, 0.82);
       const prev = ann.photo;
@@ -88,12 +92,10 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
       // old file could not be removed.
       deleteSitePhoto(prev);
 
-      showToast(
-        failed ? `התמונה נשמרה על המכשיר הזה בלבד — ההעלאה לענן נכשלה: ${reason}` : "התמונה הוחלפה ✓",
-        failed ? "err" : undefined
-      );
+      if (failed) setPhotoErr(`התמונה נשמרה על המכשיר הזה בלבד — ההעלאה לענן נכשלה: ${reason}`);
+      else showToast("התמונה הוחלפה ✓");
     } catch {
-      showToast("לא הצלחנו לקרוא את התמונה", "err");
+      setPhotoErr("לא הצלחנו לקרוא את התמונה");
     }
   };
 
@@ -261,6 +263,7 @@ export default function AnnouncementsEditorScreen({ activeEvent: ev, patchEvent,
             </>
           )}
         </div>
+        {photoErr && <p role="alert" className={base.fieldError}>{photoErr}</p>}
       </div>
 
       {/* What to show */}
