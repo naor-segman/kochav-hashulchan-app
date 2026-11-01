@@ -282,7 +282,14 @@ const CHECKS = {
       let to = null;
       for (let i = 0; i < 150; i++) {
         to = await target.boundingBox();
-        if (to && to.y >= 0 && to.y + Math.min(60, to.height) <= m.vh - 40) break;
+        /* In the MIDDLE of the screen, not merely on it (1.11). dnd-kit scrolls
+           the page while the pointer is in the bottom ~20% (its default
+           threshold), so a target that stopped 40px above the edge pulled the
+           pointer through that band on the way to it, the page moved under it,
+           and the drop landed on the next table — 3 runs in 13 failed exactly
+           so ("table=t15"). Measured, not assumed: a product drop was never
+           wrong, the pointer was. */
+        if (to && to.y >= m.vh * 0.25 && to.y + Math.min(30, to.height / 2) <= m.vh * 0.7) break;
         await p.mouse.move(x, m.vh - 4, { steps: 2 });
         await p.waitForTimeout(100);
       }
