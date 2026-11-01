@@ -87,7 +87,7 @@ export default function HelpScreen() {
               with the screen and browser attached. The address stays for
               anyone who would simply rather write an email. */}
           <p className={styles.text}>
-            אם משהו לא עובד או שיש לכם רעיון — <Link to="/feedback">ספרו לנו כאן</Link>.
+            אם משהו לא עובד או שיש לכם רעיון — <Link to="/feedback" className={help.keepWhole}>ספרו לנו כאן</Link>.
           </p>
           <p className={styles.text}>
             ואפשר גם במייל:

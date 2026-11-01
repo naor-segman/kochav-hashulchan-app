@@ -329,7 +329,7 @@ export default function EventSiteEditorScreen({ activeEvent: ev, patchEvent, sho
                   })}
                 >העתיקו</button>
                 <a
-                  className={[base.btnSm, styles.msgWa].join(" ")}
+                  className={[base.btnSm, base.btnGhost, styles.msgWa].join(" ")}
                   href={`https://wa.me/?text=${encodeURIComponent(m.text)}`}
                   target="_blank" rel="noopener noreferrer"
                   onClick={e => { if (!guard("ההודעה עם הקישור לאתר")) e.preventDefault(); }}

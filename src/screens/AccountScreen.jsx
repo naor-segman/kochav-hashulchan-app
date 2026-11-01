@@ -11,15 +11,14 @@ import { useBilling } from "../hooks/useBilling.js";
 import { usePlan } from "../hooks/usePlan.js";
 import { useSubscription } from "../hooks/useSubscription.js";
 import styles from "./AccountScreen.module.css";
-import Logo from "../components/brand/Logo.jsx";
+import PageHeader from "../components/ui/PageHeader.jsx";
 import Loading from "../components/feedback/Loading.jsx";
-import SectionMark from "../components/ui/SectionMark.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import { useConfirm } from "../components/ui/useConfirm.jsx";
 import {
   userStorageKey, loadState, clearState, isCloudBacked, cloudHoldsEventData, holdsLocalOnlySketch,
 } from "../utils/storage.js";
-import { COMPANY, supportMailto } from "../data/company.js";
+import { supportMailto } from "../data/company.js";
 import { fmtShortDate } from "../utils/dateFormat.js";
 import { authErrorMessage } from "../utils/authErrors.js";
 import { openConsentSettings } from "../utils/consent.js";
@@ -255,19 +254,15 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
      still used by planFeatures for the humanService line. */
   const statusMeta = getStatusMeta(statusKey);
 
+  /* Inside the app's frame since 1.11 (136 stage D): it was a card alone in
+     the middle of an empty page, with its own logo and its own title, and no
+     bar to get back by — the one host screen that looked like a sign-in form.
+     The frame holds the page's main landmark; this is its content, under the
+     same PageHeader every other screen has. */
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
+      <PageHeader title="החשבון שלי" mark="account" sub="פרטי ההתחברות, האירועים והחבילות שלהם, והגדרות." />
       <div className={styles.card}>
-
-        {/* Brand */}
-        <div className={styles.brand}>
-          <Logo className={styles.brandLogo} title={COMPANY.name} />
-        </div>
-
-        <div className={styles.titleRow}>
-          <SectionMark name="account" size={26} tile />
-          <h1 className={styles.title}>החשבון שלי</h1>
-        </div>
 
         {/* ── User info ── */}
         <section className={styles.section}>
@@ -701,6 +696,6 @@ export default function AccountScreen({ events = [], eventCount = 0, showToast }
 
       </div>
       {dialog}
-    </main>
+    </div>
   );
 }

@@ -130,11 +130,12 @@ describe("AccountScreen — a paid card does not promise unlimited events (revie
 });
 
 describe("AccountScreen — landmarks (38a)", () => {
-  it("is one <main>, holding the page's h1", () => {
-    // A top-level route outside Shell, so nothing else supplies the landmark —
-    // and the browser harness cannot reach it signed out (it redirects).
+  it("has no landmark of its own — it sits in the app frame — and one h1", () => {
+    // Inside Shell since 1.11 (136 stage D), whose <main> is the page's. A
+    // second one here would be two main landmarks on one page.
     renderScreen();
-    expect(document.querySelectorAll("main, [role=main]")).toHaveLength(1);
-    expect(screen.getByRole("main").querySelector("h1")?.textContent).toBe("החשבון שלי");
+    expect(document.querySelectorAll("main, [role=main]")).toHaveLength(0);
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("החשבון שלי");
   });
 });

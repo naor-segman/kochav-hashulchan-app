@@ -392,7 +392,11 @@ export default function EventSetupScreen({ activeEvent: ev, patchEvent, go, show
           </div>
         </details>
 
-        <div className={base.formActions} data-tour="setup.save">
+        {/* On a phone this bar stays at the bottom of the screen while the form
+            is in view (136 stage D, 1.11): the save sat at 1,286px, under the
+            couple's names, and "שמרו בכפתור למטה" sent the host hunting.
+            data-sticky-actions lifts the WhatsApp button above it. */}
+        <div className={[base.formActions, styles.actionsBar].join(" ")} data-tour="setup.save" data-sticky-actions="">
           <button className={base.btnPrimary} onClick={saveAndNext}>
             שמרו והמשיכו ל{next.label} <Icon name="arrowLeft" size={15} />
           </button>

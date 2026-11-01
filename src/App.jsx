@@ -565,7 +565,7 @@ function AppRoutes() {
           has to be able to say WHICH events were paid for — with a count it could
           only ever show one plan for the whole account, which is the model the
           product moved off. */}
-      <Route path="/account"       element={<Suspense fallback={<Loading />}><AccountScreen events={events} eventCount={events.length} showToast={showToast} /></Suspense>} />
+      <Route path="/account"       element={<Suspense fallback={<Loading />}><Shell screen="account" activeEvent={null} go={dashGo}><AccountScreen events={events} eventCount={events.length} showToast={showToast} /><Toast msg={toast?.msg} variant={toast?.variant} /></Shell></Suspense>} />
       <Route path="/auth/callback" element={<Suspense fallback={<Loading />}><AuthCallbackScreen /></Suspense>} />
 
       {/* ── Legal / policy / help pages ── */}

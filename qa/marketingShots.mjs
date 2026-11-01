@@ -251,6 +251,10 @@ const EVENT = {
     photosPurgedAt: null,
   },
   tokens: { rsvp: "r1", album: "al1", invite: "i1", gift: "gi1", hostess: "h1", collab: "c1" },
+  /* Published (1.11). Without it the site-editor frame — the picture on the
+     event-site service page — opened on "האתר עדיין לא מפורסם" in the warning
+     colour: a marketing image of the product saying something is not done. */
+  eventSite: { enabled: true },
   cloudId: null, createdAt: 1700000000000, updatedAt: 1700000000000,
 };
 
@@ -289,7 +293,7 @@ const FRAMES = [
   // ── Service page 5: the day ──────────────────────────────────────────────
   { name: "nametags",    path: "/events/e1/nametags", expect: ["כרטיסי שם"] },
   // ── Service page 2: the event site and the invitation ────────────────────
-  { name: "site-editor", path: "/events/e1/site" },
+  { name: "site-editor", path: "/events/e1/site", expect: ["האתר מפורסם"] },
   // ── Service page 3: planning ─────────────────────────────────────────────
   // `expect` is what proves the frame is not an empty form — see the guard below.
   { name: "tasks",       path: "/events/e1/tasks",   expect: ["לוח משימות", "לסגור אולם ותאריך", "הושלמו"] },
@@ -421,7 +425,20 @@ try {
         if (!hits.length) return -1;
         const depth = n => { let d = 0; while ((n = n.parentElement)) d++; return d; };
         const el = hits.reduce((a, b) => (depth(b) > depth(a) ? b : a));
-        return Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY) - 24);
+        /* Minus whatever is stuck to the top of the screen (1.11) — the app bar
+           is sticky and was painted over the frame's first line. Measured with
+           the page scrolled, where sticky things are stuck. */
+        document.documentElement.style.scrollBehavior = "auto";
+        window.scrollTo(0, 400);
+        let stuck = 0;
+        for (const n of document.querySelectorAll("body *")) {
+          const cs = getComputedStyle(n);
+          if (cs.position !== "sticky" && cs.position !== "fixed") continue;
+          const r = n.getBoundingClientRect();
+          if (r.top <= 1 && r.height > 0 && r.height < 200 && r.width > 300) stuck = Math.max(stuck, r.bottom);
+        }
+        window.scrollTo(0, 0);
+        return Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - stuck) - 16);
       }, f.anchor);
       if (y < 0) {
         console.log(`ANCHOR-MISSING  ${f.name}: "${f.anchor}"`);
@@ -451,8 +468,14 @@ try {
     /* And the CURRENT name must be there: every host frame carries the top bar.
        A stale-name list only knows the names someone remembered to add; the
        positive check also catches a name nobody has thought of yet. */
-    const stale = staleBrand(bodyText)
-      || (f.noBrandBar || bodyText.includes(COMPANY.name) ? null : `no "${COMPANY.name}"`);
+    /* The name is also where the logo carries it: since 6.10 the logo is a
+       drawing (role=img, aria-label) and the word is not in the page's text —
+       so every host frame failed "no Unica Plan" on 1.11 while the logo was on
+       screen. The stale-name check still reads the text, labels included. */
+    const labels = await page.evaluate(() =>
+      [...document.querySelectorAll('[role="img"][aria-label]')].map(n => n.getAttribute("aria-label")).join(" "));
+    const stale = staleBrand(bodyText + " " + labels)
+      || (f.noBrandBar || (bodyText + " " + labels).includes(COMPANY.name) ? null : `no "${COMPANY.name}"`);
 
     /* Any frame that still shows a locked or empty state is a marketing image of
      * the product refusing to work. Both of these have already been shipped

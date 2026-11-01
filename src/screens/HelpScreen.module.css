@@ -85,3 +85,10 @@
     min-height: 44px;
   }
 }
+
+/* One tap area, not two (1.11). At 390 "ספרו לנו כאן" broke across lines and
+   "כאן" sat alone at the start of the next one, 24px wide; the phone probe
+   measured the link's box centre — on the paragraph between the two pieces —
+   and reported 1px (item 129). Kept whole, it is one box with the 44px
+   ::after the legal pages give every link in body text. */
+.keepWhole { white-space: nowrap; }

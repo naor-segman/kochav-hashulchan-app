@@ -1,10 +1,9 @@
+/* Inside the app frame (1.11): the page's own width and gutter, like the
+   other screens, with the card under the header rather than centred alone. */
 .page {
-  min-height: 100vh;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
+  max-width: 720px;
+  margin-inline: auto;
+  padding: 24px 16px 40px;
 }
 
 .card {
@@ -20,22 +19,8 @@
   gap: 20px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
 
 
-.title {
-  font-size: var(--step-2);
-  font-weight: 800;
-  color: var(--text);
-  margin: 0;
-  text-align: center;
-  letter-spacing: -0.02em;
-}
 
 /* ── Section ── */
 .section {
@@ -616,35 +601,6 @@
 }
 
 
-/* The page's own mark beside its title, the same tile every screen head uses —
-   these two were the last screens opening with nothing but a word. */
-.titleRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
-}
-
-/* Touch targets — see qa/mobile.mjs. Only the tappable area grows to 44px,
-   through a pseudo-element; the box does not move, so dense rows keep their
-   density on a phone. */
-@media (pointer: coarse) {
-  .brand {
-    position: relative;
-  }
-
-  .brand::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    min-width: 44px;
-    height: 44px;
-  }
-
-}
 
 /* Touch target — see qa/mobile.mjs. */
 @media (pointer: coarse) {
@@ -738,4 +694,3 @@
 }
 
 /* The logo (owner, 6.10). */
-.brandLogo { display: block; height: 64px; width: auto; }

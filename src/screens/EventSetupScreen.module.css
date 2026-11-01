@@ -48,3 +48,23 @@
   text-underline-offset: 3px;
 }
 .more summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* The save bar on a phone (1.11): sticky to the bottom of the screen while the
+   form card is on it, edge to edge of the card (its padding is 16px here). */
+@media (max-width: 599px) {
+  .actionsBar {
+    position: sticky;
+    inset-block-end: 0;
+    z-index: 5;
+    margin-inline: -16px;
+    margin-block-end: -18px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-wrap: nowrap;
+  }
+  /* Shrink, and wrap their own words, rather than push the bar past the
+     screen (at 320 the two labels need 52px more than there is). */
+  .actionsBar > button { flex: 0 1 auto; min-width: 0; white-space: normal; justify-content: center; text-align: center; padding-inline: 12px; }
+  .actionsBar > button:first-child { flex: 1 1 auto; }
+}

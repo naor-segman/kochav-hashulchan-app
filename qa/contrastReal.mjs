@@ -46,6 +46,9 @@ const SCREENS = [
   ['home', '/app'], ['setup', '/events/e1/setup'], ['tables', '/events/e1/tables'],
   ['guests', '/events/e1/guests'], ['constraints', '/events/e1/constraints'],
   ['seating', '/events/e1/seating'], ['site', '/events/e1/site'],
+  // The same editor PUBLISHED (1.11): its share card exists only then, and it
+  // carried white on WhatsApp green at 1.98:1 that this list never painted.
+  ['site-published', '/events/e2/site'],
   ['share', '/events/e1/share'], ['rsvps', '/events/e1/rsvps'],
   ['collab', '/events/e1/collab'], ['costs', '/events/e1/costs'],
   ['tasks', '/events/e1/tasks'], ['announce', '/events/e1/announce'],
@@ -65,7 +68,7 @@ const b = await chromium.launch({
 const page = await b.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 await page.goto(BASE + '/app', { waitUntil: 'domcontentloaded' });
 await page.evaluate(e => localStorage.setItem('kochav_hashulchan_v1',
-  JSON.stringify({ events: [e], activeEventId: 'e1' })), EVENT);
+  JSON.stringify({ events: [e, { ...e, id: 'e2', eventSite: { enabled: true } }], activeEventId: 'e1' })), EVENT);
 
 const all = [], gradient = [];
 for (const [name, path] of SCREENS) {

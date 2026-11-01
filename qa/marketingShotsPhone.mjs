@@ -235,6 +235,10 @@ const EVENT = {
     photosPurgedAt: null,
   },
   tokens: { rsvp: "r1", album: "al1", invite: "i1", gift: "gi1", hostess: "h1", collab: "c1" },
+  /* Published (1.11). Without it the site-editor frame — the picture on the
+     event-site service page — opened on "האתר עדיין לא מפורסם" in the warning
+     colour: a marketing image of the product saying something is not done. */
+  eventSite: { enabled: true },
   cloudId: null, createdAt: 1700000000000, updatedAt: 1700000000000,
 };
 
@@ -260,6 +264,30 @@ const FRAMES = [
   { name: "seating", path: "/events/e1/seating", expect: ["סידור הושבה"], noBrandBar: true },
   { name: "guests",  path: "/events/e1/guests", anchor: "סינון:", noBrandBar: true },
   { name: "checkin", path: "/events/e1/checkin", typeGuest: true, noBrandBar: true },
+
+  /* ── The service pages, on a phone (1.11) ──────────────────────────────────
+   * Under 600px the service pages swap their desktop shots for these (see
+   * components/marketing/ProductShot.jsx) — a 1200px-wide desktop screen in a
+   * 358px column is unreadable. 600px tall, not 844: a whole phone screen per
+   * picture made each page a screen longer per shot. Same anchors and the same
+   * `expect` guards as qa/marketingShots.mjs, so a frame of an empty or locked
+   * screen still fails the run. Written to public/shots-phone/page/. */
+  ...[
+    { name: "seating",     path: "/events/e1/seating", expect: ["סידור הושבה"] },
+    { name: "guests",      path: "/events/e1/guests",      anchor: "סינון:" },
+    // The LIST heading ("חייבים לשבת יחד — 3"), not the form's type button of
+    // the same words — at this width the button came first and the frame was
+    // an empty form.
+    { name: "constraints", path: "/events/e1/constraints", anchor: "חייבים לשבת יחד —" },
+    { name: "tables",      path: "/events/e1/tables",      anchor: "השולחנות שלי" },
+    { name: "checkin",     path: "/events/e1/checkin",  typeGuest: true },
+    { name: "nametags",    path: "/events/e1/nametags", expect: ["כרטיסי שם"] },
+    { name: "site-editor", path: "/events/e1/site", expect: ["האתר מפורסם"] },
+    { name: "tasks",       path: "/events/e1/tasks",   expect: ["לוח משימות", "לסגור אולם ותאריך"] },
+    { name: "costs",       path: "/events/e1/costs",   expect: ["תכנון תקציב", "45,000"] },
+    { name: "vendors",     path: "/events/e1/vendors", expect: ["ספקים", "אולמי הגן", "נותר לשלם"] },
+    { name: "messages",    path: "/events/e1/messages" },
+  ].map(f => ({ ...f, h: 600, dir: "page", noBrandBar: true })),
 ];
 
 /* startPreview, not `spawn("npx", ["vite", "preview", …])` + a poll. That shape
@@ -384,7 +412,21 @@ try {
         if (!hits.length) return -1;
         const depth = n => { let d = 0; while ((n = n.parentElement)) d++; return d; };
         const el = hits.reduce((a, b) => (depth(b) > depth(a) ? b : a));
-        return Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY) - 24);
+        /* Minus whatever is stuck to the top of the screen (1.11). The app
+           bar is sticky, so a frame started 24px above the anchor had the bar
+           painted over its first line — "קיבולת מספיקה" came out cut in half.
+           Measured with the page scrolled, where sticky things are stuck. */
+        document.documentElement.style.scrollBehavior = "auto";
+        window.scrollTo(0, 400);
+        let stuck = 0;
+        for (const n of document.querySelectorAll("body *")) {
+          const cs = getComputedStyle(n);
+          if (cs.position !== "sticky" && cs.position !== "fixed") continue;
+          const r = n.getBoundingClientRect();
+          if (r.top <= 1 && r.height > 0 && r.height < 200 && r.width > 300) stuck = Math.max(stuck, r.bottom);
+        }
+        window.scrollTo(0, 0);
+        return Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - stuck) - 16);
       }, f.anchor);
       if (y < 0) {
         console.log(`ANCHOR-MISSING  ${f.name}: "${f.anchor}"`);
@@ -392,7 +434,8 @@ try {
         y = 0;
       }
     }
-    y = Math.max(0, Math.min(y, docH - H));
+    const fh = f.h || H;
+    y = Math.max(0, Math.min(y, docH - fh));
 
     /* fullPage, and only then clip.
      *
@@ -405,7 +448,10 @@ try {
     await page.addStyleTag({ content: 'a[aria-label*="וואטסאפ"],button[aria-label*="וואטסאפ"],a[href*="wa.me"][class*="float"],[class*="supportFab"],[class*="fab"]{display:none !important}' });
     await page.evaluate(yy => { document.documentElement.style.scrollBehavior = "auto"; window.scrollTo(0, yy); }, y);
     await page.waitForTimeout(800);
-    await page.screenshot({ path: `${OUT}/${f.name}.jpg`, type: "jpeg", quality: 86 });
+    const outDir = f.dir ? `${OUT}/${f.dir}` : OUT;
+    mkdirSync(outDir, { recursive: true });
+    await page.screenshot({ path: `${outDir}/${f.name}.jpg`, type: "jpeg", quality: 86,
+      ...(f.h ? { clip: { x: 0, y: 0, width: 390, height: f.h } } : {}) });
     // Read the brand back OUT OF THE PAGE rather than trusting that the rebrand
     // reached this screen. The whole reason for this harness is a set of images
     // that carried a stale name for eleven days without anyone noticing.
@@ -446,13 +492,13 @@ try {
      *   - a scroll offset past the end of a short screen → a 2400x1160 one.
      * The page declares ONE intrinsic size for every screenshot, so anything
      * off-size is also a layout shift. Read the JPEG's own header back. */
-    const size = jpegSize(`${OUT}/${f.name}.jpg`);
-    const want = `${390 * 2}x${H * 2}`;
+    const size = jpegSize(`${outDir}/${f.name}.jpg`);
+    const want = `${390 * 2}x${fh * 2}`;
     const got  = `${size.w}x${size.h}`;
     const bad  = got !== want;
     const flag = stale ? `STALE-BRAND (${stale})` : bad ? "WRONG-SIZE"
       : blocked ? "LOCKED-STATE" : missing.length ? "EMPTY-FRAME" : "ok";
-    console.log(`${flag}  ${f.name}.jpg  (y=${y}, ${got}` +
+    console.log(`${flag}  ${f.dir ? f.dir + "/" : ""}${f.name}.jpg  (y=${y}, ${got}` +
       `${bad ? ` — expected ${want}` : ""}${blocked ? ` — "${blocked}"` : ""}` +
       `${missing.length ? ` — missing ${JSON.stringify(missing)}` : ""})`);
     if (flag !== "ok") process.exitCode = 1;
