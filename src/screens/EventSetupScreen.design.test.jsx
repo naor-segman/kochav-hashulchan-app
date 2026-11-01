@@ -41,4 +41,11 @@ describe("EventSetupScreen — the new design", () => {
     mount({ ...base, name: "x" });
     expect(screen.getAllByRole("button", { name: /המשיכו ל/ })).toHaveLength(1);
   });
+
+  it("the save bar carries the marker that lifts the WhatsApp button above it on a phone (1.11)", () => {
+    mount({ ...base, name: "x" });
+    const bar = document.querySelector('[data-tour="setup.save"]');
+    expect(bar.hasAttribute("data-sticky-actions")).toBe(true);
+    expect(bar.querySelector("button").textContent).toMatch(/שמרו והמשיכו/);
+  });
 });

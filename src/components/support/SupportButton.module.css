@@ -46,6 +46,12 @@
   pointer-events: none;
 }
 
+/* A screen with a save bar stuck to the bottom (data-sticky-actions — event
+   details on a phone): the button rides above the bar instead of over it. */
+@media (max-width: 599px) {
+  :global(body:has([data-sticky-actions])) .fab { inset-block-end: 92px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fab { transition: none; }
 }
