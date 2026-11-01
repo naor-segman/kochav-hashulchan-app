@@ -1,7 +1,7 @@
 import { createRequire } from 'module';
 const require = createRequire('/home/user/kochav-hashulchan-app/');
 const { chromium } = require('playwright');
-const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args:['--no-proxy-server'] });
+const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium', args:['--no-proxy-server'] });
 const p = await b.newPage({ viewport:{width:1280,height:900} });
 await p.addInitScript(() => {
   const g=(id,n,side,grp,c,r='confirmed')=>({id,name:n,side,group:grp,count:c,rsvp:r,phone:'0501234567'});

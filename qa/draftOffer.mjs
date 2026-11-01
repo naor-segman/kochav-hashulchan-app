@@ -37,7 +37,7 @@ const { base, stop } = await startDev(Number(process.env.PORT || 5195), {
   VITE_SUPABASE_URL: 'https://stub.supabase.co', VITE_SUPABASE_ANON_KEY: 'stub-anon-key',
 }, ROOT);
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 

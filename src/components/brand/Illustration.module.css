@@ -1,0 +1,18 @@
+/* The illustration set's colour roles (see Illustration.jsx). Ink and paper
+   are the product's own; a/b/c are the logo's camera colours, which the colour
+   rule in tokens.css allows in the logo and in these drawings only. */
+.art { display: block; flex-shrink: 0; overflow: visible; }
+
+.ink {
+  stroke: var(--text);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.thin  { stroke-width: 2.5; }
+.paper { fill: var(--surface); }
+.fa    { fill: var(--logo-teal); }
+.fb    { fill: var(--logo-yellow); }
+.fc    { fill: var(--logo-orange); }
+.fp    { fill: var(--accent); }
+.none  { fill: none; }

@@ -26,7 +26,7 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
 const parse = (css) => css.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number);
 
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server', '--autoplay-policy=no-user-gesture-required'],
 });
 

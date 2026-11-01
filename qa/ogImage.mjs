@@ -38,7 +38,7 @@ ${logo}
 </body></html>`;
 writeFileSync(join(DIR, 'og.html'), html);
 
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 try {
   const p = await b.newPage({ viewport: { width: 1200, height: 630 } });
   await p.goto('file://' + join(DIR, 'og.html'));

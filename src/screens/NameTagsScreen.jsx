@@ -229,6 +229,7 @@ export default function NameTagsScreen({ activeEvent: ev }) {
           {cards.length === 0 && (
             <EmptyState
               mark="nameTags"
+              illustration="placecard"
               title={isTableMode ? "אין שולחנות להדפסה" : "אין כרטיסים להדפסה"}
               text={isTableMode
                 ? "הגדירו שולחנות ושבצו אליהם אורחים, או בחרו “כל השולחנות”."

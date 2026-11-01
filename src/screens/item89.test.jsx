@@ -70,7 +70,16 @@ describe("table bulk-add preview and ceiling (89)", () => {
     expect(screen.getByRole("status").textContent).toMatch(/בין 1 ל-100/);
     add();
     expect(patchEvent).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/מקומות/), "err");
+    // 31.10: said under the field, which is marked and focused — not a toast.
+    expect(showToast).not.toHaveBeenCalledWith(expect.anything(), "err");
+    expect(screen.getByRole("alert").textContent).toMatch(/מקומות בין 1 ל-100/);
+    expect(cap.getAttribute("aria-invalid")).toBe("true");
+    expect(cap.getAttribute("aria-describedby")).toBe(screen.getByRole("alert").id);
+    expect(document.activeElement).toBe(cap);
+    // Editing the field clears it.
+    fireEvent.change(cap, { target: { value: "10" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(cap.getAttribute("aria-invalid")).toBeNull();
   });
 
   it("5000 tables is refused, not created", () => {
@@ -79,7 +88,10 @@ describe("table bulk-add preview and ceiling (89)", () => {
     expect(screen.getByRole("status").textContent).toMatch(/בין 1 ל-200/);
     add();
     expect(patchEvent).not.toHaveBeenCalled();
-    expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/200/), "err");
+    expect(showToast).not.toHaveBeenCalledWith(expect.anything(), "err");
+    expect(screen.getByRole("alert").textContent).toMatch(/200/);
+    expect(cnt.getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(cnt);
   });
 
   it("a valid batch still previews and adds", () => {
@@ -91,5 +103,40 @@ describe("table bulk-add preview and ceiling (89)", () => {
     expect(patchEvent).toHaveBeenCalledTimes(1);
     const next = patchEvent.mock.calls[0][0]({ tables: [] });
     expect(next.tables.map(t => t.capacity)).toEqual([12, 12, 12]);
+  });
+});
+
+describe("editing a table says what is wrong on the row (136 stage D, 31.10)", () => {
+  const setup = () => {
+    const patchEvent = vi.fn();
+    const showToast = vi.fn();
+    const ev = normalizeEvent({ id: "e1", name: "x", type: "חתונה", tables: [
+      { id: "t1", name: "שולחן 1", capacity: 10, type: "regular" },
+      { id: "t2", name: "שולחן 2", capacity: 10, type: "regular" },
+    ] });
+    render(<TableBuilderScreen activeEvent={ev} patchEvent={patchEvent} go={vi.fn()} showToast={showToast} />);
+    fireEvent.click(screen.getAllByRole("button", { name: /עריכ/ })[0]);
+    const name = screen.getByLabelText("שם השולחן");
+    const save = () => fireEvent.click(screen.getByRole("button", { name: "שמרו" }));
+    return { patchEvent, showToast, name, save };
+  };
+
+  it("an empty name", () => {
+    const { patchEvent, showToast, name, save } = setup();
+    fireEvent.change(name, { target: { value: " " } });
+    save();
+    expect(patchEvent).not.toHaveBeenCalled();
+    expect(showToast).not.toHaveBeenCalledWith(expect.anything(), "err");
+    expect(screen.getByRole("alert").textContent).toMatch(/לא יכול להיות ריק/);
+    expect(name.getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(name);
+  });
+
+  it("a name another table already has", () => {
+    const { patchEvent, name, save } = setup();
+    fireEvent.change(name, { target: { value: "שולחן 2" } });
+    save();
+    expect(patchEvent).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toMatch(/כבר יש שולחן בשם "שולחן 2"/);
   });
 });

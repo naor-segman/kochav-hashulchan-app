@@ -47,7 +47,7 @@ let cloudGuests = [
 ];
 
 const server = await startDev(5232, { VITE_SUPABASE_URL: 'https://stub.supabase.co', VITE_SUPABASE_ANON_KEY: 'stub-anon-key' });
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 
 try {
   const p = await browser.newPage({ viewport: { width: 390, height: 844 } });

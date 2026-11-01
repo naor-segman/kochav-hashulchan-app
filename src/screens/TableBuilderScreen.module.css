@@ -140,3 +140,6 @@
     min-height: 44px;
   }
 }
+
+/* A refused edit says why on its own line under the row's inputs. */
+.rowError { grid-column: 1 / -1; }

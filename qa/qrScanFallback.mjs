@@ -73,7 +73,7 @@ const EVENT = {
 
 const server = await startDev(5231);
 const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream',
          `--use-file-for-fake-video-capture=${VIDEO}`],
 });

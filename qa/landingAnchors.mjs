@@ -24,7 +24,7 @@ const BASE = process.env.APP_BASE || 'http://127.0.0.1:5188';
 
 let fails = 0;
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 

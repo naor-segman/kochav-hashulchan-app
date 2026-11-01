@@ -98,7 +98,7 @@
 }
 .galleryDel {
   position: absolute; top: 4px; inset-inline-end: 4px; width: 24px; height: 24px;
-  border-radius: 50%; border: none; background: var(--scrim-55); color: var(--white);
+  border-radius: 0; border: none; background: var(--scrim-55); color: var(--white);
   font-size: var(--step--2); cursor: pointer; line-height: 1;
 }
 @media (max-width: 480px){ .galleryEdit { grid-template-columns: repeat(3, 1fr); } }
@@ -265,3 +265,19 @@
     gap: 18px;
   }
 }
+
+/* A section's details, folded (136 stage D) — the summary the guests screen
+   uses for "מה ההבדל בין שלוש הדרכים?", with a count of what is inside. */
+.fold summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fold summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.foldBody { padding-top: 6px; }

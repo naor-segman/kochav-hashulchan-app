@@ -269,7 +269,7 @@
   justify-content: center;
   padding: 0;
   border: none;
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--white-glass);
   color: var(--nav-text);
   font-size: var(--step--3);
@@ -286,7 +286,7 @@
   inset-inline-end: 3px;
   width: 14px;
   height: 14px;
-  border-radius: var(--radius-xs) var(--radius-xs) var(--radius-xs) 0;
+  border-radius: 0;
   background: var(--accent);
   border: 1.5px solid var(--white-soft);
   cursor: nwse-resize;
@@ -532,7 +532,7 @@
   padding: 0;
   margin-inline-start: 2px;
   border: none;
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--border2);
   color: var(--surface);
   font-size: 9px;

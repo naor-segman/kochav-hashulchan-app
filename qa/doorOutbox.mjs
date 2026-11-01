@@ -30,7 +30,7 @@ execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT,
 });
 const server = await startPreview(4796, ROOT, ['--outDir', OUT]);
 const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 

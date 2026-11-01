@@ -31,7 +31,7 @@ const GIFTS = [
   { id: 'x2', donor_name: 'טרול', amount: 500, message: 'הוסתר', created_at: '2027-06-01T20:00:00Z', hidden: true },
 ];
 const { base, stop } = await startDev(5194, { VITE_SUPABASE_URL: 'https://stub.supabase.co', VITE_SUPABASE_ANON_KEY: 'stub-anon-key' });
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 let fails = 0; const ok = (c, w, d='') => { if (!c) fails++; console.log(`  ${c?'ok  ':'FAIL'} ${w}${d?'  — '+d:''}`); };
 try {
   const ctx = await b.newContext({ acceptDownloads: true, viewport: { width: 1280, height: 900 } });

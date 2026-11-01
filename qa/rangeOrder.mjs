@@ -28,7 +28,7 @@ execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT,
   cwd: ROOT, stdio: 'inherit', env: { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' },
 });
 const server = await startPreview(4806, ROOT, ['--outDir', OUT]);
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 try {
   const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   for (const path of ['/services/rsvp', '/pricing', '/help', '/services/gifts', '/']) {

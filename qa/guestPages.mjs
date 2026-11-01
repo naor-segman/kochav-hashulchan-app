@@ -120,7 +120,7 @@ if (!process.env.GUEST_OUT) {
   });
 }
 const server = await startPreview(PORT, ROOT, ['--outDir', OUT]);
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 
 /** A context with every outbound host answered. `photo` colours the stub images. */
 async function open(path, { width = 390, height = 844, mobile = width < 800, photo = '#cccccc', setup } = {}) {

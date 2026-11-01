@@ -27,7 +27,7 @@ const ok = (cond, what, detail = '') => {
 const head = (s) => console.log(`\n── ${++step}. ${s}`);
 
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 const page = await b.newPage({

@@ -154,6 +154,7 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
         <div data-tour="album.offline">
           <EmptyState
             mark="album"
+            illustration="camera"
             title="האירוע עוד לא נשמר בענן"
             text="התמונות של האורחים נשמרות בענן, ליד האירוע. כשהאירוע יישמר — הן יופיעו כאן."
           />
@@ -174,6 +175,7 @@ export default function AlbumManagerScreen({ activeEvent: ev, showToast, go }) {
         <div data-tour="album.empty">
           <EmptyState
             mark="album"
+            illustration="camera"
             title="עוד אין תמונות"
             text="שלחו לאורחים את הקישור לאלבום המשותף — כל מה שהם יעלו יופיע כאן."
             /* EmptyState draws the button from { label, onClick }. A <button>

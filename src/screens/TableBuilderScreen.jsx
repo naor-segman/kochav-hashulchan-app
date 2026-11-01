@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { TABLE_TYPES, TABLE_SHAPES, DEFAULT_TABLE_SHAPE } from "../data/constants.js";
 import { uid } from "../utils/uid.js";
@@ -39,6 +39,25 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   const [batch,   setBatch]   = useState({ prefix: "", capacity: "10", count: "1", type: "regular", shape: DEFAULT_TABLE_SHAPE });
   const [editId,  setEditId]  = useState(null);
   const [editVals,setEditVals]= useState({});
+  /* Where a refused add or edit says why (136 stage D, as on the guests
+     screen). These were toasts: red at the bottom of the screen over the table
+     list, gone in three seconds, with the field that needed fixing not marked
+     at all (audit 31.10, measured at 390 with capacity 0). Keyed by field and
+     cleared as soon as that field changes. */
+  const [batchErr, setBatchErr] = useState({});
+  const [editErr,  setEditErr]  = useState({});
+  const capRef  = useRef(null);
+  const cntRef  = useRef(null);
+  const editNameRef = useRef(null);
+  const editCapRef  = useRef(null);
+  const setBatchF = (k, v) => {
+    setBatch(p => Object.assign({}, p, { [k]: v }));
+    setBatchErr(e => (e[k] ? Object.assign({}, e, { [k]: null }) : e));
+  };
+  const setEditF = (k, v) => {
+    setEditVals(p => Object.assign({}, p, { [k]: v }));
+    setEditErr(e => (e[k] ? Object.assign({}, e, { [k]: null }) : e));
+  };
 
   // Table types = the standard set + any custom types the user created for this
   // event, plus an "add custom" sentinel that prompts for a new one.
@@ -102,8 +121,9 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
   const addBatch = () => {
     const cap = batchCap;
     const cnt = batchCnt;
-    if (!capOk) { showToast(`יש להזין מספר מקומות בין 1 ל-${BATCH_MAX_CAPACITY}`, "err"); return; }
-    if (!cntOk) { showToast(`אפשר להוסיף בין 1 ל-${BATCH_MAX_COUNT} שולחנות בבת אחת`, "err"); return; }
+    if (!capOk) { setBatchErr({ capacity: `מספר מקומות בין 1 ל-${BATCH_MAX_CAPACITY}` }); capRef.current?.focus(); return; }
+    if (!cntOk) { setBatchErr({ count: `אפשר להוסיף בין 1 ל-${BATCH_MAX_COUNT} שולחנות בבת אחת` }); cntRef.current?.focus(); return; }
+    setBatchErr({});
     patchEvent(e => {
       const names = nextTableNames(e.tables, cnt, previewPrefix);
       const rows = names.map(name => ({
@@ -119,19 +139,20 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
     setBatch(p => Object.assign({}, p, { prefix: "", count: "1" }));
   };
 
-  const startEdit  = t  => { setEditId(t.id); setEditVals({ name: t.name, capacity: String(t.capacity), type: t.type, shape: t.shape || DEFAULT_TABLE_SHAPE }); };
+  const startEdit  = t  => { setEditErr({}); setEditId(t.id); setEditVals({ name: t.name, capacity: String(t.capacity), type: t.type, shape: t.shape || DEFAULT_TABLE_SHAPE }); };
   const cancelEdit = () => setEditId(null);
   const saveEdit   = () => {
     const cap  = parseInt(editVals.capacity);
     const name = (editVals.name || "").trim();
-    if (!name)           { showToast("שם השולחן לא יכול להיות ריק", "err"); return; }
-    if (!cap || cap < 1) { showToast("קיבולת לא תקנית", "err"); return; }
+    if (!name)           { setEditErr({ name: "שם השולחן לא יכול להיות ריק" }); editNameRef.current?.focus(); return; }
+    if (!cap || cap < 1) { setEditErr({ capacity: "מספר מקומות — 1 ומעלה" }); editCapRef.current?.focus(); return; }
     // Same guard the seating screen's inline rename applies. addBatch already
     // refuses to generate a duplicate name; editing one by hand could still
     // create it, and the WhatsApp message, the printed entry card and the
     // violation list all address a table BY NAME.
     if (ev.tables.some(t => t.id !== editId && (t.name || "").trim() === name)) {
-      showToast("כבר קיים שולחן בשם \"" + name + "\" — בחרו שם אחר", "err");
+      setEditErr({ name: "כבר יש שולחן בשם \"" + name + "\" — בחרו שם אחר" });
+      editNameRef.current?.focus();
       return;
     }
     patchEvent(e => Object.assign({}, e, {
@@ -233,12 +254,18 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                 />
               </Field>
               <Field label={<>מקומות לשולחן <InfoTip text="כמה כיסאות יש סביב שולחן אחד — הקיבולת שלו. אורח שהוא משפחה נספר לפי מספר המקומות שהזנתם לו, כך שההושבה לא תחרוג מהקיבולת." /></>}>
-                <input className={base.input} type="number" min="1" max={BATCH_MAX_CAPACITY} value={batch.capacity}
-                  onChange={e => setBatch(p => Object.assign({}, p, { capacity: e.target.value }))} />
+                <input ref={capRef} className={base.input} type="number" min="1" max={BATCH_MAX_CAPACITY} value={batch.capacity}
+                  aria-invalid={batchErr.capacity ? true : undefined}
+                  aria-describedby={batchErr.capacity ? "tables-err-capacity" : undefined}
+                  onChange={e => setBatchF("capacity", e.target.value)} />
+                {batchErr.capacity && <p id="tables-err-capacity" role="alert" className={base.fieldError}>{batchErr.capacity}</p>}
               </Field>
               <Field label="כמות שולחנות">
-                <input className={base.input} type="number" min="1" max={BATCH_MAX_COUNT} value={batch.count}
-                  onChange={e => setBatch(p => Object.assign({}, p, { count: e.target.value }))} />
+                <input ref={cntRef} className={base.input} type="number" min="1" max={BATCH_MAX_COUNT} value={batch.count}
+                  aria-invalid={batchErr.count ? true : undefined}
+                  aria-describedby={batchErr.count ? "tables-err-count" : undefined}
+                  onChange={e => setBatchF("count", e.target.value)} />
+                {batchErr.count && <p id="tables-err-count" role="alert" className={base.fieldError}>{batchErr.count}</p>}
               </Field>
               <Field label="סוג">
                 <select className={base.select} value={batch.type} onChange={e => chooseType(e.target.value, v => setBatch(p => Object.assign({}, p, { type: v })))}>
@@ -265,7 +292,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                   <strong>{seatsWord(totalCap + batchTotal)}</strong>
                 </span>
               </div>
-            ) : (
+            ) : !(batchErr.capacity || batchErr.count) && (
               <p className={styles.batchHint} role="status">
                 {!capOk
                   ? `מקומות לשולחן: מספר בין 1 ל-${BATCH_MAX_CAPACITY}.`
@@ -317,9 +344,13 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                         <>
                           <input
                             className={base.input}
+                            ref={editNameRef}
+                            aria-label="שם השולחן"
                             value={editVals.name}
                             autoFocus
-                            onChange={e => setEditVals(p => Object.assign({}, p, { name: e.target.value }))}
+                            aria-invalid={editErr.name ? true : undefined}
+                            aria-describedby={editErr.name ? "tables-err-edit" : undefined}
+                            onChange={e => setEditF("name", e.target.value)}
                             onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
                           />
                           <input
@@ -327,8 +358,12 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                             style={{ textAlign: "center" }}
                             type="number"
                             min="1"
+                            ref={editCapRef}
+                            aria-label="מקומות לשולחן"
                             value={editVals.capacity}
-                            onChange={e => setEditVals(p => Object.assign({}, p, { capacity: e.target.value }))}
+                            aria-invalid={editErr.capacity ? true : undefined}
+                            aria-describedby={editErr.capacity ? "tables-err-edit" : undefined}
+                            onChange={e => setEditF("capacity", e.target.value)}
                           />
                           <select
                             className={base.select}
@@ -350,6 +385,11 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
                             <button className={base.btnSm} onClick={saveEdit}>שמרו</button>
                             <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={cancelEdit}>ביטול</button>
                           </div>
+                          {(editErr.name || editErr.capacity) && (
+                            <p id="tables-err-edit" role="alert" className={[base.fieldError, styles.rowError].join(" ")}>
+                              {editErr.name || editErr.capacity}
+                            </p>
+                          )}
                         </>
                       ) : (
                         <>
@@ -389,12 +429,7 @@ export default function TableBuilderScreen({ activeEvent: ev, patchEvent, go, sh
           )}
 
           {ev.tables.length === 0 && (
-            <EmptyState mark="tables" title="האולם עוד ריק"
-              art={<>
-                <TableGlyph shape="round" capacity={10} taken={0} size={52} />
-                <TableGlyph shape="rect" capacity={12} taken={0} size={52} />
-                <TableGlyph shape="round" capacity={8} taken={0} size={52} />
-              </>}
+            <EmptyState mark="tables" illustration="table" title="האולם עוד ריק"
               text='כמה שולחנות יש ומה הקיבולת — בטופס למעלה. למשל 15 עגולים של 10 מקומות: 15 ב"כמות שולחנות" ו-10 ב"מקומות לשולחן".' />
           )}
         </>

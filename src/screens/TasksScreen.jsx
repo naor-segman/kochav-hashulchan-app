@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { uid } from "../utils/uid.js";
 import { fmtDate } from "../utils/dateFormat.js";
@@ -20,6 +20,11 @@ const todayISO = () => localISODate();
 export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) {
   const { confirm, dialog } = useConfirm();
   const [form,   setForm]   = useState(EMPTY);
+  /* A refused save says why under the field (136 stage D, as on the guests
+     screen) — it was a toast at the bottom, gone in three seconds. */
+  const [titleErr, setTitleErr] = useState(null);
+  const titleRef = useRef(null);
+  const resetForm = () => { setForm(EMPTY); setTitleErr(null); };
   const [editId, setEditId] = useState(null);
   const [adding, setAdding] = useState(false);
 
@@ -42,7 +47,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
 
   const saveForm = () => {
     const title = form.title.trim();
-    if (!title) { showToast("שם המשימה לא יכול להיות ריק", "err"); return; }
+    if (!title) { setTitleErr("שם המשימה לא יכול להיות ריק"); titleRef.current?.focus(); return; }
     if (editId) {
       write(list => list.map(t => t.id === editId ? { ...t, ...form, title } : t));
       showToast("המשימה עודכנה ✓");
@@ -50,10 +55,11 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
       write(list => [...list, { id: uid(), ...form, title, status: "todo", doneAt: null }]);
       showToast("המשימה נוספה ✓");
     }
-    setForm(EMPTY); setEditId(null); setAdding(false);
+    resetForm(); setEditId(null); setAdding(false);
   };
 
   const startEdit = (t) => {
+    setTitleErr(null);
     setEditId(t.id);
     setForm({ title: t.title, note: t.note || "", due: t.due || "", priority: t.priority || "normal" });
     setAdding(true);
@@ -70,7 +76,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
     write(list => list.filter(x => x.id !== id));
     // Same as vendors: clear the open editor, or "שמרו" writes nothing and
     // still reports success.
-    if (editId === id) { setEditId(null); setAdding(false); setForm(EMPTY); }
+    if (editId === id) { setEditId(null); setAdding(false); resetForm(); }
     showToast("המשימה נמחקה");
   };
 
@@ -106,7 +112,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
 
       <div className={base.card}>
         <div data-tour="tasks.toolbar" className={styles.toolbar}>
-          <button className={base.btnPrimary} onClick={() => { setAdding(true); setEditId(null); setForm(EMPTY); }}>
+          <button className={base.btnPrimary} onClick={() => { setAdding(true); setEditId(null); resetForm(); }}>
             <Icon name="plus" size={15} /> משימה חדשה
           </button>
           {tasks.length === 0 && (
@@ -138,9 +144,13 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
                   value={form.title}
                   autoFocus
                   placeholder="למשל: לסגור מספר מנות מול האולם"
-                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                  onChange={e => { setForm(p => ({ ...p, title: e.target.value })); setTitleErr(null); }}
+                  ref={titleRef}
+                  aria-invalid={titleErr ? true : undefined}
+                  aria-describedby={titleErr ? "task-err-title" : undefined}
                   onKeyDown={e => { if (e.key === "Enter") saveForm(); if (e.key === "Escape") { setAdding(false); setEditId(null); } }}
                 />
+                {titleErr && <p id="task-err-title" role="alert" className={base.fieldError}>{titleErr}</p>}
               </Field>
               <Field label="תאריך יעד" hint="אופציונלי">
                 <input className={base.input} type="date" value={form.due}
@@ -160,7 +170,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
             <div className={styles.formActions}>
               <button className={base.btnPrimary} onClick={saveForm}>{editId ? "שמרו" : "הוסיפו"}</button>
               <button className={[base.btnSm, base.btnGhost].join(" ")}
-                onClick={() => { setAdding(false); setEditId(null); setForm(EMPTY); }}>ביטול</button>
+                onClick={() => { setAdding(false); setEditId(null); resetForm(); }}>ביטול</button>
             </div>
           </div>
         )}
@@ -168,6 +178,7 @@ export default function TasksScreen({ activeEvent: ev, patchEvent, showToast }) 
         {tasks.length === 0 && !adding && (
           <EmptyState
             mark="tasks"
+            illustration="tasks"
             title="מה צריך לסגור עד האירוע?"
             text="הוסיפו משימה ראשונה, או טענו רשימת התחלה מותאמת לסוג האירוע וערכו אותה — וכל מה שצריך לזכור יהיה במקום אחד."
           />

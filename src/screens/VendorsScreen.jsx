@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Icon from "../components/ui/Icon.jsx";
 import { uid } from "../utils/uid.js";
 import {
@@ -25,6 +25,11 @@ const ils = n => "₪" + Math.round(n).toLocaleString("he-IL");
 export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }) {
   const { confirm, dialog } = useConfirm();
   const [form, setForm]     = useState(EMPTY);
+  /* A refused save says why under the field (136 stage D, as on the guests
+     screen) — it was a toast at the bottom, gone in three seconds. */
+  const [nameErr, setNameErr] = useState(null);
+  const nameRef = useRef(null);
+  const resetForm = () => { setForm(EMPTY); setNameErr(null); };
   const [editId, setEditId] = useState(null);
   // The status the row had when the editor opened — so saving writes the
   // form's status only if the host changed it there (see save()).
@@ -46,7 +51,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
 
   const save = () => {
     const name = form.name.trim();
-    if (!name) { showToast("שם הספק לא יכול להיות ריק", "err"); return; }
+    if (!name) { setNameErr("שם הספק לא יכול להיות ריק"); nameRef.current?.focus(); return; }
     if (editId) {
       // Spreading the whole `form` wrote back the status it snapshotted when
       // the editor opened, so a "✓ סגור" pressed on the row while editing was
@@ -65,10 +70,11 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
       write(l => [...l, { id: uid(), ...form, name }]);
       showToast("הספק נוסף ✓");
     }
-    setForm(EMPTY); setEditId(null); setAdding(false);
+    resetForm(); setEditId(null); setAdding(false);
   };
 
   const startEdit = v => {
+    setNameErr(null);
     setEditId(v.id);
     setEditBaseStatus(v.status);
     setForm({ ...EMPTY, ...v });
@@ -81,7 +87,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
     write(l => l.filter(x => x.id !== id));
     // Deleting the row that is open for editing left the form up; pressing
     // "שמרו" then matched nothing yet still toasted success.
-    if (editId === id) { setEditId(null); setAdding(false); setForm(EMPTY); }
+    if (editId === id) { setEditId(null); setAdding(false); resetForm(); }
     showToast("הספק נמחק");
   };
 
@@ -133,7 +139,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
 
       <div className={base.card}>
         <div data-tour="vendors.toolbar" className={styles.toolbar}>
-          <button className={base.btnPrimary} onClick={() => { setAdding(true); setEditId(null); setForm(EMPTY); }}>
+          <button className={base.btnPrimary} onClick={() => { setAdding(true); setEditId(null); resetForm(); }}>
             <Icon name="plus" size={15} /> ספק חדש
           </button>
           {vendors.length > 0 && (
@@ -157,8 +163,12 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
               <Field label="שם הספק" required>
                 <input className={base.input} value={form.name} autoFocus
                   placeholder="למשל: אולמי הגן"
-                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                  onChange={e => { setForm(p => ({ ...p, name: e.target.value })); setNameErr(null); }}
+                  ref={nameRef}
+                  aria-invalid={nameErr ? true : undefined}
+                  aria-describedby={nameErr ? "vendor-err-name" : undefined}
                   onKeyDown={e => { if (e.key === "Enter") save(); if (e.key === "Escape") setAdding(false); }} />
+                {nameErr && <p id="vendor-err-name" role="alert" className={base.fieldError}>{nameErr}</p>}
               </Field>
               <Field label="קטגוריה">
                 <select className={base.select} value={form.category}
@@ -202,7 +212,7 @@ export default function VendorsScreen({ activeEvent: ev, patchEvent, showToast }
             <div className={styles.formActions}>
               <button className={base.btnPrimary} onClick={save}>{editId ? "שמרו" : "הוסיפו"}</button>
               <button className={[base.btnSm, base.btnGhost].join(" ")}
-                onClick={() => { setAdding(false); setEditId(null); setForm(EMPTY); }}>ביטול</button>
+                onClick={() => { setAdding(false); setEditId(null); resetForm(); }}>ביטול</button>
             </div>
           </div>
         )}

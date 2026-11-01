@@ -12,6 +12,7 @@ import base from "../styles/screenBase.module.css";
 import Loading from "../components/feedback/Loading.jsx";
 import Icon from "../components/ui/Icon.jsx";
 import styles from "./RSVPResponsesScreen.module.css";
+import Illustration from "../components/brand/Illustration.jsx";
 
 // Map an RSVP answer to a guest-list rsvp value.
 const GUEST_RSVP = { yes: "confirmed", maybe: "maybe", no: "declined" };
@@ -307,8 +308,18 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
         /* ת: it said every answer "נכנס אוטומטית לרשימת האורחים". Only an
            answer MATCHED to a guest on the list is applied, and only when this
            screen opens; the rest wait below for a tap. */
-        sub="תשובה שזוהתה לפי טלפון מתעדכנת ברשימה כשנכנסים למסך הזה. תשובה שזוהתה רק לפי שם, או של אורח ששיניתם ידנית, מחכה כאן ללחיצה שלכם. תשובה שלא זוהתה מחכה כאן לשיוך. כאן גם תמונת מצב ותחזית מנות."
+        sub="מי ענה, מה ענה, ותחזית מנות."
       />
+
+      {/* The rules were the page's subtitle — five lines above the numbers on
+          a phone (136 stage D, audit 31.10). Folded, word for word. */}
+      <details className={styles.howHelp}>
+        <summary>איך תשובה נכנסת לרשימת האורחים?</summary>
+        <p>
+          תשובה שזוהתה לפי טלפון מתעדכנת ברשימה כשנכנסים למסך הזה. תשובה שזוהתה רק לפי
+          שם, או של אורח ששיניתם ידנית, מחכה כאן ללחיצה שלכם. תשובה שלא זוהתה מחכה כאן לשיוך.
+        </p>
+      </details>
 
       {/* ── Summary stats ── */}
       {loadState === "ready" && (
@@ -428,6 +439,7 @@ export default function RSVPResponsesScreen({ activeEvent: ev, patchEvent, go, s
       {/* ── Empty state with share link ── */}
       {loadState === "ready" && responses.length === 0 && (
         <div data-tour="rsvps.share" className={base.card}>
+          <Illustration name="phone" size={88} className={styles.emptyArt} />
           <SectionLabel>עדיין אין תשובות</SectionLabel>
           <p className={base.fieldHint}>
             שתפו את קישור אישור ההגעה עם האורחים — כל תשובה תופיע כאן אוטומטית.

@@ -62,7 +62,7 @@ const check = (label, got, want) => {
 const note = (label, v) => console.log(`  ··    ${label}: ${JSON.stringify(v)}`);
 
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 const ctx = await b.newContext({ viewport: { width: W, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });

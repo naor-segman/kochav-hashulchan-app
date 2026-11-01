@@ -76,8 +76,8 @@
                                               anything else.
        neutrals (--text* / --muted / --border* / --bg / --surface)
                                               everything that carries no meaning.
-     Third-party marks (--whatsapp, --wa-*, --logo-*) stay inside their own
-     drawings. Guest pages wear the host's theme and are outside this rule. */
+     Third-party marks (--whatsapp, --wa-*) and the logo colours (--logo-*)
+     stay inside their own drawings — the logo and the illustration set. Guest pages wear the host's theme and are outside this rule. */
 
   /* Surfaces — white workspace on a neutral ground. Deliberately UNTINTED:
      the old surfaces carried a teal bias, so every grey quietly whispered the
@@ -112,7 +112,8 @@
      indicator needs — on every link they hold (AX, measured 1.10). */
   --focus-ring: var(--accent-text);
   /* The logo's chairs (owner, 6.10) — Unica's camera colours, so the two
-     brands read as one family. LOGO ONLY: not for UI, text or fills. */
+     brands read as one family. LOGO AND THE ILLUSTRATION SET ONLY (owner,
+     31.10: palette A): never for UI, text, states or buttons. */
   --logo-teal:     #2BB3C0;
   --logo-yellow:   #F6B523;
   --logo-orange:   #F07D2E;

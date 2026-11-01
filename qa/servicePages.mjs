@@ -54,7 +54,7 @@ try {
   server = preview;
 
   const browser = await chromium.launch({
-    executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    executablePath: "/opt/pw-browsers/chromium",
     args: ["--no-proxy-server"],
   });
 

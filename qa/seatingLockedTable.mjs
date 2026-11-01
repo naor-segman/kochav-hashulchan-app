@@ -15,7 +15,7 @@ let ok = false;
 const OUT = mkdtempSync(join(tmpdir(), 'lock-'));
 execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT, '--emptyOutDir', '--logLevel', 'error'], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' } });
 const server = await startPreview(4791, ROOT, ['--outDir', OUT]);
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 try {
   const p = await (await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' })).newPage();
   const guests = ['a','b','c','d','e','f','g'].map((id, i) => ({ id, name: 'אורח ' + (i+1), side: 'bride', group: 'משפחה', count: 1, rsvp: 'confirmed' }));

@@ -1034,7 +1034,7 @@ export default function GuestManagerScreen({ activeEvent: ev, patchEvent, go, sh
       )}
 
       {ev.guests.length === 0 && (
-        <EmptyState mark="guests" title="כל אירוע מתחיל ברשימה"
+        <EmptyState mark="guests" illustration="list" title="כל אירוע מתחיל ברשימה"
           text={`כל מי שאתם רוצים לראות באירוע. בחרו למעלה איך להתחיל: להקליד שורה-שורה, להדביק רשימה שכבר יש לכם, או לשלוח קישור ${collabWhoTo} שימלאו במקומכם.`} />
       )}
       {visible.length === 0 && ev.guests.length > 0 && (

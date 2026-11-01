@@ -16,7 +16,7 @@ const screens = only.length ? only : all;
 const PORT = process.env.ADMIN_PORT || '5188';
 
 const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: '/opt/pw-browsers/chromium',
   args: ['--no-proxy-server'],
 });
 for (const w of (widths.length ? widths : [1280])) {

@@ -28,7 +28,7 @@ execFileSync('node', ['node_modules/vite/bin/vite.js', 'build', '--outDir', OUT,
   cwd: ROOT, stdio: 'inherit', env: { ...process.env, VITE_SUPABASE_URL: SUPA, VITE_SUPABASE_ANON_KEY: 'qa-dummy-key' },
 });
 const server = await startPreview(4807, ROOT, ['--outDir', OUT]);
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-proxy-server'] });
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-proxy-server'] });
 const EV = { id: '11111111-1111-4111-8111-111111111111', name: 'החתונה של דנה ויוסי', type: 'חתונה', date: '2027-06-01',
   venue: 'אולמי הגן', bride_name: 'דנה', groom_name: 'יוסי', rsvp_token: 'rsvp1234', invite_token: 'inv12345',
   site: { enabled: true, sections: {}, schedule: [] } };

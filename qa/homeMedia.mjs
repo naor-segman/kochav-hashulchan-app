@@ -13,7 +13,7 @@ import { startPreview } from "./lib/preview.mjs";
 const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 const { chromium } = createRequire(ROOT + "/")("playwright");
 const { base, stop } = await startPreview(4787);
-const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-proxy-server"] });
+const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args: ["--no-proxy-server"] });
 let fails = 0;
 const ok = (c, what, d = "") => { if (!c) fails++; console.log(`  ${c ? "ok  " : "FAIL"} ${what}${d ? "  — " + d : ""}`); };
 try {

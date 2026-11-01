@@ -13,6 +13,7 @@ import styles from "./EventHubScreen.module.css";
 import { makeOpenScreen, isNameGated } from "../utils/eventNameGate.js";
 import { seatingTotals } from "../utils/eventHelpers.js";
 import { markDraftCarry } from "../utils/draftCarry.js";
+import Illustration from "../components/brand/Illustration.jsx";
 
 /* ── The event's own front page ───────────────────────────────────────────────
  *
@@ -288,6 +289,7 @@ function CreatedMoment({ ev, done }) {
   const celebrate = MAZAL_TOV.has(ev.type);
   return (
     <section className={styles.created} aria-labelledby="hub-created-title" data-tour-hold>
+      {celebrate && <Illustration name="glasses" size={76} className={styles.createdArt} />}
       <h2 id="hub-created-title" className={styles.createdTitle}>
         {celebrate ? "מזל טוב — האירוע נפתח" : "האירוע נפתח"}
       </h2>

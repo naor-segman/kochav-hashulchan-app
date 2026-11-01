@@ -7,16 +7,8 @@
   max-width: 880px;
   margin: 0 auto;
   padding: 28px 20px 40px;
-  animation: fadeUp 0.22s ease;
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page { animation: none; }
+  /* No entrance animation: the screens around it (sign-in, sign-up) dropped
+     theirs in 136 stage C — "בלי אנימציה קופצת". */
 }
 
 /* ── Hero ── */
@@ -335,6 +327,14 @@
   font-size: var(--step--2);
   color: var(--text2);
   line-height: var(--line-height-normal);
+}
+
+/* On a phone the form comes up (136 stage D, audit 31.10: its first field sat
+   at 705px). The demo tables and their caption are the illustration of the
+   lead sentence; the sentence says it on its own. */
+@media (max-width: 599px) {
+  .glyphPlate, .glyphCaption { display: none; }
+  .lead { margin-bottom: 4px; }
 }
 
 @media (max-width: 480px) {

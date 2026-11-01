@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 const OUT = process.argv[2] || "/tmp/marks.png";
 
 const b = await chromium.launch({
-  executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+  executablePath: "/opt/pw-browsers/chromium",
   args: ["--no-proxy-server"],
 });
 const p = await b.newPage({ viewport: { width: 1180, height: 900 }, deviceScaleFactor: 2 });

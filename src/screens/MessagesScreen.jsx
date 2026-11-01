@@ -270,7 +270,10 @@ export default function MessagesScreen({ activeEvent: ev, patchEvent, showToast 
                         : "ההודעה הזאת תצא בלי קישור — הדף שמתאים לה עוד לא פורסם."}
                     </p>
                     <div className={styles.stageActions}>
-                      <button className={base.btnSm} onClick={() => setEditing(stage.key)}>ערכו תבנית</button>
+                      {/* Quiet: the stage's job is sending, not editing (colour rule,
+                          tokens.css — magenta is the one action). It was the only
+                          filled button in the stage, louder than every send. */}
+                      <button className={[base.btnSm, base.btnGhost].join(" ")} onClick={() => setEditing(stage.key)}>ערכו תבנית</button>
                       {stage.done > 0 && (
                         <button className={[base.btnSm, base.btnGhost].join(" ")}
                           onClick={() => clearStage(stage.key)}>אפסו סימונים</button>
