@@ -1553,8 +1553,10 @@
 }
 
 .waNotifyItem:hover {
-  border-color: var(--whatsapp);
-  background: color-mix(in srgb, var(--whatsapp) 6%, var(--bg));
+  /* The hover every other row takes (colour rule, 1.11) — it was a tint of
+     WhatsApp's green, which belongs to its mark. */
+  border-color: var(--accent-border);
+  background: var(--accent-light);
 }
 
 .waNotifyName {

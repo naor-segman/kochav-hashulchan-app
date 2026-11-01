@@ -19,8 +19,10 @@
 .msgLabel { font-size: var(--step-0); font-weight: 700; color: var(--text); }
 .msgPreview { font-size: var(--step--2); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msgActions { display: flex; gap: 6px; flex-shrink: 0; }
-.msgWa { background: var(--whatsapp); text-decoration: none; display: inline-flex; align-items: center; }
-.msgWa:hover { filter: brightness(0.93); }
+/* A quiet outline, like the send buttons on the messages screen (1.11). It was
+   white on WhatsApp green — 1.98:1, far under AA — and the colour rule keeps
+   that green inside WhatsApp's own mark (tokens.css). */
+.msgWa { text-decoration: none; display: inline-flex; align-items: center; }
 
 /* Theme swatches */
 .themeGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 6px; }
