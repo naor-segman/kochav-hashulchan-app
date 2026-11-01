@@ -4,6 +4,7 @@ import Footer from "../../components/layout/Footer.jsx";
 import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
 import { useHashScroll } from "../../hooks/useHashScroll.js";
+import ProductShot from "../../components/marketing/ProductShot.jsx";
 
 /**
  * Service page 6 of 6 — מתנות באשראי. Checklist 87.
@@ -209,7 +210,7 @@ export default function GiftsServiceScreen({ user = null }) {
               </p>
             </div>
             <figure className={[styles.stepFigure, styles.stepFigurePortrait].join(" ")}>
-              <img
+              <ProductShot
                 className={styles.shot} src="/shots/gift-form.jpg"
                 alt="דף המתנה בטלפון — שם האירוע, ארבעה סכומים לבחירה וסכום חופשי, תיבת ברכה אישית, שם השולח וכרטיס שמסביר מה קורה בלחיצה"
                 width="1280" height="2200" loading="lazy"
@@ -239,7 +240,7 @@ export default function GiftsServiceScreen({ user = null }) {
           </p>
 
           <figure className={styles.shotFigure}>
-            <img
+            <ProductShot
               className={styles.shot} src="/shots/gift-wall.jpg"
               alt="קיר הברכות מוקרן על מסך — כרטיסים כהים ובכל אחד שם המברך, הברכה שכתב והזמן שעבר מאז, בלי אף סכום"
               width="2400" height="1520" loading="lazy"
@@ -295,7 +296,7 @@ export default function GiftsServiceScreen({ user = null }) {
               </p>
             </div>
             <figure className={styles.stepFigure}>
-              <img
+              <ProductShot
                 className={styles.shot} src="/shots/site-editor.jpg"
                 alt="מסך עריכת אתר האירוע — בחירת עיצוב, שדות התוכן והמתגים שמחליטים אילו מקטעים יופיעו לאורחים"
                 width="2400" height="1520" loading="lazy"

@@ -5,6 +5,7 @@ import { COMPANY } from "../../data/company.js";
 import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
 import { useHashScroll } from "../../hooks/useHashScroll.js";
+import ProductShot from "../../components/marketing/ProductShot.jsx";
 
 /**
  * Service page 1 of 6 — סידורי הושבה. Checklist 87.
@@ -203,7 +204,7 @@ export default function SeatingServiceScreen({ user = null }) {
           </div>
 
           <figure className={styles.shotFigure}>
-            <img
+            <ProductShot
               className={styles.shot}
               src="/shots/seating.jpg"
               /* The brand is never typed — company.test.js has a door test that
@@ -234,7 +235,7 @@ export default function SeatingServiceScreen({ user = null }) {
                   <p className={styles.stepBody}>{s.body}</p>
                 </div>
                 <figure className={styles.stepFigure}>
-                  <img
+                  <ProductShot
                     className={styles.shot} src={s.img} alt={s.alt}
                     width="2400" height="1520" loading="lazy"
                   />

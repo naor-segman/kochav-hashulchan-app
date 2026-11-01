@@ -1,0 +1,3 @@
+/* The <picture> wrapper is a block, so the <img> inside keeps the page
+   layout it had as a bare <img>. */
+.pic { display: block; }

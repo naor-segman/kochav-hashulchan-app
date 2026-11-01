@@ -4,6 +4,7 @@ import Footer from "../../components/layout/Footer.jsx";
 import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
 import { useHashScroll } from "../../hooks/useHashScroll.js";
+import ProductShot from "../../components/marketing/ProductShot.jsx";
 
 /**
  * Service page 3 of 6 — תכנון האירוע. Checklist 87.
@@ -148,7 +149,7 @@ export default function PlanningServiceScreen({ user = null }) {
               </p>
             </div>
             <figure className={styles.stepFigure}>
-              <img
+              <ProductShot
                 className={styles.shot} src="/shots/tasks.jpg"
                 alt="לוח המשימות — שלוש עמודות לביצוע, בתהליך והושלם, עם תאריכי יעד ותג עדיפות לכל משימה"
                 width="2400" height="1520" loading="lazy"
@@ -184,7 +185,7 @@ export default function PlanningServiceScreen({ user = null }) {
           </p>
 
           <figure className={styles.shotFigure}>
-            <img
+            <ProductShot
               className={styles.shot} src="/shots/costs.jpg"
               alt="מסך תכנון התקציב — תקציב מתוכנן מול בפועל, עלות לאורח, ופירוט לפי קטגוריה עם ההפרש בכל שורה"
               width="2400" height="1520" loading="lazy"
@@ -217,7 +218,7 @@ export default function PlanningServiceScreen({ user = null }) {
               </p>
             </div>
             <figure className={styles.stepFigure}>
-              <img
+              <ProductShot
                 className={styles.shot} src="/shots/vendors.jpg"
                 alt="מסך הספקים — סיכום של סך מחויב, שולם ונותר לשלם, ורשימת ספקים עם סטטוס ומחיר לכל אחד"
                 width="2400" height="1520" loading="lazy"

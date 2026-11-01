@@ -5,6 +5,7 @@ import { serviceById } from "../../data/services.js";
 import { PER_PAGE } from "../../data/nameTagSizes.js";
 import styles from "./ServicePage.module.css";
 import { useHashScroll } from "../../hooks/useHashScroll.js";
+import ProductShot from "../../components/marketing/ProductShot.jsx";
 
 /**
  * Service page 5 of 6 — יום האירוע. Checklist 87.
@@ -146,7 +147,7 @@ export default function EventDayServiceScreen({ user = null }) {
           </p>
 
           <figure className={styles.shotFigure}>
-            <img
+            <ProductShot
               className={styles.shot} src="/shots/checkin.jpg"
               alt="עמדת הכניסה — מונה של כמה אורחים כבר נכנסו מתוך הסך הכל, חיפוש לפי שם או לפי שולחן, וקישור לדיילת"
               width="2400" height="1520" loading="lazy"
@@ -214,7 +215,7 @@ export default function EventDayServiceScreen({ user = null }) {
               </p>
             </div>
             <figure className={styles.stepFigure}>
-              <img
+              <ProductShot
                 className={styles.shot} src="/shots/nametags.jpg"
                 alt="מסך כרטיסי השולחן ותגי השם — ארבעה גדלים לבחירה, בחירת קהל, ומונה של כמה כרטיסים וכמה דפים יודפסו"
                 width="2400" height="1520" loading="lazy"

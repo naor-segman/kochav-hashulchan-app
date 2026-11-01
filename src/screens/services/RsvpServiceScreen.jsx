@@ -5,6 +5,7 @@ import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
 import { useHashScroll } from "../../hooks/useHashScroll.js";
 import { PACKAGES } from "../../data/pricingCurve.js";
+import ProductShot from "../../components/marketing/ProductShot.jsx";
 
 /**
  * Service page 4 of 6 — אישורי הגעה. Checklist 87.
@@ -217,7 +218,7 @@ export default function RsvpServiceScreen({ user = null }) {
               </p>
             </div>
             <figure className={styles.stepFigure}>
-              <img
+              <ProductShot
                 className={styles.shot} src="/shots/guests.jpg"
                 alt="רשימת האורחים — לכל שורה סטטוס אישור הגעה, צד, קבוצה, מספר מקומות ושיוך לשולחן"
                 width="2400" height="1520" loading="lazy"
@@ -268,7 +269,7 @@ export default function RsvpServiceScreen({ user = null }) {
               </p>
             </div>
             <figure className={styles.stepFigure}>
-              <img
+              <ProductShot
                 className={styles.shot} src="/shots/messages.jpg"
                 alt="מסך ההודעות לאורחים — שישה שלבים עם מונה נשלחו מתוך מי שאפשר לשלוח אליו, וטקסט שניתן לעריכה"
                 width="2400" height="1520" loading="lazy"

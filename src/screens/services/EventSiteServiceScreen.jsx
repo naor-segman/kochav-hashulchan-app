@@ -4,6 +4,7 @@ import Footer from "../../components/layout/Footer.jsx";
 import { serviceById } from "../../data/services.js";
 import styles from "./ServicePage.module.css";
 import { useHashScroll } from "../../hooks/useHashScroll.js";
+import ProductShot from "../../components/marketing/ProductShot.jsx";
 
 /**
  * Service page 2 of 6 — אתר לאירוע והזמנה דיגיטלית. Checklist 87.
@@ -202,7 +203,7 @@ export default function EventSiteServiceScreen({ user = null }) {
               </p>
             </div>
             <figure className={styles.stepFigure}>
-              <img
+              <ProductShot
                 className={styles.shot} src="/shots/site-editor.jpg"
                 alt="עורך אתר האירוע — בחירת ערכת עיצוב וגופן, שדות לכתובת, ללוז ולהסעות, ומתגים לכל חלק בעמוד"
                 width="2400" height="1520" loading="lazy"
