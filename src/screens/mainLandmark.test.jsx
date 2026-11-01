@@ -149,7 +149,6 @@ const OWN_MAIN = {
   LoginScreen:         "src/screens/LoginScreen.jsx",
   SignupScreen:        "src/screens/SignupScreen.jsx",
   ResetPasswordScreen: "src/screens/ResetPasswordScreen.jsx",
-  AccountScreen:       "src/screens/AccountScreen.jsx",
   AuthCallbackScreen:  "src/screens/AuthCallbackScreen.jsx",
   HelpScreen:          "src/screens/HelpScreen.jsx",
   PrivacyScreen:       "src/screens/PrivacyScreen.jsx",
@@ -163,6 +162,8 @@ const OWN_MAIN = {
 const NO_OWN_MAIN = new Set([
   "Suspense", "Loading", "Navigate", "Toast", "MigrationBanner", "RootGate",
   "Shell", "DashboardScreen", "StartScreen", "EventRoutes",
+  // In the app frame since 1.11.
+  "AccountScreen",
   // Thin wrappers around EventSiteScreen / AnnouncementScreen (above).
   "EventSitePreview", "AnnouncementPreview",
   // Its own route table — its screens are checked below.
