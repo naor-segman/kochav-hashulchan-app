@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { usePlan } from "../../hooks/usePlan.js";
 import { useBilling } from "../../hooks/useBilling.js";
@@ -62,6 +62,14 @@ export default function EventPlanCard({ ev }) {
      parameter is then removed so a refresh does not replay it. */
   const [returned] = useState(() => new URLSearchParams(location.search).get("checkout"));
   const [confirm, setConfirm] = useState(returned === "success" ? "waiting" : null); // waiting|done|slow
+  /* The purchase terms, accepted at the moment of buying (WORKPLAN 41, 2.11).
+     Grow's site review requires a box the buyer ticks before paying — the
+     terms accepted at sign-up do not count, and a purchase is a separate
+     contract. Pressing buy without it says why under the box and puts the
+     focus there, as every form in the app does since 136 stage D. */
+  const [agreed, setAgreed]     = useState(false);
+  const [needAgree, setNeedAgree] = useState(false);
+  const agreeRef = useRef(null);
   useEffect(() => {
     if (!returned) return undefined;
     const params = new URLSearchParams(location.search);
@@ -160,13 +168,38 @@ export default function EventPlanCard({ ev }) {
 
       {!isPaid && !waiting && step && (
         <div className={styles.side}>
+          <label className={styles.terms}>
+            <input
+              type="checkbox"
+              ref={agreeRef}
+              className={styles.termsBox}
+              checked={agreed}
+              onChange={e => { setAgreed(e.target.checked); if (e.target.checked) setNeedAgree(false); }}
+              aria-invalid={needAgree || undefined}
+              aria-describedby={needAgree ? "event-plan-terms-err" : undefined}
+            />
+            <span>
+              קראתי ואני מאשר/ת את{" "}
+              <Link to="/terms" target="_blank" rel="noopener" className={styles.fineLink}>תקנון הרכישה</Link>
+              {" "}ואת{" "}
+              <Link to="/refunds" target="_blank" rel="noopener" className={styles.fineLink}>מדיניות הביטול</Link>
+            </span>
+          </label>
+          {needAgree && (
+            <p id="event-plan-terms-err" role="alert" className={styles.err}>
+              כדי לרכוש, סמנו שקראתם את התקנון ואת מדיניות הביטול
+            </p>
+          )}
           <button
             type="button"
             className={styles.buy}
             disabled={!!blocked || billing.checkoutTarget === paidKey}
             title={blocked || `רכישת חבילת ״${paidTier.name}״ לאירוע הזה`}
             aria-describedby="event-plan-fine"
-            onClick={() => billing.startCheckout(paidKey, ev)}
+            onClick={() => {
+              if (!agreed) { setNeedAgree(true); agreeRef.current?.focus(); return; }
+              billing.startCheckout(paidKey, ev);
+            }}
           >
             {billing.checkoutTarget === paidKey
               ? "פותח…"

@@ -103,6 +103,7 @@ describe("EventPlanCard — an unpaid event", () => {
 
   it("hands startCheckout the EVENT, not just a plan", () => {
     renderCard(<EventPlanCard ev={WEDDING} />);
+    screen.getByRole("checkbox").click();   // the purchase terms (41, 2.11)
     screen.getByRole("button").click();
     expect(startCheckout).toHaveBeenCalledTimes(1);
     const [planKey, event] = startCheckout.mock.calls[0];
@@ -217,5 +218,39 @@ describe("EventPlanCard — back from checkout (29.9 review)", () => {
     expect(document.body.textContent).toContain("לא חויבתם");
     expect(screen.getByRole("button").textContent).toContain("₪399");
     expect(refreshes).toBe(0);
+  });
+});
+
+/* WORKPLAN 41 (2.11): Grow's site review requires the buyer to tick the
+ * purchase terms before paying — sign-up consent does not count. */
+describe("EventPlanCard — the purchase terms box", () => {
+  it("links the purchase terms and the cancellation policy, in a new tab", () => {
+    renderCard(<EventPlanCard ev={WEDDING} />);
+    const box = screen.getByRole("checkbox");
+    const label = box.closest("label");
+    const links = [...label.querySelectorAll("a")].map(a => [a.getAttribute("href"), a.getAttribute("target")]);
+    expect(links).toEqual([["/terms", "_blank"], ["/refunds", "_blank"]]);
+    expect(box.checked).toBe(false);
+  });
+
+  it("buying without it: no checkout, the reason under the box, focus on it", () => {
+    renderCard(<EventPlanCard ev={WEDDING} />);
+    act(() => { screen.getByRole("button").click(); });
+    expect(startCheckout).not.toHaveBeenCalled();
+    const box = screen.getByRole("checkbox");
+    expect(screen.getByRole("alert").textContent).toMatch(/סמנו שקראתם את התקנון/);
+    expect(box.getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(box);
+    act(() => { box.click(); });
+    expect(screen.queryByRole("alert")).toBeNull();
+    act(() => { screen.getByRole("button").click(); });
+    expect(startCheckout).toHaveBeenCalledTimes(1);
+  });
+
+  it("is there while buying is not open yet — what Grow's reviewer will see today", () => {
+    stripeConfigured = false;
+    renderCard(<EventPlanCard ev={WEDDING} />);
+    expect(screen.getByRole("checkbox")).toBeTruthy();
+    expect(screen.getByRole("button").disabled).toBe(true);
   });
 });
